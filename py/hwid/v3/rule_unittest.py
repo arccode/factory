@@ -12,9 +12,7 @@ from cros.factory.hwid.v3.rule import GetLogger
 from cros.factory.hwid.v3.rule import Rule
 from cros.factory.hwid.v3.rule import RuleException
 from cros.factory.hwid.v3.rule import RuleFunction
-from cros.factory.hwid.v3.rule import SetContext
 from cros.factory.hwid.v3.rule import Value
-from cros.factory.hwid.v3 import yaml_wrapper as yaml
 
 
 @RuleFunction(['string'])
@@ -58,40 +56,6 @@ class HWIDRuleTest(unittest.TestCase):
     self.assertFalse(Value('foo').Matches('bar'))
     self.assertTrue(Value('^foo.*bar$', is_re=True).Matches('fooxyzbar'))
     self.assertFalse(Value('^foo.*bar$', is_re=True).Matches('barxyzfoo'))
-
-  def testYAMLParsing(self):
-    SetContext(self.context)
-    self.assertRaisesRegexp(
-        SyntaxError, r'unexpected EOF while parsing', yaml.load("""
-            !rule
-            name: foobar1
-            when: StrLen() > 3
-            evaluate: AssertStrLen(5
-        """).Validate)
-    self.assertRaisesRegexp(
-        SyntaxError, r'invalid syntax \(<string>, line 1\)', yaml.load("""
-            !rule
-            name: foobar1
-            when: StrLen( > 3
-            evaluate: AssertStrLen(5)
-        """).Validate)
-
-    rule = yaml.load("""
-        !rule
-        name: foobar2
-        when: StrLen() > 3
-        evaluate: AssertStrLen(3)
-    """)
-    self.assertEquals(None, rule.Evaluate(self.context))
-
-    rule = yaml.load("""
-        !rule
-        name: foobar2
-        when: StrLen() > 3
-        evaluate: AssertStrLen(6)
-    """)
-    self.assertRaisesRegexp(
-        RuleException, r'ERROR: Assertion error', rule.Evaluate, self.context)
 
   def testEvaluateOnce(self):
     self.assertEquals(5, Rule.EvaluateOnce('StrLen()', self.context))

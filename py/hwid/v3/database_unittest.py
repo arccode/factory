@@ -20,6 +20,14 @@ from cros.factory.utils import file_utils
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
+def Unordered(data):
+  if isinstance(data, dict):
+    return {k: Unordered(v) for k, v in data.iteritems()}
+  elif isinstance(data, list):
+    return [Unordered(a) for a in data]
+  return data
+
+
 class DatabaseTest(unittest.TestCase):
   def testLoadFile(self):
     Database.LoadFile(os.path.join(_TEST_DATA_PATH, 'test_database_db.yaml'))
@@ -55,14 +63,14 @@ class DatabaseTest(unittest.TestCase):
 class ImageIdTest(unittest.TestCase):
   def testExport(self):
     expr = {0: 'EVT', 1: 'DVT', 2: 'PVT'}
-    self.assertEquals(ImageId(expr).Export(),
+    self.assertEquals(Unordered(ImageId(expr).Export()),
                       {0: 'EVT', 1: 'DVT', 2: 'PVT'})
 
   def testSetItem(self):
     image_id = ImageId({0: 'EVT', 1: 'DVT', 2: 'PVT'})
     image_id[3] = 'XXYYZZ'
     image_id[5] = 'AABBCC'
-    self.assertEquals(image_id.Export(),
+    self.assertEquals(Unordered(image_id.Export()),
                       {0: 'EVT', 1: 'DVT', 2: 'PVT', 3: 'XXYYZZ', 5: 'AABBCC'})
 
     def func(a, b):
@@ -89,7 +97,7 @@ class ComponentsTest(unittest.TestCase):
                                'comp41': {'values': {'a': 'b'}}}},
             'cls4': {'items': {'comp41': {'values': None}}, 'probeable': False}}
     c = Components(expr)
-    self.assertEquals(c.Export(), expr)
+    self.assertEquals(Unordered(c.Export()), expr)
 
   def testSyntaxError(self):
     self.assertRaises(Exception, Components,
@@ -122,7 +130,7 @@ class ComponentsTest(unittest.TestCase):
     c.AddComponent('cls2', 'comp1', {'a': 'b', 'c': 'd'}, 'deprecated')
     c.AddComponent('cls1', 'comp_default', None, 'supported')
     self.assertEquals(
-        c.Export(), {
+        Unordered(c.Export()), {
             'cls1': {
                 'items': {
                     'comp1': {'values': {'a': 'b', 'c': 'd'}},
@@ -143,8 +151,9 @@ class ComponentsTest(unittest.TestCase):
     c = Components({'cls1': {'items': {'comp1': {'values': {'a': 'b'}}}}})
     c.SetComponentStatus('cls1', 'comp1', 'deprecated')
     self.assertEquals(
-        c.Export(), {'cls1': {'items': {'comp1': {'values': {'a': 'b'},
-                                                  'status': 'deprecated'}}}})
+        Unordered(c.Export()),
+        {'cls1': {'items': {'comp1': {'values': {'a': 'b'},
+                                      'status': 'deprecated'}}}})
 
   def testGettingMethods(self):
     c = Components({'cls1': {'items': {'comp1': {'values': {'a': 'b'},
@@ -169,12 +178,12 @@ class EncodedFieldsTest(unittest.TestCase):
                     1: {'x': 'xx', 'y': [], 'z': []}},
             'bbb': {0: {'b': ['b1', 'b2', 'b3']}}}
     encoded_fields = EncodedFields(expr)
-    self.assertEquals(encoded_fields.Export(), expr)
+    self.assertEquals(Unordered(encoded_fields.Export()), expr)
 
     expr = {'aaa': {0: {'x': [], 'y': 'y', 'z': ['z1', 'z2']},
                     2: {'x': 'xx', 'y': [], 'z': []}}}
     encoded_fields = EncodedFields(expr)
-    self.assertEquals(encoded_fields.Export(), expr)
+    self.assertEquals(Unordered(encoded_fields.Export()), expr)
 
   def testSyntaxError(self):
     self.assertRaises(Exception, EncodedFields,
@@ -190,29 +199,29 @@ class EncodedFieldsTest(unittest.TestCase):
 
   def testAddFieldComponents(self):
     e = EncodedFields({'e1': {0: {'a': 'A', 'b': 'B'}}})
-    e.AddFieldComponents('e1', {'a': 'AA', 'b': 'BB'})
-    e.AddFieldComponents('e1', {'a': ['AA', 'AX'], 'b': 'BB'})
+    e.AddFieldComponents('e1', {'a': ['AA'], 'b': ['BB']})
+    e.AddFieldComponents('e1', {'a': ['AA', 'AX'], 'b': ['BB']})
 
-    self.assertEquals(e.Export(),
+    self.assertEquals(Unordered(e.Export()),
                       {'e1': {0: {'a': 'A', 'b': 'B'},
                               1: {'a': 'AA', 'b': 'BB'},
                               2: {'a': ['AA', 'AX'], 'b': 'BB'}}})
 
     # `e1` should encode only component class `a` and `b`.
     self.assertRaises(HWIDException, e.AddFieldComponents,
-                      'e1', {'c': 'CC', 'a': 'AAAAAA', 'b': 'BB'})
+                      'e1', {'c': ['CC'], 'a': ['AAAAAA'], 'b': ['BB']})
 
   def testAddNewField(self):
     e = EncodedFields({'e1': {0: {'a': 'A', 'b': 'B'}}})
-    e.AddNewField('e2', {'c': 'CC', 'd': 'DD'})
+    e.AddNewField('e2', {'c': ['CC'], 'd': ['DD']})
 
-    self.assertEquals(e.Export(),
+    self.assertEquals(Unordered(e.Export()),
                       {'e1': {0: {'a': 'A', 'b': 'B'}},
                        'e2': {0: {'c': 'CC', 'd': 'DD'}}})
 
     # `e2` already exists.
     self.assertRaises(HWIDException, e.AddNewField,
-                      'e2', {'xxx': 'yyy'})
+                      'e2', {'xxx': ['yyy']})
     self.assertRaises(HWIDException, e.AddNewField, 'e3', {})
 
   def testGettingMethods(self):
@@ -242,7 +251,7 @@ class PatternTest(unittest.TestCase):
              'encoding_scheme': 'base8192',
              'fields': []}]
     pattern = Pattern(expr)
-    self.assertEquals(pattern.Export(), expr)
+    self.assertEquals(Unordered(pattern.Export()), expr)
 
   def testSyntaxError(self):
     # missing "image_ids" field
@@ -281,7 +290,7 @@ class PatternTest(unittest.TestCase):
 
     pattern.AddEmptyPattern(2, 'base8192')
     self.assertEquals(
-        pattern.Export(),
+        Unordered(pattern.Export()),
         [{'image_ids': [0], 'encoding_scheme': 'base32', 'fields': []},
          {'image_ids': [2], 'encoding_scheme': 'base8192', 'fields': []}])
     self.assertEquals(pattern.GetEncodingScheme(), 'base8192')
@@ -295,7 +304,7 @@ class PatternTest(unittest.TestCase):
 
     pattern.AddImageId(0, 3)
     self.assertEquals(
-        pattern.Export(),
+        Unordered(pattern.Export()),
         [{'image_ids': [0, 3], 'encoding_scheme': 'base32', 'fields': []}])
 
     # `reference_image_id` should exist.
@@ -312,7 +321,7 @@ class PatternTest(unittest.TestCase):
     pattern.AppendField('bbb', 0)
     pattern.AppendField('aaa', 1)
     self.assertEquals(
-        pattern.Export(),
+        Unordered(pattern.Export()),
         [{'image_ids': [0], 'encoding_scheme': 'base32',
           'fields': [{'aaa': 3}, {'bbb': 0}, {'aaa': 1}]}])
 
@@ -362,7 +371,7 @@ class RulesTest(unittest.TestCase):
     rules.AddDeviceInfoRule('rule3', 'eval3')
     rules.AddDeviceInfoRule('rule2', 'eval2', position=1)
     rules.AddDeviceInfoRule('rule0', 'eval0', position=0)
-    self.assertEquals(rules.Export(),
+    self.assertEquals(Unordered(rules.Export()),
                       [{'name': 'device_info.rule0', 'evaluate': 'eval0'},
                        {'name': 'device_info.rule1', 'evaluate': 'eval1'},
                        {'name': 'device_info.rule2', 'evaluate': 'eval2'},

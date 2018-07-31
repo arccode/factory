@@ -36,6 +36,7 @@ each part is described in the class' document.
 """
 
 import collections
+import copy
 import hashlib
 import logging
 import re
@@ -44,65 +45,10 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.rule import Rule
 from cros.factory.hwid.v3.rule import Value
-# Import yaml_tags to decode special YAML tags specific to HWID module.
-from cros.factory.hwid.v3 import yaml_tags
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import file_utils
 from cros.factory.utils import schema
 from cros.factory.utils import type_utils
-
-
-class _DatabaseOrderedDictMetaClass(type):
-  def __init__(cls, *args, **kwargs):
-    super(_DatabaseOrderedDictMetaClass, cls).__init__(*args, **kwargs)
-    yaml.add_representer(
-        cls, lambda dumper, data: dumper.represent_dict(data.iteritems()))
-
-
-class _DatabaseOrderedDict(collections.OrderedDict):
-  __metaclass__ = _DatabaseOrderedDictMetaClass
-
-
-def PatchYAMLMappingConstructor(yaml_loader=yaml.Loader,
-                                use_hwid_exceptions=False):
-  """Patch the mapping constructor of PyYAML to fail on duplicated keys.
-
-  The two parameters, yaml_loader and use_hwid_exceptions are used by the HWID
-  server.
-  """
-  def ConstructMapping(self, node, deep=False):
-    if not isinstance(node, yaml.nodes.MappingNode):
-      raise yaml.constructor.ConstructorError(
-          None, None, 'expected a mapping node, but found %s' % node.id,
-          node.start_mark)
-    mapping = {}
-    for key_node, value_node in node.value:
-      key = self.construct_object(key_node, deep=deep)
-      try:
-        hash(key)
-      except TypeError:
-        if use_hwid_exceptions:
-          raise common.HWIDException('Invalid key: %s' % key)
-        else:
-          raise yaml.constructor.ConstructorError(
-              'while constructing a mapping', node.start_mark,
-              'found unacceptable key (%s)' % key, key_node.start_mark)
-      value = self.construct_object(value_node, deep=deep)
-      if key in mapping:
-        if use_hwid_exceptions:
-          raise common.HWIDException('Duplicate key: %s' % key)
-        else:
-          raise yaml.constructor.ConstructorError(
-              'while constructing a mapping', node.start_mark,
-              'found duplicated key (%s)' % key, key_node.start_mark)
-      mapping[key] = value
-    return mapping
-
-  yaml_loader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-                              ConstructMapping)
-
-
-PatchYAMLMappingConstructor()
 
 
 class Database(object):
@@ -211,16 +157,7 @@ class Database(object):
       HWIDException if there is missing field in the database, or database
       integrity veification fails.
     """
-    # To keep the key order not changed, we temporary patch the yaml to load
-    # a dictinary with `_DatabaseOrderedDict`.
-    def _PatchYamlDictConstructor(cls):
-      yaml.add_constructor(
-          yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
-          lambda loader, node: cls(loader.construct_pairs(node)))
-
-    _PatchYamlDictConstructor(_DatabaseOrderedDict)
     yaml_obj = yaml.load(raw_data)
-    _PatchYamlDictConstructor(dict)
 
     if not isinstance(yaml_obj, dict):
       raise common.HWIDException('Invalid HWID database')
@@ -266,9 +203,8 @@ class Database(object):
         ('rules', self._rules.Export()),
     ]
 
-    return yaml_tags.RemoveDummyString(
-        '\n'.join([yaml.dump({key: value}, default_flow_style=False)
-                   for key, value in all_parts]))
+    return '\n'.join([yaml.dump({key: value}, default_flow_style=False)
+                      for key, value in all_parts])
 
   def DumpFile(self, path, include_checksum=False):
     with open(path, 'w') as f:
@@ -665,9 +601,10 @@ class EncodedFields(object):
   should form a `one-to-multi` mapping.
 
   Properties:
-    _fields: A dictionary maps the encoded field name to a list of component
-        combinations.  A component combination is represented as a dictionary
-        which maps the component class name to a list of component name.
+    _fields: A dictionary maps the encoded field name to the component
+        combinations, which maps the encode index to a component combination.
+        The component combination is a dictionary which maps the component
+        class name to a list of component names.
     _field_to_comp_classes: A dictionary maps the encoded field name to a set
         of component class.
     _can_encode: True if this part works for encoding a BOM to the HWID string.
@@ -704,17 +641,21 @@ class EncodedFields(object):
     """
     self._SCHEMA.Validate(encoded_fields_expr)
 
-    self._fields = collections.OrderedDict()
+    # Verify the input by constructing the encoded fields from scratch
+    # because all checks are implemented in the manipulaping methods.
+    self._fields = yaml.Dict()
     self._field_to_comp_classes = {}
     self._can_encode = True
 
     for field_name, field_data in encoded_fields_expr.iteritems():
       self._RegisterNewEmptyField(field_name, field_data.values()[0].keys())
-      for index in xrange(max(field_data.keys()) + 1):
-        if index in field_data:
-          self.AddFieldComponents(field_name, field_data[index])
-        else:
-          self.AddDummyFieldComponents(field_name)
+      for index, comps in field_data.iteritems():
+        comps = yaml.Dict([(c, self._StandardlizeList(n))
+                           for c, n in comps.iteritems()])
+        self.AddFieldComponents(field_name, comps, _index=index)
+
+    # Preserve the class type reported by the parser.
+    self._fields = copy.deepcopy(encoded_fields_expr)
 
   def __eq__(self, rhs):
     return isinstance(rhs, EncodedFields) and self._fields == rhs._fields
@@ -728,20 +669,7 @@ class EncodedFields(object):
 
   def Export(self):
     """Exports to a dictionary so that it can be stored to the database file."""
-    ret = _DatabaseOrderedDict()
-    for field, field_data in self._fields.iteritems():
-      ret[field] = {}
-      for index, components in enumerate(field_data):
-        if components is None:
-          continue
-        ret[field][index] = {
-            comp_cls: comp_names[0] if len(comp_names) == 1 else comp_names
-            for comp_cls, comp_names in components.iteritems()}
-
-      if field == 'region_field':
-        ret[field] = yaml_tags.RegionField.RebuildRegionField(ret[field])
-
-    return ret
+    return self._fields
 
   @property
   def encoded_fields(self):
@@ -762,8 +690,10 @@ class EncodedFields(object):
     if field_name not in self._fields:
       raise common.HWIDException('The field name %r is invalid.' % field_name)
 
-    return {index: comps for index, comps in enumerate(self._fields[field_name])
-            if comps is not None}
+    ret = {}
+    for index, comps in self._fields[field_name].iteritems():
+      ret[index] = {c: self._StandardlizeList(n) for c, n in comps.iteritems()}
+    return ret
 
   def GetComponentClasses(self, field_name):
     """Gets the related component classes of a specific field.
@@ -793,13 +723,14 @@ class EncodedFields(object):
         return field_name
     return None
 
-  def AddFieldComponents(self, field_name, components):
+  def AddFieldComponents(self, field_name, components, _index=None):
     """Adds components combination to an existing encoded field.
 
     Args:
       field_name: A string of the name of the new encoded field.
       components: A dictionary which maps the component class to a list of
           component name.
+      _index: Specify the index for the new component combination.
     """
     if field_name not in self._fields:
       raise common.HWIDException(
@@ -814,31 +745,19 @@ class EncodedFields(object):
       raise common.HWIDException('Each encoded field should encode a fixed set '
                                  'of component classes.')
 
-    comps = {}
-    for comp_cls, comp_names in components.iteritems():
-      comps[comp_cls] = ([] if comp_names is None
-                         else sorted(type_utils.MakeList(comp_names)))
-
-    for existing_index, existing_comps in enumerate(self._fields[field_name]):
-      if existing_comps == comps:
+    counters = {c: collections.Counter(n) for c, n in components.iteritems()}
+    for existing_index, existing_comps in self.GetField(field_name).iteritems():
+      if all(counter == collections.Counter(existing_comps[comp_cls])
+             for comp_cls, counter in counters.iteritems()):
         self._can_encode = False
         logging.warning(
             'The components combination %r already exists (at index %r).',
-            comps, existing_index)
+            components, existing_index)
 
-    self._fields[field_name].append(comps)
-
-  def AddDummyFieldComponents(self, field_name):
-    """Adds a dummy components combination to an existing encoded field.
-
-    Some legacy HWID databases contain encoding fields with non-continuous
-    index.  In those cases, we add dummy field components to let the indexes
-    form a continuous sequence.
-
-    Args:
-      field_name: A string of the name of the new encoded field.
-    """
-    self._fields[field_name].append(None)
+    index = (_index if _index is not None
+             else max(self._fields[field_name].keys() or [-1]) + 1)
+    self._fields[field_name][index] = yaml.Dict(
+        sorted([(c, self._SimplifyList(n)) for c, n in components.iteritems()]))
 
   def AddNewField(self, field_name, components):
     """Adds a new field.
@@ -866,8 +785,21 @@ class EncodedFields(object):
       raise common.HWIDException(
           'An encoded field must includes at least one component class.')
 
-    self._fields[field_name] = []
+    self._fields[field_name] = yaml.Dict()
     self._field_to_comp_classes[field_name] = set(comp_classes)
+
+  @classmethod
+  def _SimplifyList(cls, data):
+    if not data:
+      return None
+    elif len(data) == 1:
+      return data[0]
+    else:
+      return sorted(data)
+
+  @classmethod
+  def _StandardlizeList(cls, data):
+    return sorted(type_utils.MakeList(data)) if data is not None else []
 
 
 class ComponentInfo(type_utils.Obj):
@@ -1004,13 +936,15 @@ class Components(object):
     """
     self._SCHEMA.Validate(components_expr)
 
-    self._components = collections.OrderedDict()
+    self._components_expr = copy.deepcopy(components_expr)
+    self._components = {}
+
     self._can_encode = True
     self._default_components = set()
     self._non_probeable_component_classes = set()
 
-    for comp_cls, comps_data in components_expr.iteritems():
-      self._components[comp_cls] = collections.OrderedDict()
+    for comp_cls, comps_data in self._components_expr.iteritems():
+      self._components[comp_cls] = {}
       for comp_name, comp_attr in comps_data['items'].iteritems():
         self._AddComponent(comp_cls, comp_name, comp_attr['values'],
                            comp_attr.get('status',
@@ -1038,29 +972,27 @@ class Components(object):
   def Export(self):
     """Exports into a serializable dictionary which can be stored into a HWID
     database file."""
-    ret = _DatabaseOrderedDict()
+    # Apply the changes back to the original data for YAML, either adding a new
+    # component or updating the component status.
     for comp_cls in self.component_classes:
-      if comp_cls == 'region':
-        ret[comp_cls] = yaml_tags.RegionComponent()
-        continue
+      components_dict = self._components_expr.setdefault(
+          comp_cls, {'items': yaml.Dict()})['items']
+      for comp_name, comp_info in self.GetComponents(comp_cls).iteritems():
+        if comp_name not in components_dict:
+          components_dict[comp_name] = yaml.Dict()
+          if comp_info.status != common.COMPONENT_STATUS.supported:
+            components_dict[comp_name]['status'] = comp_info.status
+          components_dict[comp_name]['values'] = comp_info.values
 
-      ret[comp_cls] = _DatabaseOrderedDict()
+        else:
+          if comp_info.status != components_dict[comp_name].get(
+              'status', common.COMPONENT_STATUS.supported):
+            if comp_info.status == common.COMPONENT_STATUS.supported:
+              del components_dict[comp_name]['status']
+            else:
+              components_dict[comp_name]['status'] = comp_info.status
 
-      if comp_cls in self._non_probeable_component_classes:
-        ret[comp_cls]['probeable'] = False
-
-      ret[comp_cls]['items'] = _DatabaseOrderedDict()
-      for comp_name, comp in self.GetComponents(comp_cls).iteritems():
-        ret[comp_cls]['items'][comp_name] = _DatabaseOrderedDict()
-
-        if (comp_cls, comp_name) in self._default_components:
-          ret[comp_cls]['items'][comp_name]['default'] = True
-
-        if comp.status != common.COMPONENT_STATUS.supported:
-          ret[comp_cls]['items'][comp_name]['status'] = comp.status
-
-        ret[comp_cls]['items'][comp_name]['values'] = comp.values
-    return ret
+    return self._components_expr
 
   @property
   def can_encode(self):
@@ -1171,7 +1103,7 @@ class Components(object):
                         values, existed_comp_name)
         self._can_encode = False
 
-    self._components.setdefault(comp_cls, collections.OrderedDict())
+    self._components.setdefault(comp_cls, yaml.Dict())
     self._components[comp_cls][comp_name] = ComponentInfo(values, status)
 
 
@@ -1316,7 +1248,7 @@ class Pattern(object):
           obj_to_export['image_ids'].append(image_id)
           break
       else:
-        obj_to_export = _DatabaseOrderedDict([
+        obj_to_export = yaml.Dict([
             ('image_ids', [image_id]),
             ('encoding_scheme', pattern.encoding_scheme),
             ('fields', [{field.name: field.bit_length}
@@ -1633,8 +1565,8 @@ class Rules(object):
     """Exports the `rule` part into a list of dictionary object which can be
     saved to the HWID database file."""
     def _TransToOrderedDict(rule_dict):
-      ret = _DatabaseOrderedDict([('name', rule_dict['name']),
-                                  ('evaluate', rule_dict['evaluate'])])
+      ret = yaml.Dict([('name', rule_dict['name']),
+                       ('evaluate', rule_dict['evaluate'])])
       for key in ['when', 'otherwise']:
         if key in rule_dict:
           ret[key] = rule_dict[key]
