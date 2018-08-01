@@ -94,12 +94,21 @@ def RunQuery(args):
 
 def Download(args, results):
   tmp_dir = os.path.join(args.target_dir, 'tmp')
-  commands = [args.gsutil_path, '-m', 'cp', '-n']
+  remote_list = []
   for row in results:
     row['tmp'] = os.path.join(tmp_dir, row['remote'].split('/')[-1])
-    commands.append(row['remote'])
-  commands.append(tmp_dir)
-  subprocess.check_call(commands)
+    remote_list.append(row['remote'])
+
+  # Remove duplicates in the remote_list.
+  remote_list = list(set(remote_list))
+
+  for i in xrange(0, len(remote_list), 100):
+    print('Downloading the %d-%d of %s attachments...' %
+          (i, min(i + 100, len(remote_list)) - 1, len(remote_list)))
+    commands = [args.gsutil_path, '-m', 'cp', '-n']
+    commands.extend(remote_list[i:i+100])
+    commands.append(tmp_dir)
+    subprocess.check_call(commands)
 
 
 def FileHash(path):
