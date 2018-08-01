@@ -42,6 +42,7 @@ const DragHandle = SortableHandle(() => (
 
 export interface BundleComponentOwnProps {
   bundle: Bundle;
+  bundles: Bundle[];
 }
 
 interface BundleComponentProps extends BundleComponentOwnProps {
@@ -74,6 +75,7 @@ class BundleComponent extends React.Component<BundleComponentProps> {
   render() {
     const {
       bundle,
+      bundles,
       expanded,
       projectName,
       projectNetbootBundle,
@@ -85,6 +87,10 @@ class BundleComponent extends React.Component<BundleComponentProps> {
     const INACTIVE_STYLE = {
       opacity: 0.3,
     };
+
+    // Disable the toggle when there's only one active bundle left.
+    const toggleDisabled =
+      bundle.active && bundles.filter((b) => b.active).length === 1;
 
     return (
       <Card
@@ -115,6 +121,7 @@ class BundleComponent extends React.Component<BundleComponentProps> {
               <Toggle
                 label={bundle.active ? 'ACTIVE' : 'INACTIVE'}
                 toggled={bundle.active}
+                disabled={toggleDisabled}
               />
             </div>
             {/* make some space */}

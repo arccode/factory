@@ -28,13 +28,18 @@ import BundleComponent, {BundleComponentOwnProps} from './bundle_component';
 //  wrapper of BundleList -- BundleList is the wrapper of SortableBundleList.
 
 const SortableBundle = SortableElement<BundleComponentOwnProps>(
-  ({bundle}) => <BundleComponent bundle={bundle} />);
+  ({bundle, bundles}) => <BundleComponent bundle={bundle} bundles={bundles} />);
 
 const SortableBundleList = SortableContainer<{bundles: Bundle[]}>(
   ({bundles}) => (
     <div>
       {bundles.map((bundle, index) => (
-        <SortableBundle key={bundle.name} index={index} bundle={bundle} />
+        <SortableBundle
+          key={bundle.name}
+          index={index}
+          bundle={bundle}
+          bundles={bundles}
+        />
       ))}
     </div>
   ));
