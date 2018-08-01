@@ -65,8 +65,8 @@ class USBTypeC(types.DeviceComponent):
   USB_PD_POWER_INFO_RE = re.compile(
       r'Port (?P<port>\d+): (?P<role>.*) (Charger|DRP) (?P<type>.*) '
       r'(?P<millivolt>\d+)mV / (?P<milliampere>\d+)mA, '
-      r'max (?P<max_millivolt>\d+)mV / (?P<max_milliampere>\d+)mA / '
-      r'(?P<max_milliwatt>\d+)mW')
+      r'max (?P<max_millivolt>\d+)mV / (?P<max_milliampere>\d+)mA'
+      r'( / (?P<max_milliwatt>\d+)mW)?')
 
   def GetPDVersion(self):
     """Gets the PD firmware version.
@@ -160,7 +160,8 @@ class USBTypeC(types.DeviceComponent):
       port_status['milliampere'] = int(match.group('milliampere'))
       port_status['max_millivolt'] = int(match.group('max_millivolt'))
       port_status['max_milliampere'] = int(match.group('max_milliampere'))
-      port_status['max_milliwatt'] = int(match.group('max_milliwatt'))
+      max_milliwatt = match.group('max_milliwatt')
+      port_status['max_milliwatt'] = int(max_milliwatt) if max_milliwatt else 0
 
     return status
 
