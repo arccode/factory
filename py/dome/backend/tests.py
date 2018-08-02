@@ -450,6 +450,16 @@ class DomeAPITest(rest_framework.test.APITestCase):
                      rest_framework.status.HTTP_400_BAD_REQUEST)
     self.assertIn('does not exist', response.json()['detail'])
 
+  def testActivateBundleUnicode(self):
+    response = self._ActivateBundle(self.PROJECT_WITH_UMPIRE_NAME,
+                                    u'testing_bundle_04_with_\u4e2d\u6587')
+
+    self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
+    with TestData('umpire_config-activated_unicode.json') as c:
+      self.assertEqual(c, self._GetLastestUploadedConfig())
+    with TestData('expected_response-activated_bundle_unicode.json') as r:
+      self.assertEqual(r, response.json(encoding='UTF-8'))
+
   def testClearBundleRules(self):
     response = self.client.put(
         '/projects/%s/bundles/%s/' % (self.PROJECT_WITH_UMPIRE_NAME,
@@ -546,7 +556,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
                                      'testing_bundle_01',
                                      'testing_bundle_01_copy',
                                      'testing_bundle_03',
-                                     'empty_init_bundle'])
+                                     'empty_init_bundle',
+                                     u'testing_bundle_04_with_\u4e2d\u6587'])
 
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
     with TestData('umpire_config-reordered.json') as c:

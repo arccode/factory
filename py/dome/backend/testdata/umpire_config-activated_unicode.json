@@ -36,6 +36,12 @@
     {
       "active": true,
       "bundle_id": "testing_bundle_01",
+      "match": {
+        "sn": [
+          "foo",
+          "bar"
+        ]
+      },
       "note": "flying like an eagle"
     },
     {
@@ -71,7 +77,7 @@
       "note": "running like a leopard"
     },
     {
-      "active": false,
+      "active": true,
       "bundle_id": "testing_bundle_04_with_中文",
       "note": "🐰"
     }

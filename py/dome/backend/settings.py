@@ -160,7 +160,13 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication'
-    ]
+    ],
+    # Since newer version doesn't officially support Python 2, and there's a
+    # bug (https://code.djangoproject.com/ticket/27895) that cause error when
+    # there's unicode characters in the response in testing when using
+    # response.json(), we change the response to output unicode characters in
+    # escaped sequences.
+    'UNICODE_JSON': False
 }
 
 

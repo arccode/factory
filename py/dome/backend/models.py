@@ -19,7 +19,6 @@ import errno
 import logging
 import os
 import socket
-import stat
 import subprocess
 import tempfile
 import time
@@ -767,20 +766,17 @@ class Bundle(object):
     else:
       # not in-place update, duplicate the source bundle
       bundle = copy.deepcopy(src_bundle)
-      # TODO(b/34264367): support unicode.
-      bundle['id'] = str(dst_bundle_name)
+      bundle['id'] = dst_bundle_name
       config['bundles'].insert(0, bundle)
       ruleset = copy.deepcopy(src_ruleset)
-      # TODO(b/34264367): support unicode.
-      ruleset['bundle_id'] = str(dst_bundle_name)
+      ruleset['bundle_id'] = dst_bundle_name
       config['rulesets'].insert(0, ruleset)
       config = project.NormalizeConfig(config)
 
     if note is not None:
-      # TODO(b/34264367): support unicode.
       # TODO(littlecvr): unit tests for unicode.
-      bundle['note'] = str(note)
-      ruleset['note'] = str(note)
+      bundle['note'] = note
+      ruleset['note'] = note
 
     if active is not None:
       ruleset['active'] = active
@@ -886,8 +882,7 @@ class Bundle(object):
     config = GetUmpireConfig(project_name)
     for ruleset in config['rulesets']:
       if ruleset['bundle_id'] == bundle_name:
-        # TODO(b/34264367): support unicode.
-        ruleset['note'] = str(bundle_note)
+        ruleset['note'] = bundle_note
         ruleset['active'] = True
         break
 

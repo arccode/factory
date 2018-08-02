@@ -17,6 +17,11 @@
       "payloads": "payload-03.json"
     },
     {
+      "id": "testing_bundle_04_with_中文",
+      "note": "🐰",
+      "payloads": "payload-04.json"
+    },
+    {
       "id": "empty_init_bundle",
       "note": "n/a",
       "payloads": "payload-none.json"

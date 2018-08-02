@@ -233,5 +233,50 @@
       }
     },
     "rules": {}
+  },
+  {
+    "active": false,
+    "name": "testing_bundle_04_with_中文",
+    "note": "🐰",
+    "resources": {
+      "complete": {
+        "type": "complete",
+        "version": "22334455"
+      },
+      "firmware": {
+        "type": "firmware",
+        "version": "N/A"
+      },
+      "hwid": {
+        "type": "hwid",
+        "version": "N/A"
+      },
+      "netbootCmdline": {
+        "type": "netboot_cmdline",
+        "version": "N/A"
+      },
+      "netbootFirmware": {
+        "type": "netboot_firmware",
+        "version": "N/A"
+      },
+      "netbootKernel": {
+        "type": "netboot_kernel",
+        "version": "N/A"
+      },
+      "releaseImage": {
+        "type": "release_image",
+        "version": "N/A"
+      },
+      "testImage": {
+        "type": "test_image",
+        "version": "N/A"
+      },
+      "toolkit": {
+        "type": "toolkit",
+        "version": "55443322"
+      }
+    },
+    "rules": {
+    }
   }
 ]
