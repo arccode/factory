@@ -6,7 +6,7 @@
       app
     >
       <v-list dense>
-        <v-list-tile @click="">
+        <v-list-tile>
           <v-list-tile-action>
             <v-icon>home</v-icon>
           </v-list-tile-action>
@@ -14,7 +14,7 @@
             <v-list-tile-title>Home</v-list-tile-title>
           </v-list-tile-content>
         </v-list-tile>
-        <v-list-tile @click="">
+        <v-list-tile>
           <v-list-tile-action>
             <v-icon>contact_mail</v-icon>
           </v-list-tile-action>
@@ -34,7 +34,7 @@
           justify-center
           align-center
         >
-          hello, world
+          <v-btn @click="ping" color="primary">ping</v-btn>
         </v-layout>
       </v-container>
     </v-content>
@@ -45,13 +45,17 @@
 </template>
 
 <script lang="ts">
-export default {
-  data: () => ({
-    drawer: null,
-  }),
+import Vue from 'vue';
+import Component from 'vue-class-component';
 
-  props: {
-    source: String,
-  },
-};
+import {call} from './json-rpc';
+
+@Component
+export default class App extends Vue {
+  drawer = true;
+
+  ping() {
+    call('ping').then(alert);
+  }
+}
 </script>
