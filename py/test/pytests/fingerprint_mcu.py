@@ -276,6 +276,14 @@ class FingerprintTest(unittest.TestCase):
     self.checkerboardTest(inverted=True)
 
     if self.args.rubber_finger_present:
+      # Workaround for b/111443750. First run a dummy "vendor" capture before
+      # running the "qual" capture to avoid corrupted data. Ignore the content
+      # of the captured image.
+      self.MCUCommand('fpmode', 'capture', 'vendor')
+      # wait for the end of capture (or timeout after 5s)
+      self.MCUCommand('waitevent', self.EC_MKBP_EVENT_FINGERPRINT, '5000')
+      img = self.MCUCommand('fpframe', 'raw')
+      # Actual capture for MQT.
       # Test sensor image quality
       self.MCUCommand('fpmode', 'capture', 'qual')
       # wait for the end of capture (or timeout after 5s)
