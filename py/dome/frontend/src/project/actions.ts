@@ -69,16 +69,11 @@ export const updateProject =
       }
       const {response} = result;
       const data = response.data;
-      // WORKAROUND: Umpire is not ready as soon as it should be,
-      // wait for 1 second to prevent the request from failing.
-      // TODO(b/65393817): remove the timeout after the issue has been solved.
-      setTimeout(() => {
-        dispatch(updateProjectImpl(name, {
-          umpireVersion: data.umpireVersion,
-          isUmpireRecent: data.isUmpireRecent,
-          umpireReady: data.umpireEnabled,
-        }));
-      }, 1000);
+      dispatch(updateProjectImpl(name, {
+        umpireVersion: data.umpireVersion,
+        isUmpireRecent: data.isUmpireRecent,
+        umpireReady: data.umpireEnabled,
+      }));
     };
 
 export const deleteProject = (name: string) =>
