@@ -17,8 +17,10 @@ from yaml import nodes
 from yaml import resolver
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import rule
 from cros.factory.test.l10n import regions
+from cros.factory.utils import schema
 from cros.factory.utils import yaml_utils
 
 class V3Loader(SafeLoader):
@@ -169,18 +171,35 @@ class _RegionFieldYAMLTagHandler(_HWIDV3YAMLTagHandler):
 
 
 class _RegionComponent(dict):
-  """A class for holding the region component data in a HWID database."""
+  """A class for holding the region component data in a HWID database.
 
-  def __init__(self):
-    components_dict = {
-        'items': {}
-    }
-    for code, region in regions.REGIONS.iteritems():
-      components_dict['items'][code] = {
-          'values': {
-              'region_code': region.region_code
-          }}
+  The instance of this class is expected to be frozen after constructing.
+  """
+  def __init__(self, status_lists=None):
+    # Load system regions.
+    components_dict = {'items': {}}
+    for code, region in regions.BuildRegionsDict(include_all=True).iteritems():
+      region_comp = {'values': {'region_code': region.region_code}}
+      if code not in regions.REGIONS:
+        region_comp['status'] = common.COMPONENT_STATUS.unsupported
+      components_dict['items'][code] = region_comp
+
+    # Apply customized status lists.
+    if status_lists is not None:
+      for status in common.COMPONENT_STATUS:
+        for region in status_lists.get(status, []):
+          components_dict['items'][region]['status'] = status
+
     super(_RegionComponent, self).__init__(components_dict)
+    self.status_lists = status_lists
+
+  def __eq__(self, rhs):
+    return (isinstance(rhs, _RegionComponent) and
+            super(_RegionComponent, self).__eq__(rhs) and
+            self.status_lists == rhs.status_lists)
+
+  def __ne__(self, rhs):
+    return not self.__eq__(rhs)
 
 
 class _RegionComponentYAMLTagHandler(_HWIDV3YAMLTagHandler):
@@ -188,13 +207,44 @@ class _RegionComponentYAMLTagHandler(_HWIDV3YAMLTagHandler):
   YAML_TAG = '!region_component'
   TARGET_CLASS = _RegionComponent
 
+  _STATUS_LISTS_SCHEMA = schema.FixedDict('status lists', optional_items={
+      s: schema.List('regions', element_type=schema.Scalar('region', str),
+                     min_length=1)
+      for s in common.COMPONENT_STATUS})
+
   @classmethod
   def YAMLConstructor(cls, loader, node, deep=False):
-    return cls.TARGET_CLASS()
+    if isinstance(node, nodes.ScalarNode):
+      if node.value:
+        raise constructor.ConstructorError(
+            'expected empty scalar node, but got %r' % node.value)
+      return cls.TARGET_CLASS()
+    else:
+      status_lists = _DefaultMappingHandler.YAMLConstructor(
+          loader, node, deep=True)
+      cls._VerifyStatusLists(status_lists)
+      return cls.TARGET_CLASS(status_lists)
 
   @classmethod
   def YAMLRepresenter(cls, dumper, data):
-    return dumper.represent_scalar(cls.YAML_TAG, _YAML_DUMMY_STRING)
+    if data.status_lists is None:
+      return dumper.represent_scalar(cls.YAML_TAG, _YAML_DUMMY_STRING)
+    else:
+      return dumper.represent_mapping(cls.YAML_TAG, data.status_lists)
+
+  @classmethod
+  def _VerifyStatusLists(cls, status_lists):
+    try:
+      cls._STATUS_LISTS_SCHEMA.Validate(status_lists)
+    except schema.SchemaException as e:
+      raise constructor.ConstructorError(str(e) + '%r' % status_lists)
+
+    for i, s1 in enumerate(status_lists.keys()):
+      for s2 in status_lists.keys()[i + 1:]:
+        duplicated_regions = set(status_lists[s1]) & set(status_lists[s2])
+        if duplicated_regions:
+          raise constructor.ConstructorError(
+              'found ambiguous status for regions %r' % duplicated_regions)
 
 
 class _RegexpYAMLTagHandler(_HWIDV3YAMLTagHandler):

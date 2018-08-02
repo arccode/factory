@@ -1,0 +1,30 @@
+{
+  "aa": {
+    "region_code": "aa",
+    "description": "AA Country",
+    "keyboards": ["xkb:us::eng"],
+    "keyboard_mechanical_layout": "ANSI",
+    "regulatory_domain": "AA",
+    "time_zones": ["Earth/AA"],
+    "locales": ["en-US"]
+  },
+  "bb": {
+    "region_code": "bb",
+    "description": "BB Country",
+    "keyboards": ["xkb:us::eng"],
+    "keyboard_mechanical_layout": "ANSI",
+    "regulatory_domain": "BB",
+    "time_zones": ["Earth/BB"],
+    "locales": ["en-US"]
+  },
+  "zz": {
+    "confirmed": false,
+    "region_code": "zz",
+    "description": "ZZ Country",
+    "keyboards": ["xkb:us::eng"],
+    "keyboard_mechanical_layout": "ANSI",
+    "regulatory_domain": "ZZ",
+    "time_zones": ["Earth/ZZ"],
+    "locales": ["en-US"]
+  }
+}

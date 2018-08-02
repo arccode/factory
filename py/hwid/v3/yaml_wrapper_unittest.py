@@ -3,11 +3,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import os
 import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import rule
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
+from cros.factory.test.l10n import regions
+
+
+_REGIONS_DATABASE_PATH = os.path.join(
+    os.path.dirname(__file__), 'testdata', 'test_yaml_wrapper_regions.json')
 
 
 class ParseRegionFieldUnittest(unittest.TestCase):
@@ -38,17 +44,63 @@ class ParseRegionFieldUnittest(unittest.TestCase):
 
 
 class ParseRegionComponentUnittest(unittest.TestCase):
+  def setUp(self):
+    regions.InitialSetup(
+        region_database_path=_REGIONS_DATABASE_PATH, include_all=False)
+
+  def tearDown(self):
+    regions.InitialSetup()
 
   def testLoadRegionComponent(self):
-    obj = yaml.load('!region_component')
-    self.assertEquals({'values': {'region_code': 'us'}},
-                      obj['items']['us'])
+    for s in ('region: !region_component', 'region: !region_component {}'):
+      obj = yaml.load(s)['region']
+      self.assertEquals(dict(obj), {
+          'items': {
+              'aa': {'values': {'region_code': 'aa'}},
+              'bb': {'values': {'region_code': 'bb'}},
+              'zz': {'values': {'region_code': 'zz'},
+                     'status': 'unsupported'}}})
+
+  def testLoadRegionComponentStatusLists(self):
+    obj = yaml.load('region: !region_component\n'
+                    '  unqualified: [aa]\n'
+                    '  deprecated: [zz]\n')['region']
+    self.assertEquals(dict(obj), {
+        'items': {
+            'aa': {'values': {'region_code': 'aa'},
+                   'status': 'unqualified'},
+            'bb': {'values': {'region_code': 'bb'}},
+            'zz': {'values': {'region_code': 'zz'},
+                   'status': 'deprecated'}}})
+
+  def testLoadRegionComponentError(self):
+    self.assertRaises(Exception, yaml.load, 'region: !region_component 123')
+    self.assertRaises(Exception, yaml.load,
+                      'region: !region_component\n'
+                      '  bad_key: []\n')
+    self.assertRaises(Exception, yaml.load,
+                      'region: !region_component\n'
+                      '  unqualified: tw\n')
+    self.assertRaises(Exception, yaml.load,
+                      'region: !region_component\n'
+                      '  unqualified: []\n')
+    self.assertRaises(Exception, yaml.load,
+                      'region: !region_component\n'
+                      '  unqualified: [tw, us]\n'
+                      '  deprecated: [us, gb]\n')
 
   def testDumpRegionComponent(self):
-    doc = '!region_component\n'
-    obj = yaml.load(doc)
+    load2 = lambda doc: yaml.load(yaml.dump(yaml.load(doc),
+                                            default_flow_style=False))
+    doc = 'region: !region_component\n'
+    self.assertEquals(yaml.load(doc), load2(doc))
+    doc = 'region: !region_component {}\n'
+    self.assertEquals(yaml.load(doc), load2(doc))
 
-    self.assertEquals(yaml.dump(obj), doc)
+    doc = 'region: !region_component\n  unqualified: [zz]\n'
+    self.assertEquals(yaml.load(doc), load2(doc))
+    doc = 'region: !region_component\n  unqualified: [zz]\n  unsupported: [aa]'
+    self.assertEquals(yaml.load(doc), load2(doc))
 
 
 @rule.RuleFunction(['string'])

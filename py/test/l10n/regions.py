@@ -295,6 +295,11 @@ items to :py:data:`cros.factory.l10n.regions.Region.REGIONS_LIST`.
 """
 
 
+REGIONS = {}
+"""A dict maps the region code to the
+:py:class:`cros.factory.l10n.regions.Region` object."""
+
+
 def _ConsolidateRegions(regions):
   """Consolidates a list of regions into a dict.
 
@@ -351,9 +356,17 @@ def BuildRegionsDict(include_all=False):
   # be present both in the overlay and the public repo.
   return _ConsolidateRegions(regions)
 
-# Initial Setup
-REGIONS_LIST, UNCONFIRMED_REGIONS_LIST = LoadRegionDatabase()
-REGIONS = BuildRegionsDict()
+
+def InitialSetup(region_database_path=None, include_all=False):
+  # pylint: disable=global-statement
+  global REGIONS_LIST, UNCONFIRMED_REGIONS_LIST, REGIONS
+
+  REGIONS_LIST, UNCONFIRMED_REGIONS_LIST = LoadRegionDatabase(
+      path=region_database_path)
+  REGIONS = BuildRegionsDict(include_all=include_all)
+
+
+InitialSetup()
 
 
 def main(args=sys.argv[1:], out=sys.stdout):
