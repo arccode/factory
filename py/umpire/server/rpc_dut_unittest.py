@@ -13,7 +13,6 @@ import shutil
 import time
 import xmlrpclib
 
-import mox
 from twisted.internet import reactor
 from twisted.trial import unittest
 from twisted.web import server
@@ -47,7 +46,6 @@ class DUTRPCTest(unittest.TestCase):
         self.env.GetResourcePath('toolkit.1234.gz', check=False))
 
     self.env.LoadConfig()
-    self.mox = mox.Mox()
     self.proxy = xmlrpc.Proxy(
         'http://%s:%d' % (net_utils.LOCALHOST, TEST_RPC_PORT),
         allowNone=True)
@@ -73,8 +71,6 @@ class DUTRPCTest(unittest.TestCase):
 
   def tearDown(self):
     self.twisted_port.stopListening()
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
     self.env.Close()
 
   def Call(self, function, *args):
@@ -82,7 +78,10 @@ class DUTRPCTest(unittest.TestCase):
 
   def testPing(self):
     def CheckResult(result):
-      self.assertEqual(result, {'version': common.UMPIRE_DUT_RPC_VERSION})
+      self.assertEqual(result, {
+          'version': common.UMPIRE_DUT_RPC_VERSION,
+          'project': None
+      })
       return result
 
     d = self.Call('Ping')

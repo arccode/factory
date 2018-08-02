@@ -55,6 +55,8 @@ _HTTP_POST_PORT_OFFSET = 5
 _INSTALOG_PULL_SOCKET_OFFSET = 6
 _INSTALOG_HTTP_PORT_OFFSET = 7
 
+PROJECT_NAME_ENV_KEY = 'UMPIRE_PROJECT_NAME'
+
 
 def GetRsyncPortFromBasePort(base_port):
   return base_port + _RSYNC_PORT_OFFSET
@@ -172,6 +174,10 @@ class UmpireEnv(object):
     except Exception:
       logging.error('Failed to parse %s: %r.', key, url)
     return url.rstrip('/')
+
+  @property
+  def project(self):
+    return os.environ.get(PROJECT_NAME_ENV_KEY)
 
   def LoadConfig(self, custom_path=None, validate=True):
     """Loads Umpire config file and validates it.

@@ -512,6 +512,7 @@ class Project(django.db.models.Model):
                                   UMPIRE_INSTALOG_PULL_SOCKET_PORT_OFFSET,
                                   UMPIRE_BASE_PORT +
                                   UMPIRE_INSTALOG_PULL_SOCKET_PORT_OFFSET),
+          '--env', 'UMPIRE_PROJECT_NAME=%s' % self.name,
           '--restart', 'unless-stopped',
           '--name', container_name]
       if LOCALTIME_DOCKER_PATH:

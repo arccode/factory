@@ -34,6 +34,7 @@ Fault = xmlrpclib.Fault
 
 FACTORY_SERVER_CONFIG_NAME = 'factory_server'
 CONFIG_KEY_URL = 'server_url'
+CONFIG_KEY_EXPECTED_PROJECT = 'server_expected_project'
 CONFIG_KEY_TIMEOUT = 'server_timeout'
 CONFIG_KEY_PROTOCOL = 'server_protocol'
 
@@ -88,11 +89,14 @@ def SetServerURL(new_url):
   UpdateServerConfig(config)
 
 
-def GetServerProxy(url=None, timeout=None, quiet=True):
+def GetServerProxy(url=None, expected_project=None, timeout=None, quiet=True):
   """Gets a proxy object to access the Chrome OS Factory Server.
 
   Args:
     url: URL of the factory server. If None, use the default config.
+    expected_project: If the server is an Umpire server, would check if the
+        target Umpire server's Ping return expected project. If None, use the
+        default config. To disable checking, set this to empty string "".
     timeout: Timeout of RPC calls in seconds. If None, use the default config.
     quiet: Suppresses error messages when factory server can not be reached.
 
@@ -101,11 +105,20 @@ def GetServerProxy(url=None, timeout=None, quiet=True):
     simple XML-RPC server (legacy factory server) or Umpire server.
   """
   config = GetServerConfig()
-  if url is None or timeout is None:
-    url = config.get(CONFIG_KEY_URL) if url is None else url
-    timeout = config.get(CONFIG_KEY_TIMEOUT) if timeout is None else timeout
+  if url is None:
+    url = config.get(CONFIG_KEY_URL)
+  if timeout is None:
+    timeout = config.get(CONFIG_KEY_TIMEOUT)
+  if expected_project is None:
+    expected_project = config.get(CONFIG_KEY_EXPECTED_PROJECT)
   if not url:
     raise ServerProxyError('No URL specified for factory server proxy.')
+  if expected_project is None:
+    logging.warn('"%s" not set in config %s, please set the config '
+                 'to the project name of Umpire server, or set it to "" '
+                 'to disable this warning.', CONFIG_KEY_EXPECTED_PROJECT,
+                 FACTORY_SERVER_CONFIG_NAME)
+
   protocol = config.get(CONFIG_KEY_PROTOCOL)
   # The factory server may be different implementations, for example
   # legacy XML-RPC or Umpire. Currently the TimeoutUmpireServerProxy will
@@ -115,5 +128,13 @@ def GetServerProxy(url=None, timeout=None, quiet=True):
   if protocol == 'legacy':
     return webservice_utils.CreateWebServiceProxy(url)
   else:
-    return umpire_server_proxy.TimeoutUmpireServerProxy(
+    proxy = umpire_server_proxy.TimeoutUmpireServerProxy(
         url, quiet=quiet, allow_none=True, verbose=False, timeout=timeout)
+    if proxy.use_umpire and expected_project:
+      project = proxy.Ping().get('project')
+      if project is not None and project != expected_project:
+        raise ServerProxyError(
+            "The expected_project (%s) doesn't match the "
+            'project returned from Umpire (%s). The URL (%s) might be wrong.' %
+            (expected_project, project, url))
+    return proxy

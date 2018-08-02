@@ -24,6 +24,12 @@
       "title": "The server_url schema",
       "type": "string"
     },
+    "server_expected_project": {
+      "description": "The expected project name of factory server.",
+      "id": "/properties/server_expected_project",
+      "title": "The server_expected_project schema",
+      "type": "string"
+    },
     "shopfloor_service_url": {
       "default": "",
       "description": "The URL to manufacturing line shop floor service backend.",
