@@ -5,6 +5,7 @@
 """Instalog service for log processing."""
 
 import hashlib
+import logging
 import os
 import pprint
 
@@ -37,6 +38,10 @@ class InstalogService(umpire_service.UmpireService):
       update_info: The Umpire configuration used to update instalog_config.
       env: UmpireEnv object.
     """
+    threshold = update_info.get('input_http', {}).get(
+        'log_level_threshold', logging.NOTSET)
+    instalog_config['input']['http_in']['args']['log_level_threshold'] = (
+        threshold)
     if update_info.get('forward', {}).get('enable', False):
       args = update_info.get('forward', {}).get('args', {}).copy()
       # We only can use the port which is published by Umpire.

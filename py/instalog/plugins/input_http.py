@@ -162,6 +162,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     start_time = time.time()
 
     events = []
+    ignore_count = 0
     try:
       form = InstalogFieldStorage(
           tmp_dir=tmp_dir,
@@ -205,8 +206,10 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
           if self._gpg:
             self._DecryptFile(event.attachments[att_id], tmp_dir)
 
-        self._check_format(event, self.client_node_id)
-        events.append(event)
+        if self._check_format(event, self.client_node_id):
+          events.append(event)
+        else:
+          ignore_count += 1
       del form  # Free memory earlier.
       if remaining_att:
         raise ValueError('Additional fields: %s' % list(remaining_att))
@@ -223,9 +226,10 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
 
       emit_time = time.time() - start_time
 
-      self.info('Received %d events (%s bytes) in %.1f+%.1f+%.1f sec '
-                'from node "%s"', len(events), self.content_length,
-                receive_time, process_time, emit_time, self.client_node_id)
+      self.info('Received %d (ignored %d) events (%s bytes) in %.1f+%.1f+%.1f '
+                'sec from node "%s"', len(events), ignore_count,
+                self.content_length, receive_time, process_time, emit_time,
+                self.client_node_id)
       return 200, 'OK'
     else:
       self.warning('Emit failed')
@@ -374,7 +378,8 @@ class InputHTTP(plugin_base.InputPlugin):
     Raises:
       Exception: the event is not conform to the format.
     """
-    pass
+    del event, client_node_id
+    return True
 
 
 if __name__ == '__main__':

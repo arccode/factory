@@ -52,6 +52,7 @@ $ curl -i -X POST \
 
 from __future__ import print_function
 
+import logging
 import time
 
 import instalog_common  # pylint: disable=unused-import
@@ -59,17 +60,34 @@ from instalog import plugin_base
 from instalog.plugins import input_http
 from instalog.plugins import testlog_common
 from instalog.testlog import testlog
+from instalog.utils import arg_utils
+from instalog.utils.arg_utils import Arg
 from instalog.utils import log_utils
 
 
 class InputHTTPTestlog(input_http.InputHTTP):
 
+  ARGS = arg_utils.MergeArgs(
+      input_http.InputHTTP.ARGS,
+      [
+          Arg('log_level_threshold', (str, unicode, int, float),
+              'The logLevel threshold for all message events.',
+              default=logging.NOTSET)
+      ]
+  )
+
   def __init__(self, *args, **kwargs):
     super(InputHTTPTestlog, self).__init__(*args, **kwargs)
+
     self.noisy_info = log_utils.NoisyLogger(
         self.info, suppress_timeout=3600,
         suppress_logger=lambda message, *args, **kargs: None,
         all_suppress_logger=lambda message, *args, **kargs: None)
+
+    if isinstance(self.args.log_level_threshold, (int, float)):
+      self.threshold = self.args.log_level_threshold
+    else:
+      self.threshold = logging.getLevelName(self.args.log_level_threshold)
 
   def _CheckFormat(self, event, client_node_id):
     """Checks the event is following the Testlog format and sets attachments.
@@ -97,9 +115,15 @@ class InputHTTPTestlog(input_http.InputHTTP):
     testlog.EventBase.FromDict(event.payload)
     event['__testlog__'] = True
 
+    if (event['type'] == 'station.message' and logging.getLevelName(
+        event.get('logLevel', logging.CRITICAL)) < self.threshold):
+      return False
+
     # The time on the DUT is not reliable, so we are going to use the time on
     # the factory server.
     event['time'] = time.time()
+
+    return True
 
 
 if __name__ == '__main__':

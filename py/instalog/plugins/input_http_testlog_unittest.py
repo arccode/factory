@@ -33,7 +33,8 @@ class TestInputHTTPTestlog(unittest.TestCase):
     self.port = net_utils.FindUnusedPort()
     config = {
         'hostname': 'localhost',
-        'port': self.port}
+        'port': self.port,
+        'log_level_threshold': logging.WARNING}
     self.sandbox = plugin_sandbox.PluginSandbox(
         'input_http_testlog', config=config, core_api=self.core)
     self.sandbox.Start(True)
@@ -69,6 +70,33 @@ class TestInputHTTPTestlog(unittest.TestCase):
         'startTime': 1483592505.489,
         'serialNumbers': {'serial_number': 'Test SN'},
     })
+
+  def _ValidStationMessageEvent(self):
+    return datatypes.Event({
+        'uuid': '9209203a-0b07-4dff-948d-9b097de4206d',
+        'type': 'station.message',
+        'apiVersion': '0.21',
+        'time': 1483592505.503,
+        'message': 'THIS IS A MESSAGE',
+        'logLevel': 'INFO',
+        'testRunId': '8b127472-4593-4be8-9e94-79f228fc1adc',
+    })
+
+  def testMessageEvent(self):
+    info_event = self._ValidStationMessageEvent()
+    warning_event = self._ValidStationMessageEvent()
+    warning_event['logLevel'] = 'WARNING'
+    error_event = self._ValidStationMessageEvent()
+    error_event['logLevel'] = 'ERROR'
+    data = [('event', datatypes.Event.Serialize(info_event)),
+            ('event', datatypes.Event.Serialize(warning_event)),
+            ('event', datatypes.Event.Serialize(error_event))]
+    r = self._RequestsPost(files=data)
+    self.assertEqual(200, r.status_code)
+    self.assertEqual(1, len(self.core.emit_calls))
+    self.assertEqual(2, len(self.core.emit_calls[0]))
+    self.assertEqual('WARNING', self.core.emit_calls[0][0]['logLevel'])
+    self.assertEqual('ERROR', self.core.emit_calls[0][1]['logLevel'])
 
   def testOldVersionEvent(self):
     # Test simple Testlog event without attachment.

@@ -1,4 +1,13 @@
 {
+	"input_http": {
+		"type": "object",
+		"properties": {
+			"log_level_threshold": {
+				"type": "string",
+				"default": "NOTSET"
+			}
+		}
+	},
 	"archive": {
 		"type": "object",
 		"properties": {
