@@ -52,6 +52,7 @@ import os
 import sys
 import zipimport
 
+from . import file_utils
 from . import type_utils
 
 # To simplify portability issues, validating JSON schema is optional.
@@ -65,7 +66,6 @@ except ImportError:
 # Constants defined.
 _CONFIG_FILE_EXT = '.json'
 _SCHEMA_FILE_EXT = '.schema.json'
-_CONFIG_BUILD_DIR = 'config'
 
 # Config names in config_utils.json
 _CONFIG_NAME_BUILD_DIR = 'BuildConfigDirectory'
@@ -121,19 +121,19 @@ def OverrideConfig(base, overrides, copy_on_write=False):
           result.pop(k)
           changed = True
       elif v.pop(_OVERRIDE_REPLACE_KEY, False):
-        result[k] = OverrideConfig({}, v, copy_on_write)
+        result[k] = OverrideConfig({}, v)
         changed = True
       else:
-        old_v = result.get(k, {})
+        old_v = result.get(k)
         if isinstance(old_v, collections.Mapping):
           result[k] = OverrideConfig(old_v, v, copy_on_write)
         else:
-          result[k] = OverrideConfig({}, v, copy_on_write)
+          result[k] = OverrideConfig({}, v)
         changed = True
     else:
       result[k] = v
       changed = True
-  return result if copy_on_write and changed else base
+  return result if changed else base
 
 
 def GetNamedTuple(mapping):
@@ -197,15 +197,12 @@ def _LoadRawConfig(config_dir, config_name, logger=_DummyLogger):
   return _LoadJsonFile(config_path, logger)
 
 
-def _LoadRawSchema(config_dir, config_name, schema_name=None,
-                   logger=_DummyLogger):
+def _LoadRawSchema(config_dir, schema_name, logger=_DummyLogger):
   """Internal function to load JSON schema from specified path.
 
   Returns:
     A schema object.
   """
-  if schema_name is None:
-    schema_name = config_name
   schema_path = os.path.join(config_dir, schema_name + _SCHEMA_FILE_EXT)
   return _LoadJsonFile(schema_path, logger)
 
@@ -217,29 +214,28 @@ def _LoadConfigUtilsConfig():
   if _CACHED_CONFIG_UTILS_CONFIG:
     return _CACHED_CONFIG_UTILS_CONFIG
 
-  def _NormalizePath(config, key, base):
+  def _NormalizePath(key):
     if not os.path.isabs(config[key]):
-      config[key] = os.path.normpath(os.path.join(base, config[key]))
+      config[key] = os.path.normpath(os.path.join(module_dir, config[key]))
 
-  def _ApplyConfig(config, key):
+  def _ApplyConfig(key):
     config_dir = config[key] if key else module_dir
     new_config = _LoadRawConfig(config_dir, module_name)
     OverrideConfig(config, new_config or {})
-    _NormalizePath(config, _CONFIG_NAME_BUILD_DIR, module_dir)
-    _NormalizePath(config, _CONFIG_NAME_RUNTIME_DIR, module_dir)
+    _NormalizePath(_CONFIG_NAME_BUILD_DIR)
+    _NormalizePath(_CONFIG_NAME_RUNTIME_DIR)
     return _LoadRawSchema(config_dir, module_name)
 
   module_dir = os.path.realpath(os.path.dirname(__file__))
   module_name = os.path.splitext(os.path.basename(__file__))[0]
 
   config = {}
-  schema = _ApplyConfig(config, None)
-  build_schema = _ApplyConfig(config, _CONFIG_NAME_BUILD_DIR)
-  runtime_schema = _ApplyConfig(config, _CONFIG_NAME_RUNTIME_DIR)
+  schema = _ApplyConfig(None)
+  build_schema = _ApplyConfig(_CONFIG_NAME_BUILD_DIR)
+  runtime_schema = _ApplyConfig(_CONFIG_NAME_RUNTIME_DIR)
 
-  schema = runtime_schema or build_schema or schema
   if _CAN_VALIDATE_SCHEMA:
-    jsonschema.validate(config, schema)
+    jsonschema.validate(config, runtime_schema or build_schema or schema)
 
   _CACHED_CONFIG_UTILS_CONFIG = config
   return config
@@ -257,17 +253,8 @@ def GetDefaultConfigInfo(module, module_file=None):
     A pair of strings (name, directory) that name is the config name and
     directory is where the config should exist.
   """
-  default_name = None
-  default_dir = '.'
-
-  path = (module.__file__ if module and getattr(module, '__file__') else
-          module_file)
-  path = os.path.realpath(path)
-
-  if path:
-    default_dir = os.path.dirname(path)
-    default_name = os.path.splitext(os.path.basename(path))[0]
-  return default_name, default_dir
+  path = os.path.realpath(getattr(module, '__file__', module_file))
+  return (os.path.splitext(os.path.basename(path))[0], os.path.dirname(path))
 
 
 def GetRuntimeConfigDirectory():
@@ -298,10 +285,8 @@ def DeleteRuntimeConfig(config_name):
   Args:
     config_name: a string for config file name (without extension) to delete.
   """
-  file_path = os.path.join(
-      GetRuntimeConfigDirectory(), config_name + _CONFIG_FILE_EXT)
-  if os.path.exists(file_path):
-    os.remove(file_path)
+  file_utils.TryUnlink(
+      os.path.join(GetRuntimeConfigDirectory(), config_name + _CONFIG_FILE_EXT))
 
 
 def SaveRuntimeConfig(config_name, value):
@@ -394,15 +379,15 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
         and override it with the config beside the symbolic link if exists.
     convert_to_str: True to convert the result from unicode to str.
     allow_inherit: if set to True, try to read 'inherit' from the
-        config loaded. It should be the name of the parent config to be loaded,
-        and will then be overrided by the current config. It can also be a list
-        of parent config names, and will be overrided in reversed order.
+        loaded config. It should be the name of the parent config to be loaded,
+        and will then be overridden by the current config. It can also be a list
+        of parent config names, and will be overridden in reversed order.
 
         For example, if we're loading config "A" with:
         1. {"inherit": "B"}
-           "B" will be loaded and overrided by "A".
+           "B" will be loaded and overridden by "A".
         2. {"inherit": ["B", "C", "D"]},
-           "D" will be loaded first, overrided by "C", and by "B",
+           "D" will be loaded first, overridden by "C", and by "B",
            and then by "A".
 
         Note that this is done after all the directory-based overriding is
@@ -454,7 +439,8 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   if validate_schema:
     schema = {}
     for config_dir in config_dirs:
-      new_schema = _LoadRawSchema(config_dir, config_name, schema_name, logger)
+      new_schema = _LoadRawSchema(
+          config_dir, schema_name or config_name, logger)
 
       if new_schema is not None:
         # Config data can be extended, but schema must be self-contained.

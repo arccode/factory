@@ -31,6 +31,9 @@ from cros.factory.utils import type_utils
 # String prefix to indicate this value needs to be evaluated
 EVALUATE_PREFIX = 'eval! '
 
+# String prefix to indicate this value needs to be translated
+TRANSLATE_PREFIX = 'i18n! '
+
 # used for loop detection
 _DUMMY_CACHE = object()
 
@@ -51,9 +54,8 @@ def MayTranslate(obj, force=False):
     return obj
   if not isinstance(obj, basestring):
     raise TypeError('not a string')
-  prefix = 'i18n! '
-  if obj.startswith(prefix):
-    return i18n.Translated(obj[len(prefix):])
+  if obj.startswith(TRANSLATE_PREFIX):
+    return i18n.Translated(obj[len(TRANSLATE_PREFIX):])
   else:
     return i18n.Translated(obj) if force else obj
 

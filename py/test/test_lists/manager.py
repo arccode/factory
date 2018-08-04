@@ -17,7 +17,6 @@ from cros.factory.test.env import paths
 from cros.factory.test.test_lists import checker as checker_module
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.utils import config_utils
-from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
 
@@ -101,9 +100,6 @@ class Loader(object):
   CONFIG_SUFFIX = '.test_list'
   """All test lists must have name: <id>.test_list.json"""
 
-  ARGS_CONFIG_SUFFIX = '.test_list.args'
-  """Config files with name: <id>.test_list.args.json can override arguments"""
-
   def __init__(self, schema_name='test_list', config_dir=None):
     self.schema_name = schema_name
     if not config_dir:
@@ -112,8 +108,7 @@ class Loader(object):
       # The default_config_dirs config_utils.LoadConfig will find should be the
       # same one we compute here, however, we also need this path to check file
       # state, so let's figure out the path by ourselves.
-      config_dir = os.path.join(paths.FACTORY_DIR,
-                                'py', 'test', 'test_lists')
+      config_dir = os.path.join(paths.FACTORY_DIR, 'py', 'test', 'test_lists')
     self.config_dir = config_dir
 
   def Load(self, test_list_id, allow_inherit=True):
@@ -150,10 +145,6 @@ class Loader(object):
   def _GetConfigName(self, test_list_id):
     """Returns the test list config file corresponding to `test_list_id`."""
     return test_list_id + self.CONFIG_SUFFIX
-
-  def _GetArgsConfigName(self, test_list_id):
-    """Returns the test argument config file corresponding to `test_list_id`."""
-    return test_list_id + self.ARGS_CONFIG_SUFFIX
 
   def FindTestListIDs(self):
     suffix = self.CONFIG_SUFFIX + '.json'
@@ -258,8 +249,7 @@ class Manager(object):
           ACTIVE_PATH)
 
     if not os.path.exists(ACTIVE_PATH):
-      default_test_list_id = Manager.SelectDefaultTestList()
-      file_utils.WriteFile(ACTIVE_PATH, default_test_list_id)
+      Manager.SetActiveTestList(Manager.SelectDefaultTestList())
 
     with open(ACTIVE_PATH) as f:
       test_list_id = f.read().strip()
