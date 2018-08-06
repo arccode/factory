@@ -18,7 +18,7 @@ import {
 import formDialog from '@app/form_dialog';
 import {Project} from '@app/project/types';
 import {RootState} from '@app/types';
-import {parseNumber, renderTextField} from '@common/form';
+import {HiddenSubmitButton, parseNumber, renderTextField} from '@common/form';
 
 import {ENABLE_UMPIRE_FORM} from '../constants';
 
@@ -82,6 +82,7 @@ const InnerFormComponent: React.SFC<
         component={renderTextField}
       />
       <Field name="umpireAddExistingOne" component={renderAddExistingHint} />
+      <HiddenSubmitButton />
     </form>
   );
 

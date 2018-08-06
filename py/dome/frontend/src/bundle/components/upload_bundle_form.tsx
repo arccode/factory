@@ -16,7 +16,11 @@ import formDialog from '@app/form_dialog';
 import project from '@app/project';
 import {RootState} from '@app/types';
 import FileUploadDialog from '@common/components/file_upload_dialog';
-import {renderTextField, validateRequired} from '@common/form';
+import {
+  HiddenSubmitButton,
+  renderTextField,
+  validateRequired,
+} from '@common/form';
 
 import {startUploadBundle} from '../actions';
 import {UPLOAD_BUNDLE_FORM} from '../constants';
@@ -37,6 +41,7 @@ const InnerFormComponent: React.SFC<InjectedFormProps<FormData>> =
         component={renderTextField}
       />
       <Field name="note" label="New Bundle Note" component={renderTextField} />
+      <HiddenSubmitButton />
     </form>
   );
 
