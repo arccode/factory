@@ -29,12 +29,14 @@ export class AppComponent implements OnInit {
   /** Mapping of test name to test case. */
   tests: {[testName: string]: Type<TestCase>} = {};
 
+  log: string = '';
+
   /** Directive to load a test case. */
   @ViewChild(TestDirective) testLoader!: TestDirective;
 
   constructor(
       private readonly testListService: TestListService,
-      private readonly componentFactoryResolver: ComponentFactoryResolver) { }
+      private readonly componentFactoryResolver: ComponentFactoryResolver) {}
 
   ngOnInit(): void {
     this.loadTestList();

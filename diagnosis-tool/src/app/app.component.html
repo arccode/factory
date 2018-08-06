@@ -1,9 +1,17 @@
-<!--The content below is only a placeholder and can be replaced.-->
-<div style="text-align:center">
-  <h1>
-    {{ title }}!
-  </h1>
-</div>
-<app-test-list></app-test-list>
-<ng-template appTest></ng-template>
+<div class="body">
+  <div class="left">
+    <h2 style="text-align: center">{{ title }}!</h2>
+    <div id="testList" ng-controller="list">
+      <app-test-list></app-test-list>
+    </div>
+  </div>
 
+  <div class="right">
+    <div id="setting">
+      <ng-template appTest></ng-template>
+    </div>
+    <div id="log">
+      <span>{{ log }}</span>
+    </div>
+  </div>
+</div>
