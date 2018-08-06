@@ -260,5 +260,7 @@ export const startUpdateResource =
 
 export const setBundleAsNetboot = (name: string, projectName: string) => (
   project.actions.updateProject(
-    projectName, {netbootBundle: name, umpireEnabled: true})
+    projectName,
+    {netbootBundle: name},
+    `Set netboot bundle to ${name} for project "${projectName}"`)
 );

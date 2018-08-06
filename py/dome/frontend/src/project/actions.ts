@@ -46,35 +46,37 @@ export const createProject = (name: string) => async (dispatch: Dispatch) => {
   }
 };
 
-export const updateProject =
-  (name: string, settings: Partial<UmpireSetting> = {}) =>
-    async (dispatch: Dispatch, getState: () => RootState) => {
-      const body = {name, ...settings};
+export const updateProject = (
+  name: string,
+  settings: Partial<UmpireSetting> = {},
+  description?: string,
+) => async (dispatch: Dispatch, getState: () => RootState) => {
+  const body = {name, ...settings};
 
-      // taking snapshot must be earlier than optimistic update
-      const onCancel = buildOnCancel(dispatch, getState);
+  // taking snapshot must be earlier than optimistic update
+  const onCancel = buildOnCancel(dispatch, getState);
 
-      // optimistic update
-      dispatch(updateProjectImpl(
-        name,
-        {umpireReady: false, ...settings}));
+  // optimistic update
+  dispatch(updateProjectImpl(
+    name,
+    {umpireReady: false, ...settings}));
 
-      const description = `Update project "${name}"`;
-      const result = await dispatch(
-        task.actions.runTask<UmpireServerResponse>(
-          description, 'PUT', `/projects/${name}/`, body));
-      if (result.cancel) {
-        onCancel();
-        return;
-      }
-      const {response} = result;
-      const data = response.data;
-      dispatch(updateProjectImpl(name, {
-        umpireVersion: data.umpireVersion,
-        isUmpireRecent: data.isUmpireRecent,
-        umpireReady: data.umpireEnabled,
-      }));
-    };
+  description = description || `Update project "${name}"`;
+  const result = await dispatch(
+    task.actions.runTask<UmpireServerResponse>(
+      description, 'PUT', `/projects/${name}/`, body));
+  if (result.cancel) {
+    onCancel();
+    return;
+  }
+  const {response} = result;
+  const data = response.data;
+  dispatch(updateProjectImpl(name, {
+    umpireVersion: data.umpireVersion,
+    isUmpireRecent: data.isUmpireRecent,
+    umpireReady: data.umpireEnabled,
+  }));
+};
 
 export const deleteProject = (name: string) =>
   async (dispatch: Dispatch, getState: () => RootState) => {
