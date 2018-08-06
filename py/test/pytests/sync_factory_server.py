@@ -309,8 +309,7 @@ class SyncFactoryServer(test_case.TestCase):
     self.ui.SetState(
         [_('Trying to reach server...'),
          self.CreateChangeURLButton()])
-    self.server = server_proxy.GetServerProxy(
-        timeout=self.args.timeout_secs, quiet=True)
+    self.server = server_proxy.GetServerProxy(timeout=self.args.timeout_secs)
 
     if self.do_setup_url.is_set():
       raise Exception('Edit URL clicked.')

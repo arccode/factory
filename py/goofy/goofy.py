@@ -1323,16 +1323,12 @@ class Goofy(object):
     """
     first_exception = None
     exception_count = 0
-    # Suppress error messages for periodic event syncing except for the
-    # first time. If event syncing is not periodic, always show the error
-    # messages.
-    quiet = self._suppress_event_log_error_messages if periodic else False
 
     for chunk in chunks:
       try:
         description = 'event logs (%s)' % str(chunk)
         start_time = time.time()
-        proxy = server_proxy.GetServerProxy(quiet=quiet)
+        proxy = server_proxy.GetServerProxy()
         proxy.UploadEvent(
             chunk.log_name + '.' + event_log.GetReimageId(),
             Binary(chunk.chunk))

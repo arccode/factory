@@ -202,7 +202,7 @@ class ShopfloorService(test_case.TestCase):
     if self.args.server_url:
       server = webservice_utils.CreateWebServiceProxy(self.args.server_url)
     else:
-      server = server_proxy.GetServerProxy(quiet=True)
+      server = server_proxy.GetServerProxy()
       if self.args.raw_invocation:
         raise ValueError('Argument `raw_invocation` allowed only for external '
                          'server (need `server_url`).')

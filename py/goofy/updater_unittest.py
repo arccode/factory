@@ -29,7 +29,7 @@ class CheckForUpdateTest(unittest.TestCase):
 
     self.mox.StubOutWithMock(server_proxy, 'GetServerProxy')
     fake_proxy = self.mox.CreateMockAnything()
-    server_proxy.GetServerProxy(timeout=3, quiet=False).AndReturn(fake_proxy)
+    server_proxy.GetServerProxy(timeout=3).AndReturn(fake_proxy)
 
     self.mox.StubOutWithMock(update_utils, 'Updater')
     fake_updater = self.mox.CreateMockAnything()
@@ -69,8 +69,7 @@ class CheckForUpdateAsyncTest(unittest.TestCase):
   def _testUpdate(self, available):
     """Provides basic testing flow for testMustUpdate and testNotUpdate."""
     self.mox.StubOutWithMock(updater, 'CheckForUpdate')
-    updater.CheckForUpdate(timeout=1, quiet=False).AndReturn((
-        '11111', available))
+    updater.CheckForUpdate(timeout=1).AndReturn(('11111', available))
     callback = self.mox.CreateMockAnything()
     # pylint: disable=not-callable
     callback(True, '11111', available).WithSideEffects(self.CallbackCalled)
@@ -93,7 +92,7 @@ class CheckForUpdateAsyncTest(unittest.TestCase):
 
   def testCanNotReach(self):
     self.mox.StubOutWithMock(updater, 'CheckForUpdate')
-    updater.CheckForUpdate(timeout=1, quiet=False).AndRaise(
+    updater.CheckForUpdate(timeout=1).AndRaise(
         Exception('Can not contact factory server'))
     callback = self.mox.CreateMockAnything()
     # pylint: disable=not-callable

@@ -126,13 +126,12 @@ def TryUpdate(pre_update_hook=None, timeout=15):
   return True
 
 
-def CheckForUpdate(timeout, quiet=False):
+def CheckForUpdate(timeout):
   """Checks for an update synchronously.
 
   Args:
     timeout: If not None, the timeout in seconds. This timeout is for RPC
              calls on the proxy, not for get_instance() itself.
-    quiet: Suppresses error messages when factory server can not be reached.
 
   Returns:
     A tuple (toolkit_version, needs_update):
@@ -146,7 +145,7 @@ def CheckForUpdate(timeout, quiet=False):
   Raises:
     An exception if unable to contact the factory server.
   """
-  proxy = server_proxy.GetServerProxy(timeout=timeout, quiet=quiet)
+  proxy = server_proxy.GetServerProxy(timeout=timeout)
   updater = update_utils.Updater(update_utils.COMPONENTS.toolkit, proxy=proxy)
   remote_version = updater.GetUpdateVersion()
   current_version = session.GetToolkitVersion()
@@ -177,7 +176,7 @@ def CheckForUpdateAsync(callback, timeout, quiet=False):
   """
   def Run():
     try:
-      callback(True, *CheckForUpdate(timeout=timeout, quiet=quiet))
+      callback(True, *CheckForUpdate(timeout=timeout))
     except Exception:
       # Just an info, not a trace, since this is pretty common (and not
       # necessarily an error) and we don't want logs to get out of control.

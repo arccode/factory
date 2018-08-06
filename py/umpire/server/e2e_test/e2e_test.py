@@ -29,7 +29,6 @@ import xmlrpclib
 import requests  # pylint: disable=import-error
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.umpire import common
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -447,25 +446,6 @@ class RPCDUTTest(UmpireDockerTestCase):
     self.assertEqual(1, len(report_files))
     report_file = report_files[0]
     self.assertEqual(report, file_utils.ReadFile(report_file))
-
-
-class UmpireServerProxyTest(UmpireDockerTestCase):
-  """Tests for using cros.factory.umpire.client.umpire_server_proxy to interact
-  with Umpire."""
-  def setUp(self):
-    super(UmpireServerProxyTest, self).setUp()
-    self.proxy = umpire_server_proxy.UmpireServerProxy(ADDR_BASE)
-
-  def testUseUmpire(self):
-    self.assertTrue(self.proxy.use_umpire)
-
-  def testDUTRPC(self):
-    t = self.proxy.GetTime()
-    self.assertAlmostEqual(t, time.time(), delta=1)
-
-  def testRPCNotExist(self):
-    with self.assertRPCRaises(fault_code=xmlrpclib.METHOD_NOT_FOUND):
-      self.proxy.Magic()
 
 
 if __name__ == '__main__':

@@ -5,10 +5,10 @@
   "properties": {
     "server_protocol": {
       "default": "auto",
-      "description": "The protocol to access factory server.",
+      "description": "The protocol to access factory server. deprecated.",
       "id": "/properties/server_protocol",
       "title": "The server_protocol schema",
-      "type": "string"
+      "enum": ["auto"]
     },
     "server_timeout": {
       "default": 10,

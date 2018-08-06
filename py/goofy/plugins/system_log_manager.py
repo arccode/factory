@@ -186,17 +186,14 @@ class SystemLogManager(plugin.Plugin):
     self._main_thread = None
     logging.info('SystemLogManager main thread stopped.')
 
-  def _RsyncDestination(self, quiet=False):
+  def _RsyncDestination(self):
     """Gets rsync destination including server url, module, and folder name.
-
-    Args:
-      quiet: Suppresses error messages when factory server can not be reached.
 
     Returns:
       The rsync destination path for system logs.
     """
     url = server_proxy.GetServerURL()
-    proxy = server_proxy.GetServerProxy(quiet=quiet)
+    proxy = server_proxy.GetServerProxy()
     factory_log_port = proxy.GetFactoryLogPort()
     folder_name = session.GetDeviceID()
     return ['rsync://%s:%s/system_logs/%s' %
@@ -235,7 +232,7 @@ class SystemLogManager(plugin.Plugin):
       periodic: This is a periodic sync.
     """
     try:
-      self._SyncLogsImpl(extra_files, callback, abort_time, periodic)
+      self._SyncLogsImpl(extra_files, callback, abort_time)
     except Exception:
       if not periodic:
         raise
@@ -245,7 +242,7 @@ class SystemLogManager(plugin.Plugin):
         self._suppress_periodic_server_messages = True
         raise
 
-  def _SyncLogsImpl(self, extra_files, callback, abort_time, periodic=False):
+  def _SyncLogsImpl(self, extra_files, callback, abort_time):
     """Syncs system logs and extra files to server with a callback.
 
     If the threads gets kicked, terminates the running subprocess.
@@ -256,18 +253,16 @@ class SystemLogManager(plugin.Plugin):
       extra_files: A list of extra files to sync.
       callback: A callback function to call after sync succeeds.
       abort_time: The time to abort rsync subprocess if abort_time is not None.
-      periodic: This is a periodic sync.
     """
     logging.debug('Starts _SyncLogsImpl.')
     # If in periodic sync, show error messages if
     # _suppress_periodic_server_message is not set.
     # If not in periodic sync, always show error messages.
-    quiet = self._suppress_periodic_server_messages if periodic else False
     rsync_command = ['rsync', '-azR', '--stats', '--chmod=o-t',
                      '--timeout=%s' % self._rsync_io_timeout]
     rsync_command += sum([glob.glob(x) for x in self._sync_log_paths], [])
     rsync_command += extra_files
-    rsync_command += self._RsyncDestination(quiet=quiet)
+    rsync_command += self._RsyncDestination()
 
     rsync = Spawn(rsync_command, ignore_stdout=True, ignore_stderr=True)
     while rsync.poll() is None:

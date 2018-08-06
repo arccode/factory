@@ -25,9 +25,8 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
-from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils import config_utils
-from cros.factory.utils import webservice_utils
+from cros.factory.utils import net_utils
 
 
 Fault = xmlrpclib.Fault
@@ -36,7 +35,6 @@ FACTORY_SERVER_CONFIG_NAME = 'factory_server'
 CONFIG_KEY_URL = 'server_url'
 CONFIG_KEY_EXPECTED_PROJECT = 'server_expected_project'
 CONFIG_KEY_TIMEOUT = 'server_timeout'
-CONFIG_KEY_PROTOCOL = 'server_protocol'
 
 
 class ServerProxyError(Exception):
@@ -89,7 +87,7 @@ def SetServerURL(new_url):
   UpdateServerConfig(config)
 
 
-def GetServerProxy(url=None, expected_project=None, timeout=None, quiet=True):
+def GetServerProxy(url=None, expected_project=None, timeout=None):
   """Gets a proxy object to access the Chrome OS Factory Server.
 
   Args:
@@ -98,11 +96,9 @@ def GetServerProxy(url=None, expected_project=None, timeout=None, quiet=True):
         target Umpire server's Ping return expected project. If None, use the
         default config. To disable checking, set this to empty string "".
     timeout: Timeout of RPC calls in seconds. If None, use the default config.
-    quiet: Suppresses error messages when factory server can not be reached.
 
   Returns:
-    A TimeoutUmpireServerProxy object that can work with either
-    simple XML-RPC server (legacy factory server) or Umpire server.
+    A TimeoutXMLRPCServerProxy object.
   """
   config = GetServerConfig()
   if url is None:
@@ -119,22 +115,13 @@ def GetServerProxy(url=None, expected_project=None, timeout=None, quiet=True):
                  'to disable this warning.', CONFIG_KEY_EXPECTED_PROJECT,
                  FACTORY_SERVER_CONFIG_NAME)
 
-  protocol = config.get(CONFIG_KEY_PROTOCOL)
-  # The factory server may be different implementations, for example
-  # legacy XML-RPC or Umpire. Currently the TimeoutUmpireServerProxy will
-  # automatically try and decide the protocol, which will double timeout when
-  # the server is not available by (1) protocol detection (2) first ping.
-  # Adding a "protocol" identifier may help solving the problem.
-  if protocol == 'legacy':
-    return webservice_utils.CreateWebServiceProxy(url)
-  else:
-    proxy = umpire_server_proxy.TimeoutUmpireServerProxy(
-        url, quiet=quiet, allow_none=True, verbose=False, timeout=timeout)
-    if proxy.use_umpire and expected_project:
-      project = proxy.Ping().get('project')
-      if project is not None and project != expected_project:
-        raise ServerProxyError(
-            "The expected_project (%s) doesn't match the "
-            'project returned from Umpire (%s). The URL (%s) might be wrong.' %
-            (expected_project, project, url))
-    return proxy
+  proxy = net_utils.TimeoutXMLRPCServerProxy(
+      url, allow_none=True, verbose=False, timeout=timeout)
+  if expected_project:
+    project = proxy.Ping().get('project')
+    if project is not None and project != expected_project:
+      raise ServerProxyError(
+          "The expected_project (%s) doesn't match the "
+          'project returned from Umpire (%s). The URL (%s) might be wrong.' %
+          (expected_project, project, url))
+  return proxy

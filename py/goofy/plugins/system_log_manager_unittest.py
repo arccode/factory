@@ -218,7 +218,7 @@ class TestSystemLogManager(unittest.TestCase):
       terminated: terminated argument to MockPollToFinish.
     """
     server_proxy.GetServerURL().AndReturn(MOCK_SERVER_URL)
-    server_proxy.GetServerProxy(quiet=False).AndReturn(self.fake_server_proxy)
+    server_proxy.GetServerProxy().AndReturn(self.fake_server_proxy)
     self.fake_server_proxy.GetFactoryLogPort().AndReturn(MOCK_PORT)
     session.GetDeviceID().AndReturn(MOCK_DEVICE_ID)
     if extra_files:
