@@ -414,11 +414,12 @@ class RPCDUTTest(UmpireDockerTestCase):
 
   def testPing(self):
     version = self.proxy.Ping()
-    self.assertEqual({'version': 3}, version)
+    self.assertEqual({'version': 3, 'project': UMPIRE_PROJECT_NAME}, version)
 
   def testEndingSlashInProxyAddress(self):
     proxy = xmlrpclib.ServerProxy(ADDR_BASE + '/')
-    self.assertEqual({'version': 3}, proxy.Ping())
+    self.assertEqual({'version': 3, 'project': UMPIRE_PROJECT_NAME},
+                     proxy.Ping())
 
   def testGetTime(self):
     t = self.proxy.GetTime()
@@ -427,7 +428,7 @@ class RPCDUTTest(UmpireDockerTestCase):
   def testAlternateURL(self):
     proxy = xmlrpclib.ServerProxy('%s/umpire' % ADDR_BASE)
     version = proxy.Ping()
-    self.assertEqual({'version': 3}, version)
+    self.assertEqual({'version': 3, 'project': UMPIRE_PROJECT_NAME}, version)
 
   def testGetFactoryLogPort(self):
     self.assertEqual(PORT + 4, self.proxy.GetFactoryLogPort())
