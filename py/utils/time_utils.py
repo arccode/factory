@@ -95,21 +95,14 @@ EPOCH_ZERO = datetime.datetime(1970, 1, 1)
 EPOCH_ZERO_WITH_TZINFO = datetime.datetime(1970, 1, 1, tzinfo=TZUTC())
 
 
-def DatetimeToUnixtime(obj, utc=True):
+def DatetimeToUnixtime(obj):
   """Converts datetime.datetime to Unix time.
 
   The function will use the time zone info if obj has; otherwise, it will treat
-  obj as in UTC or local time according to the argument utc.
-
-  Args:
-    utc: If this flag is False, the obj would be processed as in local timezone;
-         otherwise, the obj would be processed as in UTC.
+  obj as in Coordinated Universal Time (UTC).
   """
   if not isinstance(obj, datetime.datetime):
     raise ValueError('Expected datetime.datetime but found %s' % type(obj))
   if obj.tzinfo is not None:
     return (obj - EPOCH_ZERO_WITH_TZINFO).total_seconds()
-  elif utc:
-    return (obj - EPOCH_ZERO).total_seconds()
-  else:
-    return (obj - EPOCH_ZERO).total_seconds() + time.altzone
+  return (obj - EPOCH_ZERO).total_seconds()

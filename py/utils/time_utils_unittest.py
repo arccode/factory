@@ -59,10 +59,6 @@ class TimeUtilsTest(unittest.TestCase):
     self.assertAlmostEquals(STD_TIME - 8 * 60 * 60,
                             time_utils.DatetimeToUnixtime(dt_tpe))
 
-    dt_local = datetime.datetime.fromtimestamp(STD_TIME)
-    self.assertAlmostEquals(STD_TIME,
-                            time_utils.DatetimeToUnixtime(dt_local, False))
-
 
 if __name__ == '__main__':
   unittest.main()
