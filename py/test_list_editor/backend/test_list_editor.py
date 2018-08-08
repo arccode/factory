@@ -13,6 +13,7 @@ import SimpleHTTPServer
 from jsonrpclib import SimpleJSONRPCServer
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.test_lists import manager
 from cros.factory.test_list_editor.backend import rpc
 from cros.factory.utils import sys_utils
 
@@ -23,9 +24,9 @@ SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 STATIC_DIR = os.path.realpath(
     os.path.join(SCRIPT_DIR, '..', 'frontend', 'dist'))
 PUBLIC_TEST_LISTS_DIR = os.path.realpath(
-    os.path.join(SCRIPT_DIR, '..', '..', 'test', 'test_lists'))
+    os.path.join(SCRIPT_DIR, '..', '..', '..', manager.TEST_LIST_RELPATH))
 PRIVATE_TEST_LISTS_RELPATH = os.path.join(
-    'chromeos-base', 'factory-board', 'files', 'py', 'test', 'test_lists')
+    'chromeos-base', 'factory-board', 'files', manager.TEST_LIST_RELPATH)
 
 
 class Server(object):

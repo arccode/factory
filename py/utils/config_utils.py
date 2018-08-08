@@ -64,8 +64,8 @@ except ImportError:
 
 
 # Constants defined.
-_CONFIG_FILE_EXT = '.json'
-_SCHEMA_FILE_EXT = '.schema.json'
+CONFIG_FILE_EXT = '.json'
+SCHEMA_FILE_EXT = '.schema.json'
 
 # Config names in config_utils.json
 _CONFIG_NAME_BUILD_DIR = 'BuildConfigDirectory'
@@ -192,7 +192,7 @@ def _LoadRawConfig(config_dir, config_name, logger=_DummyLogger):
   Returns:
     A configuration object.
   """
-  config_path = os.path.join(config_dir, config_name + _CONFIG_FILE_EXT)
+  config_path = os.path.join(config_dir, config_name + CONFIG_FILE_EXT)
   logger('config_utils: Checking %s', config_path)
   return _LoadJsonFile(config_path, logger)
 
@@ -203,7 +203,7 @@ def _LoadRawSchema(config_dir, schema_name, logger=_DummyLogger):
   Returns:
     A schema object.
   """
-  schema_path = os.path.join(config_dir, schema_name + _SCHEMA_FILE_EXT)
+  schema_path = os.path.join(config_dir, schema_name + SCHEMA_FILE_EXT)
   return _LoadJsonFile(schema_path, logger)
 
 
@@ -286,7 +286,7 @@ def DeleteRuntimeConfig(config_name):
     config_name: a string for config file name (without extension) to delete.
   """
   file_utils.TryUnlink(
-      os.path.join(GetRuntimeConfigDirectory(), config_name + _CONFIG_FILE_EXT))
+      os.path.join(GetRuntimeConfigDirectory(), config_name + CONFIG_FILE_EXT))
 
 
 def SaveRuntimeConfig(config_name, value):
@@ -300,7 +300,7 @@ def SaveRuntimeConfig(config_name, value):
   if not os.path.exists(runtime_dir):
     os.makedirs(runtime_dir)
   save_path = os.path.join(
-      GetRuntimeConfigDirectory(), config_name + _CONFIG_FILE_EXT)
+      GetRuntimeConfigDirectory(), config_name + CONFIG_FILE_EXT)
 
   # Try to save in atomic way. This is similar to file_utils.AtomicWrite but we
   # want to have a dedicated implementation here to reduce dependency.
@@ -484,7 +484,7 @@ class _ConfigList(collections.OrderedDict):
     depends = []
     for config_name in self:
       for config_dir, unused_config in self[config_name]:
-        depends.append(os.path.join(config_dir, config_name + _CONFIG_FILE_EXT))
+        depends.append(os.path.join(config_dir, config_name + CONFIG_FILE_EXT))
     return depends
 
 

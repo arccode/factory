@@ -425,9 +425,8 @@ def LoadNetworkConfig(config_name):
   Returns:
     dict object, the content of config file.
   """
-  # pylint: disable=protected-access
-  if config_name.endswith(config_utils._CONFIG_FILE_EXT):
-    config_name = config_name[:-len(config_utils._CONFIG_FILE_EXT)]
+  if config_name.endswith(config_utils.CONFIG_FILE_EXT):
+    config_name = config_name[:-len(config_utils.CONFIG_FILE_EXT)]
   return config_utils.LoadConfig(config_name=config_name,
                                  schema_name='network_config')
 

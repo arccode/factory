@@ -22,13 +22,20 @@ from cros.factory.utils import type_utils
 
 
 # Directory for test lists.
-TEST_LISTS_PATH = os.path.join(paths.FACTORY_DIR, 'py', 'test', 'test_lists')
+TEST_LISTS_RELPATH = os.path.join('py', 'test', 'test_lists')
+TEST_LISTS_PATH = os.path.join(paths.FACTORY_DIR, TEST_LISTS_RELPATH)
 
 # File identifying the active test list.
-ACTIVE_PATH = os.path.join(TEST_LISTS_PATH, 'ACTIVE')
+ACTIVE_RELPATH = os.path.join(TEST_LISTS_RELPATH, 'ACTIVE')
+ACTIVE_PATH = os.path.join(paths.FACTORY_DIR, ACTIVE_RELPATH)
 
 # Default test list.
 DEFAULT_TEST_LIST_ID = 'main'
+
+# All test lists must have name: <id>.test_list.json
+CONFIG_SUFFIX = '.test_list'
+
+TEST_LIST_SCHEMA_NAME = 'test_list'
 
 
 class TestListConfig(object):
@@ -97,19 +104,14 @@ class Loader(object):
   will be `TestListConfig` object, which can be passed to `TestList` to create
   an `ITestList` object.
   """
-  CONFIG_SUFFIX = '.test_list'
-  """All test lists must have name: <id>.test_list.json"""
 
-  def __init__(self, schema_name='test_list', config_dir=None):
-    self.schema_name = schema_name
-    if not config_dir:
-      # paths.FACTORY_DIR does not work in factory par, however, currently, we
-      # should not run Goofy and test list manager in factory par.
-      # The default_config_dirs config_utils.LoadConfig will find should be the
-      # same one we compute here, however, we also need this path to check file
-      # state, so let's figure out the path by ourselves.
-      config_dir = os.path.join(paths.FACTORY_DIR, 'py', 'test', 'test_lists')
-    self.config_dir = config_dir
+  def __init__(self, config_dir=None):
+    # TEST_LISTS_PATH depends on paths.FACTORY_DIR, which does not work in
+    # factory par, however, currently, we should not run Goofy and test list
+    # manager in factory par. The default_config_dirs config_utils.LoadConfig
+    # will find should be the same one we compute here, however, we also need
+    # this path to check file state, so let's figure out the path by ourselves.
+    self.config_dir = config_dir or TEST_LISTS_PATH
 
   def Load(self, test_list_id, allow_inherit=True):
     """Loads test list config by test list ID.
@@ -121,7 +123,7 @@ class Loader(object):
     try:
       loaded_config = config_utils.LoadConfig(
           config_name=config_name,
-          schema_name=self.schema_name,
+          schema_name=TEST_LIST_SCHEMA_NAME,
           validate_schema=True,
           default_config_dirs=self.config_dir,
           allow_inherit=allow_inherit,
@@ -139,15 +141,16 @@ class Loader(object):
 
   def GetConfigPath(self, test_list_id):
     """Returns the test list config file path of `test_list_id`."""
-    return os.path.join(self.config_dir,
-                        self._GetConfigName(test_list_id) + '.json')
+    return os.path.join(
+        self.config_dir,
+        self._GetConfigName(test_list_id) + config_utils.CONFIG_FILE_EXT)
 
   def _GetConfigName(self, test_list_id):
     """Returns the test list config file corresponding to `test_list_id`."""
-    return test_list_id + self.CONFIG_SUFFIX
+    return test_list_id + CONFIG_SUFFIX
 
   def FindTestListIDs(self):
-    suffix = self.CONFIG_SUFFIX + '.json'
+    suffix = CONFIG_SUFFIX + config_utils.CONFIG_FILE_EXT
     return [os.path.basename(p)[:-len(suffix)] for p in
             glob.iglob(os.path.join(self.config_dir, '*' + suffix))]
 
@@ -265,8 +268,9 @@ class Manager(object):
     model_main = 'main_%s' % model
 
     for test_list_id in [model_main, 'main', 'generic_main']:
-      if os.path.exists(os.path.join(TEST_LISTS_PATH,
-                                     test_list_id + '.test_list.json')):
+      if os.path.exists(os.path.join(
+          TEST_LISTS_PATH,
+          test_list_id + CONFIG_SUFFIX + config_utils.CONFIG_FILE_EXT)):
         return test_list_id
     return DEFAULT_TEST_LIST_ID
 

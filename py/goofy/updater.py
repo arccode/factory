@@ -12,6 +12,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import server_proxy
 from cros.factory.test import session
+from cros.factory.test.test_lists import manager
 from cros.factory.test.utils import update_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -98,7 +99,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
   # Some files should be kept.
   # TODO(crbug.com/756275): We should move ALL runtime generated files outside
   # of the toolkit folder.
-  for file_to_keep in ['py/test/test_lists/ACTIVE', 'hwid']:
+  for file_to_keep in [manager.ACTIVE_RELPATH, 'hwid']:
     old_path = os.path.join(paths.FACTORY_DIR, file_to_keep)
     new_path = os.path.join(src_path, file_to_keep)
     if os.path.exists(old_path) and not os.path.exists(new_path):
