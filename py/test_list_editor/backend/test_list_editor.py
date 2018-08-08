@@ -13,20 +13,9 @@ import SimpleHTTPServer
 from jsonrpclib import SimpleJSONRPCServer
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.test_lists import manager
+from cros.factory.test_list_editor.backend import common
 from cros.factory.test_list_editor.backend import rpc
 from cros.factory.utils import sys_utils
-
-
-PORT = 4013
-
-SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-STATIC_DIR = os.path.realpath(
-    os.path.join(SCRIPT_DIR, '..', 'frontend', 'dist'))
-PUBLIC_TEST_LISTS_DIR = os.path.realpath(
-    os.path.join(SCRIPT_DIR, '..', '..', '..', manager.TEST_LIST_RELPATH))
-PRIVATE_TEST_LISTS_RELPATH = os.path.join(
-    'chromeos-base', 'factory-board', 'files', manager.TEST_LIST_RELPATH)
 
 
 class Server(object):
@@ -43,11 +32,11 @@ class Server(object):
 
   def __init__(self, port, dirs):
     self.port = port
-    self.dirs = dirs
+    self.rpc = rpc.RPC(dirs)
     self.httpd = SimpleJSONRPCServer.SimpleJSONRPCServer(
         ('', port), Server.HTTPRequestHandler)
     self.httpd.register_introspection_functions()
-    self.httpd.register_instance(rpc.RPC(self))
+    self.httpd.register_instance(self.rpc)
 
   def start(self):
     logging.info('httpd started at http://localhost:%d/', self.port)
@@ -68,36 +57,36 @@ def main():
   parser.add_argument(
       '-b', '--board', help='Board name of the private overlay to open.')
   parser.add_argument(
-      '-p', '--port', default=PORT, type=int,
+      '-p', '--port', default=common.PORT, type=int,
       help='The port to listen for HTTP requests.')
   args = parser.parse_args()
 
-  dirs = [('factory', PUBLIC_TEST_LISTS_DIR)]
+  dirs = [('factory', common.PUBLIC_TEST_LISTS_DIR)]
   if args.board:
     if sys_utils.InCrOSDevice():
       raise ValueError('BOARD may not be set in DUT environment.')
-    path = locate(SCRIPT_DIR, '.repo')
+    path = locate(common.SCRIPT_DIR, '.repo')
     if not path:
       raise RuntimeError('Not in a Chromium OS source tree.')
     path = os.path.join(
         path, 'src', 'private-overlays', 'overlay-%s-private' % args.board)
     if not os.path.isdir(path):
       raise RuntimeError('Private overlay %r not found.' % path)
-    path = os.path.join(path, PRIVATE_TEST_LISTS_RELPATH)
+    path = os.path.join(path, common.PRIVATE_TEST_LISTS_RELPATH)
     if not os.path.isdir(path):
       raise RuntimeError('Directory %r not found.' % path)
     dirs.append((args.board, path))
   else:
     path = locate(os.getcwd(), '.git')
     if path:
-      path = os.path.join(path, PRIVATE_TEST_LISTS_RELPATH)
+      path = os.path.join(path, common.PRIVATE_TEST_LISTS_RELPATH)
       if os.path.isdir(path):
         dirs.append((os.path.dirname(path).split('-')[1], path))
 
-  if not os.path.isdir(STATIC_DIR):
+  if not os.path.isdir(common.STATIC_DIR):
     # TODO(youcheng): Pull static files automatically.
-    raise RuntimeError('%r is required.' % STATIC_DIR)
-  os.chdir(STATIC_DIR)
+    raise RuntimeError('%r is required.' % common.STATIC_DIR)
+  os.chdir(common.STATIC_DIR)
 
   server = Server(args.port, dirs)
   server.start()
