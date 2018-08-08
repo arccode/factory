@@ -121,6 +121,10 @@ indent-string='  '
 # (useful for classes with attributes dynamically set).
 ignored-classes=Event,Obj,RegCode,hashlib
 
+# List of modules to ignore when checking imports. These modules are used by
+# Dome, which runs in docker and these modules doesn't exist in chroot.
+ignored-modules=django,django.db,rest_framework
+
 # When zope mode is activated, add a predefined set of Zope acquired attributes
 # to generated-members.
 #zope=no

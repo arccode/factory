@@ -103,11 +103,12 @@ endif
 
 LINT_BLACKLIST=$(shell cat $(MK_DIR)/pylint.blacklist | grep -v '^\#')
 LINT_FILES=$(shell find py go po -name '*.py' -type f | sort)
-LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))
+LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(wildcard $(LINT_FILES)))
 
 UNITTESTS=$(shell find py go po -name '*_unittest.py' | sort)
 UNITTESTS_BLACKLIST=$(shell cat $(MK_DIR)/unittests.blacklist)
-UNITTESTS_WHITELIST=$(filter-out $(UNITTESTS_BLACKLIST),$(UNITTESTS))
+UNITTESTS_WHITELIST= \
+  $(filter-out $(UNITTESTS_BLACKLIST),$(wildcard $(UNITTESTS)))
 TEST_EXTRA_FLAGS=
 
 # Substitute PRESUBMIT_FILES to relative path (similar to

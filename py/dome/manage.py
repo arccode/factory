@@ -7,17 +7,19 @@ import os
 import signal
 import sys
 
+from django.core.management import execute_from_command_line
+
 
 def handler(signum, frame):
   del signum, frame  # Unused.
   sys.exit(1)
 
 
-if __name__ == '__main__':
+def main():
   signal.signal(signal.SIGTERM, handler)
-
   os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
-
-  from django.core.management import execute_from_command_line
-
   execute_from_command_line(sys.argv)
+
+
+if __name__ == '__main__':
+  main()

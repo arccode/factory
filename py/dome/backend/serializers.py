@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 import django
-from rest_framework import exceptions
+from rest_framework import exceptions  # pylint: disable=wrong-import-order
 from rest_framework import serializers
 from rest_framework import validators
 

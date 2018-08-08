@@ -76,6 +76,7 @@ class ServiceSchemaView(generics.ListAPIView):
 
   def list(self, request, *args, **kwargs):
     """Override parent's method."""
+    del request, args, kwargs  # unused
     return Response(Service.GetServiceSchemata())
 
 
@@ -86,11 +87,12 @@ class ServiceCollectionView(mixins.UpdateModelMixin,
 
   def list(self, request, *args, **kwargs):
     """Override parent's method."""
-    return Response(
-        Service.ListAll(self.kwargs['project_name']))
+    del request, args, kwargs  # unused
+    return Response(Service.ListAll(self.kwargs['project_name']))
 
   def put(self, request, project_name, request_format=None):
     """Override parent's method."""
+    del request_format  # unused
     return Response(Service.Update(project_name, request.data))
 
 

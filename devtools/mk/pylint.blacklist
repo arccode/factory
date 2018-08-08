@@ -7,3 +7,10 @@ py/umpire/server/e2e_test/testdata/umpire/toolkits/device/%
 # file...
 py/test/__init__.py
 doc/conf.py
+# There are some old Dome migrations that has lint error, but since we
+# shouldn't be modifying migration files, skip them in lint check. Newer
+# migrations should be manually formatted to conform lint checks before
+# uploading.
+py/dome/backend/migrations/0007_auto_20170411_0943.py
+py/dome/backend/migrations/0013_auto_20180516_0704.py
+py/dome/backend/migrations/0014_auto_20180612_0603.py
