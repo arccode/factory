@@ -9,8 +9,8 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
+from cros.factory.utils import type_utils
 
-from cros.factory.external import enum
 from cros.factory.external import numpy
 
 
@@ -53,23 +53,15 @@ class PowerBase(types.DeviceComponent):
   The base class is basically empty, and needs mixin classes to add its
   functions.
   """
-  # pylint: disable=no-init
-  class PowerSource(enum.Enum):
-    """Power source types"""
-    BATTERY = 1
-    AC = 2
 
-  # pylint: disable=no-init
-  class ChargeState(enum.Enum):
-    """An enumeration of possible charge states.
+  # Power source types
+  PowerSource = type_utils.Enum(['BATTERY', 'AC'])
 
-    - ``CHARGE``: Charge the device as usual.
-    - ``IDLE``: Do not charge the device, even if connected to mains.
-    - ``DISCHARGE``: Force the device to discharge.
-    """
-    CHARGE = 'Charging'
-    IDLE = 'Idle'
-    DISCHARGE = 'Discharging'
+  # An enumeration of possible charge states.
+  # - ``CHARGE``: Charge the device as usual.
+  # - ``IDLE``: Do not charge the device, even if connected to mains.
+  # - ``DISCHARGE``: Force the device to discharge.
+  ChargeState = type_utils.Enum(['CHARGE', 'IDLE', 'DISCHARGE'])
 
   def __init__(self, dut, pd_name=None):
     super(PowerBase, self).__init__(dut)
@@ -112,6 +104,12 @@ class ECToolPowerControlMixin(PowerControlMixinBase):
 
 class PowerInfoMixinBase(object):
   """Base class for power info mixin."""
+
+  _CHARGE_STATE_MAP = {
+      'Charging': PowerBase.ChargeState.CHARGE,
+      'Idle': PowerBase.ChargeState.IDLE,
+      'Discharging': PowerBase.ChargeState.DISCHARGE
+  }
 
   def CheckACPresent(self):
     """Check if AC power is present."""
@@ -405,7 +403,7 @@ class SysfsPowerInfoMixin(PowerInfoMixinBase):
 
   def GetChargeState(self):
     """See PowerInfoMixinBase.GetChargeState"""
-    return self.ChargeState(self.GetBatteryAttribute('status')).value
+    return self._CHARGE_STATE_MAP[self.GetBatteryAttribute('status')]
 
   def GetChargerCurrent(self):
     """See PowerInfoMixinBase.GetChargerCurrent
@@ -521,11 +519,10 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
 
   def GetChargeState(self):
     """See PowerInfoMixinBase.GetWearPct"""
-    charging = 'CHARGING' in self._GetECToolBatteryFlags()
-    if charging:
-      return self.ChargeState.CHARGE.value
+    if 'CHARGING' in self._GetECToolBatteryFlags():
+      return self.ChargeState.CHARGE
     else:
-      return self.ChargeState.DISCHARGE.value
+      return self.ChargeState.DISCHARGE
 
   def GetBatteryCurrent(self):
     """See PowerInfoMixinBase.GetBatteryCurrent"""
@@ -672,7 +669,7 @@ class PowerDaemonPowerInfoMixin(PowerInfoMixinBase):
 
   def GetChargeState(self):
     """See PowerInfoMixinBase.GetChargeState"""
-    return self.ChargeState(self._GetPowerAttribute('battery_status')).value
+    return self._CHARGE_STATE_MAP[self._GetPowerAttribute('battery_status')]
 
   def GetChargerCurrent(self):
     """See PowerInfoMixinBase.GetChargerCurrent
@@ -687,7 +684,7 @@ class PowerDaemonPowerInfoMixin(PowerInfoMixinBase):
 
   def GetBatteryCurrent(self):
     """See PowerInfoMixinBase.GetBatteryCurrent"""
-    charging = self.GetChargeState() == 'Charging'
+    charging = self.GetChargeState() == self.ChargeState.CHARGE
     current = int(self._GetPowerAttribute('battery_current', float) * 1000)
     return current if charging else -current
 

@@ -222,7 +222,7 @@ statusMonitor.Status = class {
             status.battery.charge_fraction);
       }
       if (goog.array.contains(
-              ['Full', 'Charging', 'Discharging'],
+              ['IDLE', 'CHARGE', 'DISCHARGE'],
               status.battery.charge_state)) {
         batteryChargeState = status.battery.charge_state.toLowerCase();
       }

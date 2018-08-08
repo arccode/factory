@@ -160,7 +160,7 @@ class ECToolPowerInfoTest(unittest.TestCase):
   def testGetChargeState(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_EC_BATTERY_READ)
-    self.assertEquals(self.power.GetChargeState(), 'Charging')
+    self.assertEquals(self.power.GetChargeState(), 'CHARGE')
 
   def testGetBatteryCurrent(self):
     self.board.CallOutput = mock.MagicMock(
@@ -204,7 +204,7 @@ class ECToolPowerInfoTest(unittest.TestCase):
         return_value=self._MOCK_EC_BATTERY_READ)
     expected_dict = {
         'current_now': 128,
-        'status': 'Charging',
+        'status': 'CHARGE',
         'present': True,
         'voltage_now': 15370,
         'charge_full': 3194,
@@ -374,10 +374,10 @@ class PowerDaemonPowerInfoTest(unittest.TestCase):
   def testGetChargeState(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_CHARGE)
-    self.assertEquals(self.power.GetChargeState(), 'Charging')
+    self.assertEquals(self.power.GetChargeState(), 'CHARGE')
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_DISCHARGE)
-    self.assertEquals(self.power.GetChargeState(), 'Discharging')
+    self.assertEquals(self.power.GetChargeState(), 'DISCHARGE')
 
   def testGetBatteryCurrent(self):
     self.board.CallOutput = mock.MagicMock(
