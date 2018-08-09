@@ -120,8 +120,6 @@ class Testlog(object):
     log_root: The root folder for logging.
     primary_json: A JSON file that will ingested by Instalog.
     session_json: A temporary JSON file to keep the test_run information.
-    flush_mode: Flag for default action on API calls. True to flush the
-        test_run event into primary_json, False to session_json.
     attachments_folder: The folder for copying / moving binary files.
     uuid: A unique ID for related to the process that using the testlog.
     seq_generator: A sequence file that expected to increase monotonically.
@@ -130,7 +128,7 @@ class Testlog(object):
 
   FIELDS = type_utils.Enum([
       'LAST_TEST_RUN', 'LOG_ROOT', 'PRIMARY_JSON', 'SESSION_JSON',
-      'ATTACHMENTS_FOLDER', 'UUID', 'FLUSH_MODE', '_METADATA'])
+      'ATTACHMENTS_FOLDER', 'UUID', '_METADATA'])
 
   def __init__(self, log_root=None, uuid=None,
                stationDeviceId=None, stationInstallationId=None):
@@ -158,8 +156,7 @@ class Testlog(object):
               os.path.join(log_root, _DEFAULT_PRIMARY_JSON_FILE),
           Testlog.FIELDS.ATTACHMENTS_FOLDER:
               os.path.join(log_root, _DEFAULT_ATTACHMENTS_FOLDER),
-          Testlog.FIELDS.UUID: uuid,
-          Testlog.FIELDS.FLUSH_MODE: True}
+          Testlog.FIELDS.UUID: uuid}
     elif not log_root and not uuid:
       # Get the related information from the OS environment variable.
       self.in_subsession = True
@@ -175,7 +172,6 @@ class Testlog(object):
     self.session_json = session_data.pop(self.FIELDS.SESSION_JSON, None)
     self.attachments_folder = session_data.pop(self.FIELDS.ATTACHMENTS_FOLDER)
     self.uuid = session_data.pop(self.FIELDS.UUID)
-    self.flush_mode = session_data.pop(self.FIELDS.FLUSH_MODE)
     metadata = session_data.pop(
         self.FIELDS._METADATA, None)  # pylint: disable=protected-access
     if metadata:
@@ -259,7 +255,6 @@ class Testlog(object):
         Testlog.FIELDS.ATTACHMENTS_FOLDER:
             metadata[Testlog.FIELDS.ATTACHMENTS_FOLDER],
         Testlog.FIELDS.UUID: metadata[Testlog.FIELDS.UUID],
-        Testlog.FIELDS.FLUSH_MODE: metadata[Testlog.FIELDS.FLUSH_MODE],
         Testlog.FIELDS._METADATA: metadata}  # pylint: disable=protected-access
 
   def _CreateFolders(self):
@@ -332,7 +327,6 @@ def InitSubSession(log_root, uuid, station_test_run=None):
       Testlog.FIELDS.SESSION_JSON: session_log_path,
       Testlog.FIELDS.ATTACHMENTS_FOLDER:
           os.path.join(log_root, _DEFAULT_ATTACHMENTS_FOLDER),
-      Testlog.FIELDS.FLUSH_MODE: False,
       Testlog.FIELDS.UUID: uuid
   }
   with file_utils.FileLockContextManager(session_log_path, 'w') as fd:
@@ -429,10 +423,24 @@ def Log(event):
     elif isinstance(event, StationTestRun):
       testlog_singleton.hooks.OnStationTestRun(event)
 
-  if testlog_singleton.flush_mode:
+  if not testlog_singleton.in_subsession:
     testlog_singleton.primary_json.Log(event)
   else:
     testlog_singleton.session_json.Log(event, override=True)
+
+
+def FlushEvent():
+  """Flush the last_test_run event to primary JSON file.
+
+  Be careful that this function is slow and the time consumption depends on the
+  size of the event. Calling it too often will cause performance issue.
+  """
+  testlog_singleton = GetGlobalTestlog()
+  if testlog_singleton.in_subsession:
+    testlog_singleton.primary_json.Log(testlog_singleton.last_test_run)
+  else:
+    raise testlog_utils.TestlogError(
+        'FlushEvent should be called in subsession.')
 
 
 def _StationTestRunWrapperInSession(*args, **kwargs):

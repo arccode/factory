@@ -562,6 +562,7 @@ class TestlogE2ETest(unittest.TestCase):
     # Additional steps that because multiprocessing.Process doesn't provide
     # an argument to set the env like subprocess.Popen.
     testlog.LogParam(name='NAME', value=1)
+    testlog.FlushEvent()
     testlog.UpdateParam('NAME', description='DESCRIPTION')
 
     # Move a file normally.
@@ -647,11 +648,18 @@ class TestlogE2ETest(unittest.TestCase):
         {'type': 'station.message', 'seq': 6,
          'functionName': 'testSimulatedTestInAnotherProcess',
          'logLevel': 'INFO', 'testRunId': session_uuid},
-        # Missing seq=7 to seq=9 because they are sent to primary JSON.
-        {'type': 'station.message', 'seq': 10,
+        # Missing seq=7, 9, 10 because they are not sent to primary JSON.
+        # This event is created by FlushEvent.
+        {'type': 'station.test_run', 'seq': 8, 'testType': 'TestlogDemo',
+         'testName': 'TestlogDemo.Test', 'testRunId': session_uuid,
+         'parameters': {
+             'NAME': {'data': [{'numericValue': 1}],
+                      'type': 'measurement'}},
+         'serialNumbers': {'serial_number': 'TestlogDemo'}},
+        {'type': 'station.message', 'seq': 11,
          'functionName': 'testE2E', 'logLevel': 'INFO', 'message': '$OUT$'},
         # Don't check attachments since the filename is not deterministic.
-        {'type': 'station.test_run', 'seq': 11, 'testType': 'TestlogDemo',
+        {'type': 'station.test_run', 'seq': 12, 'testType': 'TestlogDemo',
          'testName': 'TestlogDemo.Test', 'testRunId': session_uuid,
          'parameters': {
              'NAME': {'data': [{'numericValue': 1}],
