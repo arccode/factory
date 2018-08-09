@@ -17,7 +17,10 @@ import subprocess
 import sys
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
 
@@ -27,6 +30,8 @@ LANGUAGE_CODE_PATTERN = re.compile(r'^(\w+)(-[A-Z0-9]+)?$')
 
 CROS_REGIONS_DATABASE_DEFAULT_PATH = '/usr/share/misc/cros-regions.json'
 CROS_REGIONS_DATABASE_ENV_NAME = 'CROS_REGIONS_DATABASE'
+CROS_REGIONS_DATABASE_GENERATOR_PATH = os.path.join(
+    paths.FACTORY_DIR, '..', '..', 'platform2', 'regions', 'regions.py')
 
 # crbug.com/624257: Only regions defined below can use be automatically
 # populated for HWID field mappings in !region_field.
@@ -236,6 +241,11 @@ def LoadRegionDatabase(path=None):
                         os.path.basename(CROS_REGIONS_DATABASE_DEFAULT_PATH))
     if os.path.exists(path):
       return file_utils.ReadFile(path)
+
+    if (sys_utils.InChroot() and
+        os.path.isfile(CROS_REGIONS_DATABASE_GENERATOR_PATH)):
+      return process_utils.LogAndCheckOutput(
+          [CROS_REGIONS_DATABASE_GENERATOR_PATH, '--format', 'json', '--all'])
 
     path = CROS_REGIONS_DATABASE_DEFAULT_PATH
     if os.path.exists(path):
