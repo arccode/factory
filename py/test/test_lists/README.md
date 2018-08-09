@@ -25,6 +25,11 @@ test list on a device:
 
     echo generic_main > /usr/local/factory/py/test/test_lists/ACTIVE
 
-If no `ACTIVE` file is present, the `main` test list is used.
+If no `ACTIVE` file is present, then there are two ways to determine the default
+test list;
+
+1. ID - `main_${model}` would be checked first where `${model}` is came from
+output of command - `mosys platform model`.
+2. the test list with ID - `main` or `generic_main` is used.
 
 (Note that `ACTIVE` is a file, not a symlink to a file as in the past.)

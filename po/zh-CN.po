@@ -3092,6 +3092,7 @@ msgstr "冷重启"
 #: ../py/test/test_lists/generic_rma.test_list.json
 #: ../py/test/test_lists/generic_run_in.test_list.json
 #: ../py/test/test_lists/generic_smt.test_list.json
+#: ../py/test/test_lists/generic_unprovisioned.test_list.json
 msgid "Finish"
 msgstr "结束"
 
@@ -3212,6 +3213,10 @@ msgid "Manual Test Right USB TypeC"
 msgstr "手动右 USB TypeC 测试"
 
 #: ../py/test/test_lists/generic_common.test_list.json
+msgid "Update Cr50 Firmware"
+msgstr "更新 CR50 韧体"
+
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Upload Reg (ECHO) Codes to activate"
 msgstr "上传注册码(ECHO)以激活"
 
@@ -3232,6 +3237,7 @@ msgstr "FAT (最终组装测试)"
 #: ../py/test/test_lists/generic_grt.test_list.json
 #: ../py/test/test_lists/generic_run_in.test_list.json
 #: ../py/test/test_lists/generic_smt.test_list.json
+#: ../py/test/test_lists/generic_unprovisioned.test_list.json
 msgid "Prepare"
 msgstr "准备程序"
 
@@ -3337,6 +3343,14 @@ msgstr "扫描测站 ID"
 #: ../py/test/test_lists/generic_smt.test_list.json
 msgid "Stress Test"
 msgstr "压力测试"
+
+#: ../py/test/test_lists/generic_unprovisioned.test_list.json
+msgid "Update SKU ID"
+msgstr "更新样式 ID"
+
+#: ../py/test/test_lists/generic_unprovisioned.test_list.json
+msgid "Provision Chromebook with SKU ID"
+msgstr "供应 Chromebook 样式 ID"
 
 #: ../py/test/test_lists/station_based.test_list.json
 msgid "Connect Device"

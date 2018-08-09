@@ -1,0 +1,50 @@
+{
+  "inherit": [
+    "generic_smt.test_list"
+  ],
+  "label": "Provision Chromebook with SKU ID",
+  "options": {
+    "ui_locale": "zh-CN"
+  },
+  "definitions": {
+    "Provision": {
+      "inherit": "TestGroup",
+      "label": "Update SKU ID",
+      "locals": {
+        "station_end_upload_report": true,
+        "station": "provision"
+      },
+      "subtests": [
+        "ProvisionStart",
+        "UpdateCr50Firmware",
+        "UpdateSKUID",
+        "CheckPoint",
+        "ProvisionEnd"
+      ]
+    },
+    "ProvisionEnd": {
+      "inherit": "TestGroup",
+      "label": "Finish",
+      "subtests": [
+        "StationEnd",
+        "CheckPoint",
+        "FullRebootStep"
+      ]
+    },
+    "ProvisionStart": {
+      "inherit": "TestGroup",
+      "label": "Prepare",
+      "subtests": [
+        "ReadDeviceDataFromVPD",
+        "SyncFactoryServer",
+        "SMTScanMLB",
+        "SMTScanOperatorID",
+        "SMTScanStationID",
+        "StationStart"
+      ]
+    }
+  },
+  "tests": [
+    "Provision"
+  ]
+}

@@ -630,6 +630,16 @@
       ]
     },
     "USBTypeCTest": "USBTypeCManualTest",
+    "UpdateCr50Firmware": {
+      "inherit": "TestGroup",
+      "label": "Update Cr50 Firmware",
+      "subtests": [
+        {
+          "pytest_name": "update_cr50_firmware"
+        },
+        "RebootStep"
+      ]
+    },
     "UpdateDeviceData": {
       "pytest_name": "update_device_data"
     },
@@ -642,6 +652,9 @@
         "Barrier",
         "RebootStep"
       ]
+    },
+    "UpdateSKUID": {
+      "pytest_name": "update_sku"
     },
     "UploadRegCodes": {
       "inherit": "SyncFactoryServer",

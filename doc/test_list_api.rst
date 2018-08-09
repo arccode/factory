@@ -27,8 +27,12 @@ The active test list
 --------------------
 The file ``/usr/local/factory/py/test/test_lists/ACTIVE`` is used to
 determine which test list is currently active.  This file contains the
-ID of the active test list.  If this file is not present, the test
-list with ID ``main`` is used.
+ID of the active test list.  If this file is not present, then there are two
+ways to determine the default test list;
+
+* ID - ``main_${model}`` would be checked first where ``${model}`` is came from
+  output of command - ``mosys platform model``.
+* the test list with ID - ``main`` or ``generic_main`` is used.
 
 If you want a different test list to be included by default, you
 may simply create an ``ACTIVE`` file in the factory image.

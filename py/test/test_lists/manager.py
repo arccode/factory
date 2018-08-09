@@ -261,7 +261,6 @@ class Manager(object):
 
     if not test_list_id:
       test_list_id = Manager.SelectDefaultTestList()
-      Manager.SetActiveTestList(test_list_id)
 
     return test_list_id
 
