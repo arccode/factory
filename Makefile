@@ -85,9 +85,21 @@ CROS_REGIONS_DATABASE ?= $(SYSROOT)/usr/share/misc/cros-regions.json
 OVERLORD_DEPS_URL ?= \
   gs://chromeos-localmirror/distfiles/overlord-deps-0.0.3.tar.gz
 OVERLORD_DEPS_DIR ?= $(BUILD_DIR)/dist/go
+# This must match chromeos-base/factory/factory-9999.ebuild.
 WEBGL_AQUARIUM_URI ?= \
   gs://chromeos-localmirror/distfiles/webgl-aquarium-20130524.tar.bz2
 WEBGL_AQUARIUM_DIR ?= $(BUILD_DIR)/dist/webgl_aquarium_static
+# Following versions must match dev-libs/closure-library/*.ebuild.
+CLOSURE_LIB_GITREV ?= 7744b75c637054ed38b14901d091ec3196b2ef9b
+CLOSURE_LIB_URL ?= \
+  gs://chromeos-localmirror/distfiles/closure-library-201702.tar.gz
+CLOSURE_LIB_DIR ?= $(BUILD_DIR)/dist/closure-library-$(CLOSURE_LIB_GITREV)
+
+# TODO(hungte) Remove the ifdef when chromeos-base/factory ebuild has changed to
+# always specify CLOSURE_LIB_DIR.
+ifdef CROS_WORKON_SRCROOT
+CLOSURE_LIB_DIR = /opt/closure-library
+endif
 
 LINT_BLACKLIST=$(shell cat $(MK_DIR)/pylint.blacklist | grep -v '^\#')
 LINT_FILES=$(shell find py go po -name '*.py' -type f | sort)
@@ -123,8 +135,9 @@ clean:
 	rm -rf $(RESOURCE_DIR) $(TEMP_DIR) $(BUILD_DIR) $(BUNDLE_DIR)
 
 # Currently the only programs using Closure is in Goofy.
-closure:
-	$(MAKE) -C $(CLOSURE_DIR) OUTPUT_DIR=$(CLOSURE_OUTPUT_DIR)
+closure: $(CLOSURE_LIB_DIR)
+	$(MAKE) -C $(CLOSURE_DIR) OUTPUT_DIR=$(CLOSURE_OUTPUT_DIR) \
+	  CLOSURE_LIB_DIR=$(realpath $(CLOSURE_LIB_DIR))
 
 # Regenerates the reg code proto.
 # TODO(jsalz): Integrate this as a "real" part of the build, rather than
@@ -136,13 +149,17 @@ proto:
 func-extract-from-url = @\
 	mkdir -p $(1) ;\
 	gsutil cp $(2) $(1)/. ;\
-	tar -xf $(1)/$(notdir $(2)) -C $(1)
+	tar -xf $(1)/$(notdir $(2)) -C $(1) ; \
+	test -d $@
 
 $(OVERLORD_DEPS_DIR):
 	$(call func-extract-from-url,$(dir $@),$(OVERLORD_DEPS_URL))
 
 $(WEBGL_AQUARIUM_DIR):
 	$(call func-extract-from-url,$(dir $@),$(WEBGL_AQUARIUM_URI))
+
+$(CLOSURE_LIB_DIR):
+	$(call func-extract-from-url,$(dir $@),$(CLOSURE_LIB_URL))
 
 # TODO(hungte) Change overlord to build out-of-tree.
 overlord: $(OVERLORD_DEPS_DIR)
