@@ -270,7 +270,12 @@ toolkit: $(WEBGL_AQUARIUM_DIR) resource par
 	$(call func-apply-board-resources,toolkit,\
 	  $(TOOLKIT_TEMP_DIR)$(TARGET_DIR))
 	cp "$(PAR_OUTPUT_DIR)/factory.par" "$(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/"
-	cp -L /usr/bin/makeself*.sh $(TOOLKIT_TEMP_DIR)/.
+	if [ -f /usr/bin/makeself.sh ]; then \
+	  cp -fL /usr/bin/makeself*.sh $(TOOLKIT_TEMP_DIR)/. ; \
+	else \
+	  cp -fL /usr/bin/makeself $(TOOLKIT_TEMP_DIR)/makeself.sh && \
+	  cp -fL /usr/share/makeself/makeself*.sh $(TOOLKIT_TEMP_DIR)/. ; \
+	fi
 	# TODO(hungte) Figure out a way to get repo status in OUTOFTREE_BUILD.
 	$(if $(OUTOFTREE_BUILD),,$(if $(BOARD),\
 	  py/toolkit/print_repo_status.py -b $(BOARD) \
