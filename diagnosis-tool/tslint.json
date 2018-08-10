@@ -2,7 +2,7 @@
   "rulesDirectory": [
     "node_modules/codelyzer"
   ],
-  "extends": "tslint:recommended",
+  "extends": ["tslint:recommended", "tslint-eslint-rules"],
   "rules": {
     "arrow-return-shorthand": true,
     "callable-types": true,
@@ -123,8 +123,12 @@
       "check-branch",
       "check-decl",
       "check-operator",
+      "check-preblock",
+      "check-rest-spread",
       "check-separator",
-      "check-type"
+      "check-type",
+      "check-type-operator",
+      "check-typecase"
     ],
     "no-output-on-prefix": true,
     "use-input-property-decorator": true,
@@ -140,7 +144,8 @@
     "strict-type-predicates": true,
     "trailing-comma": false,
     "file-name-casing": [true, "kebab-case"],
-    "prefer-function-over-method": false
+    "prefer-function-over-method": false,
+    "object-curly-spacing": [true, "never"]
   }
 }
 
