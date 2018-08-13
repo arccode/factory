@@ -6,7 +6,9 @@
 !py_pkg
 !setup/cros_docker.sh
 !sh/cros_payload.sh
+**/node_modules
 py/dome/build
 py/goofy/static
 py/test/fixture
 py/test/pytests
+py/test_list_editor
