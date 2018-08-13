@@ -145,7 +145,8 @@
     "trailing-comma": false,
     "file-name-casing": [true, "kebab-case"],
     "prefer-function-over-method": false,
-    "object-curly-spacing": [true, "never"]
+    "object-curly-spacing": [true, "never"],
+    "interface-name": [true, "never-prefix"]
   }
 }
 
