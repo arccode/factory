@@ -144,6 +144,12 @@ class ProbeCmd(SubCommand):
                         help='Specify a list of class of components to probe '
                         'instead of probing all components listed in the probe '
                         'statement.')
+    parser.add_argument('--approx-match', default=False, action='store_true',
+                        help='Use ApproxMatch function to match and find '
+                        'closest hardwares.')
+    parser.add_argument('--mismatch-num', default=1, type=int,
+                        help='A number of mismatched rules at most when '
+                        'enabling --approx-match')
 
   @classmethod
   def EvalCommand(cls, options):
@@ -157,7 +163,9 @@ class ProbeCmd(SubCommand):
         include_generic=options.include_generic,
         include_volatile=options.include_volatile)
 
-    OutputResults(probe_utils.Probe(probe_statement, options.comps), options)
+    OutputResults(probe_utils.Probe(probe_statement, options.comps,
+                                    approx_match=options.approx_match,
+                                    mismatch_num=options.mismatch_num), options)
 
 
 @RegisterCommand

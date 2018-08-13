@@ -10,7 +10,8 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
-from cros.factory.probe.functions import match
+from cros.factory.probe.functions.approx_match import ApproxMatchFunction
+from cros.factory.probe.functions.match import MatchFunction
 from cros.factory.utils import config_utils
 
 
@@ -54,7 +55,7 @@ def LoadUserProbeStatementFile(config_file):
   return json_obj
 
 
-def EvaluateStatement(statement):
+def EvaluateStatement(statement, approx_match=False, mismatch_num=0):
   """Evaluates the function expression and filters it by the rule expression.
 
   Args:
@@ -64,14 +65,27 @@ def EvaluateStatement(statement):
         "expect" : <Rule expression>,
         "keys": <a_list_of_keys_to_output>  # optional
       }
+    approx_match: a boolean to enable approximate matching.
+    mismatch_num: a number of mismatched rules at most.
 
   Returns:
     the probe results.
   """
+  def _FilterKey(values, statement):
+    return {k: v for k, v in values.iteritems()
+            if k in statement['keys']}
+
+  def _ChooseMatchFunction(approx_match, mismatch_num):
+    if approx_match:
+      return ApproxMatchFunction(rule=statement.get('expect', {}),
+                                 mismatch_num=mismatch_num)
+    else:
+      return MatchFunction(rule=statement.get('expect', {}))
+
   probe_func = function.InterpretFunction(statement['eval'])
-  match_func = match.MatchFunction(rule=statement.get('expect', {}))
+  match_func = _ChooseMatchFunction(approx_match, mismatch_num)
   results = match_func(probe_func())
   if 'keys' in statement:
-    results = [{k: v for k, v in result.iteritems() if k in statement['keys']}
-               for result in results]
+    for result in results:
+      result['values'] = _FilterKey(result['values'], statement)
   return results

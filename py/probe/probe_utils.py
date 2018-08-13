@@ -13,12 +13,14 @@ from cros.factory.probe import common
 from cros.factory.utils import config_utils
 
 
-def Probe(probe_statement, comps=None):
+def Probe(probe_statement, comps=None, approx_match=False, mismatch_num=0):
   """Probe components according the configuration file.
 
   Args:
     probe_statement: The probe statement for the components
     comps: None or a list of component class name.
+    approx_match: a boolean to enable approximate matching.
+    mismatch_num: a number of mismatched rules at most.
 
   Returns:
     A dict of probe results of each component.
@@ -34,8 +36,11 @@ def Probe(probe_statement, comps=None):
     for comp_name, statement in probe_statement[comp_cls].iteritems():
       logging.info('Probe %s: %s', comp_cls, comp_name)
 
-      for probed_values in common.EvaluateStatement(statement):
-        result = {'name': comp_name, 'values': probed_values}
+      for probed_values in common.EvaluateStatement(statement,
+                                                    approx_match=approx_match,
+                                                    mismatch_num=mismatch_num):
+        result = {'name': comp_name}
+        result.update(probed_values)
         if 'information' in statement:
           result['information'] = statement['information']
 

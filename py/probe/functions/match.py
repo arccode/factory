@@ -108,23 +108,24 @@ class MatchFunction(function.Function):
 
     self.is_dict = isinstance(self.args.rule, dict)
     if self.is_dict:
-      self.args.rule = {key: self.ConstructRule(value)
-                        for key, value in self.args.rule.iteritems()}
+      self.rule = {key: self.ConstructRule(value)
+                   for key, value in self.args.rule.iteritems()}
     else:
-      self.args.rule = self.ConstructRule(self.args.rule)
+      self.rule = self.ConstructRule(self.args.rule)
 
   def Apply(self, data):
-    return filter(self.Match, data)
+    results = filter(self.Match, data)
+    return [{'values': res} for res in results]
 
   def Match(self, item):
     def _Match(matcher, value):
       return matcher(value)
 
     if not self.is_dict:
-      return len(item) == 1 and _Match(self.args.rule, item.values()[0])
+      return len(item) == 1 and _Match(self.rule, item.values()[0])
     else:
       return all([key in item and _Match(rule, item[key])
-                  for key, rule in self.args.rule.iteritems()])
+                  for key, rule in self.rule.iteritems()])
 
   @classmethod
   def ConstructRule(cls, rule):
