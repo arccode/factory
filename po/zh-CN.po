@@ -497,6 +497,10 @@ msgid "USB"
 msgstr "USB"
 
 #: ../build/pytests_label_generated.json
+msgid "Verify Component"
+msgstr "验证元件"
+
+#: ../build/pytests_label_generated.json
 msgid "Verify Root Partition"
 msgstr "验证根磁区"
 
@@ -1830,6 +1834,7 @@ msgid "Please rotate the device."
 msgstr "请转动待测物。"
 
 #: ../py/test/pytests/hwid.py
+#: ../py/test/pytests/verify_component_static/verify_component.html
 msgid "Probing components..."
 msgstr "正在探索零件..."
 
@@ -2825,6 +2830,30 @@ msgstr "(ESC 保持原值不变)"
 #: ../py/test/pytests/usb.py
 msgid "Plug device into each USB port, {num_usb_ports} to go..."
 msgstr "在每个 USB 端口插入装置, 还有 {num_usb_ports} 个待测试..."
+
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Unable to pass verify component test."
+msgstr "无法通过验证元件测试"
+
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Number mismatch component classes"
+msgstr "数量不符合的元件类别"
+
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Not supported components"
+msgstr "不支援的元件"
+
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Component"
+msgstr "验证元件"
+
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Name"
+msgstr "名字"
+
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Status"
+msgstr "状态"
 
 #: ../py/test/pytests/vswr/static/vswr.html
 msgid "Loading parameters from local disk..."
