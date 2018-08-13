@@ -369,7 +369,7 @@ class JSONAudioConfigManager(AudioConfigManager):
   """Load JSON audio configs."""
 
   def LoadConfig(self, config_path):
-    config = config_utils.LoadConfig(config_path)
+    config = config_utils.LoadConfig(config_path, 'audio')
 
     if not config:
       raise Exception("No valid audio config exists.")

@@ -18,7 +18,6 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import base
-from cros.factory.device.audio import config_manager
 
 # Configuration file is put under overlay directory and it can be customized
 # for each board.
@@ -198,10 +197,8 @@ class TinyalsaAudioControl(base.BaseAudioControl):
 
   def __init__(self, dut, config_name=None, remote_directory='/data'):
     mixer_controller = TinyalsaMixerController(dut, remote_directory)
-    config_mgr = config_manager.CreateAudioConfigManager(
-        mixer_controller, config_name)
     super(TinyalsaAudioControl, self).__init__(
-        dut, config_mgr, mixer_controller)
+        dut, config_name, mixer_controller)
 
   def CreateAudioLoop(self, in_card, in_dev, out_card, out_dev):
     """Create an audio loop by tinyloop.

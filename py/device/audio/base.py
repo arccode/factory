@@ -95,18 +95,30 @@ class BaseMixerController(object):
 class BaseAudioControl(types.DeviceComponent):
   """An abstract class for different target audio utils"""
 
-  def __init__(self, dut, config_mgr, mixer_controller):
+  def __init__(self, dut, config_name, mixer_controller):
     super(BaseAudioControl, self).__init__(dut)
     self._playback_thread = None
-    self.config_mgr = config_mgr
     self.mixer_controller = mixer_controller
+    self.LoadConfig(config_name)
 
   def Initialize(self, *args, **kwargs):
     return self.config_mgr.Initialize(*args, **kwargs)
 
+  def _CreateAudioConfigManager(self, config_name):
+    return config_manager.CreateAudioConfigManager(
+        self.mixer_controller, config_name)
+
   def LoadConfig(self, config_name):
-    """See BaseConfigManager.LoadConfig."""
-    self.config_mgr.LoadConfig(config_name)
+    """Load and replace `self.config_mgr`
+
+    In most of the case, you only need to override `_CreateAudioConfigManager`
+    to overwrite logic to select config.
+
+    Args:
+      config_name: a string to find the config file, can be None to load default
+        config.
+    """
+    self.config_mgr = self._CreateAudioConfigManager(config_name)
 
   def GetCardIndexByName(self, card_name):
     """See BaseMixerController.GetCardIndexByName."""
