@@ -6,13 +6,15 @@ import {
   Component,
   ComponentFactoryResolver,
   OnInit,
-  Type,
   ViewChild,
 } from '@angular/core';
 
-import {TestCase} from './interfaces/test-case';
+import {ArgSpec} from './interfaces/test-resource';
+import {TestResource} from './interfaces/test-resource';
 import {TestListService} from './test-list.service';
 import {TestDirective} from './test.directive';
+
+type TestState = 'IDLE' | 'SETUP' | 'ACTIVE';
 
 /**
  * Main component of the application.
@@ -27,9 +29,13 @@ export class AppComponent implements OnInit {
   title: string = 'ChromeOS Diagnosis Tool';
 
   /** Mapping of test name to test case. */
-  tests: {[testName: string]: Type<TestCase>} = {};
+  tests: {[testName: string]: TestResource} = {};
 
   log: string = '';
+
+  currentArgsSpec: ArgSpec[] = [];
+
+  testState: TestState = 'IDLE';
 
   /** Directive to load a test case. */
   @ViewChild(TestDirective) testLoader!: TestDirective;
@@ -51,29 +57,39 @@ export class AppComponent implements OnInit {
     this.tests = this.testListService.getTestList();
   }
 
+  startTest =
+      (args: object) => {
+        const test = this.testListService.getCurrentTest();
+
+        const factory = this.componentFactoryResolver.resolveComponentFactory(
+            this.tests[test].component);
+        const viewContainerRef = this.testLoader.viewContainerRef;
+        viewContainerRef.clear();
+
+        const componentRef = viewContainerRef.createComponent(factory);
+        const testCase = componentRef.instance;
+
+        try {
+          try {
+            testCase.setUp(args);
+            testCase.runTest();
+          } finally {
+            testCase.tearDown();
+          }
+        } catch (error) {
+          console.log(`${testCase.getTestName()} Failed`);
+          console.log(`error: ${error}`);
+        }
+
+        this.testState = 'ACTIVE';
+      }
+
   /** Handle the `testSelected` event. */
   private handleTestSelected(test: string): void {
     console.log(`loading test: ${test}`);
 
-    const factory =
-        this.componentFactoryResolver.resolveComponentFactory(this.tests[test]);
+    this.currentArgsSpec = this.tests[test].argsSpec;
 
-    const viewContainerRef = this.testLoader.viewContainerRef;
-    viewContainerRef.clear();
-
-    const componentRef = viewContainerRef.createComponent(factory);
-    const testCase = componentRef.instance;
-
-    try {
-      try {
-        testCase.setUp();
-        testCase.runTest();
-      } finally {
-        testCase.tearDown();
-      }
-    } catch (error) {
-      console.log(`${testCase.getTestName()} Failed`);
-      console.log(`error: ${error}`);
-    }
+    this.testState = 'SETUP';
   }
 }

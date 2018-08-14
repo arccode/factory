@@ -1,0 +1,9 @@
+<ul>
+  <li *ngFor="let arg of argsSpec">
+    <label>
+      <span>{{arg.help}}</span>:
+      <input type="text" name={{arg.name}} [(ngModel)]="args[arg.name]">
+    </label>
+  </li>
+  <button (click)="onStartTest()">Start Test</button>
+</ul>

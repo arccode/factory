@@ -28,8 +28,4 @@ export class AudioComponent extends TestCase implements OnInit {
   getTestName(): string {
     return 'Audio';
   }
-
-  getArgsSpec(): object {
-    return {};
-  }
 }

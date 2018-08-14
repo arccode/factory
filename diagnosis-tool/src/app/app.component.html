@@ -8,7 +8,14 @@
 
   <div class="right">
     <div id="setting">
-      <ng-template appTest></ng-template>
+      <app-test-setting
+        [hidden]="testState != 'SETUP'"
+        [argsSpec]="currentArgsSpec"
+        [startTestCallback]="startTest">
+      </app-test-setting>
+      <div [hidden]="testState != 'ACTIVE'">
+        <ng-template appTest></ng-template>
+      </div>
     </div>
     <div id="log">
       <span>{{ log }}</span>

@@ -11,7 +11,9 @@ export abstract class TestCase {
   args: object = {};
 
   /** Called before runTest. */
-  setUp(): void {}
+  setUp(args: object = {}): void {
+    this.args = args;
+  }
 
   /** Called after runTest (no matter passed or not). */
   tearDown(): void {}
@@ -21,7 +23,4 @@ export abstract class TestCase {
 
   /** Returns the name of the test case. */
   abstract getTestName(): string;
-
-  /** Returns the arguments definition. */
-  abstract getArgsSpec(): object;
 }

@@ -26,8 +26,4 @@ export class DisplayComponent extends TestCase implements OnInit {
   getTestName(): string {
     return 'Audio';
   }
-
-  getArgsSpec(): object {
-    return {};
-  }
 }

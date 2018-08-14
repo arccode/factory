@@ -2,9 +2,9 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-import {EventEmitter, Injectable, Type} from '@angular/core';
+import {EventEmitter, Injectable} from '@angular/core';
 
-import {TestCase} from './interfaces/test-case';
+import {TestResource} from './interfaces/test-resource';
 import {TEST_COMPONENTS} from './test-list.resource';
 
 /**
@@ -22,7 +22,7 @@ export class TestListService {
   constructor() {}
 
   /** Get tests and their TestCase types. */
-  getTestList(): {[testName: string]: Type<TestCase>} {
+  getTestList(): {[testName: string]: TestResource} {
     return TEST_COMPONENTS;
   }
 

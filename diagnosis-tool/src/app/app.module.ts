@@ -3,11 +3,13 @@
  * found in the LICENSE file.
  */
 import {NgModule} from '@angular/core';
+import {FormsModule} from '@angular/forms';
 import {BrowserModule} from '@angular/platform-browser';
 
 import {AppComponent} from './app.component';
 import {TestListService} from './test-list.service';
 import {TestListComponent} from './test-list/test-list.component';
+import {TestSettingComponent} from './test-setting/test-setting.component';
 import {TestDirective} from './test.directive';
 import {AudioComponent} from './tests/audio/audio.component';
 import {DisplayComponent} from './tests/display/display.component';
@@ -16,9 +18,9 @@ import {DisplayComponent} from './tests/display/display.component';
 @NgModule({
   declarations: [
     AppComponent, TestListComponent, AudioComponent, TestDirective,
-    DisplayComponent
+    DisplayComponent, TestSettingComponent
   ],
-  imports: [BrowserModule],
+  imports: [BrowserModule, FormsModule],
   providers: [TestListService],
   bootstrap: [AppComponent],
   entryComponents: [AudioComponent, DisplayComponent]
