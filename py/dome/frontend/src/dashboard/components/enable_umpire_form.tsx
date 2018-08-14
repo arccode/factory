@@ -123,7 +123,7 @@ const EnableUmpireForm: React.SFC<EnableUmpireFormProps> = ({
           label={addExisting ?
             'ADD AN EXISTING UMPIRE INSTANCE' :
             'CREATE A NEW UMPIRE INSTANCE'}
-          primary={true}
+          primary
           onClick={submitForm}
         />
         <FlatButton

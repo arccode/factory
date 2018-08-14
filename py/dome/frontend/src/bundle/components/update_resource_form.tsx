@@ -120,7 +120,7 @@ class UpdateResourceForm
         modal={false}
         onRequestClose={this.handleCancel}
         actions={[<>
-          <FlatButton label="confirm" primary={true} onClick={submitForm} />
+          <FlatButton label="confirm" primary onClick={submitForm} />
           <FlatButton label="cancel" onClick={this.handleCancel} />
         </>]}
         open={open}

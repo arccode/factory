@@ -42,8 +42,8 @@ class CreateProjectForm extends React.Component<
         />
         <RaisedButton
           label="CREATE A NEW PROJECT"
-          primary={true}
-          fullWidth={true}
+          primary
+          fullWidth
           type="submit"
         />
       </form>);

@@ -39,7 +39,7 @@ class ServiceForm extends React.Component<
         <RaisedButton
           type="submit"
           label="Deploy"
-          primary={true}
+          primary
           style={{margin: '1em'}}
         />
       </form>

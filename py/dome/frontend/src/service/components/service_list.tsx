@@ -47,7 +47,7 @@ class ServiceList extends React.Component<ServiceListProps> {
             <ListItem
               key={k}
               primaryText={k}
-              primaryTogglesNestedList={true}
+              primaryTogglesNestedList
               nestedItems={[
                 <ServiceForm
                   key="form"
@@ -55,7 +55,7 @@ class ServiceList extends React.Component<ServiceListProps> {
                   form={k}
                   schema={schema}
                   initialValues={service}
-                  enableReinitialize={true}
+                  enableReinitialize
                 />,
               ]}
             />

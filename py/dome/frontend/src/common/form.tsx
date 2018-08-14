@@ -20,7 +20,7 @@ export const renderTextField = ({
   hintText = '',
 }: RenderTextFieldArgs) => (
     <TextField
-      fullWidth={true}
+      fullWidth
       floatingLabelText={label}
       type={type}
       hintText={hintText}

@@ -149,12 +149,12 @@ class BundleComponent extends React.Component<BundleComponentProps> {
             </IconButton>
           </div>
         </CardTitle>
-        <CardHeader title="RESOURCES" expandable={true} />
-        <CardText expandable={true}>
+        <CardHeader title="RESOURCES" expandable />
+        <CardText expandable>
           <ResourceTable bundle={bundle} />
         </CardText>
-        <CardHeader title="RULES" expandable={true} />
-        <CardText expandable={true}>
+        <CardHeader title="RULES" expandable />
+        <CardText expandable>
           <RuleTable
             rules={bundle.rules}
             changeRules={

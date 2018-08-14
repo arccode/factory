@@ -60,7 +60,7 @@ class ConfigApp extends React.Component<ConfigAppProps> {
               type="button"
               label="Logout"
               onClick={logout}
-              primary={true}
+              primary
               style={{margin: '1em'}}
             />
           </CardText>

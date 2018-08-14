@@ -31,7 +31,7 @@ const LoginForm: React.SFC<LoginFormProps> = ({handleSubmit}) => (
     <RaisedButton
       type="submit"
       label="Login"
-      primary={true}
+      primary
       style={{margin: '1em'}}
     />
   </form>

@@ -36,7 +36,7 @@ const ErrorDialog: React.SFC<ErrorDialogProps> =
               textarea as 100% will make it overflow */}
       <div>
         <textarea
-          disabled={true}
+          disabled
           style={{width: '100%', height: '10em'}}
           value={message}
         />

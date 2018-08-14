@@ -51,7 +51,7 @@ const DomeAppMenu: React.SFC<DomeAppMenuProps> = ({
     >
       <div className={classes.toolbarSpace} />
       {isLoggedIn && (
-        <MenuList disablePadding={true}>
+        <MenuList disablePadding>
           {project && [
             <MenuSubheader key="header">
               {project.name}
@@ -68,14 +68,14 @@ const DomeAppMenu: React.SFC<DomeAppMenuProps> = ({
               key="BUNDLES_APP"
               className={classes.nested}
               disabled={!project.umpireReady}
-              divider={true}
+              divider
             >
               Bundles {project.umpireEnabled &&
                 !project.umpireReady && '(activating...)'}
             </DomeAppMenuItem>,
           ]}
 
-          <DomeAppMenuItem app="PROJECTS_APP" divider={true}>
+          <DomeAppMenuItem app="PROJECTS_APP" divider>
             Select project
           </DomeAppMenuItem>
           <DomeAppMenuItem app="CONFIG_APP">

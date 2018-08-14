@@ -61,7 +61,7 @@ const renderArray: React.SFC<WrappedRenderArrayProps> = ({fields, schema}) => (
     )}
     <div>
       <FloatingActionButton
-        mini={true}
+        mini
         style={{float: 'right', margin: '1em'}}
         onClick={() => fields.push({})}
       >

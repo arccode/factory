@@ -79,15 +79,15 @@ class DashboardApp extends React.Component<DashboardAppProps> {
                   <Subheader>Info</Subheader>
                   <Divider />
                   {!project.isUmpireRecent &&
-                    <ListItem style={styles.warningText} disabled={true}>
+                    <ListItem style={styles.warningText} disabled>
                       The umpire instance is using an old version of umpire,
                       and may not function properly, please restart it by
                       disabling and re-enabling it.
                     </ListItem>}
-                  <ListItem disabled={true}>
+                  <ListItem disabled>
                     host: {project.umpireHost}
                   </ListItem>
-                  <ListItem disabled={true}>
+                  <ListItem disabled>
                     port: {project.umpirePort}
                   </ListItem>
                   <Subheader>Services</Subheader>

@@ -66,8 +66,8 @@ class BundleList extends React.Component<BundleListProps> {
     return (
       <SortableBundleList
         lockAxis="y"
-        useDragHandle={true}
-        useWindowAsScrollContainer={true}
+        useDragHandle
+        useWindowAsScrollContainer
         onSortEnd={this.handleReorder}
         bundles={this.props.bundles}
       />
