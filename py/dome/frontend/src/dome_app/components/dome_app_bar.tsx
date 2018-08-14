@@ -2,7 +2,18 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {amber300, grey300, red500} from 'material-ui/styles/colors';
+import AppBar from '@material-ui/core/AppBar';
+import {amber} from '@material-ui/core/colors';
+import IconButton from '@material-ui/core/IconButton';
+import {
+  createStyles,
+  Theme,
+  WithStyles,
+  withStyles,
+} from '@material-ui/core/styles';
+import Toolbar from '@material-ui/core/Toolbar';
+import Typography from '@material-ui/core/Typography';
+import MenuIcon from '@material-ui/icons/Menu';
 import React from 'react';
 import {connect} from 'react-redux';
 
@@ -11,72 +22,60 @@ import {RootState} from '@app/types';
 import {getDomeInfo} from '../selectors';
 import {DomeInfo} from '../types';
 
-import FixedAppBar from './fixed_app_bar';
+import DomeInfoComponent from './dome_info_component';
 
 const EmphasizedString: React.SFC = ({children}) => (
-  <span style={{fontWeight: 'bold', color: amber300}}>{children}</span>
+  <span style={{fontWeight: 'bold', color: amber[300]}}>{children}</span>
 );
 
-interface DomeInfoProps {
-  domeInfo: DomeInfo | null;
-}
-
-const DomeInfoComponent: React.SFC<DomeInfoProps> = ({domeInfo}) => {
-  const dockerVersion =
-    domeInfo == null ? '(unknown)' :
-      `${domeInfo.dockerImageTimestamp}` +
-      `${domeInfo.dockerImageIslocal ? ' (local)' : ''}`;
-  const dockerHash =
-    domeInfo == null ? '(unknown)' : domeInfo.dockerImageGithash;
-  return (
-    <pre
-      style={{
-        fontSize: 'x-small',
-        color: grey300,
-      }}
-    >
-      Docker image: {dockerVersion}
-      {'\n'}
-      Hash: {dockerHash}
-      {domeInfo && domeInfo.isDevServer && (
-        <>
-          {'\n'}
-          <span style={{color: red500, fontWeight: 'bold'}}>DEV SERVER</span>
-        </>
-      )}
-    </pre>
-  );
-};
-
 const DomeAppBarTitle: React.SFC = () => (
-  <span>
+  <Typography variant="title" color="inherit">
     <EmphasizedString>D</EmphasizedString>ome:
     fact<EmphasizedString>o</EmphasizedString>ry
     server <EmphasizedString>m</EmphasizedString>anagement
     consol<EmphasizedString>e</EmphasizedString>
-  </span>
+  </Typography>
 );
 
-interface DomeAppBarProps {
+const styles = (theme: Theme) => createStyles({
+  appBar: {
+    zIndex: theme.zIndex.drawer + 1,
+  },
+  gutters: {
+    // TODO(pihsun): We should be able to use jss-expand here, but the type
+    // definition for jss plugins is not completed yet. Manually adding the
+    // 'px' for now. We probably can use jss-expand after
+    // https://github.com/cssinjs/jss/issues/776 is resolved.
+    padding: `0 ${theme.spacing.unit}px`,
+  },
+  title: {
+    padding: `0 ${theme.spacing.unit}px`,
+    flex: 1,
+  },
+});
+
+interface DomeAppBarProps extends WithStyles<typeof styles> {
   toggleAppMenu: () => void;
-  onHeightChange: (height: number) => void;
-  zDepth: number;
   domeInfo: DomeInfo | null;
 }
 
 const DomeAppBar: React.SFC<DomeAppBarProps> =
-  ({toggleAppMenu, onHeightChange, zDepth, domeInfo}) => (
-    <FixedAppBar
-      title={<DomeAppBarTitle />}
-      iconElementRight={<DomeInfoComponent domeInfo={domeInfo} />}
-      onLeftIconButtonClick={toggleAppMenu}
-      onHeightChange={onHeightChange}
-      zDepth={zDepth}
-    />
+  ({toggleAppMenu, domeInfo, classes}) => (
+    <AppBar position="sticky" className={classes.appBar}>
+      <Toolbar classes={{gutters: classes.gutters}}>
+        <IconButton color="inherit" onClick={toggleAppMenu}>
+          <MenuIcon />
+        </IconButton>
+        <div className={classes.title}>
+          <DomeAppBarTitle />
+        </div>
+        <DomeInfoComponent domeInfo={domeInfo} />
+      </Toolbar>
+    </AppBar>
   );
 
 const mapStateToProps = (state: RootState) => ({
   domeInfo: getDomeInfo(state),
 });
 
-export default connect(mapStateToProps)(DomeAppBar);
+export default connect(mapStateToProps)(withStyles(styles)(DomeAppBar));

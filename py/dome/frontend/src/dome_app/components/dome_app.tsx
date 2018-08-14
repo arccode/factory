@@ -2,6 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import Grid from '@material-ui/core/Grid';
+import {
+  createStyles,
+  Theme,
+  WithStyles,
+  withStyles,
+} from '@material-ui/core/styles';
+import classNames from 'classnames';
 import React from 'react';
 import {hot} from 'react-hot-loader';
 import Measure from 'react-measure';
@@ -22,13 +30,34 @@ import {getCurrentApp} from '../selectors';
 import {AppName} from '../types';
 
 import DomeAppBar from './dome_app_bar';
-import DomeDrawer from './dome_drawer';
+import DomeAppMenu from './dome_app_menu';
 
 const APP_MENU_WIDTH = 250;
 const SPACE_BEFORE_TASK_LIST = 24;
 const SPACE_AFTER_TASK_LIST = 24;
 
-interface DomeAppProps {
+const style = (theme: Theme) => createStyles({
+  root: {
+    fontSize: theme.typography.fontSize,
+    fontFamily: theme.typography.fontFamily,
+  },
+  // This is same as material-ui Drawer's transition.
+  app: {
+    transition: theme.transitions.create('margin', {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.leavingScreen,
+    }),
+  },
+  appShift: {
+    marginLeft: APP_MENU_WIDTH,
+    transition: theme.transitions.create('margin', {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  },
+});
+
+interface DomeAppProps extends WithStyles<typeof style> {
   isLoggedIn: boolean;
   appName: AppName;
   testAuthToken: () => any;
@@ -36,14 +65,12 @@ interface DomeAppProps {
 }
 
 interface DomeAppState {
-  appBarHeight: number;
   appMenuOpened: boolean;
   taskListHeight: number;
 }
 
 class DomeApp extends React.Component<DomeAppProps, DomeAppState> {
   state = {
-    appBarHeight: 0,
     appMenuOpened: true,
     taskListHeight: 0,
   };
@@ -63,8 +90,8 @@ To visit Dome, please use Chrome/Chromium to avoid unnecessary issues.`);
   }
 
   render() {
-    const {isLoggedIn, appName} = this.props;
-    const {appBarHeight, appMenuOpened} = this.state;
+    const {isLoggedIn, appName, classes} = this.props;
+    const {appMenuOpened} = this.state;
 
     // must not let the task list cover the main content
     const marginBottom = SPACE_BEFORE_TASK_LIST +
@@ -92,30 +119,20 @@ To visit Dome, please use Chrome/Chromium to avoid unnecessary issues.`);
     }
 
     return (
-      <div style={{marginBottom}}>
-        <DomeAppBar
-          toggleAppMenu={this.toggleAppMenu}
-          onHeightChange={(h) => this.setState({appBarHeight: h})}
-          zDepth={2} // above the drawer
-        />
-
-        <DomeDrawer
-          width={APP_MENU_WIDTH}
-          top={appBarHeight}
-          open={appMenuOpened}
-          zDepth={1} // below the AppBar
-        />
+      <div className={classes.root}>
+        <DomeAppBar toggleAppMenu={this.toggleAppMenu} />
+        <DomeAppMenu open={appMenuOpened} width={APP_MENU_WIDTH} />
 
         <div
-          style={{
-            marginTop: appBarHeight,
-            marginLeft: appMenuOpened ? APP_MENU_WIDTH : 0,
-            // This is the same transition as the drawer transition.
-            transition: 'margin-left 450ms cubic-bezier(0.23, 1, 0.32, 1) 0ms',
-          }}
+          className={classNames(classes.app, appMenuOpened && classes.appShift)}
         >
-          {app}
+          <Grid container justify="center">
+            <Grid item xs={12} sm={9} md={6}>
+              {app}
+            </Grid>
+          </Grid>
         </div>
+
         <ErrorDialog />
         <Measure onMeasure={(d) => this.setState({taskListHeight: d.height})}>
           <TaskList />
@@ -136,4 +153,4 @@ const mapDispatchToProps = {
 };
 
 export default hot(module)(
-  connect(mapStateToProps, mapDispatchToProps)(DomeApp));
+  connect(mapStateToProps, mapDispatchToProps)(withStyles(style)(DomeApp)));

@@ -3,7 +3,11 @@
 // found in the LICENSE file.
 
 import {indigo} from '@material-ui/core/colors';
-import {createMuiTheme, MuiThemeProvider} from '@material-ui/core/styles';
+import CssBaseline from '@material-ui/core/CssBaseline';
+import {
+  createMuiTheme,
+  MuiThemeProvider,
+} from '@material-ui/core/styles';
 import {indigo500} from 'material-ui/styles/colors';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import {
@@ -50,12 +54,15 @@ const configureStore = () => {
 const store = configureStore();
 
 ReactDOM.render(
-  <MuiThemeProvider theme={createMuiTheme(THEME)}>
-    <V0MuiThemeProvider muiTheme={getMuiTheme(V0THEME)}>
-      <Provider store={store}>
-        <DomeApp />
-      </Provider>
-    </V0MuiThemeProvider>
-  </MuiThemeProvider>,
+  <>
+    <CssBaseline />
+    <MuiThemeProvider theme={createMuiTheme(THEME)}>
+      <V0MuiThemeProvider muiTheme={getMuiTheme(V0THEME)}>
+        <Provider store={store}>
+          <DomeApp />
+        </Provider>
+      </V0MuiThemeProvider>
+    </MuiThemeProvider>
+  </>,
   document.getElementById('app'),
 );
