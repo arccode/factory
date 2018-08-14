@@ -105,7 +105,7 @@ class BaseAudioControl(types.DeviceComponent):
     return self.config_mgr.Initialize(*args, **kwargs)
 
   def _CreateAudioConfigManager(self, config_name):
-    return config_manager.CreateAudioConfigManager(
+    return config_manager.JSONAudioConfigManager(
         self.mixer_controller, config_name)
 
   def LoadConfig(self, config_name):

@@ -113,7 +113,7 @@ class AlsaAudioControl(base.BaseAudioControl):
   def _CreateAudioConfigManager(self, config_name):
     try:
       # If a factory audio config is there, use it.
-      config_mgr = config_manager.CreateAudioConfigManager(
+      config_mgr = config_manager.JSONAudioConfigManager(
           self.mixer_controller, config_name)
       return config_mgr
     except Exception:
