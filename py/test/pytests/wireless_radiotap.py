@@ -22,12 +22,13 @@ import collections
 import logging
 import re
 import struct
+import subprocess
 import sys
 import time
 
-import dbus
-
 import factory_common  # pylint: disable=unused-import
+from cros.factory.device import device_utils
+from cros.factory.device import wifi
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
 from cros.factory.test import session
@@ -35,16 +36,7 @@ from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import net_utils
-from cros.factory.utils import process_utils
-from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
-
-try:
-  sys.path.append('/usr/local/lib/flimflam/test')
-  import flimflam
-except ImportError:
-  pass
 
 
 _RE_IWSCAN = re.compile(r'freq: (\d+).*SSID: (.+)$')
@@ -54,58 +46,7 @@ _RE_BEACON = re.compile(r'(\d+) MHz.*Beacon \((.+)\)')
 _ANTENNA_CONFIG = ['all', 'main', 'aux']
 
 
-def FlimGetService(flim, name):
-  """Get service by property.
-
-  Args:
-    flim: flimflam object
-    name: property name
-  """
-  return sync_utils.PollForCondition(
-      lambda: flim.FindElementByPropertySubstring('Service', 'Name', name),
-      timeout_secs=10, poll_interval_secs=0.5)
-
-
-def FlimGetServiceProperty(service, prop):
-  """Get property from a service.
-
-  Args:
-    service: flimflam service object
-    prop: property name
-  """
-  timeout = time.time() + 10
-  while True:
-    try:
-      properties = service.GetProperties()
-    except dbus.exceptions.DBusException:
-      logging.exception('Error reading service property')
-      time.sleep(1)
-      if time.time() >= timeout:
-        raise
-    else:
-      return properties[prop]
-
-
-def FlimConfigureService(flim, ssid, password):
-  """Config wireless ssid and password.
-
-  Args:
-    ssid: ssid name
-    password: wifi key to authenticate
-  """
-  wlan_dict = {
-      'Type': dbus.String('wifi', variant_level=1),
-      'Mode': dbus.String('managed', variant_level=1),
-      'AutoConnect': dbus.Boolean(False, variant_level=1),
-      'SSID': dbus.String(ssid, variant_level=1)}
-  if password:
-    wlan_dict['Security'] = dbus.String('psk', variant_level=1)
-    wlan_dict['Passphrase'] = dbus.String(password, variant_level=1)
-
-  flim.manager.ConfigureService(wlan_dict)
-
-
-def IwScan(iw_scan_group_checker, devname,
+def IwScan(dut, iw_scan_group_checker, devname,
            sleep_retry_time_secs=2, max_retries=10):
   """Scans on device.
 
@@ -120,10 +61,11 @@ def IwScan(iw_scan_group_checker, devname,
     IwException if fail to scan for max_retries tries,
     or fail because of reason other than device or resource busy (-16)
   """
-  cmd = r"iw %s scan | grep -e 'freq\|SSID' | sed 'N;s/\n/ /'" % devname
+  cmd = ("iw %s scan | grep -e '^\\s*\\(freq\\|SSID\\):' | sed 'N;s/\\n/ /'" %
+         devname)
   for unused_try_count in xrange(max_retries):
-    process = process_utils.Spawn(
-        cmd, read_stdout=True, log_stderr_on_error=True, log=True, shell=True)
+    process = dut.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                        log=True)
     stdout, stderr = process.communicate()
     retcode = process.returncode
     event_log.Log('iw_scaned', retcode=retcode, stderr=stderr)
@@ -260,7 +202,8 @@ class RadiotapPacket(object):
 class Capture(object):
   """Context for a live tcpdump packet capture for beacons."""
 
-  def __init__(self, device_name, phy):
+  def __init__(self, dut, device_name, phy):
+    self.dut = dut
     self.monitor_process = None
     self.created_device = None
     self.parent_device = device_name
@@ -268,13 +211,13 @@ class Capture(object):
 
   def CreateDevice(self, monitor_device='antmon0'):
     """Creates a monitor device to monitor beacon."""
-    process_utils.Spawn(['iw', self.parent_device, 'interface', 'add',
-                         monitor_device, 'type', 'monitor'], check_call=True)
+    self.dut.CheckCall(['iw', self.parent_device, 'interface', 'add',
+                        monitor_device, 'type', 'monitor'], log=True)
     self.created_device = monitor_device
 
   def RemoveDevice(self, device_name):
     """Removes monitor device."""
-    process_utils.Spawn(['iw', device_name, 'del'], check_call=True)
+    self.dut.CheckCall(['iw', device_name, 'del'], log=True)
 
   def GetSignal(self):
     """Gets signal from tcpdump."""
@@ -307,21 +250,21 @@ class Capture(object):
 
     This function may only for Intel WP2 7260 chip.
     """
-    with open('/sys/kernel/debug/ieee80211/%s/netdev:%s/iwlmvm/bf_params' %
-              (self.phy, self.parent_device), 'w') as f:
-      f.write('bf_enable_beacon_filter=%d\n' % value)
+    path = '/sys/kernel/debug/ieee80211/%s/netdev:%s/iwlmvm/bf_params' % (
+        self.phy, self.parent_device)
+    self.dut.WriteFile(path, 'bf_enable_beacon_filter=%d\n' % value)
 
   def __enter__(self):
     if not self.created_device:
       self.CreateDevice()
-    process_utils.Spawn(
-        ['ip', 'link', 'set', self.created_device, 'up'], check_call=True)
-    process_utils.Spawn(
-        ['iw', self.parent_device, 'set', 'power_save', 'off'], check_call=True)
+    self.dut.CheckCall(
+        ['ip', 'link', 'set', self.created_device, 'up'], log=True)
+    self.dut.CheckCall(
+        ['iw', self.parent_device, 'set', 'power_save', 'off'], log=True)
     self.set_beacon_filter(0)
-    self.monitor_process = process_utils.Spawn(
+    self.monitor_process = self.dut.Popen(
         ['tcpdump', '-nUxxi', self.created_device, 'type', 'mgt',
-         'subtype', 'beacon'], stdout=process_utils.PIPE)
+         'subtype', 'beacon'], stdout=subprocess.PIPE, log=True)
     return self
 
   def __exit__(self, exception, value, traceback):
@@ -349,6 +292,9 @@ class WirelessRadiotapTest(test_case.TestCase):
           'whose antenna_all signal strength is the largest. For example, if '
           '(SSID1, FREQ1, PASS1) has the largest signal among the APs, '
           'then only its results will be checked against the spec values.'),
+      Arg('connect_timeout', int,
+          'Timeout for connecting to the service.',
+          default=10),
       Arg('strength', dict,
           'A dict of minimal signal strengths. For example, a dict like '
           '``{"main": strength_1, "aux": strength_2, "all": strength_all}``. '
@@ -356,22 +302,18 @@ class WirelessRadiotapTest(test_case.TestCase):
           'antenna configurations in this dict.'),
       Arg('scan_count', int,
           'Number of scans to get average signal strength.', default=5),
-      Arg('switch_antenna_sleep_secs', int,
-          'The sleep time after switchingantenna and ifconfig up. Need to '
-          'decide this value carefully since itdepends on the platform and '
-          'antenna config to test.', default=10),
       Arg('press_space_to_start', bool,
           'Press space to start the test.', default=True)]
 
   def setUp(self):
     self.ui.ToggleTemplateClass('font-large', True)
 
+    self._dut = device_utils.CreateDUTInterface()
     self._phy_name = self.DetectPhyName()
-    logging.info('phy name is %s.', self._phy_name)
+    self._ap = None
+    self._connection = None
 
-    net_utils.Ifconfig(self.args.device_name, True)
-    self._flim = flimflam.FlimFlam(dbus.SystemBus())
-    self._connect_service = None
+    logging.info('phy name is %s.', self._phy_name)
 
     # Group checker for Testlog.
     self._iw_scan_group_checker = testlog.GroupParam(
@@ -393,34 +335,29 @@ class WirelessRadiotapTest(test_case.TestCase):
     Password can be '' or None.
     """
     try:
-      self._connect_service = FlimGetService(self._flim, service_name)
-    except type_utils.TimeoutError:
-      session.console.info('Unable to find service %s', service_name)
+      self._ap = self._dut.wifi.FindAccessPoint(ssid=service_name)
+    except wifi.WifiError as e:
+      session.console.info(
+          'Unable to find the service %s: %r' % (service_name, e))
       return False
-    if FlimGetServiceProperty(self._connect_service, 'IsActive'):
-      logging.warning('Already connected to %s', service_name)
-    else:
-      logging.info('Connecting to %s', service_name)
-      FlimConfigureService(self._flim, service_name, password)
-      success, diagnostics = self._flim.ConnectService(
-          service=self._connect_service)
-      if not success:
-        session.console.info('Unable to connect to %s, diagnostics %s',
-                             service_name, diagnostics)
-        return False
-      else:
-        session.console.info(
-            'Successfully connected to service %s', service_name)
+
+    try:
+      self._connection = self._dut.wifi.Connect(
+          self._ap, passkey=password, connect_timeout=self.args.connect_timeout)
+    except type_utils.TimeoutError as e:
+      session.console.info('Unable to connect to the service %s' % service_name)
+      return False
+
+    session.console.info(
+        'Successfully connected to service %s', service_name)
     return True
 
   def DisconnectService(self):
     """Disconnect wifi AP."""
-    if self._connect_service:
-      self._flim.DisconnectService(service=self._connect_service)
-      session.console.info(
-          'Disconnect to service %s',
-          FlimGetServiceProperty(self._connect_service, 'Name'))
-      self._connect_service = None
+    if self._connection:
+      self._connection.Disconnect()
+      session.console.info('Disconnect to service %s', self._ap.ssid)
+      self._connection = None
 
   def DetectPhyName(self):
     """Detects the phy name for device_name device.
@@ -428,8 +365,8 @@ class WirelessRadiotapTest(test_case.TestCase):
     Returns:
       The phy name for device_name device.
     """
-    output = process_utils.CheckOutput(
-        ['iw', 'dev', self.args.device_name, 'info'])
+    output = self._dut.CheckOutput(
+        ['iw', 'dev', self.args.device_name, 'info'], log=True)
     logging.info('info output: %s', output)
     m = _RE_WIPHY.search(output)
     return ('phy' + m.group(1)) if m else None
@@ -492,7 +429,7 @@ class WirelessRadiotapTest(test_case.TestCase):
         _('Scanning on device {device} frequency {freq}...',
           device=self.args.device_name,
           freq=freq))
-    with Capture(self.args.device_name, self._phy_name) as capture:
+    with Capture(self._dut, self.args.device_name, self._phy_name) as capture:
       capture_times = 0
       while capture_times < times:
         signal_result = capture.GetSignal()
@@ -500,6 +437,8 @@ class WirelessRadiotapTest(test_case.TestCase):
           logging.info('%s', signal_result)
           signal_list.append(signal_result['signal'])
           capture_times += 1
+        else:
+          logging.debug('Ignore the signal %r', signal_result)
     self.ui.SetState(
         _('Done scanning on device {device} frequency {freq}...',
           device=self.args.device_name,
@@ -582,7 +521,8 @@ class WirelessRadiotapTest(test_case.TestCase):
     wireless_services = {}
     self.ui.SetState(_('Checking frequencies...'))
 
-    scan_result = IwScan(self._iw_scan_group_checker, self.args.device_name)
+    scan_result = IwScan(
+        self._dut, self._iw_scan_group_checker, self.args.device_name)
     set_all_ssids = set(service[0] for service in services)
 
     for ssid, freq in scan_result:
