@@ -425,7 +425,7 @@ class UCMConfigManager(BaseConfigManager):
                folder name listed under /usr/share/alsa/ucm/
                One can also pass a card name, which will be mapped to '0'.
         Default: Use 'aplay -l' to guess the card name.
-                 See _GuessCardName for more details.
+                 See _GetCardNameMapFromAplay for more details.
 
       device_map: Specify the device name.
         Key: A string defined in AudioDeviceType (e.g., 'Speaker').
@@ -450,34 +450,30 @@ class UCMConfigManager(BaseConfigManager):
     if self._verb is None:
       self._verb = self._DefaultVerb
 
-  def _GetPossibleCardNames(self):
+  def _GetCardNameMapFromAplay(self):
+    def _HasUCMConfig(card_name):
+      return self._device.path.isdir(
+          self._device.path.join(self._AlsaUCMPath, card_name))
+
     output = self._device.CallOutput(['aplay', '-l'])
-    card_names = []
+    card_map = {}
     for line in output.splitlines():
       m = self._RE_CARD_NAME.match(line)
       if m is not None:
+        card = m.group(1)
         card_name = m.group(2)
-        if all(v != card_name for v in card_names):
-          card_names.append(card_name)
-    return card_names
+        if card_name not in card_map.values() and _HasUCMConfig(card_name):
+          card_map[card] = card_name
+    return card_map
 
-  def _GuessCardName(self):
-    possible_names = self._GetPossibleCardNames()
-    for possible_name in possible_names:
-      UCM_folder = self._device.path.join(self._AlsaUCMPath, possible_name)
-      if self._device.path.isdir(UCM_folder):
-        return possible_name
-    return None
+  def _PrepareCardNameMap(self, card_map):
+    if card_map is None:
+      card_map = self._GetCardNameMapFromAplay()
 
-  def _PrepareCardNameMap(self, arg):
-    if arg is None:
-      arg = self._GuessCardName()
-      if arg is None:
-        raise Exception("No valid card name can be found.")
+    if not isinstance(card_map, dict) or not card_map:
+      raise Exception("No valid card name can be found.")
 
-    if isinstance(arg, dict):
-      return arg
-    return {'0': arg}
+    return card_map
 
   def _GetCardName(self, card):
     return self._card_map[card]
