@@ -170,8 +170,8 @@ class HTTPService(umpire_service.UmpireService):
       env: UmpireEnv object.
       config_path: path to config file to write.
     """
-    def _append_to_handlers(handlers, location_rule, port, changed_path=''):
-      handlers.append((location_rule, port, changed_path))
+    def _append_to_handlers(location_rule, port, changed_path=''):
+      umpire_proxy_handlers.append((location_rule, port, changed_path))
 
     http_config = umpire_config['services']['http']
     httpd_port = int(env.umpire_base_port)
@@ -179,29 +179,21 @@ class HTTPService(umpire_service.UmpireService):
     # Umpire common RPCs
     umpire_proxy_handlers = []
     # python xmlrpclib calls http://host/RPC2 for ServerProxy('http://host')
-    _append_to_handlers(umpire_proxy_handlers,
-                        ROOT_RPC_PREFIX, env.umpire_rpc_port)
-    _append_to_handlers(umpire_proxy_handlers,
-                        UMPIRE_RPC_PREFIX, env.umpire_rpc_port)
-    _append_to_handlers(umpire_proxy_handlers,
-                        '= /', env.umpire_rpc_port)
+    _append_to_handlers(ROOT_RPC_PREFIX, env.umpire_rpc_port)
+    _append_to_handlers(UMPIRE_RPC_PREFIX, env.umpire_rpc_port)
+    _append_to_handlers('= /', env.umpire_rpc_port)
     # Web applications
-    _append_to_handlers(umpire_proxy_handlers,
-                        WEB_APP_PREFIX, env.umpire_webapp_port)
+    _append_to_handlers(WEB_APP_PREFIX, env.umpire_webapp_port)
     # The legacy client would still access to /resourcemap so needs to pass to
     # /webapps/resourcemap.
-    _append_to_handlers(umpire_proxy_handlers,
-                        RESOURCE_MAP_PREFIX, env.umpire_webapp_port,
+    _append_to_handlers(RESOURCE_MAP_PREFIX, env.umpire_webapp_port,
                         WEB_APP_PREFIX + RESOURCE_MAP_PREFIX)
     # POSTrequests
-    _append_to_handlers(umpire_proxy_handlers,
-                        POST_PREFIX, env.umpire_http_post_port)
+    _append_to_handlers(POST_PREFIX, env.umpire_http_post_port)
     # POST (legacy URL)
-    _append_to_handlers(umpire_proxy_handlers,
-                        LEGACY_POST_PREFIX, env.umpire_http_post_port)
+    _append_to_handlers(LEGACY_POST_PREFIX, env.umpire_http_post_port)
     # Instalog HTTP plugin
-    _append_to_handlers(umpire_proxy_handlers,
-                        INSTALOG_PREFIX, env.umpire_instalog_http_port)
+    _append_to_handlers(INSTALOG_PREFIX, env.umpire_instalog_http_port)
 
     config_proxies_str = [
         NGINX_PROXY_TEMPLATE % {

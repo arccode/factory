@@ -15,35 +15,17 @@ that this session is done so the slot can be reclaimed for other session.
 """
 
 import collections
-import copy
 import logging
 import time
 import uuid
 
 from twisted.internet import reactor
 
-import factory_common  # pylint: disable=unused-import
 
 _SLOTS_NUMBER = 10
 # Expects that client side will send heart beat in every 60 seconds
 _SLOT_ALIVE_TIME = 80.0
 
-def _SlotTimeOutFunc(manager):
-  logging.debug('Timer is fired to check slots which are expired.')
-  manager.delayed_call = None
-  manager.CheckExpiredSession()
-
-  if not manager.slots and not manager.wait_queue:
-    logging.debug('No timer is fired.')
-    return
-
-  # Fire another timer for oldest slot now.
-  joined_dict = copy.deepcopy(manager.slots)
-  joined_dict.update(manager.wait_queue)
-  oldest_slot = min(joined_dict, key=joined_dict.get)
-  next_time = _SLOT_ALIVE_TIME - (time.time() - joined_dict[oldest_slot]) + 1
-  manager.PrepareTimerForDeadSlot(next_time)
-  logging.debug('Another timer is up for slot - %s', oldest_slot)
 
 class DownloadSlotsManager(object):
   """Download Slots Manager
@@ -83,26 +65,24 @@ class DownloadSlotsManager(object):
     elif drop_slot:
       logging.error('Request to drop a slot but without any identity.')
       return False
-
     return True
 
   def _TryToRequestSlot(self):
     identity = str(uuid.uuid1())
-    timestamp = time.time()
+    now = time.time()
 
     if len(self.slots) + len(self.wait_queue) < self.max_slots_num:
-      self.slots[identity] = timestamp
+      self.slots[identity] = now
       logging.debug('Slot is requested and identity is %s.', identity)
 
-      self.PrepareTimerForDeadSlot()
+      self._PrepareTimerForDeadSlot()
 
       return (identity, 0)
 
     # All slots are occupied already so need to be put into queue.
-    self.wait_queue[identity] = timestamp
+    self.wait_queue[identity] = now
     place = len(self.wait_queue)
-    logging.debug('Slots are all occupied so need to wait in %d place.',
-                  place)
+    logging.debug('Slots are all occupied so need to wait in %d place.', place)
 
     return (identity, place)
 
@@ -118,17 +98,13 @@ class DownloadSlotsManager(object):
     return (identity, -1)
 
   def _HeartBeat(self, identity):
-    timestamp = time.time()
-
+    now = time.time()
     if identity in self.slots:
-      self.slots[identity] = timestamp
-
-      return (identity, 0)
-
-    self.wait_queue[identity] = timestamp
-    index = self.wait_queue.keys().index(identity)
-    place = index + 1
-
+      self.slots[identity] = now
+      place = 0
+    else:
+      self.wait_queue[identity] = now
+      place = self.wait_queue.keys().index(identity) + 1
     return (identity, place)
 
   def _CheckAvailableSlot(self):
@@ -138,13 +114,13 @@ class DownloadSlotsManager(object):
     # available slot is ready now.
     available_slots = self.max_slots_num - len(self.slots)
     while available_slots > 0 and self.wait_queue:
-      identity, timestamp = self.wait_queue.popitem(False)
+      identity, timestamp = self.wait_queue.popitem(last=False)
       self.slots[identity] = timestamp
       available_slots -= 1
       logging.debug('Congrats! available slot is ready for %s.', identity)
 
   def ProcessSlotRequest(self, dut_info):
-    identity = dut_info.get('uuid', None)
+    identity = dut_info.get('uuid')
     drop_slot = 'drop_slot' in dut_info
 
     # do error handling first.
@@ -159,20 +135,35 @@ class DownloadSlotsManager(object):
     else:
       result = self._HeartBeat(identity)
 
-    return 'UUID: %s\nN_PLACE: %d\n' % (result[0], result[1])
+    return 'UUID: %s\nN_PLACE: %d\n' % result
 
-
-  def CheckExpiredSession(self):
+  def _RemoveExpiredSession(self):
     now = time.time()
-    self.slots = {slot: t for slot, t in self.slots.iteritems()
+    self.slots = {identity: t for identity, t in self.slots.iteritems()
                   if now - t < _SLOT_ALIVE_TIME}
     self.wait_queue = collections.OrderedDict(
-        (slot, t) for slot, t in self.wait_queue.iteritems()
+        (identity, t) for identity, t in self.wait_queue.iteritems()
         if now - t < _SLOT_ALIVE_TIME)
     self._CheckAvailableSlot()
 
-  def PrepareTimerForDeadSlot(self, timeout=_SLOT_ALIVE_TIME):
+  def _PrepareTimerForDeadSlot(self, timeout=_SLOT_ALIVE_TIME):
     if self.delayed_call is None:
-      self.delayed_call = reactor.callLater(timeout, _SlotTimeOutFunc, self)
-
+      self.delayed_call = reactor.callLater(timeout, self._SlotTimeOutFunc)
       logging.debug('Timer is up.')
+
+  def _SlotTimeOutFunc(self):
+    logging.debug('Timer is fired to check slots which are expired.')
+    self.delayed_call = None
+    self._RemoveExpiredSession()
+
+    if not self.slots and not self.wait_queue:
+      logging.debug('No timer is fired.')
+      return
+
+    # Fire another timer for oldest slot now.
+    joined_dict = self.slots.copy()
+    joined_dict.update(self.wait_queue)
+    oldest_slot = min(joined_dict, key=joined_dict.get)
+    next_time = _SLOT_ALIVE_TIME - (time.time() - joined_dict[oldest_slot]) + 1
+    self._PrepareTimerForDeadSlot(next_time)
+    logging.debug('Another timer is up for slot - %s', oldest_slot)
