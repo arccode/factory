@@ -3069,6 +3069,7 @@ msgstr "冷重启"
 #: ../py/test/test_lists/generic_fat.test_list.json
 #: ../py/test/test_lists/generic_fft.test_list.json
 #: ../py/test/test_lists/generic_grt.test_list.json
+#: ../py/test/test_lists/generic_rma.test_list.json
 #: ../py/test/test_lists/generic_run_in.test_list.json
 #: ../py/test/test_lists/generic_smt.test_list.json
 msgid "Finish"
@@ -3219,6 +3220,7 @@ msgid "FFT (Final Functional Test)"
 msgstr "FFT (最终功能测试)"
 
 #: ../py/test/test_lists/generic_grt.test_list.json
+#: ../py/test/test_lists/generic_rma.test_list.json
 msgid "GRT (Google Required Tests)"
 msgstr "GRT (Google 必要测试项目)"
 
@@ -3229,6 +3231,14 @@ msgstr "一般 Chromebook 测试"
 #: ../py/test/test_lists/generic_rf_station.test_list.json
 msgid "Generic RF Station"
 msgstr "一般射频測試站"
+
+#: ../py/test/test_lists/generic_rma.test_list.json
+msgid "Clear RMA Unlock State"
+msgstr "清除退货授权 (RMA) 的解锁状态"
+
+#: ../py/test/test_lists/generic_rma.test_list.json
+msgid "Cr50 RMA Cleanup"
+msgstr "清除 CR50 的退货授权 (RMA) 状态"
 
 #: ../py/test/test_lists/generic_rma.test_list.json
 msgid "FFT"

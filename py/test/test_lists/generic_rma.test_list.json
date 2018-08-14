@@ -9,6 +9,19 @@
     "rma_mode": true
   },
   "definitions": {
+    "RMACr50Reset": {
+      "inherit": "TestGroup",
+      "label": "Cr50 RMA Cleanup",
+      "subtests": [
+        {
+          "inherit": "ExecShell",
+          "label": "Clear RMA Unlock State",
+          "args": {
+            "commands": "gooftool cr50_disable_rma_mode"
+          }
+        }
+      ]
+    },
     "RMAFFT": {
       "inherit": "TestGroup",
       "label": "FFT",
@@ -30,17 +43,6 @@
         "AllCheckPoint",
         "RMAGRTFinalize"
       ]
-    },
-    "RMACr50Reset": {
-      "label": "Cr50 RMA Cleanup",
-      "inherit": "TestGroup",
-      "subtests": [{
-          "inherit": "ExecShell",
-          "label": "Clear RMA Unlock State",
-          "args": {
-            "commands": "gooftool cr50_disable_rma_mode"
-          }
-        }]
     },
     "RMAGRTEnd": {
       "inherit": "TestGroup",
