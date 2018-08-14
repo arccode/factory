@@ -47,6 +47,7 @@ const style = (theme: Theme) => createStyles({
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
     }),
+    padding: theme.spacing.unit * 2,
   },
   appShift: {
     marginLeft: APP_MENU_WIDTH,
