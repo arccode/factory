@@ -2,8 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Dialog from 'material-ui/Dialog';
-import FlatButton from 'material-ui/FlatButton';
+import Button from '@material-ui/core/Button';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogTitle from '@material-ui/core/DialogTitle';
 import React from 'react';
 import {connect} from 'react-redux';
 import {
@@ -18,7 +21,8 @@ import {
 import formDialog from '@app/form_dialog';
 import {Project} from '@app/project/types';
 import {RootState} from '@app/types';
-import {HiddenSubmitButton, parseNumber, renderTextField} from '@common/form';
+import ReduxFormTextField from '@common/components/redux_form_text_field';
+import {HiddenSubmitButton, parseNumber} from '@common/form';
 
 import {ENABLE_UMPIRE_FORM} from '../constants';
 
@@ -72,14 +76,16 @@ const InnerFormComponent: React.SFC<
       {/* TODO(pihsun): Dome backend doesn't support host other than
             localhost, so this can be removed. */}
       {addExisting &&
-        <Field name="umpireHost" label="host" component={renderTextField} />
+        <ReduxFormTextField
+          name="umpireHost"
+          label="host"
+        />
       }
-      <Field
+      <ReduxFormTextField
         name="umpirePort"
         label="port"
         type="number"
         parse={parseNumber}
-        component={renderTextField}
       />
       <Field name="umpireAddExistingOne" component={renderAddExistingHint} />
       <HiddenSubmitButton />
@@ -113,30 +119,23 @@ const EnableUmpireForm: React.SFC<EnableUmpireFormProps> = ({
     umpireAddExistingOne: false,
   };
   return (
-    <Dialog
-      title="Enable Umpire"
-      open={open}
-      modal={false}
-      onRequestClose={onCancel}
-      actions={[<>
-        <FlatButton
-          label={addExisting ?
-            'ADD AN EXISTING UMPIRE INSTANCE' :
-            'CREATE A NEW UMPIRE INSTANCE'}
-          primary
-          onClick={submitForm}
+    <Dialog open={open} onClose={onCancel}>
+      <DialogTitle>Enable Umpire</DialogTitle>
+      <DialogContent>
+        <InnerForm
+          addExisting={addExisting}
+          onSubmit={onSubmit}
+          initialValues={initialValues}
         />
-        <FlatButton
-          label="CANCEL"
-          onClick={onCancel}
-        />
-      </>]}
-    >
-    <InnerForm
-      addExisting={addExisting}
-      onSubmit={onSubmit}
-      initialValues={initialValues}
-    />
+      </DialogContent>
+      <DialogActions>
+        <Button color="primary" onClick={submitForm}>
+          {addExisting ?
+              'Add an existing Umpire instance' :
+              'Create a new Umpire instance'}
+        </Button>
+        <Button onClick={onCancel}>Cancel</Button>
+      </DialogActions>
     </Dialog>
   );
 };

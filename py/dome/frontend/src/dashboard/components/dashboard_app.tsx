@@ -2,11 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {Card, CardText, CardTitle} from 'material-ui/Card';
-import Divider from 'material-ui/Divider';
-import {List, ListItem} from 'material-ui/List';
-import Subheader from 'material-ui/Subheader';
-import Toggle from 'material-ui/Toggle';
+import Card from '@material-ui/core/Card';
+import CardContent from '@material-ui/core/CardContent';
+import CardHeader from '@material-ui/core/CardHeader';
+import Divider from '@material-ui/core/Divider';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListSubheader from '@material-ui/core/ListSubheader';
+import Switch from '@material-ui/core/Switch';
 import React from 'react';
 import {connect} from 'react-redux';
 
@@ -58,25 +62,27 @@ class DashboardApp extends React.Component<DashboardAppProps> {
     };
 
     return (
-      <div>
+      <>
         {/* TODO(littlecvr): add <ProductionLineInfoPanel /> */}
 
         <Card>
-          <CardTitle title={'Dashboard'} />
-          <CardText>
+          <CardHeader title="Dashboard" />
+          <CardContent>
+            <FormControlLabel
+              control={
+                <Switch
+                  color="primary"
+                  checked={project.umpireEnabled}
+                  disableRipple
+                />
+              }
+              label="Enable Umpire"
+              onChange={this.handleToggle}
+            />
             <List>
-              <ListItem
-                rightToggle={
-                  <Toggle
-                    toggled={project.umpireEnabled}
-                    onToggle={this.handleToggle}
-                  />
-                }
-                primaryText="Enable Umpire"
-              />
               {project.umpireEnabled && project.umpireReady &&
                 <>
-                  <Subheader>Info</Subheader>
+                  <ListSubheader>Info</ListSubheader>
                   <Divider />
                   {!project.isUmpireRecent &&
                     <ListItem style={styles.warningText} disabled>
@@ -84,18 +90,18 @@ class DashboardApp extends React.Component<DashboardAppProps> {
                       and may not function properly, please restart it by
                       disabling and re-enabling it.
                     </ListItem>}
-                  <ListItem disabled>
+                  <ListItem>
                     host: {project.umpireHost}
                   </ListItem>
-                  <ListItem disabled>
+                  <ListItem>
                     port: {project.umpirePort}
                   </ListItem>
-                  <Subheader>Services</Subheader>
+                  <ListSubheader>Services</ListSubheader>
                   <Divider />
                   <ServiceList />
                 </>}
             </List>
-          </CardText>
+          </CardContent>
         </Card>
 
         {/* TODO(littlecvr): add <SystemInfoPanel /> */}
@@ -108,7 +114,7 @@ class DashboardApp extends React.Component<DashboardAppProps> {
             enableUmpireWithSettings(project.name, umpireSettings);
           }}
         />
-      </div>
+      </>
     );
   }
 }
@@ -120,12 +126,8 @@ const mapStateToProps = (state: RootState) => ({
 const mapDispatchToProps = {
   disableUmpire,
   enableUmpireWithSettings,
-  openEnableUmpireForm: () => (
-    formDialog.actions.openForm(ENABLE_UMPIRE_FORM)
-  ),
-  closeEnableUmpireForm: () => (
-    formDialog.actions.closeForm(ENABLE_UMPIRE_FORM)
-  ),
+  openEnableUmpireForm: () => formDialog.actions.openForm(ENABLE_UMPIRE_FORM),
+  closeEnableUmpireForm: () => formDialog.actions.closeForm(ENABLE_UMPIRE_FORM),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(DashboardApp);
