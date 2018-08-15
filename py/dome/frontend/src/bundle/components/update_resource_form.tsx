@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import dateFormat from 'dateformat';
-import FlatButton from 'material-ui/FlatButton';
 import React from 'react';
 import {connect} from 'react-redux';
 import {
@@ -116,15 +115,11 @@ class UpdateResourceForm
     const {open, submitForm} = this.props;
     return (
       <FileUploadDialog<FormData>
-        title="Update Resource"
-        modal={false}
-        onRequestClose={this.handleCancel}
-        actions={[<>
-          <FlatButton label="confirm" primary onClick={submitForm} />
-          <FlatButton label="cancel" onClick={this.handleCancel} />
-        </>]}
         open={open}
+        title="Update Resource"
+        onCancel={this.handleCancel}
         onSubmit={this.handleSubmit}
+        submitForm={submitForm}
       >
         <InnerForm initialValues={this.state.initialValues} />
       </FileUploadDialog>

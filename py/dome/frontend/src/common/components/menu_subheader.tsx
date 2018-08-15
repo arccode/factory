@@ -20,7 +20,7 @@ const styles = (theme: Theme) => createStyles({
     // released. (https://github.com/mui-org/material-ui/issues/11667)
     ...theme.typography.subheading,
     color: theme.palette.grey[500],
-    fontWeight: 500,
+    fontWeight: theme.typography.fontWeightMedium,
   },
 });
 

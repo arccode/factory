@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import FlatButton from 'material-ui/FlatButton';
 import React from 'react';
 import {connect} from 'react-redux';
 import {
@@ -90,12 +89,8 @@ class UploadBundleForm
       <FileUploadDialog<FormData>
         title="Upload Bundle"
         open={open}
-        modal={false}
-        onRequestClose={this.handleCancel}
-        actions={[<>
-          <FlatButton label="confirm" primary onClick={submitForm} />
-          <FlatButton label="cancel" onClick={this.handleCancel} />
-        </>]}
+        onCancel={this.handleCancel}
+        submitForm={submitForm}
         onSubmit={this.handleSubmit}
       >
         <InnerForm />
