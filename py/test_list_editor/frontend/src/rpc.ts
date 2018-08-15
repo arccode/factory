@@ -6,7 +6,7 @@ import * as common from './common';
 
 const call = async (method: string, ...params: any[]) => {
   const input =
-      process.env.NODE_ENV !== 'development' ? '/' : 'http://localhost:4013/';
+      process.env.NODE_ENV !== 'development' ? '/' : common.DEV_BACKEND_URL;
   const init = {
     method: 'POST',
     body: JSON.stringify({jsonrpc: '2.0', id: 1, method, params}),

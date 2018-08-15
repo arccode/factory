@@ -110,17 +110,22 @@ def OverrideConfig(base, overrides, copy_on_write=False):
   Returns:
     The new mapping object with values overridden.
   """
+  def pop_bool(dct, key):
+    val = dct.pop(key, False)
+    if not isinstance(val, bool):
+      raise ValueError('Field %r should be a bool but %r found.' % (key, val))
+    return val
+
   changed = False
   result = base.copy() if copy_on_write else base
-
   for k, v in overrides.iteritems():
     if isinstance(v, collections.Mapping):
       v = v.copy()
-      if v.pop(_OVERRIDE_DELETE_KEY, False):
+      if pop_bool(v, _OVERRIDE_DELETE_KEY):
         if k in result:
           result.pop(k)
           changed = True
-      elif v.pop(_OVERRIDE_REPLACE_KEY, False):
+      elif pop_bool(v, _OVERRIDE_REPLACE_KEY):
         result[k] = OverrideConfig({}, v)
         changed = True
       else:

@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es6",
     "module": "esnext",
-    "lib": ["es2015", "dom", "dom.iterable", "scripthost"],
+    "lib": ["es6", "dom", "dom.iterable", "scripthost"],
     "types": ["node"],
     "baseUrl": ".",
     "paths": {"@/*": ["src/*"]},
