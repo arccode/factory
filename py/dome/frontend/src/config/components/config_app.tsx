@@ -2,9 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {Card, CardText, CardTitle} from 'material-ui/Card';
-import RaisedButton from 'material-ui/RaisedButton';
-import Toggle from 'material-ui/Toggle';
+import Button from '@material-ui/core/Button';
+import Card from '@material-ui/core/Card';
+import CardActions from '@material-ui/core/CardActions';
+import CardContent from '@material-ui/core/CardContent';
+import CardHeader from '@material-ui/core/CardHeader';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import Switch from '@material-ui/core/Switch';
 import React from 'react';
 import {connect} from 'react-redux';
 
@@ -45,27 +49,27 @@ class ConfigApp extends React.Component<ConfigAppProps> {
     } = this.props;
 
     return (
-      <div>
-        <Card>
-          <CardTitle title="Config" />
-          <CardText>
-            <Toggle
-              label="TFTP server"
-              toggled={isTftpEnabled}
-              onToggle={isTftpEnabled ? disableTftp : enableTftp}
-              disabled={isConfigUpdating}
-            />
-            <br/>
-            <RaisedButton
-              type="button"
-              label="Logout"
-              onClick={logout}
-              primary
-              style={{margin: '1em'}}
-            />
-          </CardText>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader title="Config" />
+        <CardContent>
+          <FormControlLabel
+            control={
+              <Switch
+                color="primary"
+                checked={isTftpEnabled}
+                onChange={isTftpEnabled ? disableTftp : enableTftp}
+                disabled={isConfigUpdating}
+              />
+            }
+            label="TFTP server"
+          />
+        </CardContent>
+        <CardActions>
+          <Button color="primary" size="small" onClick={logout}>
+            logout
+          </Button>
+        </CardActions>
+      </Card>
     );
   }
 }
