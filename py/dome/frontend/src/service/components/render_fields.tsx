@@ -21,18 +21,19 @@ import {parseNumber, renderTextField} from '@common/form';
 
 import {Schema} from '../types';
 
-interface RenderToggleProps extends WrappedFieldProps {
+interface RenderToggleProps {
   label: string;
 }
 
-const renderToggle = ({input, label}: RenderToggleProps) => (
-  <Toggle
-    label={label}
-    labelPosition="right"
-    toggled={input.value}
-    onToggle={input.onChange}
-  />
-);
+const renderToggle =
+  ({input, label}: RenderToggleProps & WrappedFieldProps) => (
+    <Toggle
+      label={label}
+      labelPosition="right"
+      toggled={input.value}
+      onToggle={input.onChange}
+    />
+  );
 
 interface RenderArrayProps {
   schema: Schema;

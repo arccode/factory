@@ -13,5 +13,5 @@ export const localState = (state: RootState): FormDialogState => state[NAME];
 export const isFormVisibleFactory = (name: FormNames) =>
   (state: RootState): boolean => localState(state).visibility[name] || false;
 
-export const getFormPayloadFactory = (name: FormNames) =>
+export const getFormPayloadFactory = <K extends FormNames>(name: K) =>
   (state: RootState) => localState(state).payload[name] || {};

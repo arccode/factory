@@ -114,7 +114,7 @@ class DashboardApp extends React.Component<DashboardAppProps> {
 }
 
 const mapStateToProps = (state: RootState) => ({
-  project: project.selectors.getCurrentProjectObject(state),
+  project: project.selectors.getCurrentProjectObject(state)!,
 });
 
 const mapDispatchToProps = {

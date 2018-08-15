@@ -135,7 +135,7 @@ const getFormPayload =
 const mapStateToProps = (state: RootState) => ({
   open: isFormVisible(state),
   project: project.selectors.getCurrentProject(state),
-  payload: getFormPayload(state),
+  payload: getFormPayload(state)!,
 });
 
 const mapDispatchToProps = {
