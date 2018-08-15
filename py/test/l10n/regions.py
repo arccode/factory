@@ -244,7 +244,7 @@ def LoadRegionDatabase(path=None):
 
     if (sys_utils.InChroot() and
         os.path.isfile(CROS_REGIONS_DATABASE_GENERATOR_PATH)):
-      return process_utils.LogAndCheckOutput(
+      return process_utils.CheckOutput(
           [CROS_REGIONS_DATABASE_GENERATOR_PATH, '--format', 'json', '--all'])
 
     path = CROS_REGIONS_DATABASE_DEFAULT_PATH
