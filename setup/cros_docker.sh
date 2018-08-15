@@ -448,7 +448,7 @@ commands:
   $0 goofy help
       Show this help message.
 
-  $0 goofy try [CROS_TEST_DOCKER_IMAGE]
+  $0 goofy try [CROS_TEST_DOCKER_IMAGE] [-- [arg1 [arg2 ...]]]
       Quickly run the Goofy from source tree.
 
       This command will try to run Goofy directly using your local source tree.
@@ -493,9 +493,10 @@ goofy_main() {
 
   # Decide CROS_TEST_DOCKER_IMAGE
   local name=""
-  if [ "$#" = 1 ]; then
+  if [ "$#" -gt 0 -a "$1" != "--" ]; then
     name="$1"
-  elif [ "$#" = 0 ]; then
+    shift
+  else
     # Try to find existing images.
     local all_images="$( \
       ${DOCKER} images "cros/*_test"  --format "{{.Repository}}" | uniq)"
@@ -509,10 +510,13 @@ goofy_main() {
         die "Multiple images found, you have to specify one: " ${all_images}
         ;;
     esac
-  else
-    # TODO(hungte) Pass extra arguments to Goofy in future.
-    goofy_usage
-    exit 1
+  fi
+  if [ "$#" -gt 0 ]; then
+    if [ "$1" != "--" ]; then
+      goofy_usage
+      exit 1
+    fi
+    shift
   fi
   # Normalize name and check if the image exists.
   if [ -z "${name}" ]; then
@@ -528,7 +532,7 @@ goofy_main() {
   ensure_dir_acl "${HOST_SHARED_DIR}"
 
   local locale_dir="${FACTORY_DIR}/build/locale"
-  local commands=""
+  local commands=()
 
   if "${try}"; then
     if [ ! -e "${locale_dir}" ]; then
@@ -538,11 +542,11 @@ goofy_main() {
       die "Please do 'make default' in chroot first."
     fi
     # TODO(hungte) Support board overlay.
-    commands="
-      --volume ${FACTORY_DIR}:/usr/local/factory \
-      --volume ${FACTORY_DIR}/build/locale:/usr/local/factory/locale \
-      ${name} /usr/local/factory/bin/goofy_docker
-    "
+    commands=(
+        "--volume" "${FACTORY_DIR}:/usr/local/factory"
+        "--volume" "${FACTORY_DIR}/build/locale:/usr/local/factory/locale"
+        "--env" "PYTHONDONTWRITEBYTECODE=1"
+        "${name}" "/usr/local/factory/bin/goofy_docker" "${@}")
     echo ">> Starting Docker image ${name} in http://localhost:${GOOFY_PORT} .."
   else
     ensure_dir "${HOST_GOOFY_DIR}/local_factory"
@@ -552,10 +556,9 @@ goofy_main() {
       echo " and then execute /mnt/install_factory_toolkit.run inside docker."
     fi
     echo "To start Goofy, run '${DOCKER_BASE_DIR}/bin/goofy_docker'."
-    commands="
-      --volume "${HOST_GOOFY_DIR}/local_factory:/usr/local/factory" \
-      "${name}" bash
-    "
+    commands=(
+        "--volume" "${HOST_GOOFY_DIR}/local_factory:/usr/local/factory"
+        "${name}" "bash")
   fi
 
   ${DOCKER} run \
@@ -568,7 +571,7 @@ goofy_main() {
     --publish "${GOOFY_PORT}:4012" \
     --tmpfs "/run:rw,size=16384k" \
     --tmpfs /var/log \
-    ${commands}
+    "${commands[@]}"
 }
 
 # Section for Overlord subcommand
