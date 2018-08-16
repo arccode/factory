@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import produce from 'immer';
+import {safeDump} from 'js-yaml';
 import {createAction} from 'typesafe-actions';
 import uuid from 'uuid/v4';
 
@@ -183,8 +184,7 @@ const runTaskImpl = (taskID: string) =>
       const {response} = err;
       if (response) {
         const {data} = response;
-        const responseText =
-          typeof (data) === 'string' ? data : JSON.stringify(data, null, 2);
+        const responseText = typeof data === 'string' ? data : safeDump(data);
         dispatch(error.actions.setAndShowErrorDialog(
           `${err.message}\n\n${responseText}`));
       } else {

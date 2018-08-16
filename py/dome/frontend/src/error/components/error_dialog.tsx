@@ -6,6 +6,11 @@ import Button from '@material-ui/core/Button';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
+import {
+  createStyles,
+  WithStyles,
+  withStyles,
+} from '@material-ui/core/styles';
 import React from 'react';
 import {connect} from 'react-redux';
 
@@ -14,21 +19,29 @@ import {RootState} from '@app/types';
 import {hideErrorDialog} from '../actions';
 import {getErrorMessage, isErrorDialogShown} from '../selectors';
 
-interface ErrorDialogProps {
+const styles = createStyles({
+  textarea: {
+    width: '100%',
+    height: '20em',
+    whiteSpace: 'pre',
+  },
+});
+
+interface ErrorDialogProps extends WithStyles<typeof styles> {
   message: string;
   show: boolean;
   hideErrorDialog: () => any;
 }
 
 const ErrorDialog: React.SFC<ErrorDialogProps> =
-  ({message, show, hideErrorDialog}) => (
-    <Dialog open={show} onClose={hideErrorDialog}>
+  ({message, show, hideErrorDialog, classes}) => (
+    <Dialog maxWidth="md" open={show} onClose={hideErrorDialog}>
       <DialogContent>
         An error has occured, please copy the following error message, and
         contact the ChromeOS factory team.
         <textarea
           disabled
-          style={{width: '100%', height: '10em'}}
+          className={classes.textarea}
           value={message}
         />
       </DialogContent>
@@ -47,4 +60,5 @@ const mapStateToProps = (state: RootState) => ({
 
 const mapDispatchToProps = {hideErrorDialog};
 
-export default connect(mapStateToProps, mapDispatchToProps)(ErrorDialog);
+export default connect(mapStateToProps, mapDispatchToProps)(
+  withStyles(styles)(ErrorDialog));
