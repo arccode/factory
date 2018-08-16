@@ -31,9 +31,15 @@ _NUMBER_NOT_IN_DEVICE_DATA = 1
 
 class VerifyComponentTest(test_case.TestCase):
   ARGS = [
+      Arg('approx_match', bool,
+          'Enable apporximate matching results.',
+          default=True),
       Arg('enable_factory_server', bool,
           'Update hwid data from factory server.',
           default=True),
+      Arg('max_mismatch', int,
+          'The number of mismatched rules at most.',
+          default=1),
       Arg('verify_checksum', bool,
           'Enable converted statements checksum verification.',
           default=True)
@@ -47,6 +53,7 @@ class VerifyComponentTest(test_case.TestCase):
     self.num_mismatch = []
     self.not_supported = []
     self.probed_results = {}
+    self.perfect_match_results = {}
     self.component_data = {}
     self.converted_statement_file = self.dut.path.join(
         self.tmpdir, 'converted_statement_file.json')
@@ -64,7 +71,10 @@ class VerifyComponentTest(test_case.TestCase):
         session.console.info('Checksum passed.')
 
     self.probed_results = json_utils.LoadStr(self.factory_tools.CheckOutput(
-        ['probe', 'probe', '--config-file', self.converted_statement_file]))
+        ['probe', 'probe', '--config-file', self.converted_statement_file,
+         '--approx-match', '--mismatch-num',
+         '{}'.format(self.args.max_mismatch)]))
+    self.perfect_match_results = self._GetPerfectMatchProbeResult()
     self.component_data = {k[4:]: int(v) for k, v in
                            device_data.GetDeviceData('component').iteritems()
                            if k.startswith('has_')}
@@ -76,7 +86,8 @@ class VerifyComponentTest(test_case.TestCase):
       self.ui.CallJSFunction('setFailedMessage')
       if self.num_mismatch:
         self.ui.CallJSFunction(
-            'createNumMismatchResult', self.num_mismatch)
+            'createNumMismatchResult', self.num_mismatch,
+            self.args.approx_match, self.probed_results)
 
       if self.not_supported:
         self.ui.CallJSFunction(
@@ -93,7 +104,7 @@ class VerifyComponentTest(test_case.TestCase):
       return [comp['name'] for comp in comp_info]
 
     for comp_cls, correct_num in self.component_data.iteritems():
-      comp_info = self.probed_results.get(comp_cls, [])
+      comp_info = self.perfect_match_results.get(comp_cls, [])
       actual_num = len(comp_info)
       if correct_num != actual_num:
         self.num_mismatch.append((comp_cls, correct_num,
@@ -101,7 +112,7 @@ class VerifyComponentTest(test_case.TestCase):
 
     # The number of component should be _NUMBER_NOT_IN_DEVICE_DATA
     # when the component is not in device data.
-    for comp_cls, comp_info in self.probed_results.iteritems():
+    for comp_cls, comp_info in self.perfect_match_results.iteritems():
       if comp_cls not in self.component_data:
         actual_num = len(comp_info)
         if actual_num != _NUMBER_NOT_IN_DEVICE_DATA:
@@ -111,7 +122,7 @@ class VerifyComponentTest(test_case.TestCase):
 
   def _VerifyNotSupported(self):
     if self._CheckPhase():
-      for comp_cls, comp_info in self.probed_results.iteritems():
+      for comp_cls, comp_info in self.perfect_match_results.iteritems():
         for comp_item in comp_info:
           status = comp_item['information']['status']
           if status != common.COMPONENT_STATUS.supported:
@@ -129,3 +140,10 @@ class VerifyComponentTest(test_case.TestCase):
     converted_statement = self.dut.ReadFile(self.converted_statement_file)
     converted_checksum = self.dut.ReadFile(converted_checksum_file)
     return converted_statement, converted_checksum
+
+  def _GetPerfectMatchProbeResult(self):
+    res = {}
+    for comp_cls, comp_info in self.probed_results.iteritems():
+      res[comp_cls] = [item for item in comp_info if item['perfect_match']]
+
+    return res

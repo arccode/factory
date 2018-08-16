@@ -2,35 +2,65 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-const createNumMismatchResult = (data) => {
+const createNumMismatchResult = (data, approxMatch, probedResults) => {
   const title = document.getElementById('verify-component-mismatch-label');
   title.classList.remove('hidden');
   const numMismatch = document.getElementById('verify-component-mismatch');
-  data.forEach(([comp_cls, expected_num, comp_names]) => {
+  data.forEach(([compCls, expectedNum, compNames]) => {
     const content = document.createElement('div');
     const contentTitle = document.createElement('h2');
-    contentTitle.appendChild(document.createTextNode(comp_cls));
+    contentTitle.appendChild(document.createTextNode(compCls));
     content.appendChild(contentTitle);
     const contentResult = document.createElement('div');
     contentResult.classList.add('verify-component-mismatch-result');
     const contentText = document.createElement('p');
     contentText.appendChild(document.createTextNode(
-        `Expected ${expected_num} component(s)`));
+        `Expected ${expectedNum} component(s)`));
     contentText.appendChild(document.createElement('br'));
     contentText.appendChild(document.createTextNode(
-        `Found ${comp_names.length} component(s):`));
+        `Found ${compNames.length} component(s):`));
     contentResult.appendChild(contentText);
     const contentListBody = document.createElement('ul');
-    comp_names.forEach((comp_name) => {
+    compNames.forEach((compName) => {
       const contentList = document.createElement('li');
-      contentList.appendChild(document.createTextNode(comp_name));
+      contentList.appendChild(document.createTextNode(compName));
       contentListBody.appendChild(contentList);
     });
     contentResult.appendChild(contentListBody);
+    if (approxMatch) {
+      createApproxMatchResult(contentResult, probedResults[compCls]);
+    }
     content.appendChild(contentResult);
     numMismatch.appendChild(content);
   });
 };
+
+const createApproxMatchResult = (contentResult, compInfo) => {
+  const approxText = document.createElement('p');
+  approxText.appendChild(document.createTextNode(
+      'Found almost matched components(s):'));
+  contentResult.appendChild(approxText);
+  compInfo.forEach((comp) => {
+    if (!comp.perfect_match) {
+      const approxResult = document.createElement('div');
+      const approxCompName = document.createElement('h2');
+      approxCompName.appendChild(document.createTextNode(comp['name']));
+      approxResult.appendChild(approxCompName);
+      const approxListBody = document.createElement('ul');
+      const rules = comp.approx_match.rule;
+      for (const rule in rules) {
+        if (!rules[rule].result) {
+          const approxList = document.createElement('li');
+          approxList.appendChild(document.createTextNode(
+              `${rule}: ${rules[rule].info}, found: ${comp.values[rule]}`));
+          approxListBody.append(approxList);
+        }
+      }
+      approxResult.appendChild(approxListBody);
+      contentResult.appendChild(approxResult)
+    }
+  });
+}
 
 const createNotSupportedResult = (data) => {
   const title = document.getElementById('verify-component-not-supported-label');
