@@ -86,6 +86,10 @@ msgid "Bluetooth"
 msgstr "蓝牙"
 
 #: ../build/pytests_label_generated.json
+msgid "Bluetooth Host"
+msgstr "蓝牙主机"
+
+#: ../build/pytests_label_generated.json
 msgid "Brightness"
 msgstr "亮度"
 
@@ -275,6 +279,14 @@ msgid "Offline Test"
 msgstr "离线测试"
 
 #: ../build/pytests_label_generated.json
+msgid "Offline Test Shell Deploy"
+msgstr "离线测试部署"
+
+#: ../build/pytests_label_generated.json
+msgid "Offline Test Shell Fetch Log"
+msgstr "离线测试日志提取"
+
+#: ../build/pytests_label_generated.json
 msgid "Partition Table"
 msgstr "分区表"
 
@@ -445,10 +457,6 @@ msgstr "触控板悬浮"
 #: ../build/pytests_label_generated.json
 msgid "Touchscreen"
 msgstr "触控面板"
-
-#: ../build/pytests_label_generated.json
-msgid "Touchscreen Calibration Sensors Server"
-msgstr ""
 
 #: ../build/pytests_label_generated.json
 msgid "Touchscreen Calibration"

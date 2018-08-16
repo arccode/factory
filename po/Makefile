@@ -69,8 +69,8 @@ all: build
 
 update_pytest_list:
 	mkdir -p $(BUILD_DIR)
-	$(LIST_PYTESTS) -l $(PY_ROOT) > $(PYTESTS_LABEL_FILE)
-	$(if $(BOARD_FILES_DIR), $(LIST_PYTESTS) -l $(BOARD_FILES_DIR)/py \
+	$(LIST_PYTESTS) -l > $(PYTESTS_LABEL_FILE)
+	$(if $(BOARD_FILES_DIR), $(LIST_PYTESTS) -l $(BOARD_FILES_DIR) \
 	  > $(BOARD_PYTESTS_LABEL_FILE))
 
 init: update_pytest_list
