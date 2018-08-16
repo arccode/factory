@@ -29,10 +29,10 @@ class SerialEchoUnittest(unittest.TestCase):
 
   def SetUpTestCase(self, args, test_case_name='testEcho'):
     self._test_case = serial_echo.SerialEchoTest(test_case_name)
-    arg_spec = getattr(self._test_case, 'ARGS', None)
+    arg_spec = getattr(self._test_case, 'ARGS', [])
     if 'serial_param' not in args:
       args['serial_param'] = {'port': '/dev/ttyUSB0'}
-    setattr(self._test_case, 'args', Args(*arg_spec).Parse(args))
+    self._test_case.args = Args(*arg_spec).Parse(args)
 
   def RunTestCase(self):
     self._test_result = self._test_case.defaultTestResult()

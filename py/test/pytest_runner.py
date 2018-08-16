@@ -78,7 +78,7 @@ def RunPytest(test_info):
           device_utils.ENV_DUT_OPTIONS: str(test_info.dut_options)})
     arg_spec = getattr(test, 'ARGS', None)
     if arg_spec:
-      setattr(test, 'args', Args(*arg_spec).Parse(test_info.args))
+      test.args = Args(*arg_spec).Parse(test_info.args)
 
     result = RunTestCase(test)
 

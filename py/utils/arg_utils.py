@@ -113,7 +113,6 @@ class Arg(object):
         return True
       if isinstance(t, Enum) and value in t:
         return True
-
     return False
 
   def IsOptional(self):
@@ -183,7 +182,7 @@ class Args(object):
       raise TypeError('Arguments to Args object should all be Arg objects')
 
     # Throws an exception on duplicate arguments
-    self.args_by_name = dict((x.name, x) for x in args)
+    self.args_by_name = {x.name: x for x in args}
 
   def Parse(self, dargs):
     """Parses a dargs object from the test list.
@@ -198,15 +197,12 @@ class Args(object):
 
     errors = []
     for arg in self.args:
-      value = dargs.get(arg.name)
-      if arg.name not in dargs:
-        if not arg.IsOptional():
-          errors.append('Required argument %s not specified' % arg.name)
-          continue
-        if arg.default is not None:
-          value = arg.default
+      if arg.name not in dargs and not arg.IsOptional():
+        errors.append('Required argument %s not specified' % arg.name)
+        continue
 
-      if arg.name in dargs and not arg.ValueMatchesType(value):
+      value = dargs.get(arg.name, arg.default)
+      if not arg.ValueMatchesType(value):
         errors.append('Argument %s should have type %r, not %r' % (
             arg.name, arg.type, type(value)))
         errors.append('Argument %s=%r' % (arg.name, value))

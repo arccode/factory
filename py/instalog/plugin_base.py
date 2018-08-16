@@ -120,7 +120,7 @@ class Plugin(log_utils.LoggerMixin, object):
     """
     # Try parsing the arguments according to the spec in ARGS.
     arg_spec = getattr(self, 'ARGS', [])
-    setattr(self, 'args', arg_utils.Args(*arg_spec).Parse(config))
+    self.args = arg_utils.Args(*arg_spec).Parse(config)
 
     # log_utils.LoggerMixin creates shortcut functions for convenience.
     self.logger = logging.getLogger(logger_name)

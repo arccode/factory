@@ -98,8 +98,8 @@ def _RunPytestRaw(pytest, args, dut_options):
 
   # Set self.args of the test case.
   try:
-    arg_spec = getattr(test, 'ARGS', None)
-    setattr(test, 'args', Args(*arg_spec).Parse(args if args else {}))
+    arg_spec = getattr(test, 'ARGS', [])
+    test.args = Args(*arg_spec).Parse(args or {})
   except Exception as e:
     return (False, e.message)
 
