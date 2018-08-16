@@ -816,10 +816,10 @@ class Gooftool(object):
     def _IsCCDInfoMandatory():
       cr50_verion = _GetCr50Version()
       # If second number is odd in version then it is prod version.
-      is_prod = (1 == int(cr50_verion.split('.')[1]) % 2)
+      is_prod = int(cr50_verion.split('.')[1]) % 2
 
       res = True
-      if is_prod and LooseVersion(cr50_verion) < LooseVersion('0.3.5'):
+      if is_prod and LooseVersion(cr50_verion) < LooseVersion('0.3.9'):
         res = False
       elif not is_prod and LooseVersion(cr50_verion) < LooseVersion('0.4.5'):
         res = False
