@@ -102,7 +102,7 @@ class PlatformSKUModelTest(test_case.TestCase):
     product_name = self._dut.ReadFile(_PRODUCT_NAME_PATH)
     sku = self._platform.get('sku', '')
     model_config = self._config.get('model', {}).get(model, {})
-    if 'product_sku' in self.config:
+    if 'product_sku' in self._config:
       sku_config = self._config.get(
           'product_sku', {}).get(product_name, {}).get(sku, {})
     else:
