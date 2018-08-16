@@ -2990,7 +2990,7 @@ msgid "Press space to start scanning."
 msgstr "请按空白键开始扫描。"
 
 #: ../py/test/pytests/wireless_radiotap.py
-msgid "Switching to AP {ap}: "
+msgid "Switching to AP {ap}..."
 msgstr "切换到基地台 {ap}..."
 
 #: ../py/test/pytests/wireless_radiotap.py

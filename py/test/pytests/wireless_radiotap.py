@@ -2,24 +2,66 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A factory test for checking Wifi antenna.
+"""A factory test for checking Wifi antenna for Intel WP2 7260 chip.
 
-The test accepts a dict of wireless specs.
-Each spec contains candidate services and the signal constraints.
-For each spec, the test will connect to AP first.
-And scan the signal quality to get signal strength for all antennas.
-Then the test checks signal quality.
+Description
+-----------
+The test calculates the average RSSI values for each antenna by decoding
+the radiotap-wrapped beacon frames sent by the AP service.
 
 Be sure to set AP correctly.
 1. Select one fixed channel instead of auto.
 2. Disable the TX power control in AP.
 3. Make sure SSID of AP is unique.
 
-This test case can be used for Intel WP2 7260 chip.
+Test Procedure
+--------------
+The test accepts a list of wireless service specs.
+
+1. For each service candidate, the test does following steps:
+
+   a. Connect to that service.
+   b. Monitor the beacon frame sent by the AP in radiotap format.
+   c. Calculate the average RSSI values of each antenna.
+
+2. Among all RSSI results, the test chooses the one whose antenna_all signal
+   strength is the largest for checking the spec.
+
+Dependency
+----------
+- `iw` utility
+- `ip` utility
+- `tcpdump` utility
+
+Examples
+--------
+To run this test on DUT, add a test item in the test list::
+
+  {
+    "pytest_name": "wireless_radiotap",
+    "args": {
+      "services": [
+        ["my_ap_service", 5300, "wifi_password"]
+      ]
+    }
+  }
+
+If the wifi service only serves one frequency (you can check by
+``iw wlan0 scan``), you can also ask the test to detect the frequency value
+by the ``iw scan`` command::
+
+  {
+    "pytest_name": "wireless_radiotap",
+    "args": {
+      "services": [
+        ["my_ap_service", None, "wifi_password"]
+      ]
+    }
+  }
+
 """
 
 import collections
-import logging
 import re
 import struct
 import subprocess
@@ -46,6 +88,14 @@ _RE_BEACON = re.compile(r'(\d+) MHz.*Beacon \((.+)\)')
 _ANTENNA_CONFIG = ['all', 'main', 'aux']
 
 
+class ServiceSpec(type_utils.Obj):
+  def __init__(self, ssid, freq, password):
+    super(ServiceSpec, self).__init__(ssid=ssid, freq=freq, password=password)
+
+  def __hash__(self):
+    return hash((self.ssid, self.freq, self.password))
+
+
 def IwScan(dut, iw_scan_group_checker, devname,
            sleep_retry_time_secs=2, max_retries=10):
   """Scans on device.
@@ -55,7 +105,7 @@ def IwScan(dut, iw_scan_group_checker, devname,
     sleep_retry_time_secs: The sleep time before a retry.
     max_retries: The maximum retry time to scan.
   Returns:
-    A list of (ssid, frequency) tuple.
+    A list of `ServiceSpec` instance.
 
   Raises:
     IwException if fail to scan for max_retries tries,
@@ -78,9 +128,9 @@ def IwScan(dut, iw_scan_group_checker, devname,
       for line in stdout.splitlines():
         m = _RE_IWSCAN.search(line)
         if m:
-          scan_result.append((m.group(2), m.group(1)))
+          scan_result.append(ServiceSpec(m.group(2), int(m.group(1)), None))
       if scan_result:
-        logging.info('IwScan success.')
+        session.console.info('IwScan success.')
         return scan_result
     elif retcode == 234:  # Invalid argument (-22)
       raise Exception('Failed to iw scan, ret code: %d. stderr: %s'
@@ -179,8 +229,9 @@ class RadiotapPacket(object):
       for bit, field in enumerate(RadiotapPacket.FIELDS):
         if bitmask & (1 << bit):
           if field is None:
-            logging.warning('Unknown field at bit %d is given in radiotap '
-                            'packet, the result would probably be wrong...')
+            session.console.warning(
+                'Unknown field at bit %d is given in radiotap packet, the '
+                'result would probably be wrong...')
             continue
           if field.align and (data_bytes % field.align):
             data_bytes += field.align - (data_bytes % field.align)
@@ -283,15 +334,14 @@ class WirelessRadiotapTest(test_case.TestCase):
   """
   ARGS = [
       Arg('device_name', str,
-          'Wireless device name to test. '
-          'Set this correctly if check_antenna is True.', default='wlan0'),
+          'Wireless device name to test. ', default='wlan0'),
       Arg('services', list,
-          'A list of (service_ssid, freq, password) tuples like '
-          '``[(SSID1, FREQ1, PASS1), (SSID2, FREQ2, PASS2), '
-          '(SSID3, FREQ3, PASS3)]``. The test will only check the service '
-          'whose antenna_all signal strength is the largest. For example, if '
-          '(SSID1, FREQ1, PASS1) has the largest signal among the APs, '
-          'then only its results will be checked against the spec values.'),
+          'A list of ``(<service_ssid>:str, <freq>:str|None, '
+          '<password>:str|None)`` tuples like ``[(SSID1, FREQ1, PASS1), '
+          '(SSID2, FREQ2, PASS2), ...]``.  If ``<freq>`` is ``None`` the test '
+          'will detect the frequency by ``iw <device_name> scan`` command '
+          'automatically.  ``<password>=None`` implies the service can connect '
+          'without a password.'),
       Arg('connect_timeout', int,
           'Timeout for connecting to the service.',
           default=10),
@@ -309,11 +359,12 @@ class WirelessRadiotapTest(test_case.TestCase):
     self.ui.ToggleTemplateClass('font-large', True)
 
     self._dut = device_utils.CreateDUTInterface()
-    self._phy_name = self.DetectPhyName()
+    self._phy_name = None
     self._ap = None
     self._connection = None
-
-    logging.info('phy name is %s.', self._phy_name)
+    self._services = [ServiceSpec(ssid, freq, password)
+                      for ssid, freq, password in self.args.services]
+    self.assertTrue(self._services, 'At least one service should be specified.')
 
     # Group checker for Testlog.
     self._iw_scan_group_checker = testlog.GroupParam(
@@ -327,9 +378,9 @@ class WirelessRadiotapTest(test_case.TestCase):
     testlog.UpdateParam('freq', param_type=testlog.PARAM_TYPE.argument)
 
   def tearDown(self):
-    self.DisconnectService()
+    self._DisconnectService()
 
-  def ConnectService(self, service_name, password):
+  def _ConnectService(self, service_name, password):
     """Associates a specified wifi AP.
 
     Password can be '' or None.
@@ -352,14 +403,14 @@ class WirelessRadiotapTest(test_case.TestCase):
         'Successfully connected to service %s', service_name)
     return True
 
-  def DisconnectService(self):
+  def _DisconnectService(self):
     """Disconnect wifi AP."""
     if self._connection:
       self._connection.Disconnect()
       session.console.info('Disconnect to service %s', self._ap.ssid)
       self._connection = None
 
-  def DetectPhyName(self):
+  def _DetectPhyName(self):
     """Detects the phy name for device_name device.
 
     Returns:
@@ -367,11 +418,10 @@ class WirelessRadiotapTest(test_case.TestCase):
     """
     output = self._dut.CheckOutput(
         ['iw', 'dev', self.args.device_name, 'info'], log=True)
-    logging.info('info output: %s', output)
     m = _RE_WIPHY.search(output)
     return ('phy' + m.group(1)) if m else None
 
-  def ChooseMaxStrengthService(self, services, service_strengths):
+  def _ChooseMaxStrengthService(self, service_strengths):
     """Chooses the service that has the largest signal strength among services.
 
     Args:
@@ -382,14 +432,14 @@ class WirelessRadiotapTest(test_case.TestCase):
       The service that has the largest signal strength among services.
     """
     max_strength_service, max_strength = None, -sys.float_info.max
-    for service in services:
+    for service in self._services:
       strength = service_strengths[service]['all']
       if strength:
         session.console.info('Service %s signal strength %f.', service,
                              strength)
-        event_log.Log('service_signal', service=service, strength=strength)
+        event_log.Log('service_signal', service=service.ssid, strength=strength)
         with self._service_group_checker:
-          testlog.LogParam('service', service)
+          testlog.LogParam('service', service.ssid)
           testlog.LogParam('service_strength', strength)
         if strength > max_strength:
           max_strength_service, max_strength = service, strength
@@ -398,14 +448,15 @@ class WirelessRadiotapTest(test_case.TestCase):
                              service)
 
     if max_strength_service:
-      logging.info('Service %s has the highest signal strength %f among %s.',
-                   max_strength_service, max_strength, services)
+      session.console.info('Service %s has the highest signal strength %f '
+                           'among %s.', max_strength_service, max_strength,
+                           self._services)
       return max_strength_service
     else:
-      logging.warning('Services %s are not valid.', services)
+      session.console.warning('Services %s are not valid.', self._services)
       return None
 
-  def ScanSignal(self, service, times=3):
+  def _ScanSignal(self, service, times=3):
     """Scans antenna signal strengths for a specified service.
 
     Device should connect to the service before starting to capture signal.
@@ -420,33 +471,33 @@ class WirelessRadiotapTest(test_case.TestCase):
       A list of signal result.
     """
     signal_list = []
-    ssid, freq, password = service
-    self.ui.SetState(_('Switching to AP {ap}: ', ap=ssid))
-    if not self.ConnectService(ssid, password):
+    self.ui.SetState(_('Switching to AP {ap}...', ap=service.ssid))
+    if not self._ConnectService(service.ssid, service.password):
       return []
 
     self.ui.SetState(
         _('Scanning on device {device} frequency {freq}...',
           device=self.args.device_name,
-          freq=freq))
+          freq=service.freq))
     with Capture(self._dut, self.args.device_name, self._phy_name) as capture:
       capture_times = 0
       while capture_times < times:
         signal_result = capture.GetSignal()
-        if signal_result['ssid'] == ssid and signal_result['freq'] == freq:
-          logging.info('%s', signal_result)
+        if (signal_result['ssid'] == service.ssid and
+            signal_result['freq'] == service.freq):
+          session.console.info('%s', signal_result)
           signal_list.append(signal_result['signal'])
           capture_times += 1
         else:
-          logging.debug('Ignore the signal %r', signal_result)
+          session.console.info('Ignore the signal %r', signal_result)
     self.ui.SetState(
         _('Done scanning on device {device} frequency {freq}...',
           device=self.args.device_name,
-          freq=freq))
-    self.DisconnectService()
+          freq=service.freq))
+    self._DisconnectService()
     return signal_list
 
-  def AverageSignals(self, antenna_info):
+  def _AverageSignals(self, antenna_info):
     """Averages signal strengths for each antenna of a service.
 
     The dividend is the sum of signal strengths during all scans.
@@ -475,7 +526,7 @@ class WirelessRadiotapTest(test_case.TestCase):
           if antenna_info else None)
     return average_results
 
-  def CheckSpec(self, service, spec_antenna_strength, average_signal):
+  def _CheckSpec(self, service, spec_antenna_strength, average_signal):
     """Checks if the scan result of antenna config can meet test spec.
 
     Args:
@@ -495,12 +546,12 @@ class WirelessRadiotapTest(test_case.TestCase):
             (antenna, service))
 
       event_log.Log(
-          'antenna_%s' % antenna, freq=service[1],
+          'antenna_%s' % antenna, freq=service.freq,
           rssi=scanned_strength,
           meet=(scanned_strength and scanned_strength >= spec_strength))
       with self._antenna_group_checker:
         testlog.LogParam('antenna', antenna)
-        testlog.LogParam('freq', service[1])
+        testlog.LogParam('freq', service.freq)
         result = testlog.CheckNumericParam('strength', scanned_strength,
                                            min=spec_strength)
       if not result:
@@ -512,44 +563,49 @@ class WirelessRadiotapTest(test_case.TestCase):
             'Antenna %s, service: %s: The scanned strength %f > spec strength'
             ' %f', antenna, service, scanned_strength, spec_strength)
 
-  def PreCheck(self, services):
-    """Checks each service only has one frequency.
-
-    Args:
-      services: A list of (service_ssid, freq) tuples to scan.
-    """
-    wireless_services = {}
+  def _ScanAllServices(self):
     self.ui.SetState(_('Checking frequencies...'))
 
     scan_result = IwScan(
         self._dut, self._iw_scan_group_checker, self.args.device_name)
-    set_all_ssids = set(service[0] for service in services)
+    ssid_freqs = {service.ssid : set() for service in self._services}
 
-    for ssid, freq in scan_result:
-      if ssid in set_all_ssids:
-        if ssid not in wireless_services:
-          wireless_services[ssid] = freq
-        elif freq != wireless_services[ssid]:
-          self.FailTask(
-              'There are more than one frequencies for ssid %s.' % ssid)
+    for scanned_service in scan_result:
+      if scanned_service.ssid in ssid_freqs:
+        ssid_freqs[scanned_service.ssid].add(scanned_service.freq)
+
+    for service in self._services:
+      if not ssid_freqs[service.ssid]:
+        self.FailTask('The service %s is not found.' % service.ssid)
+      elif service.freq is None:
+        if len(ssid_freqs[service.ssid]) > 1:
+          self.FailTask('There are more than one frequencies (%r) for ssid %s. '
+                        'Please specify the frequency explicity.' %
+                        (ssid_freqs[service.ssid], service.ssid))
+        service.freq = ssid_freqs[service.ssid].pop()
+      elif service.freq not in ssid_freqs[service.ssid]:
+        self.FailTask('Frequency %s is not supported by the service %s.  '
+                      'Available frequencies are %r.' %
+                      (service.freq, service.ssid, ssid_freqs[service.ssid]))
 
   def runTest(self):
+    self._phy_name = self._DetectPhyName()
+    session.console.info('phy name is %s.', self._phy_name)
+
     if self.args.press_space_to_start:
       self.ui.SetState(_('Press space to start scanning.'))
       self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
-    self.PreCheck(self.args.services)
+    self._ScanAllServices()
 
     average_signal = {}
-    services = type_utils.MakeTuple(self.args.services)
-    for service in services:
-      signals = self.ScanSignal(service, self.args.scan_count)
-      average_signal[service] = self.AverageSignals(signals)
+    for service in self._services:
+      signals = self._ScanSignal(service, self.args.scan_count)
+      average_signal[service] = self._AverageSignals(signals)
 
     # Gets the service with the largest strength to test for each spec.
-    test_service = self.ChooseMaxStrengthService(services,
-                                                 average_signal)
+    test_service = self._ChooseMaxStrengthService(average_signal)
     if test_service is None:
       self.FailTask('Services %s are not valid.' % self.args.services)
     else:
-      self.CheckSpec(test_service, self.args.strength, average_signal)
+      self._CheckSpec(test_service, self.args.strength, average_signal)
