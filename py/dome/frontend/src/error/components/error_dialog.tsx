@@ -2,8 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Dialog from 'material-ui/Dialog';
-import RaisedButton from 'material-ui/RaisedButton';
+import Button from '@material-ui/core/Button';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
 import React from 'react';
 import {connect} from 'react-redux';
 
@@ -20,27 +22,21 @@ interface ErrorDialogProps {
 
 const ErrorDialog: React.SFC<ErrorDialogProps> =
   ({message, show, hideErrorDialog}) => (
-    <Dialog
-      open={show}
-      modal={false}
-      onRequestClose={hideErrorDialog}
-      actions={[
-        <RaisedButton key="btn" label="close" onClick={hideErrorDialog} />,
-      ]}
-    >
-      <div>
+    <Dialog open={show} onClose={hideErrorDialog}>
+      <DialogContent>
         An error has occured, please copy the following error message, and
         contact the ChromeOS factory team.
-      </div>
-      {/* wrap the textarea with a div, otherwise, setting the width of
-              textarea as 100% will make it overflow */}
-      <div>
         <textarea
           disabled
           style={{width: '100%', height: '10em'}}
           value={message}
         />
-      </div>
+      </DialogContent>
+      <DialogActions>
+        <Button color="primary" onClick={hideErrorDialog}>
+          close
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 
