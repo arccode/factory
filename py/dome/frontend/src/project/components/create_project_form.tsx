@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import RaisedButton from 'material-ui/RaisedButton';
+import Button from '@material-ui/core/Button';
 import React from 'react';
-import {Field, InjectedFormProps, reduxForm} from 'redux-form';
+import {InjectedFormProps, reduxForm} from 'redux-form';
 
-import {renderTextField, validateRequired} from '@common/form';
+import ReduxFormTextField from '@common/components/redux_form_text_field';
+import {validateRequired} from '@common/form';
 
 import {CREATE_PROJECT_FORM} from '../constants';
 
@@ -31,21 +32,22 @@ class CreateProjectForm extends React.Component<
     const {handleSubmit} = this.props;
     return (
       <form onSubmit={handleSubmit}>
-        <Field
+        <ReduxFormTextField
           name="name"
           label="New project name"
           validate={[
             validateRequired,
             this.validateUnique,
           ]}
-          component={renderTextField}
         />
-        <RaisedButton
-          label="CREATE A NEW PROJECT"
-          primary
+        <Button
+          color="primary"
+          variant="raised"
           fullWidth
           type="submit"
-        />
+        >
+          Create a new project
+        </Button>
       </form>);
   }
 }

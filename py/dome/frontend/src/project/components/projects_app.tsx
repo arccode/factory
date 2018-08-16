@@ -2,11 +2,24 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Divider from 'material-ui/Divider';
-import IconButton from 'material-ui/IconButton';
-import {List, ListItem} from 'material-ui/List';
-import Paper from 'material-ui/Paper';
-import DeleteIcon from 'material-ui/svg-icons/action/delete';
+import Card from '@material-ui/core/Card';
+import CardContent from '@material-ui/core/CardContent';
+import CardHeader from '@material-ui/core/CardHeader';
+import Divider from '@material-ui/core/Divider';
+import IconButton from '@material-ui/core/IconButton';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
+import ListItemText from '@material-ui/core/ListItemText';
+import {
+  createStyles,
+  Theme,
+  WithStyles,
+  withStyles,
+} from '@material-ui/core/styles';
+import Tooltip from '@material-ui/core/Tooltip';
+import Typography from '@material-ui/core/Typography';
+import DeleteIcon from '@material-ui/icons/Delete';
 import React from 'react';
 import {connect} from 'react-redux';
 import {reset} from 'redux-form';
@@ -25,7 +38,19 @@ import {ProjectMap} from '../types';
 
 import CreateProjectForm, {CreateProjectFormData} from './create_project_form';
 
-interface ProjectAppProps {
+const styles = (theme: Theme) => createStyles({
+  center: {
+    textAlign: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    textAlign: 'center',
+    fontSize: theme.typography.display1.fontSize,
+    fontWeight: theme.typography.fontWeightMedium,
+  },
+});
+
+interface ProjectAppProps extends WithStyles<typeof styles> {
   projects: ProjectMap;
   createProject: (name: string) => any;
   deleteProject: (name: string) => any;
@@ -45,58 +70,60 @@ class ProjectsApp extends React.Component<ProjectAppProps> {
   }
 
   render() {
-    const style = {margin: 24};
-    const {projects, switchProject, deleteProject} = this.props;
+    const {classes, projects, switchProject, deleteProject} = this.props;
     const projectNames = Object.keys(projects).sort();
     return (
-      <Paper
-        style={{
-          maxWidth: 400, height: '100%',
-          margin: 'auto', padding: 20,
-        }}
-      >
+      <Card>
         {/* TODO(littlecvr): make a logo! */}
-        <h1 style={{textAlign: 'center'}}>Project list</h1>
-
-        <div style={style}>
+        <CardHeader
+          title="Project list"
+          titleTypographyProps={{
+            className: classes.title,
+          }}
+        />
+        <CardContent>
           <Divider />
-          {projectNames.length === 0 ?
-            (<div
-              style={{textAlign: 'center', marginTop: 16, marginBottom: 16}}
-            >
-              no projects, create or add an existing one
-            </div>) :
-            (<List style={{textAlign: 'left'}}>
-              {projectNames.map((name) => {
-                return (
-                  <ListItem
-                    key={name}
-                    primaryText={name}
-                    onClick={() => switchProject(name)}
-                    rightIconButton={
+          <List>
+            {projectNames.length === 0 ? (
+              <ListItem className={classes.center}>
+                <Typography variant="subheading">
+                  no projects, create or add an existing one
+                </Typography>
+              </ListItem>
+            ) : (
+              projectNames.map((name) => (
+                <ListItem
+                  key={name}
+                  button
+                  onClick={() => switchProject(name)}
+                >
+                  <ListItemText primary={name} />
+                  <ListItemSecondaryAction>
+                    <Tooltip title="delete this project">
                       <IconButton
-                        tooltip="delete this project"
+                        color="inherit"
                         onClick={() => deleteProject(name)}
                       >
                         <DeleteIcon />
                       </IconButton>
-                    }
-                  />
-                );
-              })}
-            </List>)}
+                    </Tooltip>
+                  </ListItemSecondaryAction>
+                </ListItem>
+              ))
+            )}
+          </List>
           <Divider />
-        </div>
+        </CardContent>
 
-        <div style={{textAlign: 'center', ...style}}>OR</div>
+        <div className={classes.center}>OR</div>
 
-        <div style={style}>
+        <CardContent>
           <CreateProjectForm
             projectNames={projectNames}
             onSubmit={this.handleSubmit}
           />
-        </div>
-      </Paper>
+        </CardContent>
+      </Card>
     );
   }
 }
@@ -113,4 +140,5 @@ const mapDispatchToProps = {
   resetForm: () => reset(CREATE_PROJECT_FORM),
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(ProjectsApp);
+export default connect(mapStateToProps, mapDispatchToProps)(
+  withStyles(styles)(ProjectsApp));
