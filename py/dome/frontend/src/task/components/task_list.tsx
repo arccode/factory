@@ -59,6 +59,10 @@ class TaskList extends React.Component<TaskListProps, TaskListState> {
   render() {
     const {tasks, cancelWaitingTaskAfter, dismissTask} = this.props;
 
+    if (tasks.length === 0) {
+      return null;
+    }
+
     const counts = tasks.reduce((groups, {state}) => {
       groups[state] = (groups[state] || 0) + 1;
       return groups;
@@ -73,90 +77,87 @@ class TaskList extends React.Component<TaskListProps, TaskListState> {
 
     return (
       <Card
-        style={{position: 'fixed', right: 24, bottom: 24}}
         containerStyle={{display: 'table'}}
       >
         {/* title bar */}
-        {tasks.length > 0 &&
-          <div
-            style={{display: 'table-row'}}
+        <div
+          style={{display: 'table-row'}}
+        >
+          <CardHeader
+            title="Tasks"
+            subtitle={taskSummary}
+            style={{
+              display: 'table-cell',
+              verticalAlign: 'middle',
+              padding: 12,
+            }}
+          />
+          <CardActions
+            style={{
+              display: 'table-cell',
+              textAlign: 'right',
+              verticalAlign: 'middle',
+              padding: 0,
+            }}
           >
-            <CardHeader
-              title="Tasks"
-              subtitle={taskSummary}
-              style={{
-                display: 'table-cell',
-                verticalAlign: 'middle',
-                padding: 12,
-              }}
-            />
-            <CardActions
-              style={{
-                display: 'table-cell',
-                textAlign: 'right',
-                verticalAlign: 'middle',
-                padding: 0,
-              }}
-            >
-              {!this.state.collapsed &&
-                <>
-                  <IconButton
-                    tooltip="cancel all waiting tasks"
-                    onClick={this.cancelAllWaitingTasks}
-                    style={{marginRight: 0}}
-                    iconStyle={{fill: grey700}}
-                    disabled={!hasCancellableTask}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                  <IconButton
-                    tooltip="dismiss all finished tasks"
-                    onClick={this.dismissAllSucceededTasks}
-                    style={{marginRight: 0}}
-                    iconStyle={{fill: 'green'}}
-                  >
-                    <DismissIcon />
-                  </IconButton>
-                  <IconButton
-                    tooltip="collapse"
-                    style={{marginRight: 0}}
-                    onClick={() => this.setCollapsed(true)}
-                  >
-                    <CollapseIcon />
-                  </IconButton>
-                </>
-              }
-              {this.state.collapsed &&
-                <>
-                  {/* two padding blank icons */}
-                  <div
-                    style={{
-                      display: 'inline-block',
-                      width: 48,
-                      height: 1,
-                      marginRight: 0,
-                    }}
-                  />
-                  <div
-                    style={{
-                      display: 'inline-block',
-                      width: 48,
-                      height: 1,
-                      marginRight: 0,
-                    }}
-                  />
-                  <IconButton
-                    tooltip="expand"
-                    style={{marginRight: 0}}
-                    onClick={() => this.setCollapsed(false)}
-                  >
-                    <ExpandIcon />
-                  </IconButton>
-                </>
-              }
-            </CardActions>
-          </div>
-        }
+            {!this.state.collapsed &&
+              <>
+                <IconButton
+                  tooltip="cancel all waiting tasks"
+                  onClick={this.cancelAllWaitingTasks}
+                  style={{marginRight: 0}}
+                  iconStyle={{fill: grey700}}
+                  disabled={!hasCancellableTask}
+                >
+                  <DeleteIcon />
+                </IconButton>
+                <IconButton
+                  tooltip="dismiss all finished tasks"
+                  onClick={this.dismissAllSucceededTasks}
+                  style={{marginRight: 0}}
+                  iconStyle={{fill: 'green'}}
+                >
+                  <DismissIcon />
+                </IconButton>
+                <IconButton
+                  tooltip="collapse"
+                  style={{marginRight: 0}}
+                  onClick={() => this.setCollapsed(true)}
+                >
+                  <CollapseIcon />
+                </IconButton>
+              </>
+            }
+            {this.state.collapsed &&
+              <>
+                {/* two padding blank icons */}
+                <div
+                  style={{
+                    display: 'inline-block',
+                    width: 48,
+                    height: 1,
+                    marginRight: 0,
+                  }}
+                />
+                <div
+                  style={{
+                    display: 'inline-block',
+                    width: 48,
+                    height: 1,
+                    marginRight: 0,
+                  }}
+                />
+                <IconButton
+                  tooltip="expand"
+                  style={{marginRight: 0}}
+                  onClick={() => this.setCollapsed(false)}
+                >
+                  <ExpandIcon />
+                </IconButton>
+              </>
+            }
+          </CardActions>
+        </div>
 
         {/* task list */}
         {!this.state.collapsed &&

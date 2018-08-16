@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import Portal from '@material-ui/core/Portal';
 import FloatingActionButton from 'material-ui/FloatingActionButton';
 import ContentAdd from 'material-ui/svg-icons/content/add';
 import React from 'react';
@@ -16,36 +17,30 @@ import UpdateResourceForm from './update_resource_form';
 import UploadBundleForm from './upload_bundle_form';
 
 interface BundlesAppProps {
-  // TODO(littlecvr): there should be a better way to figure out the offset
-  //                  automatically such as using float
-  offset: number;
+  overlay: Element | null;
   openUploadNewBundleForm: () => any;
 }
 
-class BundlesApp extends React.Component<BundlesAppProps> {
-  render() {
-    return (
-      <>
-        <BundleList />
+const BundlesApp: React.SFC<BundlesAppProps> =
+  ({overlay, openUploadNewBundleForm}) => (
+    <>
+      <BundleList />
 
-        <UploadBundleForm />
-        <UpdateResourceForm />
+      <UploadBundleForm />
+      <UpdateResourceForm />
 
-        {/* upload button */}
-        <FloatingActionButton
-          style={{
-            position: 'fixed',
-            bottom: this.props.offset,
-            right: 24,
-          }}
-          onClick={this.props.openUploadNewBundleForm}
-        >
-          <ContentAdd />
-        </FloatingActionButton>
-      </>
-    );
-  }
-}
+      {/* upload button */}
+      {overlay &&
+        <Portal container={overlay}>
+          <FloatingActionButton
+            onClick={openUploadNewBundleForm}
+          >
+            <ContentAdd />
+          </FloatingActionButton>
+        </Portal>
+      }
+    </>
+  );
 
 const mapDispatchToProps = {
   openUploadNewBundleForm: () => (

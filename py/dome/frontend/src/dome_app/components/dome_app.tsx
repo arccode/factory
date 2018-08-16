@@ -12,7 +12,6 @@ import {
 import classNames from 'classnames';
 import React from 'react';
 import {hot} from 'react-hot-loader';
-import Measure from 'react-measure';
 import {connect} from 'react-redux';
 
 import auth from '@app/auth';
@@ -33,8 +32,6 @@ import DomeAppBar from './dome_app_bar';
 import DomeAppMenu from './dome_app_menu';
 
 const APP_MENU_WIDTH = 250;
-const SPACE_BEFORE_TASK_LIST = 24;
-const SPACE_AFTER_TASK_LIST = 24;
 
 const style = (theme: Theme) => createStyles({
   root: {
@@ -56,6 +53,21 @@ const style = (theme: Theme) => createStyles({
       duration: theme.transitions.duration.enteringScreen,
     }),
   },
+  overlay: {
+    zIndex: theme.zIndex.modal - 1,
+    position: 'fixed',
+    bottom: 0,
+    right: 0,
+    padding: theme.spacing.unit * 4,
+    display: 'grid',
+    placeItems: 'end end',
+    // jss-default-unit doesn't recognize this attribute...
+    gridRowGap: `${theme.spacing.unit * 2}px`,
+    pointerEvents: 'none',
+    '& *': {
+      pointerEvents: 'auto',
+    },
+  },
 });
 
 interface DomeAppProps extends WithStyles<typeof style> {
@@ -76,6 +88,13 @@ class DomeApp extends React.Component<DomeAppProps, DomeAppState> {
     taskListHeight: 0,
   };
 
+  overlayRef: React.RefObject<HTMLDivElement>;
+
+  constructor(props: DomeAppProps) {
+    super(props);
+    this.overlayRef = React.createRef();
+  }
+
   toggleAppMenu = () => {
     this.setState({appMenuOpened: !this.state.appMenuOpened});
   }
@@ -94,10 +113,6 @@ To visit Dome, please use Chrome/Chromium to avoid unnecessary issues.`);
     const {isLoggedIn, appName, classes} = this.props;
     const {appMenuOpened} = this.state;
 
-    // must not let the task list cover the main content
-    const marginBottom = SPACE_BEFORE_TASK_LIST +
-        this.state.taskListHeight + SPACE_AFTER_TASK_LIST;
-
     // TODO(b/31579770): should define a "app" system (like a dynamic module
     //                   system), which automatically import and display
     //                   corresponding app intead of writing a long if-elif-else
@@ -112,9 +127,7 @@ To visit Dome, please use Chrome/Chromium to avoid unnecessary issues.`);
     } else if (appName === 'DASHBOARD_APP') {
       app = <DashboardApp />;
     } else if (appName === 'BUNDLES_APP') {
-      // TODO(littlecvr): standardize the floating button API so we don't need
-      //                  to pass offset like this
-      app = <BundlesApp offset={marginBottom} />;
+      app = <BundlesApp overlay={this.overlayRef.current} />;
     } else {
       console.error(`Unknown app ${appName}`);
     }
@@ -127,6 +140,10 @@ To visit Dome, please use Chrome/Chromium to avoid unnecessary issues.`);
         <div
           className={classNames(classes.app, appMenuOpened && classes.appShift)}
         >
+          <div className={classes.overlay}>
+            <div ref={this.overlayRef} />
+            <TaskList />
+          </div>
           <Grid container justify="center">
             <Grid item xs={12} sm={9} md={6}>
               {app}
@@ -135,9 +152,6 @@ To visit Dome, please use Chrome/Chromium to avoid unnecessary issues.`);
         </div>
 
         <ErrorDialog />
-        <Measure onMeasure={(d) => this.setState({taskListHeight: d.height})}>
-          <TaskList />
-        </Measure>
       </div>
     );
   }
