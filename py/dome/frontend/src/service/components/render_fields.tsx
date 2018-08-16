@@ -2,12 +2,18 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Divider from 'material-ui/Divider';
-import FloatingActionButton from 'material-ui/FloatingActionButton';
-import IconButton from 'material-ui/IconButton';
-import ContentAdd from 'material-ui/svg-icons/content/add';
-import ContentClear from 'material-ui/svg-icons/content/clear';
-import Toggle from 'material-ui/Toggle';
+import Divider from '@material-ui/core/Divider';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import IconButton from '@material-ui/core/IconButton';
+import {
+  createStyles,
+  WithStyles,
+  withStyles,
+} from '@material-ui/core/styles';
+import Switch from '@material-ui/core/Switch';
+import Tooltip from '@material-ui/core/Tooltip';
+import AddIcon from '@material-ui/icons/Add';
+import ClearIcon from '@material-ui/icons/Clear';
 import React from 'react';
 import {
   Field,
@@ -17,101 +23,113 @@ import {
   WrappedFieldProps,
 } from 'redux-form';
 
-import {parseNumber, renderTextField} from '@common/form';
+import ReduxFormTextField from '@common/components/redux_form_text_field';
+import {parseNumber} from '@common/form';
 
 import {Schema} from '../types';
 
-interface RenderToggleProps {
+interface RenderSwitchProps {
   label: string;
 }
 
-const renderToggle =
-  ({input, label}: RenderToggleProps & WrappedFieldProps) => (
-    <Toggle
+const renderSwitch =
+  ({input, label}: RenderSwitchProps & WrappedFieldProps) => (
+    <FormControlLabel
+      control={
+        <Switch
+          color="primary"
+          checked={input.value}
+          onChange={input.onChange}
+        />
+      }
       label={label}
-      labelPosition="right"
-      toggled={input.value}
-      onToggle={input.onChange}
     />
   );
 
 interface RenderArrayProps {
+  objectKey: string;
   schema: Schema;
 }
 
-type WrappedRenderArrayProps = RenderArrayProps & WrappedFieldArrayProps<any>;
+const arrayStyles = createStyles({
+  itemRow: {
+    display: 'flex',
+  },
+  itemContent: {
+    flex: 1,
+  },
+});
 
-const renderArray: React.SFC<WrappedRenderArrayProps> = ({fields, schema}) => (
-  <div>
-    {fields.map((k, i) =>
-      <FormSection name={k} key={k}>
-        <div style={{float: 'right', marginTop: '15px'}}>
-          <IconButton
-            tooltip="Remove"
-            onClick={() => fields.remove(i)}
-          >
-            <ContentClear />
-          </IconButton>
-        </div>
-        <div style={{marginRight: '50px'}}>
-          <RenderFields
-            schema={schema.items as Schema}
-          />
-        </div>
-      </FormSection>,
-    )}
+type WrappedRenderArrayProps =
+  RenderArrayProps
+    & WrappedFieldArrayProps<any>
+    & WithStyles<typeof arrayStyles>;
+
+const renderArray = withStyles(arrayStyles)(
+  ({objectKey, fields, schema, classes}: WrappedRenderArrayProps) => (
     <div>
-      <FloatingActionButton
-        mini
-        style={{float: 'right', margin: '1em'}}
-        onClick={() => fields.push({})}
-      >
-        <ContentAdd />
-      </FloatingActionButton>
+      <div className={classes.itemRow}>
+        <p className={classes.itemContent}>{objectKey}</p>
+        <Tooltip title="Add">
+          <IconButton onClick={() => fields.push({})}>
+            <AddIcon />
+          </IconButton>
+        </Tooltip>
+      </div>
+      <Divider />
+      {fields.map((k, i) => (
+        <FormSection name={k} key={k}>
+          {i > 0 && <Divider />}
+          <div className={classes.itemRow}>
+            <RenderFields schema={schema.items as Schema} />
+            <Tooltip title="Remove">
+              <IconButton onClick={() => fields.remove(i)}>
+                <ClearIcon />
+              </IconButton>
+            </Tooltip>
+          </div>
+        </FormSection>
+      ))}
     </div>
-  </div>
+  ),
 );
+
+const styles = createStyles({
+  field: {
+    margin: '0 2em',
+  },
+});
 
 interface RenderFieldsProps {
   schema: Schema;
 }
 
-class RenderFields extends React.Component<RenderFieldsProps> {
-  render(): React.ReactNode {
-    const {schema} = this.props;
-
-    const marginStyle = {
-      marginLeft: '2em',
-      marginRight: '2em',
-      marginTop: '0.5em',
-      marginBottom: '0.5em',
-    };
-
+const RenderFields = withStyles(styles)(
+  ({schema, classes}: RenderFieldsProps & WithStyles<typeof styles>) => {
     const properties = schema.properties as {[k: string]: Schema};
 
     const renderField = (k: string, value: Schema): React.ReactNode => {
       switch (value.type) {
         case 'string':
           return (
-            <Field
+            <ReduxFormTextField
               key={k}
               name={k}
-              component={renderTextField}
               label={k}
-              hintText={value.description}
-              type="text"
+              placeholder={value.description}
+              margin="dense"
             />
           );
         case 'integer':
           return (
-            <Field
+            <ReduxFormTextField
               key={k}
               name={k}
-              component={renderTextField}
               label={k}
-              hintText={value.description}
+              placeholder={value.description}
               parse={parseNumber}
               type="number"
+              margin="dense"
             />
           );
         case 'boolean':
@@ -119,7 +137,7 @@ class RenderFields extends React.Component<RenderFieldsProps> {
             <Field
               key={k}
               name={k}
-              component={renderToggle}
+              component={renderSwitch}
               label={k}
             />
           );
@@ -128,9 +146,7 @@ class RenderFields extends React.Component<RenderFieldsProps> {
             <FormSection name={k} key={k}>
               <p>{k}</p>
               <Divider />
-              <RenderFields
-                schema={value}
-              />
+              <RenderFields schema={value} />
             </FormSection>
           );
         case 'array': {
@@ -138,10 +154,9 @@ class RenderFields extends React.Component<RenderFieldsProps> {
           // https://github.com/DefinitelyTyped/DefinitelyTyped/issues/23592.
           return (
             <div key={k}>
-              <p>{k}</p>
-              <Divider />
               <FieldArray
                 name={k}
+                objectKey={k}
                 schema={value}
                 component={renderArray as any}
               />
@@ -154,11 +169,10 @@ class RenderFields extends React.Component<RenderFieldsProps> {
     };
 
     return (
-      <div style={marginStyle}>
+      <div className={classes.field}>
         {Object.entries(properties).map(([k, v]) => renderField(k, v))}
       </div>
     );
-  }
-}
+  });
 
 export default RenderFields;

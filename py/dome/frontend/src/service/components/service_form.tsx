@@ -2,7 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import RaisedButton from 'material-ui/RaisedButton';
+import Button from '@material-ui/core/Button';
+import CardActions from '@material-ui/core/CardActions';
+import CardContent from '@material-ui/core/CardContent';
 import React from 'react';
 import {InjectedFormProps, reduxForm} from 'redux-form';
 
@@ -28,20 +30,17 @@ class ServiceForm extends React.Component<
 
     return (
       <form onSubmit={handleSubmit}>
-        <RenderFields
-          schema={schema}
-        />
-        <RaisedButton
-          label="Discard Changes"
-          onClick={reset}
-          style={{margin: '1em'}}
-        />
-        <RaisedButton
-          type="submit"
-          label="Deploy"
-          primary
-          style={{margin: '1em'}}
-        />
+        <CardContent>
+          <RenderFields schema={schema} />
+        </CardContent>
+        <CardActions>
+          <Button onClick={reset}>
+            Discard Changes
+          </Button>
+          <Button type="submit" color="primary">
+            Deploy
+          </Button>
+        </CardActions>
       </form>
     );
   }

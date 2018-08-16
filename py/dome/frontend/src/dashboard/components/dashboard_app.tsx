@@ -97,7 +97,6 @@ class DashboardApp extends React.Component<DashboardAppProps> {
                     port: {project.umpirePort}
                   </ListItem>
                   <ListSubheader>Services</ListSubheader>
-                  <Divider />
                   <ServiceList />
                 </>}
             </List>

@@ -2,7 +2,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {ListItem} from 'material-ui/List';
+import Card from '@material-ui/core/Card';
+import Collapse from '@material-ui/core/Collapse';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemText from '@material-ui/core/ListItemText';
+import ExpandLess from '@material-ui/icons/ExpandLess';
+import ExpandMore from '@material-ui/icons/ExpandMore';
+import produce from 'immer';
 import React from 'react';
 import {connect} from 'react-redux';
 
@@ -22,10 +28,26 @@ interface ServiceListProps {
   updateService: (name: string, service: Service) => any;
 }
 
-class ServiceList extends React.Component<ServiceListProps> {
+interface ServiceListStates {
+  expanded: {[name: string]: boolean};
+}
+
+class ServiceList extends React.Component<ServiceListProps, ServiceListStates> {
+  state: ServiceListStates = {
+    expanded: {},
+  };
+
   componentDidMount() {
     this.props.fetchServices();
     this.props.fetchServiceSchemata();
+  }
+
+  toggleExpand = (name: string) => {
+    this.setState({
+      expanded: produce(this.state.expanded, (expanded) => {
+        expanded[name] = !expanded[name];
+      }),
+    });
   }
 
   render() {
@@ -36,32 +58,33 @@ class ServiceList extends React.Component<ServiceListProps> {
     } = this.props;
 
     return (
-      <div>
+      <>
         {Object.keys(schemata).sort().map((k, i) => {
           const schema = schemata[k];
           const service = {
             active: services.hasOwnProperty(k),
             ...(services[k] || {}),
           };
+          const expanded = this.state.expanded[k] || false;
           return (
-            <ListItem
-              key={k}
-              primaryText={k}
-              primaryTogglesNestedList
-              nestedItems={[
+            <Card key={k} raised={false} square>
+              <ListItem button onClick={() => this.toggleExpand(k)}>
+                <ListItemText primary={k} />
+                {expanded ? <ExpandLess /> : <ExpandMore />}
+              </ListItem>
+              <Collapse in={expanded} timeout="auto">
                 <ServiceForm
-                  key="form"
                   onSubmit={(values) => updateService(k, values)}
                   form={k}
                   schema={schema}
                   initialValues={service}
                   enableReinitialize
-                />,
-              ]}
-            />
+                />
+              </Collapse>
+            </Card>
           );
         })}
-      </div>
+      </>
     );
   }
 }

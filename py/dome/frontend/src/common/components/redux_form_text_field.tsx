@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import {PropTypes} from '@material-ui/core';
 import TextField from '@material-ui/core/TextField';
 import React from 'react';
 import {BaseFieldProps, Field, WrappedFieldProps} from 'redux-form';
@@ -10,24 +11,21 @@ interface RenderTextFieldProps {
   label: string;
   type?: string;
   placeholder?: string;
+  margin?: PropTypes.Margin;
 }
 
 const renderTextField = ({
   input,
   meta: {error, touched},
-  label,
-  type = 'text',
-  placeholder = '',
+  ...props
 }: RenderTextFieldProps & WrappedFieldProps) => (
   <TextField
     fullWidth
-    label={label}
-    type={type}
-    placeholder={placeholder}
     error={touched && error}
     helperText={touched && error}
     margin="normal"
     {...input}
+    {...props}
   />
 );
 
