@@ -216,7 +216,11 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
 
     file_utils.TryMakeDirs(os.path.dirname(output_file))
     logging.info('Saving %s to %s...', files, output_file)
-    process = Spawn(['tar', 'cfj', output_file] + exclude_files + files,
+    compress_method = ['tar', 'cfj', output_file]
+    compressor = file_utils.GetCompressor('bz2')
+    if compressor is not None:
+      compress_method = ['tar', '-I', compressor, '-cf', output_file]
+    process = Spawn(compress_method + exclude_files + files,
                     cwd=tmp, call=True,
                     ignore_stdout=True,
                     read_stderr=True)
