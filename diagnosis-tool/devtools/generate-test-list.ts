@@ -44,28 +44,44 @@ function main() {
 
   // remove everything first.
   outputFile.removeText();
+  outputFile.addImportDeclaration({
+    defaultImport: '{TestResource}',
+    moduleSpecifier: './interfaces/test-resource'
+  });
 
   const variable = outputFile.addVariableStatement({
     declarationKind: VariableDeclarationKind.Const,
     declarations: [{
-      name: 'TEST_COMPONENTS',
+      name: 'TEST_COMPONENTS: {[testName: string]: TestResource}',
       initializer: '{}',
     }]
   });
-  const expression = variable.getDeclarations()[0]
-    .getInitializer() as ObjectLiteralExpression;
+  const expression =
+      variable.getDeclarations()[0].getInitializer() as ObjectLiteralExpression;
+
+  function exportsToTestResource(exports: any[]): {[key: string]: any} {
+    const result: {[key: string]: any} = {};
+    for (let exp of exports) {
+      if (exp.getName().endsWith('Component')) {
+        result.className = exp.getName();
+      } else if (exp.getName().endsWith('_ARGS_SPEC')) {
+        result.argsSpec = exp.getName();
+      }
+    }
+    return result;
+  }
 
   for (const testFile of testFiles) {
     let testPath = testFile.getFilePath();
 
     const exports = testFile.getExportSymbols();
+    const testResource = exportsToTestResource(exports);
 
     console.assert(
-        exports.length === 1,
-        `${testPath} should have one and only one export symbol.`);
+        testResource.className, `${testPath} doesn't export any test case.`);
 
-    const sym = exports[0];
-    const className = sym.getName();
+    const className = testResource.className;
+    const argsSpecName = testResource.argsSpec;
 
     console.log(`Adding ${className}...`);
 
@@ -76,14 +92,25 @@ function main() {
 
     testPath = path.format(parsedTestPath);
 
+    let importArgsSpec = argsSpecName ? `, ${argsSpecName}` : '';
     outputFile.addImportDeclaration({
-      defaultImport: `{ ${sym.getName()} }`,
+      defaultImport: `{${className}${importArgsSpec}}`,
       moduleSpecifier: './' + path.relative(appDir, testPath),
     });
+
     const testName = className.substring(0, className.indexOf('Component'));
-    expression.addPropertyAssignment({
+    const property = expression.addPropertyAssignment({
       name: testName,
+      initializer: '{}',
+    });
+    const init = property.getInitializerOrThrow() as ObjectLiteralExpression;
+    init.addPropertyAssignment({
+      name: 'component',
       initializer: className,
+    });
+    init.addPropertyAssignment({
+      name: 'argsSpec',
+      initializer: argsSpecName ? argsSpecName : '[]'
     });
   }
 
