@@ -115,3 +115,8 @@ def LoadPytest(pytest_name):
   there should be one and only one test case in each pytest.
   """
   return FindTestCase(LoadPytestModule(pytest_name))
+
+
+def RelpathToPytestName(relpath):
+  """Convert a pytest relpath to dotted pytest name."""
+  return os.path.splitext(relpath)[0].replace('/', '.')

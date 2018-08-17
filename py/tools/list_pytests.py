@@ -27,6 +27,8 @@ _PATTERNS = (
 
 
 def GetPytestList(base_dir):
+  """Returns a sorted list of pytest relative paths."""
+
   def IsPytest(filepath):
     # We don't directly load the file by pytest_utils because it doesn't support
     # private overlays now.
