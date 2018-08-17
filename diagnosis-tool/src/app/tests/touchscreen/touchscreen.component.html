@@ -2,4 +2,11 @@
   <h1 align='center'>
     Please start from upper-left block, move through each block in clockwise order
   </h1>
+  <table>
+    <tr *ngFor="let squares of grid">
+      <td *ngFor="let square of squares" id="{{square.index}}">
+        <div class="{{square.class}}"></div>
+      </td>
+    </tr>
+  </table>
 </div>

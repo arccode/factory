@@ -49,4 +49,8 @@ export class TestListService {
   getCurrentTest(): string {
     return this.currentTest;
   }
+
+  clearCurrentTest(): void {
+    this.currentTest = '';
+  }
 }

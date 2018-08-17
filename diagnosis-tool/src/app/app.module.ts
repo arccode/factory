@@ -9,6 +9,7 @@ import {BrowserModule} from '@angular/platform-browser';
 import {AppComponent} from './app.component';
 import {TestListService} from './test-list.service';
 import {TestListComponent} from './test-list/test-list.component';
+import {TestRunService} from './test-run-service';
 import {TestSettingComponent} from './test-setting/test-setting.component';
 import {TestDirective} from './test.directive';
 import {AudioComponent} from './tests/audio/audio.component';
@@ -22,7 +23,7 @@ import {TouchscreenComponent} from './tests/touchscreen/touchscreen.component';
     DisplayComponent, TestSettingComponent, TouchscreenComponent
   ],
   imports: [BrowserModule, FormsModule],
-  providers: [TestListService],
+  providers: [TestListService, TestRunService],
   bootstrap: [AppComponent],
   entryComponents: [AudioComponent, DisplayComponent, TouchscreenComponent]
 })
