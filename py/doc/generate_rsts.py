@@ -18,18 +18,18 @@ always practical.)
 
 import argparse
 import codecs
-import importlib
 import inspect
 import logging
 import os
 import re
 import StringIO
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function as probe_function
-from cros.factory.test import pytests
+from cros.factory.test.env import paths
 from cros.factory.test.test_lists import manager
+from cros.factory.test.utils import pytest_utils
+from cros.factory.tools import list_pytests
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
 from cros.factory.utils.type_utils import Enum
@@ -151,104 +151,56 @@ def WriteArgsTable(rst, title, args):
     rst.WriteListTableRow((arg.name, arg_types, description))
 
 
-def GenerateTestDocs(rst, pytest_name, module):
+def GenerateTestDocs(rst, title, pytest_name):
   """Generates test docs for a pytest.
 
   Args:
-    pytest_name: The name of the pytest (e.g., 'foo' for foo.py).
-    module: The module of the pytest.  This may be the module itself,
-        or the name of the module (e.g., cros.factory.test.pytest.foo).
-    out: A stream to write to.
+    rst: A stream to write to.
+    title: The title for the pytest document page.
+    pytest_name: The name of pytest under package cros.factory.test.pytests.
 
   Returns:
-    A dictionary of information about the test.  Currently this is just
-
-      dict(short_docstring=short_docstring)
-
-    where short_docstring is the first line of the docstring.
+    The first line of the docstring.
   """
-  if isinstance(module, str):
-    module_name = module
-    try:
-      module = importlib.import_module(module_name)
-    except ImportError:
-      logging.warn('Unable to import %s', module_name)
-      return
+  module = pytest_utils.LoadPytestModule(pytest_name)
+  test_case = pytest_utils.FindTestCase(module)
 
-  # Find the TestCase object.
-  test_cases = [v for v in module.__dict__.itervalues()
-                if inspect.isclass(v) and issubclass(v, unittest.TestCase)]
-  if not test_cases:
-    logging.warn('No test cases found in %s', module.__name__)
-    return
-  if len(test_cases) > 1:
-    logging.warn('Expected only one test case in %s but found %r',
-                 module.__name__, test_cases)
-    return
-
-  test_case = test_cases[0]
   args = getattr(test_case, 'ARGS', [])
 
   doc = getattr(module, '__doc__', None)
   if doc is None:
     doc = 'No test-level description available for pytest %s.' % pytest_name
-
   if isinstance(doc, str):
     doc = doc.decode('utf-8')
 
-  rst.WriteTitle(pytest_name, '=')
+  rst.WriteTitle(title, '=')
   rst.WriteParagraph(doc)
   WriteArgsTable(rst, 'Test Arguments', args)
 
   # Remove everything after the first pair of newlines.
-  short_docstring = re.sub(r'(?s)\n\s*\n.+', '', doc).strip()
-  return dict(short_docstring=short_docstring)
+  return re.sub(r'(?s)\n\s*\n.+', '', doc).strip()
 
 
 @DocGenerator('pytests')
 def GeneratePyTestsDoc(pytests_output_dir):
-  pytest_module_dir = os.path.dirname(pytests.__file__)
-
-  # Map of pytest name to info returned by GenerateTestDocs.
+  # Map of pytest base name to info returned by GenerateTestDocs.
   pytest_info = {}
 
-  for root, unused_dirs, files in os.walk(pytest_module_dir):
-    for f in files:
-      if (not f.endswith('.py') or
-          f.startswith('__') or
-          f == 'factory_common.py' or
-          f.endswith('_e2etest.py') or
-          f.endswith('_unittest.py')):
-        continue
-
-      # E.g., "foo.py" or "foo/foo.py"
-      relpath = os.path.relpath(os.path.join(root, f),
-                                pytest_module_dir)
-      # E.g., "foo" or "foo/foo"
-      base = os.path.splitext(relpath)[0]
-
-      if '/' in relpath:
-        # It's in a subpackage.  Accept it only if it looks like
-        # foo/foo.py.
-        dirname, filename = os.path.split(base)
-        if dirname != filename:
-          continue
-
-      module_name = ('cros.factory.test.pytests.' +
-                     base.replace('/', '.'))
-      pytest_name = os.path.basename(base)
-
-      with codecs.open(os.path.join(pytests_output_dir, pytest_name + '.rst'),
-                       'w', 'utf-8') as out:
-        pytest_info[pytest_name] = GenerateTestDocs(
-            RSTWriter(out), pytest_name, module_name)
+  for relpath in list_pytests.GetPytestList(paths.FACTORY_DIR):
+    pytest_name = pytest_utils.RelpathToPytestName(relpath)
+    base = pytest_name.rpartition('.')[2]
+    with codecs.open(
+        os.path.join(pytests_output_dir, base + '.rst'), 'w', 'utf-8') as out:
+      try:
+        pytest_info[base] = GenerateTestDocs(RSTWriter(out), base, pytest_name)
+      except Exception:
+        logging.warn('Failed to generate document for pytest %s.', pytest_name)
 
   index_rst = os.path.join(pytests_output_dir, 'index.rst')
   with open(index_rst, 'a') as f:
     rst = RSTWriter(f)
-    for k, v in sorted(pytest_info.items()):
-      if v is not None:
-        rst.WriteListTableRow((LinkToDoc(k, k), v['short_docstring']))
+    for k, v in sorted(pytest_info.iteritems()):
+      rst.WriteListTableRow((LinkToDoc(k, k), v))
 
 
 def WriteTestObjectDetail(

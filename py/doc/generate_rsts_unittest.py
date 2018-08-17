@@ -8,6 +8,8 @@
 import codecs
 import unittest
 
+import mock
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.doc import generate_rsts
 from cros.factory.utils.arg_utils import Arg
@@ -31,11 +33,18 @@ class GenerateDocsTest(unittest.TestCase):
                 '  - baz\n',
                 default='b1'),
         ]
+        def runTest(self):
+          pass
 
     with UnopenedTemporaryFile() as temp:
       with codecs.open(temp, 'w', 'utf-8') as out:
-        generate_rsts.GenerateTestDocs(
-            generate_rsts.RSTWriter(out), 'pseudo_test', PseudoModule)
+        with mock.patch(
+            'cros.factory.test.utils.pytest_utils.LoadPytestModule') as lpm:
+          lpm.return_value = PseudoModule
+
+          generate_rsts.GenerateTestDocs(
+              generate_rsts.RSTWriter(out), 'pseudo_test', 'pseudo_test')
+
       with open(temp) as f:
         lines = f.read().splitlines()
 

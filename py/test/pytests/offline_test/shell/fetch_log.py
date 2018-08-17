@@ -24,11 +24,12 @@ from cros.factory.utils import file_utils
 LOGS_ARG_HELP = """
 Set customized log files.
 A list of tuples: (local_fpath, remote_fpath, required).
-  * ``local_fpath``: (str) The file path stored in local. We can not use
+
+* - ``local_fpath``: (str) The file path stored in local. We can not use
     absolute path of local_fpath.
-  * ``remote_fpath``: (str) The file path from remote which will be
+  - ``remote_fpath``: (str) The file path from remote which will be
     os.path.join with self.data_root.
-  * ``required``: (bool) Check if it is required or not. If this log is
+  - ``required``: (bool) Check if it is required or not. If this log is
     required but we do not get it, we will raise exception.
 """
 
