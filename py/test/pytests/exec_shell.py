@@ -144,6 +144,10 @@ class ExecShell(test_case.TestCase):
           ('File base name for collecting and creating testlog attachment. '
            'None to skip creating attachments.'),
           default=None),
+      Arg('log_command_output', bool,
+          ('Log the executed results of each commands, which includes '
+           'stdout, stderr and the return code.'),
+          default=True),
       Arg('attachment_path', str,
           ('Source path for collecting logs to create testlog attachment. '
            'None to run commands in a temporary folder and attach everything '
@@ -209,10 +213,19 @@ class ExecShell(test_case.TestCase):
 
     stdout = output['stdout'].getvalue()
     stderr = output['stderr'].getvalue()
+    returncode = process.returncode
 
-    logging.info('Shell command: %r, result=%s, stdout=%r, stderr=%r',
-                 command, process.returncode, stdout, stderr)
-    return process.returncode
+    if self.args.log_command_output:
+      logging.info('Shell command: %r, result=%s, stdout=%r, stderr=%r',
+                   command, returncode, stdout, stderr)
+      with self._group_checker:
+        testlog.LogParam('stdout', stdout)
+        testlog.LogParam('stderr', stderr)
+        testlog.LogParam('returncode', returncode)
+    else:
+      logging.info('Shell command: %r, result=%s', command, returncode)
+
+    return returncode
 
   def setUp(self):
     self.ui.SetTitle(_('Running shell commands...'))
@@ -227,6 +240,15 @@ class ExecShell(test_case.TestCase):
       self._commands = [self.args.commands]
     else:
       self._commands = self.args.commands
+
+    testlog.UpdateParam(
+        'stdout', description='standard output of the command', param_type=str)
+    testlog.UpdateParam(
+        'stderr', description='standard error of the command', param_type=str)
+    testlog.UpdateParam(
+        'returncode', description='return code of the command', param_type=int)
+    self._group_checker = testlog.GroupParam(
+        'command_output', ['stdout', 'stderr', 'returncode'])
 
   def runTest(self):
     self.ui.DrawProgressBar(len(self._commands))
