@@ -86,14 +86,11 @@ def LoadPytestModule(pytest_name):
       raise
 
 
-def LoadPytest(pytest_name):
-  """Load pytest instance from pytest_name.
+def FindTestCase(pytest_module):
+  """Find the TestCase class in the given module.
 
-  See `LoadPytestModule` to know how pytest_name is resolved.  Also notice that
-  there should be one and only one test case in each pytest.
+  There should be one and only one TestCase in the module.
   """
-  pytest_module = LoadPytestModule(pytest_name)
-
   # To simplify things, we only allow one TestCase per pytest, and the method
   # must be runTest.
   test_case_types = []
@@ -108,4 +105,13 @@ def LoadPytest(pytest_name):
         'Use test.AddTask if multiple tasks need to be done in a single pytest.'
         % test_case_types)
 
-  return test_case_types[0]('runTest')
+  return test_case_types[0]
+
+
+def LoadPytest(pytest_name):
+  """Load pytest type from pytest_name.
+
+  See `LoadPytestModule` to know how pytest_name is resolved.  Also notice that
+  there should be one and only one test case in each pytest.
+  """
+  return FindTestCase(LoadPytestModule(pytest_name))

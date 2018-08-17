@@ -224,7 +224,7 @@ class Checker(object):
     if not test.pytest_name:
       return
 
-    pytest = pytest_utils.LoadPytest(test.pytest_name)
+    pytest = pytest_utils.LoadPytest(test.pytest_name)()
     args_spec = getattr(pytest, 'ARGS', None)
     if not args_spec:
       # no argument for this pytest

@@ -24,11 +24,6 @@ from cros.factory.test.utils import pytest_utils
 from cros.factory.utils.arg_utils import Args
 
 
-def _GetTestCase(pytest):
-  """Returns the first test case class found in a given pytest."""
-  return pytest_utils.LoadPytest(pytest)
-
-
 def _FormatErrorMessage(trace):
   """Formats a trace so that the actual error message is in the last
   line.
@@ -88,7 +83,7 @@ def _RunPytestRaw(pytest, args, dut_options):
   """
   # Create a test case instance.
   if isinstance(pytest, str):
-    test = _GetTestCase(pytest)
+    test = pytest_utils.LoadPytest(pytest)()
   else:
     test = pytest()
 
