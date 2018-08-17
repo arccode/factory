@@ -359,7 +359,7 @@
       "label": "Placeholder"
     },
     "Probe": {
-      "pytest_name": "probe",
+      "pytest_name": "probe.probe",
       "label": "Probe Hardware",
       "args": {
         "config_file": "probe.json"

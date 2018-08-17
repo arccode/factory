@@ -99,18 +99,6 @@ class LoadPytestModuleTest(unittest.TestCase):
     module = LoadPytestModule(pytest_name)
     self.assertEquals(module.__file__, os.path.join(self.tmpdir, 'x/y/z.py'))
 
-  def testBackwardCompatibility(self):
-    basename = os.path.basename(self.tmpdir)
-
-    for suffix in ['', '_automator', '_e2etest', '_automator_private']:
-      LoadPytestModuleTest.CreateScript(
-          self.tmpdir, basename + suffix + '.py')
-
-    for suffix in ['', '_automator', '_e2etest', '_automator_private']:
-      module = LoadPytestModule(basename + suffix)
-      self.assertEquals(module.__file__,
-                        os.path.join(self.tmpdir, basename + suffix + '.py'))
-
 
 if __name__ == '__main__':
   unittest.main()

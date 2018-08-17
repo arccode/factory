@@ -43,7 +43,7 @@ class GenerateDocsTest(unittest.TestCase):
           lpm.return_value = PseudoModule
 
           generate_rsts.GenerateTestDocs(
-              generate_rsts.RSTWriter(out), 'pseudo_test', 'pseudo_test')
+              generate_rsts.RSTWriter(out), 'pseudo_test')
 
       with open(temp) as f:
         lines = f.read().splitlines()

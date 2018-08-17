@@ -151,12 +151,11 @@ def WriteArgsTable(rst, title, args):
     rst.WriteListTableRow((arg.name, arg_types, description))
 
 
-def GenerateTestDocs(rst, title, pytest_name):
+def GenerateTestDocs(rst, pytest_name):
   """Generates test docs for a pytest.
 
   Args:
     rst: A stream to write to.
-    title: The title for the pytest document page.
     pytest_name: The name of pytest under package cros.factory.test.pytests.
 
   Returns:
@@ -173,7 +172,7 @@ def GenerateTestDocs(rst, title, pytest_name):
   if isinstance(doc, str):
     doc = doc.decode('utf-8')
 
-  rst.WriteTitle(title, '=')
+  rst.WriteTitle(pytest_name, '=')
   rst.WriteParagraph(doc)
   WriteArgsTable(rst, 'Test Arguments', args)
 
@@ -183,16 +182,16 @@ def GenerateTestDocs(rst, title, pytest_name):
 
 @DocGenerator('pytests')
 def GeneratePyTestsDoc(pytests_output_dir):
-  # Map of pytest base name to info returned by GenerateTestDocs.
+  # Map of pytest name to info returned by GenerateTestDocs.
   pytest_info = {}
 
   for relpath in list_pytests.GetPytestList(paths.FACTORY_DIR):
     pytest_name = pytest_utils.RelpathToPytestName(relpath)
-    base = pytest_name.rpartition('.')[2]
     with codecs.open(
-        os.path.join(pytests_output_dir, base + '.rst'), 'w', 'utf-8') as out:
+        os.path.join(pytests_output_dir, pytest_name + '.rst'),
+        'w', 'utf-8') as out:
       try:
-        pytest_info[base] = GenerateTestDocs(RSTWriter(out), base, pytest_name)
+        pytest_info[pytest_name] = GenerateTestDocs(RSTWriter(out), pytest_name)
       except Exception:
         logging.warn('Failed to generate document for pytest %s.', pytest_name)
 

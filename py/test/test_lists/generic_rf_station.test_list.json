@@ -26,7 +26,7 @@
   },
   "definitions": {
     "RFGraphyte": {
-      "pytest_name": "rf_graphyte",
+      "pytest_name": "rf_graphyte.rf_graphyte",
       "args": {
         "verbose": true,
         "patch_dhcp_ssh_dut_ip": true,
