@@ -1,0 +1,15 @@
+<div id="displayPoint">
+  <h1>Press Space to display;
+    <br>After checking, Enter number of points to pass.</h1>
+  <div class="buttons">
+    <button
+      *ngFor="let item of getButtons()"
+      (click)="clickButton($event, item)">
+      {{item}}
+    </button>
+  </div>
+  <div [ngClass]="testScreenState === 'SHOW' ? 'test' : ''" id="test">
+    <div *ngFor="let dot of dotArray" [ngStyle]="dot.style">
+    </div>
+  </div>
+</div>

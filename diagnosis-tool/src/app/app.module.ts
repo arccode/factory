@@ -15,17 +15,18 @@ import {TestDirective} from './test.directive';
 import {AudioComponent} from './tests/audio/audio.component';
 import {DisplayComponent} from './tests/display/display.component';
 import {TouchscreenComponent} from './tests/touchscreen/touchscreen.component';
+import { DisplayPointComponent } from './tests/display-point/display-point.component';
 
 /** The main application module. */
 @NgModule({
   declarations: [
     AppComponent, TestListComponent, AudioComponent, TestDirective,
-    DisplayComponent, TestSettingComponent, TouchscreenComponent
+    DisplayComponent, TestSettingComponent, TouchscreenComponent, DisplayPointComponent
   ],
   imports: [BrowserModule, FormsModule],
   providers: [TestListService, TestRunService],
   bootstrap: [AppComponent],
-  entryComponents: [AudioComponent, DisplayComponent, TouchscreenComponent]
+  entryComponents: [AudioComponent, DisplayComponent, DisplayPointComponent, TouchscreenComponent]
 })
 export class AppModule {
 }

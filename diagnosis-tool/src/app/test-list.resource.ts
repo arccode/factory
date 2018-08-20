@@ -9,6 +9,10 @@ import {DisplayComponent} from './tests/display/display.component';
 import {
   DISPLAY_ARGS_SPEC
 } from './tests/display/display.component';
+import {DisplayPointComponent} from './tests/display-point/display-point.component';
+import {
+  DISPLAYPOINT_ARGS_SPEC
+} from './tests/display-point/display-point.component';
 import {TouchscreenComponent} from './tests/touchscreen/touchscreen.component';
 import {
   TOUCHSCREEN_ARGS_SPEC
@@ -22,6 +26,10 @@ const TEST_COMPONENTS: {[testName: string]: TestResource} = {
   Display: {
     component: DisplayComponent,
     argsSpec: DISPLAY_ARGS_SPEC
+  },
+  DisplayPoint: {
+    component: DisplayPointComponent,
+    argsSpec: DISPLAYPOINT_ARGS_SPEC
   },
   Touchscreen: {
     component: TouchscreenComponent,
