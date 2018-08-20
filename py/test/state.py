@@ -41,9 +41,6 @@ DEFAULT_FACTORY_STATE_FILE_DIR = paths.DATA_STATE_DIR
 
 KEY_POST_SHUTDOWN = '%s.post_shutdown'
 
-# dummy object to detect not set keyward argument
-_DEFAULT_NOT_SET = object()
-
 # Key for device data.  This is a dictionary of accumulated data usually from
 # shopfloor calls with information about the configuration of the device.
 KEY_DEVICE_DATA = 'device'

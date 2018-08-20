@@ -42,9 +42,6 @@ from cros.factory.external import syslog
 # Number of bytes to include from the log of a failed test.
 ERROR_LOG_TAIL_LENGTH = 8 * 1024
 
-# Dummy object to detect not set keyward argument.
-_DEFAULT_NOT_SET = object()
-
 
 class InvocationError(Exception):
   """Invocation error."""
