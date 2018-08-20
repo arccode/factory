@@ -7,14 +7,26 @@ import {TestResource} from './interfaces/test-resource';
 import {AudioComponent} from './tests/audio/audio.component';
 import {DisplayComponent} from './tests/display/display.component';
 import {
-  TOUCHSCREEN_ARGS_SPEC,
-  TouchscreenComponent
+  DISPLAY_ARGS_SPEC
+} from './tests/display/display.component';
+import {TouchscreenComponent} from './tests/touchscreen/touchscreen.component';
+import {
+  TOUCHSCREEN_ARGS_SPEC
 } from './tests/touchscreen/touchscreen.component';
 
 const TEST_COMPONENTS: {[testName: string]: TestResource} = {
-  Audio: {component: AudioComponent, argsSpec: []},
-  Display: {component: DisplayComponent, argsSpec: []},
-  Touchscreen: {component: TouchscreenComponent, argsSpec: TOUCHSCREEN_ARGS_SPEC}
+  Audio: {
+    component: AudioComponent,
+    argsSpec: []
+  },
+  Display: {
+    component: DisplayComponent,
+    argsSpec: DISPLAY_ARGS_SPEC
+  },
+  Touchscreen: {
+    component: TouchscreenComponent,
+    argsSpec: TOUCHSCREEN_ARGS_SPEC
+  }
 };
 
 export {TEST_COMPONENTS};

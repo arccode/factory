@@ -2,7 +2,25 @@
   <li *ngFor="let arg of argsSpec">
     <label>
       <span>{{arg.help}}</span>:
-      <input type="text" name={{arg.name}} [(ngModel)]="args[arg.name]">
+      <input
+        type="text"
+        name={{arg.name}}
+        [(ngModel)]="args[arg.name]"
+        *ngIf="!isArray(args[arg.name])">
+      <div *ngIf="isArray(args[arg.name])">
+        <span>(selected)</span>
+        <button
+          (click)='choose($event, arg.name, detail)'
+          *ngFor="let detail of args[arg.name];">
+          {{detail}}
+        </button>
+        <br>(remain)
+        <button
+          (click)='choose($event, arg.name, option)'
+          *ngFor="let option of getNotChosen(arg)">
+          {{option}}
+        </button>
+      </div>
     </label>
   </li>
   <button (click)="onStartTest()">Start Test</button>

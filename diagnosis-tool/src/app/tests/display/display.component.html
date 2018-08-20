@@ -1,3 +1,13 @@
-<p>
-  display works!
-</p>
+<div id="display">
+  <h1>Press Space to display;
+    <br>After checking, Enter to pass; Esc to fail.</h1>
+  <div id="test"></div>
+  <div class="table">
+    <table id="lists">
+      <tr *ngFor="let item of testList">
+        <td [ngStyle]="item.css"></td>
+        <td [ngClass]="item.result === 'UNTESTED' ? 'untested' : 'pass'">{{item.result}}</td>
+      </tr>
+    </table>
+  </div>
+</div>
