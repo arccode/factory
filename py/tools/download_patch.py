@@ -87,16 +87,14 @@ def QueryChanges(info, options):
       value returned by `GetFactoryRepoInfo` or `GetBoardRepoInfo`.
     options: parsed command line argument.
   """
-  param = {
-      'project': info['project'],
-      'status':'open',
-  }
+  param = [('project', info['project']),
+           ('status', 'open')]
   if options.branch:
-    param['branch'] = options.branch
+    param.append(('branch', options.branch))
   if options.topic:
-    param['topic'] = options.topic
+    param.append(('topic', options.topic))
   if options.hashtag:
-    param['hashtag'] = options.hashtag
+    param.append(('hashtag', options.hashtag))
 
   logging.debug('query change list from gerrit: ')
   logging.debug('  url: %s', info['url'])
