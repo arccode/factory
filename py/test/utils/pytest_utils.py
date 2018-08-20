@@ -3,10 +3,41 @@
 # found in the LICENSE file.
 
 import os
+import re
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
+
+
+_PATTERNS = (
+    r'^class .*\((unittest|test_case)\.TestCase\):',
+    r'^\s+ARGS = '
+)
+
+
+def GetPytestList(base_dir):
+  """Returns a sorted list of pytest relative paths."""
+
+  def IsPytest(filepath):
+    # We don't directly load the file by pytest_utils because it doesn't support
+    # private overlays now.
+    root, ext = os.path.splitext(filepath)
+    if root.endswith('_unittest') or ext != '.py':
+      return False
+    content = file_utils.ReadFile(filepath)
+    return any(re.search(p, content, re.MULTILINE) for p in _PATTERNS)
+
+  res = []
+  pytest_dir = os.path.join(base_dir, 'py', 'test', 'pytests')
+  for dirpath, unused_dirnames, filenames in os.walk(pytest_dir):
+    for basename in filenames:
+      filepath = os.path.join(dirpath, basename)
+      if IsPytest(filepath):
+        res.append(os.path.relpath(filepath, pytest_dir))
+  res.sort()
+  return res
 
 
 def LoadPytestModule(pytest_name):

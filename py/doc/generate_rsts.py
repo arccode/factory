@@ -29,7 +29,6 @@ from cros.factory.probe import function as probe_function
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import manager
 from cros.factory.test.utils import pytest_utils
-from cros.factory.tools import list_pytests
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
 from cros.factory.utils.type_utils import Enum
@@ -185,7 +184,7 @@ def GeneratePyTestsDoc(pytests_output_dir):
   # Map of pytest name to info returned by GenerateTestDocs.
   pytest_info = {}
 
-  for relpath in list_pytests.GetPytestList(paths.FACTORY_DIR):
+  for relpath in pytest_utils.GetPytestList(paths.FACTORY_DIR):
     pytest_name = pytest_utils.RelpathToPytestName(relpath)
     with codecs.open(
         os.path.join(pytests_output_dir, pytest_name + '.rst'),
