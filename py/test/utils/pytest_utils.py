@@ -11,6 +11,8 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
 
+PYTESTS_RELPATH = os.path.join('py', 'test', 'pytests')
+
 _PATTERNS = (
     r'^class .*\((unittest|test_case)\.TestCase\):',
     r'^\s+ARGS = '

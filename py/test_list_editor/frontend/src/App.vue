@@ -38,7 +38,7 @@ export default class App extends Vue {
   fs?: common.FileSystemState;
 
   async created() {
-    this.fs = await rpc.LoadFiles();
+    this.fs = await rpc.loadFiles();
     this.ready = true;
   }
 }

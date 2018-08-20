@@ -23,12 +23,31 @@ const call = async (method: string, ...params: any[]) => {
 // For the detailed description and implementation of these RPC functions,
 // see 'factory/py/test_list_editor/backend/rpc.py'.
 
-export const GetTestListSchema = (): Promise<string> =>
+export const getTestListSchema = (): Promise<string> =>
     call('GetTestListSchema');
 
-export const LoadFiles = (): Promise<common.FileSystemState> =>
+export const loadFiles = (): Promise<common.FileSystemState> =>
     call('LoadFiles');
 
-export const SaveFiles =
+export const saveFiles =
     (requests: {[filepath: string]: string}): Promise<void> =>
     call('SaveFiles', requests);
+
+export const listPytests = (): Promise<string[]> => call('ListPytests');
+
+export const getPytestInfo =
+    async (pytestName: string): Promise<common.PytestInfo> => {
+  const res = await call('GetPytestInfo', pytestName);
+  if (res.args) {
+    for (const name of Object.keys(res.args)) {
+      const types: common.PytestArgType[] = res.args[name].type.map(
+          (t: string | string[]) => (
+              Array.isArray(t) ?
+              t : // PytestArgEnumType
+              common.PytestArgBasicType[
+                  t as keyof typeof common.PytestArgBasicType]));
+      res.args[name].type = types;
+    }
+  }
+  return res;
+};
