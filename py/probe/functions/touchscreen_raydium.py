@@ -15,10 +15,10 @@ class TouchscreenRaydiumFunction(
 
   Description
   -----------
-  The driver of Raydium touchscreens doesn't export the attributes for identifying
-  devices to the regular linux input device interface so this function probes
-  all Raydium touchscreens and output the attributes of the device.  The output
-  of each Raydium touchscreen must have 3 fields:
+  The driver of Raydium touchscreens doesn't export the attributes for
+  identifying devices to the regular linux input device interface so this
+  function probes all Raydium touchscreens and output the attributes of the
+  device.  The output of each Raydium touchscreen must have 3 fields:
 
   - ``device_path``: Pathname of the sysfs directory.
   - ``name``: Name of the device exported by the driver.
@@ -62,4 +62,7 @@ class TouchscreenRaydiumFunction(
         os.path.basename(os.readlink(driver_link)) != cls.DRIVER_NAME):
       return None
 
-    return sysfs.ReadSysfs(dir_path, ['name', 'hw_version', 'fw_version'])
+    data = sysfs.ReadSysfs(dir_path, ['name', 'hw_version', 'fw_version'])
+    data['vendor'] = '27a3'  # regular VID of Raydium USB devices
+    data['product'] = data['hw_version']
+    return data

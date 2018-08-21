@@ -62,4 +62,7 @@ class TouchscreenElanFunction(
         os.path.basename(os.readlink(driver_link)) != cls.DRIVER_NAME):
       return None
 
-    return sysfs.ReadSysfs(dir_path, ['name', 'hw_version', 'fw_version'])
+    data = sysfs.ReadSysfs(dir_path, ['name', 'hw_version', 'fw_version'])
+    data['vendor'] = '04f3'  # regular VID of Elan USB devices
+    data['product'] = data['hw_version']
+    return data
