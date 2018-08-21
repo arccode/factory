@@ -12,12 +12,14 @@ import math
 import os
 import threading
 import time
+from urlparse import urlparse
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import server_proxy
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils.type_utils import Error
 
 
 def _FormatTime(t):
@@ -185,36 +187,23 @@ class TimeSanitizer(object):
                       _FormatTime(now), self.state_file)
         print >> f, now
 
-  def SyncWithFactoryServer(self, timeout=5):
+  def SyncWithFactoryServerHtpdate(self):
     """Attempts to synchronize the clock with the factory server.
 
-    Thread-safe.
-
-    Returns:
-      True if synced, False if not (e.g., time is before current time).
+    Using built-in command htpdate -s -t <server-url>
 
     Raises:
-      Exception if unable to contact the factory server.
+      Error if sync time failed.
     """
-    proxy = self._server_proxy.GetServerProxy(timeout=timeout)
-    server_time = proxy.GetTime()
-    logging.info('Got time %s GMT from factory server',
-                 _FormatTime(server_time))
-
-    with self.lock:
-      self.RunOnce()
-      now = self._time.Time()
-      if server_time < now:
-        logging.warn('Shopfloor server time is before current time %s; '
-                     'not syncing', _FormatTime(now))
-        return False
-      else:
-        self._time.SetTime(server_time)
-        with open(self.state_file, 'w') as f:
-          logging.debug('Recording factory server time %s into %s',
-                        _FormatTime(server_time), self.state_file)
-          print >> f, server_time
-        return True
+    server_ip_port = urlparse(self._server_proxy.GetServerURL()).netloc
+    try:
+      synced = process_utils.Spawn(['htpdate', '-s', '-t', server_ip_port],
+                                   log=True, call=True,
+                                   log_stderr_on_error=True).returncode == 0
+      if not synced:
+        raise Error('cannot sync time successfully with htpdate.')
+    except OSError:
+      raise Error('htpdate is not installed.')
 
 
 def GetBaseTimeFromFile(*base_time_files):

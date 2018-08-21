@@ -38,7 +38,7 @@ def SyncTimeWithFactoryServer():
   if _HAS_PLUGIN_CONTROLLER:
     time_sanitizer = plugin_controller.GetPluginRPCProxy('time_sanitizer')
   if time_sanitizer is not None:
-    time_sanitizer.SyncTimeWithFactoryServer()
+    time_sanitizer.SyncTimeWithFactoryServer(force=True)
     return True
   else:
     return False

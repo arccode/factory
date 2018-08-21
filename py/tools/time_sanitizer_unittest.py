@@ -75,57 +75,6 @@ class TimeSanitizerBaseTimeTest(TimeSanitizerTestBase):
         time_sanitizer.GetBaseTimeFromFile('/some-nonexistent-file'))
 
 
-class TimeSanitizerFactoryServer(TimeSanitizerTestBase):
-
-  def _RunWithServerUnavailable(self):
-    """Simulate trying to contact the factory server but failing."""
-    self.mox.ResetAll()
-    self.fake_server_proxy.GetServerProxy(timeout=5).AndRaise(
-        OSError())
-    self.mox.ReplayAll()
-
-    self.assertRaises(OSError, self.sanitizer.SyncWithFactoryServer)
-    self.assertFalse(os.path.exists(self.state_file))
-    self.mox.VerifyAll()
-
-  def _RunWithServer(self, server_time, adjust):
-    """Simulate successfully contacting the factory server.
-
-    Args:
-      server_time: The time to be reported by the factory server.
-      adjust: Whether we expect that the sanitizer will actually adjust
-        the time.
-    """
-    self.mox.ResetAll()
-    proxy = self.mox.CreateMockAnything()
-    self.fake_time.Time().AndReturn(BASE_TIME)
-    self.fake_server_proxy.GetServerProxy(timeout=5).AndReturn(proxy)
-    proxy.GetTime().AndReturn(server_time)
-    self.fake_time.Time().AndReturn(BASE_TIME)
-    if adjust:
-      self.fake_time.SetTime(server_time)
-    self.mox.ReplayAll()
-
-    self.assertEquals(adjust, self.sanitizer.SyncWithFactoryServer())
-    self.mox.VerifyAll()
-
-  def testPastServer(self):
-    self._RunWithServerUnavailable()
-
-    # Now factory server is available,
-    # but time is earlier than the BASE_TIME.  No adjustment.
-    self._RunWithServer(BASE_TIME - 10, False)
-    self.assertEquals(BASE_TIME, self._ReadStateFile())
-
-  def testFuturefloor(self):
-    self._RunWithServerUnavailable()
-
-    # Now factory server is available,
-    # and time is later than the BASE_TIME.  Adjust the time.
-    self._RunWithServer(BASE_TIME + 10, True)
-    self.assertEquals(BASE_TIME + 10, self._ReadStateFile())
-
-
 class TimeSanitizerTest(TimeSanitizerTestBase):
 
   def runTest(self):

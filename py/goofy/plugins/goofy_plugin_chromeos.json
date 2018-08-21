@@ -3,7 +3,8 @@
     "time_sanitizer": {
       "args": {
         "base_time_files": ["/usr/local/etc/lsb-factory",
-                            "/etc/lsb-release"]
+                            "/etc/lsb-release"],
+        "sync_period_secs": 5
       }
     },
     "disk_monitor": {

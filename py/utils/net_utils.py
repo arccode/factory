@@ -430,6 +430,18 @@ def SwitchEthernetInterfaces(enable,
     Ifconfig(dev, enable)
 
 
+def ExistPluggedEthernet(name_patterns=None):
+  """Check for plugged in network cable by /sys/class/net/<ethernet>/carrier.
+
+  Return True if exists an ethernet with carrier > 0. False if none.
+  """
+  devs = GetEthernetInterfaces(name_patterns or DEFAULT_ETHERNET_NAME_PATTERNS)
+  for dev in devs:
+    if int(file_utils.ReadFile('/sys/class/net/%s/carrier' % dev)) > 0:
+      return True
+  return False
+
+
 def FindUnusedPort(tcp_only=False, length=1):
   """Finds a range of semi-random available port.
 

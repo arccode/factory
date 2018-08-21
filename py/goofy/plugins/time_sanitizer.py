@@ -9,6 +9,7 @@ import threading
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.tools import time_sanitizer
+from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
 
@@ -55,24 +56,22 @@ class TimeSanitizer(plugin.Plugin):
 
   def _RunTarget(self):
     while True:
-      try:
+      if net_utils.ExistPluggedEthernet():
         self._time_sanitizer.SaveTime()
         self.SyncTimeWithFactoryServer()
-      except Exception as error:
-        logging.exception(error)
 
       if self._time_synced or self._stop_event.wait(self._sync_period_secs):
         return
 
   @plugin.RPCFunction
-  def SyncTimeWithFactoryServer(self):
+  def SyncTimeWithFactoryServer(self, force=False):
     """Syncs time with factory server.
 
     Raises:
-      Exception if unable to contact the factory server.
+      Error if sync time failed.
     """
     logging.info("Sync time from factory server")
     with self._lock:
-      if not self._time_synced:
-        self._time_sanitizer.SyncWithFactoryServer()
+      if not self._time_synced or force:
+        self._time_sanitizer.SyncWithFactoryServerHtpdate()
         self._time_synced = True
