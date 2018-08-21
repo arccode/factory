@@ -18,7 +18,6 @@ CLI_HOSTNAME = '0.0.0.0'  # Allows remote connections.
 CLI_PORT = 7000
 NODE_ID = 'factory_server'
 SERVICE_NAME = 'instalog'
-KEY_FINGERPRINT_LENGTH = 40
 
 
 class InstalogService(umpire_service.UmpireService):

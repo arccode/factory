@@ -27,8 +27,6 @@ RSYNCD_CONFIG_MODULE_PATH_TEMPLATE = """[%(module)s]
   path = %(path)s
   read only = %(readonly)s
 """
-RSYNC_URL_TEMPLATE = 'rsync://%(ip)s:%(port)d/%(module)s'
-AUXLOG_MODULE = 'system_logs'
 
 
 class RsyncService(umpire_service.UmpireService):
@@ -40,11 +38,6 @@ class RsyncService(umpire_service.UmpireService):
     rsync_service.Start(procs)
   """
 
-  def __init__(self):
-    super(RsyncService, self).__init__()
-    self.properties['toolkit_update'] = True
-    self.properties['update_scheme'] = 'rsync'
-
   def CreateProcesses(self, umpire_config, env):
     """Creates list of processes via config.
 
@@ -54,7 +47,6 @@ class RsyncService(umpire_service.UmpireService):
 
     Returns:
       A list of ServiceProcesses.
-
     """
     del umpire_config  # Unused.
     config_path = os.path.join(env.config_dir, RSYNCD_CONFIG_FILENAME)

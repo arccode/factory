@@ -137,11 +137,12 @@ class UmpireConfigTest(unittest.TestCase):
     conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
     self.assertEqual('test', conf.GetDefaultBundle()['id'])
 
-    conf['rulesets'].insert(0, {'bundle_id': 'new_bundle', 'active': True})
+    conf['rulesets'].insert(
+        0, {'bundle_id': 'new_bundle', 'note': '', 'active': True})
     new_bundle = copy.deepcopy(conf['bundles'][0])
     new_bundle['id'] = 'new_bundle'
     conf['bundles'].append(new_bundle)
-    conf.BuildBundleMap()
+    conf = config.UmpireConfig(conf)
     self.assertEqual('new_bundle', conf.GetDefaultBundle()['id'])
 
     # First ruleset is inactive, use the lower one.
@@ -171,7 +172,7 @@ class UmpireConfigTest(unittest.TestCase):
     new_bundle['note'] = 'new bundle for test'
     new_bundle['payloads'] = 'new payloads'
     conf['bundles'].append(new_bundle)
-    conf.BuildBundleMap()
+    conf = config.UmpireConfig(conf)
 
     bundle = conf.GetBundle('test')
     self.assertEqual('test', bundle['id'])
@@ -189,18 +190,18 @@ class UmpireConfigTest(unittest.TestCase):
   def testGetActiveBundles(self):
     conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
     conf['rulesets'] = [
-        {'bundle_id': 'id_1', 'active': True},
-        {'bundle_id': 'id_2', 'active': False},
-        {'bundle_id': 'id_3', 'active': True},
-        {'bundle_id': 'id_5', 'active': True}]
+        {'bundle_id': 'id_1', 'note': '', 'active': True},
+        {'bundle_id': 'id_2', 'note': '', 'active': False},
+        {'bundle_id': 'id_3', 'note': '', 'active': True},
+        {'bundle_id': 'id_5', 'note': '', 'active': True}]
     conf['bundles'] = [
-        {'id': 'id_1', 'test_pass': True},
-        {'id': 'id_2', 'test_pass': False},
-        {'id': 'id_3', 'test_pass': True},
-        {'id': 'id_4', 'test_pass': False}]
-    conf.BuildBundleMap()
-    for bundle in conf.GetActiveBundles():
-      self.assertTrue(bundle['test_pass'])
+        {'id': 'id_1', 'note': '', 'payloads': ''},
+        {'id': 'id_2', 'note': '', 'payloads': ''},
+        {'id': 'id_3', 'note': '', 'payloads': ''},
+        {'id': 'id_4', 'note': '', 'payloads': ''}]
+    conf = config.UmpireConfig(conf)
+    self.assertEqual(
+        [b['id'] for b in conf.GetActiveBundles()], ['id_1', 'id_3'])
 
 
 class ValidateResourcesTest(unittest.TestCase):

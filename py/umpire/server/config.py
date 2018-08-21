@@ -226,20 +226,12 @@ class UmpireConfig(dict):
       config = json_utils.LoadFile(file_path, convert_to_str=False)
     super(UmpireConfig, self).__init__(config)
 
-    self.bundle_map = {}
-    self.BuildBundleMap()
+    self.bundle_map = {bundle['id']: bundle for bundle in self['bundles']}
 
     if validate:
       ValidateConfig(config)
       if not self.GetDefaultBundle():
         raise common.UmpireError('Missing default bundle')
-
-  def BuildBundleMap(self):
-    """Builds bundle_map attribute.
-
-    bundle_map is a dict maps bundle ID to bundle dict.
-    """
-    self.bundle_map = {bundle['id']: bundle for bundle in self['bundles']}
 
   def Dump(self):
     """Dump UmpireConfig to a JSON string.

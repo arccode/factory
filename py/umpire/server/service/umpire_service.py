@@ -12,7 +12,6 @@ for all service module.
 # The attributes of Twisted reactor and type_utils.AttrDict object are changing
 # dynamically at run time. To suppress warnings, pylint: disable=no-member
 
-import collections
 import copy
 import importlib
 import inspect
@@ -80,7 +79,6 @@ class ServiceProcess(protocol.ProcessProtocol):
 
   Attributes:
     config: process configuration, check SetConfig() for detail.
-    nonhash_args: list of args ignored when calculate config hash.
     restart_count: counts the service restarting within _STARTTIME_LIMIT.
     start_time: record external executable's start time.
     subprocess: twisted transport object to control spawned process.
@@ -88,7 +86,6 @@ class ServiceProcess(protocol.ProcessProtocol):
     state: process state text string defined in State class.
     process_name: process name shortcut.
     messages: stdout and stderr messages.
-    callbacks: a dict to store (callback, args, kwargs) tuples for each state.
   """
 
   def __init__(self, service):
@@ -102,7 +99,6 @@ class ServiceProcess(protocol.ProcessProtocol):
         'ext_args': [],
         'env': {},
         'restart': False})
-    self.nonhash_args = []
     self.restart_count = 0
     self.service = service
     self.subprocess = None
@@ -113,14 +109,8 @@ class ServiceProcess(protocol.ProcessProtocol):
     self.deferred_stop = None
     self.process_name = None
     self.messages = None
-    self.callbacks = collections.defaultdict(list)
     # Workaround timer for reaping process.
     self._timer = None
-
-  def __del__(self):
-    """Calls state hooks on destructing."""
-    for (cb, args, kwargs) in self.callbacks[State.DESTRUCTING]:
-      cb(*args, **kwargs)
 
   def __repr__(self):
     return repr(sorted(self.config.items()))
@@ -183,10 +173,6 @@ class ServiceProcess(protocol.ProcessProtocol):
       self.config[key] = value
 
     self.process_name = self.service.name + ':' + self.config.name
-
-  def SetNonhashArgs(self, args):
-    """Sets nonhash args."""
-    self.nonhash_args = args
 
   def CancelAllMonitors(self):
     if self.start_monitor is not None:
@@ -261,8 +247,7 @@ class ServiceProcess(protocol.ProcessProtocol):
     return self.deferred_stop
 
   def _SpawnProcess(self):
-    args = ([self.config.executable] + self.config.args + self.config.ext_args
-            + self.nonhash_args)
+    args = [self.config.executable] + self.config.args + self.config.ext_args
     self._Info('%s starting, executable %s args %r' %
                (self.process_name, self.config.executable, args))
     s = reactor.spawnProcess(
@@ -273,20 +258,6 @@ class ServiceProcess(protocol.ProcessProtocol):
         self.config.path,  # Process CWD.
         usePTY=True)
     self._Info('%r' % s)
-
-  def AddStateCallback(self, states, cb, *args, **kwargs):
-    """Attaches the callback to state change events.
-
-    Args:
-      states: one or more State.
-      cb: callback callable.
-    """
-    if not callable(cb):
-      raise common.UmpireError('Not a callable when adding callback: %s' % cb)
-    if not isinstance(states, list):
-      states = [states]
-    for state in states:
-      self.callbacks[state].append((cb, args, kwargs))
 
   # Twisted process protocol callbacks.
   def makeConnection(self, process):
@@ -376,8 +347,6 @@ class ServiceProcess(protocol.ProcessProtocol):
     else:
       logging.debug(message)
     self.state = state
-    for (cb, args, kwargs) in self.callbacks[state]:
-      cb(*args, **kwargs)
 
   def _LogData(self, msg):
     """Writes log messages to service handler.
@@ -614,19 +583,3 @@ def GetAllServiceNames():
     List of service name strings.
   """
   return _INSTANCE_MAP.keys()
-
-
-def FindServicesWithProperty(config, prop):
-  """Yields service instance that has specified property.
-
-  Args:
-    config: UmpireConfig object, or config dict.
-    prop: the property string to search.
-
-  Yields:
-    Service instance.
-  """
-  for service in config['services']:
-    instance = GetServiceInstance(service)
-    if instance.properties.get(prop):
-      yield instance

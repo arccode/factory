@@ -39,8 +39,6 @@ SESSION_JSON_FILE = 'session.json'
 
 # File name under base_dir
 _ACTIVE_UMPIRE_CONFIG = 'active_umpire.json'
-_UMPIRED_PID_FILE = 'umpired.pid'
-_UMPIRED_LOG_FILE = 'umpired.log'
 _UMPIRE_DATA_DIR = 'umpire_data'
 _RESOURCES_DIR = 'resources'
 _CONFIG_DIR = 'conf'

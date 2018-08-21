@@ -9,23 +9,6 @@ import logging
 
 from twisted.internet import defer
 
-import factory_common  # pylint: disable=unused-import
-from cros.factory.utils import type_utils
-
-
-class Registry(type_utils.AttrDict):
-  """Registry is a singleton class that inherits from AttrDict.
-
-  Example:
-    config_file = Registry().get('active_config_file', None)
-    Registry().extend({
-      'abc': 123,
-      'def': 456
-    })
-    assertEqual(Registry().abc, 123)
-  """
-  __metaclass__ = type_utils.Singleton
-
 
 def ConcentrateDeferreds(deferred_list):
   """Collects results from list of deferreds.
