@@ -4,8 +4,6 @@
 
 """Umpire RPC base class."""
 
-import factory_common  # pylint: disable=unused-import
-
 
 def RPCCall(method):
   """Enables the method to be Umpire RPC function.

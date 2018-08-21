@@ -4,8 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Routines to modify keyboard LED state.
-"""
+"""Routines to modify keyboard LED state."""
 
 import ast
 import fcntl
@@ -13,8 +12,6 @@ import logging
 import os
 import sys
 import threading
-
-import factory_common  # pylint: disable=unused-import
 
 
 # Constants from /usr/include/linux/kd.h.

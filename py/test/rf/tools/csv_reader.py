@@ -17,8 +17,6 @@ import csv
 import logging
 import os
 
-import factory_common  # pylint: disable=unused-import
-
 KEY = '__key__'
 VALUE = '__value__'
 

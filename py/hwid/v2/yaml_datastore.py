@@ -8,8 +8,6 @@ import logging
 import os
 import yaml
 
-import factory_common  # pylint: disable=unused-import
-
 
 # Warning message prepended to all datastore files.
 DATA_FILE_WARNING_MESSAGE_HEADER = '''

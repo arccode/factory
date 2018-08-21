@@ -2,8 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common  # pylint: disable=unused-import
-
 
 def CreateFixture(class_name, params):
   """Initializes a fixture instance.

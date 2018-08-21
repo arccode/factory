@@ -11,8 +11,6 @@ import subprocess
 import threading
 import time
 
-import factory_common  # pylint: disable=unused-import
-
 
 class Environment(object):
   """Abstract base class for external test operations, e.g., shutdown or reboot.
