@@ -361,6 +361,7 @@ class _ServiceTest(object):
         'pass_quality': None,
         'pass_iperf_tx': None,
         'pass_iperf_rx': None,
+        'iw_connection_status': None,
         'failures': []}
     self._ui.SetState(_('Running, please wait...'))
 
@@ -433,6 +434,8 @@ class _ServiceTest(object):
                min_throughput=min_throughput)
       except self._TestException:
         pass  # continue to next test (TX/RX)
+
+    DoTest(self._LogConnectionSummaryStatus)
 
     # Attempt to disconnect from the WiFi network.
     try:
@@ -510,6 +513,11 @@ class _ServiceTest(object):
         'quality': self._ap.quality,
         'frequency': self._ap.frequency}
     return 'Saved connection information'
+
+  def _LogConnectionSummaryStatus(self):
+    # Save network ssid details.
+    self._log['iw_connection_status'] = self._conn.GetStatus()
+    return 'Saved connection summary status'
 
   def _RunIperf(
       self, iperf_host, bind_wifi, reverse, tx_rx, log_key,
@@ -910,19 +918,18 @@ class WiFiThroughput(test_case.TestCase):
 
     # Group checker and details for Testlog.
     self._group_checker = testlog.GroupParam(
-        'iperf_data',
-        ['tx_rx', 'ap_ssid', 'throughput', 'start_time', 'end_time'])
+        'connection_data',
+        ['log_type', 'ap_ssid', 'throughput', 'start_time', 'end_time',
+         'computed_rssi', 'antenna_rssi'])
     testlog.UpdateParam(
         'throughput', description='TX/RX throughput test on AP over time',
         value_unit='Bits/second')
-    testlog.UpdateParam(
-        'start_time', value_unit='seconds')
-    testlog.UpdateParam(
-        'end_time', value_unit='seconds')
-    testlog.UpdateParam(
-        'tx_rx', param_type=testlog.PARAM_TYPE.argument)
-    testlog.UpdateParam(
-        'ap_ssid', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('start_time', value_unit='seconds')
+    testlog.UpdateParam('end_time', value_unit='seconds')
+    testlog.UpdateParam('log_type', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('ap_ssid', param_type=testlog.PARAM_TYPE.argument)
+    testlog.UpdateParam('computed_rssi', value_unit='dBm')
+    testlog.UpdateParam('antenna_rssi', value_unit='dBm')
 
   def tearDown(self):
     logging.info('Tear down...')
@@ -985,22 +992,23 @@ class WiFiThroughput(test_case.TestCase):
                                   self.args.enable_iperf_server, self.ui,
                                   self.args.bind_wifi, self.args.use_ui_retry)
       for ap_config in self.args.services:
-        iperf_data = service_test.Run(ap_config)
-        self.log['test'][ap_config.ssid] = iperf_data
+        test_result = service_test.Run(ap_config)
+        self.log['test'][ap_config.ssid] = test_result
 
         # Log throughput data via testlog.
         for tx_rx in ('tx', 'rx'):
-          if 'intervals' in iperf_data['iperf_%s' % tx_rx]:
-            for interval in iperf_data['iperf_%s' % tx_rx]['intervals']:
-              with self._group_checker:
-                testlog.LogParam('ap_ssid', ap_config.ssid)
-                testlog.LogParam('tx_rx', tx_rx)
-                testlog.LogParam(
-                    'throughput', interval['sum']['bits_per_second'])
-                testlog.LogParam(
-                    'start_time', interval['sum']['start'])
-                testlog.LogParam(
-                    'end_time', interval['sum']['end'])
+          # pylint: disable=unsupported-membership-test
+          if 'intervals' in test_result['iperf_%s' % tx_rx]:
+            # pylint: disable=unsubscriptable-object
+            for interval in test_result['iperf_%s' % tx_rx]['intervals']:
+              self._LogParams(ap_config.ssid, tx_rx,
+                              throughput=interval['sum']['bits_per_second'],
+                              start_time=interval['sum']['start'],
+                              end_time=interval['sum']['end'])
+        self._LogParams(
+            ap_config.ssid, 'rssi',
+            computed_rssi=test_result['iw_connection_status'].signal.computed,
+            antenna_rssi=test_result['iw_connection_status'].signal.antenna)
 
     # Log this test run via event_log.
     self._Log()
@@ -1018,3 +1026,14 @@ class WiFiThroughput(test_case.TestCase):
       for (ssid, failure) in all_failures:
         session.console.error(failure)
       self.fail(error_msg)
+
+  def _LogParams(self, ap_ssid, log_type, throughput=None, start_time=None,
+                 end_time=None, computed_rssi=None, antenna_rssi=None):
+    with self._group_checker:
+      testlog.LogParam('ap_ssid', ap_ssid)
+      testlog.LogParam('log_type', log_type)
+      testlog.LogParam('throughput', throughput)
+      testlog.LogParam('start_time', start_time)
+      testlog.LogParam('end_time', end_time)
+      testlog.LogParam('computed_rssi', computed_rssi)
+      testlog.LogParam('antenna_rssi', antenna_rssi)

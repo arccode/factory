@@ -50,10 +50,10 @@ class Obj(object):
     return repr(self.__dict__)
 
   def __eq__(self, rhs):
-    return self.__dict__ == rhs.__dict__
+    return isinstance(rhs, Obj) and self.__dict__ == rhs.__dict__
 
   def __ne__(self, rhs):
-    return self.__dict__ != rhs.__dict__
+    return not self.__eq__(rhs)
 
 
 class Enum(frozenset):
@@ -202,9 +202,9 @@ class AttrDict(dict):
 
   @classmethod
   def _Convert(cls, obj):
-    if type(obj) is list:
+    if isinstance(obj, list):
       return [cls._Convert(val) for val in obj]
-    if type(obj) is dict:
+    if isinstance(obj, dict):
       return cls(obj)
     return obj
 

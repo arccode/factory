@@ -394,6 +394,37 @@ class WiFiChromeOS(WiFi):
     return Connection(*args, **kwargs)
 
 
+class ConnectionStatus(type_utils.Obj):
+  """A place holder for connection status.
+
+  Attributes:
+    signal: The current signal strength in type of
+        `ConnectionStatus.Signal`.
+    avg_signal: The average signal strength in type of
+        `ConnectionStatus.Signal`.
+    tx_bitrate: The bitrate of the TX channel.
+    rx_bitrate: The bitrate of the RX channel.
+  """
+  class Signal(type_utils.Obj):
+    def __init__(self, computed=None, antenna=None):
+      """A place holder for RSSI signals.
+
+      Attributes:
+        computed: The signal strength the module sees/calculates.
+        antenna: An array of the signal strengths of the antennas.
+      """
+      super(ConnectionStatus.Signal, self).__init__(computed=computed,
+                                                    antenna=antenna)
+
+  def __init__(
+      self, signal=None, avg_signal=None, tx_bitrate=None, rx_bitrate=None):
+    signal = signal or self.Signal()
+    avg_signal = avg_signal or self.Signal()
+    super(ConnectionStatus, self).__init__(
+        signal=signal, avg_signal=avg_signal, tx_bitrate=tx_bitrate,
+        rx_bitrate=rx_bitrate)
+
+
 class Connection(object):
   """Represents a connection to a particular AccessPoint."""
   DHCP_DHCPCD = 'dhcpcd'
@@ -401,6 +432,11 @@ class Connection(object):
   _CONNECT_TIMEOUT = 20
   _CONNECT_ATTEMPT_TIMEOUT = 10
   _DHCP_TIMEOUT = 10
+
+  _CONN_STATUS_SIGNALS_RE = re.compile(r'^\s*signal:.*$')
+  _CONN_STATUS_AVG_SIGNALS_RE = re.compile(r'^\s*signal avg:.*$')
+  _CONN_STATUS_TX_BITRATE_RE = re.compile(r'^\s*tx bitrate:.*$')
+  _CONN_STATUS_RX_BITRATE_RE = re.compile(r'^\s*rx bitrate:.*$')
 
   def __init__(self, dut, interface, ap, passkey,
                connect_timeout=None, connect_attempt_timeout=None,
@@ -520,6 +556,46 @@ class Connection(object):
     if not self._user_tmp_dir:
       self._tmp_dir_handle.__exit__(None, None, None)
       self._tmp_dir = None
+
+  def GetStatus(self):
+    def _ParseSignal(s):
+      try:
+        # the command output must looks like "  signal: -50 [-40 -60] dBm"
+        data = s.partition(':')[2].strip()
+        assert data.endswith('] dBm')
+        data = data[:-5].replace(' ', '')
+        computed, unused_sep, antenna = data.partition('[')
+        return ConnectionStatus.Signal(
+            int(computed), [int(a) for a in antenna.split(',')])
+      except Exception as e:
+        raise WiFiError('unexpected signal format: %r, %r' % (s, e))
+
+    def _ParseBitRate(s):
+      try:
+        # the command output must looks like "  tx bitrate: 400 MBit/s bla bla"
+        words = s.partition(':')[2].strip().split(' ')
+        assert words[1] == 'MBit/s'
+        return float(words[0])
+      except Exception as e:
+        raise WiFiError('unexpected tx_bitrate format: %r, %r' % (s, e))
+
+    try:
+      out = self._device.CheckOutput(['iw', self.interface, 'station', 'dump'])
+    except types.CalledProcessError as e:
+      raise WiFiError('unable to fetch the connection status: %r' % e)
+
+    ret = ConnectionStatus()
+    cases = [('signal', _ParseSignal, self._CONN_STATUS_SIGNALS_RE),
+             ('avg_signal', _ParseSignal, self._CONN_STATUS_AVG_SIGNALS_RE),
+             ('tx_bitrate', _ParseBitRate, self._CONN_STATUS_TX_BITRATE_RE),
+             ('rx_bitrate', _ParseBitRate, self._CONN_STATUS_RX_BITRATE_RE)]
+    for line in out.splitlines():
+      for attr_name, parse_func, regexp in cases:
+        if regexp.match(line):
+          setattr(ret, attr_name, parse_func(line))
+          break
+
+    return ret
 
   def _LeasedIP(self):
     """Returns current leased IP.
