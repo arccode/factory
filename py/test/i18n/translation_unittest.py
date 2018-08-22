@@ -58,10 +58,10 @@ class TranslationTest(unittest_test_case.I18nTestCase):
 
   def testTranslatedNoDefaultLocale(self):
     self.assertRaisesRegexp(
-        ValueError, "doesn't contains default locale",
+        ValueError, "doesn't contain the default locale",
         translation.Translated, {'zh-CN': 'zh'})
     self.assertRaisesRegexp(
-        ValueError, "doesn't contains default locale",
+        ValueError, "doesn't contain the default locale",
         translation.Translated, {'zh-CN': 'zh'}, translate=False)
 
   def testTranslatedUnicode(self):

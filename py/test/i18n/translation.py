@@ -103,9 +103,9 @@ def Translated(obj, translate=True):
   """
   if isinstance(obj, dict):
     if DEFAULT_LOCALE not in obj:
-      raise ValueError("%r doesn't contains default locale %s." % (
-          obj, DEFAULT_LOCALE))
-    default = obj.get(DEFAULT_LOCALE)
+      raise ValueError(
+          "%r doesn't contain the default locale %s." % (obj, DEFAULT_LOCALE))
+    default = obj[DEFAULT_LOCALE]
     obj = {
         locale: string_utils.DecodeUTF8(obj.get(locale, default))
         for locale in LOCALES

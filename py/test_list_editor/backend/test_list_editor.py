@@ -14,6 +14,7 @@ from jsonrpclib import SimpleJSONRPCServer
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
+from cros.factory.test.i18n import translation
 from cros.factory.test.test_lists import manager
 from cros.factory.test_list_editor.backend import common
 from cros.factory.test_list_editor.backend import rpc
@@ -91,6 +92,12 @@ def main():
     # TODO(youcheng): Pull static files automatically.
     raise RuntimeError('%r is required.' % common.STATIC_DIR)
   os.chdir(common.STATIC_DIR)
+
+  if not os.path.isdir(translation.LOCALE_DIR):
+    # TODO(youcheng): Provide an option to automatically build locale/.
+    logging.warn(
+        'Directory %r not found. There will be no i18n support.',
+        translation.LOCALE_DIR)
 
   server = Server(args.port, dirs)
   server.Start()

@@ -113,5 +113,5 @@ build:
 clean:
 	rm -rf $(TEMP_DIR) $(OUTPUT_DIR)
 
-.PHONY: init build update clean
+.PHONY: all update_pytest_list init update build clean
 .SUFFIXES: .po .mo

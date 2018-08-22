@@ -31,3 +31,9 @@ export type PytestArgType = PytestArgBasicType | PytestArgEnumType;
 export enum PytestArgBasicType {NONE, BOOL, INT, FLOAT, STR, LIST, DICT}
 
 export type PytestArgEnumType = string[];
+
+export type I18nType = string | I18nObject;
+
+export interface I18nObject {
+  [locale: string]: string;
+}

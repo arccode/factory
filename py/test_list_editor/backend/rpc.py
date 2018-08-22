@@ -10,6 +10,7 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
+from cros.factory.test import i18n
 from cros.factory.test.test_lists import manager
 from cros.factory.test.utils import pytest_utils
 from cros.factory.utils import config_utils
@@ -160,3 +161,6 @@ class RPC(object):
       args[arg.name] = arg_info
     res['args'] = args
     return res
+
+  def Translated(self, obj, translate):
+    return i18n.Translated(obj, translate=translate)

@@ -51,3 +51,7 @@ export const getPytestInfo =
   }
   return res;
 };
+
+export const translated =
+    (obj: common.I18nType, translate = true): Promise<common.I18nObject> =>
+    call('Translated', obj, translate);
