@@ -145,6 +145,9 @@ class Finalize(test_case.TestCase):
       Arg('upload_method', str,
           'Upload method for "gooftool finalize"',
           default=None),
+      Arg('upload_retry_interval', int,
+          'Retry interval in seconds between retries. 0 to prevent retry.',
+          default=None),
       Arg('enable_factory_server', bool,
           'Perform factory server operations: update HWID data and flush event '
           'logs.', default=True),
@@ -330,6 +333,8 @@ class Finalize(test_case.TestCase):
         command += ' --shopfloor_url "%s"' % server_url
 
     command += ' --upload_method "%s"' % upload_method
+    if self.args.upload_retry_interval is not None:
+      command += ' --upload_retry_interval %s' % self.args.upload_retry_interval
     command += ' --add_file "%s"' % self.test_states_path
     if self.args.hwid_need_vpd:
       command += ' --hwid-run-vpd'

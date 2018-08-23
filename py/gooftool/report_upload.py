@@ -91,6 +91,7 @@ def CurlCommand(curl_command, success_string=None, abort_string=None,
     success_string: String to be recognized as "uploaded successfully".
         For example: '226 Transfer complete'.
     abort_string: String to be recognized to abort retrying.
+    retry_interval: Duration (in seconds) between each retry (0 to disable).
   """
   if not curl_command:
     raise Error('CurlCommand: need parameters for curl.')
@@ -149,7 +150,7 @@ def CurlUrlUpload(source_path, params, **kargs):
   Args:
     source_path: File to upload.
     params: Parameters to be invoked with curl.
-    retry: Duration (in secnods) for retry.
+    retry_interval: Duration (in seconds) between each retry (0 to disable).
   """
   return CurlCommand('--ftp-ssl -T "%s" %s' % (source_path, params), **kargs)
 
@@ -160,7 +161,7 @@ def CpfeUpload(source_path, cpfe_url, **kargs):
   Args:
     source_path: File to upload.
     cpfe_url: URL to CPFE.
-    retry: Duration (in secnods) for retry.
+    retry_interval: Duration (in seconds) between each retry (0 to disable).
   """
   curl_command = '--form "report_file=@%s" %s' % (source_path, cpfe_url)
   CPFE_SUCCESS = 'CPFE upload: OK'
@@ -175,8 +176,8 @@ def FtpUpload(source_path, ftp_url, retry_interval=DEFAULT_RETRY_INTERVAL,
 
     source_path: File to upload.
     ftp_url: A ftp url in ftp://user@pass:host:port/path format.
-    retry_interval: A number in seconds for retry duration. 0 to prevent retry.
-    retry_timeout: A number in seconds for connection timeout.
+    retry_interval: Duration (in seconds) between each retry (0 to disable).
+    retry_timeout: Connection timeout (in seconds).
 
   Raises:
     GFTError: When input url is invalid, or if network issue without retry.

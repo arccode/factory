@@ -615,6 +615,9 @@ _upload_method_cmd_arg = CmdArg(
     '--upload_method', metavar='METHOD:PARAM',
     help=('How to perform the upload.  METHOD should be one of '
           '{ftp, shopfloor, ftps, cpfe}.'))
+_upload_retry_interval_arg = CmdArg(
+    '--upload_retry_interval', type=int, default=None,
+    help='Retry interval in seconds. 0 to prevent retry.')
 _add_file_cmd_arg = CmdArg(
     '--add_file', metavar='FILE', action='append',
     help='Extra file to include in report (must be an absolute path)')
@@ -622,6 +625,7 @@ _add_file_cmd_arg = CmdArg(
 
 @Command('upload_report',
          _upload_method_cmd_arg,
+         _upload_retry_interval_arg,
          _add_file_cmd_arg)
 def UploadReport(options):
   """Create a report containing key device details."""
@@ -637,16 +641,26 @@ def UploadReport(options):
     logging.warning('REPORT UPLOAD SKIPPED (report left at %s)', target_path)
     return
   method, param = options.upload_method.split(':', 1)
+
+  if options.upload_retry_interval is not None:
+    retry_interval = options.upload_retry_interval
+  else:
+    retry_interval = report_upload.DEFAULT_RETRY_INTERVAL
+
   if method == 'shopfloor':
     report_upload.ShopFloorUpload(
         target_path, param,
-        'GRT' if options.command_name == 'finalize' else None)
+        'GRT' if options.command_name == 'finalize' else None,
+        retry_interval=retry_interval)
   elif method == 'ftp':
-    report_upload.FtpUpload(target_path, 'ftp:' + param)
+    report_upload.FtpUpload(target_path, 'ftp:' + param,
+                            retry_interval=retry_interval)
   elif method == 'ftps':
-    report_upload.CurlUrlUpload(target_path, '--ftp-ssl-reqd ftp:%s' % param)
+    report_upload.CurlUrlUpload(target_path, '--ftp-ssl-reqd ftp:%s' % param,
+                                retry_interval=retry_interval)
   elif method == 'cpfe':
-    report_upload.CpfeUpload(target_path, pipes.quote(param))
+    report_upload.CpfeUpload(target_path, pipes.quote(param),
+                             retry_interval=retry_interval)
   else:
     raise Error('unknown report upload method %r' % method)
 
@@ -660,6 +674,7 @@ def UploadReport(options):
          _hwdb_path_cmd_arg,
          _hwid_status_list_cmd_arg,
          _upload_method_cmd_arg,
+         _upload_retry_interval_arg,
          _add_file_cmd_arg,
          _probe_results_cmd_arg,
          _hwid_cmd_arg,
