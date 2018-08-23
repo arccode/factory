@@ -615,9 +615,12 @@ _upload_method_cmd_arg = CmdArg(
     '--upload_method', metavar='METHOD:PARAM',
     help=('How to perform the upload.  METHOD should be one of '
           '{ftp, shopfloor, ftps, cpfe}.'))
+_upload_max_retry_times_arg = CmdArg(
+    '--upload_max_retry_times', type=int, default=0,
+    help='Number of tries to upload. 0 to retry infinitely.')
 _upload_retry_interval_arg = CmdArg(
     '--upload_retry_interval', type=int, default=None,
-    help='Retry interval in seconds. 0 to prevent retry.')
+    help='Retry interval in seconds.')
 _add_file_cmd_arg = CmdArg(
     '--add_file', metavar='FILE', action='append',
     help='Extra file to include in report (must be an absolute path)')
@@ -625,6 +628,7 @@ _add_file_cmd_arg = CmdArg(
 
 @Command('upload_report',
          _upload_method_cmd_arg,
+         _upload_max_retry_times_arg,
          _upload_retry_interval_arg,
          _add_file_cmd_arg)
 def UploadReport(options):
@@ -651,15 +655,19 @@ def UploadReport(options):
     report_upload.ShopFloorUpload(
         target_path, param,
         'GRT' if options.command_name == 'finalize' else None,
+        max_retry_times=options.upload_max_retry_times,
         retry_interval=retry_interval)
   elif method == 'ftp':
     report_upload.FtpUpload(target_path, 'ftp:' + param,
+                            max_retry_times=options.upload_max_retry_times,
                             retry_interval=retry_interval)
   elif method == 'ftps':
     report_upload.CurlUrlUpload(target_path, '--ftp-ssl-reqd ftp:%s' % param,
+                                max_retry_times=options.upload_max_retry_times,
                                 retry_interval=retry_interval)
   elif method == 'cpfe':
     report_upload.CpfeUpload(target_path, pipes.quote(param),
+                             max_retry_times=options.upload_max_retry_times,
                              retry_interval=retry_interval)
   else:
     raise Error('unknown report upload method %r' % method)
@@ -674,6 +682,7 @@ def UploadReport(options):
          _hwdb_path_cmd_arg,
          _hwid_status_list_cmd_arg,
          _upload_method_cmd_arg,
+         _upload_max_retry_times_arg,
          _upload_retry_interval_arg,
          _add_file_cmd_arg,
          _probe_results_cmd_arg,

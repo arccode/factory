@@ -22,12 +22,14 @@ from cros.factory.utils.type_utils import Error
 
 
 # Constants
+DEFAULT_MAX_RETRY_TIMES = 0
 DEFAULT_RETRY_INTERVAL = 60
 DEFAULT_RETRY_TIMEOUT = 30
 
 
-def RetryCommand(callback, message_prefix, interval):
-  """Retries running some commands until success.
+def RetryCommand(callback, message_prefix, max_retry_times, interval):
+  """Retries running some commands until success or fail `max_retry_times`
+     times.
 
   Args:
     callback: A callback function to execute specified command, and return
@@ -35,16 +37,29 @@ def RetryCommand(callback, message_prefix, interval):
               states, including two special values:
                 'message' to be logged, and 'abort' to return immediately.
     message_prefix: Prefix string to be displayed.
-    interval: Duration (in seconds) between each retry (0 to disable).
+    max_retry_times: Number of tries before raising an error (0 to retry
+                     infinitely).
+    interval: Duration (in seconds) between each retry.
+
+  Returns:
+    raises Error when the command fails `max_retry_times` times or aborted.
   """
   results = {}
+  tries = 0
   # Currently we do endless retry, if interval is assigned.
   while not callback(results):
     message = results.get('message', 'unknown')
     abort = results.get('abort', False)
-    if (not interval) or abort:
-      raise Error('%s: %s' % (message_prefix, message))
     logging.error('%s: %s', message_prefix, message)
+    if abort:
+      raise Error('Aborted.')
+    if max_retry_times:
+      tries += 1
+      logging.info('Failed %d times. %d tries left.',
+                   tries, max_retry_times - tries)
+      if tries == max_retry_times:
+        raise Error('Max number of tries reached.')
+
     for i in range(interval, 0, -1):
       if i % 10 == 0:
         sys.stderr.write(' Retry in %d seconds...\n' % i)
@@ -52,6 +67,7 @@ def RetryCommand(callback, message_prefix, interval):
 
 
 def ShopFloorUpload(source_path, remote_spec, stage,
+                    max_retry_times=DEFAULT_MAX_RETRY_TIMES,
                     retry_interval=DEFAULT_RETRY_INTERVAL):
   if '#' not in remote_spec:
     raise Error('ShopFloorUpload: need a valid parameter in URL#SN format.')
@@ -78,11 +94,13 @@ def ShopFloorUpload(source_path, remote_spec, stage,
       result['message'] = sys.exc_info()[1]
       result['abort'] = False
 
-  RetryCommand(ShopFloorCallback, 'ShopFloorUpload', interval=retry_interval)
+  RetryCommand(ShopFloorCallback, 'ShopFloorUpload',
+               max_retry_times=max_retry_times, interval=retry_interval)
   logging.info('ShopFloorUpload: successfully uploaded to: %s', remote_spec)
 
 
 def CurlCommand(curl_command, success_string=None, abort_string=None,
+                max_retry_times=DEFAULT_MAX_RETRY_TIMES,
                 retry_interval=DEFAULT_RETRY_INTERVAL):
   """Performs arbitrary curl command with retrying.
 
@@ -91,7 +109,9 @@ def CurlCommand(curl_command, success_string=None, abort_string=None,
     success_string: String to be recognized as "uploaded successfully".
         For example: '226 Transfer complete'.
     abort_string: String to be recognized to abort retrying.
-    retry_interval: Duration (in seconds) between each retry (0 to disable).
+    max_retry_times: Number of tries to execute the command (0 to retry
+                     infinitely).
+    retry_interval: Duration (in seconds) between each retry.
   """
   if not curl_command:
     raise Error('CurlCommand: need parameters for curl.')
@@ -140,7 +160,8 @@ def CurlCommand(curl_command, success_string=None, abort_string=None,
     result['message'] = message
     return return_value
 
-  RetryCommand(CurlCallback, 'CurlCommand', interval=retry_interval)
+  RetryCommand(CurlCallback, 'CurlCommand',
+               max_retry_times=max_retry_times, interval=retry_interval)
   logging.info('CurlCommand: successfully executed: %s', cmd)
 
 
@@ -150,7 +171,8 @@ def CurlUrlUpload(source_path, params, **kargs):
   Args:
     source_path: File to upload.
     params: Parameters to be invoked with curl.
-    retry_interval: Duration (in seconds) between each retry (0 to disable).
+    max_retry_times: Number of tries to upload (0 to retry infinitely).
+    retry_interval: Duration (in seconds) between each retry.
   """
   return CurlCommand('--ftp-ssl -T "%s" %s' % (source_path, params), **kargs)
 
@@ -161,7 +183,8 @@ def CpfeUpload(source_path, cpfe_url, **kargs):
   Args:
     source_path: File to upload.
     cpfe_url: URL to CPFE.
-    retry_interval: Duration (in seconds) between each retry (0 to disable).
+    max_retry_times: Number of tries to upload (0 to retry infinitely).
+    retry_interval: Duration (in seconds) between each retry.
   """
   curl_command = '--form "report_file=@%s" %s' % (source_path, cpfe_url)
   CPFE_SUCCESS = 'CPFE upload: OK'
@@ -170,13 +193,16 @@ def CpfeUpload(source_path, cpfe_url, **kargs):
                      abort_string=CPFE_ABORT, **kargs)
 
 
-def FtpUpload(source_path, ftp_url, retry_interval=DEFAULT_RETRY_INTERVAL,
+def FtpUpload(source_path, ftp_url,
+              max_retry_times=DEFAULT_MAX_RETRY_TIMES,
+              retry_interval=DEFAULT_RETRY_INTERVAL,
               retry_timeout=DEFAULT_RETRY_TIMEOUT):
   """Uploads the source file to a FTP url.
 
     source_path: File to upload.
     ftp_url: A ftp url in ftp://user@pass:host:port/path format.
-    retry_interval: Duration (in seconds) between each retry (0 to disable).
+    max_retry_times: Number of tries to upload (0 to retry infinitely).
+    retry_interval: Duration (in seconds) between each retry.
     retry_timeout: Connection timeout (in seconds).
 
   Raises:
@@ -226,7 +252,8 @@ def FtpUpload(source_path, ftp_url, retry_interval=DEFAULT_RETRY_INTERVAL,
       return False
     return True
 
-  RetryCommand(FtpCallback, 'FtpUpload', interval=retry_interval)
+  RetryCommand(FtpCallback, 'FtpUpload',
+               max_retry_times=max_retry_times, interval=retry_interval)
 
   # Ready for copying files
   logging.debug('FtpUpload: connected, uploading to %s...', path)
