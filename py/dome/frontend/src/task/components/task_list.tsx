@@ -2,26 +2,35 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {Card, CardActions, CardHeader} from 'material-ui/Card';
-import IconButton from 'material-ui/IconButton';
-import {grey700} from 'material-ui/styles/colors';
-import DismissIcon from 'material-ui/svg-icons/action/check-circle';
-import DeleteIcon from 'material-ui/svg-icons/action/delete';
-import CollapseIcon from 'material-ui/svg-icons/navigation/expand-less';
-import ExpandIcon from 'material-ui/svg-icons/navigation/expand-more';
+import Card from '@material-ui/core/Card';
+import {
+  createStyles,
+  Theme,
+  WithStyles,
+  withStyles,
+} from '@material-ui/core/styles';
 import React from 'react';
 import {connect} from 'react-redux';
 
 import {RootState} from '@app/types';
 
 import {cancelWaitingTaskAfter, dismissTask} from '../actions';
-import {isCancellable, isRunning} from '../constants';
 import {getAllTasks} from '../selectors';
-import {Task, TaskState} from '../types';
+import {Task} from '../types';
 
 import TaskComponent from './task_component';
+import TaskListHeader from './task_list_header';
 
-interface TaskListProps {
+const styles = (theme: Theme) => createStyles({
+  root: {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(25em, 1fr) 48px 48px 48px',
+    alignItems: 'center',
+    padding: `0 ${theme.spacing.unit}px`,
+  },
+});
+
+interface TaskListProps extends WithStyles<typeof styles> {
   tasks: Task[];
   cancelWaitingTaskAfter: (taskID: string) => any;
   dismissTask: (taskID: string) => any;
@@ -57,123 +66,40 @@ class TaskList extends React.Component<TaskListProps, TaskListState> {
   }
 
   render() {
-    const {tasks, cancelWaitingTaskAfter, dismissTask} = this.props;
+    const {tasks, cancelWaitingTaskAfter, dismissTask, classes} = this.props;
 
     if (tasks.length === 0) {
       return null;
     }
 
-    const counts = tasks.reduce((groups, {state}) => {
-      groups[state] = (groups[state] || 0) + 1;
-      return groups;
-    }, {} as {[state in TaskState]?: number});
-    const running = tasks.filter(({state}) => isRunning(state)).length;
-    const hasCancellableTask = tasks.some(({state}) => isCancellable(state));
-
-    const taskSummary = `${counts.WAITING || 0} waiting, ` +
-      `${running} running, ` +
-      `${counts.SUCCEEDED || 0} succeeded, ` +
-      `${counts.FAILED || 0} failed`;
-
     return (
-      <Card
-        containerStyle={{display: 'table'}}
-      >
-        {/* title bar */}
-        <div
-          style={{display: 'table-row'}}
-        >
-          <CardHeader
-            title="Tasks"
-            subtitle={taskSummary}
-            style={{
-              display: 'table-cell',
-              verticalAlign: 'middle',
-              padding: 12,
-            }}
+      <Card>
+        <div className={classes.root}>
+          <TaskListHeader
+            tasks={tasks}
+            cancelAllWaitingTasks={this.cancelAllWaitingTasks}
+            dismissAllSucceededTasks={this.dismissAllSucceededTasks}
+            collapsed={this.state.collapsed}
+            setCollapsed={this.setCollapsed}
           />
-          <CardActions
-            style={{
-              display: 'table-cell',
-              textAlign: 'right',
-              verticalAlign: 'middle',
-              padding: 0,
-            }}
-          >
-            {!this.state.collapsed &&
-              <>
-                <IconButton
-                  tooltip="cancel all waiting tasks"
-                  onClick={this.cancelAllWaitingTasks}
-                  style={{marginRight: 0}}
-                  iconStyle={{fill: grey700}}
-                  disabled={!hasCancellableTask}
-                >
-                  <DeleteIcon />
-                </IconButton>
-                <IconButton
-                  tooltip="dismiss all finished tasks"
-                  onClick={this.dismissAllSucceededTasks}
-                  style={{marginRight: 0}}
-                  iconStyle={{fill: 'green'}}
-                >
-                  <DismissIcon />
-                </IconButton>
-                <IconButton
-                  tooltip="collapse"
-                  style={{marginRight: 0}}
-                  onClick={() => this.setCollapsed(true)}
-                >
-                  <CollapseIcon />
-                </IconButton>
-              </>
-            }
-            {this.state.collapsed &&
-              <>
-                {/* two padding blank icons */}
-                <div
-                  style={{
-                    display: 'inline-block',
-                    width: 48,
-                    height: 1,
-                    marginRight: 0,
-                  }}
-                />
-                <div
-                  style={{
-                    display: 'inline-block',
-                    width: 48,
-                    height: 1,
-                    marginRight: 0,
-                  }}
-                />
-                <IconButton
-                  tooltip="expand"
-                  style={{marginRight: 0}}
-                  onClick={() => this.setCollapsed(false)}
-                >
-                  <ExpandIcon />
-                </IconButton>
-              </>
-            }
-          </CardActions>
-        </div>
 
-        {/* task list */}
-        {!this.state.collapsed &&
-          tasks.map(({taskID, state, description, progress}) => {
-            return (
-              <TaskComponent
-                key={taskID}
-                state={state}
-                description={description}
-                progress={progress}
-                cancel={() => cancelWaitingTaskAfter(taskID)}
-                dismiss={() => dismissTask(taskID)}
-                retry={() => this.retryTask(taskID)}
-              />
-            );
-          })}
+          {/* task list */}
+          {!this.state.collapsed &&
+            tasks.map(({taskID, state, description, progress}) => {
+              return (
+                <TaskComponent
+                  key={taskID}
+                  state={state}
+                  description={description}
+                  progress={progress}
+                  cancel={() => cancelWaitingTaskAfter(taskID)}
+                  dismiss={() => dismissTask(taskID)}
+                  retry={() => this.retryTask(taskID)}
+                />
+              );
+            })
+          }
+        </div>
       </Card>
     );
   }
@@ -188,4 +114,5 @@ const mapDispatchToProps = {
   dismissTask,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(TaskList);
+export default connect(mapStateToProps, mapDispatchToProps)(
+  withStyles(styles)(TaskList));

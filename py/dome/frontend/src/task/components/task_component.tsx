@@ -2,14 +2,21 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {CardText} from 'material-ui/Card';
-import CircularProgress from 'material-ui/CircularProgress';
-import IconButton from 'material-ui/IconButton';
-import {grey700} from 'material-ui/styles/colors';
-import RunningIcon from 'material-ui/svg-icons/action/autorenew';
-import DismissIcon from 'material-ui/svg-icons/action/check-circle';
-import DeleteIcon from 'material-ui/svg-icons/action/delete';
-import ErrorIcon from 'material-ui/svg-icons/alert/error';
+import CircularProgress from '@material-ui/core/CircularProgress';
+import green from '@material-ui/core/colors/green';
+import IconButton from '@material-ui/core/IconButton';
+import {
+  createStyles,
+  Theme,
+  withStyles,
+  WithStyles,
+} from '@material-ui/core/styles';
+import Tooltip from '@material-ui/core/Tooltip';
+import Typography from '@material-ui/core/Typography';
+import RunningIcon from '@material-ui/icons/Autorenew';
+import DismissIcon from '@material-ui/icons/CheckCircle';
+import DeleteIcon from '@material-ui/icons/Delete';
+import ErrorIcon from '@material-ui/icons/Error';
 import React from 'react';
 
 import {assertNotReachable} from '@common/utils';
@@ -17,7 +24,17 @@ import {assertNotReachable} from '@common/utils';
 import {isCancellable} from '../constants';
 import {TaskProgress, TaskState} from '../types';
 
-interface TaskProps {
+export const styles = (theme: Theme) => createStyles({
+  colorAction: {
+    fill: green[700],
+  },
+  description: {
+    padding: theme.spacing.unit,
+    gridColumnStart: 1,
+  },
+});
+
+interface TaskProps extends WithStyles<typeof styles> {
   state: TaskState;
   progress: TaskProgress;
   description: string;
@@ -37,105 +54,87 @@ const Task: React.SFC<TaskProps> = ({
   cancel,
   dismiss,
   retry,
+  classes,
 }) => {
   let actionButton;
   switch (state) {
     case 'WAITING':
       actionButton = (
-        <IconButton tooltip="waiting">
+        <IconButton color="inherit" disabled>
           <RunningIcon />
         </IconButton>
       );
       break;
     case 'RUNNING_UPLOAD_FILE':
       actionButton = (
-        <IconButton tooltip={formatProgress(progress)}>
-          <CircularProgress
-            mode="determinate"
-            max={progress.totalSize}
-            value={progress.uploadedSize}
-            size={20}
-          />
-        </IconButton>
+        <Tooltip title={formatProgress(progress)}>
+          <IconButton>
+            <CircularProgress
+              variant="static"
+              value={progress.uploadedSize / progress.totalSize * 100}
+              size={20}
+            />
+          </IconButton>
+        </Tooltip>
       );
       break;
     case 'RUNNING_WAIT_RESPONSE':
-      // There's a bug in the CircularProgress implementation, so if a
-      // determinate node is reused as indeterminate one, the animation would
-      // not be run. To prevent React from reusing the node from
-      // RUNNING_UPLOAD_FILE, we wrap the CircularProgress in an extra div.
       actionButton = (
-        <IconButton tooltip="Waiting response">
-          <div>
+        <Tooltip title="Waiting response">
+          <IconButton>
             <CircularProgress
-              mode="indeterminate"
+              variant="indeterminate"
               size={20}
             />
-          </div>
-        </IconButton>
+          </IconButton>
+        </Tooltip>
       );
       break;
     case 'SUCCEEDED':
       actionButton = (
-        <IconButton
-          tooltip="dismiss"
-          onClick={dismiss}
-          iconStyle={{fill: 'green'}}
-        >
-          <DismissIcon />
-        </IconButton>
+        <Tooltip title="dismiss">
+          <IconButton onClick={dismiss}>
+            <DismissIcon
+              color="action"
+              classes={{
+                colorAction: classes.colorAction,
+              }}
+            />
+          </IconButton>
+        </Tooltip>
       );
       break;
     case 'FAILED':
       actionButton = (
-        <IconButton
-          tooltip="retry"
-          onClick={retry}
-          iconStyle={{fill: 'red'}}
-        >
-          <ErrorIcon />
-        </IconButton>
+        <Tooltip title="retry">
+          <IconButton onClick={retry}>
+            <ErrorIcon color="error" />
+          </IconButton>
+        </Tooltip>
       );
       break;
     default:
       assertNotReachable(state);
   }
   return (
-    // TODO(littlecvr): refactor style attributes, use className if possible.
-    <CardText style={{display: 'table-row'}}>
-      <div
-        style={{
-          display: 'table-cell',
-          verticalAlign: 'middle',
-          padding: 12,
-        }}
-      >
+    <>
+      <Typography variant="body1" className={classes.description} >
         {description}
-      </div>
-      <div
-        style={{
-          display: 'table-cell',
-          textAlign: 'right',
-          verticalAlign: 'middle',
-        }}
-      >
-        <IconButton
-          tooltip="cancel"
-          onClick={cancel}
-          iconStyle={{fill: grey700}}
-          disabled={!isCancellable(state)}
-        >
-          <DeleteIcon />
-        </IconButton>
-        {actionButton}
-        <div
-          style={{
-            display: 'inline-block', width: 48, height: 1, marginRight: 0,
-          }}
-        />
-      </div>
-    </CardText>
+      </Typography>
+      <Tooltip title="cancel">
+        <div>
+          {/* We need an extra div so tooltip works when button is disabled. */}
+          <IconButton
+            onClick={cancel}
+            disabled={!isCancellable(state)}
+          >
+            <DeleteIcon />
+          </IconButton>
+        </div>
+      </Tooltip>
+      {actionButton}
+    </>
   );
 };
 
-export default Task;
+export default withStyles(styles)(Task);
