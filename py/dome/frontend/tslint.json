@@ -23,6 +23,7 @@
     "no-shadowed-variable": [true, {"import": false}],
     "no-this-assignment": true,
     "object-literal-sort-keys": false,
+    "object-literal-key-quotes": [true, "as-needed"],
     "only-arrow-functions": true,
     "ordered-imports": [true, {"grouped-imports": true}],
     "prefer-template": [true, "allow-single-concat"],

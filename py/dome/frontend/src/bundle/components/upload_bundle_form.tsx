@@ -5,7 +5,6 @@
 import React from 'react';
 import {connect} from 'react-redux';
 import {
-  Field,
   InjectedFormProps,
   reduxForm,
   submit,
@@ -15,9 +14,9 @@ import formDialog from '@app/form_dialog';
 import project from '@app/project';
 import {RootState} from '@app/types';
 import FileUploadDialog from '@common/components/file_upload_dialog';
+import ReduxFormTextField from '@common/components/redux_form_text_field';
 import {
   HiddenSubmitButton,
-  renderTextField,
   validateRequired,
 } from '@common/form';
 
@@ -33,13 +32,12 @@ interface FormData {
 const InnerFormComponent: React.SFC<InjectedFormProps<FormData>> =
   ({handleSubmit}) => (
     <form onSubmit={handleSubmit}>
-      <Field
+      <ReduxFormTextField
         name="name"
         label="New Bundle Name"
         validate={validateRequired}
-        component={renderTextField}
       />
-      <Field name="note" label="New Bundle Note" component={renderTextField} />
+      <ReduxFormTextField name="note" label="New Bundle Note" />
       <HiddenSubmitButton />
     </form>
   );

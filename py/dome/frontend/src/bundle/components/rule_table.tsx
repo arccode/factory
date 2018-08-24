@@ -2,20 +2,35 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import grey from '@material-ui/core/colors/grey';
+import {
+  createStyles,
+  Theme,
+  withStyles,
+  WithStyles,
+} from '@material-ui/core/styles';
 import produce from 'immer';
 import ChipInput from 'material-ui-chip-input';
-import {
-  Table,
-  TableBody,
-  TableHeaderColumn,
-  TableRow,
-  TableRowColumn,
-} from 'material-ui/Table';
 import React from 'react';
 
 import {RuleKey, Rules} from '../types';
 
-interface RuleTableProps {
+const styles = (theme: Theme) => createStyles({
+  root: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 2fr',
+    width: '100%',
+  },
+  cell: {
+    padding: theme.spacing.unit,
+    display: 'flex',
+    alignItems: 'center',
+    borderBottom: `1px solid ${grey[300]}`,
+    fontSize: theme.typography.pxToRem(13),
+  },
+});
+
+interface RuleTableProps extends WithStyles<typeof styles> {
   rules: Partial<Rules>;
   changeRules: (rules: Partial<Rules>) => void;
 }
@@ -41,47 +56,37 @@ class RuleTable extends React.Component<RuleTableProps> {
   }
 
   render() {
-    const {rules} = this.props;
+    const {rules, classes} = this.props;
 
     return (
-      <Table selectable={false}>
-        <TableBody displayRowCheckbox={false}>
-          <TableRow>
-            <TableHeaderColumn>MAC</TableHeaderColumn>
-            <TableRowColumn>
-              <ChipInput
-                value={rules.macs || []}
-                onRequestAdd={(m) => this.handleAdd('macs', m)}
-                onRequestDelete={(m) => this.handleDelete('macs', m)}
-              />
-            </TableRowColumn>
-          </TableRow>
-          <TableRow>
-            <TableHeaderColumn>SN</TableHeaderColumn>
-            <TableRowColumn>
-              <ChipInput
-                value={rules.serialNumbers || []}
-                onRequestAdd={(s) => this.handleAdd('serialNumbers', s)}
-                onRequestDelete={(s) => this.handleDelete('serialNumbers', s)}
-              />
-            </TableRowColumn>
-          </TableRow>
-          <TableRow>
-            <TableHeaderColumn>MLB SN</TableHeaderColumn>
-            <TableRowColumn>
-              <ChipInput
-                value={rules.mlbSerialNumbers || []}
-                onRequestAdd={(s) => this.handleAdd('mlbSerialNumbers', s)}
-                onRequestDelete={
-                  (s) => this.handleDelete('mlbSerialNumbers', s)
-                }
-              />
-            </TableRowColumn>
-          </TableRow>
-        </TableBody>
-      </Table>
+      <div className={classes.root}>
+        <div className={classes.cell}>MAC</div>
+        <div className={classes.cell}>
+          <ChipInput
+            value={rules.macs || []}
+            onAdd={(m) => this.handleAdd('macs', m)}
+            onDelete={(m) => this.handleDelete('macs', m)}
+          />
+        </div>
+        <div className={classes.cell}>SN</div>
+        <div className={classes.cell}>
+          <ChipInput
+            value={rules.serialNumbers || []}
+            onAdd={(s) => this.handleAdd('serialNumbers', s)}
+            onDelete={(s) => this.handleDelete('serialNumbers', s)}
+          />
+        </div>
+        <div className={classes.cell}>MLB SN</div>
+        <div className={classes.cell}>
+          <ChipInput
+            value={rules.mlbSerialNumbers || []}
+            onAdd={(s) => this.handleAdd('mlbSerialNumbers', s)}
+            onDelete={(s) => this.handleDelete('mlbSerialNumbers', s)}
+          />
+        </div>
+      </div>
     );
   }
 }
 
-export default RuleTable;
+export default withStyles(styles)(RuleTable);

@@ -8,11 +8,6 @@ import {
   createMuiTheme,
   MuiThemeProvider,
 } from '@material-ui/core/styles';
-import {indigo500} from 'material-ui/styles/colors';
-import getMuiTheme from 'material-ui/styles/getMuiTheme';
-import {
-  default as V0MuiThemeProvider,
-} from 'material-ui/styles/MuiThemeProvider';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {Provider} from 'react-redux';
@@ -23,12 +18,6 @@ import thunkMiddleware from 'redux-thunk';
 import DomeApp from '@app/dome_app/components/dome_app';
 
 import rootReducer from './root_reducer';
-
-const V0THEME = {
-  palette: {
-    primary1Color: indigo500,
-  },
-};
 
 const THEME = {
   palette: {
@@ -57,11 +46,9 @@ ReactDOM.render(
   <>
     <CssBaseline />
     <MuiThemeProvider theme={createMuiTheme(THEME)}>
-      <V0MuiThemeProvider muiTheme={getMuiTheme(V0THEME)}>
-        <Provider store={store}>
-          <DomeApp />
-        </Provider>
-      </V0MuiThemeProvider>
+      <Provider store={store}>
+        <DomeApp />
+      </Provider>
     </MuiThemeProvider>
   </>,
   document.getElementById('app'),

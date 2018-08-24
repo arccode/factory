@@ -7,9 +7,10 @@ declare module 'material-ui-chip-input' {
   import React from 'react';
 
   interface ChipInputProps {
+    className?: string;
     value: string[];
-    onRequestAdd(chip: string): void;
-    onRequestDelete(chip: string, index: number): void;
+    onAdd(chip: string): void;
+    onDelete(chip: string, index: number): void;
   }
 
   // A simple type for material-ui-chip-input that only have attributes that we

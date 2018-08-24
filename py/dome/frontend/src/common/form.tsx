@@ -2,34 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {default as V0TextField} from 'material-ui/TextField';
 import React from 'react';
-import {WrappedFieldProps} from 'redux-form';
-
-interface RenderTextFieldProps {
-  label: string;
-  type?: string;
-  hintText?: string;
-}
-
-// TODO(pihsun): Remove this and rename renderTextFieldV1 to renderTextField
-// after all caller are migrated to use Material-UI v1.
-export const renderTextField = ({
-  input,
-  label,
-  meta: {error, touched},
-  type = 'text',
-  hintText = '',
-}: RenderTextFieldProps & WrappedFieldProps) => (
-  <V0TextField
-    fullWidth
-    floatingLabelText={label}
-    type={type}
-    hintText={hintText}
-    errorText={touched && error}
-    {...input}
-  />
-);
 
 export const validateRequired = (value: any): string | undefined => (
   value ? undefined : 'Required'

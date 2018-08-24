@@ -2,13 +2,25 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import {Card, CardHeader, CardText, CardTitle} from 'material-ui/Card';
-import IconButton from 'material-ui/IconButton';
-import DeleteIcon from 'material-ui/svg-icons/action/delete';
-import DragHandleIcon from 'material-ui/svg-icons/editor/drag-handle';
-import ChosenIcon from 'material-ui/svg-icons/toggle/star';
-import UnchosenIcon from 'material-ui/svg-icons/toggle/star-border';
-import Toggle from 'material-ui/Toggle';
+import Card from '@material-ui/core/Card';
+import CardContent from '@material-ui/core/CardContent';
+import Collapse from '@material-ui/core/Collapse';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import IconButton from '@material-ui/core/IconButton';
+import {
+  createStyles,
+  Theme,
+  withStyles,
+  WithStyles,
+} from '@material-ui/core/styles';
+import Switch from '@material-ui/core/Switch';
+import Tooltip from '@material-ui/core/Tooltip';
+import Typography from '@material-ui/core/Typography';
+import DeleteIcon from '@material-ui/icons/Delete';
+import DragHandleIcon from '@material-ui/icons/DragHandle';
+import StarIcon from '@material-ui/icons/Star';
+import StarBorderIcon from '@material-ui/icons/StarBorder';
+import classNames from 'classnames';
 import React from 'react';
 import {connect} from 'react-redux';
 import {SortableHandle} from 'react-sortable-hoc';
@@ -31,21 +43,41 @@ import ResourceTable from './resources_table';
 import RuleTable from './rule_table';
 
 const DragHandle = SortableHandle(() => (
-  <IconButton
-    tooltip="move this bundle"
-    style={{cursor: 'move'}}
-    onClick={(e) => e.stopPropagation()}
-  >
-    <DragHandleIcon />
-  </IconButton>
+  <Tooltip title="move this bundle">
+    <IconButton disableRipple style={{cursor: 'move'}}>
+      <DragHandleIcon />
+    </IconButton>
+  </Tooltip>
 ));
+
+const styles = (theme: Theme) => createStyles({
+  root: {
+    marginBottom: theme.spacing.unit * 2,
+  },
+  inactive: {
+    opacity: 0.3,
+  },
+  header: {
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  headerText: {
+    flex: 1,
+  },
+  activeSwitch: {
+    marginLeft: 0,
+    marginRight: theme.spacing.unit * 2,
+  },
+});
 
 export interface BundleComponentOwnProps {
   bundle: Bundle;
   bundles: Bundle[];
 }
 
-interface BundleComponentProps extends BundleComponentOwnProps {
+interface BundleComponentProps
+  extends BundleComponentOwnProps, WithStyles<typeof styles> {
   activateBundle: (name: string, active: boolean) => any;
   changeBundleRules: (name: string, rules: Partial<Rules>) => any;
   deleteBundle: (name: string) => any;
@@ -82,11 +114,8 @@ class BundleComponent extends React.Component<BundleComponentProps> {
       deleteBundle,
       setBundleAsNetboot,
       changeBundleRules,
+      classes,
     } = this.props;
-
-    const INACTIVE_STYLE = {
-      opacity: 0.3,
-    };
 
     // Disable the toggle when there's only one active bundle left.
     const toggleDisabled =
@@ -94,41 +123,28 @@ class BundleComponent extends React.Component<BundleComponentProps> {
 
     return (
       <Card
-        className="bundle"
-        expanded={expanded}
-        containerStyle={bundle.active ? {} : INACTIVE_STYLE}
+        className={classNames(classes.root, !bundle.active && classes.inactive)}
       >
-        <CardTitle
-          title={bundle.name}
-          subtitle={bundle.note}
-          style={{cursor: 'pointer'}}
-          // @ts-ignore The type for material-ui does not contain DOM
-          // attributes, but the implementation actually pass all other props
-          // onto the root div itself.
-          // TODO(pihsun): This should be solved after we upgrade to use
-          // Material-UI v1.
-          onClick={this.toggleExpand}
-        >
-          {/* TODO(littlecvr): top and right should be calculated */}
-          <div style={{position: 'absolute', top: 18, right: 18}}>
-            <div
-              style={{display: 'inline-block'}}
-              onClick={(e) => {
-                e.stopPropagation();
-                this.handleActivate();
-              }}
-            >
-              <Toggle
-                label={bundle.active ? 'ACTIVE' : 'INACTIVE'}
-                toggled={bundle.active}
-                disabled={toggleDisabled}
-              />
-            </div>
-            {/* make some space */}
-            <div style={{display: 'inline-block', width: 48}} />
-            <DragHandle />
+        <CardContent className={classes.header} onClick={this.toggleExpand}>
+          <div className={classes.headerText}>
+            <Typography variant="headline">{bundle.name}</Typography>
+            <Typography variant="caption">{bundle.note}</Typography>
+          </div>
+          <FormControlLabel
+            control={<Switch
+              color="primary"
+              checked={bundle.active}
+              disabled={toggleDisabled}
+            />}
+            label={bundle.active ? 'ACTIVE' : 'INACTIVE'}
+            labelPlacement="start"
+            onClick={(e) => e.stopPropagation()}
+            onChange={this.handleActivate}
+            className={classes.activeSwitch}
+          />
+          <DragHandle />
+          <Tooltip title="delete this bundle">
             <IconButton
-              tooltip="delete this bundle"
               onClick={(e) => {
                 e.stopPropagation();
                 deleteBundle(bundle.name);
@@ -136,32 +152,35 @@ class BundleComponent extends React.Component<BundleComponentProps> {
             >
               <DeleteIcon />
             </IconButton>
+          </Tooltip>
+          <Tooltip title="use this bundle's netboot resource">
             <IconButton
-              tooltip="use this bundle's netboot resource"
               onClick={(e) => {
                 e.stopPropagation();
                 setBundleAsNetboot(bundle.name, projectName);
               }}
             >
               {(projectNetbootBundle === bundle.name) ?
-                <ChosenIcon /> :
-                <UnchosenIcon />}
+                <StarIcon /> :
+                <StarBorderIcon />}
             </IconButton>
-          </div>
-        </CardTitle>
-        <CardHeader title="RESOURCES" expandable />
-        <CardText expandable>
-          <ResourceTable bundle={bundle} />
-        </CardText>
-        <CardHeader title="RULES" expandable />
-        <CardText expandable>
-          <RuleTable
-            rules={bundle.rules}
-            changeRules={
-              (rules) => changeBundleRules(bundle.name, rules)
-            }
-          />
-        </CardText>
+          </Tooltip>
+        </CardContent>
+        <Collapse in={expanded}>
+          <CardContent>
+            <Typography variant="subheading" gutterBottom>RESOURCES</Typography>
+            <ResourceTable bundle={bundle} />
+          </CardContent>
+          <CardContent>
+            <Typography variant="subheading" gutterBottom>RULES</Typography>
+            <RuleTable
+              rules={bundle.rules}
+              changeRules={
+                (rules) => changeBundleRules(bundle.name, rules)
+              }
+            />
+          </CardContent>
+        </Collapse>
       </Card>
     );
   }
@@ -184,4 +203,5 @@ const mapDispatchToProps = {
   setBundleAsNetboot,
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(BundleComponent);
+export default connect(mapStateToProps, mapDispatchToProps)(
+  withStyles(styles)(BundleComponent));

@@ -2,15 +2,16 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import RaisedButton from 'material-ui/RaisedButton';
+import Button from '@material-ui/core/Button';
+import grey from '@material-ui/core/colors/grey';
 import {
-  Table,
-  TableBody,
-  TableHeader,
-  TableHeaderColumn,
-  TableRow,
-  TableRowColumn,
-} from 'material-ui/Table';
+  createStyles,
+  Theme,
+  withStyles,
+  WithStyles,
+} from '@material-ui/core/styles';
+import Typography from '@material-ui/core/Typography';
+import classNames from 'classnames';
 import React from 'react';
 import {connect} from 'react-redux';
 
@@ -19,61 +20,89 @@ import formDialog from '@app/form_dialog';
 import {UPDATE_RESOURCE_FORM} from '../constants';
 import {Bundle} from '../types';
 
-interface ResourceTableProps {
+const styles = (theme: Theme) => createStyles({
+  root: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 2fr auto',
+    width: '100%',
+  },
+  cell: {
+    padding: theme.spacing.unit,
+    overflowX: 'auto',
+    '&::-webkit-scrollbar': {
+      height: theme.spacing.unit * 0.75,
+      backgroundColor: grey[300],
+    },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: grey[500],
+    },
+    display: 'flex',
+    alignItems: 'center',
+    borderBottom: `1px solid ${grey[300]}`,
+    fontSize: theme.typography.pxToRem(13),
+  },
+  actionColumn: {
+    justifyContent: 'center',
+  },
+});
+
+interface ResourceTableProps extends WithStyles<typeof styles> {
   openUpdateResourceForm: (name: string, key: string, type: string) => any;
   bundle: Bundle;
 }
 
 class ResourceTable extends React.Component<ResourceTableProps> {
   render() {
-    const {bundle: {name, resources}, openUpdateResourceForm} = this.props;
+    const {
+      bundle: {name, resources},
+      openUpdateResourceForm,
+      classes,
+    } = this.props;
 
     return (
-      <Table selectable={false}>
-        {/* Checkboxes will be displayed by default in Material-UI, prevent
-            Material-UI from showing them. */}
-        <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
-          <TableRow>
-            <TableHeaderColumn>resource</TableHeaderColumn>
-            <TableHeaderColumn>version</TableHeaderColumn>
-            <TableHeaderColumn>actions</TableHeaderColumn>
-          </TableRow>
-        </TableHeader>
-        <TableBody displayRowCheckbox={false}>
-          {Object.keys(resources).sort().map((key) => {
-            const resource = resources[key];
+      <div className={classes.root}>
+        <div className={classes.cell}>
+          <Typography variant="caption">
+            resource
+          </Typography>
+        </div>
+        <div className={classes.cell}>
+          <Typography variant="caption">
+            version
+          </Typography>
+        </div>
+        <div
+          className={classNames(classes.cell, classes.actionColumn)}
+        >
+          <Typography variant="caption">
+            actions
+          </Typography>
+        </div>
+        {Object.keys(resources).sort().map((key) => {
+          const resource = resources[key];
 
-            // Version string often exceeds the width of the cell, and the
-            // default behavior of TableRowColumn is to clip it. We need to make
-            // sure that the user can see the full string.
-            const style: React.CSSProperties = {
-              whiteSpace: 'normal',
-              wordWrap: 'break-word',
-            };
-
-            return (
-              <TableRow key={resource.type}>
-                <TableRowColumn style={style}>
-                  {resource.type}
-                </TableRowColumn>
-                <TableRowColumn style={style}>
-                  {resource.version}
-                </TableRowColumn>
-                <TableRowColumn>
-                  {
-                    <RaisedButton
-                      label="update"
-                      onClick={
-                        () => openUpdateResourceForm(name, key, resource.type)
-                      }
-                    />
+          return (
+            <React.Fragment key={resource.type}>
+              <div className={classes.cell}>
+                {resource.type}
+              </div>
+              <div className={classes.cell}>
+                {resource.version}
+              </div>
+              <div className={classes.cell}>
+                <Button
+                  variant="outlined"
+                  onClick={
+                    () => openUpdateResourceForm(name, key, resource.type)
                   }
-                </TableRowColumn>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                >
+                  update
+                </Button>
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
     );
   }
 }
@@ -93,4 +122,5 @@ const mapDispatchToProps = {
     ),
 };
 
-export default connect(null, mapDispatchToProps)(ResourceTable);
+export default connect(null, mapDispatchToProps)(
+  withStyles(styles)(ResourceTable));

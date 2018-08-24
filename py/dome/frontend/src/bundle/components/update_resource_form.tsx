@@ -6,7 +6,6 @@ import dateFormat from 'dateformat';
 import React from 'react';
 import {connect} from 'react-redux';
 import {
-  Field,
   InjectedFormProps,
   reduxForm,
   submit,
@@ -16,7 +15,8 @@ import formDialog from '@app/form_dialog';
 import project from '@app/project';
 import {RootState} from '@app/types';
 import FileUploadDialog from '@common/components/file_upload_dialog';
-import {renderTextField, validateRequired} from '@common/form';
+import ReduxFormTextField from '@common/components/redux_form_text_field';
+import {validateRequired} from '@common/form';
 
 import {startUpdateResource} from '../actions';
 import {UPDATE_RESOURCE_FORM} from '../constants';
@@ -33,13 +33,12 @@ interface FormData {
 const InnerFormComponent: React.SFC<InjectedFormProps<FormData>> =
   ({handleSubmit}) => (
     <form onSubmit={handleSubmit}>
-      <Field
+      <ReduxFormTextField
         name="name"
         label="New Bundle Name"
         validate={validateRequired}
-        component={renderTextField}
       />
-      <Field name="note" label="Note" component={renderTextField} />
+      <ReduxFormTextField name="note" label="Note" />
     </form>
   );
 

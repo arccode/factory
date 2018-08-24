@@ -2,9 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import Button from '@material-ui/core/Button';
 import Portal from '@material-ui/core/Portal';
-import FloatingActionButton from 'material-ui/FloatingActionButton';
-import ContentAdd from 'material-ui/svg-icons/content/add';
+import AddIcon from '@material-ui/icons/Add';
 import React from 'react';
 import {connect} from 'react-redux';
 
@@ -32,11 +32,13 @@ const BundlesApp: React.SFC<BundlesAppProps> =
       {/* upload button */}
       {overlay &&
         <Portal container={overlay}>
-          <FloatingActionButton
+          <Button
+            variant="fab"
+            color="primary"
             onClick={openUploadNewBundleForm}
           >
-            <ContentAdd />
-          </FloatingActionButton>
+            <AddIcon />
+          </Button>
         </Portal>
       }
     </>
