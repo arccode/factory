@@ -27,6 +27,10 @@ DEFAULT_RETRY_INTERVAL = 60
 DEFAULT_RETRY_TIMEOUT = 30
 
 
+class RetryError(Exception):
+  pass
+
+
 def RetryCommand(callback, message_prefix, max_retry_times, interval):
   """Retries running some commands until success or fail `max_retry_times`
      times.
@@ -40,9 +44,13 @@ def RetryCommand(callback, message_prefix, max_retry_times, interval):
     max_retry_times: Number of tries before raising an error (0 to retry
                      infinitely).
     interval: Duration (in seconds) between each retry.
+    allow_fail: Do not raise error when the command fails `max_retry_times`
+                times. Return False instead.
 
-  Returns:
-    raises Error when the command fails `max_retry_times` times or aborted.
+  Raises:
+    Error: When the command is aborted.
+    RetryError: When the command fails `max_retry_times` times.
+
   """
   results = {}
   tries = 0
@@ -58,7 +66,7 @@ def RetryCommand(callback, message_prefix, max_retry_times, interval):
       logging.info('Failed %d times. %d tries left.',
                    tries, max_retry_times - tries)
       if tries == max_retry_times:
-        raise Error('Max number of tries reached.')
+        raise RetryError('Max number of tries reached.')
 
     for i in range(interval, 0, -1):
       if i % 10 == 0:
@@ -68,7 +76,8 @@ def RetryCommand(callback, message_prefix, max_retry_times, interval):
 
 def ShopFloorUpload(source_path, remote_spec, stage,
                     max_retry_times=DEFAULT_MAX_RETRY_TIMES,
-                    retry_interval=DEFAULT_RETRY_INTERVAL):
+                    retry_interval=DEFAULT_RETRY_INTERVAL,
+                    allow_fail=False):
   if '#' not in remote_spec:
     raise Error('ShopFloorUpload: need a valid parameter in URL#SN format.')
   (server_url, _, serial_number) = remote_spec.partition('#')
@@ -94,14 +103,22 @@ def ShopFloorUpload(source_path, remote_spec, stage,
       result['message'] = sys.exc_info()[1]
       result['abort'] = False
 
-  RetryCommand(ShopFloorCallback, 'ShopFloorUpload',
-               max_retry_times=max_retry_times, interval=retry_interval)
-  logging.info('ShopFloorUpload: successfully uploaded to: %s', remote_spec)
+  try:
+    RetryCommand(ShopFloorCallback, 'ShopFloorUpload',
+                 max_retry_times=max_retry_times, interval=retry_interval)
+  except RetryError:
+    if allow_fail:
+      logging.info('ShopFloorUpload: skip uploading to: %s', remote_spec)
+    else:
+      raise Error('ShopFloorUpload: fail to upload to: %s' % remote_spec)
+  else:
+    logging.info('ShopFloorUpload: successfully uploaded to: %s', remote_spec)
 
 
 def CurlCommand(curl_command, success_string=None, abort_string=None,
                 max_retry_times=DEFAULT_MAX_RETRY_TIMES,
-                retry_interval=DEFAULT_RETRY_INTERVAL):
+                retry_interval=DEFAULT_RETRY_INTERVAL,
+                allow_fail=False):
   """Performs arbitrary curl command with retrying.
 
   Args:
@@ -112,6 +129,7 @@ def CurlCommand(curl_command, success_string=None, abort_string=None,
     max_retry_times: Number of tries to execute the command (0 to retry
                      infinitely).
     retry_interval: Duration (in seconds) between each retry.
+    allow_fail: Do not raise exception when upload fails.
   """
   if not curl_command:
     raise Error('CurlCommand: need parameters for curl.')
@@ -160,9 +178,16 @@ def CurlCommand(curl_command, success_string=None, abort_string=None,
     result['message'] = message
     return return_value
 
-  RetryCommand(CurlCallback, 'CurlCommand',
-               max_retry_times=max_retry_times, interval=retry_interval)
-  logging.info('CurlCommand: successfully executed: %s', cmd)
+  try:
+    RetryCommand(CurlCallback, 'CurlCommand',
+                 max_retry_times=max_retry_times, interval=retry_interval)
+  except RetryError:
+    if allow_fail:
+      logging.info('CurlCommand: skipped, max retry times reached: %s', cmd)
+    else:
+      raise Error('CurlCommand: failed to execute: %s' % cmd)
+  else:
+    logging.info('CurlCommand: successfully executed: %s', cmd)
 
 
 def CurlUrlUpload(source_path, params, **kargs):
@@ -173,6 +198,7 @@ def CurlUrlUpload(source_path, params, **kargs):
     params: Parameters to be invoked with curl.
     max_retry_times: Number of tries to upload (0 to retry infinitely).
     retry_interval: Duration (in seconds) between each retry.
+    allow_fail: Do not raise exception when upload fails.
   """
   return CurlCommand('--ftp-ssl -T "%s" %s' % (source_path, params), **kargs)
 
@@ -185,6 +211,7 @@ def CpfeUpload(source_path, cpfe_url, **kargs):
     cpfe_url: URL to CPFE.
     max_retry_times: Number of tries to upload (0 to retry infinitely).
     retry_interval: Duration (in seconds) between each retry.
+    allow_fail: Do not raise exception when upload fails.
   """
   curl_command = '--form "report_file=@%s" %s' % (source_path, cpfe_url)
   CPFE_SUCCESS = 'CPFE upload: OK'
@@ -196,7 +223,8 @@ def CpfeUpload(source_path, cpfe_url, **kargs):
 def FtpUpload(source_path, ftp_url,
               max_retry_times=DEFAULT_MAX_RETRY_TIMES,
               retry_interval=DEFAULT_RETRY_INTERVAL,
-              retry_timeout=DEFAULT_RETRY_TIMEOUT):
+              retry_timeout=DEFAULT_RETRY_TIMEOUT,
+              allow_fail=False):
   """Uploads the source file to a FTP url.
 
     source_path: File to upload.
@@ -204,6 +232,7 @@ def FtpUpload(source_path, ftp_url,
     max_retry_times: Number of tries to upload (0 to retry infinitely).
     retry_interval: Duration (in seconds) between each retry.
     retry_timeout: Connection timeout (in seconds).
+    allow_fail: Do not raise exception when upload fails.
 
   Raises:
     GFTError: When input url is invalid, or if network issue without retry.
@@ -252,14 +281,20 @@ def FtpUpload(source_path, ftp_url,
       return False
     return True
 
-  RetryCommand(FtpCallback, 'FtpUpload',
-               max_retry_times=max_retry_times, interval=retry_interval)
-
-  # Ready for copying files
-  logging.debug('FtpUpload: connected, uploading to %s...', path)
-  ftp.login(user=userid, passwd=passwd)
-  with open(source_path, 'rb') as fileobj:
-    ftp.storbinary('STOR %s' % path, fileobj)
-  logging.debug('FtpUpload: upload complete.')
-  ftp.quit()
-  logging.info('FtpUpload: successfully uploaded to %s', ftp_url)
+  try:
+    RetryCommand(FtpCallback, 'FtpUpload',
+                 max_retry_times=max_retry_times, interval=retry_interval)
+  except RetryError:
+    if allow_fail:
+      logging.info('FtpUpload: skip uploading to %s', ftp_url)
+    else:
+      raise Error('FtpUpload: fail to upload to %s' % ftp_url)
+  else:
+    # Ready for copying files
+    logging.debug('FtpUpload: connected, uploading to %s...', path)
+    ftp.login(user=userid, passwd=passwd)
+    with open(source_path, 'rb') as fileobj:
+      ftp.storbinary('STOR %s' % path, fileobj)
+    logging.debug('FtpUpload: upload complete.')
+    ftp.quit()
+    logging.info('FtpUpload: successfully uploaded to %s', ftp_url)

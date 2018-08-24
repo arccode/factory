@@ -621,6 +621,9 @@ _upload_max_retry_times_arg = CmdArg(
 _upload_retry_interval_arg = CmdArg(
     '--upload_retry_interval', type=int, default=None,
     help='Retry interval in seconds.')
+_upload_allow_fail_arg = CmdArg(
+    '--upload_allow_fail', action='store_true',
+    help='Continue finalize if report upload fails.')
 _add_file_cmd_arg = CmdArg(
     '--add_file', metavar='FILE', action='append',
     help='Extra file to include in report (must be an absolute path)')
@@ -630,6 +633,7 @@ _add_file_cmd_arg = CmdArg(
          _upload_method_cmd_arg,
          _upload_max_retry_times_arg,
          _upload_retry_interval_arg,
+         _upload_allow_fail_arg,
          _add_file_cmd_arg)
 def UploadReport(options):
   """Create a report containing key device details."""
@@ -656,19 +660,23 @@ def UploadReport(options):
         target_path, param,
         'GRT' if options.command_name == 'finalize' else None,
         max_retry_times=options.upload_max_retry_times,
-        retry_interval=retry_interval)
+        retry_interval=retry_interval,
+        allow_fail=options.upload_allow_fail)
   elif method == 'ftp':
     report_upload.FtpUpload(target_path, 'ftp:' + param,
                             max_retry_times=options.upload_max_retry_times,
-                            retry_interval=retry_interval)
+                            retry_interval=retry_interval,
+                            allow_fail=options.upload_allow_fail)
   elif method == 'ftps':
     report_upload.CurlUrlUpload(target_path, '--ftp-ssl-reqd ftp:%s' % param,
                                 max_retry_times=options.upload_max_retry_times,
-                                retry_interval=retry_interval)
+                                retry_interval=retry_interval,
+                                allow_fail=options.upload_allow_fail)
   elif method == 'cpfe':
     report_upload.CpfeUpload(target_path, pipes.quote(param),
                              max_retry_times=options.upload_max_retry_times,
-                             retry_interval=retry_interval)
+                             retry_interval=retry_interval,
+                             allow_fail=options.upload_allow_fail)
   else:
     raise Error('unknown report upload method %r' % method)
 
@@ -684,6 +692,7 @@ def UploadReport(options):
          _upload_method_cmd_arg,
          _upload_max_retry_times_arg,
          _upload_retry_interval_arg,
+         _upload_allow_fail_arg,
          _add_file_cmd_arg,
          _probe_results_cmd_arg,
          _hwid_cmd_arg,
