@@ -57,28 +57,13 @@ def ReadContent(response):
   return d
 
 
-class TestWebApplication(object):
+class TestWebApplication(wsgi.WebApp):
 
-  def __init__(self):
-    super(TestWebApplication, self).__init__()
-    self.session = None
-    self.callback = None
-
-  def GetPathInfo(self):
-    return '/foobar'
-
-  def __call__(self, environ, start_response):
-    session = wsgi.WSGISession(environ, start_response)
-    self.session = session
+  def Handle(self, session):
     logging.debug('test webapp is called: %s', session)
-    if callable(self.callback):
-      return self.callback(self.session)
     return session.Respond(
         '\n  - REQUEST_METHOD=%s\n  - remote_address=%s\n  - PATH_INFO=%s' %
         (session.REQUEST_METHOD, session.remote_address, session.PATH_INFO))
-
-  def SetCallback(self, cb):
-    self.callback = cb
 
 
 class TestCommand(object):
@@ -158,10 +143,10 @@ class DaemonTest(unittest.TestCase):
       self.assertIn('REQUEST_METHOD=GET', result['body'])
       return result
 
-    web_application = TestWebApplication()
-    self.daemon.AddWebApp(web_application.GetPathInfo(), web_application)
+    app = TestWebApplication()
+    self.daemon.AddWebApp('/foobar', app)
     self.daemon.BuildWebAppSite()
-    d = self.GET(web_application.GetPathInfo())
+    d = self.GET('/foobar')
     d.addCallback(_Callback)
     return d
 

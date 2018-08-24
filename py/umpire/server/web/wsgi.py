@@ -1,8 +1,6 @@
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-#
-# pylint: disable=no-member
 
 """WSGI session class.
 
@@ -151,3 +149,13 @@ class WebAppDispatcher(dict):
     except Exception:
       logging.exception('web app exception')
       return session.ServerError500()
+
+
+class WebApp(object):
+  """Web application class."""
+
+  def __call__(self, environ, start_response):
+    return self.Handle(WSGISession(environ, start_response))
+
+  def Handle(self, session):
+    raise NotImplementedError

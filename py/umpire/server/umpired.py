@@ -3,10 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Umpired implementation.
-
-This is a minimalist umpired implementation.
-"""
+"""Umpired implementation."""
 
 import glob
 import logging
@@ -39,26 +36,22 @@ def StartServer():
   # Instantiate Umpire daemon and set command handlers and webapp handler.
   umpired = daemon.UmpireDaemon(env)
   # Add command line handlers.
-  cli_commands = rpc_cli.CLICommand(umpired)
-  umpired.AddMethodForCLI(cli_commands)
+  umpired.AddMethodForCLI(rpc_cli.CLICommand(umpired))
   # Add root RPC handlers.
-  root_dut_rpc = rpc_dut.RootDUTCommands(umpired)
-  umpired.AddMethodForDUT(root_dut_rpc)
+  umpired.AddMethodForDUT(rpc_dut.RootDUTCommands(umpired))
   # Add Umpire RPC handlers.
-  umpire_dut_rpc = rpc_dut.UmpireDUTCommands(umpired)
-  umpired.AddMethodForDUT(umpire_dut_rpc)
+  umpired.AddMethodForDUT(rpc_dut.UmpireDUTCommands(umpired))
   # TODO(hungte) Change shopfloor service to a real Umpire service.
   # Add Shopfloor Service RPC handlers
-  shopfloor_service_rpc = rpc_dut.ShopfloorServiceDUTCommands(umpired)
-  umpired.AddMethodForDUT(shopfloor_service_rpc)
+  umpired.AddMethodForDUT(rpc_dut.ShopfloorServiceDUTCommands(umpired))
   # Add log RPC handlers.
-  log_dut_rpc = rpc_dut.LogDUTCommands(umpired)
-  umpired.AddMethodForDUT(log_dut_rpc)
+  umpired.AddMethodForDUT(rpc_dut.LogDUTCommands(umpired))
   # Add web applications.
-  resourcemap_webapp = webapp_resourcemap.ResourceMapApp(env)
-  umpired.AddWebApp(resourcemap_webapp.GetPathInfo(), resourcemap_webapp)
-  download_slots_webapp = webapp_download_slots.DownloadSlotsApp(env)
-  umpired.AddWebApp(download_slots_webapp.GetPathInfo(), download_slots_webapp)
+  umpired.AddWebApp(
+      webapp_resourcemap.PATH_INFO, webapp_resourcemap.ResourceMapApp(env))
+  umpired.AddWebApp(
+      webapp_download_slots.PATH_INFO,
+      webapp_download_slots.DownloadSlotsApp())
   # Start listening to command port and webapp port.
   umpired.Run()
 
