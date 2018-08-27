@@ -15,8 +15,13 @@ import {getAllTasks} from './selectors';
 import {TaskProgress, TaskResult, TaskState} from './types';
 
 const createTaskImpl = createAction('CREATE_TASK', (resolve) =>
-  (taskID: string, description: string, method: string, url: string) =>
-    resolve({taskID, description, method, url}));
+  (
+    taskID: string,
+    description: string,
+    method: string,
+    url: string,
+    debugBody: any,
+  ) => resolve({taskID, description, method, url, debugBody}));
 
 const dismissTaskImpl = createAction('DISMISS_TASK', (resolve) =>
   (taskID: string) => resolve({taskID}));
@@ -48,8 +53,30 @@ const filterFileFields = (obj: any): string[][] => {
   return result;
 };
 
-const getIn = (obj: any, path: string[]): any => {
-  return path.reduce((o, key) => o[key], obj);
+const getIn = (obj: any, path: string[]): any => (
+  path.reduce((o, key) => o[key], obj)
+);
+
+const setIn = (obj: any, path: string[], value: any): any => (
+  produce(obj, (draft) => {
+    const prefix = [...path];
+    const key = prefix.pop()!;
+    getIn(draft, prefix)[key] = value;
+  })
+);
+
+// Transform all file fields into string '<file_name> (<file_size> B)'.
+// This is for debug purpose only, since we log all redux actions by default.
+// We don't want to log the original File object, so Chrome can GC those File
+// objects when it's no longer needed.
+const makeDebugBody = (body: any): any => {
+  const fileFields = filterFileFields(body);
+  for (const path of fileFields) {
+    const file = getIn(body, path) as File;
+    const description = `${file.name} (${file.size} B)`;
+    body = setIn(body, path, description);
+  }
+  return body;
 };
 
 // Objects that cannot be serialized in the store.
@@ -65,10 +92,11 @@ export const runTask =
         // if all tasks before succeed, start this task now.
         const startNow =
           getAllTasks(getState()).every(({state}) => state === 'SUCCEEDED');
+        const debugBody = makeDebugBody(body);
 
         taskBodies[taskID] = body;
         taskResolves[taskID] = resolve;
-        dispatch(createTaskImpl(taskID, description, method, url));
+        dispatch(createTaskImpl(taskID, description, method, url, debugBody));
 
         if (startNow) {
           dispatch(runTaskImpl(taskID));
@@ -147,7 +175,7 @@ const runTaskImpl = (taskID: string) =>
         });
         data = produce(data, (draft) => {
           const prefix = [...path];
-          const key = prefix.pop() as string;
+          const key = prefix.pop()!;
           const obj = getIn(draft, prefix);
           delete obj[key];
           obj[`${key}Id`] = response.data.id;
