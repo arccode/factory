@@ -3,13 +3,16 @@
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe.functions import shell
+from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
 
-class VPDFunction(shell.ShellFunction):
+PARTITION = type_utils.Enum(['ro', 'rw'])
+
+
+class VPDFunction(cached_probe_function.LazyCachedProbeFunction):
   """Reads the information from VPD.
 
   Description
@@ -118,7 +121,7 @@ class VPDFunction(shell.ShellFunction):
       Arg('key', str,
           'The key of the result.  Can be specified only if the `fields` '
           'argument contains exact one element', default=None),
-      Arg('partition', type_utils.Enum(['ro', 'rw']),
+      Arg('partition', PARTITION,
           'The partition name to read, can be either "ro" or "rw"',
           default='ro')
   ]
@@ -130,9 +133,7 @@ class VPDFunction(shell.ShellFunction):
       raise ValueError('Key remap is only available in single field mode.')
 
   def Probe(self):
-    vpd_tool = sys_utils.VPDTool()
-    vpd_data = vpd_tool.GetAllData(
-        partition=getattr(vpd_tool, self.args.partition.upper() + '_PARTITION'))
+    vpd_data = super(VPDFunction, self).Probe()
 
     if not self.args.fields:
       return [vpd_data]
@@ -145,3 +146,18 @@ class VPDFunction(shell.ShellFunction):
       return [{self.args.key: vpd_data[self.args.fields[0]]}]
 
     return [{field: vpd_data[field] for field in self.args.fields}]
+
+  def GetCategoryFromArgs(self):
+    if self.args.partition not in PARTITION:
+      raise cached_probe_function.InvalidCategoryError(
+          'partition should be one of %r.', list(PARTITION))
+
+    return self.args.partition
+
+  @classmethod
+  def ProbeDevices(cls, category):
+    vpd_tool = sys_utils.VPDTool()
+    vpd_data = vpd_tool.GetAllData(
+        partition=getattr(vpd_tool, category.upper() + '_PARTITION'))
+
+    return vpd_data

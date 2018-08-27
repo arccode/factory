@@ -103,6 +103,11 @@ class LazyCachedProbeFunction(probe_function.ProbeFunction):
 
     return self._GetCachedProbedData(category)
 
+  @classmethod
+  def CleanCachedData(cls):
+    """Cleans the cached data, this method is mainly for unittesting."""
+    cls._CACHED_DEVICES = None
+
   def GetCategoryFromArgs(self):
     """Gets the category of the target devices from the function arguments.
 
