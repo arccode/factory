@@ -225,7 +225,21 @@
             "camera_cros"
           ]
         }
-      }
+      },
+      "keys": [
+        "bcdDevice",
+        "bus_type",
+        "device",
+        "idProduct",
+        "idVendor",
+        "iden",
+        "manufacturer",
+        "name",
+        "product",
+        "revision_id",
+        "type",
+        "vendor"
+      ]
     }
   },
   "wireless": {
