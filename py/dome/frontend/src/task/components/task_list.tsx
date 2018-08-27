@@ -13,6 +13,7 @@ import React from 'react';
 import {connect} from 'react-redux';
 
 import {RootState} from '@app/types';
+import {thinScrollBarY} from '@common/styles';
 
 import {cancelWaitingTaskAfter, dismissTask} from '../actions';
 import {getAllTasks} from '../selectors';
@@ -27,6 +28,17 @@ const styles = (theme: Theme) => createStyles({
     gridTemplateColumns: 'minmax(25em, 1fr) 48px 48px 48px',
     alignItems: 'center',
     padding: `0 ${theme.spacing.unit}px`,
+  },
+  // TODO(pihsun): We should be using CSS subgrid instead when browser support
+  // it, since the current implementation relies on having fixed width for
+  // button columns, and also make buttons not aligned when there's a
+  // scrollbar.
+  tasklist: {
+    gridColumn: '1 / -1',
+    display: 'inherit',
+    gridTemplateColumns: 'inherit',
+    maxHeight: '70vh',
+    ...thinScrollBarY,
   },
 });
 
@@ -83,22 +95,24 @@ class TaskList extends React.Component<TaskListProps, TaskListState> {
             setCollapsed={this.setCollapsed}
           />
 
-          {/* task list */}
-          {!this.state.collapsed &&
-            tasks.map(({taskID, state, description, progress}) => {
-              return (
-                <TaskComponent
-                  key={taskID}
-                  state={state}
-                  description={description}
-                  progress={progress}
-                  cancel={() => cancelWaitingTaskAfter(taskID)}
-                  dismiss={() => dismissTask(taskID)}
-                  retry={() => this.retryTask(taskID)}
-                />
-              );
-            })
-          }
+          <div className={classes.tasklist}>
+            {/* task list */}
+            {!this.state.collapsed &&
+              tasks.map(({taskID, state, description, progress}) => {
+                return (
+                  <TaskComponent
+                    key={taskID}
+                    state={state}
+                    description={description}
+                    progress={progress}
+                    cancel={() => cancelWaitingTaskAfter(taskID)}
+                    dismiss={() => dismissTask(taskID)}
+                    retry={() => this.retryTask(taskID)}
+                  />
+                );
+              })
+            }
+          </div>
         </div>
       </Card>
     );

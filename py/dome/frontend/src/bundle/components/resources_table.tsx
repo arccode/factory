@@ -16,6 +16,7 @@ import React from 'react';
 import {connect} from 'react-redux';
 
 import formDialog from '@app/form_dialog';
+import {thinScrollBarX} from '@common/styles';
 
 import {UPDATE_RESOURCE_FORM} from '../constants';
 import {Bundle} from '../types';
@@ -28,18 +29,11 @@ const styles = (theme: Theme) => createStyles({
   },
   cell: {
     padding: theme.spacing.unit,
-    overflowX: 'auto',
-    '&::-webkit-scrollbar': {
-      height: theme.spacing.unit * 0.75,
-      backgroundColor: grey[300],
-    },
-    '&::-webkit-scrollbar-thumb': {
-      backgroundColor: grey[500],
-    },
     display: 'flex',
     alignItems: 'center',
     borderBottom: `1px solid ${grey[300]}`,
     fontSize: theme.typography.pxToRem(13),
+    ...thinScrollBarX,
   },
   actionColumn: {
     justifyContent: 'center',
