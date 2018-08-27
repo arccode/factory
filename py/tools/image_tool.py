@@ -2025,7 +2025,7 @@ def main():
                       help='Verbose output')
   subparsers = parser.add_subparsers(title='subcommands')
 
-  verb = sys.argv[1]
+  verb = sys.argv[1] if (len(sys.argv) > 1) else None
 
   selected_command = None
   for unused_key, v in sorted(globals().items()):
