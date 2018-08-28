@@ -52,7 +52,7 @@ class AccelerometerController(types.DeviceComponent):
   Attributes:
     name: the name of the accelerometer, e.g., 'cros-ec-accel', or None.
       This will be used to lookup a matched name in
-      /sys/bus/iio/devices/iio:deviceX/location to get
+      /sys/bus/iio/devices/iio:deviceX/name to get
       the corresponding iio:deviceX.
       At least one of name or location must present.
 

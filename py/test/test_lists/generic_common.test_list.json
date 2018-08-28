@@ -264,6 +264,14 @@
     "Gyroscope": {
       "pytest_name": "gyroscope"
     },
+    "GyroscopeCalibration": {
+      "subtests": [
+        {
+          "pytest_name": "gyroscope_calibration"
+        },
+        "Gyroscope"
+      ]
+    },
     "HWButton": {
       "inherit": "TestGroup",
       "label": "Hardware Button",

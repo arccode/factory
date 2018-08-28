@@ -202,6 +202,10 @@ msgid "Gyroscope"
 msgstr "陀螺仪"
 
 #: ../build/pytests_label_generated.json
+msgid "Gyroscope Calibration"
+msgstr "陀螺仪校正"
+
+#: ../build/pytests_label_generated.json
 msgid "HWID"
 msgstr "HWID"
 
@@ -1068,7 +1072,6 @@ msgid "AC adapter type: {type}"
 msgstr "充电器型号: {type}"
 
 #: ../py/test/pytests/accelerometers_calibration.py
-#: ../py/test/pytests/gyroscope.py
 msgid ""
 "Please put device on a horizontal plane then press space to start "
 "calibration."
@@ -1834,16 +1837,32 @@ msgstr ""
 
 #: ../py/test/pytests/gyroscope.py
 msgid ""
-"Calibration will be started within {secs} seconds.Please do not move device."
-msgstr "测试程序即将于 {secs} 秒后开始，请勿移动待测物。"
+"Please put device on a horizontal plane then press space to start testing."
+msgstr "请将待测物放置于水平面上，并按空白键开始测试。"
 
 #: ../py/test/pytests/gyroscope.py
+msgid ""
+"Test will be started within {secs} seconds.Please do not move the device."
+msgstr "测试程序即将于 {secs} 秒后开始，请勿移动待测物。"
+
+#: ../py/test/pytests/gyroscope.py ../py/test/pytests/gyroscope_calibration.py
 msgid "Please do not move the device."
 msgstr "请勿移动待测物。"
 
 #: ../py/test/pytests/gyroscope.py
 msgid "Please rotate the device."
 msgstr "请转动待测物。"
+
+#: ../py/test/pytests/gyroscope_calibration.py
+msgid ""
+"Please put device on a static plane then press space to start calibration."
+msgstr "请将待测物放置于静止平面上，并按空白键开始校准。"
+
+#: ../py/test/pytests/gyroscope_calibration.py
+msgid ""
+"Calibration will be started within {secs} seconds.Please do not move the "
+"device."
+msgstr "校正程序即将于 {secs} 秒后开始，请勿移动待测物。"
 
 #: ../py/test/pytests/hwid.py
 #: ../py/test/pytests/verify_component_static/verify_component.html

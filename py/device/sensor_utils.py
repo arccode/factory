@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
+import os
 import time
 
 import factory_common  # pylint: disable=unused-import
@@ -65,8 +65,42 @@ class BasicSensorController(types.DeviceComponent):
     self.signal_names = signal_names
     self._iio_path = FindDevice(self._device, _IIO_DEVICES_PATTERN,
                                 name=name, location=location)
-    self.scale = 1.0 if not scale else float(
-        self._device.ReadFile(self._device.path.join(self._iio_path, 'scale')))
+    self.scale = 1.0 if not scale else float(self._GetSysfsValue('scale'))
+
+  def _GetSysfsValue(self, filename, path=None):
+    """Read the content of given path.
+
+    Args:
+      filename: name of the file to read.
+      path: Path to read the given filename, default to the path of
+        current iio device.
+
+    Returns:
+      A string as stripped contents, or None if error.
+    """
+    if path is None:
+      path = self._iio_path
+    try:
+      return self._device.ReadFile(os.path.join(path, filename)).strip()
+    except Exception:
+      pass
+
+  def _SetSysfsValue(self, filename, value, check_call=True, path=None):
+    """Assigns corresponding values to a list of sysfs.
+
+    Args:
+      filename: name of the file to write.
+      value: the value to be write.
+      path: Path to write the given filename, default to the path of
+        current iio device.
+    """
+    if path is None:
+      path = self._iio_path
+    try:
+      self._device.WriteFile(os.path.join(path, filename), value)
+    except Exception:
+      if check_call:
+        raise
 
   def GetData(self, capture_count=1, sample_rate=20):
     """Reads several records of raw data and returns the average.
@@ -82,8 +116,7 @@ class BasicSensorController(types.DeviceComponent):
     for _ in xrange(capture_count):
       time.sleep(1.0 / sample_rate)
       for signal_name in ret:
-        ret[signal_name] += float(self._device.ReadFile(
-            self._device.path.join(self._iio_path, signal_name + '_raw')))
+        ret[signal_name] += float(self._GetSysfsValue(signal_name + '_raw'))
     for signal_name in ret:
       ret[signal_name] *= self.scale
       ret[signal_name] /= capture_count

@@ -54,13 +54,13 @@ class Gyroscope(test_case.TestCase):
     if not self.args.autostart:
       self.ui.SetState(
           _('Please put device on a horizontal plane then press space to '
-            'start calibration.'))
+            'start testing.'))
       self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
     for i in xrange(self.args.setup_time_secs):
       self.ui.SetState(
-          _('Calibration will be started within {secs} seconds.'
-            'Please do not move device.',
+          _('Test will be started within {secs} seconds.'
+            'Please do not move the device.',
             secs=self.args.setup_time_secs - i))
       self.Sleep(1)
 
