@@ -64,10 +64,11 @@ import json
 import logging
 import os
 
+import yaml
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.hwid.v3 import hwid_utils
-from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test import device_data
 from cros.factory.test.i18n import _
 from cros.factory.test.rules import phase
@@ -78,6 +79,7 @@ from cros.factory.test.utils import update_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
+from cros.factory.utils import type_utils
 
 # If present, these files will override the project and probe results
 # (for testing).
@@ -167,7 +169,7 @@ class HWIDV3Test(test_case.TestCase):
     device_info_file = self._dut.path.join(self.tmpdir, 'device_info')
     device_info = device_data.GetAllDeviceData()
     with file_utils.UnopenedTemporaryFile() as f:
-      yaml.dump(device_info, open(f, 'w'))
+      yaml.dump(type_utils.UnicodeToString(device_info), open(f, 'w'))
       self._dut.SendFile(f, device_info_file)
 
     vpd_args = []
