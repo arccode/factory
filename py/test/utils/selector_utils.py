@@ -75,10 +75,10 @@ class ISelector(object):
     raise NotImplementedError
 
   def GetValue(self, key, default=_DEFAULT_NOT_SET):
-    return self[key].Get(default)
+    return self[key].Get(default=default)
 
   def __nonzero__(self):
-    return bool(self.Get(False))
+    return bool(self.Get(default=False))
 
 
 class DataShelfSelector(ISelector):
@@ -86,7 +86,6 @@ class DataShelfSelector(ISelector):
 
   data_shelf behaves like a recursive dictionary structure.  The
   DataShelfSelector helps you get data from this dictionary.
-
   """
   def __init__(self, proxy, key=''):
     """Constructor
@@ -100,22 +99,16 @@ class DataShelfSelector(ISelector):
 
   def SetValue(self, key, value):
     key = shelve_utils.DictKey.Join(self._key, key)
-
     self._proxy.data_shelf_set_value(key, value)
 
-  def GetValue(self, key, default=_DEFAULT_NOT_SET):
-    key = shelve_utils.DictKey.Join(self._key, key)
-
-    if default is _DEFAULT_NOT_SET or self._proxy.data_shelf_has_key(key):
-      return self._proxy.data_shelf_get_value(key, False)
+  def Get(self, default=_DEFAULT_NOT_SET):
+    if default is _DEFAULT_NOT_SET or self._proxy.data_shelf_has_key(self._key):
+      return self._proxy.data_shelf_get_value(self._key)
     else:
       return default
 
   def Set(self, value):
     self.SetValue('', value)
-
-  def Get(self, default=_DEFAULT_NOT_SET):
-    return self.GetValue('', default=default)
 
   def __getitem__(self, key):
     key = shelve_utils.DictKey.Join(self._key, key)
@@ -130,11 +123,9 @@ class DataShelfSelector(ISelector):
   def __contains__(self, key):
     return key in self._proxy.data_shelf_get_children(self._key)
 
-  def __nonzero__(self):
-    return bool(self.Get(default=False))
-
 
 class DictSelector(ISelector):
+
   def __init__(self, key='', value=_DEFAULT_NOT_SET):
     self.key = key
     self.value = value
