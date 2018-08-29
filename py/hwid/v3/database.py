@@ -438,6 +438,7 @@ class _NamedNumber(dict):
     Raises:
       common.HWIDException if failed.
     """
+    # pylint:disable=unsupported-membership-test
     if number not in self.NUMBER_RANGE:
       raise common.HWIDException('The %s should be one of %r, but got %r.' %
                                  (self.NUMBER_TAG, self.NUMBER_RANGE, number))
@@ -1097,8 +1098,7 @@ class Components(object):
     for existed_comp_name, existed_comp_info in self.GetComponents(
         comp_cls).iteritems():
       existed_comp_values = existed_comp_info.values
-      if (_IsSubDict(existed_comp_values, values) or
-          _IsSubDict(values, existed_comp_values)):
+      if values == existed_comp_values:
         logging.warning('Probed values %r is ambiguous with %r',
                         values, existed_comp_name)
         self._can_encode = False

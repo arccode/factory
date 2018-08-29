@@ -56,8 +56,8 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
       if not isinstance(value, Value):
         value = Value(value)
       if key not in probed_values or not value.Matches(probed_values[key]):
-        return False
-    return True
+        return False, None
+    return True, -len(comp_values)
 
   def _GetDefaultComponent(comp_cls):
     if allow_mismatched_components:
@@ -91,12 +91,16 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
       default_comp = _GetDefaultComponent(comp_cls)
 
       for probed_comp in probed_results.get(comp_cls, []):
+        matched_comp_name = None
+        matched_comp_score = float('-inf')
         for comp_name, comp_info in database.GetComponents(
             comp_cls, include_default=False).iteritems():
-          if _IsValuesMatch(probed_comp['values'], comp_info.values):
-            matched_components[comp_cls].append(comp_name)
-            break
-
+          is_matched, score = _IsValuesMatch(probed_comp['values'],
+                                             comp_info.values)
+          if is_matched and score > matched_comp_score:
+            matched_comp_name = comp_name
+        if matched_comp_name is not None:
+          matched_components[comp_cls].append(matched_comp_name)
         else:
           if default_comp is not None:
             matched_components[comp_cls].append(default_comp)

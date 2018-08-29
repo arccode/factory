@@ -25,6 +25,7 @@ components:
     items:
       comp_2_1: {values: {key: value1}}
       comp_2_2: {values: {key: value2}}
+      comp_2_2_extra_key: {values: {key: value2, key2: valuexxx}}
       comp_2_default: {values: null}
       comp_2_x: {status: unsupported, values: {key: valueX}}
 
