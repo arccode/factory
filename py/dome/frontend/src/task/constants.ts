@@ -15,3 +15,10 @@ export const isCancellable = (state: TaskState): boolean => {
 export const isRunning = (state: TaskState): boolean => {
   return state === 'RUNNING_UPLOAD_FILE' || state === 'RUNNING_WAIT_RESPONSE';
 };
+
+export class CancelledTaskError extends Error {
+  constructor() {
+    super('Task cancelled');
+    Object.setPrototypeOf(this, CancelledTaskError.prototype);
+  }
+}

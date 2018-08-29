@@ -4,10 +4,13 @@
 
 import {RootState} from '@app/types';
 
+import {displayedState} from '@common/optimistic_update';
+
 import {NAME} from './constants';
 import {ConfigState} from './reducer';
 
-export const localState = (state: RootState): ConfigState => state[NAME];
+export const localState = (state: RootState): ConfigState =>
+  displayedState(state)[NAME];
 
 export const isTftpEnabled =
   (state: RootState): boolean => localState(state).config.tftpEnabled;

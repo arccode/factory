@@ -29,15 +29,13 @@ export const fetchConfig = () => async (dispatch: Dispatch) => {
 };
 
 export const updateConfig = (config: Config) =>
-  async (dispatch: Dispatch) => {
-    dispatch(startUpdatingConfig());
-    const {cancel} = await dispatch(
-      task.actions.runTask('Update config', 'PUT', '/config/0/', config));
-    if (!cancel) {
-      await dispatch(fetchConfig());
-      dispatch(finishUpdatingConfig());
-    }
-  };
+  (dispatch: Dispatch) => (
+    dispatch(task.actions.runTask(
+      'Update config', 'PUT', '/config/0/', config, () => {
+        // optimistic update
+        dispatch(receiveConfig(config));
+      }))
+  );
 
 export const enableTftp = () => updateConfig({tftpEnabled: true});
 

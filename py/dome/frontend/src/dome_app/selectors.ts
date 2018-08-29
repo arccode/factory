@@ -4,11 +4,14 @@
 
 import {RootState} from '@app/types';
 
+import {displayedState} from '@common/optimistic_update';
+
 import {NAME} from './constants';
 import {DomeAppState} from './reducer';
 import {AppName, DomeInfo} from './types';
 
-export const localState = (state: RootState): DomeAppState => state[NAME];
+export const localState = (state: RootState): DomeAppState =>
+  displayedState(state)[NAME];
 
 export const getCurrentApp =
   (state: RootState): AppName => localState(state).currentApp;

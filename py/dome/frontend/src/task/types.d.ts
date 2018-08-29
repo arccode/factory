@@ -26,11 +26,3 @@ export interface Task {
   url: string;
   progress: TaskProgress;
 }
-
-export type TaskResult<T = any> =
-  {
-    cancel: true;
-  } | {
-    cancel: false;
-    response: AxiosResponse<T>;
-  };

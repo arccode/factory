@@ -4,11 +4,14 @@
 
 import {RootState} from '@app/types';
 
+import {displayedState} from '@common/optimistic_update';
+
 import {NAME} from './constants';
 import {BundleState} from './reducer';
 import {Bundle} from './types';
 
-export const localState = (state: RootState): BundleState => state[NAME];
+export const localState = (state: RootState): BundleState =>
+  displayedState(state)[NAME];
 
 export const getBundles =
   (state: RootState): Bundle[] => localState(state).entries;

@@ -16,6 +16,11 @@ import {createLogger} from 'redux-logger';
 import thunkMiddleware from 'redux-thunk';
 
 import DomeApp from '@app/dome_app/components/dome_app';
+import task from '@app/task';
+
+import {
+  middleware as optimisticUpdateMiddleware,
+} from '@common/optimistic_update';
 
 import rootReducer from './root_reducer';
 
@@ -28,7 +33,11 @@ const THEME = {
 const configureStore = () => {
   const s = createStore(
     rootReducer,
-    applyMiddleware(thunkMiddleware, createLogger()));
+    applyMiddleware(
+      thunkMiddleware,
+      optimisticUpdateMiddleware,
+      createLogger(),
+    ));
 
   if (module.hot) {
     module.hot.accept('./root_reducer', () => {
@@ -41,6 +50,14 @@ const configureStore = () => {
 };
 
 const store = configureStore();
+
+window.addEventListener('unhandledrejection', (event) => {
+  const error = (event as PromiseRejectionEvent).reason;
+  if (error instanceof task.constants.CancelledTaskError) {
+    return;
+  }
+  console.error(error);
+});
 
 ReactDOM.render(
   <>

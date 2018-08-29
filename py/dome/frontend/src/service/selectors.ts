@@ -4,11 +4,14 @@
 
 import {RootState} from '@app/types';
 
+import {displayedState} from '@common/optimistic_update';
+
 import {NAME} from './constants';
 import {ServiceState} from './reducer';
 import {SchemaMap, ServiceMap} from './types';
 
-export const localState = (state: RootState): ServiceState => state[NAME];
+export const localState = (state: RootState): ServiceState =>
+  displayedState(state)[NAME];
 
 export const getServices =
   (state: RootState): ServiceMap => localState(state).services;

@@ -36,11 +36,9 @@ export const updateService = (name: string, config: Service) =>
     const data = {[name]: config};
 
     const description = `update "${name}" service`;
-    const {cancel} = await dispatch(task.actions.runTask(
+    await dispatch(task.actions.runTask(
       description, 'PUT', `${baseURL(getState)}/services/`, data));
-    if (!cancel) {
-      dispatch(updateServiceImpl(name, config));
-    }
+    dispatch(updateServiceImpl(name, config));
   };
 
 export const fetchServiceSchemata = () =>

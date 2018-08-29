@@ -4,11 +4,14 @@
 
 import {RootState} from '@app/types';
 
+import {displayedState} from '@common/optimistic_update';
+
 import {NAME} from './constants';
 import {FormDialogState} from './reducer';
 import {FormNames} from './types';
 
-export const localState = (state: RootState): FormDialogState => state[NAME];
+export const localState = (state: RootState): FormDialogState =>
+  displayedState(state)[NAME];
 
 export const isFormVisibleFactory = (name: FormNames) =>
   (state: RootState): boolean => localState(state).visibility[name] || false;

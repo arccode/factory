@@ -9,10 +9,15 @@ import uuid from 'uuid/v4';
 
 import error from '@app/error';
 import {Dispatch, RootState} from '@app/types';
+import {
+  resetOptimisticUpdate,
+  setOptimisticUpdating,
+} from '@common/optimistic_update';
 import {authorizedAxios} from '@common/utils';
 
+import {CancelledTaskError} from './constants';
 import {getAllTasks} from './selectors';
-import {TaskProgress, TaskResult, TaskState} from './types';
+import {TaskProgress, TaskState} from './types';
 
 const createTaskImpl = createAction('CREATE_TASK', (resolve) =>
   (
@@ -82,26 +87,45 @@ const makeDebugBody = (body: any): any => {
 // Objects that cannot be serialized in the store.
 // The taskBodies can't be serialized since it might contains File objects.
 const taskBodies: {[id: string]: any} = {};
-const taskResolves: {[id: string]: (result: TaskResult) => void} = {};
+const taskResolves: {[id: string]: (result: any) => void} = {};
+const taskRejects: {[id: string]: (error: Error) => void} = {};
+
+const taskOptimisticUpdate: {[id: string]: (() => void) | null} = {};
 
 export const runTask =
-  <T>(description: string, method: string, url: string, body: any) =>
-    (dispatch: Dispatch, getState: () => RootState): Promise<TaskResult<T>> =>
-      new Promise((resolve) => {
-        const taskID = uuid();
-        // if all tasks before succeed, start this task now.
-        const startNow =
-          getAllTasks(getState()).every(({state}) => state === 'SUCCEEDED');
-        const debugBody = makeDebugBody(body);
+  <T>(
+    description: string,
+    method: string,
+    url: string,
+    body: any,
+    // The optimisticUpdate function may be replay many times.
+    optimisticUpdate: (() => void) | null = null,
+  ) =>
+  (dispatch: Dispatch, getState: () => RootState): Promise<T> =>
+    new Promise((resolve, reject) => {
+      const taskID = uuid();
+      // if all tasks before succeed, start this task now.
+      const startNow =
+        getAllTasks(getState()).every(({state}) => state === 'SUCCEEDED');
+      const debugBody = makeDebugBody(body);
 
-        taskBodies[taskID] = body;
-        taskResolves[taskID] = resolve;
-        dispatch(createTaskImpl(taskID, description, method, url, debugBody));
+      taskBodies[taskID] = body;
+      taskResolves[taskID] = resolve;
+      taskRejects[taskID] = reject;
+      taskOptimisticUpdate[taskID] = optimisticUpdate;
 
-        if (startNow) {
-          dispatch(runTaskImpl(taskID));
-        }
-      });
+      if (optimisticUpdate) {
+        setOptimisticUpdating(true);
+        optimisticUpdate();
+        setOptimisticUpdating(null);
+      }
+
+      dispatch(createTaskImpl(taskID, description, method, url, debugBody));
+
+      if (startNow) {
+        dispatch(runTaskImpl(taskID));
+      }
+    });
 
 export const dismissTask = (taskID: string) => (dispatch: Dispatch) => {
   delete taskBodies[taskID];
@@ -116,17 +140,33 @@ export const cancelWaitingTaskAfter = (taskID: string) =>
     // include taskID.
     const tasks = getAllTasks(getState());
     const taskIndex = tasks.findIndex((task) => task.taskID === taskID);
-    if (taskIndex > -1) {
-      const toCancelTasks =
-        tasks.slice(taskIndex).filter(({state}) => (
-          state === 'WAITING' || state === 'FAILED'
-        )).reverse();
+    if (taskIndex === -1) {
+      return;
+    }
 
-      // cancel all tasks below and include the target task
-      for (const {taskID: id} of toCancelTasks) {
-        taskResolves[id]({cancel: true});
-        dispatch(dismissTask(id));
+    dispatch(resetOptimisticUpdate());
+
+    const toReplayTasks = tasks.slice(0, taskIndex).filter(
+      ({state}) => state !== 'SUCCEEDED');
+
+    setOptimisticUpdating(true);
+    for (const {taskID: id} of toReplayTasks) {
+      const optimisticUpdate = taskOptimisticUpdate[id];
+      if (optimisticUpdate) {
+        optimisticUpdate();
       }
+    }
+    setOptimisticUpdating(null);
+
+    const toCancelTasks =
+      tasks.slice(taskIndex).filter(({state}) => (
+        state === 'WAITING' || state === 'FAILED'
+      )).reverse();
+
+    // cancel all tasks below and include the target task
+    for (const {taskID: id} of toCancelTasks) {
+      taskRejects[id](new CancelledTaskError());
+      dispatch(dismissTask(id));
     }
   };
 
@@ -195,11 +235,18 @@ const runTaskImpl = (taskID: string) =>
         data,
       });
 
-      taskResolves[taskID]({response: endResponse, cancel: false});
+      const optimisticUpdate = taskOptimisticUpdate[taskID];
+      if (optimisticUpdate) {
+        setOptimisticUpdating(false);
+        optimisticUpdate();
+        setOptimisticUpdating(null);
+      }
 
       // if all sub-tasks succeeded, mark it as succeeded, and start the next
       // task.
       dispatch(changeTaskState(taskID, 'SUCCEEDED'));
+
+      taskResolves[taskID](endResponse.data);
 
       // find the first waiting task and start it
       const nextTask =

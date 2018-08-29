@@ -4,10 +4,13 @@
 
 import {RootState} from '@app/types';
 
+import {displayedState} from '@common/optimistic_update';
+
 import {NAME} from './constants';
 import {AuthState} from './reducer';
 
-export const localState = (state: RootState): AuthState => state[NAME];
+export const localState = (state: RootState): AuthState =>
+  displayedState(state)[NAME];
 
 export const isLoggedIn =
   (state: RootState): boolean => localState(state).isLoggedIn;

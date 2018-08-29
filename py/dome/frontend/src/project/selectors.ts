@@ -6,11 +6,14 @@ import {createSelector} from 'reselect';
 
 import {RootState} from '@app/types';
 
+import {displayedState} from '@common/optimistic_update';
+
 import {NAME} from './constants';
 import {ProjectState} from './reducer';
 import {ProjectMap} from './types';
 
-export const localState = (state: RootState): ProjectState => state[NAME];
+export const localState = (state: RootState): ProjectState =>
+  displayedState(state)[NAME];
 
 export const getProjects =
   (state: RootState): ProjectMap => localState(state).projects;

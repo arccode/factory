@@ -9,7 +9,6 @@ import task from '@app/task';
 import {Dispatch, RootState} from '@app/types';
 import {authorizedAxios} from '@common/utils';
 
-import {getProjects} from './selectors';
 import {Project, UmpireServerResponse, UmpireSetting} from './types';
 
 const updateProjectImpl = createAction('UPDATE_PROJECT', (resolve) =>
@@ -31,19 +30,11 @@ export const basicActions = {
   deleteProjectImpl,
 };
 
-// TODO(pihsun): Have a better way to handle task cancellation.
-const buildOnCancel = (dispatch: Dispatch, getState: () => RootState) => {
-  const projectsSnapshot = getProjects(getState());
-  return () => dispatch(receiveProjects(Object.values(projectsSnapshot)));
-};
-
 export const createProject = (name: string) => async (dispatch: Dispatch) => {
   const description = `Create project "${name}"`;
-  const {cancel} = await dispatch(
+  await dispatch(
     task.actions.runTask(description, 'POST', '/projects/', {name}));
-  if (!cancel) {
-    await dispatch(fetchProjects());
-  }
+  await dispatch(fetchProjects());
 };
 
 export const updateProject = (
@@ -53,24 +44,15 @@ export const updateProject = (
 ) => async (dispatch: Dispatch, getState: () => RootState) => {
   const body = {name, ...settings};
 
-  // taking snapshot must be earlier than optimistic update
-  const onCancel = buildOnCancel(dispatch, getState);
-
-  // optimistic update
-  dispatch(updateProjectImpl(
-    name,
-    {umpireReady: false, ...settings}));
+  const optimisticUpdate = () => {
+    dispatch(updateProjectImpl(
+      name, {umpireReady: false, ...settings}));
+  };
 
   description = description || `Update project "${name}"`;
-  const result = await dispatch(
+  const data = await dispatch(
     task.actions.runTask<UmpireServerResponse>(
-      description, 'PUT', `/projects/${name}/`, body));
-  if (result.cancel) {
-    onCancel();
-    return;
-  }
-  const {response} = result;
-  const data = response.data;
+      description, 'PUT', `/projects/${name}/`, body, optimisticUpdate));
   dispatch(updateProjectImpl(name, {
     umpireVersion: data.umpireVersion,
     isUmpireRecent: data.isUmpireRecent,
@@ -79,19 +61,13 @@ export const updateProject = (
 };
 
 export const deleteProject = (name: string) =>
-  async (dispatch: Dispatch, getState: () => RootState) => {
-    const onCancel = buildOnCancel(dispatch, getState);
-
-    // optimistic update
-    dispatch(deleteProjectImpl(name));
-
-    const {cancel} = await dispatch(task.actions.runTask(
-      `Delete project "${name}"`, 'DELETE', `/projects/${name}/`, {}));
-
-    if (cancel) {
-      onCancel();
-    }
-  };
+  (dispatch: Dispatch, getState: () => RootState) => (
+    dispatch(task.actions.runTask(
+      `Delete project "${name}"`, 'DELETE', `/projects/${name}/`, {}, () => {
+        // optimistic update
+        dispatch(deleteProjectImpl(name));
+      }))
+  );
 
 export const fetchProjects = () => async (dispatch: Dispatch) => {
   const response = await authorizedAxios().get<Project[]>('/projects.json');

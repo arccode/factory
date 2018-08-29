@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 import {combineReducers} from 'redux';
-import {reducer as reduxFormReducer} from 'redux-form';
+import {FormStateMap, reducer as reduxFormReducer} from 'redux-form';
 
 import auth from '@app/auth';
 import bundle from '@app/bundle';
@@ -15,15 +15,26 @@ import project from '@app/project';
 import service from '@app/service';
 import task from '@app/task';
 
-export default combineReducers({
+import {wrapReducer} from '@common/optimistic_update';
+
+import {APP_STATE_ROOT} from './constants';
+
+const appReducer = wrapReducer(combineReducers({
   [auth.constants.NAME]: auth.reducer,
   [bundle.constants.NAME]: bundle.reducer,
   [config.constants.NAME]: config.reducer,
   [domeApp.constants.NAME]: domeApp.reducer,
   [error.constants.NAME]: error.reducer,
   [formDialog.constants.NAME]: formDialog.reducer,
-  form: reduxFormReducer,
   [project.constants.NAME]: project.reducer,
   [service.constants.NAME]: service.reducer,
   [task.constants.NAME]: task.reducer,
+}));
+
+export type RootState = ReturnType<typeof appReducer> & {form: FormStateMap};
+
+export default combineReducers({
+  [APP_STATE_ROOT]: appReducer,
+  // The redux-form reducer need to be mounted at root state, on key "form".
+  form: reduxFormReducer,
 });
