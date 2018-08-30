@@ -29,6 +29,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 
@@ -60,10 +61,12 @@ class PartitionTableTest(unittest.TestCase):
     size_sectors = partitions.GetPartitionSizeInSector(stateful_no)
     end_sector = start_sector + size_sectors
 
-    with open('/sys/class/block/%s/size' % os.path.basename(dev)) as f:
-      device_size = int(f.read().strip())
+    # Linux always considers sectors to be 512 bytes long independently of the
+    # devices real block size.
+    device_size = 512 * int(
+        file_utils.ReadFile('/sys/class/block/%s/size' % os.path.basename(dev)))
 
-    pct_used = end_sector * 100.0 / device_size
+    pct_used = end_sector * partitions.GetSectorSize() * 100.0 / device_size
 
     logging.info(
         'start_sector=%d, size_sectors=%d, end_sector=%d, device_size=%d',
