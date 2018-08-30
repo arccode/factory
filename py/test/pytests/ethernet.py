@@ -121,10 +121,14 @@ class EthernetTest(test_case.TestCase):
 
   def CheckLinkSimple(self, dev):
     status = self.dut.ReadSpecialFile('/sys/class/net/%s/carrier' % dev).strip()
-    if int(status):
-      self.PassTask()
-    else:
+    speed = self.dut.ReadSpecialFile('/sys/class/net/%s/speed' % dev).strip()
+    if not int(status):
       self.FailTask('Link is down on dev %s' % dev)
+
+    if int(speed) != 1000:
+      self.FailTask('Speed is %sMb/s not 1000Mb/s on dev %s' % (speed, dev))
+
+    self.PassTask()
 
   def CheckNotUsbLanDongle(self, device):
     if 'usb' not in self.dut.path.realpath('/sys/class/net/%s' % device):
