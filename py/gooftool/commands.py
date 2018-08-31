@@ -691,8 +691,8 @@ def Finalize(options):
     # Write VPD values related to RLZ ping into VPD.
     GetGooftool(options).WriteVPDForRLZPing(options.embargo_offset)
   Cr50SetBoardId(options)
-  Verify(options)
   Cr50DisableFactoryMode(options)
+  Verify(options)
   LogSourceHashes(options)
   UntarStatefulFiles(options)
   if options.cros_core:
