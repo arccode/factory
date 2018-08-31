@@ -505,7 +505,7 @@ class Gooftool(object):
 
     return re.findall(r'hardware_id:(.*)', result.stdout)[0].strip()
 
-  def VerifyWPSwitch(self):
+  def VerifyWPSwitch(self, has_ectool=True):
     """Verifies hardware write protection switch is enabled.
 
     Raises:
@@ -513,7 +513,15 @@ class Gooftool(object):
     """
 
     if self._util.shell('crossystem wpsw_cur').stdout.strip() != '1':
-      raise Error('write protection switch is disabled')
+      raise Error('write protection switch of AP is disabled.')
+
+    if not has_ectool:
+      return
+
+    ectool_flashprotect = self._util.shell('ectool flashprotect').stdout
+    if not re.search('^Flash protect flags:.+wp_gpio_asserted',
+                       ectool_flashprotect, re.MULTILINE):
+      raise Error('write protectioin switch of EC is disabled.')
 
   def CheckDevSwitchForDisabling(self):
     """Checks if the developer switch is ready for disabling.

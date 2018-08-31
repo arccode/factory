@@ -373,14 +373,21 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool.WriteHWID('hwid2')
 
   def testVerifyWPSwitch(self):
-    # 1st call: enabled
+    # 1st call: AP and EC wpsw are enabled.
     self._gooftool._util.shell('crossystem wpsw_cur').AndReturn(StubStdout('1'))
-    # 2nd call: disabled
+    self._gooftool._util.shell('ectool flashprotect').AndReturn(StubStdout(
+        'Flash protect flags: 0x00000008 wp_gpio_asserted\nValid flags:...'))
+    # 2nd call: AP wpsw is disabled.
     self._gooftool._util.shell('crossystem wpsw_cur').AndReturn(StubStdout('0'))
+    # 3st call: AP wpsw is enabled but EC is disabled.
+    self._gooftool._util.shell('crossystem wpsw_cur').AndReturn(StubStdout('1'))
+    self._gooftool._util.shell('ectool flashprotect').AndReturn(StubStdout(
+        'Flash protect flags: 0x00000000\nValid flags:...'))
 
     self.mox.ReplayAll()
 
     self._gooftool.VerifyWPSwitch()
+    self.assertRaises(Error, self._gooftool.VerifyWPSwitch)
     self.assertRaises(Error, self._gooftool.VerifyWPSwitch)
 
   def _SetupVPDMocks(self, ro=None, rw=None):

@@ -224,6 +224,10 @@ _rlz_embargo_end_date_offset_cmd_arg = CmdArg(
     help='Change the offset of embargo end date, cannot less than 7 days or '
          'more than 14 days.')
 
+_no_ectool_cmd_arg = CmdArg(
+    '--no_ectool', action='store_false', dest='has_ectool',
+    help='There is no ectool utility so tests rely on ectool should be '
+         'skipped.')
 
 @Command(
     'verify_ec_key',
@@ -283,11 +287,12 @@ def VerifyManagementEngineLocked(options):
   return GetGooftool(options).VerifyManagementEngineLocked()
 
 
-@Command('verify_switch_wp')
+@Command('verify_switch_wp',
+         _no_ectool_cmd_arg)
 def VerifyWPSwitch(options):
   """Verify hardware write protection switch is enabled."""
 
-  GetGooftool(options).VerifyWPSwitch()
+  GetGooftool(options).VerifyWPSwitch(options.has_ectool)
 
 
 @Command('verify_switch_dev')
@@ -473,7 +478,8 @@ def WipeInit(options):
          _firmware_path_cmd_arg,
          _enforced_release_channels_cmd_arg,
          _waive_list_cmd_arg,
-         _skip_list_cmd_arg)
+         _skip_list_cmd_arg,
+         _no_ectool_cmd_arg)
 def Verify(options):
   """Verifies if whole factory process is ready for finalization.
 
