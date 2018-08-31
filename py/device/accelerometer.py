@@ -46,7 +46,7 @@ class AccelerometerException(Exception):
   pass
 
 
-class AccelerometerController(types.DeviceComponent):
+class AccelerometerController(sensor_utils.BasicSensorController):
   """Utility class for the two accelerometers.
 
   Attributes:
@@ -79,15 +79,14 @@ class AccelerometerController(types.DeviceComponent):
 
     https://chromium-review.googlesource.com/#/c/190471/.
     """
-    super(AccelerometerController, self).__init__(board)
+    super(AccelerometerController, self).__init__(
+        board, name, location, ['in_accel_x', 'in_accel_y', 'in_accel_z'],
+        scale=True)
     self.num_signals = 3  # (x, y, z).
     self.location = location
     self.trigger_path = None
 
-    self.iio_bus_path = sensor_utils.FindDevice(
-        self._device, self._device.path.join(_IIO_DEVICES_PATH, 'iio:device*'),
-        name=name, location=location)
-    self.iio_bus_id = self._device.path.basename(self.iio_bus_path)
+    self.iio_bus_id = self._device.path.basename(self._iio_path)
 
     trigger_name = self._GetSysfsValue('trigger/current_trigger')
     self.trigger_path = sensor_utils.FindDevice(
@@ -102,59 +101,12 @@ class AccelerometerController(types.DeviceComponent):
     # the data will be dumped in a char file in the scan order.
     # Stores the (scan order -> signal name) mapping for later use.
     self.index_to_signal = {}
-    for signal_name in self._GenSignalNames(''):
+    for signal_name in self.signal_names:
       index = int(
-          self._GetSysfsValue(signal_name + '_index', scan_elements_path))
+          self._GetSysfsValue('%s_index' % signal_name, scan_elements_path))
       scan_type = _ParseIIOBufferScanType(
-          self._GetSysfsValue(signal_name + '_type', scan_elements_path))
+          self._GetSysfsValue('%s_type' % signal_name, scan_elements_path))
       self.index_to_signal[index] = dict(name=signal_name, scan_type=scan_type)
-
-  def _GetSysfsValue(self, filename, path=None):
-    """Read the content of given path.
-
-    Args:
-      filename: name of the file to read.
-      path: Path to read the given filename, default to the path of
-        current iio device.
-
-    Returns:
-      A string as stripped contents, or None if error.
-    """
-    if path is None:
-      path = self.iio_bus_path
-    try:
-      return self._device.ReadFile(os.path.join(path, filename)).strip()
-    except Exception:
-      pass
-
-  def _SetSysfsValue(self, filename, value, check_call=True, path=None):
-    """Assigns corresponding values to a list of sysfs.
-
-    Args:
-      filename: name of the file to write.
-      value: the value to be write.
-      path: Path to write the given filename, default to the path of
-        current iio device.
-    """
-    if path is None:
-      path = self.iio_bus_path
-    try:
-      self._device.WriteFile(os.path.join(path, filename), value)
-    except Exception:
-      if check_call:
-        raise
-
-  def _GenSignalNames(self, postfix=''):
-    """Generator function for all signal names.
-
-    Args:
-      postfix: a string that will be appended to each signal name.
-
-    Returns:
-      Strings: 'in_accel_(x|y|z)' + postfix.
-    """
-    for axis in ['x', 'y', 'z']:
-      yield 'in_accel_' + axis + postfix
 
   def CleanUpCalibrationValues(self):
     """Clean up calibration values.
@@ -162,8 +114,8 @@ class AccelerometerController(types.DeviceComponent):
     The sysfs trigger only captures calibrated input values, so we reset
     the calibration to allow reading raw data from a trigger.
     """
-    for calibbias in self._GenSignalNames('_calibbias'):
-      self._SetSysfsValue(calibbias, '0')
+    for signal_name in self.signal_names:
+      self._SetSysfsValue('%s_calibbias' % signal_name, '0')
 
   def GetData(self, capture_count=1, sample_rate=20):
     """Returns average values of the sensor data.
@@ -202,7 +154,7 @@ class AccelerometerController(types.DeviceComponent):
     FORMAT_RAW_DATA = '<3h'
 
     # Initializes the returned dict.
-    ret = dict((signal_name, 0.0) for signal_name in self._GenSignalNames())
+    ret = dict((signal_name, 0.0) for signal_name in self.signal_names)
     # Reads the captured data.
     file_path = os.path.join('/dev/', self.iio_bus_id)
     data_captured = 0
@@ -245,9 +197,9 @@ class AccelerometerController(types.DeviceComponent):
         logging.info(
             '(%d) Getting data: %s.', data_captured, original_raw_data)
     # Calculates average value and convert to SI unit.
-    scale = float(self._GetSysfsValue('scale'))
     for signal_name in ret:
-      ret[signal_name] = int(round(ret[signal_name] / capture_count)) * scale
+      ret[signal_name] = (
+          int(round(ret[signal_name] / capture_count)) * self.scale)
     logging.info('Average of %d data: %s', capture_count, ret)
     return ret
 
@@ -320,9 +272,11 @@ class AccelerometerController(types.DeviceComponent):
     scaled = dict((k, str(int(v * 1024 / _GRAVITY)))
                   for k, v in calib_bias.viewitems())
     self._device.vpd.ro.Update(scaled)
-    for vpd_entry, sysfs_entry in zip(
-        self._GenSignalNames('_' + self.location + '_calibbias'),
-        self._GenSignalNames('_calibbias')):
+    mapping = []
+    for signal_name in self.signal_names:
+      mapping.append(('%s_%s_calibbias' % (signal_name, self.location),
+                      '%s_calibbias' % signal_name))
+    for vpd_entry, sysfs_entry in mapping:
       self._SetSysfsValue(sysfs_entry, scaled[vpd_entry])
 
 

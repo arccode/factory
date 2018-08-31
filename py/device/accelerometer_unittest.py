@@ -17,6 +17,7 @@ def MockControllerInit(self, device, unused_name, location):
   # pylint: disable=protected-access
   self._device = device
   self.location = location
+  self.signal_names = ['in_accel_x', 'in_accel_y', 'in_accel_z']
 
 
 class AccelerometerTest(unittest.TestCase):
