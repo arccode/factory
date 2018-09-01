@@ -66,10 +66,10 @@ body {
 .wlan-enabled#wlan-indicator {
   background-image: url('images/wlan_on.png');
 }
-.battery-charging:before {
+.battery-charge:before {
   content: '↑';
 }
-.battery-discharging:before {
+.battery-discharge:before {
   content: '↓';
 }
 .battery-idle:before {
