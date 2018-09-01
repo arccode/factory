@@ -57,6 +57,9 @@ class BluetoothScanTest(unittest.TestCase):
       Arg('dut_hci_device', str,
           'The target hci device of the DUT.',
           default='hci0'),
+      Arg('dut_hci_num_response', int,
+          'Maximum number of inquiry responses for scanning.',
+          default=None),
       ]
 
   HostDeviceType = collections.namedtuple(
@@ -166,6 +169,8 @@ class BluetoothScanTest(unittest.TestCase):
     #      01:02:03:04:05:06       Chromebook_0123
     #      01:02:03:04:05:07       Chromebook_4567
     SCAN_COMMAND = 'hcitool scan'
+    if self.args.dut_hci_num_response is not None:
+      SCAN_COMMAND += ' --numrsp=%d' % self.args.dut_hci_num_response
     output = self.dut.CheckOutput(SCAN_COMMAND)
     lines = output.splitlines()[1:]  # Skip the first line "Scanning ...".
     return [line.split()[0].lower() for line in lines]
