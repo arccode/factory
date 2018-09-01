@@ -66,7 +66,6 @@ from __future__ import print_function
 import contextlib
 import json
 import logging
-import string
 import subprocess
 import sys
 import time
@@ -312,12 +311,12 @@ class _ServiceTest(object):
   _service = None
   _log = None
 
-  def __init__(self, wifi, interface, iperf3, enable_iperf_server, ui,
+  def __init__(self, wifi, interface, aps, iperf3, ui,
                bind_wifi, use_ui_retry):
     self._wifi = wifi
     self._interface = interface
+    self._aps = aps
     self._iperf3 = iperf3
-    self._enable_iperf_server = enable_iperf_server
     self._bind_wifi = bind_wifi
     self._ui = ui
     self._use_ui_retry = use_ui_retry
@@ -414,17 +413,14 @@ class _ServiceTest(object):
         (False, 'TX', ap_config.min_tx_throughput),
         (True, 'RX', ap_config.min_rx_throughput)]:
       try:
-        with (Iperf3Server(Iperf3Client.DEFAULT_PORT)
-              if self._enable_iperf_server
-              else DummyContextManager()):
-          DoTest(self._RunIperf, abort=True,
-                 iperf_host=ap_config.iperf_host,
-                 bind_wifi=self._bind_wifi,
-                 reverse=reverse,
-                 tx_rx=tx_rx,
-                 log_key=('iperf_%s' % tx_rx.lower()),
-                 transmit_time=ap_config.transmit_time,
-                 transmit_interval=ap_config.transmit_interval)
+        DoTest(self._RunIperf, abort=True,
+               iperf_host=ap_config.iperf_host,
+               bind_wifi=self._bind_wifi,
+               reverse=reverse,
+               tx_rx=tx_rx,
+               log_key=('iperf_%s' % tx_rx.lower()),
+               transmit_time=ap_config.transmit_time,
+               transmit_interval=ap_config.transmit_interval)
 
         DoTest(self._CheckIperfThroughput, abort=True,
                ssid=ap_config.ssid,
@@ -449,14 +445,11 @@ class _ServiceTest(object):
   def _Find(self, ssid):
     # Look for requested service.
     self._Log(u'Trying to connect to service %s...', ssid)
-    try:
-      self._ap = self._wifi.FindAccessPoint(
-          interface=self._interface,
-          ssid=ssid,
-          scan_timeout=_WIFI_TIMEOUT_SECS)
-    except Exception:
-      raise self._TestException(u'Unable to find service %s' % ssid)
-    return u'Found service %s' % ssid
+    for ap in self._aps:
+      if ap.ssid == ssid:
+        self._ap = ap
+        return u'Found service %s' % ssid
+    raise self._TestException(u'Unable to find service %s' % ssid)
 
   def _CheckStrength(self, min_strength):
     # Check signal strength.
@@ -808,7 +801,7 @@ class WiFiThroughput(test_case.TestCase):
       self.log['failures'].append(error_msg)
       self._Log()
       self.fail(error_msg)
-    return found_ssids
+    return found_aps
 
   def _ProcessArgs(self):
     """Sets up service arguments inheritance.
@@ -979,36 +972,36 @@ class WiFiThroughput(test_case.TestCase):
     session.console.info('Selected interface: %s', self._interface)
 
     # Run a basic SSID list test (if none found will fail).
-    found_ssids = self._RunBasicSSIDList()
-    # TODO(kitching): Remove this hack to take out Unicode characters, which
-    #                 works around crbug.com/443073.
-    found_ssids = [
-        ''.join([x for x in ssid if x in string.printable])
-        for ssid in found_ssids]
+    found_aps = self._RunBasicSSIDList()
 
     # Test WiFi signal and throughput speed for each service.
     if self.args.services:
-      service_test = _ServiceTest(self._wifi, self._interface, self._iperf3,
-                                  self.args.enable_iperf_server, self.ui,
-                                  self.args.bind_wifi, self.args.use_ui_retry)
-      for ap_config in self.args.services:
-        test_result = service_test.Run(ap_config)
-        self.log['test'][ap_config.ssid] = test_result
+      with (Iperf3Server(Iperf3Client.DEFAULT_PORT)
+            if self.args.enable_iperf_server else DummyContextManager()):
+        service_test = _ServiceTest(
+            self._wifi, self._interface, found_aps, self._iperf3, self.ui,
+            self.args.bind_wifi, self.args.use_ui_retry)
 
-        # Log throughput data via testlog.
-        for tx_rx in ('tx', 'rx'):
-          # pylint: disable=unsupported-membership-test
-          if 'intervals' in test_result['iperf_%s' % tx_rx]:
-            # pylint: disable=unsubscriptable-object
-            for interval in test_result['iperf_%s' % tx_rx]['intervals']:
-              self._LogParams(ap_config.ssid, tx_rx,
-                              throughput=interval['sum']['bits_per_second'],
-                              start_time=interval['sum']['start'],
-                              end_time=interval['sum']['end'])
-        self._LogParams(
-            ap_config.ssid, 'rssi',
-            computed_rssi=test_result['iw_connection_status'].signal.computed,
-            antenna_rssi=test_result['iw_connection_status'].signal.antenna)
+        for ap_config in self.args.services:
+          test_result = service_test.Run(ap_config)
+          self.log['test'][ap_config.ssid] = test_result
+
+          # log throughput data
+          for tx_rx in ('tx', 'rx'):
+            iperf_key = 'iperf_%s' % tx_rx
+            # pylint:disable=unsupported-membership-test
+            for interval in test_result[iperf_key].get('intervals', []):
+              self._LogIperfParams(ap_config.ssid, tx_rx, interval['sum'])
+            if 'end' in test_result[iperf_key]:
+              # pylint:disable=unsubscriptable-object
+              self._LogIperfParams(ap_config.ssid, '%s_summary' % tx_rx,
+                                   test_result[iperf_key]['end']['sum_sent'])
+
+          # log RSSI data
+          self._LogParams(
+              ap_config.ssid, 'rssi',
+              computed_rssi=test_result['iw_connection_status'].signal.computed,
+              antenna_rssi=test_result['iw_connection_status'].signal.antenna)
 
     # Log this test run via event_log.
     self._Log()
@@ -1026,6 +1019,10 @@ class WiFiThroughput(test_case.TestCase):
       for (ssid, failure) in all_failures:
         session.console.error(failure)
       self.fail(error_msg)
+
+  def _LogIperfParams(self, ap_ssid, log_type, iperf_data):
+    self._LogParams(ap_ssid, log_type, throughput=iperf_data['bits_per_second'],
+                    start_time=iperf_data['start'], end_time=iperf_data['end'])
 
   def _LogParams(self, ap_ssid, log_type, throughput=None, start_time=None,
                  end_time=None, computed_rssi=None, antenna_rssi=None):
