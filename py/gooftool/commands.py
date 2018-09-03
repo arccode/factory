@@ -754,7 +754,7 @@ def VerifyHWID(options):
                               infile=options.hwid_vpd_data_file)
 
   event_log.Log('probed_results', probed_results=FilterDict(probed_results))
-  event_log.Log('vpd', vpd=FilterDict(vpd) if vpd is None else None)
+  event_log.Log('vpd', vpd=FilterDict(vpd))
 
   hwid_utils.VerifyHWID(database, encoded_string, probed_results,
                         device_info, vpd, options.rma_mode)
