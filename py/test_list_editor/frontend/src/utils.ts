@@ -16,6 +16,24 @@ export const isJSONObject = (x: JSONType): x is JSONObject => {
   return x !== null && typeof x === 'object' && !Array.isArray(x);
 };
 
+export const prettyJSON = (obj: JSONType) => {
+  const getAllKeys = (o: JSONType) => {
+    const keys: string[] = [];
+    if (Array.isArray(o)) {
+      for (const item of o) {
+        keys.push(...getAllKeys(item));
+      }
+    } else if (o !== null && typeof o === 'object') {
+      for (const k of Object.keys(o)) {
+        keys.push(k);
+        keys.push(...getAllKeys(o[k]));
+      }
+    }
+    return keys;
+  };
+  return JSON.stringify(obj, getAllKeys(obj).sort(), 2);
+};
+
 // C3 linearization is used for resolving test list inheritance relationship.
 export const c3Linearization =
     <T>(parents: Map<T, T[]>): Map<T, T[]> => {
