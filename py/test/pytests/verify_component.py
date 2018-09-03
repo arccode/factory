@@ -72,7 +72,7 @@ class VerifyComponentTest(test_case.TestCase):
 
     self.probed_results = json_utils.LoadStr(self.factory_tools.CheckOutput(
         ['probe', 'probe', '--config-file', self.converted_statement_file,
-         '--approx-match', '--mismatch-num',
+         '--approx-match', '--max-mismatch',
          '{}'.format(self.args.max_mismatch)]))
     self.perfect_match_results = self._GetPerfectMatchProbeResult()
     self.component_data = {k[4:]: int(v) for k, v in

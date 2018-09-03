@@ -18,7 +18,7 @@ class ApproxMatchFunction(match.MatchFunction):
 
   Examples
   --------
-  There are 5 rules, 5 items and ``mismatch_num = 1`` in the following examples.
+  There are 5 rules, 5 items and ``max_mismatch = 1`` in the following examples.
 
   The number of matched rules are ``[0, 1, 2, 3, 4]``,
   this function returns the last item that matches 4 rules.
@@ -53,7 +53,7 @@ class ApproxMatchFunction(match.MatchFunction):
 
   ARGS = [
       Arg('rule', (str, dict), 'The matched rule.'),
-      Arg('mismatch_num', int, 'The number of mismatched rules at most.',
+      Arg('max_mismatch', int, 'The number of mismatched rules at most.',
           default=1)]
 
   def Apply(self, data):
@@ -81,7 +81,7 @@ class ApproxMatchFunction(match.MatchFunction):
     if not self.is_dict:
       max_matched_num = 1
     else:
-      max_matched_num = max(1, len(self.args.rule) - self.args.mismatch_num)
+      max_matched_num = max(1, len(self.args.rule) - self.args.max_mismatch)
     for _, matched_num, _, _ in match_results:
       max_matched_num = max(max_matched_num, matched_num)
 

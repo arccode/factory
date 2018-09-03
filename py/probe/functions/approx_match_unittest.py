@@ -13,7 +13,7 @@ class ApproxMatchTest(unittest.TestCase):
   def testMatchDict(self):
     approx_match = ApproxMatchFunction(
         rule={'foo': 'FOO', 'bar': 'BAR', 'FOO': '!re FOO[0-9]*$',
-              'id': '!num < 100'}, mismatch_num=3)
+              'id': '!num < 100'}, max_mismatch=3)
 
     item = {'foo': 'FOO', 'bar': 'BAR', 'FOO': 'FOO123', 'id': 1}
     res = approx_match.Match(item)
@@ -56,7 +56,7 @@ class ApproxMatchTest(unittest.TestCase):
 
     approx_match = ApproxMatchFunction(rule={'a': 'a', 'b': 'b', 'c': 'c',
                                              'd': 'd', 'e': 'e'},
-                                       mismatch_num=1)
+                                       max_mismatch=1)
 
     match_results = _GenerateFakeResults([0, 1, 2, 3, 4])
     filtered_results = _GenerateFakeResults([4])

@@ -55,7 +55,7 @@ def LoadUserProbeStatementFile(config_file):
   return json_obj
 
 
-def EvaluateStatement(statement, approx_match=False, mismatch_num=0):
+def EvaluateStatement(statement, approx_match=False, max_mismatch=0):
   """Evaluates the function expression and filters it by the rule expression.
 
   Args:
@@ -66,7 +66,7 @@ def EvaluateStatement(statement, approx_match=False, mismatch_num=0):
         "keys": <a_list_of_keys_to_output>  # optional
       }
     approx_match: a boolean to enable approximate matching.
-    mismatch_num: a number of mismatched rules at most.
+    max_mismatch: a number of mismatched rules at most.
 
   Returns:
     the probe results.
@@ -75,15 +75,15 @@ def EvaluateStatement(statement, approx_match=False, mismatch_num=0):
     return {k: v for k, v in values.iteritems()
             if k in statement['keys']}
 
-  def _ChooseMatchFunction(approx_match, mismatch_num):
+  def _ChooseMatchFunction(approx_match, max_mismatch):
     if approx_match:
       return ApproxMatchFunction(rule=statement.get('expect', {}),
-                                 mismatch_num=mismatch_num)
+                                 max_mismatch=max_mismatch)
     else:
       return MatchFunction(rule=statement.get('expect', {}))
 
   probe_func = function.InterpretFunction(statement['eval'])
-  match_func = _ChooseMatchFunction(approx_match, mismatch_num)
+  match_func = _ChooseMatchFunction(approx_match, max_mismatch)
   results = match_func(probe_func())
   if 'keys' in statement:
     for result in results:

@@ -40,7 +40,7 @@ class EvaluateStatementTest(unittest.TestCase):
         'eval': {'mock': {'data': [{'foo': 'FOO1', 'bar': 'BAR1'},
                                    {'foo': 'FOO2', 'bar': 'BAR2'}]}},
         'expect': {'foo': 'FOO1', 'bar': 'BAR2'}}, approx_match=True,
-                                       mismatch_num=1)
+                                       max_mismatch=1)
     self.assertEqual(len(results), 2)
 
 
