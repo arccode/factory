@@ -60,10 +60,15 @@ def ShopFloorUpload(source_path, remote_spec, stage,
                 server_url, serial_number, source_path)
   instance = xmlrpclib.ServerProxy(server_url, allow_none=True, verbose=False)
   blob = xmlrpclib.Binary(file_utils.ReadFile(source_path))
+  cmd_result = Shell('mosys platform model')
+  model = ''
+  if cmd_result.status == 0:
+    model = cmd_result.stdout.strip()
+  option_name = model + '-gooftool' if model else 'gooftool'
 
   def ShopFloorCallback(result):
     try:
-      instance.UploadReport(serial_number, blob, 'gooftool', stage)
+      instance.UploadReport(serial_number, blob, option_name, stage)
       return True
     except xmlrpclib.Fault as err:
       result['message'] = 'Remote server fault #%d: %s' % (err.faultCode,
