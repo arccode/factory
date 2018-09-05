@@ -25,7 +25,7 @@ Test Procedure
    spacebar.
 4. If ``use_netboot`` is set to True, this test will try to download
    netboot firmware from factory server and flash into AP firmware. Otherwise,
-   download and install the selected component using ``cros_paload`` command.
+   download and install the selected component using ``cros_payload`` command.
    If the needed components are not available on factory server, this test will
    fail.
 5. If ``use_netboot`` is set to True, The DUT will then reboot into netboot
