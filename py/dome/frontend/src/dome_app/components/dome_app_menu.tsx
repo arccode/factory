@@ -30,7 +30,7 @@ const styles = (theme: Theme) => createStyles({
 });
 
 interface DomeAppMenuProps extends WithStyles<typeof styles> {
-  isLoggedIn: boolean;
+  isLoggedIn: boolean | null;
   project: Project | null;
   width: number;
   open: boolean;

@@ -73,9 +73,8 @@ const style = (theme: Theme) => createStyles({
 });
 
 interface DomeAppProps extends WithStyles<typeof style> {
-  isLoggedIn: boolean;
+  isLoggedIn: boolean | null;
   appName: AppName;
-  testAuthToken: () => any;
   fetchDomeInfo: () => any;
 }
 
@@ -107,7 +106,6 @@ class DomeApp extends React.Component<DomeAppProps, DomeAppState> {
       window.alert(`Warning!!
 To visit Dome, please use Chrome/Chromium to avoid unnecessary issues.`);
     }
-    this.props.testAuthToken();
     this.props.fetchDomeInfo();
   }
 
@@ -165,7 +163,6 @@ const mapStateToProps = (state: RootState) => ({
 });
 
 const mapDispatchToProps = {
-  testAuthToken: auth.actions.testAuthToken,
   fetchDomeInfo,
 };
 

@@ -2,72 +2,64 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Button from '@material-ui/core/Button';
-import Card from '@material-ui/core/Card';
-import CardActions from '@material-ui/core/CardActions';
-import CardContent from '@material-ui/core/CardContent';
+import CircularProgress from '@material-ui/core/CircularProgress';
+import Modal from '@material-ui/core/Modal';
 import {
   createStyles,
   Theme,
   WithStyles,
   withStyles,
 } from '@material-ui/core/styles';
-import Typography from '@material-ui/core/Typography';
 import React from 'react';
 import {connect} from 'react-redux';
-import {InjectedFormProps, reduxForm} from 'redux-form';
 
-import ReduxFormTextField from '@common/components/redux_form_text_field';
+import {RootState} from '@app/types';
 
-import {tryLogin} from '../actions';
+import {testAuthToken, tryLogin} from '../actions';
+import {isLoggedIn} from '../selectors';
 import {AuthData} from '../types';
 
+import LoginForm from './login_form';
+
 const styles = (theme: Theme) => createStyles({
-  actions: {
-    justifyContent: 'flex-end',
+  root: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
-type LoginFormProps =
-  InjectedFormProps<AuthData> & WithStyles<typeof styles>;
-
-const LoginForm: React.SFC<LoginFormProps> =
-  ({handleSubmit, classes}) => (
-    <form onSubmit={handleSubmit}>
-      <Card>
-        <CardContent>
-          <Typography variant="headline">
-            Login to continue
-          </Typography>
-          <ReduxFormTextField
-            name="username"
-            label="Username"
-            type="text"
-          />
-          <ReduxFormTextField
-            name="password"
-            label="Password"
-            type="password"
-          />
-        </CardContent>
-        <CardActions className={classes.actions}>
-          <Button color="primary" type="submit">Login</Button>
-        </CardActions>
-      </Card>
-    </form>
-  );
-
-const LoginFormComponent = reduxForm<AuthData>({form: 'login'})(
-  withStyles(styles)(LoginForm));
-
-interface LoginAppProps {
+interface LoginAppProps extends WithStyles<typeof styles> {
+  isLoggedIn: boolean | null;
   tryLogin: (values: AuthData) => any;
+  testAuthToken: () => any;
 }
 
-const LoginApp: React.SFC<LoginAppProps> = ({tryLogin}) => (
-  <LoginFormComponent onSubmit={tryLogin} />
-);
+class LoginApp extends React.Component<LoginAppProps> {
+  componentDidMount() {
+    this.props.testAuthToken();
+  }
 
-const mapDispatchToProps = {tryLogin};
+  render() {
+    const {isLoggedIn, classes, tryLogin} = this.props;
+    if (isLoggedIn === null) {
+      return (
+        <Modal open disableAutoFocus className={classes.root}>
+          <CircularProgress size={120} />
+        </Modal>
+      );
+    }
+    return (
+      <LoginForm onSubmit={tryLogin} />
+    );
+  }
+}
 
-export default connect(null, mapDispatchToProps)(LoginApp);
+const mapStateToProps = (state: RootState) => ({
+  isLoggedIn: isLoggedIn(state),
+});
+
+const mapDispatchToProps = {testAuthToken, tryLogin};
+
+export default connect(mapStateToProps, mapDispatchToProps)(
+  withStyles(styles)(LoginApp));

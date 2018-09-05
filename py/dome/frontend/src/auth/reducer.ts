@@ -8,13 +8,13 @@ import {ActionType, getType} from 'typesafe-actions';
 import {basicActions as actions} from './actions';
 
 export interface AuthState {
-  isLoggedIn: boolean;
+  isLoggedIn: boolean | null;
 }
 
 type AuthAction = ActionType<typeof actions>;
 
 export default combineReducers<AuthState, AuthAction>({
-  isLoggedIn: (state = false, action) => {
+  isLoggedIn: (state = null, action) => {
     switch (action.type) {
       case getType(actions.loginSucceed):
         return true;

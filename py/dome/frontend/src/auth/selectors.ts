@@ -13,4 +13,4 @@ export const localState = (state: RootState): AuthState =>
   displayedState(state)[NAME];
 
 export const isLoggedIn =
-  (state: RootState): boolean => localState(state).isLoggedIn;
+  (state: RootState): boolean | null => localState(state).isLoggedIn;
