@@ -92,8 +92,10 @@ class Arg(object):
       raise ArgError('Argument %s is missing a help string' % name)
 
     # Allow None for all optional arguments with default None
+    # Pylint has a false-negative here.  pylint: disable=unidiomatic-typecheck
     if default is None and (TYPE(None) not in type):
       type += (TYPE(None),)
+    # pylint: enable=unidiomatic-typecheck
 
     self.name = name
     self.help = help

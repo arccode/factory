@@ -148,6 +148,7 @@ class WaitCommand(Subcommand):
         # Don't bother showing parent nodes.
         if t['parent']:
           continue
+        # pylint: disable=unsubscriptable-object
         if last_test_dict is None:
           # First time; just print active tests
           if t['status'] == TestState.ACTIVE:

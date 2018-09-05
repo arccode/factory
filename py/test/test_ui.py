@@ -604,6 +604,9 @@ class UI(object):
     key_pressed = Queue.Queue()
 
     for key in keys:
+      # pylint 1.5.6 has a false negative on nested lambda, see
+      # https://github.com/PyCQA/pylint/issues/760.
+      # pylint: disable=undefined-variable
       self.BindKey(key,
                    (lambda k: lambda unused_event: key_pressed.put(k))(key))
     try:

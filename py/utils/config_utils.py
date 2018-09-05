@@ -57,6 +57,7 @@ from . import type_utils
 
 # To simplify portability issues, validating JSON schema is optional.
 try:
+  # pylint: disable=wrong-import-order
   import jsonschema
   _CAN_VALIDATE_SCHEMA = True
 except ImportError:

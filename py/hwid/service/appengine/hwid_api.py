@@ -55,7 +55,7 @@ def _AuthCheck():
 
   # Be extra paranoid and only allow skip auth if skip_auth_check is set to
   # True (as opposed to truthy).
-  if CONFIG.skip_auth_check == True:
+  if CONFIG.skip_auth_check:
     logging.info('Skipping auth check (this should only happen in dev mode).')
     return
 

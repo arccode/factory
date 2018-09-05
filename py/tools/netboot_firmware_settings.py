@@ -318,12 +318,14 @@ def NetbootFirmwareSettings(options):
   print('Current settings:')
   pprint.pprint(settings.attributes)
 
+  # pylint: disable=unsubscriptable-object
   if options.tftpserverip:
     settings['tftp_server_ip'] = IpAddressValue(options.tftpserverip)
   if options.bootfile:
     settings['bootfile'] = StringValue(options.bootfile + '\0')
   if options.argsfile:
     settings['argsfile'] = StringValue(options.argsfile + '\0')
+  # pylint: enable=unsubscriptable-object
 
   kernel_args = ''
   if options.board:
@@ -332,7 +334,9 @@ def NetbootFirmwareSettings(options):
     kernel_args += 'omahaserver=' + options.factory_server_url + ' '
   kernel_args += ' '.join(options.kernel_args)
   kernel_args += '\0'
+  # pylint: disable=unsubscriptable-object
   settings['kernel_args'] = StringValue(kernel_args)
+  # pylint: enable=unsubscriptable-object
 
   new_blob = settings.pack()
   output_name = options.output or options.input

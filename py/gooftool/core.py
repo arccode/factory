@@ -520,7 +520,7 @@ class Gooftool(object):
 
     ectool_flashprotect = self._util.shell('ectool flashprotect').stdout
     if not re.search('^Flash protect flags:.+wp_gpio_asserted',
-                       ectool_flashprotect, re.MULTILINE):
+                     ectool_flashprotect, re.MULTILINE):
       raise Error('write protectioin switch of EC is disabled.')
 
   def CheckDevSwitchForDisabling(self):

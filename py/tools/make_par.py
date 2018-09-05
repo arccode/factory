@@ -6,6 +6,22 @@
 
 """Creates a self-extracting Python executable."""
 
+import argparse
+from distutils.sysconfig import get_python_lib
+import glob
+import logging
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+
+import factory_common  # pylint: disable=unused-import
+from cros.factory.test.env import paths
+from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import SpawnOutput
+
 DESCRIPTION = """Creates a self-extracting Python executable.
 
 The generated executable contains a copy of the entire factory code
@@ -27,22 +43,6 @@ or:
   ln -s factory.par mount_partition
   # You can now run either ./factory_server or ./mount_partition.
 """
-
-import argparse
-from distutils.sysconfig import get_python_lib
-import glob
-import logging
-import os
-import re
-import shutil
-import subprocess
-import sys
-import tempfile
-
-import factory_common  # pylint: disable=unused-import
-from cros.factory.test.env import paths
-from cros.factory.utils.process_utils import Spawn
-from cros.factory.utils.process_utils import SpawnOutput
 
 # Template for the header that will be placed before the ZIP file to
 # execute a script based on the name which is used to execute it.  The

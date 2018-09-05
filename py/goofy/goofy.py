@@ -301,8 +301,12 @@ class Goofy(object):
         target=self.event_server.serve_forever,
         name='EventServer')
 
+    # pylint 1.5.6 has a false negative on nested lambda, see
+    # https://github.com/PyCQA/pylint/issues/760.
+    # pylint: disable=undefined-variable
     self.event_client = ThreadingEventClient(
         callback=lambda event: self.RunEnqueue(lambda: self.HandleEvent(event)))
+    # pylint: enable=undefined-variable
 
     self.web_socket_manager = WebSocketManager(self.uuid)
     self.goofy_server.AddHTTPGetHandler(

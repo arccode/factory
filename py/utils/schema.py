@@ -53,6 +53,7 @@ from .type_utils import MakeList
 
 # To simplify portability issues, validating JSON schema is optional.
 try:
+  # pylint: disable=wrong-import-order
   import jsonschema
   _HAVE_JSONSCHEMA = True
 except ImportError:

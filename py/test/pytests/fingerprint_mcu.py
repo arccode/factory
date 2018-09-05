@@ -57,10 +57,11 @@ add this in test list::
 """
 
 import logging
-import numpy
 import re
 import sys
 import unittest
+
+import numpy
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils

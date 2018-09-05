@@ -266,7 +266,7 @@ class GPTObject(object):
   """
   __slots__ = []
 
-  FIELDS = None
+  FIELDS = []
   """A list of StructField definitions."""
 
   def __init__(self, *args, **kargs):
@@ -1597,7 +1597,7 @@ def main():
                       level=log_level)
   try:
     code = commands.Execute(args)
-    if type(code) is int:
+    if isinstance(code, int):
       sys.exit(code)
   except Exception as e:
     if args.verbose or args.debug:

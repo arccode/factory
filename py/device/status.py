@@ -191,9 +191,13 @@ class SystemStatus(types.DeviceComponent):
     return GetIPv4InterfaceAddresses(default_interface)
 
 
-if __name__ == '__main__':
+def main():
   import pprint
   from cros.factory.device import device_utils
   logging.basicConfig()
   status = SystemStatus(device_utils.CreateDUTInterface())
   pprint.pprint(status.Snapshot().__dict__)
+
+
+if __name__ == '__main__':
+  main()

@@ -14,3 +14,5 @@ doc/conf.py
 py/dome/backend/migrations/0007_auto_20170411_0943.py
 py/dome/backend/migrations/0013_auto_20180516_0704.py
 py/dome/backend/migrations/0014_auto_20180612_0603.py
+# HWID v2 is deprecated, better not touch them.
+py/hwid/v2/%

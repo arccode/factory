@@ -41,17 +41,19 @@ class AmbientLightSensorController(sensor_utils.BasicSensorController):
     if not self.input_entry:
       raise AmbientLightSensorException('Does not find any input entry.')
 
-  def _SetSysfsValue(self, signal_name, value):
+  def _SetSysfsValue(self, filename, value, check_call=True, path=None):
+    del check_call, path  # Unused.
     try:
       self._device.WriteSpecialFile(
-          os.path.join(self._iio_path, signal_name), value)
+          os.path.join(self._iio_path, filename), value)
     except Exception as e:
       raise AmbientLightSensorException(e.message)
 
-  def _GetSysfsValue(self, signal_name):
+  def _GetSysfsValue(self, filename, path=None):
+    del path  # Unused.
     try:
       return self._device.ReadSpecialFile(os.path.join(
-          self._iio_path, signal_name)).strip()
+          self._iio_path, filename)).strip()
     except Exception as e:
       raise AmbientLightSensorException(e.message)
 

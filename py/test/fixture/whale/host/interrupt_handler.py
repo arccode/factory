@@ -163,7 +163,7 @@ class InterruptHandler(object):
 
     dut_sensor_list = self._DUT_SENSOR_CHECK_LIST.keys()
     dut_sensor_status = self._servo.MultipleIsOn(dut_sensor_list)
-    return 0 == cmp(dut_sensor_status, self._DUT_SENSOR_CHECK_LIST)
+    return cmp(dut_sensor_status, self._DUT_SENSOR_CHECK_LIST) == 0
 
   @TimeClassMethodDebug
   def _HandleStopFixture(self, show_state=True):

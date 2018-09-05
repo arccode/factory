@@ -303,11 +303,12 @@ class GetDictTest(unittest.TestCase):
 class UnicodeToStringTest(unittest.TestCase):
 
   def isSame(self, a, b):
-    '''Returns True if a and b are equal and the same type.
+    """Returns True if a and b are equal and the same type.
 
     This is necessary because 'abc' == u'abc' but we want to distinguish
     them.
-    '''
+    """
+    # pylint: disable=unidiomatic-typecheck
     if a != b:
       return False
     elif type(a) != type(b):

@@ -24,6 +24,7 @@ _SYSTEM_DEFAULT = 'Default'
 # Conditional imports. For syntax checking and cross-compiling, we want to
 # ignore conditional import errors.
 try:
+  # pylint: disable=wrong-import-order,wrong-import-position
   if _CURRENT_PLATFORM_SYSTEM == _SYSTEM_WINDOWS:
     pass
   else:

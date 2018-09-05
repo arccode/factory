@@ -15,15 +15,16 @@ import signal
 import threading
 import time
 
-_HAVE_CTYPES = True
-try:
-  import ctypes
-except Exception:
-  _HAVE_CTYPES = False
-
 from . import thread_utils
 from . import time_utils
 from . import type_utils
+
+_HAVE_CTYPES = True
+try:
+  # pylint: disable=wrong-import-order,wrong-import-position
+  import ctypes
+except Exception:
+  _HAVE_CTYPES = False
 
 
 DEFAULT_TIMEOUT_SECS = 10

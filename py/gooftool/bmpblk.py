@@ -142,10 +142,14 @@ def unpack_bmpblock(blob, offset=0):
 # -----------------------------------------------------------------------------
 
 
-# When running in command line, try to report blob in the parameters
-if __name__ == '__main__':
+def main():
   # Only load pprint if we are in console (debug / test) mode
   import pprint
   for filename in sys.argv[1:]:
     bmpblk = unpack_bmpblock(open(filename, 'rb').read(), 0)
     print pprint.pformat(bmpblk)
+
+
+# When running in command line, try to report blob in the parameters
+if __name__ == '__main__':
+  main()
