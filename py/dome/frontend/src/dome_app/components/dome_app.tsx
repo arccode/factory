@@ -24,6 +24,8 @@ import ProjectsApp from '@app/project/components/projects_app';
 import TaskList from '@app/task/components/task_list';
 import {RootState} from '@app/types';
 
+import {assertNotReachable} from '@common/utils';
+
 import {fetchDomeInfo} from '../actions';
 import {getCurrentApp} from '../selectors';
 import {AppName} from '../types';
@@ -129,7 +131,7 @@ To visit Dome, please use Chrome/Chromium to avoid unnecessary issues.`);
     } else if (appName === 'BUNDLES_APP') {
       app = <BundlesApp overlay={this.overlayRef.current} />;
     } else {
-      console.error(`Unknown app ${appName}`);
+      assertNotReachable(appName);
     }
 
     return (
