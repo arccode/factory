@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import {createSelector} from 'reselect';
+
 import {RootState} from '@app/types';
 
 import {displayedState} from '@common/optimistic_update';
@@ -15,5 +17,7 @@ export const localState = (state: RootState): BundleState =>
 
 export const getBundles =
   (state: RootState): Bundle[] => localState(state).entries;
+export const getBundleNames = createSelector(getBundles, (bundles) => (
+  bundles.map((bundle) => bundle.name)));
 export const getExpandedMap =
   (state: RootState): {[name: string]: boolean} => localState(state).expanded;

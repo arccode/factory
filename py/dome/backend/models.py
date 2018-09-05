@@ -764,6 +764,10 @@ class Bundle(object):
       bundle = src_bundle
       ruleset = src_ruleset
     else:
+      if any(b for b in config['bundles'] if b['id'] == dst_bundle_name):
+        raise DomeClientException(
+            detail='Bundle "%s" already exists' % dst_bundle_name,
+            status_code=rest_framework.status.HTTP_409_CONFLICT)
       # not in-place update, duplicate the source bundle
       bundle = copy.deepcopy(src_bundle)
       bundle['id'] = dst_bundle_name

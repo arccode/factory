@@ -13,8 +13,8 @@ import formDialog from '@app/form_dialog';
 import {UPLOAD_BUNDLE_FORM} from '../constants';
 
 import BundleList from './bundle_list';
-import UpdateResourceForm from './update_resource_form';
-import UploadBundleForm from './upload_bundle_form';
+import UpdateResourceDialog from './update_resource_dialog';
+import UploadBundleDialog from './upload_bundle_dialog';
 
 interface BundlesAppProps {
   overlay: Element | null;
@@ -26,8 +26,8 @@ const BundlesApp: React.SFC<BundlesAppProps> =
     <>
       <BundleList />
 
-      <UploadBundleForm />
-      <UpdateResourceForm />
+      <UploadBundleDialog />
+      <UpdateResourceDialog />
 
       {/* upload button */}
       {overlay &&
