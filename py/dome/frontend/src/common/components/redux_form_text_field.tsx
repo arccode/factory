@@ -21,7 +21,7 @@ const renderTextField = ({
 }: RenderTextFieldProps & WrappedFieldProps) => (
   <TextField
     fullWidth
-    error={touched && error}
+    error={!!(touched && error)}
     helperText={touched && error}
     margin="normal"
     {...input}
