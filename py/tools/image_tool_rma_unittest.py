@@ -9,12 +9,12 @@ from __future__ import print_function
 
 import argparse
 import inspect
+import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
-import time
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -28,11 +28,11 @@ The major difference is all output will be preserved in /tmp/t.
 """
 
 
-class ImageToolTest(unittest.TestCase):
-  """Unit tests for image_tool."""
+class ImageToolRMATest(unittest.TestCase):
+  """Unit tests for image_tool RMA related commands."""
 
   UPDATER_CONTENT = '#!/bin/sh\necho FirmwareUpdate\n'
-  LSB_CONTENT = 'CHROMEOS_RELEASE_VERSION=1.0\nCHROMEOS_RELEASE_BOARD=test\n'
+  LSB_CONTENT = 'CHROMEOS_RELEASE_VERSION=1.0\nCHROMEOS_RELEASE_BOARD=%s\n'
 
   PARTITION_COMMANDS = [
       '%(command)s create %(file)s',
@@ -64,7 +64,7 @@ class ImageToolTest(unittest.TestCase):
     cmd_args.subcommand.args = cmd_args
     cmd_args.subcommand.Run()
 
-  def CreateDiskImage(self, name):
+  def CreateDiskImage(self, name, lsb_content):
     image_path = os.path.join(self.temp_dir, name)
     dir_path = os.path.dirname(image_path)
     if not os.path.exists(dir_path):
@@ -90,7 +90,7 @@ class ImageToolTest(unittest.TestCase):
       lsb_path = os.path.join(d, 'etc', 'lsb-release')
       self.CheckCall('sudo mkdir -p %s' % os.path.dirname(lsb_path))
       self.CheckCall('echo "%s" | sudo dd of=%s' %
-                     (self.LSB_CONTENT.strip('\n'), lsb_path))
+                     (lsb_content.strip('\n'), lsb_path))
       write_gpt_path = os.path.join(d, 'usr', 'sbin', 'write_gpt.sh')
       self.CheckCall('sudo mkdir -p %s' % os.path.dirname(write_gpt_path))
       tmp_write_gpt_path = os.path.join(self.temp_dir, 'write_gpt.sh')
@@ -112,7 +112,7 @@ class ImageToolTest(unittest.TestCase):
       lsb_path = os.path.join(d, 'dev_image', 'etc', 'lsb-factory')
       self.CheckCall('sudo mkdir -p %s' % os.path.dirname(lsb_path))
       self.CheckCall('echo "%s" | sudo dd of=%s' %
-                     (self.LSB_CONTENT.strip('\n'), lsb_path))
+                     (lsb_content.strip('\n'), lsb_path))
       self.CheckCall('sudo mkdir -p %s' % os.path.join(
           d, 'unencrypted', 'import_extensions'))
 
@@ -140,7 +140,7 @@ class ImageToolTest(unittest.TestCase):
     if DEBUG:
       self.temp_dir = '/tmp/t'
     else:
-      self.temp_dir = tempfile.mkdtemp(prefix='image_tool_ut_')
+      self.temp_dir = tempfile.mkdtemp(prefix='image_tool_rma_ut_')
     parser = argparse.ArgumentParser()
     subparser = parser.add_subparsers()
     self.cmd_parsers = (parser, subparser)
@@ -153,69 +153,64 @@ class ImageToolTest(unittest.TestCase):
       if os.path.exists(self.temp_dir):
         shutil.rmtree(self.temp_dir)
 
-  def testImageCommands(self):
-    """Test all commands that needs disk images.
+  def testRMACommands(self):
+    """Test RMA related commands.
 
     To speed up execution time (CreateDiskImage takes ~2s while shutil.copy only
-    takes 0.1s) we are testing all commands that needs disk images in one single
-    test case.
+    takes 0.1s) we are testing all commands in one single test case.
     """
-    self.CreateDiskImage('test.bin')
-    image_path = os.path.join(self.temp_dir, 'test.bin')
-    mnt_dir = os.path.join(self.temp_dir, 'mnt', str(time.time()))
-    os.makedirs(mnt_dir)
-
-    try:
-      self.ImageTool('mount', '-ro', image_path, '3', mnt_dir)
-      self.assertTrue(os.path.exists(os.path.join(mnt_dir, 'usr', 'sbin')))
-    finally:
-      self.CheckCall('sudo umount %s' % mnt_dir)
-
-    try:
-      self.ImageTool('mount', '-rw', image_path, '3', mnt_dir)
-      self.assertTrue(os.path.exists(os.path.join(mnt_dir, 'usr', 'sbin')))
-      self.CheckCall('sudo touch %s' % os.path.join(mnt_dir, 'rw'))
-    finally:
-      self.CheckCall('sudo umount %s' % mnt_dir)
-
-    self.ImageTool('get_firmware', '-i', image_path, '-o', self.temp_dir)
-    updater = os.path.join(self.temp_dir, 'chromeos-firmwareupdate')
-    with open(updater) as f:
-      self.assertEqual(self.UPDATER_CONTENT, f.read())
-
-    self.ImageTool('resize', '-i', image_path, '-p', '1', '-s', '2')
-    part = image_tool.Partition(image_path, 1)
-    self.assertEqual(part.size, 8388608)
-    self.assertEqual(part.GetFileSystemSize(), 4194304)
-
-    self.ImageTool('resize', '-i', image_path, '-p', '1', '-s', '7',
-                   '--no-append')
-    part = image_tool.Partition(image_path, 1)
-    self.assertEqual(part.GetFileSystemSize(), 7340032)
-
-    # Prepare the environment to run bundle commands, which need to run inside
-    # the temp folder.
-    self.SetupBundleEnvironment(image_path)
+    self.CreateDiskImage('test1.bin', self.LSB_CONTENT % 'test1')
+    self.CreateDiskImage('test2.bin', self.LSB_CONTENT % 'test2')
+    self.CreateDiskImage('test3.bin', self.LSB_CONTENT % 'test3')
+    image_path1 = os.path.join(self.temp_dir, 'test1.bin')
+    image_path2 = os.path.join(self.temp_dir, 'test2.bin')
+    image_path3 = os.path.join(self.temp_dir, 'test3.bin')
     os.chdir(self.temp_dir)
 
-    self.ImageTool('preflash', '-o', 'disk.bin', '--stateful', '1')
-    self.assertEqual(os.path.getsize('disk.bin'), 16013942784)
-    image_tool.Partition('disk.bin', 1).CopyFile('tag', 'tag.1')
-    image_tool.Partition('disk.bin', 3).CopyFile('tag', 'tag.3')
-    image_tool.Partition('disk.bin', 5).CopyFile('tag', 'tag.5')
-    self.assertEqual(open('tag.1').read().strip(), 'test_image')
-    self.assertEqual(open('tag.3').read().strip(), 'test_image')
-    self.assertEqual(open('tag.5').read().strip(), 'release_image')
+    # `rma-create` to create 3 RMA shims.
+    self.SetupBundleEnvironment(image_path1)
+    self.ImageTool('rma-create', '-o', 'rma1.bin')
+    self.SetupBundleEnvironment(image_path2)
+    self.ImageTool('rma-create', '-o', 'rma2.bin')
+    self.SetupBundleEnvironment(image_path3)
+    self.ImageTool('rma-create', '-o', 'rma3.bin')
 
-    self.ImageTool('bundle', '--no-firmware', '--timestamp', '20180101')
-    bundle_name = 'factory_bundle_test_20180101_proto.tar.bz2'
-    self.assertTrue(os.path.exists(bundle_name))
-    contents = subprocess.check_output('tar -xvf %s' % bundle_name, shell=True)
-    contents = [line.split()[-1] for line in contents.splitlines()]
-    self.assertItemsEqual(contents, [
-        './', './README.md', './factory_shim/', './factory_shim/image.bin',
-        './release_image/', './release_image/image.bin', './test_image/',
-        './test_image/image.bin', './toolkit/', './toolkit/toolkit.run'])
+    # Verify content of RMA shim.
+    image_tool.Partition('rma1.bin', 1).CopyFile('tag', 'tag.1')
+    image_tool.Partition('rma1.bin', 3).CopyFile('tag', 'tag.3')
+    image_tool.Partition('rma1.bin', 1).CopyFile(
+        'cros_payloads/test1.json', self.temp_dir)
+    image_tool.Partition('rma1.bin', 1).CopyFile(
+        image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
+    self.assertEqual(open('tag.1').read().strip(), 'factory_shim')
+    self.assertEqual(open('tag.3').read().strip(), 'factory_shim')
+    with open('test1.json') as f:
+      data = json.load(f)
+    self.assertEqual(data['toolkit']['version'], u'Toolkit Version 1.0')
+    with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
+      data = json.load(f)
+    self.assertEqual(data, [{'board': 'test1', 'kernel': 2, 'rootfs': 3}])
+
+    # `rma-merge` to merge 2 different shims.
+    self.ImageTool(
+        'rma-merge', '-f', '-o', 'rma12.bin', '-i', 'rma1.bin', 'rma2.bin')
+    image_tool.Partition('rma12.bin', 1).CopyFile(
+        image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
+    with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
+      data = json.load(f)
+    self.assertEqual(data, [{'board': 'test1', 'kernel': 2, 'rootfs': 3},
+                            {'board': 'test2', 'kernel': 4, 'rootfs': 5}])
+
+    # `rma-merge` to merge a universal shim and a normal shim.
+    self.ImageTool(
+        'rma-merge', '-f', '-o', 'rma123.bin', '-i', 'rma12.bin', 'rma3.bin')
+    image_tool.Partition('rma123.bin', 1).CopyFile(
+        image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
+    with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
+      data = json.load(f)
+    self.assertEqual(data, [{'board': 'test1', 'kernel': 2, 'rootfs': 3},
+                            {'board': 'test2', 'kernel': 4, 'rootfs': 5},
+                            {'board': 'test3', 'kernel': 6, 'rootfs': 7}])
 
 
 if __name__ == '__main__':

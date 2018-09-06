@@ -1087,8 +1087,11 @@ class ChromeOSFactoryBundle(object):
           'Cannot merge image %s due to different block size (%s, %s)' %
           (path, block_size, gpt.block_size))
       stateful_parts.append(gpt.GetPartition(PART_CROS_STATEFUL))
-      kern_rootfs_parts.append(gpt.GetPartition(PART_CROS_KERNEL_A))
-      kern_rootfs_parts.append(gpt.GetPartition(PART_CROS_ROOTFS_A))
+      with Partition(path, PART_CROS_STATEFUL).Mount() as src_dir:
+        src_metadata = _ReadRMAMetadata(src_dir)
+        for board_info in src_metadata:
+          kern_rootfs_parts.append(gpt.GetPartition(board_info.kernel))
+          kern_rootfs_parts.append(gpt.GetPartition(board_info.rootfs))
 
     # Build a new image based on first image's layout.
     gpt = pygpt.GPT.LoadFromFile(images[0])
@@ -1149,23 +1152,23 @@ class ChromeOSFactoryBundle(object):
       payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
       board_list = []
       board_set = set()  # To detect duplicated boards.
+      board_index = 0
 
       for i, src_path in enumerate(images):
         print('Copying %s root/kernel partitions...' % src_path)
-        new_kernel = i * 2 + PART_CROS_KERNEL_A
-        new_rootfs = i * 2 + PART_CROS_ROOTFS_A
-        Partition(src_path, PART_CROS_KERNEL_A).Copy(
-            Partition(output, new_kernel))
-        Partition(src_path, PART_CROS_ROOTFS_A).Copy(
-            Partition(output, new_rootfs))
 
         with Partition(src_path, PART_CROS_STATEFUL).Mount() as src_dir:
           src_metadata = _ReadRMAMetadata(src_dir)
 
-          if src_metadata:
-            assert len(src_metadata) == 1, (
-                'Merging multiple universal RMA shim is not supported')
-            board_info = src_metadata[0]
+          for board_info in src_metadata:
+            print('Found board: %s' % board_info.board)
+            new_kernel = board_index * 2 + PART_CROS_KERNEL_A
+            new_rootfs = board_index * 2 + PART_CROS_ROOTFS_A
+            board_index += 1
+            Partition(src_path, board_info.kernel).Copy(
+                Partition(output, new_kernel))
+            Partition(src_path, board_info.rootfs).Copy(
+                Partition(output, new_rootfs))
             if board_info.board in board_set:
               logging.warning('Duplicated board: %r', board_info.board)
             board_set.add(board_info.board)
