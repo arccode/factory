@@ -37,7 +37,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
-BLACKLIST_PROJECT = ['KENCH']
+BLACKLIST_PROJECT = []
 
 
 def _CheckProject(args):
