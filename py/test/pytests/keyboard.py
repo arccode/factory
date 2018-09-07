@@ -98,6 +98,7 @@ from cros.factory.test.l10n import regions
 from cros.factory.test import session
 from cros.factory.test import test_case
 from cros.factory.test.utils import evdev_utils
+from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -219,6 +220,9 @@ class KeyboardTest(test_case.TestCase):
     self.dispatcher = evdev_utils.InputDeviceDispatcher(
         self.keyboard_device, self.event_loop.CatchException(self.HandleEvent))
 
+    testlog.UpdateParam('malfunction_key',
+                        description='The keycode of malfunction keys')
+
   def tearDown(self):
     """Terminates the running process or we'll have trouble stopping the test.
     """
@@ -325,6 +329,8 @@ class KeyboardTest(test_case.TestCase):
     failed_keys = [
         key for key, num_left in self.number_to_press.iteritems() if num_left
     ]
+    for failed_key in failed_keys:
+      testlog.LogParam('malfunction_key', failed_key)
     self.FailTask('Keyboard test timed out. Malfunction keys: %r' % failed_keys)
 
   def runTest(self):
