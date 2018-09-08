@@ -251,7 +251,9 @@ class ShutdownTest(test_case.TestCase):
 
     if last_shutdown_time > now:
       LogAndEndTest(status=state.TestState.FAILED,
-                    error_msg='Time moved backward during reboot')
+                    error_msg=('Time moved backward during reboot '
+                               '(before=%s, after=%s)' %
+                               (last_shutdown_time, now)))
     elif (self.args.operation == test_object.ShutdownStep.REBOOT and
           self.args.max_reboot_time_secs and
           (now - last_shutdown_time > self.args.max_reboot_time_secs)):
@@ -272,7 +274,8 @@ class ShutdownTest(test_case.TestCase):
     elif self.test_state.shutdown_count > self.test.iterations:
       # Shut down too many times
       LogAndEndTest(status=state.TestState.FAILED,
-                    error_msg='Too many shutdowns')
+                    error_msg=('Too many shutdowns (count=%s)' %
+                               self.test_state.shutdown_count))
       logging.info(sys_utils.GetStartupMessages(self.dut))
 
     elif self.args.check_tag_file and self.CheckShutdownFailureTagFile():
