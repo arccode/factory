@@ -19,7 +19,6 @@ export default combineReducers<AuthState, AuthAction>({
       case getType(actions.loginSucceed):
         return true;
 
-      case getType(actions.loginFailed):
       case getType(actions.logout):
         return false;
 

@@ -15,6 +15,8 @@ import {connect} from 'react-redux';
 
 import {RootState} from '@app/types';
 
+import {toReduxFormError} from '@common/form';
+
 import {testAuthToken, tryLogin} from '../actions';
 import {isLoggedIn} from '../selectors';
 import {AuthData} from '../types';
@@ -40,8 +42,16 @@ class LoginApp extends React.Component<LoginAppProps> {
     this.props.testAuthToken();
   }
 
+  handleSubmit = async (data: AuthData) => {
+    try {
+      await this.props.tryLogin(data);
+    } catch (err) {
+      throw toReduxFormError(err);
+    }
+  }
+
   render() {
-    const {isLoggedIn, classes, tryLogin} = this.props;
+    const {isLoggedIn, classes} = this.props;
     if (isLoggedIn === null) {
       return (
         <Modal open disableAutoFocus className={classes.root}>
@@ -50,7 +60,7 @@ class LoginApp extends React.Component<LoginAppProps> {
       );
     }
     return (
-      <LoginForm onSubmit={tryLogin} />
+      <LoginForm onSubmit={this.handleSubmit} />
     );
   }
 }

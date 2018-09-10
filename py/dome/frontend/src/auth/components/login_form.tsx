@@ -6,6 +6,7 @@ import Button from '@material-ui/core/Button';
 import Card from '@material-ui/core/Card';
 import CardActions from '@material-ui/core/CardActions';
 import CardContent from '@material-ui/core/CardContent';
+import FormHelperText from '@material-ui/core/FormHelperText';
 import {
   createStyles,
   Theme,
@@ -30,7 +31,7 @@ type LoginFormProps =
   InjectedFormProps<AuthData> & WithStyles<typeof styles>;
 
 const LoginForm: React.SFC<LoginFormProps> =
-  ({handleSubmit, classes}) => (
+  ({handleSubmit, classes, error}) => (
     <form onSubmit={handleSubmit}>
       <Card>
         <CardContent>
@@ -47,6 +48,7 @@ const LoginForm: React.SFC<LoginFormProps> =
             label="Password"
             type="password"
           />
+          {error && <FormHelperText error>{error}</FormHelperText>}
         </CardContent>
         <CardActions className={classes.actions}>
           <Button color="primary" type="submit">Login</Button>

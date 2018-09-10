@@ -20,29 +20,17 @@ const loginSucceed = createAction('LOGIN_SUCCEED', (resolve) =>
     return resolve();
   });
 
-const loginFailed = createAction('LOGIN_FAILED', (resolve) =>
-  () => {
-    localStorage.removeItem('token');
-    return resolve();
-  });
-
 export const logout = createAction('LOGOUT', (resolve) =>
   () => {
     localStorage.removeItem('token');
     return resolve();
   });
 
-export const basicActions = {loginSucceed, loginFailed, logout};
+export const basicActions = {loginSucceed, logout};
 
 export const tryLogin = (data: AuthData) => async (dispatch: Dispatch) => {
-  try {
-    const response = await axios.post('/auth', data);
-    dispatch(loginSucceed(response.data.token));
-  } catch (err) {
-    dispatch(loginFailed());
-    // TODO(pihsun): Don't use blocking window.alert.
-    window.alert('\nLogin failed :(');
-  }
+  const response = await axios.post('/auth', data);
+  dispatch(loginSucceed(response.data.token));
 };
 
 export const testAuthToken = () => async (dispatch: Dispatch) => {
@@ -65,6 +53,6 @@ export const testAuthToken = () => async (dispatch: Dispatch) => {
   } catch (err) {
     /* Authorization failed. */
   }
-  // Dispatch a login failed event to clear all wrong token.
-  dispatch(loginFailed());
+  // Dispatch a logout event to clear all wrong token.
+  dispatch(logout());
 };

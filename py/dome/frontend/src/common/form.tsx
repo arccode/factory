@@ -2,7 +2,9 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import {AxiosError} from 'axios';
 import React from 'react';
+import {SubmissionError} from 'redux-form';
 
 export const validateRequired = (value: any): string | undefined => (
   value ? undefined : 'Required'
@@ -20,3 +22,21 @@ export const parseNumber = (value: string) => {
 export const HiddenSubmitButton = () => (
   <button type="submit" style={{display: 'none'}} />
 );
+
+const DJANGO_FORM_ERROR_KEY = 'non_field_errors';
+
+export const toReduxFormError = (err: AxiosError) => {
+  const {response} = err;
+  if (!response) {
+    return err;
+  }
+  const {data} = response;
+  if (typeof data !== 'object') {
+    return err;
+  }
+  if (data.hasOwnProperty(DJANGO_FORM_ERROR_KEY)) {
+    data._error = data[DJANGO_FORM_ERROR_KEY];
+    delete data[DJANGO_FORM_ERROR_KEY];
+  }
+  return new SubmissionError(data);
+};
