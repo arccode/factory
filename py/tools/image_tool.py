@@ -1789,7 +1789,11 @@ class CreateBundleCommand(SubCommand):
 
 
 class CreateDockerImageCommand(SubCommand):
-  """Create a Docker image from existing Chromium OS disk image."""
+  """Create a Docker image from existing Chromium OS disk image.
+
+  The architecture of the source Chromium OS disk image should be the same as
+  the docker host (basically, amd64).
+  """
   name = 'docker'
 
   def Init(self):

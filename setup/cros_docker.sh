@@ -520,7 +520,7 @@ goofy_main() {
   fi
   # Normalize name and check if the image exists.
   if [ -z "${name}" ]; then
-    die "Need Docker image from Chromium OS test image (make_docker_image.sh)."
+    die "Need Docker image from Chromium OS test image (image_tool docker)."
   elif [ "${name##*/}" = "${name}" ]; then
     name="cros/${name}"
   fi
