@@ -56,7 +56,7 @@ def GetFileToLint(path=None):
       if f.endswith('.py') and os.path.exists(file_path):
         all_files.add(re.sub(RE_PACKAGE_FILES, '', f) if path else f)
 
-  all_files = [f for f in all_files if os.path.exists(f)]
+  all_files = set(f for f in all_files if os.path.exists(f))
   return all_files
 
 def main():
