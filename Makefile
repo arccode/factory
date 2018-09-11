@@ -102,7 +102,7 @@ CLOSURE_LIB_DIR = /opt/closure-library
 endif
 
 LINT_BLACKLIST=$(shell cat $(MK_DIR)/pylint.blacklist | grep -v '^\#')
-LINT_FILES=$(shell find py go po -name '*.py' -type f | sort)
+LINT_FILES=$(shell find py go po devtools -name '*.py' -type f | sort)
 LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(wildcard $(LINT_FILES)))
 
 UNITTESTS=$(shell find py go po -name '*_unittest.py' | sort)
