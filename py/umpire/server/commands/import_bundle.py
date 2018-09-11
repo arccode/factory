@@ -77,12 +77,12 @@ class BundleImporter(object):
         'id': bundle_id,
         'note': note,
         'payloads': payload_json_name,
-        })
+    })
     config['rulesets'].insert(0, {
         'bundle_id': bundle_id,
         'note': 'Please update match rule in ruleset',
         'active': False,
-        })
+    })
     deploy.ConfigDeployer(self._daemon).Deploy(
         self._daemon.env.AddConfigFromBlob(
             config.Dump(), resource.ConfigTypeNames.umpire_config))

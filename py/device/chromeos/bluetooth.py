@@ -364,11 +364,11 @@ class ChromeOSBluetoothManager(BluetoothManager):
     bus = dbus.SystemBus()
     device_prop = dbus.Interface(bus.get_object(BUS_NAME, adapter.object_path),
                                  'org.freedesktop.DBus.Properties')
-    PollForCondition(poll_method=lambda: (
-        device_prop.Get(ADAPTER_INTERFACE, 'Discovering')),
-                     condition_method=lambda ret: ret == 1,
-                     timeout_secs=timeout_secs,
-                     condition_name='Wait for Discovering==1')
+    PollForCondition(
+        poll_method=lambda: device_prop.Get(ADAPTER_INTERFACE, 'Discovering'),
+        condition_method=lambda ret: ret == 1,
+        timeout_secs=timeout_secs,
+        condition_name='Wait for Discovering==1')
 
   def RemoveDevices(self, adapter, paths):
     """Lets adapter to remove devices in paths.

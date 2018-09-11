@@ -39,39 +39,42 @@ class TinyParTest(unittest.TestCase):
       shutil.rmtree(self.temp_dir)
 
   def testCommandInAfg(self):
-    self.assertEqual(0, subprocess.check_call(
-        [self.par_file, 'par_test', '0']),
+    self.assertEqual(0,
+                     subprocess.check_call([self.par_file, 'par_test', '0']),
                      'PAR CMD invocation failed.')
-    self.assertEqual(1, subprocess.call(
-        [self.par_file, 'non-exist', '0']),
+    self.assertEqual(1,
+                     subprocess.call([self.par_file, 'non-exist', '0']),
                      'PAR CMD invocation wrong.')
-    self.assertEqual(2, subprocess.call(
-        [self.par_file, 'par_test', '2']),
+    self.assertEqual(2,
+                     subprocess.call([self.par_file, 'par_test', '2']),
                      'PAR CMD ARG invocation failed.')
-    self.assertEqual('correct result\n', subprocess.check_output(
-        [self.par_file, 'par_test', '0', 'correct', 'result']),
+    self.assertEqual('correct result\n',
+                     subprocess.check_output(
+                         [self.par_file, 'par_test', '0', 'correct', 'result']),
                      'PAR CMD ARG output incorrect.')
 
   def testCommandAsSymlink(self):
-    self.assertEqual(0, subprocess.check_call(
-        [self.symlink, '0']),
+    self.assertEqual(0,
+                     subprocess.check_call([self.symlink, '0']),
                      'SYMLINK invocation failed.')
-    self.assertEqual(1, subprocess.call(
-        [self.symlink, '1']),
+    self.assertEqual(1,
+                     subprocess.call([self.symlink, '1']),
                      'SYMLINK CMD ARG invocation failed.')
-    self.assertEqual('correct result\n', subprocess.check_output(
-        [self.symlink, '0', 'correct', 'result']),
+    self.assertEqual('correct result\n',
+                     subprocess.check_output(
+                         [self.symlink, '0', 'correct', 'result']),
                      'SYMLINK CMD ARG output incorrect.')
 
   def testCommandAsHardLink(self):
-    self.assertEqual(0, subprocess.check_call(
-        [self.hard_link, '0']),
+    self.assertEqual(0,
+                     subprocess.check_call([self.hard_link, '0']),
                      'HARDLINK invocation failed.')
-    self.assertEqual(1, subprocess.call(
-        [self.hard_link, '1']),
+    self.assertEqual(1,
+                     subprocess.call([self.hard_link, '1']),
                      'HARDLINK CMD ARG invocation failed.')
-    self.assertEqual('correct result\n', subprocess.check_output(
-        [self.hard_link, '0', 'correct', 'result']),
+    self.assertEqual('correct result\n',
+                     subprocess.check_output(
+                         [self.hard_link, '0', 'correct', 'result']),
                      'HARDLINK CMD ARG output incorrect.')
 
 

@@ -419,7 +419,7 @@ class InterruptHandler(object):
         'timeout 1s /usr/local/factory/py/test/fixture/get_dongle_eth.sh')
 
     # Make identity file less open to make ssh happy
-    os.chmod(testing_rsa_path, 0600)
+    os.chmod(testing_rsa_path, 0o600)
     ssh_command_base = ssh_utils.BuildSSHCommand(
         identity_file=testing_rsa_path)
 

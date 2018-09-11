@@ -196,7 +196,7 @@ class SSHPortForwarder(object):
           '-N',
           '-p', str(self._port),
           '%s@%s' % (self._user, self._host),
-          ] + self._ForwardArgs() + self._extra_args
+      ] + self._ForwardArgs() + self._extra_args
       logging.info(' '.join(cmd))
       self._ssh_output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as e:
@@ -214,7 +214,7 @@ class SSHPortForwarder(object):
       # use the key.
       try:
         identity_mode = os.stat(self._identity_file).st_mode
-        if identity_mode & 077 or not identity_mode & 0400:
+        if identity_mode & 0o77 or not identity_mode & 0o400:
           logging.error('%s: Please set file permissions 0600 on %s',
                         self, self._identity_file)
           self._state = self.FAILED

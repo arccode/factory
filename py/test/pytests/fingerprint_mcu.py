@@ -148,7 +148,7 @@ class FingerprintTest(unittest.TestCase):
     # Keep only type-1 or type-2 pixels depending on parity
     matrix = numpy.array([[(int(v), x, y) for x, v
                            in enumerate(l.strip().split())
-                           if (x+y) % 2 == parity]
+                           if (x + y) % 2 == parity]
                           for y, l in enumerate(lines)])
     # Transform the 2D array of triples in a 1-D array of triples
     pixels = matrix.reshape((-1, 3))
@@ -172,7 +172,7 @@ class FingerprintTest(unittest.TestCase):
       raise type_utils.TestFailure('Unsupported/corrupted image')
     # Build arrays of black and white pixels (aka Type-1 / Type-2)
     try:
-      #PNM image size: w, h = [int(i) for i in lines[1].split()]
+      # PNM image size: w, h = [int(i) for i in lines[1].split()]
       # strip header/footer
       pixel_lines = lines[3:-1]
       # Compute pixels parameters for each type
@@ -245,7 +245,7 @@ class FingerprintTest(unittest.TestCase):
     fw_version = self.MCUCommand("version")
     match_ro = self.RO_VERSION_RE.search(fw_version)
     match_rw = self.RW_VERSION_RE.search(fw_version)
-    self.assertTrue(match_ro != None and match_rw != None,
+    self.assertTrue(match_ro is not None and match_rw is not None,
                     'Unable to retrieve FPMCU version (%s)' % (fw_version))
     if match_ro and match_rw:
       logging.info("FPMCU version RO %s RW %s",

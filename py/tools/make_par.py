@@ -263,7 +263,7 @@ def main(argv=None):
     with open(args.output, 'wb') as out:
       out.write(HEADER_TEMPLATE.replace('MODULES', repr(modules)))
       shutil.copyfileobj(open(factory_par), out)
-      os.fchmod(out.fileno(), 0755)
+      os.fchmod(out.fileno(), 0o755)
 
     # Done!
     print 'Created %s (%d bytes)' % (args.output, os.path.getsize(args.output))

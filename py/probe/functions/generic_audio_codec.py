@@ -33,7 +33,7 @@ class GenericAudioCodecFunction(cached_probe_function.CachedProbeFunction):
         'snd-soc-dummy',
         'ts3a227e.4-003b',  # autonomous audiojack switch, not an audio codec
         'dw-hdmi-audio'  # this is a virtual audio codec driver
-        ])
+    ])
 
     results = []
     asoc_path = '/sys/kernel/debug/asoc/codecs'

@@ -196,8 +196,8 @@ class TestInputHTTP(unittest.TestCase):
                      'event={Payload}\',)', r.reason)
 
     event = datatypes.Event(
-        {'type': 'other', 'AA': 'BB', 'attachments': {'att_key1':{},
-                                                      'att_key2':{}}},
+        {'type': 'other', 'AA': 'BB', 'attachments': {'att_key1': {},
+                                                      'att_key2': {}}},
         {'att_key2': 'att_key2'})
     att1 = os.urandom(1024)  # 1kb data
     att2 = os.urandom(1024)  # 1kb data

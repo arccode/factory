@@ -218,7 +218,7 @@ class TouchscreenTest(test_case.TestCase):
           default=False),
       Arg('timeout_secs', (int, type(None)),
           'Timeout for the test. None for no time limit.', default=20),
-      ]
+  ]
 
   def setUp(self):
     if self.args.stylus:

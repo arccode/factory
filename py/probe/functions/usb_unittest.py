@@ -9,7 +9,7 @@ import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import usb
-from cros.factory.utils import  file_utils
+from cros.factory.utils import file_utils
 
 
 class USBFunctionTest(unittest.TestCase):

@@ -65,7 +65,7 @@ class ToolkitInstallerTest(unittest.TestCase):
     self._installer = installer.FactoryToolkitInstaller(
         self.src, self.dest, not enabled_tag, non_cros=non_cros,
         system_root=system_root, apps=apps)
-    self._installer._sudo = False # pylint: disable=protected-access
+    self._installer._sudo = False  # pylint: disable=protected-access
 
   def testNonRoot(self):
     self.makeLiveDevice()

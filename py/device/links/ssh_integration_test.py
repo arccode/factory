@@ -23,7 +23,7 @@ dut_options = dict(
 class SSHLinkUnittest(unittest.TestCase):
   def setUp(self):
     if dut_options.get('identity'):
-      os.chmod(dut_options.get('identity'), 0600)
+      os.chmod(dut_options.get('identity'), 0o600)
     self.ssh = ssh.SSHLink(**dut_options)
     self.local = local.LocalLink()
 

@@ -192,7 +192,8 @@ class SSHLink(types.DeviceLink):
           error = stderr.read()
           SSH_CONNECT_ERROR_MSG = [
               'ssh: connect to host',
-              'Connection timed out',]
+              'Connection timed out',
+          ]
           if [msg for msg in SSH_CONNECT_ERROR_MSG if msg in error]:
             # this is a connection issue
             logging.warning(error)

@@ -205,7 +205,7 @@ class TestEvent(unittest.TestCase):
         now_time.strftime(json_utils.FORMAT_DATETIME)))
     self.assertEqual(event, datatypes.Event.Deserialize(
         '{"payload": {"a": 1, "time": {"__type__": "datetime", "value": "%s"}},'
-        '"attachments": {}, "history": [], "__type__": "Event"}'%
+        '"attachments": {}, "history": [], "__type__": "Event"}' %
         now_time.strftime(json_utils.FORMAT_DATETIME)))
 
   def testRoundTrip(self):

@@ -12,7 +12,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.tools.cpu_usage_monitor import CPUUsageMonitor
 
 MOCK_TOP_OUTPUT = \
-"""top - 11:46:54 up  3:25,  0 users,  load average: 0.33, 2.32, 2.79
+    """top - 11:46:54 up  3:25,  0 users,  load average: 0.33, 2.32, 2.79
 Tasks: 224 total,   1 running, 223 sleeping,   0 stopped,   0 zombie
 %Cpu(s): 10.3 us, 55.8 sy,  0.0 ni, 33.4 id,  0.2 wa,  0.0 hi,  0.2 si,  0.0 st
 KiB Mem:   2067628 total,  1277864 free,   789764 used,   105392 buff/cache

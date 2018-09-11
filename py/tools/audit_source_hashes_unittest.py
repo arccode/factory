@@ -180,7 +180,7 @@ class FakeSourceTreeTest(unittest.TestCase):
         'shift\n'                          # Remove tar flags
         'tar "$tar_flags" "%s" "$@"\n'     # Call tar on tar_file
         % tar_file)
-    os.chmod(toolkit_path, 0555)
+    os.chmod(toolkit_path, 0o555)
 
     # Now we can use the fake toolkit as a golden source.
     self._AssertMismatches(toolkit_path)

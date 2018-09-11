@@ -175,7 +175,7 @@ def main(argv=None):
       f.write(TEMPLATE.replace(MODULES_PATTERN, ' '.join(args.modules)))
       with open(zip_path, 'r') as z:
         f.write(z.read())
-    os.chmod(args.output, 0755)
+    os.chmod(args.output, 0o755)
     print('Successfully created PAR executable: %s' % args.output)
   finally:
     shutil.rmtree(tmp_dir)

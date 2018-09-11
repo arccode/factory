@@ -184,8 +184,8 @@ class InputEventlogFileVSWR(input_eventlog_file.InputEventlogFile):
         test_run['series'][antenna]['data'][-1]['key'] = freq
         test_run['series'][antenna]['data'][-1]['numericValue'] = db
         # TODO(kitching): Include minimum and maximum.
-        #test_run['series'][antenna]['data'][-1]['expectedMinimum']
-        #test_run['series'][antenna]['data'][-1]['expectedMaximum']
+        # test_run['series'][antenna]['data'][-1]['expectedMinimum']
+        # test_run['series'][antenna]['data'][-1]['expectedMaximum']
 
     return datatypes.Event(test_run)
 

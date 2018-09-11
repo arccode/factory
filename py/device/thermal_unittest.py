@@ -29,7 +29,7 @@ class _FakeGlob(object):
     self._paths = []
     for path in paths:
       assert path.startswith('/'), 'Only absolute paths are acceptable'
-      splitted_path = path.split('/')[1 : ]
+      splitted_path = path.split('/')[1:]
       ancestor_path = ''
       for dirname in splitted_path:
         self._paths.append(ancestor_path + '/')

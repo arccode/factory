@@ -18,25 +18,31 @@ class ApproxMatchTest(unittest.TestCase):
     item = {'foo': 'FOO', 'bar': 'BAR', 'FOO': 'FOO123', 'id': 1}
     res = approx_match.Match(item)
     self.assertApproxMatch(res, True, 4,
-                           {'foo':True, 'bar':True, 'FOO':True, 'id':True},
+                           {'foo': True, 'bar': True, 'FOO': True, 'id': True},
                            item)
 
     item = {'foo': 'FO', 'bar': 'BAR', 'FOO': 'FOO123', 'id': 1}
     res = approx_match.Match(item)
     self.assertApproxMatch(res, False, 3,
-                           {'foo':False, 'bar':True, 'FOO':True, 'id':True},
+                           {'foo': False, 'bar': True, 'FOO': True, 'id': True},
                            item)
 
     item = {'foo': 'FO', 'bar': 'BAR', 'FOO': 'FOOa', 'id': 1}
     res = approx_match.Match(item)
     self.assertApproxMatch(res, False, 2,
-                           {'foo':False, 'bar':True, 'FOO':False, 'id':True},
+                           {'foo': False,
+                            'bar': True,
+                            'FOO': False,
+                            'id': True},
                            item)
 
     item = {'foo': 'FO', 'bar': 'B', 'FOO': 'FOOa', 'id': 100}
     res = approx_match.Match(item)
     self.assertApproxMatch(res, False, 0,
-                           {'foo':False, 'bar':False, 'FOO':False, 'id':False},
+                           {'foo': False,
+                            'bar': False,
+                            'FOO': False,
+                            'id': False},
                            item)
 
   def testMatchStr(self):
@@ -44,11 +50,11 @@ class ApproxMatchTest(unittest.TestCase):
 
     item = {'foo': 'FOO123'}
     res = approx_match.Match(item)
-    self.assertApproxMatch(res, True, 1, {'foo':True}, item)
+    self.assertApproxMatch(res, True, 1, {'foo': True}, item)
 
     item = {'bar': 'FOOabc'}
     res = approx_match.Match(item)
-    self.assertApproxMatch(res, False, 0, {'bar':False}, item)
+    self.assertApproxMatch(res, False, 0, {'bar': False}, item)
 
   def testApproxMatchFilter(self):
     def _GenerateFakeResults(matched_nums):

@@ -371,9 +371,9 @@ class ShutdownTest(test_case.TestCase):
       if not pm.IsChromeOsKernelPartition(idx):
         raise ShutdownError(
             'Partition %d should be a Chrome OS kernel partition' % idx)
-      if not pm.IsChromeOsRootFsPartition(idx+1):
+      if not pm.IsChromeOsRootFsPartition(idx + 1):
         raise ShutdownError(
-            'Partition %d should be a Chrome OS rootfs partition' % (idx+1))
+            'Partition %d should be a Chrome OS rootfs partition' % (idx + 1))
 
     active_partition = self._GetActiveKernelPartition()
     if active_partition not in kernel_partitions:

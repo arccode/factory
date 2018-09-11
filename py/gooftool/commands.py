@@ -348,7 +348,7 @@ def EnableFwWp(options):
 
     section_data = fw.GetFirmwareImage(
         sections=[wp_section]).get_section_area(wp_section)
-    ro_offset, ro_size = section_data[0 : 2]
+    ro_offset, ro_size = section_data[0:2]
 
     logging.debug('write protecting %s [off=%x size=%x]', fw.target.upper(),
                   ro_offset, ro_size)

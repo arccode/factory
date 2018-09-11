@@ -175,7 +175,7 @@ def main():
 
   # Disable all DNS lookups, since otherwise the logging code may try to
   # resolve IP addresses, which may delay request handling.
-  socket.getfqdn = lambda (name): name or 'localhost'
+  socket.getfqdn = lambda name: name or 'localhost'
 
   try:
     RunAsServer(address=options.address, port=options.port,

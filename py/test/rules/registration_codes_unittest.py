@@ -55,11 +55,11 @@ class RegistrationCodeTest(unittest.TestCase):
   def testValid_Pregenerated(self):
     for expected_type, encoded_string in (
         (RegistrationCode.Type.UNIQUE_CODE,
-         '=CioKIKMVpeuuIkf5epYYO5oivYR6HnjFjLg0ZPbFUuUkMOv2EAEaBGxpbmsQ4PvXgAM='
-        ),
+         ('=CioKIKMVpeuuIkf5epYYO5oivYR6HnjFjLg'
+          '0ZPbFUuUkMOv2EAEaBGxpbmsQ4PvXgAM=')),
         (RegistrationCode.Type.GROUP_CODE,
-         '=CioKIIG0s3uzLa5cIsxL7P4bNMi-jGzEfiB8CqFmqOOFVWT4EAAaBGxpbmsQr_PG2gE='
-        ),
+         ('=CioKIIG0s3uzLa5cIsxL7P4bNMi-jGzEfiB'
+          '8CqFmqOOFVWT4EAAaBGxpbmsQr_PG2gE=')),
         (RegistrationCode.Type.UNIQUE_CODE,
          (u'=CioKIEkzPma0JQrR6gvdlYHzbjp1IN8v1'
           'ybuSPQrindTXip2EAEaBGxpbmsQtKi9uQg=')),

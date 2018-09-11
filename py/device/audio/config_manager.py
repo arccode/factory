@@ -314,12 +314,12 @@ class AudioConfigManager(BaseConfigManager):
       status = True if jack_status == '1' else False
       logging.info('headphone jack status %s', status)
       return status
-    raise NotImplementedError # cannot determined by config file
+    raise NotImplementedError  # cannot determined by config file
 
   def GetHeadphoneJackPossibleNames(self, card='0'):
     if card in self.audio_config and HP_JACK_NAME in self.audio_config[card]:
       return [self.audio_config[card][HP_JACK_NAME]]
-    raise NotImplementedError # cannot determined by config file
+    raise NotImplementedError  # cannot determined by config file
 
   def GetMicJackStatus(self, card='0'):
     if card in self.audio_config and MIC_JACK_DETECT in self.audio_config[card]:
@@ -329,12 +329,12 @@ class AudioConfigManager(BaseConfigManager):
       status = True if jack_status == '1' else False
       logging.info('microphone jack status %s', status)
       return status
-    raise NotImplementedError # cannot determined by config file
+    raise NotImplementedError  # cannot determined by config file
 
   def GetMicJackPossibleNames(self, card='0'):
     if card in self.audio_config and MIC_JACK_NAME in self.audio_config[card]:
       return [self.audio_config[card][MIC_JACK_NAME]]
-    raise NotImplementedError # cannot determined by config file
+    raise NotImplementedError  # cannot determined by config file
 
   def GetMicJackType(self, card='0'):
     mictype = None

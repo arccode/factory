@@ -848,7 +848,7 @@ class EventBase(object):
         if not data[key]:
           raise testlog_utils.TestlogError('Empty dict is invalid: %r' % key)
         for sub_key, value in data[key].iteritems():
-          self[key] = {'key' : sub_key, 'value': value}
+          self[key] = {'key': sub_key, 'value': value}
       else:
         self[key] = data[key]
     return self

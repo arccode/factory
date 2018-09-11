@@ -45,12 +45,12 @@ class WhaleBFTFixture(bft.BFTFixture):
 
   # Add 8 GPIOs on krill board PCA9534
   _WHALE_DEVICE.update({
-      'krill_pca9534_p%d' % i : 'krill_pca9534_p%d' % i for i in xrange(8)
+      'krill_pca9534_p%d' % i: 'krill_pca9534_p%d' % i for i in xrange(8)
   })
 
   # Add whale_fixture_ctrl
   _WHALE_DEVICE.update({
-      'whale_fixture_ctrl%d' % i : 'whale_fixture_ctrl%d' % i
+      'whale_fixture_ctrl%d' % i: 'whale_fixture_ctrl%d' % i
       for i in xrange(1, 7)
   })
 
@@ -89,7 +89,7 @@ class WhaleBFTFixture(bft.BFTFixture):
       self._testing_rsa_path = params.get('testing_rsa_path')
       if self._testing_rsa_path:
         # Make identity file less open to make ssh happy
-        os.chmod(self._testing_rsa_path, 0600)
+        os.chmod(self._testing_rsa_path, 0o600)
     except servo_client.ServoClientError as e:
       raise bft.BFTFixtureException('Failed to Init(). Reason: %s' % e)
 

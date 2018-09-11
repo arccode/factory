@@ -23,11 +23,9 @@ class FactoryTestListTest(unittest.TestCase):
                       'subtests': [
                           {'id': 'a', 'pytest_name': 't_GGa'},
                           {'id': 'b', 'pytest_name': 't_GGb'},
-                      ]
-                     },
+                      ]},
                      {'id': 'b', 'pytest_name': 't_Gb'},
-                 ]
-                }
+                 ]}
             ]
         })
     test = test_list.LookupPath('G.G')

@@ -63,7 +63,8 @@ class DSMCalibrationTest(unittest.TestCase):
           'Output ALSA device. [card_name, sub_device].'
           'For example: ["audio_card", "0"].', ['0', '0']),
       Arg('num_output_channels', int,
-          'Number of output channels.', default=2),]
+          'Number of output channels.', default=2),
+  ]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
@@ -113,4 +114,3 @@ class DSMCalibrationTest(unittest.TestCase):
   def tearDown(self):
     if self._sox_process:
       self._sox_process.terminate()
-

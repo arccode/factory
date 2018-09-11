@@ -103,14 +103,14 @@ class UpdateSKUIDTest(test_case.TestCase):
     if old_sku_id == new_sku_id:
       return
 
-    if new_sku_id > 2**32 - 1:
+    if new_sku_id > 2 ** 32 - 1:
       self.FailTask('SKU ID (%d) should not be greater than UINT32_MAX (%d)' %
-                    (new_sku_id, 2**32 - 1))
+                    (new_sku_id, 2 ** 32 - 1))
     # The data size should be 1, 2 or 4.  See
     # https://chromium.googlesource.com/chromiumos/platform/ec/+/master/util/cbi-util.c#140
-    if new_sku_id <= 2**8 - 1:
+    if new_sku_id <= 2 ** 8 - 1:
       data_size = 1
-    elif new_sku_id <= 2**16 - 1:
+    elif new_sku_id <= 2 ** 16 - 1:
       data_size = 2
     else:
       data_size = 4

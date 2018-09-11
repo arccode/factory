@@ -16,7 +16,8 @@ from cros.factory.test.test_lists import manager
 
 
 PLAY_BUTTON_STATUS_FILTER = [
-    'UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED',]
+    'UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED',
+]
 
 
 class TestListIteratorTest(unittest.TestCase):
@@ -137,10 +138,8 @@ class TestListIteratorBaseTest(TestListIteratorTest):
                 'subtests': [
                     {'id': 'a', 'pytest_name': 't_GGa'},
                     {'id': 'b', 'pytest_name': 't_GGb'},
-                ]
-               },
-           ]
-          },
+                ]},
+           ]},
           {'id': 'c', 'pytest_name': 't_c'},
       ]
   }
@@ -187,13 +186,13 @@ class TestListIteratorBaseTest(TestListIteratorTest):
                  'subtests': [
                      {'id': 'G', 'iterations': 2,
                       'subtests': [
-                          {'id': 'a', 'pytest_name': 't_Ga', 'iterations':2},
-                          {'id': 'b', 'pytest_name': 't_Gb', 'iterations':2},
+                          {'id': 'a', 'pytest_name': 't_Ga', 'iterations': 2},
+                          {'id': 'b', 'pytest_name': 't_Gb', 'iterations': 2},
                       ]},
                      {'id': 'H', 'iterations': 2,
                       'subtests': [
-                          {'id': 'a', 'pytest_name': 't_Ha', 'iterations':2},
-                          {'id': 'b', 'pytest_name': 't_Hb', 'iterations':2},
+                          {'id': 'a', 'pytest_name': 't_Ha', 'iterations': 2},
+                          {'id': 'b', 'pytest_name': 't_Hb', 'iterations': 2},
                       ]},
                  ]}
             ]
@@ -275,10 +274,8 @@ class TestListIteratorBaseTest(TestListIteratorTest):
                           {'id': 'a', 'pytest_name': 't_GGa'},
                           {'id': 'b', 'pytest_name': 't_GGb'},
                           {'id': 'c', 'pytest_name': 't_GGc'},  # new
-                      ]
-                     },
-                 ]
-                },
+                      ]},
+                 ]},
                 {'id': 'c', 'pytest_name': 't_c'},
             ]
         }

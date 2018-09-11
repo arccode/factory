@@ -55,13 +55,13 @@ class TestBufferPriorityFile(unittest.TestCase):
   def _ProducePriorityEvent(self, pri_level, target_file_num=None):
     """Produces a priority event to a specific data buffer."""
     assert pri_level < self.pri_level_max
-    if target_file_num != None:
+    if target_file_num is not None:
       for file_num, file_num_lock in enumerate(self.sf._file_num_lock):
         if file_num != target_file_num:
           file_num_lock.acquire()
     result = self.sf.Produce([copy.deepcopy(self.e[pri_level])])
     assert result, 'Emit failed!'
-    if target_file_num != None:
+    if target_file_num is not None:
       for file_num, file_num_lock in enumerate(self.sf._file_num_lock):
         if file_num != target_file_num:
           file_num_lock.release()

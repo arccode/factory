@@ -40,7 +40,7 @@ WIPE_MARK_FILE = 'wipe_mark_file'
 CRX_CACHE_PAYLOAD_NAME = 'cros_payloads/release_image.crx_cache'
 CRX_CACHE_TAR_PATH = '/tmp/crx_cache.tar'
 
-class WipeError(StandardError):
+class WipeError(Exception):
   """Failed to complete wiping."""
 
 
@@ -148,7 +148,7 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
   Daemonize()
 
   # Set the default umask.
-  os.umask(0022)
+  os.umask(0o022)
 
   logfile = os.path.join('/tmp', WIPE_IN_TMPFS_LOG)
   ResetLog(logfile)
@@ -197,7 +197,7 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
     pango_query_output = process_utils.SpawnOutput(
         ['pango-querymodules', '--system'])
     m = re.search(r'^# ModulesPath = (.+)$', pango_query_output, re.M)
-    assert m != None, 'Failed to find pango module path.'
+    assert m is not None, 'Failed to find pango module path.'
     pango_module = m.group(1)
 
     with chroot.TmpChroot(
@@ -532,7 +532,7 @@ def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
         'openssh-server',
         # sslh is a service in ARC++ for muxing between ssh and adb.
         'sslh'
-        ])
+    ])
     _UnmountStatefulPartition(old_root, state_dev)
 
     process_utils.Spawn(

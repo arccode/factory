@@ -47,7 +47,7 @@ def _Init():
   if not testing_rsa:
     target_name = '/tmp/testing_rsa.%s' % os.environ.get('USER', 'default')
     if not os.path.exists(target_name):
-      file_utils.AtomicCopy(remote_access.TEST_PRIVATE_KEY, target_name, 0400)
+      file_utils.AtomicCopy(remote_access.TEST_PRIVATE_KEY, target_name, 0o400)
     testing_rsa = target_name
 
 

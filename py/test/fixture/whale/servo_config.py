@@ -26,7 +26,7 @@ IMPORT_PATH = 'cros.factory.test.fixture.whale.%s'
 
 # Whale's krill INA dict
 WHALE_INA = {
-    'krill_vc_connector_ina%d' % i : 'krill_vc_connector_ina%d' % i
+    'krill_vc_connector_ina%d' % i: 'krill_vc_connector_ina%d' % i
     for i in xrange(1, 17)
 }
 

@@ -44,7 +44,7 @@ def TryMakeDirs(path):
     pass
 
 
-def MakeDirsUidGid(path, uid=-1, gid=-1, mode=0777):
+def MakeDirsUidGid(path, uid=-1, gid=-1, mode=0o777):
   """Recursive directory creation with specified uid, gid and mode.
 
   Like os.makedirs, but it also chown() and chmod() to the directories it

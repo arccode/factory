@@ -292,7 +292,7 @@ class VSWR(test_case.TestCase):
         thresholds_list = {}
 
       self.log['test']['traces'][antenna_name] = trace[rf_port]
-      self._LogTrace(trace[rf_port], 'result_trace_%s' %  antenna_name)
+      self._LogTrace(trace[rf_port], 'result_trace_%s' % antenna_name)
 
       # Check all sample points.
       results = {}

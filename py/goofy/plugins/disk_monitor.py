@@ -60,13 +60,13 @@ class DiskMonitor(periodic_plugin.PeriodicPlugin):
                       stateful.bytes_used_pct, 2),
                   'inodes_used_pct': event_log.FloatDigit(
                       stateful.inodes_used_pct, 2)
-                  },
+              },
               'encrypted_stateful': {
                   'bytes_used_pct': event_log.FloatDigit(
                       encrypted.bytes_used_pct, 2),
                   'inodes_used_pct': event_log.FloatDigit(
                       encrypted.inodes_used_pct, 2)
-                  }
+              }
           })
       self.goofy.log_watcher.KickWatchThread()
       if self._stateful_usage_above_threshold_action:

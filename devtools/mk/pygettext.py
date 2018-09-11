@@ -92,8 +92,7 @@ def WritePot(fp, messages, width):
 
   messages = []
   for text, files in message_dict.iteritems():
-    files = list(files)
-    files.sort()
+    files = sorted(files)
     messages.append((files, text))
   messages.sort()
 
@@ -156,6 +155,7 @@ VOID_ELEMENTS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
 
 
 class HTMLMessageParser(HTMLParser.HTMLParser, object):
+  # pylint: disable=abstract-method
   def __init__(self, html_tags):
     super(HTMLMessageParser, self).__init__()
     self.messages = []

@@ -317,9 +317,9 @@ class UnicodeToStringTest(unittest.TestCase):
       for x, y in zip(a, b):
         if not self.isSame(x, y):
           return False
-    elif type(a) == set:
+    elif isinstance(a, set):
       return self.isSame(sorted(list(a)), sorted(list(b)))
-    elif type(a) == dict:
+    elif isinstance(a, dict):
       for k in a:
         if not self.isSame(a[k], b[k]):
           return False

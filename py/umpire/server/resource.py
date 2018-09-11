@@ -38,7 +38,7 @@ PayloadTypes, PayloadTypeNames = _InitializeTypes([
     PayloadType('release_image', 'release_image/*'),
     PayloadType('test_image', 'test_image/*'),
     PayloadType('toolkit', 'toolkit/*')
-    ])
+])
 
 
 def GetConfigType(type_name):

@@ -63,7 +63,7 @@ DIR_CROS_PAYLOADS = 'cros_payloads'
 # Relative path of RMA image metadata.
 PATH_CROS_RMA_METADATA = os.path.join(DIR_CROS_PAYLOADS, 'rma_metadata.json')
 # Mode for new created folder, 0755 = u+rwx, go+rx
-MODE_NEW_DIR = 0755
+MODE_NEW_DIR = 0o755
 # Regular expression for parsing LSB value, which should be sh compatible.
 RE_LSB = re.compile(r'^ *(.*)="?(.*[^"])"?$', re.MULTILINE)
 # Key for Chrome OS board name in /etc/lsb-release.
@@ -562,7 +562,7 @@ class LSBFile(object):
     with tempfile.NamedTemporaryFile(prefix='lsb_') as f:
       f.write(self._raw_data + '\n')
       f.flush()
-      os.chmod(f.name, 0644)
+      os.chmod(f.name, 0o644)
       if backup and os.path.exists(destination):
         bak_file = '%s.bak.%s' % (destination, time.strftime('%Y%m%d%H%M%S'))
         Sudo(['cp', '-pf', destination, bak_file])
@@ -630,7 +630,7 @@ def _WriteRMAMetadata(stateful, board_list):
   with tempfile.NamedTemporaryFile(prefix='metadata_') as f:
     json.dump([b.ToDict() for b in board_list], f)
     f.flush()
-    os.chmod(f.name, 0644)
+    os.chmod(f.name, 0o644)
     destination = os.path.join(stateful, PATH_CROS_RMA_METADATA)
     Sudo(['cp', '-pf', f.name, destination])
     Sudo(['chown', 'root:root', destination])
@@ -1429,7 +1429,7 @@ class SubCommand(object):
     args: The parsed arguments.
   """
   name = None  # Overridden by subclass
-  aliases = [] # Overridden by subclass
+  aliases = []  # Overridden by subclass
 
   parser = None
   args = None

@@ -242,9 +242,9 @@ class EventLogWatcherTest(unittest.TestCase):
       self.assertIsNone(watcher.GetEventLog(MOCK_LOG_NAME(0)))
     else:
       # The event log watcher has the correct sync offset for the file.
-      self.assertEquals({
-          event_log_watcher.KEY_OFFSET: len(MOCK_PREAMBLE(0, True))},
-                        watcher.GetEventLog(MOCK_LOG_NAME(0)))
+      self.assertEquals(
+          {event_log_watcher.KEY_OFFSET: len(MOCK_PREAMBLE(0, True))},
+          watcher.GetEventLog(MOCK_LOG_NAME(0)))
 
     # Write two events; they (but not the preamble) should be scanned.
     self.WriteLog(MOCK_EVENT(0, True), MOCK_LOG_NAME(0))

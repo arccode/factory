@@ -117,9 +117,8 @@ class Flashrom(object):
       filename: File name of image to write if data is None.
       sections: List of sections to write. None to write whole image.
     """
-    assert (((data is not None) and (filename is None)) or
-            ((data is None) and (filename is not None))), \
-                'Either data or filename should be None.'
+    assert ((data is None) ^ (filename is None)), (
+        'Either data or filename should be None.')
     if data is not None:
       with tempfile.NamedTemporaryFile(prefix='fw_%s_' % self._target) as f:
         f.write(data)

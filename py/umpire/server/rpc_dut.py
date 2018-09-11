@@ -283,7 +283,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
       # temp_path (created by UnopenedTemporaryFile) will always be mode 0600
       # for security reason, so we do want to change its permission to
       # u+rw,go+r.
-      os.chmod(save_path, 0644)
+      os.chmod(save_path, 0o644)
 
   def _AppendCSV(self, file_name, entry, mode='a'):
     """Saves an entry to CSV file."""

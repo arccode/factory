@@ -132,7 +132,7 @@ class UpdateFirmwareTest(test_case.TestCase):
         return False
 
     updater.PerformUpdate(destination=target_path)
-    os.chmod(target_path, 0755)
+    os.chmod(target_path, 0o755)
     return True
 
   def UpdateFirmware(self):

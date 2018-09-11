@@ -17,12 +17,12 @@ class TestlogValidatorTest(unittest.TestCase):
   class TestEvent(testlog.EventBase):
     """A derived class from Event that can be initialized."""
     FIELDS = {
-        'Long':    (True, testlog_validator.Validator.Long),
-        'Number':  (True, testlog_validator.Validator.Number),
-        'String':  (True, testlog_validator.Validator.String),
+        'Long': (True, testlog_validator.Validator.Long),
+        'Number': (True, testlog_validator.Validator.Number),
+        'String': (True, testlog_validator.Validator.String),
         'Boolean': (True, testlog_validator.Validator.Boolean),
-        'Dict':    (True, testlog_validator.Validator.Dict),
-        'List':    (True, testlog_validator.Validator.List),
+        'Dict': (True, testlog_validator.Validator.Dict),
+        'List': (True, testlog_validator.Validator.List),
     }
     @classmethod
     def GetEventType(cls):
@@ -177,7 +177,7 @@ class StationTestRunFieldsValidatorTest(unittest.TestCase):
                 'status': 'FAIL',
                 'numericValue': 19.8,
                 'expectedMinimum': 20,
-                'expectedMaximum': 999L
+                'expectedMaximum': 999
             }, {
                 'numericValue': 2.0,
                 'status': 'PASS'

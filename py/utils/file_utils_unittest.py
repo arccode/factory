@@ -29,7 +29,7 @@ from cros.factory.utils import process_utils
 
 
 class MakeDirsUidGidTest(unittest.TestCase):
-  FILE_PERMISSION_MASK = 0777
+  FILE_PERMISSION_MASK = 0o777
 
   def setUp(self):
     self.temp_dir = tempfile.mkdtemp()
@@ -46,11 +46,11 @@ class MakeDirsUidGidTest(unittest.TestCase):
     path_to_check = self.temp_dir
     for tail in ['foo', 'bar', 'baz']:
       path_to_check = os.path.join(path_to_check, tail)
-      self.assertEqual(0777, self.GetPermissionBits(path_to_check))
+      self.assertEqual(0o777, self.GetPermissionBits(path_to_check))
 
   def testMode(self):
     target_path = os.path.join(self.temp_dir, 'foo', 'bar', 'baz')
-    mode = 0770
+    mode = 0o770
     file_utils.MakeDirsUidGid(target_path, mode=mode)
     path_to_check = self.temp_dir
     for tail in ['foo', 'bar', 'baz']:
@@ -350,7 +350,7 @@ class ExtractFileTest(unittest.TestCase):
             file_utils.ExtractFileError, 'Permission denied',
             file_utils.ExtractFile, targz, output_dir)
       finally:
-        os.chmod(targz, 0600)
+        os.chmod(targz, 0o600)
 
 
 class ForceSymlinkTest(unittest.TestCase):

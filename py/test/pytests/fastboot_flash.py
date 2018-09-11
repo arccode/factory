@@ -46,7 +46,7 @@ class FastbootFlash(test_case.TestCase):
           'into fastboot mode.', default='adb reboot-bootloader'),
       Arg('command_to_check_device', str, 'Command to check device boot '
           'normally.', default='timeout 60 adb wait-for-device')
-      ]
+  ]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()

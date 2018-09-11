@@ -158,7 +158,7 @@ class MosysFanControl(FanControl):
         # See more details: http://crosbug.com/p/24562.
         self._device.Call(
             'echo 0 > /sys/class/thermal/cooling_device4/cur_state')
-    except Exception as e: # pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
       raise self.Error('Unable to set fan speed to RPM %s: %s' % (rpm, e))
 
 

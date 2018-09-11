@@ -292,8 +292,9 @@ def LoadRules(path):
     else:
       return 3
 
-  return sorted(
-      rules.items(), key=lambda (k, v): (RulePriority(k), k), reverse=True)
+  return sorted(rules.items(),
+                key=lambda (k, unused_v): (RulePriority(k), k),
+                reverse=True)
 
 
 def GetPackage(module):

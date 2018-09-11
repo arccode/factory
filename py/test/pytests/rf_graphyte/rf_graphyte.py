@@ -119,7 +119,7 @@ class RFGraphyteTest(test_case.TestCase):
           'in this folder will be downloaded to `test/pytests/rf_graphyte` '
           'folder if argument "enable_factory_server" is True.',
           default='rf_graphyte'),
-      ]
+  ]
 
   ui_class = test_ui.ScrollableLogUI
 

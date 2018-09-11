@@ -124,7 +124,8 @@ class PlatformSKUModelTest(test_case.TestCase):
     for i, arg in enumerate(_MOSYS_ARGS, 1):
       table.SetContent(i, 0, arg)
       table.SetContent(
-          i, 1, self._platform[arg] if self._platform[arg] != None else 'N/A')
+          i, 1,
+          self._platform[arg] if self._platform[arg] is not None else 'N/A')
 
     self.ui.SetState([table.GenerateHTML(), test_ui.PASS_FAIL_KEY_LABEL])
 

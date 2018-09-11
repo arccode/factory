@@ -33,8 +33,7 @@ class TemperaturesMonitor(object):
 
   def _GetSensorArray(self, sensors):
     """Returns a sorted, well-formatted array of sensor names."""
-    sensors = sensors.keys()
-    sensors.sort()
+    sensors = sorted(sensors.keys())
     # Move main sensor to be the first thermal element.
     main_sensor = self._dut.thermal.GetMainSensorName()
     sensors.insert(0, sensors.pop(sensors.index(main_sensor)))

@@ -154,11 +154,12 @@ class AlsaAudioControl(base.BaseAudioControl):
     Returns:
       An array of the arecord command used by self._device.Call.
     """
-    file_type = {self.RecordType.voc: 'voc',
-                 self.RecordType.wav: 'wav',
-                 self.RecordType.raw: 'raw',
-                 self.RecordType.au: 'au',
-                }[file_type]
+    file_type = {
+        self.RecordType.voc: 'voc',
+        self.RecordType.wav: 'wav',
+        self.RecordType.raw: 'raw',
+        self.RecordType.au: 'au',
+    }[file_type]
     return ['arecord', '-D', 'hw:%s,%s' % (card, device), '-t', file_type,
             '-d', str(duration), '-r', str(rate), '-c', str(channels),
             '-f', 'S16_LE', path]

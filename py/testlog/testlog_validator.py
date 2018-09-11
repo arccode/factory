@@ -144,7 +144,7 @@ class Validator(object):
         raise ValueError(
             'Try to get a lottery for yourself, with about a probability '
             'of %s, %s failed to find its way home' % (
-                (1.0/16)**12, source_path))
+                (1.0 / 16) ** 12, source_path))
     if delete:
       shutil.move(source_path, target_path)
     else:

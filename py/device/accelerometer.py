@@ -253,7 +253,7 @@ class AccelerometerController(sensor_utils.BasicSensorController):
       # Calculate the difference between the ideal value and actual value
       # then store it into _calibbias.  In release image, the raw data will
       # be adjusted by _calibbias to generate the 'post-calibrated' values.
-      calib_bias[signal_name + '_' + self.location  + '_calibbias'] = (
+      calib_bias[signal_name + '_' + self.location + '_calibbias'] = (
           ideal_value - data[signal_name] + current_calib_bias)
     return calib_bias
 

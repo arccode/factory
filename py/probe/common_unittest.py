@@ -21,26 +21,27 @@ class EvaluateStatementTest(unittest.TestCase):
     function.RegisterFunction('mock', self.MockFunction, force=True)
 
   def testNormal(self):
-    results = common.EvaluateStatement({
-        'eval': {'mock': {'data': [{'foo': 'FOO1', 'bar': 'BAR1'},
-                                   {'foo': 'FOO2', 'bar': 'BAR2'}]}},
-        'expect': {'foo': 'FOO1'}})
+    results = common.EvaluateStatement(
+        {'eval': {'mock': {'data': [{'foo': 'FOO1', 'bar': 'BAR1'},
+                                    {'foo': 'FOO2', 'bar': 'BAR2'}]}},
+         'expect': {'foo': 'FOO1'}})
     self.assertEquals(results, [{'values': {'foo': 'FOO1', 'bar': 'BAR1'}}])
 
   def testNormalWithKeys(self):
-    results = common.EvaluateStatement({
-        'eval': {'mock': {'data': [{'foo': 'FOO1', 'bar': 'BAR1'},
-                                   {'foo': 'FOO2', 'bar': 'BAR2'}]}},
-        'expect': {'foo': 'FOO1'},
-        'keys': ['foo']})
+    results = common.EvaluateStatement(
+        {'eval': {'mock': {'data': [{'foo': 'FOO1', 'bar': 'BAR1'},
+                                    {'foo': 'FOO2', 'bar': 'BAR2'}]}},
+         'expect': {'foo': 'FOO1'},
+         'keys': ['foo']})
     self.assertEquals(results, [{'values': {'foo': 'FOO1'}}])
 
   def testNormalWithApproxMatch(self):
-    results = common.EvaluateStatement({
-        'eval': {'mock': {'data': [{'foo': 'FOO1', 'bar': 'BAR1'},
-                                   {'foo': 'FOO2', 'bar': 'BAR2'}]}},
-        'expect': {'foo': 'FOO1', 'bar': 'BAR2'}}, approx_match=True,
-                                       max_mismatch=1)
+    results = common.EvaluateStatement(
+        {'eval': {'mock': {'data': [{'foo': 'FOO1', 'bar': 'BAR1'},
+                                    {'foo': 'FOO2', 'bar': 'BAR2'}]}},
+         'expect': {'foo': 'FOO1', 'bar': 'BAR2'}},
+        approx_match=True,
+        max_mismatch=1)
     self.assertEqual(len(results), 2)
 
 

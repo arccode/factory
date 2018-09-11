@@ -311,7 +311,8 @@ class BasicTest(GoofyUITest):
             dict(count=1, error_msg='Uh-oh', id='b', path='test:b',
                  status='FAILED'),
             dict(count=1, error_msg='Uh-oh', id='c', path='test:c',
-                 status='FAILED'),]),
+                 status='FAILED'),
+        ]),
         self.goofy.test_list.ToFactoryTestList().AsDict(
             state.get_instance().get_test_states()))
 
@@ -745,8 +746,7 @@ class SkippedTestTest(GoofyUITest):
                {'id': 'A', 'pytest_name': 'normal_test'},
                # This will be A_3, and it should not be skipped
                {'id': 'A', 'pytest_name': 'normal_test'},
-           ]
-          },
+           ]},
           {'id': 'normal', 'pytest_name': 'normal_test'},
       ],
   }

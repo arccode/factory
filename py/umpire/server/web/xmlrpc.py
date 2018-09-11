@@ -2,7 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 #
-# Python twisted's module creates definition dynamically, pylint: disable=no-member
+# Python twisted's module creates definition dynamically,
+# pylint: disable=no-member
 
 import logging
 import time

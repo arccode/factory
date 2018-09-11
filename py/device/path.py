@@ -27,7 +27,7 @@ class Path(types.DeviceComponent):
       'basename', 'dirname', 'commonprefix', 'normpath', 'curdir', 'pardir',
       'extsep', 'sep', 'pathsep', 'defpath', 'altsep', 'devnull',
       'supports_unicode_filenames'
-      ]
+  ]
 
   def __getattr__(self, attr):
     if attr in Path.DELEGATED_ATTRIBUTES:

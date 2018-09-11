@@ -182,7 +182,7 @@ class EventLogWatcher(object):
         if not os.path.isfile(file_path):
           continue
         relative_path = os.path.relpath(file_path, self._event_log_dir)
-        if (not self._db.has_key(relative_path) or
+        if (relative_path not in self._db or
             self._db[relative_path][KEY_OFFSET] != os.path.getsize(file_path)):
           try:
             chunk_info = self.ScanEventLog(relative_path)

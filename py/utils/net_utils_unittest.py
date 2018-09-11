@@ -132,7 +132,7 @@ class UtilityFunctionTest(unittest.TestCase):
         ('10.0.4.1', 22)])
     self.assertEqual(network_cidr, net_utils.CIDR('10.0.8.0', 22))
 
-    exclude_ip_list = [('10.0.0.1', 8), ('172.16.0.0', 12),]
+    exclude_ip_list = [('10.0.0.1', 8), ('172.16.0.0', 12)]
     ip = int(net_utils.IP('192.168.0.0'))
     for prefix_bits in xrange(17, 31):
       exclude_ip_list.append((str(net_utils.IP(ip)), prefix_bits))
@@ -140,7 +140,7 @@ class UtilityFunctionTest(unittest.TestCase):
     network_cidr = net_utils.GetUnusedIPV4RangeCIDR(16, exclude_ip_list)
     self.assertEqual(network_cidr, net_utils.CIDR('192.168.255.252', 30))
 
-    exclude_ip_list = [('10.0.0.1', 8), ('172.16.0.0', 12),]
+    exclude_ip_list = [('10.0.0.1', 8), ('172.16.0.0', 12)]
     ip = int(net_utils.IP('192.168.0.0'))
     for prefix_bits in xrange(17, 33):
       exclude_ip_list.append((str(net_utils.IP(ip)), prefix_bits))

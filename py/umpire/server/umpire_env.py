@@ -228,7 +228,7 @@ class UmpireEnv(object):
       os.rename(src_path, dst_path)
     else:
       file_utils.AtomicCopy(src_path, dst_path)
-    os.chmod(dst_path, 0644)
+    os.chmod(dst_path, 0o644)
     logging.info('Resource added: %s', dst_path)
 
   def AddPayload(self, file_path, type_name):

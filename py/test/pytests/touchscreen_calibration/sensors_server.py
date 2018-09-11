@@ -603,7 +603,7 @@ class SensorServiceRyu(BaseSensorService):
     cmd_update = '%s -f -d /dev/hidraw0 %s' % (
         self._GetToolPath(self.fw_update_tool),
         self._GetDataPath(self.fw_file))
-    self.log.info('flashing a new firmware %s:%s...' %(fw_version, fw_config))
+    self.log.info('flashing a new firmware %s:%s...' % (fw_version, fw_config))
     return utils.IsSuccessful(self.dut.Call(cmd_update))
 
   def ReadFirmwareVersion(self):

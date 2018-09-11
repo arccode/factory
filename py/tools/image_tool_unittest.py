@@ -135,7 +135,7 @@ class ImageToolTest(unittest.TestCase):
     toolkit_path = os.path.join(self.temp_dir, 'toolkit', 'toolkit.run')
     with open(toolkit_path, 'w') as f:
       f.write('#!/bin/sh\necho Toolkit Version 1.0\n')
-    os.chmod(toolkit_path, 0755)
+    os.chmod(toolkit_path, 0o755)
 
   def setUp(self):
     if DEBUG:
@@ -238,8 +238,7 @@ class ImageToolTest(unittest.TestCase):
     self.assertTrue(os.path.exists(bundle_name))
     contents = subprocess.check_output('tar -xvf %s' % bundle_name, shell=True)
     contents = [line.split()[-1] for line in contents.splitlines()]
-    contents.sort()
-    self.assertEqual(contents, [
+    self.assertItemsEqual(contents, [
         './', './README.md', './factory_shim/', './factory_shim/image.bin',
         './release_image/', './release_image/image.bin', './test_image/',
         './test_image/image.bin', './toolkit/', './toolkit/toolkit.run'])

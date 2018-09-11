@@ -232,8 +232,7 @@ class DataEntry(object):
       all_regions = regions.REGIONS.keys()
       if not value_check:
         ordered_values = [v for v in _KNOWN_REGIONS if v in all_regions]
-        other_values = list(set(all_regions) - set(ordered_values))
-        other_values.sort()
+        other_values = sorted(set(all_regions) - set(ordered_values))
         value_check = ordered_values + other_values
         self.value_check = value_check
 

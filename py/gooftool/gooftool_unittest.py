@@ -148,7 +148,7 @@ class GooftoolTest(unittest.TestCase):
   """Unit test for Gooftool."""
 
   _SIMPLE_VALID_RO_VPD_DATA = {
-      'serial_number':'A1234',
+      'serial_number': 'A1234',
       'region': 'us',
   }
 

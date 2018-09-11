@@ -253,8 +253,7 @@ class CountDownTest(test_case.TestCase):
     self._dut = device_utils.CreateDUTInterface()
     self._main_sensor = self._dut.thermal.GetMainSensorName()
     # Normalize the sensors so main sensor is always the first one.
-    sensors = self._dut.thermal.GetAllSensorNames()
-    sensors.sort()
+    sensors = sorted(self._dut.thermal.GetAllSensorNames())
     sensors.insert(0, sensors.pop(sensors.index(self._main_sensor)))
     self._sensors = sensors
     # Group checker for Testlog.

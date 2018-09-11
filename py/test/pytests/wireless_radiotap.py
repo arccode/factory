@@ -568,7 +568,7 @@ class WirelessRadiotapTest(test_case.TestCase):
 
     scan_result = IwScan(
         self._dut, self._iw_scan_group_checker, self.args.device_name)
-    ssid_freqs = {service.ssid : set() for service in self._services}
+    ssid_freqs = {service.ssid: set() for service in self._services}
 
     for scanned_service in scan_result:
       if scanned_service.ssid in ssid_freqs:

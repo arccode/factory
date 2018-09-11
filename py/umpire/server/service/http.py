@@ -156,7 +156,7 @@ class HTTPService(umpire_service.UmpireService):
       # creates and removes hardlink, that only works when source path and
       # destination path are both on same filesystem.
       shutil.move(temp_path, config_path)
-      os.chmod(config_path, 0644)
+      os.chmod(config_path, 0o644)
     return config_path
 
   @staticmethod

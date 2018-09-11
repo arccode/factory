@@ -60,7 +60,7 @@ class BluetoothScanTest(unittest.TestCase):
       Arg('dut_hci_num_response', int,
           'Maximum number of inquiry responses for scanning.',
           default=None),
-      ]
+  ]
 
   HostDeviceType = collections.namedtuple(
       'HostDevice', ['interface', 'address'])

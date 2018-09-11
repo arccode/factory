@@ -195,7 +195,7 @@ class ProbeTest(test_case.TestCase):
           'the result and prompt if set to False. Otherwise, only show the '
           'result and prompt when the test fails.',
           default=None),
-      ]
+  ]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()

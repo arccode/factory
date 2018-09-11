@@ -292,7 +292,7 @@ class GPTObject(object):
 
   def __repr__(self):
     return '(%s: %s)' % (type(self).__name__, ', '.join(
-        '%s=%r' %(f, getattr(self, f)) for f in self.__slots__))
+        '%s=%r' % (f, getattr(self, f)) for f in self.__slots__))
 
   @classmethod
   def GetStructFormat(cls):

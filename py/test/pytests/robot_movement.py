@@ -113,7 +113,7 @@ class RobotMovement(test_case.TestCase):
       Arg('upload_to_server', bool,
           'If true, upload log to factory server after running.',
           default=False),
-      ]
+  ]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()

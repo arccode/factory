@@ -382,7 +382,7 @@ def ExtractOverlord(src_root, output_dir):
                   os.path.join(output_dir, 'app'))
 
   # Give overlordd execution permission
-  os.chmod(os.path.join(output_dir, 'overlordd'), 0755)
+  os.chmod(os.path.join(output_dir, 'overlordd'), 0o755)
   print "Extracted overlord under '%s'" % output_dir
 
 

@@ -136,8 +136,7 @@ class LEDTest(test_case.TestCase):
     try:
       self._SetLEDColor(led_name, color)
 
-      color_options = list(set(color for unused_index, color in self.colors))
-      color_options.sort()
+      color_options = sorted(set(color for unused_index, color in self.colors))
       answer = color_options.index(color)
 
       self.ui.SetState(

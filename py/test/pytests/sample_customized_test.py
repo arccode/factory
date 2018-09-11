@@ -68,7 +68,7 @@ class SampleCustomizedTest(unittest.TestCase):
       arg_utils.Arg(
           'baz', str, help='baz is optional, default to "BAZ"',
           default="BAZ"),
-      ]
+  ]
   """Arguments of this pytest.
 
   Arguments of a pytest is defined by class variable "ARGS", which must be a

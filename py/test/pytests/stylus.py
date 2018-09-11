@@ -121,7 +121,7 @@ class StylusTest(test_case.TestCase):
       Arg('flush_interval', float,
           'The time interval of flushing event buffers.',
           default=0.1)
-      ]
+  ]
 
   def setUp(self):
     self._device = evdev_utils.FindDevice(self.args.device_filter,
