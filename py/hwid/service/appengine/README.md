@@ -48,15 +48,50 @@ There are three environments to deploy to:
    - Borgcron Job Sigma: N/A
    - APIary Endpoint URL: N/A
 
-### AppEngine Deployment
-Use `${factory_dir}/deploy/cros_hwid_service.sh` script:
+### AppEngine Deployment Flow
+
+1. Make sure the contents of three repos is what you want:
+  - [chromeos-hwid](http://go/chromeos-hwid-git/)
+  - [factory](http://go/factory-git/)
+  - [regions](http://go/regions-git/)
+
+  Normally, we would use ToT: Run `repo sync .` in each repo.
+
+2. Before deploying to `prod`, you have to deploy to `staging`:
 ```bash
-deploy/cros_hwid_service.sh deploy [prod|staging|local]
+# If you use Google Cloud Platform for the first time, you may have to
+# install gcloud sdk (https://cloud.google.com/sdk/install).  gcloud may ask you
+# to register or loging your account.  Please enter your google domain acount.
+# It may also ask you to register or login a GCP project account, you can
+# use 'chromeos-factory'.  The deploy script will choose the right GCP project
+# to deploy.
+deploy/cros_hwid_service.sh deploy staging
 ```
+
+3. Make sure all tests are passed:
+```bash
+# In chroot: unittest
+make test
+# Out of chroot: integration test and e2e test
+# - Integration test creates a docker image, which may take a long time for the
+#   first time running this script.
+# - e2e test list is placed at go/factory-private-git
+deploy/cros_hwid_service.sh test
+```
+
+4. If all tests are passed, now we can deploy the HWID Service to `prod`:
+```bash
+deploy/cros_hwid_service.sh deploy prod
+```
+
+5. Open the AppEngine management page, and watch the traffics are not blocked.
 
 ### Invoking API
 Example request for local environment:
 ```bash
+# Before invoking local API, you have to deploy local env
+deploy/cros_hwid_service.sh deploy local
+# Now you can test HWID Service locally.
 curl http://localhost:8080/_ah/api/chromeoshwid/v1/boards
 curl --data '{ "hwidConfigContents": "\n\nchecksum: test\n\n" }' \
 --dump-header - http://localhost:8080/_ah/api/chromeoshwid/v1/validateConfig

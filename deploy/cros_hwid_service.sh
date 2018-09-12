@@ -145,6 +145,7 @@ Chrome OS HWID Service Deployment Script
 commands:
   $0 help
       Shows this help message.
+      More about HWIDService: go/factory-git/py/hwid/service/appengine/README.md
 
   $0 deploy [prod|staging|local]
       Deploys HWID Service to the given environment.
