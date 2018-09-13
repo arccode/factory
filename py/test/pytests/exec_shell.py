@@ -242,11 +242,11 @@ class ExecShell(test_case.TestCase):
       self._commands = self.args.commands
 
     testlog.UpdateParam(
-        'stdout', description='standard output of the command', param_type=str)
+        'stdout', description='standard output of the command')
     testlog.UpdateParam(
-        'stderr', description='standard error of the command', param_type=str)
+        'stderr', description='standard error of the command')
     testlog.UpdateParam(
-        'returncode', description='return code of the command', param_type=int)
+        'returncode', description='return code of the command')
     self._group_checker = testlog.GroupParam(
         'command_output', ['stdout', 'stderr', 'returncode'])
 
