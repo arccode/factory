@@ -9,7 +9,10 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import display
 from cros.factory.test.utils import drm_utils
 
-from cros.factory.external import Image
+from cros.factory.external import PIL
+
+if PIL.MODULE_READY:
+  from cros.factory.external.PIL import Image
 
 
 class DisplayError(Exception):
