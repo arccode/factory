@@ -15,7 +15,6 @@
   ],
   "permissions": [
     "debugger",
-    "system.display",
     "tabs"
   ]
 }

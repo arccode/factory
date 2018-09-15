@@ -1,0 +1,17 @@
+{
+  "description": "Factory test kiosk app",
+  "name": "FactoryTestKioskApp",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAt2Ah7ozI1J2v8AjLLfKeeQuZ+thSAuJMmiRCgA5mmhxpjjt2JqCQ4YPsqH4svZEekc4EvRracgkeaAdu5znegLNtRzu6plI96V7HrFhL1kgtQv03je4r/vekGs91xGaE2+u9hc26NmhiR1qaCmszJ4xGZ1X9kEggBoPcoMxiX0CnsaQFseg7yV0V5qBNqvg8MQdMj0nqHBfITioi5DCt+6mp22SiL3Vpfub+rHz4qf0ZRYDKF0Xk2shdxniBKW+fl2eGDZDWxFGQv7YC0KQaiGTG9kH9Yo6bUJxG+XsiA3TqBoQvtWSmtbUU/WK7l7dgkvSPK/P8WaAfzVjfHf8BAQIDAQAB",
+  "app": {
+    "background": {
+      "scripts": ["background.js"]
+    }
+  },
+  "kiosk_enabled": true,
+  "kiosk_only": true,
+  "manifest_version": 2,
+  "version": "0.2",
+  "permissions": [
+    "system.display"
+  ]
+}
