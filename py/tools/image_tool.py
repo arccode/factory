@@ -79,6 +79,9 @@ MEGABYTE = 1048576
 GIGABYTE_STORAGE = 1000000000
 # Default size of each disk block (or sector).
 DEFAULT_BLOCK_SIZE = pygpt.GPT.DEFAULT_BLOCK_SIZE
+# Components for cros_payload
+PAYLOAD_COMPONENTS = [
+    'release_image', 'test_image', 'toolkit', 'firmware', 'hwid', 'complete']
 
 
 class ArgTypes(object):
@@ -643,7 +646,7 @@ def _ReadRMAMetadata(stateful):
     stateful: path of stateful partition mount point.
 
   Returns:
-    RMA metadata, or None if file doesn't not exist.
+    RMA metadata, or None if file doesn't exist.
   """
   if os.path.exists(os.path.join(stateful, PATH_CROS_RMA_METADATA)):
     with open(os.path.join(stateful, PATH_CROS_RMA_METADATA)) as f:
@@ -657,6 +660,68 @@ def _ReadRMAMetadata(stateful):
   else:
     logging.warning('Cannot find %s/%s', stateful, PATH_CROS_RMA_METADATA)
     return None
+
+
+class RMABoardResourceVersions(object):
+  """Store the RMA resource versions related to one board."""
+
+  __slots__ = ['board', 'install_shim'] + PAYLOAD_COMPONENTS
+
+  def __init__(self, **kargs):
+    for component, version in kargs.iteritems():
+      assert component in self.__slots__, 'Unknown component "%s"' % component
+      setattr(self, component, version)
+
+  def __str__(self):
+    return '\n'.join(
+        ['%-13s: %s' % (k, getattr(self, k, 'None')) for k in self.__slots__])
+
+
+def _ReadBoardResourceVersions(rootfs, stateful, board_info):
+  """Read board resource versions from mounted stateful partition.
+
+  Get board resource versions from <board>.json and install shim version.
+
+  Args:
+    stateful: path of stateful partition mount point.
+    rootfs: path of rootfs mount point.
+    board_info: a RMAImageBoardInfo instance.
+
+  Returns:
+    A RMABoardResourceVersions instance containing resource versions.
+  """
+
+  def _GetInstallShimVersion(rootfs):
+    # Version of install shim rootfs.
+    lsb_path = os.path.join(rootfs, 'etc', 'lsb-release')
+    shim_version = LSBFile(lsb_path).GetChromeOSVersion(remove_timestamp=False)
+    return shim_version
+
+  def _GetCrosPayloadVersions(stateful):
+    # Version of cros_payload components
+    cros_payload_metadata = os.path.join(
+        stateful, DIR_CROS_PAYLOADS, '%s.json' % board_info.board)
+    if os.path.exists(cros_payload_metadata):
+      with open(cros_payload_metadata) as f:
+        metadata = json.load(f)
+        payload_versions = {
+            component: value.get('version', '<unknown>')
+            for component, value in metadata.iteritems()}
+        # Make sure that there are no unknown components
+        for component in payload_versions:
+          assert component in PAYLOAD_COMPONENTS, (
+              'Unknown component "%s"' % component)
+        return payload_versions
+    else:
+      logging.warning('Cannot find %s', cros_payload_metadata)
+      return {}
+
+  versions = {
+      'board': board_info.board,
+      'install_shim': _GetInstallShimVersion(rootfs)}
+  payload_versions = _GetCrosPayloadVersions(stateful)
+  versions.update(payload_versions)
+  return RMABoardResourceVersions(**versions)
 
 
 class ChromeOSFactoryBundle(object):
@@ -685,9 +750,6 @@ class ChromeOSFactoryBundle(object):
     self.netboot = netboot
     self.setup_dir = setup_dir
     self.server_url = server_url
-    self.components = [
-        'release_image', 'test_image', 'toolkit', 'firmware', 'hwid',
-        'complete']
 
   @staticmethod
   def DefineBundleArguments(parser, build_type):
@@ -801,7 +863,7 @@ class ChromeOSFactoryBundle(object):
       f.write('{}')
 
     cros_payload = SysUtils.FindCommand('cros_payload')
-    for component in self.components:
+    for component in PAYLOAD_COMPONENTS:
       resource = getattr(self, component)
       if resource:
         logging.debug('Add %s payloads from %s...', component, resource)
@@ -1034,27 +1096,10 @@ class ChromeOSFactoryBundle(object):
       split_line = '-' * 25
       print(split_line)
       for board_info in metadata:
-        print('board:', board_info.board)
-
-        # Print the content of cros-payload.
-        cros_payload_metadata = os.path.join(
-            payloads_dir, '%s.json' % board_info.board)
-        if os.path.exists(cros_payload_metadata):
-          with open(cros_payload_metadata) as f:
-            cros_payload_metadata = json.load(f)
-          for resource_name, value in cros_payload_metadata.iteritems():
-            print('%s: %s' % (resource_name, value.get('version', '<unknown>')))
-        else:
-          logging.warning('Cannot find cros-payload metadata of %s',
-                          board_info.board)
-
-        # Print the version of install shim rootfs.
-        part = gpt.GetPartition(board_info.rootfs)
-        with part.MountAsCrOSRootfs() as rootfs:
-          lsb_path = os.path.join(rootfs, 'etc', 'lsb-release')
-          version = LSBFile(lsb_path).GetChromeOSVersion(remove_timestamp=False)
-          print('install_shim:', version)
-
+        with gpt.GetPartition(board_info.rootfs).MountAsCrOSRootfs() as rootfs:
+          resource_versions = _ReadBoardResourceVersions(
+              rootfs, stateful, board_info)
+        print(resource_versions)
         print(split_line)
 
   @staticmethod
