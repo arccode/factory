@@ -769,6 +769,46 @@ def _ReadBoardResourceVersions(rootfs, stateful, board_info):
   return RMABoardResourceVersions(**versions)
 
 
+def UserSelect(title, options):
+  """Ask user to select an option from the given options.
+
+  Prints the options and their corresponding 1-based index, and let the user
+  enter a number to select an option. The return value is 0-based.
+
+  Args:
+    title: question description.
+    options: list of strings, each representing an option.
+
+  Returns:
+    The user selected number, between 0 and len(options)-1.
+  """
+  n = len(options)
+  if n == 0:
+    return None
+  split_line = '-' * 25
+  print(title)
+  print(split_line)
+  for i, option in enumerate(options, 1):
+    print('[%d]' % i)
+    print(option)
+    print(split_line)
+
+  while True:
+    answer = raw_input(
+        'Please select an option [1-%d]: ' % n).strip()
+    try:
+      selected = int(answer)
+      if not 0 < selected <= n:
+        print('Out of range: %d' % selected)
+        continue
+    except ValueError:
+      print('Invalid option: %s' % answer)
+      continue
+    break
+  # Convert to 0-based
+  return selected - 1
+
+
 class ChromeOSFactoryBundle(object):
   """Utilities to work with factory bundle."""
 
@@ -925,6 +965,50 @@ class ChromeOSFactoryBundle(object):
       else:
         print('Leaving %s component payload as empty.' % component)
     return json_path
+
+  @staticmethod
+  def CopyPayloads(src_dir, target_dir, json_path):
+    """Copy cros_payload contents of a board to target_dir.
+
+    Board metadata <board>.json stores the resources in a dictionary.
+
+    {
+      "release_image": {
+        "version": <version>,
+        "crx_cache": "release_image.crx_cache.xxx.gz",
+        "part1": "release_image.part1.xxx.gz",
+        ...
+      },
+      "test_image": {
+        "version": <version>,
+        "crx_cache": "test_image.crx_cache.xxx.gz",
+        "part1": "test_image.part1.xxx.gz",
+        ...
+      },
+      ...
+    }
+
+    The function copies resources of a board from src_dir to target_dir.
+
+    Args:
+      src_dir: path of source directory.
+      target_dir: path of target directory.
+      json_path: board metadata path <board>.json.
+    """
+    assert os.path.exists(src_dir), 'Path does not exist: %s' % src_dir
+    assert os.path.exists(target_dir), 'Path does not exist: %s' % target_dir
+    assert os.path.isfile(json_path), 'File does not exist: %s' % json_path
+
+    Sudo('cp -p %s %s/' % (json_path, target_dir))
+    with open(json_path) as f:
+      metadata = json.load(f)
+      for resource in metadata.values():
+        for subtype, payload in resource.iteritems():
+          if subtype == 'version':
+            continue
+          path = os.path.join(src_dir, payload)
+          assert os.path.isfile(path), 'Cannot find payload %s.' % path
+          Sudo('cp -p %s %s/' % (path, target_dir))
 
   def GetPMBR(self, image_path):
     """Creates a file containing PMBR contents from given image.
@@ -1155,13 +1239,16 @@ class ChromeOSFactoryBundle(object):
         print(split_line)
 
   @staticmethod
-  def MergeRMAImage(output, images):
+  def MergeRMAImage(output, images, auto_select):
     """Merges multiple RMA (USB installation) disk images.
 
-    The RMA image should have factory_install kernel and rootfs in (2, 3) and
-    resources in stateful partition cros_payloads.  This function extracts
-    all stateful partitions and then generate the output image by merging the
-    resource files to partition 1 and cloning partition 2/3 of each input image.
+    The RMA image should have factory_install kernel and rootfs in (2k, 2k + 1)
+    for k >= 1, and resources in stateful partition cros_payloads.  This
+    function extracts all stateful partitions and then generate the output
+    image by merging the resource files to partition 1 and cloning partitions of
+    each input image. When there are duplicate boards across different images,
+    it asks user to decide which one to use, or auto-select if `auto_select` is
+    set.
 
     The layout of the merged output image:
        1 stateful  [cros_payloads from all rmaimgX]
@@ -1172,28 +1259,98 @@ class ChromeOSFactoryBundle(object):
        6 kernel    [install-rmaimg3]
        7 rootfs    [install-rmaimg3]
       ...
+
+    Args:
+      output: a path to output image file.
+      images: a list of image files to merge.
+      auto_select: True to auto-select the first appearance in the images
+                   when there are duplicate boards in the images.
     """
+
+    class RMABoardEntry(object):
+      """An internal class that stores the info of a board.
+
+      The info includes
+        board: board name.
+        image: The image file that the board belongs to.
+        versions: An RMABoardResourceVersions object being the payload versions
+                  of the board.
+        kernel: A GPT.Partition object being the kernel partition of the board.
+        rootfs: A GPT.Partition object being the rootfs partition of the board.
+      """
+
+      def __init__(self, board, image, versions, kernel, rootfs):
+        self.board = board
+        self.image = image
+        self.versions = versions
+        self.kernel = kernel
+        self.rootfs = rootfs
+
+    def _ResolveDuplicateBoards(image_entries, auto_select):
+      board_map = {}
+      for board_entries in image_entries:
+        for entry in board_entries:
+          board_name = entry.board
+          if board_name not in board_map:
+            board_map[board_name] = []
+          board_map[board_name].append(entry)
+
+      selected_entries = set()
+      for board_name, entries in board_map.iteritems():
+        if len(entries) == 1 or auto_select:
+          selected = 0
+        else:
+          title = 'Board %s has more than one entry.' % board_name
+          options = ['From %s\n%s' % (entry.image, entry.versions)
+                     for entry in entries]
+          selected = UserSelect(title, options)
+        selected_entries.add(entries[selected])
+
+      resolved_entries = [
+          [entry for entry in board_entries if entry in selected_entries]
+          for board_entries in image_entries]
+
+      return resolved_entries
+
+    image_entries = []  # List of lists of boards in each images
     stateful_parts = []
     kern_rootfs_parts = []
     block_size = 0
     # Currently we only support merging images in same block size.
-    for path in images:
-      gpt = pygpt.GPT.LoadFromFile(path)
+    for image in images:
+      gpt = GPT.LoadFromFile(image)
       if block_size == 0:
         block_size = gpt.block_size
       assert gpt.block_size == block_size, (
           'Cannot merge image %s due to different block size (%s, %s)' %
-          (path, block_size, gpt.block_size))
+          (image, block_size, gpt.block_size))
       stateful_parts.append(gpt.GetPartition(PART_CROS_STATEFUL))
-      with Partition(path, PART_CROS_STATEFUL).Mount() as src_dir:
-        src_metadata = _ReadRMAMetadata(src_dir)
+      with gpt.GetPartition(PART_CROS_STATEFUL).Mount() as stateful:
+        src_metadata = _ReadRMAMetadata(stateful)
+        board_entries = []
         for board_info in src_metadata:
-          kern_rootfs_parts.append(gpt.GetPartition(board_info.kernel))
-          kern_rootfs_parts.append(gpt.GetPartition(board_info.rootfs))
+          with gpt.GetPartition(
+              board_info.rootfs).MountAsCrOSRootfs() as rootfs:
+            versions = _ReadBoardResourceVersions(rootfs, stateful, board_info)
+          board_entries.append(RMABoardEntry(
+              board_info.board, image, versions,
+              gpt.GetPartition(board_info.kernel),
+              gpt.GetPartition(board_info.rootfs)))
+        image_entries.append(board_entries)
+
+    image_entries = _ResolveDuplicateBoards(image_entries, auto_select)
+
+    for board_entries in image_entries:
+      for entry in board_entries:
+        kern_rootfs_parts.append(entry.kernel)
+        kern_rootfs_parts.append(entry.rootfs)
 
     # Build a new image based on first image's layout.
     gpt = pygpt.GPT.LoadFromFile(images[0])
     pad_blocks = gpt.header.FirstUsableLBA
+    # TODO(chenghan): Calculate stateful partition size again. Some payload
+    #                 of duplicate boards are not needed, so the actual size
+    #                 may be smaller.
     state_blocks = sum(p.blocks for p in stateful_parts)
     data_blocks = state_blocks + sum(p.blocks for p in kern_rootfs_parts)
     # pad_blocks hold header and partition tables, in front and end of image.
@@ -1247,39 +1404,33 @@ class ChromeOSFactoryBundle(object):
     new_state.ResizeFileSystem()
 
     with new_state.Mount(rw=True) as stateful:
+      # TODO(chenghan): Only remove files that are not selected due to
+      #                 duplicate boards
       payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+      Sudo('rm -rf "%s"/*' % payloads_dir)
       board_list = []
-      board_set = set()  # To detect duplicated boards.
       board_index = 0
 
       for i, src_path in enumerate(images):
-        print('Copying %s root/kernel partitions...' % src_path)
-
+        print('Copying boards in %s ...' % src_path)
         with Partition(src_path, PART_CROS_STATEFUL).Mount() as src_dir:
-          src_metadata = _ReadRMAMetadata(src_dir)
-
-          for board_info in src_metadata:
-            print('Found board: %s' % board_info.board)
+          for board_entry in image_entries[i]:
+            print('Copying %s board ...' % board_entry.board)
+            # Copy payloads in stateful partition
+            src_payloads_dir = os.path.join(src_dir, DIR_CROS_PAYLOADS)
+            src_metadata_path = os.path.join(src_payloads_dir,
+                                             '%s.json' % board_entry.board)
+            target_payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+            ChromeOSFactoryBundle.CopyPayloads(
+                src_payloads_dir, target_payloads_dir, src_metadata_path)
+            # Copy kernel/rootfs partitions
             new_kernel = board_index * 2 + PART_CROS_KERNEL_A
             new_rootfs = board_index * 2 + PART_CROS_ROOTFS_A
             board_index += 1
-            Partition(src_path, board_info.kernel).Copy(
-                Partition(output, new_kernel))
-            Partition(src_path, board_info.rootfs).Copy(
-                Partition(output, new_rootfs))
-            if board_info.board in board_set:
-              logging.warning('Duplicated board: %r', board_info.board)
-            board_set.add(board_info.board)
-            board_info.kernel = new_kernel
-            board_info.rootfs = new_rootfs
-            board_list.append(board_info)
-
-          if i == 0:
-            continue
-
-          print('Copying %s stateful resources...' % src_path)
-          Sudo('cp -pr %s/* %s/.' %
-               (os.path.join(src_dir, DIR_CROS_PAYLOADS), payloads_dir))
+            board_entry.kernel.Copy(Partition(output, new_kernel))
+            board_entry.rootfs.Copy(Partition(output, new_rootfs))
+            board_list.append(
+                RMAImageBoardInfo(board_entry.board, new_kernel, new_rootfs))
 
       _WriteRMAMetadata(stateful, board_list)
 
@@ -1830,6 +1981,10 @@ class MergeRMAImageCommand(SubCommand):
         '-i', '--images', required=True, nargs='+',
         type=ArgTypes.ExistsPath,
         help='Path to input RMA images')
+    self.subparser.add_argument(
+        '-a', '--auto_select', action='store_true',
+        help='Automatically resolve duplicate boards (use the first one).')
+
 
   def Run(self):
     """Merge multiple RMA (USB installation) disk images.
@@ -1845,7 +2000,8 @@ class MergeRMAImageCommand(SubCommand):
       raise RuntimeError('Need > 1 input image files to merge.')
 
     print('Scanning %s input image files...' % len(self.args.images))
-    ChromeOSFactoryBundle.MergeRMAImage(self.args.output, self.args.images)
+    ChromeOSFactoryBundle.MergeRMAImage(
+        self.args.output, self.args.images, self.args.auto_select)
     print('OK: Merged successfully in new image: %s' % output)
 
 

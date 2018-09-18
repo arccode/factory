@@ -166,19 +166,15 @@ class ImageToolRMATest(unittest.TestCase):
     """
     self.CreateDiskImage('test1.bin', self.LSB_CONTENT % 'test1')
     self.CreateDiskImage('test2.bin', self.LSB_CONTENT % 'test2')
-    self.CreateDiskImage('test3.bin', self.LSB_CONTENT % 'test3')
     image_path1 = os.path.join(self.temp_dir, 'test1.bin')
     image_path2 = os.path.join(self.temp_dir, 'test2.bin')
-    image_path3 = os.path.join(self.temp_dir, 'test3.bin')
     os.chdir(self.temp_dir)
 
-    # `rma-create` to create 3 RMA shims.
+    # `rma-create` to create 2 RMA shims.
     self.SetupBundleEnvironment(image_path1)
     self.ImageTool('rma-create', '-o', 'rma1.bin')
     self.SetupBundleEnvironment(image_path2)
     self.ImageTool('rma-create', '-o', 'rma2.bin')
-    self.SetupBundleEnvironment(image_path3)
-    self.ImageTool('rma-create', '-o', 'rma3.bin')
 
     # Verify content of RMA shim.
     image_tool.Partition('rma1.bin', 1).CopyFile('tag', 'tag.1')
@@ -206,16 +202,16 @@ class ImageToolRMATest(unittest.TestCase):
     self.assertEqual(data, [{'board': 'test1', 'kernel': 2, 'rootfs': 3},
                             {'board': 'test2', 'kernel': 4, 'rootfs': 5}])
 
-    # `rma-merge` to merge a universal shim and a normal shim.
+    # `rma-merge` to merge a single-board shim with a universal shim.
     self.ImageTool(
-        'rma-merge', '-f', '-o', 'rma123.bin', '-i', 'rma12.bin', 'rma3.bin')
-    image_tool.Partition('rma123.bin', 1).CopyFile(
+        'rma-merge', '-f', '-o', 'rma21.bin',
+        '-i', 'rma2.bin', 'rma12.bin', '--auto_select')
+    image_tool.Partition('rma21.bin', 1).CopyFile(
         image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
     with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
       data = json.load(f)
-    self.assertEqual(data, [{'board': 'test1', 'kernel': 2, 'rootfs': 3},
-                            {'board': 'test2', 'kernel': 4, 'rootfs': 5},
-                            {'board': 'test3', 'kernel': 6, 'rootfs': 7}])
+    self.assertEqual(data, [{'board': 'test2', 'kernel': 2, 'rootfs': 3},
+                            {'board': 'test1', 'kernel': 4, 'rootfs': 5}])
 
 
 if __name__ == '__main__':
