@@ -387,6 +387,8 @@ def LogTestRun(session_json_path, station_test_run=None):
       # Not much we can do here.
       logging.exception('Not able to collect %s. Last read: %s',
                         session_json_path, content)
+      # We should stop the pytest if it failed to log Testlog event.
+      raise
 
 
 def LogFinalTestRun(session_json_path, station_test_run=None):

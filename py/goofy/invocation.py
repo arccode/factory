@@ -598,14 +598,22 @@ class TestInvocation(object):
             logging.exception('Unable to read log tail')
 
         self.goofy.event_log.Log('end_test', **log_args)
-        self._UpdateMetadata(end_time=self.end_time, **log_args)
 
         testlog.LogFinalTestRun(self.session_json_path, self._ConvertLogArgs(
             log_args, status))
         del self.env_additions[testlog.TESTLOG_ENV_VARIABLE_NAME]
 
       except Exception:
-        logging.exception('Unable to log end_test event')
+        logging.exception('Unable to log end_test event. '
+                          'Change status from %s to FAILED', status)
+        session.console.error('Unable to log end_test event. '
+                              'Change status from %s to FAILED', status)
+        status = TestState.FAILED
+        error_msg = 'Unable to log end_test event'
+        log_args['status'] = status
+        log_args['error_msg'] = error_msg
+      finally:
+        self._UpdateMetadata(end_time=self.end_time, **log_args)
 
     service_manager.RestoreServices()
 
