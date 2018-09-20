@@ -218,6 +218,8 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
             '/usr/share/chromeos-assets/images',
             '/usr/share/chromeos-assets/text/boot_messages',
             '/usr/share/misc/chromeos-common.sh',
+            # lsb-factory is required for overriding cutoff configs
+            '/mnt/stateful_partition/dev_image/etc/lsb-factory',
             # File required for enable ssh connection.
             '/mnt/stateful_partition/etc/ssh',
             '/root/.ssh',
