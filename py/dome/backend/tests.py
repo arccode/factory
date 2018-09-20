@@ -129,14 +129,12 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
     cls.PROJECT_WITHOUT_UMPIRE_NAME = 'project_without_umpire'
     cls.PROJECT_WITH_UMPIRE_NAME = 'project_with_umpire'
-    cls.PROJECT_WITH_UMPIRE_HOST = 'localhost'
     cls.PROJECT_WITH_UMPIRE_PORT = 8080
     cls.MOCK_UMPIRE_VERSION = 2
 
     models.Project.objects.create(name=cls.PROJECT_WITHOUT_UMPIRE_NAME)
     models.Project.objects.create(name=cls.PROJECT_WITH_UMPIRE_NAME,
                                   umpire_enabled=True,
-                                  umpire_host=cls.PROJECT_WITH_UMPIRE_HOST,
                                   umpire_port=cls.PROJECT_WITH_UMPIRE_PORT)
 
     os.makedirs(os.path.join(
@@ -191,7 +189,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
       patcher.stop()
 
   def testAddExistingUmpire(self):
-    UMPIRE_HOST = 'localhost'
     UMPIRE_PORT = 8090
 
     # pretend we have the container
@@ -199,14 +196,12 @@ class DomeAPITest(rest_framework.test.APITestCase):
         models.Project.GetUmpireContainerName(self.PROJECT_WITHOUT_UMPIRE_NAME))
 
     response = self._AddExistingUmpire(self.PROJECT_WITHOUT_UMPIRE_NAME,
-                                       UMPIRE_HOST,
                                        UMPIRE_PORT)
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
     self.assertTrue(
         response.content, {
             'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
             'umpireEnabled': True,
-            'umpireHost': UMPIRE_HOST,
             'umpirePort': UMPIRE_PORT,
             'umpireVersion': self.MOCK_UMPIRE_VERSION,
             'isUmpireRecent': True
@@ -221,7 +216,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.mocks['subprocess.check_output'].return_value = ''
 
     response = self._AddExistingUmpire(self.PROJECT_WITHOUT_UMPIRE_NAME,
-                                       'localhost',
                                        8090)
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_400_BAD_REQUEST)
@@ -241,7 +235,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
         response.content, {
             'name': PROJECT_NAME,
             'umpireEnabled': False,
-            'umpireHost': None,
             'umpirePort': None,
             'umpireVersion': None,
             'netbootBundle': None,
@@ -303,7 +296,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
         response.content, {
             'name': self.PROJECT_WITH_UMPIRE_NAME,
             'umpireEnabled': False,
-            'umpireHost': 'localhost',
             'umpirePort': 8080,
             'umpireVersion': None,
             'netbootBundle': None,
@@ -322,7 +314,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
         response.content, {
             'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
             'umpireEnabled': False,
-            'umpireHost': None,
             'umpirePort': None,
             'umpireVersion': None,
             'netbootBundle': None,
@@ -348,7 +339,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
         response.content, {
             'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
             'umpireEnabled': True,
-            'umpireHost': 'localhost',
             'umpirePort': UMPIRE_PORT,
             'umpireVersion': self.MOCK_UMPIRE_VERSION,
             'netbootBundle': None,
@@ -661,11 +651,10 @@ class DomeAPITest(rest_framework.test.APITestCase):
                            data={'active': True},
                            format='json')
 
-  def _AddExistingUmpire(self, project_name, umpire_host, umpire_port):
+  def _AddExistingUmpire(self, project_name, umpire_port):
     return self.client.put('/projects/%s/' % project_name,
                            data={'umpireEnabled': True,
                                  'umpireAddExistingOne': True,
-                                 'umpireHost': umpire_host,
                                  'umpirePort': umpire_port},
                            format='json')
 

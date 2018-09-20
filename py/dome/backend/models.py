@@ -136,24 +136,15 @@ def UploadedFile(temporary_uploaded_file_id):
         raise
 
 
-def ReplaceLocalhostWithDockerHostIP(host):
-  # Dome is inside a docker container. If umpire_host is 'localhost', it is
-  # not actually 'localhost', it is the docker host instead of docker
-  # container. So we need to transform it to the docker host's IP.
-  if host in ['localhost', '127.0.0.1']:
-    return str(net_utils.GetDockerHostIP())
-  return host
-
-
-def GetUmpireServerFromHostPort(host, port):
-  host = ReplaceLocalhostWithDockerHostIP(host)
+def GetUmpireServerFromPort(port):
+  host = net_utils.GetDockerHostIP()
   url = 'http://%s:%d' % (host, port + UMPIRE_RPC_PORT_OFFSET)
   return xmlrpclib.ServerProxy(url, allow_none=True)
 
 
 def GetUmpireServer(project_name):
   project = Project.objects.get(pk=project_name)
-  return GetUmpireServerFromHostPort(project.umpire_host, project.umpire_port)
+  return GetUmpireServerFromPort(project.umpire_port)
 
 
 def GetUmpireConfig(project_name):
@@ -321,7 +312,6 @@ class Project(django.db.models.Model):
   # TODO(littlecvr): max_length should be shared with Umpire and serializer
   name = django.db.models.CharField(max_length=200, primary_key=True)
   umpire_enabled = django.db.models.BooleanField(default=False)
-  umpire_host = django.db.models.CharField(max_length=128, null=True)
   umpire_port = django.db.models.PositiveIntegerField(null=True)
   umpire_version = django.db.models.PositiveIntegerField(null=True)
   netboot_bundle = django.db.models.CharField(max_length=200, null=True)
@@ -431,12 +421,12 @@ class Project(django.db.models.Model):
         umpire_server.ExportPayload(bundle_name, payload_type, path_in_umpire)
     return self
 
-  def GetUmpireVersion(self, host, port):
-    logger.info('Waiting for umpire %s:%s to start', host, port)
+  def GetUmpireVersion(self, port):
+    logger.info('Waiting for umpire localhost:%s to start', port)
     start_time = time.time()
     while time.time() < start_time + UMPIRE_START_WAIT_SECS:
       try:
-        server = GetUmpireServerFromHostPort(host, port)
+        server = GetUmpireServerFromPort(port)
         # TODO(pihsun): Warn to restart the umpire instance, if the version is
         # too old.
         version = server.GetVersion()
@@ -458,7 +448,7 @@ class Project(django.db.models.Model):
     logger.info('Connected to umpire server (version=%d)', version)
     return version
 
-  def AddExistingUmpireContainer(self, host, port):
+  def AddExistingUmpireContainer(self, port):
     """Add an existing Umpire container to the database."""
     container_name = Project.GetUmpireContainerName(self.name)
     logger.info('Adding Umpire container %r', container_name)
@@ -469,9 +459,8 @@ class Project(django.db.models.Model):
           container_name)
       logger.error(error_message)
       raise DomeClientException(error_message)
-    self.umpire_version = self.GetUmpireVersion(host, port)
+    self.umpire_version = self.GetUmpireVersion(port)
     self.umpire_enabled = True
-    self.umpire_host = host
     self.umpire_port = port
     self.save()
     return self
@@ -532,7 +521,7 @@ class Project(django.db.models.Model):
       raise
 
     # push into the database
-    return self.AddExistingUmpireContainer('localhost', port)
+    return self.AddExistingUmpireContainer(port)
 
   def DeleteUmpireContainer(self):
     logger.info('Deleting Umpire container %r', self.name)
@@ -575,8 +564,7 @@ class Project(django.db.models.Model):
         project.DeleteUmpireContainer()
       else:
         if kwargs.get('umpire_add_existing_one', False):
-          project.AddExistingUmpireContainer(kwargs['umpire_host'],
-                                             kwargs['umpire_port'])
+          project.AddExistingUmpireContainer(kwargs['umpire_port'])
         else:  # create a new local instance
           project.CreateUmpireContainer(kwargs['umpire_port'])
 

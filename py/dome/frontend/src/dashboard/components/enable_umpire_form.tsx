@@ -59,28 +59,14 @@ const renderAddExistingHint =
       }
     </div>);
 
-interface InnerFormProps {
-  addExisting: boolean;
-}
-
 interface FormData {
-  umpireHost?: string;
   umpirePort: number;
   umpireAddExistingOne: boolean;
 }
 
-const InnerFormComponent: React.SFC<
-  InnerFormProps & InjectedFormProps<FormData, InnerFormProps>> =
-  ({handleSubmit, addExisting}) => (
+const InnerFormComponent: React.SFC<InjectedFormProps<FormData>> =
+  ({handleSubmit}) => (
     <form onSubmit={handleSubmit}>
-      {/* TODO(pihsun): Dome backend doesn't support host other than
-            localhost, so this can be removed. */}
-      {addExisting &&
-        <ReduxFormTextField
-          name="umpireHost"
-          label="host"
-        />
-      }
       <ReduxFormTextField
         name="umpirePort"
         label="port"
@@ -92,7 +78,7 @@ const InnerFormComponent: React.SFC<
     </form>
   );
 
-const InnerForm = reduxForm<FormData, InnerFormProps>({
+const InnerForm = reduxForm<FormData>({
   form: ENABLE_UMPIRE_FORM,
 })(InnerFormComponent);
 
@@ -114,25 +100,25 @@ const EnableUmpireForm: React.SFC<EnableUmpireFormProps> = ({
   project,
 }) => {
   const initialValues = {
-    umpireHost: project.umpireHost || 'localhost',
     umpirePort: project.umpirePort || 8080,
     umpireAddExistingOne: false,
   };
   return (
     <Dialog open={open} onClose={onCancel}>
-      <DialogTitle>Enable Umpire</DialogTitle>
+      <DialogTitle>
+        {addExisting ?
+            'Add Existing Umpire Instance' :
+            'Create Umpire Instance'}
+      </DialogTitle>
       <DialogContent>
         <InnerForm
-          addExisting={addExisting}
           onSubmit={onSubmit}
           initialValues={initialValues}
         />
       </DialogContent>
       <DialogActions>
         <Button color="primary" onClick={submitForm}>
-          {addExisting ?
-              'Add an existing Umpire instance' :
-              'Create a new Umpire instance'}
+          {addExisting ? 'Add' : 'Create'}
         </Button>
         <Button onClick={onCancel}>Cancel</Button>
       </DialogActions>

@@ -91,9 +91,6 @@ class DashboardApp extends React.Component<DashboardAppProps> {
                       disabling and re-enabling it.
                     </ListItem>}
                   <ListItem>
-                    host: {project.umpireHost}
-                  </ListItem>
-                  <ListItem>
                     port: {project.umpirePort}
                   </ListItem>
                   <ListSubheader>Services</ListSubheader>
