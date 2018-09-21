@@ -695,6 +695,7 @@ class Connection(object):
     logging.info('Stopping dhclient...')
     self._device.Call(kill_command)
     self._device.Call(force_kill_command)
+    self._device.Call(clear_ifconfig_command)
 
     yield  # We have released the IP.
 
