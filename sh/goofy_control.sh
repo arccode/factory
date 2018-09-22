@@ -137,8 +137,10 @@ init_tty() {
   # Preventing ttyN (developer shell console) to go blank after some idle time
   local tty=""
   for tty in /dev/tty[2-4]; do
-    (setterm -cursor on -blank 0 -powerdown 0 -powersave off
-     >"${tty}") 2>/dev/null || true
+    if [ -c "${tty}" ]; then
+      (setterm -cursor on -blank 0 -powerdown 0 -powersave off
+        >"${tty}") 2>/dev/null || true
+    fi
   done
 }
 
