@@ -10,12 +10,9 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import React from 'react';
 import {connect} from 'react-redux';
 import {
-  Field,
-  formValueSelector,
   InjectedFormProps,
   reduxForm,
   submit,
-  WrappedFieldProps,
 } from 'redux-form';
 
 import formDialog from '@app/form_dialog';
@@ -26,64 +23,39 @@ import {HiddenSubmitButton, parseNumber} from '@common/form';
 
 import {ENABLE_UMPIRE_FORM} from '../constants';
 
-const renderAddExistingHint =
-  ({input: {value, onChange}}: WrappedFieldProps) => (
-    <div style={{textAlign: 'center', marginTop: 24}}>
-      {value ?
-        <>
-          If you had not set up the Umpire Docker container, you should
-          {' '}
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              onChange(false);
-            }}
-          >
-            create a new one
-          </a>.
-        </> :
-        <>
-          If you had manually set up the Umpire Docker container, you can
-          {' '}
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              onChange(true);
-            }}
-          >
-            add the existing one
-          </a>.
-        </>
-      }
-    </div>);
-
-interface FormData {
-  umpirePort: number;
-  umpireAddExistingOne: boolean;
+interface FormProps {
+  hasExisting: boolean;
+  projectName: string;
 }
 
-const InnerFormComponent: React.SFC<InjectedFormProps<FormData>> =
-  ({handleSubmit}) => (
+interface FormData {
+  umpirePort?: number;
+}
+
+const InnerFormComponent: React.SFC<
+  FormProps & InjectedFormProps<FormData, FormProps>> =
+  ({hasExisting, projectName, handleSubmit}) => (
     <form onSubmit={handleSubmit}>
-      <ReduxFormTextField
-        name="umpirePort"
-        label="port"
-        type="number"
-        parse={parseNumber}
-      />
-      <Field name="umpireAddExistingOne" component={renderAddExistingHint} />
+      {hasExisting ? (
+        `Umpire container for ${projectName} already exists,` +
+        ' it would be added to Dome.'
+      ) : (
+        <ReduxFormTextField
+          name="umpirePort"
+          label="port"
+          type="number"
+          parse={parseNumber}
+        />
+      )}
       <HiddenSubmitButton />
     </form>
   );
 
-const InnerForm = reduxForm<FormData>({
+const InnerForm = reduxForm<FormData, FormProps>({
   form: ENABLE_UMPIRE_FORM,
 })(InnerFormComponent);
 
 interface EnableUmpireFormProps {
-  addExisting: boolean;
   open: boolean;
   project: Project;
   submitForm: () => any;
@@ -96,29 +68,26 @@ const EnableUmpireForm: React.SFC<EnableUmpireFormProps> = ({
   onSubmit,
   onCancel,
   submitForm,
-  addExisting,
   project,
 }) => {
   const initialValues = {
     umpirePort: project.umpirePort || 8080,
-    umpireAddExistingOne: false,
   };
+  const hasExisting = project.hasExistingUmpire;
   return (
     <Dialog open={open} onClose={onCancel}>
-      <DialogTitle>
-        {addExisting ?
-            'Add Existing Umpire Instance' :
-            'Create Umpire Instance'}
-      </DialogTitle>
+      <DialogTitle>Enable Umpire</DialogTitle>
       <DialogContent>
         <InnerForm
           onSubmit={onSubmit}
           initialValues={initialValues}
+          projectName={project.name}
+          hasExisting={hasExisting}
         />
       </DialogContent>
       <DialogActions>
         <Button color="primary" onClick={submitForm}>
-          {addExisting ? 'Add' : 'Create'}
+          {hasExisting ? 'Add' : 'Create'}
         </Button>
         <Button onClick={onCancel}>Cancel</Button>
       </DialogActions>
@@ -128,11 +97,9 @@ const EnableUmpireForm: React.SFC<EnableUmpireFormProps> = ({
 
 const isFormVisible =
   formDialog.selectors.isFormVisibleFactory(ENABLE_UMPIRE_FORM);
-const formValue = formValueSelector(ENABLE_UMPIRE_FORM);
 
 const mapStateToProps = (state: RootState) => ({
   open: isFormVisible(state),
-  addExisting: formValue(state, 'umpireAddExistingOne') as boolean || false,
 });
 
 const mapDispatchToProps = {

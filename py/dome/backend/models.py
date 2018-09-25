@@ -325,6 +325,23 @@ class Project(django.db.models.Model):
   def is_umpire_recent(self):
     return self.umpire_version == umpire_common.UMPIRE_VERSION
 
+  @property
+  def has_existing_umpire(self):
+    return self.GetExistingUmpirePort() is not None
+
+  def GetExistingUmpirePort(self):
+    if self.umpire_enabled:
+      return self.umpire_port
+
+    container_name = Project.GetUmpireContainerName(self.name)
+    if not DoesContainerExist(container_name):
+      return None
+    return int(subprocess.check_output([
+        'docker', 'inspect', '--format',
+        '{{(index (index .NetworkSettings.Ports "%s/tcp") 0).HostPort}}' %
+        UMPIRE_BASE_PORT, container_name
+    ]))
+
   @staticmethod
   def GetProjectByName(project_name):
     return Project.objects.get(pk=project_name)
@@ -427,8 +444,6 @@ class Project(django.db.models.Model):
     while time.time() < start_time + UMPIRE_START_WAIT_SECS:
       try:
         server = GetUmpireServerFromPort(port)
-        # TODO(pihsun): Warn to restart the umpire instance, if the version is
-        # too old.
         version = server.GetVersion()
         break
       except socket.error:
@@ -448,17 +463,11 @@ class Project(django.db.models.Model):
     logger.info('Connected to umpire server (version=%d)', version)
     return version
 
-  def AddExistingUmpireContainer(self, port):
+  def AddExistingUmpireContainer(self):
     """Add an existing Umpire container to the database."""
     container_name = Project.GetUmpireContainerName(self.name)
     logger.info('Adding Umpire container %r', container_name)
-    if not DoesContainerExist(container_name):
-      error_message = (
-          'Container %s does not exist, Dome will not add a non-existing '
-          'container into the database, please create a new one instead' %
-          container_name)
-      logger.error(error_message)
-      raise DomeClientException(error_message)
+    port = self.GetExistingUmpirePort()
     self.umpire_version = self.GetUmpireVersion(port)
     self.umpire_enabled = True
     self.umpire_port = port
@@ -470,12 +479,6 @@ class Project(django.db.models.Model):
     # make sure the container does not exist
     container_name = Project.GetUmpireContainerName(self.name)
     logger.info('Creating Umpire container %r', container_name)
-    if DoesContainerExist(container_name):
-      error_message = (
-          'Container %s already exists, Dome will not try to create a new one, '
-          'please add the existing one instead' % container_name)
-      logger.error(error_message)
-      raise DomeClientException(error_message)
 
     try:
       # create and start a new container
@@ -521,7 +524,7 @@ class Project(django.db.models.Model):
       raise
 
     # push into the database
-    return self.AddExistingUmpireContainer(port)
+    return self.AddExistingUmpireContainer()
 
   def DeleteUmpireContainer(self):
     logger.info('Deleting Umpire container %r', self.name)
@@ -563,9 +566,10 @@ class Project(django.db.models.Model):
       if not kwargs['umpire_enabled']:
         project.DeleteUmpireContainer()
       else:
-        if kwargs.get('umpire_add_existing_one', False):
-          project.AddExistingUmpireContainer(kwargs['umpire_port'])
-        else:  # create a new local instance
+        container_name = Project.GetUmpireContainerName(project.name)
+        if DoesContainerExist(container_name):
+          project.AddExistingUmpireContainer()
+        else:
           project.CreateUmpireContainer(kwargs['umpire_port'])
 
     # replace netboot resource in TFTP root

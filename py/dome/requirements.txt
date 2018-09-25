@@ -1,10 +1,6 @@
 coverage==4.2
 Django==1.10.1
 django-finalware==1.0.0
-djangorestframework==3.4.7
+djangorestframework==3.8.2
 djangorestframework-camel-case==0.2.0
-funcsigs==1.0.2
 mock==2.0.0
-pbr==1.10.0
-PyYAML==3.12
-six==1.10.0

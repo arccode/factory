@@ -45,8 +45,11 @@ export const updateProject = (
   const body = {name, ...settings};
 
   const optimisticUpdate = () => {
-    dispatch(updateProjectImpl(
-      name, {umpireReady: false, ...settings}));
+    const update: Partial<Project> = {umpireReady: false, ...settings};
+    if (settings.umpireEnabled != null) {
+      update.hasExistingUmpire = settings.umpireEnabled;
+    }
+    dispatch(updateProjectImpl(name, update));
   };
 
   description = description || `Update project "${name}"`;

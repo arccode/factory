@@ -20,6 +20,7 @@ class ConfigSerializer(serializers.ModelSerializer):
 
   class Meta(object):
     model = DomeConfig
+    fields = '__all__'
 
   def create(self, validated_data):
     """Override parent's method."""
@@ -38,6 +39,7 @@ class UploadedFileSerializer(serializers.ModelSerializer):
 
   class Meta(object):
     model = TemporaryUploadedFile
+    fields = '__all__'
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -51,15 +53,12 @@ class ProjectSerializer(serializers.ModelSerializer):
               regex=r'^%s$' % common.PROJECT_NAME_RE,
               message='Invalid project name')])
 
-  # True means the user is trying to add an existing Umpire container; False
-  # means the user asked to create a new one
-  umpire_add_existing_one = serializers.BooleanField(
-      write_only=True, required=False)
-
   is_umpire_recent = serializers.ReadOnlyField()
+  has_existing_umpire = serializers.ReadOnlyField()
 
   class Meta(object):
     model = Project
+    fields = '__all__'
     read_only_fields = ('umpire_version', )
 
   def create(self, validated_data):
@@ -130,3 +129,4 @@ class ServiceSerializer(serializers.ModelSerializer):
 
   class Meta(object):
     model = Service
+    fields = '__all__'

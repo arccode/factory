@@ -139,7 +139,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
     os.makedirs(os.path.join(
         models.UMPIRE_BASE_DIR, cls.PROJECT_WITH_UMPIRE_NAME))
-    os.makedirs(models.SHARED_TMP_DIR)
 
   def setUp(self):
     self.maxDiff = None  # developer friendly setting
@@ -157,6 +156,11 @@ class DomeAPITest(rest_framework.test.APITestCase):
     for entity in ENTITIES_TO_MOCK:
       self.patchers.append(mock.patch(entity))
       self.mocks[entity] = self.patchers[-1].start()
+
+    self.patchers.append(mock.patch.object(
+        models.Project, 'GetExistingUmpirePort'))
+    self.mocks['GetExistingUmpirePort'] = self.patchers[-1].start()
+    self.mocks['GetExistingUmpirePort'].return_value = None
 
     def MockUmpireGetActiveConfig():
       """Mock the GetActiveConfig() call because it's used so often."""
@@ -195,8 +199,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.mocks['subprocess.check_output'].return_value = (
         models.Project.GetUmpireContainerName(self.PROJECT_WITHOUT_UMPIRE_NAME))
 
-    response = self._AddExistingUmpire(self.PROJECT_WITHOUT_UMPIRE_NAME,
-                                       UMPIRE_PORT)
+    self.mocks['GetExistingUmpirePort'].return_value = UMPIRE_PORT
+    response = self._AddExistingUmpire(self.PROJECT_WITHOUT_UMPIRE_NAME)
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
     self.assertTrue(
         response.content, {
@@ -204,22 +208,9 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'umpireEnabled': True,
             'umpirePort': UMPIRE_PORT,
             'umpireVersion': self.MOCK_UMPIRE_VERSION,
-            'isUmpireRecent': True
+            'isUmpireRecent': True,
+            'hasExistingUmpire': True
         })
-
-    # no docker commands should be called
-    self.mocks['subprocess.call'].assert_not_called()
-    self.mocks['subprocess.check_call'].assert_not_called()
-
-  def testAddExistingUmpireButUmpireContainerDoesNotExist(self):
-    # pretend we don't have the container
-    self.mocks['subprocess.check_output'].return_value = ''
-
-    response = self._AddExistingUmpire(self.PROJECT_WITHOUT_UMPIRE_NAME,
-                                       8090)
-    self.assertEqual(response.status_code,
-                     rest_framework.status.HTTP_400_BAD_REQUEST)
-    self.assertIn('does not exist', response.json()['detail'])
 
     # no docker commands should be called
     self.mocks['subprocess.call'].assert_not_called()
@@ -238,7 +229,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'umpirePort': None,
             'umpireVersion': None,
             'netbootBundle': None,
-            'isUmpireRecent': False
+            'isUmpireRecent': False,
+            'hasExistingUmpire': False
         })
 
     # no docker commands should be called
@@ -299,7 +291,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'umpirePort': 8080,
             'umpireVersion': None,
             'netbootBundle': None,
-            'isUmpireRecent': False
+            'isUmpireRecent': False,
+            'hasExistingUmpire': False
         })
 
     # make sure the container has also been removed
@@ -317,7 +310,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'umpirePort': None,
             'umpireVersion': None,
             'netbootBundle': None,
-            'isUmpireRecent': False
+            'isUmpireRecent': False,
+            'hasExistingUmpire': False
         })
 
     # nothing should be changed and nothing should be called
@@ -332,6 +326,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.mocks['subprocess.check_output'].side_effect = [
         '',
         models.Project.GetUmpireContainerName(self.PROJECT_WITHOUT_UMPIRE_NAME)]
+    self.mocks['GetExistingUmpirePort'].return_value = UMPIRE_PORT
 
     response = self._EnableUmpire(self.PROJECT_WITHOUT_UMPIRE_NAME, UMPIRE_PORT)
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
@@ -342,7 +337,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'umpirePort': UMPIRE_PORT,
             'umpireVersion': self.MOCK_UMPIRE_VERSION,
             'netbootBundle': None,
-            'isUmpireRecent': True
+            'isUmpireRecent': True,
+            'hasExistingUmpire': True
         })
 
     # make sure docker run has been called
@@ -374,24 +370,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
     # called
     self.mocks['subprocess.call'].assert_not_called()
     self.mocks['subprocess.check_call'].assert_not_called()
-
-  def testEnableUmpireButUmpireAlreadyExists(self):
-    """Test enabling Umpire on a project with Umpire disabled but the Umpire
-    container already exists.
-
-    An exception should be raised since Dome will not create a new one with the
-    same container name (it's also impossible to do that).
-    """
-    UMPIRE_PORT = 8090
-
-    # pretend that we already have the container
-    self.mocks['subprocess.check_output'].return_value = (
-        models.Project.GetUmpireContainerName(self.PROJECT_WITHOUT_UMPIRE_NAME))
-
-    response = self._EnableUmpire(self.PROJECT_WITHOUT_UMPIRE_NAME, UMPIRE_PORT)
-    self.assertEqual(response.status_code,
-                     rest_framework.status.HTTP_400_BAD_REQUEST)
-    self.assertTrue('already exists' in response.json()['detail'])
 
   def testUploadResource(self):
     RESOURCE_TYPE = 'toolkit'
@@ -651,11 +629,9 @@ class DomeAPITest(rest_framework.test.APITestCase):
                            data={'active': True},
                            format='json')
 
-  def _AddExistingUmpire(self, project_name, umpire_port):
+  def _AddExistingUmpire(self, project_name):
     return self.client.put('/projects/%s/' % project_name,
-                           data={'umpireEnabled': True,
-                                 'umpireAddExistingOne': True,
-                                 'umpirePort': umpire_port},
+                           data={'umpireEnabled': True},
                            format='json')
 
   def _CreateProject(self, project_name):

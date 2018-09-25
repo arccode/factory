@@ -19,6 +19,7 @@ DOME_DIR=/usr/local/factory/py/dome
 
 # Command used to analyze test coverage in target 'test-backend'.
 TEST_COVERAGE_CMD = \
+	mkdir /tmp/shared && \
 	coverage run \
 		--source="." \
 		--omit="backend/migrations/*" \

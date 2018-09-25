@@ -4,7 +4,6 @@
 
 export interface UmpireSetting {
   umpireEnabled: boolean;
-  umpireAddExistingOne: boolean;
   umpirePort: number | null;
   netbootBundle: string | null;
 }
@@ -16,6 +15,7 @@ export interface UmpireServerResponse {
   umpirePort: number | null;
   umpireVersion: number | null;
   netbootBundle: string | null;
+  hasExistingUmpire: boolean;
 }
 
 export interface Project extends UmpireSetting, UmpireServerResponse {

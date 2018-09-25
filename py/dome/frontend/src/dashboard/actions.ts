@@ -3,7 +3,6 @@
 // found in the LICENSE file.
 
 import project from '@app/project';
-
 import {UmpireSetting} from '@app/project/types';
 
 export const disableUmpire = (projectName: string) => (
