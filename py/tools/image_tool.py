@@ -1083,6 +1083,10 @@ class ChromeOSFactoryBundle(object):
       command = ' ; '.join(commands)
       Sudo("bash %s -c '%s'" % ('-x' if verbose else '', command))
 
+  @staticmethod
+  def GetDiskUsage(path):
+    return int(SudoOutput(['du', '-sk', path]).split()[0]) * 1024
+
   def InitDiskImage(self, output, sectors, sector_size, verbose=False):
     """Initializes (resize and partition) a new disk image.
 
@@ -1171,8 +1175,7 @@ class ChromeOSFactoryBundle(object):
     self.CreateDirectory(payloads_dir)
     self.CreatePayloads(payloads_dir)
 
-    payloads_size = int(
-        SudoOutput(['du', '-sk', payloads_dir]).split()[0]) * 1024
+    payloads_size = ChromeOSFactoryBundle.GetDiskUsage(payloads_dir)
     print('cros_payloads size: %s M' % (payloads_size / MEGABYTE))
     shutil.copyfile(self.factory_shim, output)
 
@@ -1286,6 +1289,32 @@ class ChromeOSFactoryBundle(object):
         self.kernel = kernel
         self.rootfs = rootfs
 
+    def _GetBoardPayloadSize(board_entry):
+      """Returns a set of (resource name, resource size) tuples of a board."""
+      resources = set()
+      with Partition(board_entry.image, PART_CROS_STATEFUL).Mount() as stateful:
+        payload_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+        json_file = '%s.json' % board_entry.board
+        json_path = os.path.join(payload_dir, json_file)
+        resources.add(
+            (json_file, ChromeOSFactoryBundle.GetDiskUsage(json_path)))
+        with open(json_path) as f:
+          metadata = json.load(f)
+          for resource in metadata.values():
+            for subtype, payload in resource.iteritems():
+              if subtype == 'version':
+                continue
+              path = os.path.join(payload_dir, payload)
+              resources.add((payload, ChromeOSFactoryBundle.GetDiskUsage(path)))
+      return resources
+
+    def _GetPayloadSize(entries):
+      """Get the sum of payload size of all board entries."""
+      payloads = [_GetBoardPayloadSize(entry) for entry in entries]
+      payloads_set = set().union(*payloads)
+      payloads_size = sum(p[1] for p in payloads_set)
+      return payloads_size
+
     def _ResolveDuplicateBoards(image_entries, auto_select):
       board_map = {}
       for board_entries in image_entries:
@@ -1338,7 +1367,14 @@ class ChromeOSFactoryBundle(object):
               gpt.GetPartition(board_info.rootfs)))
         image_entries.append(board_entries)
 
+    # Count the payload size of each images separately.
+    old_payload_size = sum(
+        [_GetPayloadSize(entries) for entries in image_entries])
     image_entries = _ResolveDuplicateBoards(image_entries, auto_select)
+    # Count the payload size in the merged image.
+    new_payload_size = _GetPayloadSize(sum(image_entries, []))
+    diff_payload_size = old_payload_size - new_payload_size
+    assert diff_payload_size >= 0, 'Merged payload should not become larger.'
 
     for board_entries in image_entries:
       for entry in board_entries:
@@ -1348,10 +1384,9 @@ class ChromeOSFactoryBundle(object):
     # Build a new image based on first image's layout.
     gpt = pygpt.GPT.LoadFromFile(images[0])
     pad_blocks = gpt.header.FirstUsableLBA
-    # TODO(chenghan): Calculate stateful partition size again. Some payload
-    #                 of duplicate boards are not needed, so the actual size
-    #                 may be smaller.
-    state_blocks = sum(p.blocks for p in stateful_parts)
+    # We can remove at least `diff_payload_size` space from stateful partition
+    state_blocks = (
+        sum(p.blocks for p in stateful_parts) - diff_payload_size / block_size)
     data_blocks = state_blocks + sum(p.blocks for p in kern_rootfs_parts)
     # pad_blocks hold header and partition tables, in front and end of image.
     new_size = (data_blocks + pad_blocks * 2) * block_size
