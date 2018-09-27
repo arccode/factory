@@ -38,16 +38,9 @@ export interface ResourceMap {
   [type: string]: Resource;
 }
 
-export type RuleKey = 'macs' | 'serialNumbers' | 'mlbSerialNumbers';
-
-export type Rules = {
-  [name in RuleKey]: string[];
-};
-
 export interface Bundle {
   name: string;
   note: string;
   active: boolean;
-  rules: Partial<Rules>;
   resources: ResourceMap;
 }

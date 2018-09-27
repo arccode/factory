@@ -17,7 +17,6 @@ import {UPDATE_RESOURCE_FORM, UPLOAD_BUNDLE_FORM} from './constants';
 import {getBundles} from './selectors';
 import {
   Bundle,
-  Rules,
   UpdateResourceRequestPayload,
   UploadBundleRequestPayload,
 } from './types';
@@ -116,30 +115,6 @@ export const activateBundle = (name: string, active: boolean) =>
       optimisticUpdate));
   };
 
-export const changeBundleRules = (name: string, rules: Partial<Rules>) =>
-  async (dispatch: Dispatch, getState: () => RootState) => {
-    const bundle = findBundle(name, getState);
-    if (!bundle) {
-      return;
-    }
-    const optimisticUpdate = () => {
-      dispatch(updateBundle(name, {...bundle, rules}));
-    };
-
-    // send the request
-    const body = {
-      // TODO(littlecvr): refine the back-end API so we don't need project here,
-      //                  the URL already contains project
-      project: project.selectors.getCurrentProject(getState()),
-      name,
-      rules,
-    };
-    const description = `Change rules of bundle "${name}"`;
-    await dispatch(task.actions.runTask(
-      description, 'PUT', `${baseURL(getState)}/bundles/${name}/`, body,
-      optimisticUpdate));
-  };
-
 export const deleteBundle = (name: string) =>
   (dispatch: Dispatch, getState: () => RootState) => (
     dispatch(task.actions.runTask(
@@ -161,20 +136,12 @@ export const startUploadBundle = (data: UploadBundleRequestPayload) =>
       // TODO(littlecvr): to improve user experience, we should have a variable
       //                  indicating that the bundle is currently being
       //                  uploaded, so we can for example append "(uploading)"
-      //                  to bundle name to make it more clear, or we can make
-      //                  the resource and rule table totally unexpandable
-      //                  (since there are nothing there for now, expanding
-      //                  them is useless)
+      //                  to bundle name to make it more clear.
       dispatch(addBundle({ // give it an empty bundle
         name: data.name,
         note: data.note,
         active: true,
         resources: {},
-        rules: {
-          macs: [],
-          serialNumbers: [],
-          mlbSerialNumbers: [],
-        },
       }));
     };
 

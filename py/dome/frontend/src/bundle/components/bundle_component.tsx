@@ -32,7 +32,6 @@ import {DispatchProps} from '@common/types';
 
 import {
   activateBundle,
-  changeBundleRules,
   collapseBundle,
   deleteBundle,
   expandBundle,
@@ -42,7 +41,6 @@ import {getExpandedMap} from '../selectors';
 import {Bundle} from '../types';
 
 import ResourceTable from './resources_table';
-import RuleTable from './rule_table';
 
 const DragHandle = SortableHandle(() => (
   <Tooltip title="move this bundle">
@@ -108,7 +106,6 @@ class BundleComponent extends React.Component<BundleComponentProps> {
       projectNetbootBundle,
       deleteBundle,
       setBundleAsNetboot,
-      changeBundleRules,
       classes,
     } = this.props;
 
@@ -166,15 +163,6 @@ class BundleComponent extends React.Component<BundleComponentProps> {
             <Typography variant="subheading" gutterBottom>RESOURCES</Typography>
             <ResourceTable bundle={bundle} />
           </CardContent>
-          <CardContent>
-            <Typography variant="subheading" gutterBottom>RULES</Typography>
-            <RuleTable
-              rules={bundle.rules}
-              changeRules={
-                (rules) => changeBundleRules(bundle.name, rules)
-              }
-            />
-          </CardContent>
         </Collapse>
       </Card>
     );
@@ -191,7 +179,6 @@ const mapStateToProps =
 
 const mapDispatchToProps = {
   activateBundle,
-  changeBundleRules,
   collapseBundle,
   deleteBundle,
   expandBundle,
