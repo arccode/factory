@@ -39,11 +39,5 @@
       "type": "toolkit",
       "version": "3.2.1"
     }
-  },
-  "rules": {
-    "mlbSerialNumbers": [
-      "foofoo",
-      "barbar"
-    ]
   }
 }

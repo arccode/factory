@@ -36,34 +36,16 @@
     {
       "active": false,
       "bundle_id": "testing_bundle_01",
-      "match": {
-        "sn": [
-          "foo",
-          "bar"
-        ]
-      },
       "note": "flying like an eagle"
     },
     {
       "active": false,
       "bundle_id": "testing_bundle_02",
-      "match": {
-        "mlb_sn": [
-          "foofoo",
-          "barbar"
-        ]
-      },
       "note": "swimming like a whale"
     },
     {
       "active": true,
       "bundle_id": "testing_bundle_01_copy",
-      "match": {
-        "mac": [
-          "11:22:33:44:55:66",
-          "77:88:99:aa:bb:cc"
-        ]
-      },
       "note": "flying like an eagle"
     },
     {

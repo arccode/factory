@@ -84,6 +84,10 @@ class UploadedFileTest(rest_framework.test.APITestCase):
         pass
 
 
+# TODO(pihsun): Check if testdata still makes sense after there's no match, and
+# there's only one active bundle.
+
+
 class DomeAPITest(rest_framework.test.APITestCase):
   """Test Dome APIs.
 
@@ -113,7 +117,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
   - DELETE /projects/${PROJECT_NAME}/bundles/${BUNDLE_NAME}/
       Delete bundle.
   - PUT /projects/${PROJECT_NAME/bundles/${BUNDLE_NAME}/
-      Update bundle resources or rules
+      Update bundle resources
 
   Resource APIs:
   - POST /projects/${PROJECT_NAME}/resources/
@@ -428,19 +432,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
     with TestData('expected_response-activated_bundle_unicode.json') as r:
       self.assertEqual(r, response.json(encoding='UTF-8'))
 
-  def testClearBundleRules(self):
-    response = self.client.put(
-        '/projects/%s/bundles/%s/' % (self.PROJECT_WITH_UMPIRE_NAME,
-                                      'testing_bundle_01'),
-        data={'rules': {}},
-        format='json')
-
-    self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
-    with TestData('umpire_config-rules_cleared.json') as c:
-      self.assertEqual(c, self._GetLastestUploadedConfig())
-    with TestData('expected_response-rules_cleared_bundle.json') as r:
-      self.assertEqual(r, response.json())
-
   def testDeactivateBundle(self):
     response = self._DeactivateBundle(self.PROJECT_WITH_UMPIRE_NAME,
                                       'testing_bundle_01')
@@ -504,19 +495,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
     #   'rulesets' section (but set to inactive)
     with TestData('expected_response-get_bundle_list.json') as r:
       self.assertEqual(r, bundle_list)
-
-  def testModifyBundleRules(self):
-    response = self.client.put(
-        '/projects/%s/bundles/%s/' % (self.PROJECT_WITH_UMPIRE_NAME,
-                                      'testing_bundle_02'),
-        data={'rules': {'mlbSerialNumbers': ['foofoo123', 'barbar456']}},
-        format='json')
-
-    self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
-    with TestData('umpire_config-rules_changed.json') as c:
-      self.assertEqual(c, self._GetLastestUploadedConfig())
-    with TestData('expected_response-rules_changed_bundle.json') as r:
-      self.assertEqual(r, response.json())
 
   def testReorderBundles(self):
     response = self._ReorderBundles(self.PROJECT_WITH_UMPIRE_NAME,

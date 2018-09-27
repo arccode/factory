@@ -40,12 +40,6 @@
         "type": "toolkit",
         "version": "3.2.1"
       }
-    },
-    "rules": {
-      "mlbSerialNumbers": [
-        "foofoo",
-        "barbar"
-      ]
     }
   },
   {
@@ -89,12 +83,6 @@
         "type": "toolkit",
         "version": "5678.1234"
       }
-    },
-    "rules": {
-      "serialNumbers": [
-        "foo",
-        "bar"
-      ]
     }
   },
   {
@@ -138,12 +126,6 @@
         "type": "toolkit",
         "version": "5678.1234"
       }
-    },
-    "rules": {
-      "macs": [
-        "11:22:33:44:55:66",
-        "77:88:99:aa:bb:cc"
-      ]
     }
   },
   {
@@ -187,8 +169,7 @@
         "type": "toolkit",
         "version": "44332211"
       }
-    },
-    "rules": {}
+    }
   },
   {
     "active": true,
@@ -231,8 +212,7 @@
         "type": "toolkit",
         "version": ""
       }
-    },
-    "rules": {}
+    }
   },
   {
     "active": false,
@@ -275,8 +255,6 @@
         "type": "toolkit",
         "version": "55443322"
       }
-    },
-    "rules": {
     }
   }
 ]

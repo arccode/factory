@@ -44,10 +44,6 @@ UMPIRE_BASE_PORT = 8080
 UMPIRE_RPC_PORT_OFFSET = 2
 UMPIRE_RSYNC_PORT_OFFSET = 4
 UMPIRE_INSTALOG_PULL_SOCKET_PORT_OFFSET = 6
-UMPIRE_MATCH_KEY_MAP = {
-    'macs': 'mac',
-    'serial_numbers': 'sn',
-    'mlb_serial_numbers': 'mlb_sn'}
 UMPIRE_START_WAIT_SECS = 5
 
 # TODO(littlecvr): use volume container instead of absolute path.
@@ -409,6 +405,9 @@ class Project(django.db.models.Model):
         # update the ruleset
         r['bundle_id'] = new_name
 
+      # The key match is deprecated.
+      r.pop('match', None)
+
     # sort 'bundles' section by their IDs
     config['bundles'].sort(key=lambda b: b['id'])
 
@@ -603,7 +602,7 @@ class Resource(object):
 class Bundle(object):
   """Represent a bundle in umpire."""
 
-  def __init__(self, name, note, active, payloads, rules):
+  def __init__(self, name, note, active, payloads):
     self.name = name
     self.note = note
     self.active = active
@@ -613,12 +612,6 @@ class Bundle(object):
     for type_name in payloads:
       self.resources[type_name] = Resource(type_name,
                                            payloads[type_name]['version'])
-
-    self.rules = {}
-    for umpire_key in rules:
-      key = next(
-          k for (k, v) in UMPIRE_MATCH_KEY_MAP.iteritems() if v == umpire_key)
-      self.rules[key] = rules[umpire_key]
 
   @staticmethod
   def HasResource(project_name, bundle_name, resource_name):
@@ -641,8 +634,7 @@ class Bundle(object):
     return Bundle(bundle['id'],  # name
                   ruleset['note'],  # note
                   ruleset['active'],  # active
-                  payloads,  # payloads
-                  ruleset.get('match', {}))  # matching rules
+                  payloads)  # payloads
 
   @staticmethod
   def DeleteOne(project_name, bundle_name):
@@ -719,7 +711,7 @@ class Bundle(object):
 
   @staticmethod
   def ModifyOne(project_name, src_bundle_name, dst_bundle_name=None,
-                note=None, active=None, rules=None, resources=None):
+                note=None, active=None, resources=None):
     """Modify a bundle.
 
     Args:
@@ -730,8 +722,6 @@ class Bundle(object):
       note: note of the bundle.
       active: True to make the bundle active, False to make the bundle inactive.
           None means no change.
-      rules: rules to replace, this corresponds to Umpire's "match", see
-          Umpire's doc for more info, None means no change.
       resources: a dict deserialized by ResourceSerializer, listing all
           resources that should be updated. If a resource is not listed, nothing
           would be changed to the particular resource, so the client can do
@@ -777,19 +767,8 @@ class Bundle(object):
     if active is not None:
       ruleset['active'] = active
 
-    if rules is not None:
-      # completely remove rules if it's not None but considered "False"
-      if not rules:
-        ruleset.pop('match', None)  # completely remove this key
-      else:
-        ruleset['match'] = {}
-        for key, rule in rules.iteritems():
-          if rule:  # add non-empty rule only
-            ruleset['match'][UMPIRE_MATCH_KEY_MAP[key]] = map(str, rule)
-
     # only deploy if at least one thing has changed
-    if (dst_bundle_name or note is not None or
-        active is not None or rules is not None):
+    if dst_bundle_name or note is not None or active is not None:
       project.UploadAndDeployConfig(config)
 
     # update resources

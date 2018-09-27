@@ -120,7 +120,6 @@ class BundleSerializer(serializers.Serializer):
     data = {'dst_bundle_name': validated_data.pop('new_name', None),
             'note': validated_data.pop('note', None),
             'active': validated_data.pop('active', None),
-            'rules': validated_data.pop('rules', None),
             'resources': validated_data.pop('resources', None)}
     return Bundle.ModifyOne(project_name, bundle_name, **data)
 
