@@ -10,16 +10,20 @@ import {connect} from 'react-redux';
 
 import formDialog from '@app/form_dialog';
 
+import {DispatchProps} from '@common/types';
+
 import {UPLOAD_BUNDLE_FORM} from '../constants';
 
 import BundleList from './bundle_list';
 import UpdateResourceDialog from './update_resource_dialog';
 import UploadBundleDialog from './upload_bundle_dialog';
 
-interface BundlesAppProps {
+interface BundlesAppOwnProps {
   overlay: Element | null;
-  openUploadNewBundleForm: () => any;
 }
+
+type BundlesAppProps =
+  BundlesAppOwnProps & DispatchProps<typeof mapDispatchToProps>;
 
 const BundlesApp: React.SFC<BundlesAppProps> =
   ({overlay, openUploadNewBundleForm}) => (

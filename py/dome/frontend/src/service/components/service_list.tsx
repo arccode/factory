@@ -14,19 +14,15 @@ import {connect} from 'react-redux';
 
 import {RootState} from '@app/types';
 
+import {DispatchProps} from '@common/types';
+
 import {fetchServices, fetchServiceSchemata, updateService} from '../actions';
 import {getServices, getServiceSchemata} from '../selectors';
-import {SchemaMap, Service, ServiceMap} from '../types';
 
 import ServiceForm from './service_form';
 
-interface ServiceListProps {
-  schemata: SchemaMap;
-  services: ServiceMap;
-  fetchServiceSchemata: () => any;
-  fetchServices: () => any;
-  updateService: (name: string, service: Service) => any;
-}
+type ServiceListProps =
+  ReturnType<typeof mapStateToProps> & DispatchProps<typeof mapDispatchToProps>;
 
 interface ServiceListStates {
   expanded: {[name: string]: boolean};

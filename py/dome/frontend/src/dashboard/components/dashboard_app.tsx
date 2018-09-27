@@ -16,23 +16,18 @@ import {connect} from 'react-redux';
 
 import formDialog from '@app/form_dialog';
 import project from '@app/project';
-import {Project, UmpireSetting} from '@app/project/types';
 import ServiceList from '@app/service/components/service_list';
 import {RootState} from '@app/types';
+
+import {DispatchProps} from '@common/types';
 
 import {disableUmpire, enableUmpireWithSettings} from '../actions';
 import {ENABLE_UMPIRE_FORM} from '../constants';
 
 import EnableUmpireForm from './enable_umpire_form';
 
-interface DashboardAppProps {
-  project: Project;
-  openEnableUmpireForm: () => any;
-  closeEnableUmpireForm: () => any;
-  disableUmpire: (name: string) => any;
-  enableUmpireWithSettings: (
-    name: string, setting: Partial<UmpireSetting>) => any;
-}
+type DashboardAppProps =
+  ReturnType<typeof mapStateToProps> & DispatchProps<typeof mapDispatchToProps>;
 
 class DashboardApp extends React.Component<DashboardAppProps> {
   handleToggle = () => {

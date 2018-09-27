@@ -12,7 +12,7 @@ import {
 } from '@material-ui/core/styles';
 import React from 'react';
 
-import {Omit} from '@common/utils';
+import {Omit} from '@common/types';
 
 const styles = (theme: Theme) => createStyles({
   subtitle: {

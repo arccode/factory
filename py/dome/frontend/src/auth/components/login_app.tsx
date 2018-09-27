@@ -16,6 +16,7 @@ import {connect} from 'react-redux';
 import {RootState} from '@app/types';
 
 import {toReduxFormError} from '@common/form';
+import {DispatchProps} from '@common/types';
 
 import {testAuthToken, tryLogin} from '../actions';
 import {isLoggedIn} from '../selectors';
@@ -31,11 +32,10 @@ const styles = (theme: Theme) => createStyles({
   },
 });
 
-interface LoginAppProps extends WithStyles<typeof styles> {
-  isLoggedIn: boolean | null;
-  tryLogin: (values: AuthData) => any;
-  testAuthToken: () => any;
-}
+type LoginAppProps =
+  WithStyles<typeof styles> &
+  ReturnType<typeof mapStateToProps> &
+  DispatchProps<typeof mapDispatchToProps>;
 
 class LoginApp extends React.Component<LoginAppProps> {
   componentDidMount() {

@@ -15,7 +15,6 @@ import {connect} from 'react-redux';
 
 import auth from '@app/auth';
 import project from '@app/project';
-import {Project} from '@app/project/types';
 import {RootState} from '@app/types';
 
 import MenuSubheader from '@common/components/menu_subheader';
@@ -29,12 +28,15 @@ const styles = (theme: Theme) => createStyles({
   },
 });
 
-interface DomeAppMenuProps extends WithStyles<typeof styles> {
-  isLoggedIn: boolean | null;
-  project: Project | null;
+interface DomeAppMenuOwnProps {
   width: number;
   open: boolean;
 }
+
+type DomeAppMenuProps =
+  DomeAppMenuOwnProps &
+  WithStyles<typeof styles> &
+  ReturnType<typeof mapStateToProps>;
 
 const DomeAppMenu: React.SFC<DomeAppMenuProps> = ({
   isLoggedIn,

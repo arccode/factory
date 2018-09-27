@@ -16,9 +16,6 @@ export const authorizedAxios = (): AxiosInstance => {
   return axios.create(config);
 };
 
-export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
-export type Unionize<T> = T[keyof T];
-
 export const assertNotReachable = (x: never): never => {
   throw new Error('assertNotReachable fired.');
 };

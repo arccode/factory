@@ -14,7 +14,7 @@ import {connect} from 'react-redux';
 
 import {RootState} from '@app/types';
 
-import {Omit} from '@common/utils';
+import {DispatchProps, Omit} from '@common/types';
 
 import {switchApp} from '../actions';
 import {getCurrentApp} from '../selectors';
@@ -27,12 +27,16 @@ const styles = (theme: Theme) => createStyles({
   },
 });
 
-interface DomeAppMenuItemProps
-  extends Omit<MenuItemProps, 'classes'>, WithStyles<typeof styles> {
+interface DomeAppMenuItemOwnProps {
   app: AppName;
-  currentApp: AppName;
-  switchApp: (app: AppName) => any;
 }
+
+type DomeAppMenuItemProps =
+  DomeAppMenuItemOwnProps &
+  Omit<MenuItemProps, 'classes'> &
+  WithStyles<typeof styles> &
+  ReturnType<typeof mapStateToProps> &
+  DispatchProps<typeof mapDispatchToProps>;
 
 const DomeAppMenuItem: React.SFC<DomeAppMenuItemProps> = ({
   children,

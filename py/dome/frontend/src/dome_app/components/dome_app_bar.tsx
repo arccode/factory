@@ -20,7 +20,6 @@ import {connect} from 'react-redux';
 import {RootState} from '@app/types';
 
 import {getDomeInfo} from '../selectors';
-import {DomeInfo} from '../types';
 
 import DomeInfoComponent from './dome_info_component';
 
@@ -54,10 +53,14 @@ const styles = (theme: Theme) => createStyles({
   },
 });
 
-interface DomeAppBarProps extends WithStyles<typeof styles> {
+interface DomeAppBarOwnProps {
   toggleAppMenu: () => void;
-  domeInfo: DomeInfo | null;
 }
+
+type DomeAppBarProps =
+  DomeAppBarOwnProps &
+  WithStyles<typeof styles> &
+  ReturnType<typeof mapStateToProps>;
 
 const DomeAppBar: React.SFC<DomeAppBarProps> =
   ({toggleAppMenu, domeInfo, classes}) => (

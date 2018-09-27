@@ -16,7 +16,9 @@ import React from 'react';
 import {connect} from 'react-redux';
 
 import formDialog from '@app/form_dialog';
+
 import {thinScrollBarX} from '@common/styles';
+import {DispatchProps} from '@common/types';
 
 import {UPDATE_RESOURCE_FORM} from '../constants';
 import {Bundle} from '../types';
@@ -40,10 +42,14 @@ const styles = (theme: Theme) => createStyles({
   },
 });
 
-interface ResourceTableProps extends WithStyles<typeof styles> {
-  openUpdateResourceForm: (name: string, key: string, type: string) => any;
+interface ResourceTableOwnProps {
   bundle: Bundle;
 }
+
+type ResourceTableProps =
+  ResourceTableOwnProps &
+  WithStyles<typeof styles> &
+  DispatchProps<typeof mapDispatchToProps>;
 
 class ResourceTable extends React.Component<ResourceTableProps> {
   render() {

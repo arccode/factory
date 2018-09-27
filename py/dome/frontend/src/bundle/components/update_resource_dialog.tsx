@@ -5,36 +5,25 @@
 import dateFormat from 'dateformat';
 import React from 'react';
 import {connect} from 'react-redux';
-import {
-  submit,
-} from 'redux-form';
+import {submit} from 'redux-form';
 
 import formDialog from '@app/form_dialog';
 import project from '@app/project';
 import {RootState} from '@app/types';
+
 import FileUploadDialog from '@common/components/file_upload_dialog';
+import {DispatchProps} from '@common/types';
 
 import {startUpdateResource} from '../actions';
 import {UPDATE_RESOURCE_FORM} from '../constants';
 import {getBundleNames} from '../selectors';
-import {
-  UpdateResourceFormPayload,
-  UpdateResourceRequestPayload,
-} from '../types';
 
 import UpdateResourceForm, {
   UpdateResourceFormData,
 } from './update_resource_form';
 
-interface UpdateResourceDialogProps {
-  open: boolean;
-  submitForm: () => any;
-  cancelUpdate: () => any;
-  startUpdate: (name: string, data: UpdateResourceRequestPayload) => any;
-  project: string;
-  payload: UpdateResourceFormPayload;
-  bundleNames: string[];
-}
+type UpdateResourceDialogProps =
+  ReturnType<typeof mapStateToProps> & DispatchProps<typeof mapDispatchToProps>;
 
 interface UpdateResourceDialogStates {
   initialValues: Partial<UpdateResourceFormData>;

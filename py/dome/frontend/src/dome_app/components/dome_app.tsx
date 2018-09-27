@@ -24,11 +24,11 @@ import ProjectsApp from '@app/project/components/projects_app';
 import TaskList from '@app/task/components/task_list';
 import {RootState} from '@app/types';
 
+import {DispatchProps} from '@common/types';
 import {assertNotReachable} from '@common/utils';
 
 import {fetchDomeInfo} from '../actions';
 import {getCurrentApp} from '../selectors';
-import {AppName} from '../types';
 
 import DomeAppBar from './dome_app_bar';
 import DomeAppMenu from './dome_app_menu';
@@ -72,11 +72,10 @@ const style = (theme: Theme) => createStyles({
   },
 });
 
-interface DomeAppProps extends WithStyles<typeof style> {
-  isLoggedIn: boolean | null;
-  appName: AppName;
-  fetchDomeInfo: () => any;
-}
+type DomeAppProps =
+  WithStyles<typeof style> &
+  ReturnType<typeof mapStateToProps> &
+  DispatchProps<typeof mapDispatchToProps>;
 
 interface DomeAppState {
   appMenuOpened: boolean;

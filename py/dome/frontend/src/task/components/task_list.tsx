@@ -13,11 +13,12 @@ import React from 'react';
 import {connect} from 'react-redux';
 
 import {RootState} from '@app/types';
+
 import {thinScrollBarY} from '@common/styles';
+import {DispatchProps} from '@common/types';
 
 import {cancelWaitingTaskAfter, dismissTask} from '../actions';
 import {getAllTasks} from '../selectors';
-import {Task} from '../types';
 
 import TaskComponent from './task_component';
 import TaskListHeader from './task_list_header';
@@ -42,11 +43,10 @@ const styles = (theme: Theme) => createStyles({
   },
 });
 
-interface TaskListProps extends WithStyles<typeof styles> {
-  tasks: Task[];
-  cancelWaitingTaskAfter: (taskID: string) => any;
-  dismissTask: (taskID: string) => any;
-}
+type TaskListProps =
+  WithStyles<typeof styles> &
+  ReturnType<typeof mapStateToProps> &
+  DispatchProps<typeof mapDispatchToProps>;
 
 interface TaskListState {
   collapsed: boolean;

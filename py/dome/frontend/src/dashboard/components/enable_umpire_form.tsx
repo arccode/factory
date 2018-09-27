@@ -18,8 +18,10 @@ import {
 import formDialog from '@app/form_dialog';
 import {Project} from '@app/project/types';
 import {RootState} from '@app/types';
+
 import ReduxFormTextField from '@common/components/redux_form_text_field';
 import {HiddenSubmitButton, parseNumber} from '@common/form';
+import {DispatchProps} from '@common/types';
 
 import {ENABLE_UMPIRE_FORM} from '../constants';
 
@@ -55,13 +57,16 @@ const InnerForm = reduxForm<FormData, FormProps>({
   form: ENABLE_UMPIRE_FORM,
 })(InnerFormComponent);
 
-interface EnableUmpireFormProps {
-  open: boolean;
+interface EnableUmpireFormOwnProps {
   project: Project;
-  submitForm: () => any;
   onCancel: () => any;
   onSubmit: (values: FormData) => any;
 }
+
+type EnableUmpireFormProps =
+  EnableUmpireFormOwnProps &
+  ReturnType<typeof mapStateToProps> &
+  DispatchProps<typeof mapDispatchToProps>;
 
 const EnableUmpireForm: React.SFC<EnableUmpireFormProps> = ({
   open,

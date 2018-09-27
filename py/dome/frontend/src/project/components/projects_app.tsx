@@ -26,6 +26,8 @@ import {reset} from 'redux-form';
 
 import {RootState} from '@app/types';
 
+import {DispatchProps} from '@common/types';
+
 import {
   createProject,
   deleteProject,
@@ -34,7 +36,6 @@ import {
 } from '../actions';
 import {CREATE_PROJECT_FORM} from '../constants';
 import {getProjects} from '../selectors';
-import {ProjectMap} from '../types';
 
 import CreateProjectForm, {CreateProjectFormData} from './create_project_form';
 
@@ -50,14 +51,10 @@ const styles = (theme: Theme) => createStyles({
   },
 });
 
-interface ProjectAppProps extends WithStyles<typeof styles> {
-  projects: ProjectMap;
-  createProject: (name: string) => any;
-  deleteProject: (name: string) => any;
-  fetchProjects: () => any;
-  switchProject: (name: string) => any;
-  resetForm: () => any;
-}
+type ProjectAppProps =
+  WithStyles<typeof styles> &
+  ReturnType<typeof mapStateToProps> &
+  DispatchProps<typeof mapDispatchToProps>;
 
 class ProjectsApp extends React.Component<ProjectAppProps> {
   handleSubmit = ({name}: CreateProjectFormData) => {

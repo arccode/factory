@@ -6,7 +6,7 @@ import bundle from '@app/bundle';
 import {UpdateResourceFormPayload} from '@app/bundle/types';
 import dashboard from '@app/dashboard';
 
-import {Unionize} from '@common/utils';
+import {Unionize} from '@common/types';
 
 export interface FormPayloadTypeMap {
   [dashboard.constants.ENABLE_UMPIRE_FORM]: {};

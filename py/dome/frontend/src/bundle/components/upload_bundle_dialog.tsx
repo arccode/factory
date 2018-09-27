@@ -11,23 +11,18 @@ import {
 import formDialog from '@app/form_dialog';
 import project from '@app/project';
 import {RootState} from '@app/types';
+
 import FileUploadDialog from '@common/components/file_upload_dialog';
+import {DispatchProps} from '@common/types';
 
 import {startUploadBundle} from '../actions';
 import {UPLOAD_BUNDLE_FORM} from '../constants';
 import {getBundleNames} from '../selectors';
-import {UploadBundleRequestPayload} from '../types';
 
 import UploadBundleForm, {UploadBundleFormData} from './upload_bundle_form';
 
-interface UploadBundleDialogProps {
-  open: boolean;
-  submitForm: () => any;
-  cancelUpload: () => any;
-  startUpload: (data: UploadBundleRequestPayload) => any;
-  project: string;
-  bundleNames: string[];
-}
+type UploadBundleDialogProps =
+  ReturnType<typeof mapStateToProps> & DispatchProps<typeof mapDispatchToProps>;
 
 interface UploadBundleDialogState {
   initialValues: Partial<UploadBundleFormData>;

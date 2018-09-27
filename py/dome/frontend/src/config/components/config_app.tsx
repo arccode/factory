@@ -15,6 +15,8 @@ import {connect} from 'react-redux';
 import auth from '@app/auth';
 import {RootState} from '@app/types';
 
+import {DispatchProps} from '@common/types';
+
 import {
   disableTftp,
   enableTftp,
@@ -25,14 +27,8 @@ import {
   isTftpEnabled,
 } from '../selectors';
 
-interface ConfigAppProps {
-  isTftpEnabled: boolean;
-  isConfigUpdating: boolean;
-  disableTftp: () => any;
-  enableTftp: () => any;
-  fetchConfig: () => any;
-  logout: () => any;
-}
+type ConfigAppProps =
+  ReturnType<typeof mapStateToProps> & DispatchProps<typeof mapDispatchToProps>;
 
 class ConfigApp extends React.Component<ConfigAppProps> {
   componentDidMount() {

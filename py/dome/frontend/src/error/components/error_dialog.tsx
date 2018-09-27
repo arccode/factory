@@ -16,6 +16,8 @@ import {connect} from 'react-redux';
 
 import {RootState} from '@app/types';
 
+import {DispatchProps} from '@common/types';
+
 import {hideErrorDialog} from '../actions';
 import {getErrorMessage, isErrorDialogShown} from '../selectors';
 
@@ -27,11 +29,10 @@ const styles = createStyles({
   },
 });
 
-interface ErrorDialogProps extends WithStyles<typeof styles> {
-  message: string;
-  show: boolean;
-  hideErrorDialog: () => any;
-}
+type ErrorDialogProps =
+  WithStyles<typeof styles> &
+  ReturnType<typeof mapStateToProps> &
+  DispatchProps<typeof mapDispatchToProps>;
 
 const ErrorDialog: React.SFC<ErrorDialogProps> =
   ({message, show, hideErrorDialog, classes}) => (

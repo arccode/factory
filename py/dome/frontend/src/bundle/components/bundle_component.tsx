@@ -28,6 +28,8 @@ import {SortableHandle} from 'react-sortable-hoc';
 import project from '@app/project';
 import {RootState} from '@app/types';
 
+import {DispatchProps} from '@common/types';
+
 import {
   activateBundle,
   changeBundleRules,
@@ -37,7 +39,7 @@ import {
   setBundleAsNetboot,
 } from '../actions';
 import {getExpandedMap} from '../selectors';
-import {Bundle, Rules} from '../types';
+import {Bundle} from '../types';
 
 import ResourceTable from './resources_table';
 import RuleTable from './rule_table';
@@ -76,18 +78,11 @@ export interface BundleComponentOwnProps {
   bundles: Bundle[];
 }
 
-interface BundleComponentProps
-  extends BundleComponentOwnProps, WithStyles<typeof styles> {
-  activateBundle: (name: string, active: boolean) => any;
-  changeBundleRules: (name: string, rules: Partial<Rules>) => any;
-  deleteBundle: (name: string) => any;
-  setBundleAsNetboot: (name: string, projectName: string) => any;
-  expandBundle: (name: string) => any;
-  collapseBundle: (name: string) => any;
-  projectName: string;
-  projectNetbootBundle: string | null;
-  expanded: boolean;
-}
+type BundleComponentProps =
+  BundleComponentOwnProps &
+  WithStyles<typeof styles> &
+  ReturnType<typeof mapStateToProps> &
+  DispatchProps<typeof mapDispatchToProps>;
 
 class BundleComponent extends React.Component<BundleComponentProps> {
   handleActivate = () => {

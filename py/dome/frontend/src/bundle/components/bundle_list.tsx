@@ -8,6 +8,8 @@ import {SortableContainer, SortableElement} from 'react-sortable-hoc';
 
 import {RootState} from '@app/types';
 
+import {DispatchProps} from '@common/types';
+
 import {fetchBundles, reorderBundles} from '../actions';
 import {getBundles} from '../selectors';
 import {Bundle} from '../types';
@@ -44,11 +46,8 @@ const SortableBundleList = SortableContainer<{bundles: Bundle[]}>(
     </div>
   ));
 
-interface BundleListProps {
-  bundles: Bundle[];
-  fetchBundles: () => any;
-  reorderBundles: (oldIndex: number, newIndex: number) => any;
-}
+type BundleListProps =
+  ReturnType<typeof mapStateToProps> & DispatchProps<typeof mapDispatchToProps>;
 
 class BundleList extends React.Component<BundleListProps> {
   componentDidMount() {
