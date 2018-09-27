@@ -20,7 +20,6 @@ from cros.factory.umpire.server.service import umpire_service
 from cros.factory.utils import json_utils
 from cros.factory.utils.schema import FixedDict
 from cros.factory.utils.schema import List
-from cros.factory.utils.schema import Optional
 from cros.factory.utils.schema import Scalar
 
 
@@ -41,21 +40,6 @@ _RULE_MATCHER_SCHEMA = FixedDict(
         'mlb_sn_range': List(
             'Inclusive MLB serial number start/end pair',
             Scalar('MLB serial number or "-" as open end', basestring))})
-# Factory stage range.
-_FACTORY_STAGE_RANGE = List(
-    'Factory stage range',
-    Optional(label='Factory stage',
-             types=[Scalar('Fixed factory stage', basestring)]))
-# Rulesets enable_update validator.
-_ENABLE_UPDATE_SCHEMA = FixedDict(
-    'Matcher of enable update',
-    optional_items={
-        'device_factory_toolkit': _FACTORY_STAGE_RANGE,
-        'firmware_bios': _FACTORY_STAGE_RANGE,
-        'firmware_ec': _FACTORY_STAGE_RANGE,
-        'firmware_pd': _FACTORY_STAGE_RANGE,
-        'rootfs_release': _FACTORY_STAGE_RANGE,
-        'rootfs_test': _FACTORY_STAGE_RANGE})
 # Rulesets validator.
 _RULESETS_SCHEMA = List(
     'Rule sets for selecting configuration',
@@ -66,8 +50,7 @@ _RULESETS_SCHEMA = List(
             'note': Scalar('Brief summary of this rule', basestring),
             'active': Scalar('Initial state of this rule', bool)},
         optional_items={
-            'match': _RULE_MATCHER_SCHEMA,
-            'enable_update': _ENABLE_UPDATE_SCHEMA}))
+            'match': _RULE_MATCHER_SCHEMA}))
 # Single bundle validator.
 # A valid configuration can contain multiple bundles. At any time, one device
 # state (mac, sn, mlb_sn) can map to one bundle only.

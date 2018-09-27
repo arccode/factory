@@ -10,12 +10,6 @@
     {
       "active": true,
       "bundle_id": "test",
-      "enable_update": {
-        "test_image": [
-          null,
-          "RUNIN"
-        ]
-      },
       "note": "ruleset for test"
     }
   ],

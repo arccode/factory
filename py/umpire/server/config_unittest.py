@@ -103,14 +103,7 @@ class UmpireConfigTest(unittest.TestCase):
              'mlb_sn_range': ['-', 'SN005'],
              'sn': ['OC1234567890'],
              'sn_range': ['OC1234567890', '-'],
-             'stage': ['SMT', 'FATP']},
-         'enable_update': {
-             'device_factory_toolkit': ['RUNIN', 'RUNIN'],
-             'rootfs_release': ['SMT', 'SMT'],
-             'rootfs_test': ['FA', 'FA'],
-             'firmware_ec': ['GRT', 'GRT'],
-             'firmware_pd': ['SMT', 'SMT'],
-             'firmware_bios': [None, None]}},
+             'stage': ['SMT', 'FATP']}},
         ruleset)
 
     default_ruleset = conf['rulesets'][1]

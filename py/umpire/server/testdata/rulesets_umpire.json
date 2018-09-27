@@ -10,32 +10,6 @@
     {
       "active": true,
       "bundle_id": "test",
-      "enable_update": {
-        "device_factory_toolkit": [
-          "RUNIN",
-          "RUNIN"
-        ],
-        "firmware_bios": [
-          null,
-          null
-        ],
-        "firmware_ec": [
-          "GRT",
-          "GRT"
-        ],
-        "firmware_pd": [
-          "SMT",
-          "SMT"
-        ],
-        "rootfs_release": [
-          "SMT",
-          "SMT"
-        ],
-        "rootfs_test": [
-          "FA",
-          "FA"
-        ]
-      },
       "match": {
         "mac": [
           "aa:bb:cc:dd:ee:ff"

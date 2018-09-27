@@ -21,7 +21,6 @@ from twisted.web import xmlrpc
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import daemon
-from cros.factory.umpire.server import resource
 from cros.factory.umpire.server import rpc_dut
 from cros.factory.umpire.server import umpire_env
 from cros.factory.umpire.server.web import xmlrpc as umpire_xmlrpc
@@ -30,8 +29,7 @@ from cros.factory.utils import net_utils
 
 TEST_RPC_PORT = net_utils.FindUnusedPort()
 TESTDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'testdata'))
-TESTCONFIG = os.path.join(TESTDIR, 'enable_update.umpire.json')
-TESTPAYLOAD = os.path.join(TESTDIR, 'enable_update.payload.json')
+TESTCONFIG = os.path.join(TESTDIR, 'minimal_empty_services_umpire.json')
 
 
 class DUTRPCTest(unittest.TestCase):
@@ -39,11 +37,6 @@ class DUTRPCTest(unittest.TestCase):
   def setUp(self):
     self.env = umpire_env.UmpireEnvForTest()
     shutil.copy(TESTCONFIG, self.env.active_config_file)
-    self.env.AddConfig(TESTPAYLOAD, resource.ConfigTypeNames.payload_config)
-
-    # Create empty files with version for resources.
-    file_utils.TouchFile(
-        self.env.GetResourcePath('toolkit.1234.gz', check=False))
 
     self.env.LoadConfig()
     self.proxy = xmlrpc.Proxy(
