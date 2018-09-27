@@ -73,6 +73,9 @@ FORCE_AUTO_RUN = 'force_auto_run'
 # Key to load the test list iterator after shutdown test
 TESTS_AFTER_SHUTDOWN = 'tests_after_shutdown'
 
+# Key to store active test list id.
+ACTIVE_TEST_LIST_ID = 'active_test_list_id'
+
 Status = type_utils.Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
                           'TERMINATING', 'TERMINATED'])
 
@@ -278,7 +281,23 @@ class Goofy(object):
     # no commit flag.  The default commit time (commit=600) makes corruption
     # too likely.
     sys_utils.ResetCommitTime()
+
     self.state_instance = state.FactoryState()
+    # After SKU ID is updated and DUT is reboot, test list might be switched
+    # because model name is changed too. In this case, shared state should be
+    # cleared; otherwise shared data like TESTS_AFTER_SHUTDOWN prevents tests
+    # from running automatically.
+    previous_id = self.state_instance.get_shared_data(ACTIVE_TEST_LIST_ID,
+                                                      optional=True)
+    if previous_id != self.test_list.test_list_id:
+      logging.info('Test list is changed from %s to %s.',
+                   previous_id, self.test_list.test_list_id)
+      self.state_instance.close()
+      state.clear_state()
+      self.state_instance = state.FactoryState()
+      self.state_instance.set_shared_data(ACTIVE_TEST_LIST_ID,
+                                          self.test_list.test_list_id)
+
     self.goofy_server.AddRPCInstance(goofy_proxy.STATE_URL, self.state_instance)
 
     # Setup Goofy RPC.
@@ -1204,12 +1223,6 @@ class Goofy(object):
     logging.info('Starting goofy server')
     self.goofy_server_thread.start()
 
-    self._InitStateInstance()
-    self.last_shutdown_time = (
-        self.state_instance.get_shared_data('shutdown_time', optional=True))
-    self.state_instance.del_shared_data('shutdown_time', optional=True)
-    self.state_instance.del_shared_data('startup_error', optional=True)
-
     success = False
     try:
       success = self._InitTestLists()
@@ -1223,6 +1236,12 @@ class Goofy(object):
       # startup can proceed.
       # A message box will pop up in UI for the error details.
       self.test_list = manager.DummyTestList(self.test_list_manager)
+
+    self._InitStateInstance()
+    self.last_shutdown_time = (
+        self.state_instance.get_shared_data('shutdown_time', optional=True))
+    self.state_instance.del_shared_data('shutdown_time', optional=True)
+    self.state_instance.del_shared_data('startup_error', optional=True)
 
     self.test_list.state_instance = self.state_instance
 
