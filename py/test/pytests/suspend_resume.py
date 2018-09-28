@@ -116,7 +116,7 @@ class SuspendResumeTest(test_case.TestCase):
                             self.args.resume_delay_min_secs, 'Invalid resume '
                             'timings provided in test_list (max < min).')
 
-    self.goofy = state.get_instance()
+    self.goofy = state.GetInstance()
 
     self.ui.ToggleTemplateClass('font-large', True)
 

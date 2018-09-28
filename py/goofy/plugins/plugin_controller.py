@@ -36,7 +36,7 @@ def GetPluginRPCProxy(plugin_name, address=None, port=None):
   if plugin_class is None:
     return None
 
-  proxy = goofy_proxy.get_rpc_proxy(
+  proxy = goofy_proxy.GetRPCProxy(
       address, port,
       _GetPluginRPCPath(plugin.GetPluginNameFromClass(plugin_class)))
   try:

@@ -247,7 +247,7 @@ class Finalize(test_case.TestCase):
   def LogTestStates(self):
     test_list = self.test_info.ReadTestList()
     test_states = test_list.AsDict(
-        state.get_instance().get_test_states())
+        state.GetInstance().GetTestStates())
     file_utils.TryMakeDirs(os.path.dirname(self.test_states_path))
     with open(self.test_states_path, 'w') as f:
       yaml.dump(test_states, f)
@@ -325,7 +325,7 @@ class Finalize(test_case.TestCase):
     command = 'gooftool -v 4 finalize'
 
     if self.args.enable_factory_server:
-      state.get_instance().FlushEventLogs()
+      state.GetInstance().FlushEventLogs()
 
     if not self.args.write_protection:
       self.Warn('WRITE PROTECTION IS DISABLED.')

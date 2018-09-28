@@ -230,7 +230,7 @@ class Goofy(object):
       self.goofy_server.server_close()
       self.goofy_server_thread = None
     if self.state_instance:
-      self.state_instance.close()
+      self.state_instance.Close()
     if self.event_server_thread:
       logging.info('Stopping event server')
       net_utils.ShutdownTCPServer(self.event_server)
@@ -287,18 +287,18 @@ class Goofy(object):
     # because model name is changed too. In this case, shared state should be
     # cleared; otherwise shared data like TESTS_AFTER_SHUTDOWN prevents tests
     # from running automatically.
-    previous_id = self.state_instance.get_shared_data(ACTIVE_TEST_LIST_ID,
-                                                      optional=True)
+    previous_id = self.state_instance.GetSharedData(ACTIVE_TEST_LIST_ID,
+                                                    optional=True)
     if previous_id != self.test_list.test_list_id:
       logging.info('Test list is changed from %s to %s.',
                    previous_id, self.test_list.test_list_id)
       if previous_id:
-        self.state_instance.close()
-        state.clear_state()
+        self.state_instance.Close()
+        state.ClearState()
         self.state_instance = state.FactoryState()
 
-      self.state_instance.set_shared_data(ACTIVE_TEST_LIST_ID,
-                                          self.test_list.test_list_id)
+      self.state_instance.SetSharedData(ACTIVE_TEST_LIST_ID,
+                                        self.test_list.test_list_id)
 
     self.goofy_server.AddRPCInstance(goofy_proxy.STATE_URL, self.state_instance)
 
@@ -356,10 +356,10 @@ class Goofy(object):
 
     logging.info('Start Goofy shutdown (%s)', operation)
     # Save pending test list in the state server
-    self.state_instance.set_shared_data(
+    self.state_instance.SetSharedData(
         TESTS_AFTER_SHUTDOWN, self.test_list_iterator)
     # Save shutdown time
-    self.state_instance.set_shared_data('shutdown_time', time.time())
+    self.state_instance.SetSharedData('shutdown_time', time.time())
 
     with self.env.lock:
       self.event_log.Log('shutdown', operation=operation)
@@ -369,7 +369,7 @@ class Goofy(object):
       self.RunEnqueue(None)
     else:
       # Just pass (e.g., in the chroot).
-      self.state_instance.set_shared_data(TESTS_AFTER_SHUTDOWN, None)
+      self.state_instance.SetSharedData(TESTS_AFTER_SHUTDOWN, None)
       # Send event with no fields to indicate that there is no
       # longer a pending shutdown.
       self.event_client.post_event(Event(Event.Type.PENDING_SHUTDOWN))
@@ -384,24 +384,24 @@ class Goofy(object):
     logging.info('Detected shutdown (%d of %d)',
                  test_state.shutdown_count, test.iterations)
 
-    tests_after_shutdown = self.state_instance.get_shared_data(
+    tests_after_shutdown = self.state_instance.GetSharedData(
         TESTS_AFTER_SHUTDOWN, optional=True)
 
     # Make this shutdown test the next test to run.  This is to continue on
     # post-shutdown verification in the shutdown step.
     if not tests_after_shutdown:
       goofy_error = 'TESTS_AFTER_SHTUDOWN is not set'
-      self.state_instance.set_shared_data(
+      self.state_instance.SetSharedData(
           TESTS_AFTER_SHUTDOWN, TestListIterator(test))
     else:
       goofy_error = tests_after_shutdown.RestartLastTest()
-      self.state_instance.set_shared_data(
+      self.state_instance.SetSharedData(
           TESTS_AFTER_SHUTDOWN, tests_after_shutdown)
 
     # Set 'post_shutdown' to inform shutdown test that a shutdown just occurred.
-    self.state_instance.set_shared_data(
+    self.state_instance.SetSharedData(
         state.KEY_POST_SHUTDOWN % test.path,
-        {'invocation': self.state_instance.get_test_state(test.path).invocation,
+        {'invocation': self.state_instance.GetTestState(test.path).invocation,
          'goofy_error': goofy_error})
 
   def _InitStates(self):
@@ -464,7 +464,7 @@ class Goofy(object):
                              'running; cancelling any pending tests',
                              test.path)
         # cancel pending tests by replace the iterator with an empty one
-        self.state_instance.set_shared_data(
+        self.state_instance.SetSharedData(
             TESTS_AFTER_SHUTDOWN,
             TestListIterator(None))
 
@@ -497,7 +497,7 @@ class Goofy(object):
 
   def _CheckCriticalFactoryNote(self):
     """Returns True if the last factory note is critical."""
-    notes = self.state_instance.get_shared_data('factory_note', True)
+    notes = self.state_instance.GetSharedData('factory_note', True)
     return notes and notes[-1]['level'] == 'CRITICAL'
 
   def ScheduleRestart(self):
@@ -556,8 +556,7 @@ class Goofy(object):
 
       if untested:
         untested_paths = ', '.join(sorted([x.path for x in untested]))
-        if self.state_instance.get_shared_data('engineering_mode',
-                                               optional=True):
+        if self.state_instance.GetSharedData('engineering_mode', optional=True):
           # In engineering mode, we'll let it go.
           session.console.warn('In engineering mode; running '
                                '%s even though required tests '
@@ -575,11 +574,11 @@ class Goofy(object):
 
       # okay, let's run the test
       if (isinstance(test, test_object.ShutdownStep) and
-          self.state_instance.get_shared_data(
+          self.state_instance.GetSharedData(
               state.KEY_POST_SHUTDOWN % test.path, optional=True)):
         # Invoking post shutdown method of shutdown test. We should retain the
         # iterations_left and retries_left of the original test state.
-        test_state = self.state_instance.get_test_state(test.path)
+        test_state = self.state_instance.GetTestState(test.path)
         self._RunTest(test, test_state.iterations_left, test_state.retries_left)
       else:
         # Starts a new test run; reset iterations and retries.
@@ -849,8 +848,8 @@ class Goofy(object):
 
   def _RestoreActiveRunState(self):
     """Restores active run id and the list of scheduled tests."""
-    self.run_id = self.state_instance.get_shared_data('run_id', optional=True)
-    self.scheduled_run_tests = self.state_instance.get_shared_data(
+    self.run_id = self.state_instance.GetSharedData('run_id', optional=True)
+    self.scheduled_run_tests = self.state_instance.GetSharedData(
         'scheduled_run_tests', optional=True)
 
   def _SetActiveRunState(self):
@@ -858,9 +857,9 @@ class Goofy(object):
     self.run_id = str(uuid.uuid4())
     # try our best to predict which tests will be run.
     self.scheduled_run_tests = self.test_list_iterator.GetPendingTests()
-    self.state_instance.set_shared_data('run_id', self.run_id)
-    self.state_instance.set_shared_data('scheduled_run_tests',
-                                        self.scheduled_run_tests)
+    self.state_instance.SetSharedData('run_id', self.run_id)
+    self.state_instance.SetSharedData('scheduled_run_tests',
+                                      self.scheduled_run_tests)
 
   def _RunTests(self, subtree, status_filter=None):
     """Runs tests under subtree.
@@ -1008,7 +1007,7 @@ class Goofy(object):
       logging.debug('Failed to update status monitor plugin.')
 
   def SetForceAutoRun(self):
-    self.state_instance.set_shared_data(TESTS_AFTER_SHUTDOWN, FORCE_AUTO_RUN)
+    self.state_instance.SetSharedData(TESTS_AFTER_SHUTDOWN, FORCE_AUTO_RUN)
 
   def UpdateFactory(self, auto_run_on_restart=False, post_update_hook=None):
     """Commences updating factory software.
@@ -1059,9 +1058,9 @@ class Goofy(object):
   def _RecordStartError(self, error_message):
     """Appends the startup error message into the shared data."""
     KEY = 'startup_error'
-    data = self.state_instance.get_shared_data(KEY, optional=True)
+    data = self.state_instance.GetSharedData(KEY, optional=True)
     new_data = '%s\n\n%s' % (data, error_message) if data else error_message
-    self.state_instance.set_shared_data(KEY, new_data)
+    self.state_instance.SetSharedData(KEY, new_data)
 
   def _InitTestLists(self):
     """Reads in all test lists and sets the active test list.
@@ -1213,7 +1212,7 @@ class Goofy(object):
     self.env.goofy = self
 
     if self.options.restart:
-      state.clear_state()
+      state.ClearState()
 
     self._InitGoofyServer()
     # Both the i18n file and index.html should be registered to Goofy before we
@@ -1241,9 +1240,9 @@ class Goofy(object):
 
     self._InitStateInstance()
     self.last_shutdown_time = (
-        self.state_instance.get_shared_data('shutdown_time', optional=True))
-    self.state_instance.del_shared_data('shutdown_time', optional=True)
-    self.state_instance.del_shared_data('startup_error', optional=True)
+        self.state_instance.GetSharedData('shutdown_time', optional=True))
+    self.state_instance.DeleteSharedData('shutdown_time', optional=True)
+    self.state_instance.DeleteSharedData('startup_error', optional=True)
 
     self.test_list.state_instance = self.state_instance
 
@@ -1252,15 +1251,15 @@ class Goofy(object):
 
     if self.test_list.options.clear_state_on_start:
       # TODO(stimim): Perhaps we should check if we are running `shutdown` test?
-      self.state_instance.clear_test_state()
+      self.state_instance.ClearTestState()
 
     # If the phase is invalid, this will raise a ValueError.
     phase.SetPersistentPhase(self.test_list.options.phase)
 
-    if not self.state_instance.has_shared_data('ui_locale'):
+    if not self.state_instance.HasSharedData('ui_locale'):
       ui_locale = self.test_list.options.ui_locale
-      self.state_instance.set_shared_data('ui_locale', ui_locale)
-    self.state_instance.set_shared_data(
+      self.state_instance.SetSharedData('ui_locale', ui_locale)
+    self.state_instance.SetSharedData(
         'test_list_options',
         self.test_list.options.ToDict())
     self.state_instance.test_list = self.test_list
@@ -1309,7 +1308,7 @@ class Goofy(object):
     self.pytest_prespawner = prespawner.PytestPrespawner()
     self.pytest_prespawner.start()
 
-    tests_after_shutdown = self.state_instance.get_shared_data(
+    tests_after_shutdown = self.state_instance.GetSharedData(
         TESTS_AFTER_SHUTDOWN, optional=True)
     force_auto_run = (tests_after_shutdown == FORCE_AUTO_RUN)
 
@@ -1323,7 +1322,7 @@ class Goofy(object):
       if self.test_list.options.retry_failed_on_start:
         status_filter.append(TestState.FAILED)
       self.RunEnqueue(lambda: self._RunTests(self.test_list, status_filter))
-    self.state_instance.set_shared_data(TESTS_AFTER_SHUTDOWN, None)
+    self.state_instance.SetSharedData(TESTS_AFTER_SHUTDOWN, None)
     self._RestoreActiveRunState()
 
     self.hooks.OnTestStart()

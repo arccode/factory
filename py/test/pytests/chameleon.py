@@ -201,7 +201,7 @@ class ChameleonDisplayTest(test_case.TestCase):
     self.dut = device_utils.CreateDUTInterface()
     self.chameleon = Chameleon(
         self.args.chameleon_host, self.args.chameleon_port)
-    self.goofy_rpc = state.get_instance()
+    self.goofy_rpc = state.GetInstance()
     self.image_template_file = file_utils.CreateTemporaryFile(
         prefix='image_template.')
 

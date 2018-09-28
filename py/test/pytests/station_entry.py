@@ -111,14 +111,14 @@ class StationEntry(test_case.TestCase):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self._state = state.get_instance()
+    self._state = state.GetInstance()
     self.ui.ToggleTemplateClass('font-large', True)
     self.ui.SetTitle(
         _('Start Station Test')
         if self.args.start_station_tests else _('End Station Test'))
 
   def SendTestResult(self):
-    self._state.PostHookEvent('TestResult', self._state.get_test_states())
+    self._state.PostHookEvent('TestResult', self._state.GetTestStates())
 
   def runTest(self):
     if self.args.start_station_tests:

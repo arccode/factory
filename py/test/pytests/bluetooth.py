@@ -299,7 +299,7 @@ class BluetoothTest(test_case.TestCase):
     self._strongest_rssi_mac = None
     if self.args.input_device_mac_key:
       self._input_device_mac = (
-          ColonizeMac(state.get_shared_data(self.args.input_device_mac_key)))
+          ColonizeMac(state.GetSharedData(self.args.input_device_mac_key)))
     else:
       self._input_device_mac = self.args.input_device_mac
 
@@ -465,7 +465,7 @@ class BluetoothTest(test_case.TestCase):
     session.console.info('Expected firmware: %s',
                          self.args.firmware_revision_string)
     session.console.info('Actual firmware: %s', fw)
-    state.set_shared_data(self.args.firmware_revision_string_key, fw)
+    state.SetSharedData(self.args.firmware_revision_string_key, fw)
 
     _AppendLog(self.log_tmp_file, 'FW: %s\n' % fw)
 
@@ -483,8 +483,8 @@ class BluetoothTest(test_case.TestCase):
     self.ui.SetState(
         _('Check if the battery has charged to a higher percentage'))
 
-    battery_level_1 = state.get_shared_data(READ_BATTERY_STEP_1)
-    battery_level_2 = state.get_shared_data(READ_BATTERY_STEP_2)
+    battery_level_1 = state.GetSharedData(READ_BATTERY_STEP_1)
+    battery_level_2 = state.GetSharedData(READ_BATTERY_STEP_2)
     session.console.info('%s: %s', READ_BATTERY_STEP_1, battery_level_1)
     session.console.info('%s: %s', READ_BATTERY_STEP_2, battery_level_2)
 
@@ -522,17 +522,17 @@ class BluetoothTest(test_case.TestCase):
     except bluetooth_utils.BluetoothUtilsError as e:
       self.FailTask('%s failed to get battery level: %s' % (step, e))
 
-    old_battery_level = state.get_shared_data(step)
+    old_battery_level = state.GetSharedData(step)
     if (step == READ_BATTERY_STEP_1 and
         (old_battery_level is None or battery_level < old_battery_level)):
       # If the battery level at step 1 becomes higher over different rounds
       # (when the operator keeps retesting it for any reasons),
       # we only keep the lowest one. This is because we want to test if the
       # battery could charge to a higher level at step 2 than step 1.
-      state.set_shared_data(step, battery_level)
+      state.SetSharedData(step, battery_level)
     elif step == READ_BATTERY_STEP_2:
       # We keep the latest battery level read at step 2.
-      state.set_shared_data(step, battery_level)
+      state.SetSharedData(step, battery_level)
 
     if step == READ_BATTERY_STEP_1:
       data = '\nSN: %s\nMAC: %s\n' % (self.args.base_enclosure_serial_number,
@@ -869,7 +869,7 @@ class BluetoothTest(test_case.TestCase):
           mac_to_scan)
 
     average_rssi = float(sum(rssis)) / len(rssis)
-    state.set_shared_data(input_device_rssi_key, average_rssi)
+    state.SetSharedData(input_device_rssi_key, average_rssi)
     logging.info('RSSIs at MAC %s: %s', mac_to_scan, rssis)
     session.console.info('Average RSSI: %.2f', average_rssi)
 

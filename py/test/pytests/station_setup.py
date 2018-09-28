@@ -53,7 +53,7 @@ class StationSetup(test_case.TestCase):
 
   def runTest(self):
     self.assertTrue(
-        state.get_instance().IsPluginEnabled('station_setup.station_setup'),
+        state.GetInstance().IsPluginEnabled('station_setup.station_setup'),
         'This pytest needs the station_setup Goofy plugin to be enabled.')
 
     # All works are done in station_setup_static/station_setup.js, so we just

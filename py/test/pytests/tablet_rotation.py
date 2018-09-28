@@ -176,7 +176,7 @@ class TabletRotationTest(test_case.TestCase):
           location=self.args.accelerometer_location)
       self.degrees_to_orientations = dict(self.args.degrees_to_orientations)
 
-    self.state = state.get_instance()
+    self.state = state.GetInstance()
 
   def _PromptAndWaitForRotation(self, degrees_target):
     self.ui.SetInstruction(

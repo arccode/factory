@@ -92,9 +92,9 @@ class PluginControllerTest(unittest.TestCase):
   @mock.patch('cros.factory.goofy.plugins.plugin_controller.goofy_proxy')
   def testGetPluginProxy(self, goofy_proxy):
     proxy = mock.Mock()
-    goofy_proxy.get_rpc_proxy.return_value = proxy
+    goofy_proxy.GetRPCProxy.return_value = proxy
     self.assertEqual(plugin_controller.GetPluginRPCProxy('plugin'), proxy)
-    goofy_proxy.get_rpc_proxy.assert_called_once_with(
+    goofy_proxy.GetRPCProxy.assert_called_once_with(
         None, None, '/plugin/plugin')
     proxy.system.listMethods.assert_called_once_with()
 

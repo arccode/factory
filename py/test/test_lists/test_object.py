@@ -498,8 +498,8 @@ class FactoryTest(object):
 
   def GetState(self):
     """Returns the current test state from the state instance."""
-    return TestState.from_dict_or_object(
-        self.root.state_instance.get_test_state(self.path))
+    return TestState.FromDictOrObject(
+        self.root.state_instance.GetTestState(self.path))
 
   def UpdateState(self, update_parent=True, status=None, **kwargs):
     """Updates the test state.
@@ -509,9 +509,9 @@ class FactoryTest(object):
     if status == TestState.UNTESTED:
       kwargs['shutdown_count'] = 0
 
-    ret = TestState.from_dict_or_object(
+    ret = TestState.FromDictOrObject(
         # pylint: disable=protected-access
-        self.root._update_test_state(self.path, status=status, **kwargs))
+        self.root._UpdateTestState(self.path, status=status, **kwargs))
     if update_parent and self.parent:
       self.parent.UpdateStatusFromChildren()
     return ret

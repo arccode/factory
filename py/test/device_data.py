@@ -166,7 +166,7 @@ DEFAULT_RW_VPD_KEY_MAP = {
 
 def _GetInstance():
   """An internal helper utility to get DEVICE_DATA from state module."""
-  return state.get_instance().data_shelf[state.KEY_DEVICE_DATA]
+  return state.GetInstance().data_shelf[state.KEY_DEVICE_DATA]
 
 
 def CheckValidDeviceDataKey(key, key_prefix=None):
@@ -256,7 +256,7 @@ def DeleteDeviceData(delete_keys, optional=False):
   if isinstance(delete_keys, basestring):
     delete_keys = [delete_keys]
   logging.info('Deleting device data: %s', delete_keys)
-  data = state.get_instance().delete_shared_data_dict_item(
+  data = state.GetInstance().DeleteSharedDataDictItem(
       state.KEY_DEVICE_DATA, delete_keys, optional)
   logging.info('Updated device data; complete device data is now %s',
                privacy.FilterDict(data))
@@ -297,7 +297,7 @@ def UpdateDeviceData(new_device_data):
 
   VerifyDeviceData(new_device_data)
 
-  data = state.get_instance().update_shared_data_dict(
+  data = state.GetInstance().UpdateSharedDataDict(
       state.KEY_DEVICE_DATA, new_device_data)
   logging.info('Updated device data; complete device data is now %s',
                privacy.FilterDict(data))

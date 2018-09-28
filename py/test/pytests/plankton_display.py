@@ -164,7 +164,7 @@ class PlanktonDisplayTest(test_case.TestCase):
 
     # need a delay for display_info
     self.Sleep(_WAIT_DISPLAY_SIGNAL_SECS)
-    display_info = state.get_instance().DeviceGetDisplayInfo()
+    display_info = state.GetInstance().DeviceGetDisplayInfo()
     logging.info('Get display info %r', display_info)
     # In the case of connecting an external display, make sure there
     # is an item in display_info with 'isInternal' False.
@@ -226,7 +226,7 @@ class PlanktonDisplayTest(test_case.TestCase):
       recover_original: True to set the original display as main; False to
           set the other (external) display as main.
     """
-    display_info = state.get_instance().DeviceGetDisplayInfo()
+    display_info = state.GetInstance().DeviceGetDisplayInfo()
     if len(display_info) == 1:
       # Fail the test if we see only one display and it's the internal one.
       if display_info[0]['isInternal']:
@@ -255,7 +255,7 @@ class PlanktonDisplayTest(test_case.TestCase):
     Returns:
       Integer for screen ID.
     """
-    for info in state.get_instance().DeviceGetDisplayInfo():
+    for info in state.GetInstance().DeviceGetDisplayInfo():
       if info['isPrimary']:
         return info['id']
     self.FailTask('Fail to get primary display ID')

@@ -80,7 +80,7 @@ class TestListLoaderTest(unittest.TestCase):
           options[key],
           getattr(factory_test_list.options, key))
 
-  @mock.patch.object(state, 'get_instance')
+  @mock.patch.object(state, 'GetInstance')
   def testResolveTestArgs(self, state_get_instance):
     state_proxy = state.StubFactoryState()
     state_get_instance.side_effect = lambda *args, **kwargs: state_proxy

@@ -20,7 +20,7 @@ GOOFY_RPC_URL = '/goofy'
 GOOFY_SERVER_URL = '/'
 
 
-def get_rpc_proxy(address=None, port=None, url=GOOFY_RPC_URL):
+def GetRPCProxy(address=None, port=None, url=GOOFY_RPC_URL):
   """Gets an instance (for client side) to access the goofy server.
 
   Args:

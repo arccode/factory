@@ -131,7 +131,7 @@ def CheckForUpdate(timeout):
 
   Args:
     timeout: If not None, the timeout in seconds. This timeout is for RPC
-             calls on the proxy, not for get_instance() itself.
+             calls on the proxy, not for GetInstance() itself.
 
   Returns:
     A tuple (toolkit_version, needs_update):
@@ -171,7 +171,7 @@ def CheckForUpdateAsync(callback, timeout, quiet=False):
     callback: Callback function to run in the separate thread as explained
               above.
     timeout: If not None, the timeout in seconds. This timeout is for RPC
-             calls on the proxy, not for get_instance() itself.
+             calls on the proxy, not for GetInstance() itself.
     quiet: Suppresses error messages when factory server can not be reached.
   """
   def Run():

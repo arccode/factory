@@ -207,13 +207,13 @@ class GoofyRPC(object):
                  note['text'])
     if note['level'] == 'CRITICAL':
       self.goofy.RunEnqueue(self.goofy.stop)
-    self.goofy.state_instance.append_shared_data_list(
+    self.goofy.state_instance.AppendSharedDataList(
         'factory_note', note)
     self.PostEvent(Event(Event.Type.UPDATE_NOTES))
 
   def ClearNotes(self):
     logging.info('Clearing factory note')
-    self.goofy.state_instance.del_shared_data('factory_note', optional=True)
+    self.goofy.state_instance.DeleteSharedData('factory_note', optional=True)
     self.PostEvent(Event(Event.Type.UPDATE_NOTES))
 
   def LogStackTraces(self):
@@ -364,7 +364,7 @@ class GoofyRPC(object):
     """Helper method to get a list of all tests and their states."""
     paths_to_run = set(self.goofy.test_list_iterator.GetPendingTests())
     ret = []
-    states = self.goofy.state_instance.get_test_states()
+    states = self.goofy.state_instance.GetTestStates()
     for t in self.goofy.test_list.Walk(in_order=True):
       test_state = states.get(t.path)
       ret.append(dict(path=t.path,
@@ -414,9 +414,9 @@ class GoofyRPC(object):
     # goofy.js will need 'path'
     return self.goofy.test_list.ToStruct(extra_fields=['path'])
 
-  def GetTestStates(self):
+  def GetTestStateMap(self):
     """Returns the test states in JSON serializable struct."""
-    states = self.goofy.state_instance.get_test_states()
+    states = self.goofy.state_instance.GetTestStates()
     return {key: state.ToStruct() for key, state in states.iteritems()}
 
   def GetGoofyStatus(self):
@@ -476,7 +476,7 @@ class GoofyRPC(object):
 
       ret_val = {}
       if self.goofy.run_id is None:
-        if self.goofy.state_instance.get_shared_data('run_id', optional=True):
+        if self.goofy.state_instance.GetSharedData('run_id', optional=True):
           # A run ID is present in shared data but hasn't been restored.
           ret_val['status'] = RunState.STARTING
         else:
@@ -768,7 +768,7 @@ def main():
             """RunTest('RunIn.Stress.BadBlocks')"""))
   args = parser.parse_args()
 
-  goofy = state.get_instance()
+  goofy = state.GetInstance()
   logging.basicConfig(level=logging.INFO)
 
   if '(' not in args.command:

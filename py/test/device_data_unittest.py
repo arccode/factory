@@ -30,7 +30,7 @@ class ReadDeviceDataFromVPDUnittest(unittest.TestCase):
     self.assertDictEqual(expected, result)
 
   def testRunTest(self):
-    device_data.state.get_instance = (
+    device_data.state.GetInstance = (
         lambda *args, **kwargs: self.state_proxy)
 
     key_map = {

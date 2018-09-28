@@ -114,14 +114,14 @@ class SSHLink(types.DeviceLink):
     self.connect_timeout = connect_timeout
     self.control_persist = control_persist
 
-    self._state = state.get_instance()
+    self._state = state.GetInstance()
 
   @property
   def host(self):
     if self._host is None:
-      if not state.has_shared_data(_DEVICE_DATA_KEY):
+      if not state.HasSharedData(_DEVICE_DATA_KEY):
         raise ClientNotExistError
-      return state.get_shared_data(_DEVICE_DATA_KEY)
+      return state.GetSharedData(_DEVICE_DATA_KEY)
     else:
       return self._host
 
@@ -271,12 +271,12 @@ class SSHLink(types.DeviceLink):
 
   @classmethod
   def SetLinkIP(cls, ip):
-    state.set_shared_data(_DEVICE_DATA_KEY, ip)
+    state.SetSharedData(_DEVICE_DATA_KEY, ip)
 
   @classmethod
   def ResetLinkIP(cls):
-    if state.has_shared_data(_DEVICE_DATA_KEY):
-      state.del_shared_data(_DEVICE_DATA_KEY)
+    if state.HasSharedData(_DEVICE_DATA_KEY):
+      state.DeleteSharedData(_DEVICE_DATA_KEY)
 
   # pylint: disable=arguments-differ
   @classmethod

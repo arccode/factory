@@ -170,7 +170,7 @@ class Checker(object):
       - "constants" and "options" defined by test list
       - "dut", "station" (to get information from DUT and station)
       - "locals" the `locals_` attribute of current test
-      - "state_proxy" (state server proxy returned by state.get_instance())
+      - "state_proxy" (state server proxy returned by state.GetInstance())
       - "device" (a short cut for `state_proxy.data_shelf.device`)
 
     Args:

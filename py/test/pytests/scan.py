@@ -163,7 +163,7 @@ class Scan(test_case.TestCase):
       testlog.LogParam(self.args.testlog_key, scan_value)
 
     if self.args.shared_data_key:
-      state.set_shared_data(self.args.shared_data_key, scan_value)
+      state.SetSharedData(self.args.shared_data_key, scan_value)
 
     if self.args.serial_number_key:
       device_data.SetSerialNumber(self.args.serial_number_key, scan_value)

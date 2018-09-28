@@ -298,7 +298,7 @@ class UI(object):
           'Cannot have both of %s - delete one!' % static_dirs)
     if static_dirs:
       self._static_dir_path = static_dirs[0]
-      goofy_proxy.get_rpc_proxy(url=goofy_proxy.GOOFY_SERVER_URL).RegisterPath(
+      goofy_proxy.GetRPCProxy(url=goofy_proxy.GOOFY_SERVER_URL).RegisterPath(
           '/tests/%s' % test, self._static_dir_path)
 
     def GetAutoload(extension, default=''):
@@ -425,7 +425,7 @@ class UI(object):
     Returns:
       url: A (possibly relative) URL that refers to the file
     """
-    return goofy_proxy.get_rpc_proxy(
+    return goofy_proxy.GetRPCProxy(
         url=goofy_proxy.GOOFY_SERVER_URL).URLForFile(path)
 
   def GetStaticDirectoryPath(self):
@@ -494,7 +494,7 @@ class UI(object):
 
   def GetUILocale(self):
     """Returns current enabled locale in UI."""
-    return state.get_shared_data('ui_locale')
+    return state.GetSharedData('ui_locale')
 
   def PlayAudioFile(self, audio_file):
     """Plays an audio file in the given path.

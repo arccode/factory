@@ -212,7 +212,7 @@ class SyncFactoryServer(test_case.TestCase):
     self.do_setup_url = threading.Event()
     self.allow_edit_url = True
     self.event_url_set = threading.Event()
-    self.goofy = state.get_instance()
+    self.goofy = state.GetInstance()
     self.report = Report(None, None, self.args.report_stage)
     self.dut = device_utils.CreateDUTInterface()
     self.station = device_utils.CreateStationInterface()

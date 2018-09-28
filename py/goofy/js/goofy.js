@@ -1134,12 +1134,12 @@ cros.factory.Goofy = class {
       })(),
       (async () => {
         const notes =
-            await this.sendRpc('get_shared_data', 'factory_note', true);
+            await this.sendRpc('GetSharedData', 'factory_note', true);
         this.updateNote(notes);
       })(),
       (async () => {
         const options =
-            await this.sendRpc('get_shared_data', 'test_list_options', true);
+            await this.sendRpc('GetSharedData', 'test_list_options', true);
         this.engineeringPasswordSHA1 =
             options ? options['engineering_password_sha1'] : null;
         // If no password, enable eng mode, and don't show the 'disable'
@@ -1151,7 +1151,7 @@ cros.factory.Goofy = class {
       })(),
       (async () => {
         const error =
-            await this.sendRpc('get_shared_data', 'startup_error', true);
+            await this.sendRpc('GetSharedData', 'startup_error', true);
         if (error) {
           const alertHtml = goog.html.SafeHtml.concat(
               cros.factory.i18n.i18nLabel(
@@ -1172,7 +1172,7 @@ cros.factory.Goofy = class {
   async setLocale(locale) {
     this.locale = locale;
     this.updateCSSClasses();
-    await this.sendRpc('set_shared_data', 'ui_locale', this.locale);
+    await this.sendRpc('SetSharedData', 'ui_locale', this.locale);
   }
 
   /**
@@ -1245,7 +1245,7 @@ cros.factory.Goofy = class {
 
     this.updateCSSClasses();
     const /** string */ locale =
-        await this.sendRpc('get_shared_data', 'ui_locale');
+        await this.sendRpc('GetSharedData', 'ui_locale');
     this.locale = locale;
     this.updateCSSClasses();
   }
@@ -1523,7 +1523,7 @@ cros.factory.Goofy = class {
   setEngineeringMode(enabled) {
     this.engineeringMode = enabled;
     this.updateCSSClasses();
-    this.sendRpc('set_shared_data', 'engineering_mode', enabled);
+    this.sendRpc('SetSharedData', 'engineering_mode', enabled);
   }
 
   /**
@@ -2638,7 +2638,7 @@ cros.factory.Goofy = class {
 
     this.testTree.collapseAll();
     const /** !Object<string, !cros.factory.TestState> */ stateMap =
-        await this.sendRpc('GetTestStates');
+        await this.sendRpc('GetTestStateMap');
     for (const path of Object.keys(stateMap)) {
       if (!path.startsWith('_')) {  // e.g., __jsonclass__
         this.setTestState(path, stateMap[path]);
@@ -3115,7 +3115,7 @@ cros.factory.Goofy = class {
         break;
       }
       case 'goofy:update_notes': {
-        this.sendRpc('get_shared_data', 'factory_note', true)
+        this.sendRpc('GetSharedData', 'factory_note', true)
             .then((/** !Array<!cros.factory.Note> */ notes) => {
               this.updateNote(notes);
             });

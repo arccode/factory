@@ -122,7 +122,7 @@ class RunCommand(Subcommand):
         help='ID of the test to run')
 
   def Run(self):
-    run_id = state.get_instance().RunTest(self.args.id)
+    run_id = state.GetInstance().RunTest(self.args.id)
     print 'Running test %s' % self.args.id
     print 'Active test run ID: %s' % run_id
 
@@ -142,7 +142,7 @@ class WaitCommand(Subcommand):
     last_test_dict = None
 
     while True:
-      tests = state.get_instance().GetTests()
+      tests = state.GetInstance().GetTests()
       test_dict = {}
       for t in tests:
         # Don't bother showing parent nodes.
@@ -183,7 +183,7 @@ class RunStatusCommand(Subcommand):
         '--id', default=None, help='ID of the test run')
 
   def Run(self):
-    goofy = state.get_instance()
+    goofy = state.GetInstance()
     run_status = goofy.GetTestRunStatus(self.args.id)
     print 'status: %s' % run_status['status']
     if 'run_id' in run_status:
@@ -216,7 +216,7 @@ class TestsCommand(Subcommand):
         help='Show only information about current active run')
 
   def Run(self):
-    goofy = state.get_instance()
+    goofy = state.GetInstance()
     tests = goofy.GetTests()
 
     # Ignore parents
@@ -254,7 +254,7 @@ class ClearCommand(Subcommand):
   help = 'Stop all tests and clear test state'
 
   def Run(self):
-    state.get_instance().ClearState()
+    state.GetInstance().ClearState()
 
 
 class StopCommand(Subcommand):
@@ -262,7 +262,7 @@ class StopCommand(Subcommand):
   help = 'Stop all tests'
 
   def Run(self):
-    state.get_instance().StopTest()
+    state.GetInstance().StopTest()
 
 
 class DumpTestListCommand(Subcommand):
@@ -349,7 +349,7 @@ class TestListCommand(Subcommand):
         print line_format % (is_active, k, v.source_path)
 
     if self.args.restart:
-      goofy = state.get_instance()
+      goofy = state.GetInstance()
 
       # Get goofy's current UUID
       try:
@@ -500,7 +500,7 @@ class ScreenshotCommand(Subcommand):
               'If not provided, defaults to /var/log/screenshot_<TIME>.png.'))
 
   def Run(self):
-    state.get_instance().DeviceTakeScreenshot(self.args.output_file)
+    state.GetInstance().DeviceTakeScreenshot(self.args.output_file)
 
 
 class PhaseCommand(Subcommand):

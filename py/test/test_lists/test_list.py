@@ -348,8 +348,8 @@ class FactoryTestList(test_object_module.FactoryTest):
     # The state instance may return a dict (for the XML/RPC proxy)
     # or the TestState object itself. Convert accordingly.
     return dict(
-        (self.LookupPath(k), TestState.from_dict_or_object(v))
-        for k, v in self.state_instance.get_test_states().iteritems())
+        (self.LookupPath(k), TestState.FromDictOrObject(v))
+        for k, v in self.state_instance.GetTestStates().iteritems())
 
   def LookupPath(self, path):
     """Looks up a test from its path."""
@@ -357,13 +357,13 @@ class FactoryTestList(test_object_module.FactoryTest):
       path = self.test_list_id + ':' + path
     return self.path_map.get(path, None)
 
-  def _update_test_state(self, path, **kwargs):
+  def _UpdateTestState(self, path, **kwargs):
     """Updates a test state, invoking the state_change_callback if any.
 
     Internal-only; clients should call update_state directly on the
     appropriate TestState object.
     """
-    ret, changed = self.state_instance.update_test_state(path=path, **kwargs)
+    ret, changed = self.state_instance.UpdateTestState(path=path, **kwargs)
     if changed and self.state_change_callback:
       self.state_change_callback(  # pylint: disable=not-callable
           self.LookupPath(path), ret)
@@ -449,7 +449,7 @@ class ITestList(object):
     if options is None:
       options = self.options
     if state_proxy is None:
-      state_proxy = state.get_instance()
+      state_proxy = state.GetInstance()
     locals_ = type_utils.AttrDict(locals_ or {})
 
     def ConvertToBasicType(value):

@@ -844,6 +844,6 @@ class AudioQualityTest(test_case.TestCase):
     if not self._test_passed:
       if self._enable_factory_server:
         session.console.info('Test failed. Force to flush event logs...')
-        goofy_instance = state.get_instance()
+        goofy_instance = state.GetInstance()
         goofy_instance.FlushEventLogs()
       self.FailTask('Test fail, find more detail in log.')

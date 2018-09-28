@@ -41,8 +41,8 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.test.ui_class = lambda event_loop: mock.Mock(spec=test_ui.StandardUI)
 
     self.mock_state = mock.Mock()
-    self._CreatePatcher(state, 'get_instance').return_value = self.mock_state
-    self.mock_state.get_test_states.return_value = _MOCK_TEST_STATES
+    self._CreatePatcher(state, 'GetInstance').return_value = self.mock_state
+    self.mock_state.GetTestStates.return_value = _MOCK_TEST_STATES
 
     self.mock_dut = mock.Mock()
     self._CreatePatcher(device_utils,

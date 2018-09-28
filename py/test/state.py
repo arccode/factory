@@ -50,7 +50,7 @@ class FactoryStateLayerException(Exception):
   """Exception about FactoryStateLayer."""
 
 
-def clear_state(state_file_dir=DEFAULT_FACTORY_STATE_FILE_DIR):
+def ClearState(state_file_dir=DEFAULT_FACTORY_STATE_FILE_DIR):
   """Clears test state (removes the state file path).
 
   Args:
@@ -97,7 +97,7 @@ class FactoryStateLayer(object):
       except Exception:
         logging.exception('Unable to close shelf')
 
-  def loads(self, serialized_data):
+  def Loads(self, serialized_data):
     # There might be unicode string in serialized data (because serialized data
     # will not be processed by UnicodeToString).  But unicode string is not
     # allowed for shelve using gdbm, we need to convert them.
@@ -107,12 +107,12 @@ class FactoryStateLayer(object):
     if 'data' in o:
       self.data_shelf.SetValue('', o['data'])
 
-  def dumps(self, include_data, include_tests):
+  def Dumps(self, include_data, include_tests):
     o = {}
     # Only includes 'tests' or 'data' if they are set.
     # `GetValue(key, optional=True) == None` when key is not found.  But
     # `SetValue('', None)` will create a unwanted ('', None) key-value pair in
-    # `self.loads()`.
+    # `self.Loads()`.
     if include_tests and self.tests_shelf.HasKey(''):
       o['tests'] = self.tests_shelf.GetValue('')
     if include_data and self.data_shelf.HasKey(''):
@@ -129,12 +129,12 @@ class FactoryState(object):
   The major provided features are:
   SHARED DATA
     You can get/set simple data into the states and share between all tests.
-    See get_shared_data(name) and set_shared_data(name, value) for more
+    See GetSharedData(name) and SetSharedData(name, value) for more
     information.
 
   TEST STATUS
     To track the execution status of factory auto tests, you can use
-    get_test_state, get_test_states methods, and update_test_state
+    GetTestState, GetTestStates methods, and update_test_state
     methods.
 
   All arguments may be provided either as strings, or as Unicode strings in
@@ -164,39 +164,39 @@ class FactoryState(object):
       jsonclass.supported_types.append(TestState)
 
   @sync_utils.Synchronized
-  def close(self):
+  def Close(self):
     """Shuts down the state instance."""
     for layer in self.layers:
       layer.Close()
 
   @classmethod
-  def convert_test_path_to_key(cls, path):
+  def ConvertTestPathToKey(cls, path):
     return shelve_utils.DictKey.Join(path, cls.TEST_STATE_POSTFIX)
 
   @classmethod
-  def convert_key_to_test_path(cls, key):
+  def ConvertKeyToTestPath(cls, key):
     test_path, postfix = shelve_utils.DictKey.Split(key)
     if postfix != cls.TEST_STATE_POSTFIX:
       raise KeyError('Invalid test path key: %r' % key)
     return test_path
 
   @sync_utils.Synchronized
-  def update_test_state(self, path, **kw):
+  def UpdateTestState(self, path, **kw):
     """Updates the state of a test.
 
-    See TestState.update for the allowable keyword arguments.
+    See TestState.Update for the allowable keyword arguments.
 
     Args:
       path: The path to the test (see FactoryTest for a description
           of test paths).
-      kw: See TestState.update for allowable arguments (e.g.,
+      kw: See TestState.Update for allowable arguments (e.g.,
           status and increment_count).
 
     Returns:
       A tuple containing the new state, and a boolean indicating whether the
       state was just changed.
     """
-    key = self.convert_test_path_to_key(path)
+    key = self.ConvertTestPathToKey(path)
     for layer in self.layers:
       state = layer.tests_shelf.GetValue(key, optional=True)
       old_state_repr = repr(state)
@@ -206,7 +206,7 @@ class FactoryState(object):
         changed = True
         state = TestState()
 
-      changed = changed | state.update(**kw)  # Don't short-circuit
+      changed = changed | state.Update(**kw)  # Don't short-circuit
 
       if changed:
         logging.debug('Updating test state for %s: %s -> %s',
@@ -216,9 +216,9 @@ class FactoryState(object):
     return state, changed
 
   @sync_utils.Synchronized
-  def get_test_state(self, path):
+  def GetTestState(self, path):
     """Returns the state of a test."""
-    key = self.convert_test_path_to_key(path)
+    key = self.ConvertTestPathToKey(path)
     # when accessing, we need to go from top layer to bottom layer
     for layer in reversed(self.layers):
       try:
@@ -228,65 +228,65 @@ class FactoryState(object):
     raise KeyError(key)
 
   @sync_utils.Synchronized
-  def get_test_paths(self):
+  def GetTestPaths(self):
     """Returns a list of all tests' paths."""
     # GetKeys() only returns keys that are mapped to a value, therefore, all
     # keys returned should end with `self.TEST_STATE_POSTFIX`.
     keys = set()
     for layer in self.layers:
       keys |= set(layer.tests_shelf.GetKeys())
-    return [self.convert_key_to_test_path(key) for key in keys]
+    return [self.ConvertKeyToTestPath(key) for key in keys]
 
   @sync_utils.Synchronized
-  def get_test_states(self):
+  def GetTestStates(self):
     """Returns a map of each test's path to its state."""
-    return {path: self.get_test_state(path) for path in self.get_test_paths()}
+    return {path: self.GetTestState(path) for path in self.GetTestPaths()}
 
   @sync_utils.Synchronized
-  def clear_test_state(self):
+  def ClearTestState(self):
     """Clears all test state."""
     for layer in self.layers:
       layer.tests_shelf.Clear()
 
   @sync_utils.Synchronized
-  def set_shared_data(self, key, value):
+  def SetSharedData(self, key, value):
     """Sets shared data item."""
-    self.data_shelf_set_value(key, value)
+    self.DataShelfSetValue(key, value)
 
   @sync_utils.Synchronized
-  def get_shared_data(self, key, optional=False):
+  def GetSharedData(self, key, optional=False):
     """Retrieves a shared data item.
 
     Args:
       key: The key whose value to retrieve.
       optional: True to return None if not found; False to raise a KeyError.
     """
-    return self.data_shelf_get_value(key, optional)
+    return self.DataShelfGetValue(key, optional)
 
   @sync_utils.Synchronized
-  def has_shared_data(self, key):
+  def HasSharedData(self, key):
     """Returns if a shared data item exists."""
-    return self.data_shelf_has_key(key)
+    return self.DataShelfHasKey(key)
 
   @sync_utils.Synchronized
-  def del_shared_data(self, key, optional=False):
+  def DeleteSharedData(self, key, optional=False):
     """Deletes a shared data item.
 
     Args:
       key: The key whose value to delete.
       optional: False to raise a KeyError if not found.
     """
-    self.data_shelf_delete_keys([key], optional)
+    self.DataShelfDeleteKeys([key], optional)
 
   @sync_utils.Synchronized
-  def update_shared_data_dict(self, key, new_data):
+  def UpdateSharedDataDict(self, key, new_data):
     """Updates values a shared data item whose value is a dictionary.
 
     This is roughly equivalent to
 
-      data = get_shared_data(key) or {}
-      data.update(new_data)
-      set_shared_data(key, data)
+      data = GetSharedData(key) or {}
+      data.Update(new_data)
+      SetSharedData(key, data)
       return data
 
     except that it is atomic.
@@ -298,24 +298,24 @@ class FactoryState(object):
     Returns:
       The updated value.
     """
-    self.data_shelf_update_value(key, new_data)
-    return self.data_shelf_get_value(key, True) or {}
+    self.DataShelfUpdateValue(key, new_data)
+    return self.DataShelfGetValue(key, True) or {}
 
   @sync_utils.Synchronized
-  def delete_shared_data_dict_item(self, shared_data_key,
-                                   delete_keys, optional):
+  def DeleteSharedDataDictItem(self, shared_data_key,
+                               delete_keys, optional):
     """Deletes items from a shared data item whose value is a dict.
 
     This is roughly equivalent to
 
-      data = get_shared_data(shared_data_key) or {}
+      data = GetSharedData(shared_data_key) or {}
       for key in delete_keys:
         try:
           del data[key]
         except KeyError:
           if not optional:
             raise
-      set_shared_data(shared_data_key, data)
+      SetSharedData(shared_data_key, data)
       return data
 
     except that it is atomic.
@@ -328,21 +328,21 @@ class FactoryState(object):
     Returns:
       The updated value.
     """
-    self.data_shelf_delete_keys(
+    self.DataShelfDeleteKeys(
         [shelve_utils.DictKey.Join(shared_data_key, key)
          for key in delete_keys],
         optional)
-    return self.data_shelf_get_value(shared_data_key, True) or {}
+    return self.DataShelfGetValue(shared_data_key, True) or {}
 
   @sync_utils.Synchronized
-  def append_shared_data_list(self, key, new_item):
+  def AppendSharedDataList(self, key, new_item):
     """Appends an item to a shared data item whose value is a list.
 
     This is roughly equivalent to
 
-      data = get_shared_data(key) or []
+      data = GetSharedData(key) or []
       data.append(new_item)
-      set_shared_data(key, data)
+      SetSharedData(key, data)
       return data
 
     except that it is atomic.
@@ -354,9 +354,9 @@ class FactoryState(object):
     Returns:
       The updated value.
     """
-    data = self.data_shelf_get_value(key, optional=True) or []
+    data = self.DataShelfGetValue(key, optional=True) or []
     data.append(new_item)
-    self.data_shelf_set_value(key, data)
+    self.DataShelfSetValue(key, data)
     return data
 
   #############################################################################
@@ -378,35 +378,35 @@ class FactoryState(object):
   #   layers[1].data_shelf: { 'a': '456' }
   #   layers[0].data_shelf: { 'a': { 'b': '123' }}
   #
-  #   data_shelf_get_value('a')  => '456'
+  #   DataShelfGetValue('a')  => '456'
   #   # since we will try to find 'a.b' in all layers, so 'a.b' is still valid.
-  #   data_shelf_get_value('a.b') => '123'
+  #   DataShelfGetValue('a.b') => '123'
   #
   # This should be okay since values in data_shelf should not change types.  If
   # it is a dict, it should always be a dict.
   #############################################################################
   @sync_utils.Synchronized
-  def data_shelf_set_value(self, key, value):
+  def DataShelfSetValue(self, key, value):
     """Set key to value on top layer."""
     self.layers[-1].data_shelf.SetValue(key, value)
 
   @sync_utils.Synchronized
-  def data_shelf_update_value(self, key, value):
+  def DataShelfUpdateValue(self, key, value):
     """Update key by value on top layer."""
     self.layers[-1].data_shelf.UpdateValue(key, value)
 
   @sync_utils.Synchronized
-  def data_shelf_delete_keys(self, keys, optional=False):
+  def DataShelfDeleteKeys(self, keys, optional=False):
     """Delete data with keys on top layer."""
     self.layers[-1].data_shelf.DeleteKeys(keys, optional=optional)
 
   @sync_utils.Synchronized
-  def data_shelf_has_key(self, key):
+  def DataShelfHasKey(self, key):
     """Returns True if any layer contains the key."""
     return any(layer.data_shelf.HasKey(key) for layer in self.layers)
 
   @sync_utils.Synchronized
-  def data_shelf_get_value(self, key, optional=False):
+  def DataShelfGetValue(self, key, optional=False):
     """Get the merged value of given key.
 
     All layers will be read, and the values are merged by
@@ -416,8 +416,8 @@ class FactoryState(object):
         layers[0].data_shelf: { 'a': { 'b': '123' }}
         layers[1].data_shelf: { 'a': '456' }
 
-        data_shelf_get_value('a')  => '456'
-        data_shelf_get_value('a.b') => '123'
+        DataShelfGetValue('a')  => '456'
+        DataShelfGetValue('a.b') => '123'
 
     Returns:
       A merged value, can be any JSON supported types.
@@ -438,9 +438,9 @@ class FactoryState(object):
     raise KeyError(key)
 
   @sync_utils.Synchronized
-  def data_shelf_get_children(self, key):
+  def DataShelfGetChildren(self, key):
     """Returns children of given path (key)."""
-    if not self.data_shelf_has_key(key):
+    if not self.DataShelfHasKey(key):
       raise KeyError(key)
 
     ret = set()
@@ -464,7 +464,7 @@ class FactoryState(object):
 
     self.layers.append(FactoryStateLayer(None))
     if serialized_data:
-      self.layers[-1].loads(serialized_data)
+      self.layers[-1].Loads(serialized_data)
 
   @sync_utils.Synchronized
   def PopLayer(self):
@@ -475,7 +475,7 @@ class FactoryState(object):
   @sync_utils.Synchronized
   def SerializeLayer(self, layer_index, include_data=True, include_tests=True):
     layer = self.layers[layer_index]
-    return layer.dumps(include_data, include_tests)
+    return layer.Dumps(include_data, include_tests)
 
   @sync_utils.Synchronized
   def MergeLayer(self, layer_index):
@@ -497,7 +497,7 @@ class FactoryState(object):
     return len(self.layers)
 
 
-def get_instance(address=None, port=None):
+def GetInstance(address=None, port=None):
   """Gets an instance (for client side) to access the state server.
 
   Args:
@@ -510,7 +510,7 @@ def get_instance(address=None, port=None):
     An object with all public functions from FactoryState.
     See help(FactoryState) for more information.
   """
-  proxy = goofy_proxy.get_rpc_proxy(
+  proxy = goofy_proxy.GetRPCProxy(
       address, port, goofy_proxy.STATE_URL)
   proxy.__dict__['data_shelf'] = DataShelfSelector(proxy)
   return proxy
@@ -518,22 +518,22 @@ def get_instance(address=None, port=None):
 
 # ---------------------------------------------------------------------------
 # Helper functions for shared data
-def get_shared_data(key, default=None):
-  if not get_instance().has_shared_data(key):
+def GetSharedData(key, default=None):
+  if not GetInstance().HasSharedData(key):
     return default
-  return get_instance().get_shared_data(key)
+  return GetInstance().GetSharedData(key)
 
 
-def set_shared_data(key, value):
-  return get_instance().set_shared_data(key, value)
+def SetSharedData(key, value):
+  return GetInstance().SetSharedData(key, value)
 
 
-def has_shared_data(key):
-  return get_instance().has_shared_data(key)
+def HasSharedData(key):
+  return GetInstance().HasSharedData(key)
 
 
-def del_shared_data(key):
-  return get_instance().del_shared_data(key)
+def DeleteSharedData(key):
+  return GetInstance().DeleteSharedData(key)
 
 
 class TestState(object):
@@ -570,7 +570,7 @@ class TestState(object):
   def __repr__(self):
     return type_utils.StdRepr(self)
 
-  def update(self, status=None, increment_count=0, error_msg=None,
+  def Update(self, status=None, increment_count=0, error_msg=None,
              shutdown_count=None, increment_shutdown_count=0,
              invocation=None,
              decrement_iterations_left=0, iterations_left=None,
@@ -624,7 +624,7 @@ class TestState(object):
     return self.__dict__ != old_dict
 
   @classmethod
-  def from_dict_or_object(cls, obj):
+  def FromDictOrObject(cls, obj):
     if isinstance(obj, dict):
       return TestState(**obj)
     else:

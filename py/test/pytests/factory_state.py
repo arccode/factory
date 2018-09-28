@@ -137,13 +137,13 @@ class ManipulateFactoryStateLayer(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface(**self.args.dut_options)
 
   def _CreateStationStateProxy(self):
-    return state.get_instance()
+    return state.GetInstance()
 
   def _CreateDUTStateProxy(self):
     if self.dut.link.IsLocal():
-      return state.get_instance()
+      return state.GetInstance()
     if isinstance(self.dut.link, ssh.SSHLink):
-      return state.get_instance(self.dut.link.host)
+      return state.GetInstance(self.dut.link.host)
     logging.warning('state proxy for %s is not supported',
                     self.dut.link.__class__.__name__)
     return None
@@ -196,7 +196,7 @@ class ManipulateFactoryStateLayer(unittest.TestCase):
     serialized_data = source.SerializeLayer(
         layer_index=-1, include_data=True, include_tests=True)
     layer = state.FactoryStateLayer()
-    layer.loads(str(serialized_data))
+    layer.Loads(str(serialized_data))
 
     # Only pack device data.
     # TODO(stimim): refactor state.py to make this more clear.
@@ -211,16 +211,16 @@ class ManipulateFactoryStateLayer(unittest.TestCase):
 
       # remove root node, because every test list has this node.
       layer.tests_shelf.DeleteKeys(
-          [state.FactoryState.convert_test_path_to_key('')],
+          [state.FactoryState.ConvertTestPathToKey('')],
           optional=True)
       if self.args.exclude_current_test_list:
         test_list = self.test_info.ReadTestList()
         for test in test_list.Walk():
           layer.tests_shelf.DeleteKeys(
-              [state.FactoryState.convert_test_path_to_key(test.path)],
+              [state.FactoryState.ConvertTestPathToKey(test.path)],
               optional=True)
     else:
       layer.tests_shelf.Clear()
 
-    serialized_data = layer.dumps(True, True)
+    serialized_data = layer.Dumps(True, True)
     destination.AppendLayer(serialized_data=serialized_data)

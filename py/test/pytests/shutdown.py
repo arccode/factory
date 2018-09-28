@@ -140,9 +140,9 @@ class ShutdownTest(test_case.TestCase):
                                                      self.args.operation)
     self.ui.SetTitle(
         _('Shutdown Test ({operation})', operation=self.operation_label))
-    self.goofy = state.get_instance()
+    self.goofy = state.GetInstance()
     self.test = self.test_info.ReadTestList().LookupPath(self.test_info.path)
-    self.test_state = self.goofy.get_test_state(self.test_info.path)
+    self.test_state = self.goofy.GetTestState(self.test_info.path)
     self.remaining_time = 0
 
   def PromptCancelShutdown(self, iteration):
@@ -335,13 +335,13 @@ class ShutdownTest(test_case.TestCase):
 
   def LocalShutdown(self):
     key_post_shutdown = state.KEY_POST_SHUTDOWN % self.test_info.path
-    post_shutdown = self.goofy.get_shared_data(key_post_shutdown, True)
+    post_shutdown = self.goofy.GetSharedData(key_post_shutdown, True)
     if post_shutdown:
       # Only do post shutdown verification once.
       self.ui.SetState(
           _('Verifying system state after {operation}',
             operation=self.operation_label))
-      self.goofy.del_shared_data(key_post_shutdown)
+      self.goofy.DeleteSharedData(key_post_shutdown)
 
       if post_shutdown['goofy_error']:
         raise ShutdownError(post_shutdown['goofy_error'])

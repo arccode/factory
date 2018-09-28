@@ -161,7 +161,7 @@ class Report(test_case.TestCase):
   def runTest(self):
     test_list = self.test_info.ReadTestList()
     test = test_list.LookupPath(self.test_info.path)
-    states = state.get_instance().get_test_states()
+    states = state.GetInstance().GetTestStates()
 
     previous_tests = []
     current = test
@@ -187,7 +187,7 @@ class Report(test_case.TestCase):
     overall_status = state.TestState.OverallStatus(statuses)
     all_pass = overall_status in _EXTENED_PASSED_STATE
 
-    goofy = state.get_instance()
+    goofy = state.GetInstance()
     goofy.PostHookEvent('Summary', 'Good' if all_pass else 'Bad')
 
     if self.args.bft_fixture:

@@ -99,11 +99,11 @@ class DataShelfSelector(ISelector):
 
   def SetValue(self, key, value):
     key = shelve_utils.DictKey.Join(self._key, key)
-    self._proxy.data_shelf_set_value(key, value)
+    self._proxy.DataShelfSetValue(key, value)
 
   def Get(self, default=_DEFAULT_NOT_SET):
-    if default is _DEFAULT_NOT_SET or self._proxy.data_shelf_has_key(self._key):
-      return self._proxy.data_shelf_get_value(self._key)
+    if default is _DEFAULT_NOT_SET or self._proxy.DataShelfHasKey(self._key):
+      return self._proxy.DataShelfGetValue(self._key)
     else:
       return default
 
@@ -118,10 +118,10 @@ class DataShelfSelector(ISelector):
     self.SetValue(key, value)
 
   def __iter__(self):
-    return iter(self._proxy.data_shelf_get_children(self._key))
+    return iter(self._proxy.DataShelfGetChildren(self._key))
 
   def __contains__(self, key):
-    return key in self._proxy.data_shelf_get_children(self._key)
+    return key in self._proxy.DataShelfGetChildren(self._key)
 
 
 class DictSelector(ISelector):

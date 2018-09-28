@@ -88,7 +88,7 @@ class TestListIteratorTest(unittest.TestCase):
     # mock CheckRunIf
     def _MockedCheckRunIf(path):
       if device_data:
-        test_list.state_instance.data_shelf_set_value('device', device_data)
+        test_list.state_instance.DataShelfSetValue('device', device_data)
 
       return test_list_iterator.TestListIterator.CheckRunIf(
           iterator,

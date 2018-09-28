@@ -17,7 +17,7 @@ def GetPluginArguments(plugin_name):
 
   Return None if the plugin is not found.
   """
-  config_name = state.get_shared_data('test_list_options.plugin_config_name')
+  config_name = state.GetSharedData('test_list_options.plugin_config_name')
   config = config_utils.LoadConfig(
       config_name=config_name,
       schema_name='plugins',

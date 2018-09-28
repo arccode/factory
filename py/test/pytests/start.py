@@ -129,5 +129,5 @@ class StartTest(test_case.TestCase):
   def InitializeSharedData(self):
     self.ui.SetState(_('Initialize some shared data...'))
     for key, value in self.args.init_shared_data.iteritems():
-      session.console.debug('set_shared_data[%s] = "%s"', key, value)
-      state.set_shared_data(key, value)
+      session.console.debug('SetSharedData[%s] = "%s"', key, value)
+      state.SetSharedData(key, value)

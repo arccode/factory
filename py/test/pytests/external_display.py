@@ -269,7 +269,7 @@ class ExtDisplayTest(test_case.TestCase):
               retry_times)
 
   def _GetPrimaryDisplayId(self):
-    for info in state.get_instance().DeviceGetDisplayInfo():
+    for info in state.GetInstance().DeviceGetDisplayInfo():
       if info['isPrimary']:
         return info['id']
     raise ValueError('Fail to get display ID')
@@ -286,7 +286,7 @@ class ExtDisplayTest(test_case.TestCase):
       recover_original: True to set the original display as main;  False to
           set the other (external) display as main.
     """
-    display_info = state.get_instance().DeviceGetDisplayInfo()
+    display_info = state.GetInstance().DeviceGetDisplayInfo()
     if len(display_info) == 1:
       # Fail the test if we see only one display and it's the internal one.
       if display_info[0]['isInternal']:
@@ -347,7 +347,7 @@ class ExtDisplayTest(test_case.TestCase):
           self._dut.usb_c.GetPDStatus(args.usbpd_port)['connected'] == connect):
         port_info = self._dut.display.GetPortInfo()
         if port_info[args.display_id].connected == connect:
-          display_info = state.get_instance().DeviceGetDisplayInfo()
+          display_info = state.GetInstance().DeviceGetDisplayInfo()
           # In the case of connecting an external display, make sure there
           # is an item in display_info with 'isInternal' False.
           # On the other hand, in the case of disconnecting an external display,
