@@ -805,12 +805,19 @@ class FinalizeBundle(object):
                     ['an afternoon snack'] * 2 +
                     ['a beer'] * 8)[time.localtime().tm_hour])
 
-      output_file = self.bundle_dir + '.tar.bz2'
+      image_tool_output_file = os.path.join(
+          self.work_dir, 'factory_bundle_%s_%s.tar.bz2' % (self.board,
+                                                           self.bundle_name))
+      output_file = os.path.join(
+          self.work_dir, 'factory_bundle_%s_%s.tar.bz2' % (self.project,
+                                                           self.bundle_name))
       Spawn(_GetImageTool() +
             ['bundle', '-o', self.work_dir, '--board', self.board,
              '--timestamp', self.bundle_name.split('_')[0],
              '--phase', self.bundle_name.split('_')[1]],
             log=True, check_call=True, cwd=self.bundle_dir)
+      Spawn(['mv', image_tool_output_file, output_file],
+            log=True, check_call=True)
       logging.info(
           'Created %s (%.1f GiB).',
           output_file, os.path.getsize(output_file) / (1024. * 1024. * 1024.))
