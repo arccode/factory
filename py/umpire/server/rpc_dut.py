@@ -167,11 +167,11 @@ class ShopfloorServiceDUTCommands(umpire_rpc.UmpireRPC):
 
   @property
   def service(self):
-    if self._url != self.env.shopfloor_service_url:
-      new_url = self.env.shopfloor_service_url
+    url = self.env.shopfloor_service_url
+    if self._url != url:
       self._proxy = webservice_utils.CreateWebServiceProxy(
-          new_url, use_twisted=True)
-      self._url = new_url
+          url, use_twisted=True)
+      self._url = url
     return self._proxy
 
   @umpire_rpc.RPCCall
@@ -270,13 +270,13 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
       # To support paths in file_name, the save_dir will be splitted after
       # concatenate to full save_path.
       save_path = os.path.join(self.env.umpire_data_dir, upload_type,
-                               time.strftime('%Y%m%d', self._Now()),
-                               file_name)
+                               time.strftime('%Y%m%d', self._Now()), file_name)
       save_dir = os.path.dirname(os.path.abspath(save_path))
       file_utils.TryMakeDirs(save_dir)
       if mode == 'a' and os.path.isfile(save_path):
         shutil.copy2(save_path, temp_path)
-      open(temp_path, mode).write(content)
+      with open(temp_path, mode) as f:
+        f.write(content)
       # Do not use os.rename() to move file. os.rename() behavior is OS
       # dependent.
       shutil.move(temp_path, save_path)
@@ -340,8 +340,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
       data: A list or entry to be appended into CSV file.
     """
     file_name = os.path.join(self.env.umpire_data_dir, 'csv', csv_name + '.csv')
-    d = threads.deferToThread(lambda: self._AppendCSV(
-        file_name, data))
+    d = threads.deferToThread(lambda: self._AppendCSV(file_name, data))
     d.addCallback(self._ReturnTrue)
     return d
 
@@ -387,16 +386,14 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
       contents: Contents of the report.  If this is binary, it should be
         wrapped in a shopfloor.Binary object.
     """
-    contents = self._UnwrapBlob(contents)
-
-    # Disallow absolute paths and paths with '..'.
+    # Disallow absolute paths and non-normalized paths.
     if os.path.isabs(name):
       raise ValueError('Disallow absolute paths')
-    if '..' in os.path.split(name):
-      raise ValueError('Disallow ".." in paths')
+    if name != os.path.normpath(name):
+      raise ValueError('Disallow non-normalized paths')
 
-    d = threads.deferToThread(lambda: self._SaveUpload(
-        'aux_log', name, self._UnwrapBlob(contents)))
+    d = threads.deferToThread(
+        lambda: self._SaveUpload('aux_log', name, self._UnwrapBlob(contents)))
     d.addCallback(self._ReturnTrue)
     return d
 
