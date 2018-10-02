@@ -292,9 +292,11 @@ class Goofy(object):
     if previous_id != self.test_list.test_list_id:
       logging.info('Test list is changed from %s to %s.',
                    previous_id, self.test_list.test_list_id)
-      self.state_instance.close()
-      state.clear_state()
-      self.state_instance = state.FactoryState()
+      if previous_id:
+        self.state_instance.close()
+        state.clear_state()
+        self.state_instance = state.FactoryState()
+
       self.state_instance.set_shared_data(ACTIVE_TEST_LIST_ID,
                                           self.test_list.test_list_id)
 
