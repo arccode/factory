@@ -116,8 +116,6 @@ class TimeSanitizer(object):
     self.__exceptions = True
     # Set time object.  This may be mocked out.
     self._time = Time()
-    # Set server proxy module.  This may be mocked out.
-    self._server_proxy = server_proxy
 
     file_utils.TryMakeDirs(os.path.dirname(self.state_file))
 
@@ -195,7 +193,7 @@ class TimeSanitizer(object):
     Raises:
       Error if sync time failed.
     """
-    server_ip_port = urlparse(self._server_proxy.GetServerURL()).netloc
+    server_ip_port = urlparse(server_proxy.GetServerURL()).netloc
     try:
       synced = process_utils.Spawn(['htpdate', '-s', '-t', server_ip_port],
                                    log=True, call=True,

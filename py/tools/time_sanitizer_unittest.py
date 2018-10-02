@@ -31,7 +31,6 @@ class TimeSanitizerTestBase(unittest.TestCase):
   def setUp(self):
     self.mox = mox.Mox()
     self.fake_time = self.mox.CreateMock(time_sanitizer.Time)
-    self.fake_server_proxy = self.mox.CreateMockAnything()
 
     self.sanitizer = time_sanitizer.TimeSanitizer(
         self.state_file,
@@ -40,7 +39,6 @@ class TimeSanitizerTestBase(unittest.TestCase):
         max_leap_secs=SECONDS_PER_DAY)
     self.sanitizer._time = self.fake_time
     self.sanitizer._suppress_exceptions = False
-    self.sanitizer._server_proxy = self.fake_server_proxy
 
   def run(self, result=None):
     with file_utils.TempDirectory(
