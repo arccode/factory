@@ -33,7 +33,6 @@ class HTTPServiceTest(unittest.TestCase):
         'bundles': [{
             'id': 'default',
             'note': '',
-            'shop_floor': {'handler': ''},
             'payloads': 'payload.99914b932bd37a50b983c5e7c90ae93b.json'}],
         'rulesets': [{
             'bundle_id': 'default',

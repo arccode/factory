@@ -40,21 +40,7 @@ _BUNDLE_SCHEMA = FixedDict(
     items={
         'id': Scalar('Unique key for this bundle', basestring),
         'note': Scalar('Notes', basestring),
-        'payloads': Scalar('Payload', basestring)},
-    # TODO(hungte) Remove the deprecated shop_floor.
-    optional_items={
-        'shop_floor': FixedDict(
-            '(Deprecated) Shop floor handler settings',
-            optional_items={
-                'handler': Scalar('Full handler package name', basestring),
-                'handler_config': FixedDict(
-                    'Optional handler configs',
-                    optional_items={
-                        'mount_point_smt': Scalar('SMT mount point',
-                                                  basestring),
-                        'mount_point_fatp': Scalar('FATP mount point',
-                                                   basestring)
-                    })})})
+        'payloads': Scalar('Payload', basestring)})
 
 
 def ValidateConfig(config):
