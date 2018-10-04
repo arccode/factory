@@ -865,5 +865,11 @@ class Gooftool(object):
     # Capabilities, current and default:
     #   ...
     # CCD caps bitmap: 0x1ffff
-    if re.search("^CCD caps bitmap: 0x1ffff$", info, re.MULTILINE):
+    #
+    # TODO(b/117200472) The current way to query factory mode is done by
+    # checking CCD caps bitmap but this value will be changed if new CCD
+    # capability is introduced. For example, bitpmap becomes 0x7ffff started
+    # from 0.4.10. The long term plan is to ask gsctool/cr50 to report factory
+    # mode status directly for short term plan 0x?ffff would be checked.
+    if re.search('^CCD caps bitmap: 0x[0-9a-z]ffff$', info, re.MULTILINE):
       raise Error('Failed to disable Cr50 factory mode. CCD info:\n%s' % info)

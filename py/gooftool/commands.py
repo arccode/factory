@@ -407,7 +407,7 @@ def Cr50SetBoardId(options):
   event_log.Log('cr50_set_board_id')
 
 
-@Command('cr50_disable_rma_mode')
+@Command('cr50_disable_factory_mode')
 def Cr50DisableFactoryMode(options):
   """Reset Cr50 state back to default state after RMA."""
   return GetGooftool(options).Cr50DisableFactoryMode()
