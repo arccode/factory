@@ -16,11 +16,9 @@ from twisted.web import xmlrpc
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
-from cros.factory.umpire.server import bundle_selector
 from cros.factory.umpire.server import umpire_env
 from cros.factory.umpire.server import umpire_rpc
 from cros.factory.umpire.server import utils
-from cros.factory.umpire.server import webapp_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import webservice_utils
 
@@ -139,12 +137,8 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
     Returns:
       URL of cros_payload JSON file, or empty string if no available bundle.
     """
-    if isinstance(x_umpire_dut, str):
-      dut_info = webapp_utils.ParseDUTHeader(x_umpire_dut)
-    else:
-      dut_info = x_umpire_dut
-    bundle = self.env.config.GetBundle(
-        bundle_selector.SelectBundle(self.env.config, dut_info))
+    del x_umpire_dut  # Unused.
+    bundle = self.env.config.GetDefaultBundle()
     if bundle:
       return 'http://%s:%d/res/%s' % (
           GetServerIpPortFromRequest(request, self.env) + (bundle['payloads'],))

@@ -11,13 +11,40 @@ The class handles
 import logging
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.umpire.server import bundle_selector
 from cros.factory.umpire.server.web import wsgi
-from cros.factory.umpire.server import webapp_utils
 from cros.factory.utils import type_utils
 
 
 PATH_INFO = '/webapps/resourcemap'
+
+
+def GetResourceMap(env):
+  """Gets resource map for the DUT.
+
+  It is used for twisted to call when receiving "GET /webapps/resourcemap"
+  request.
+
+  Args:
+    env: an UmpireEnv object.
+
+  Returns:
+    String for response text.
+  """
+  result = []
+
+  bundle = env.config.GetDefaultBundle()
+  if not bundle:
+    return None
+
+  # TODO(hungte) Remove __token__ and shop_floor_handler when most DUTs have
+  # finished migration.
+  result = ['id: %s' % bundle['id'],
+            'note: %s' % bundle['note'],
+            '__token__: 00000001',
+            'shop_floor_handler: /umpire',
+            'payloads: %s' % bundle['payloads']]
+
+  return ''.join('%s\n' % s for s in result)
 
 
 class ResourceMapApp(wsgi.WebApp):
@@ -34,8 +61,7 @@ class ResourceMapApp(wsgi.WebApp):
     """Gets resource map from DUT info and return text/plain result."""
     logging.debug('resourcemap app: %s', session)
     if session.REQUEST_METHOD == 'GET':
-      dut_info = webapp_utils.ParseDUTHeader(session.HTTP_X_UMPIRE_DUT)
-      resource_map = bundle_selector.GetResourceMap(dut_info, self._env)
+      resource_map = GetResourceMap(self._env)
       if resource_map is None:
         return session.BadRequest400()
       return session.Respond(type_utils.UnicodeToString(resource_map))

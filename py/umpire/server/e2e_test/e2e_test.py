@@ -383,7 +383,7 @@ class UmpireRPCTest(UmpireDockerTestCase):
     for ruleset in active_config['rulesets']:
       if ruleset['bundle_id'] == 'umpire_test':
         self.assertFalse(ruleset['active'])
-        self.assertIn('update match rule in ruleset', ruleset['note'])
+        self.assertEqual('', ruleset['note'])
 
 
 class UmpireHTTPTest(UmpireDockerTestCase):

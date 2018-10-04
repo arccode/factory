@@ -22,7 +22,6 @@ EMPTY_SERVICES_CONFIG = os.path.join(TESTDATA_DIR,
                                      'minimal_empty_services_umpire.json')
 RESOURCE_CHECK_CONFIG = os.path.join(TESTDATA_DIR,
                                      'umpire_resource_check.json')
-RULESET_CONFIG = os.path.join(TESTDATA_DIR, 'rulesets_umpire.json')
 
 _RE_COMMENT = re.compile(r'\s*# .+')
 
@@ -88,30 +87,6 @@ class UmpireConfigTest(unittest.TestCase):
 
     # Make sure that the structure is deep-copied.
     self.assertEqual(original_payloads, conf['bundles'][0]['payloads'])
-
-  def testLoadConfigRuleMatcher(self):
-    conf = config.UmpireConfig(file_path=RULESET_CONFIG)
-    self.assertEqual(2, len(conf['rulesets']))
-    ruleset = conf['rulesets'][0]
-    self.assertDictEqual(
-        {'bundle_id': 'test',
-         'note': 'ruleset with matchers',
-         'active': True,
-         'match': {
-             'mac': ['aa:bb:cc:dd:ee:ff'],
-             'mlb_sn': ['SN001'],
-             'mlb_sn_range': ['-', 'SN005'],
-             'sn': ['OC1234567890'],
-             'sn_range': ['OC1234567890', '-'],
-             'stage': ['SMT', 'FATP']}},
-        ruleset)
-
-    default_ruleset = conf['rulesets'][1]
-    self.assertDictEqual(
-        {'bundle_id': 'test',
-         'note': 'ruleset for test',
-         'active': True},
-        default_ruleset)
 
   def testDumpConfig(self):
     def RemoveComments(lines):

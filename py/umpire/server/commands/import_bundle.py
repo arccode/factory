@@ -80,7 +80,7 @@ class BundleImporter(object):
     })
     config['rulesets'].insert(0, {
         'bundle_id': bundle_id,
-        'note': 'Please update match rule in ruleset',
+        'note': '',
         'active': False,
     })
     deploy.ConfigDeployer(self._daemon).Deploy(

@@ -23,23 +23,6 @@ from cros.factory.utils.schema import List
 from cros.factory.utils.schema import Scalar
 
 
-# Ruleset matcher validator.
-_RULE_MATCHER_SCHEMA = FixedDict(
-    'Matcher of a rule',
-    optional_items={
-        'mac': List('MAC address list',
-                    Scalar('Network interface MAC address', basestring)),
-        'sn': List('Serial number list',
-                   Scalar('Serial number', basestring)),
-        'mlb_sn': List('MLB serial number list',
-                       Scalar('MLB serial number', basestring)),
-        'stage': List('Matched stage list', Scalar('Stage', basestring)),
-        'sn_range': List(
-            'Inclusive serial number start/end pair',
-            Scalar('Serial number or "-" as open end', basestring)),
-        'mlb_sn_range': List(
-            'Inclusive MLB serial number start/end pair',
-            Scalar('MLB serial number or "-" as open end', basestring))})
 # Rulesets validator.
 _RULESETS_SCHEMA = List(
     'Rule sets for selecting configuration',
@@ -48,9 +31,7 @@ _RULESETS_SCHEMA = List(
         items={
             'bundle_id': Scalar('The target bundle', basestring),
             'note': Scalar('Brief summary of this rule', basestring),
-            'active': Scalar('Initial state of this rule', bool)},
-        optional_items={
-            'match': _RULE_MATCHER_SCHEMA}))
+            'active': Scalar('Initial state of this rule', bool)}))
 # Single bundle validator.
 # A valid configuration can contain multiple bundles. At any time, one device
 # state (mac, sn, mlb_sn) can map to one bundle only.
