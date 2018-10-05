@@ -125,7 +125,7 @@ class DownloadSlotsManager(object):
 
     # do error handling first.
     if not self._CheckRequestParameters(identity, drop_slot):
-      return
+      return None
 
     # start to process the request.
     if not identity:

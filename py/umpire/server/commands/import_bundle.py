@@ -48,12 +48,12 @@ class BundleImporter(object):
     Args:
       bundle_path: A bundle's path (could be a directory or a zip file).
       bundle_id: The ID of the bundle. If omitted, use timestamp.
-      note: A description of this bundle. If omitted, use bundle_id.
+      note: A description of this bundle.
     """
     if not bundle_id:
       bundle_id = time.strftime('factory_bundle_%Y%m%d_%H%M%S')
-    if not note:
-      note = 'n/a'
+    if note is None:
+      note = ''
 
     config = umpire_config.UmpireConfig(self._daemon.env.config)
     if config.GetBundle(bundle_id):
@@ -73,15 +73,11 @@ class BundleImporter(object):
     payload_json_name = self._daemon.env.AddConfigFromBlob(
         json.dumps(payloads), resource.ConfigTypeNames.payload_config)
 
-    config['bundles'].append({
+    config['bundles'].insert(0, {
         'id': bundle_id,
         'note': note,
         'payloads': payload_json_name,
-    })
-    config['rulesets'].insert(0, {
-        'bundle_id': bundle_id,
-        'note': '',
-        'active': False,
+        'active': True,
     })
     deploy.ConfigDeployer(self._daemon).Deploy(
         self._daemon.env.AddConfigFromBlob(

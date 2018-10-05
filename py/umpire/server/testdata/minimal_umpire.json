@@ -3,28 +3,11 @@
     {
       "id": "test",
       "note": "bundle for test",
-      "payloads": "payload.99914b932bd37a50b983c5e7c90ae93b.json"
-    }
-  ],
-  "rulesets": [
-    {
-      "active": true,
-      "bundle_id": "test",
-      "note": "ruleset for test"
+      "payloads": "payload.99914b932bd37a50b983c5e7c90ae93b.json",
+      "active": true
     }
   ],
   "services": {
-    "dhcp": {
-      "interface": [
-        "eth4"
-      ],
-      "netmask": "255.255.0.0",
-      "range": [
-        "10.3.11.50",
-        "10.3.50.254"
-      ],
-      "subnet": "10.3.0.0"
-    },
     "http": {
       "reverse_proxies": [
         {

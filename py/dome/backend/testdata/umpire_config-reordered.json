@@ -2,66 +2,34 @@
   "project": "testing_project",
   "bundles": [
     {
-      "id": "empty_init_bundle",
-      "note": "n/a",
-      "payloads": "payload-none.json"
-    },
-    {
-      "id": "testing_bundle_01",
-      "note": "flying like an eagle (should not list me)",
-      "payloads": "payload-01.json"
-    },
-    {
-      "id": "testing_bundle_01_copy",
-      "note": "flying like an eagle (should not list me)",
-      "payloads": "payload-01.json"
-    },
-    {
+      "active": false,
       "id": "testing_bundle_02",
-      "note": "swimming like a whale (should not list me)",
+      "note": "swimming like a whale",
       "payloads": "payload-02.json"
     },
     {
+      "active": true,
+      "id": "testing_bundle_01",
+      "note": "flying like an eagle",
+      "payloads": "payload-01.json"
+    },
+    {
+      "active": false,
       "id": "testing_bundle_03",
       "note": "running like a leopard",
       "payloads": "payload-03.json"
     },
     {
+      "active": true,
+      "id": "empty_init_bundle",
+      "note": "n/a",
+      "payloads": "payload-none.json"
+    },
+    {
+      "active": false,
       "id": "testing_bundle_04_with_中文",
       "note": "🐰",
       "payloads": "payload-04.json"
-    }
-  ],
-  "rulesets": [
-    {
-      "active": false,
-      "bundle_id": "testing_bundle_02",
-      "note": "swimming like a whale"
-    },
-    {
-      "active": true,
-      "bundle_id": "testing_bundle_01",
-      "note": "flying like an eagle"
-    },
-    {
-      "active": true,
-      "bundle_id": "testing_bundle_01_copy",
-      "note": "flying like an eagle"
-    },
-    {
-      "active": false,
-      "bundle_id": "testing_bundle_03",
-      "note": "running like a leopard"
-    },
-    {
-      "active": true,
-      "bundle_id": "empty_init_bundle",
-      "note": "n/a"
-    },
-    {
-      "active": false,
-      "bundle_id": "testing_bundle_04_with_中文",
-      "note": "🐰"
     }
   ],
   "services": {

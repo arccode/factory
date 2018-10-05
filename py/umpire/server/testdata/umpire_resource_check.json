@@ -3,34 +3,20 @@
     {
       "id": "test1",
       "note": "bundle for test",
-      "payloads": "payload.99914b932bd37a50b983c5e7c90ae93b.json"
+      "payloads": "payload.99914b932bd37a50b983c5e7c90ae93b.json",
+      "active": true
     },
     {
       "id": "test2",
       "note": "bundle for test",
-      "payloads": "payload.96faf6aaf0395dc8c8795bf65131bc32.json"
+      "payloads": "payload.96faf6aaf0395dc8c8795bf65131bc32.json",
+      "active": false
     },
     {
       "id": "test3",
       "note": "bundle for test",
-      "payloads": "payload.99914b932bd37a50b983c5e7c90ae93b.json"
-    }
-  ],
-  "rulesets": [
-    {
-      "active": true,
-      "bundle_id": "test1",
-      "note": "ruleset for test 1"
-    },
-    {
-      "active": false,
-      "bundle_id": "test2",
-      "note": "ruleset for test 2"
-    },
-    {
-      "active": true,
-      "bundle_id": "test3",
-      "note": "ruleset for test 3"
+      "payloads": "payload.99914b932bd37a50b983c5e7c90ae93b.json",
+      "active": false
     }
   ],
   "services": {}

@@ -362,60 +362,9 @@ class Project(django.db.models.Model):
       else:
         raise DomeServerException(detail=e.faultString)
 
-  def GetNormalizedActiveConfig(self):
-    """Return the normalized version of Umpire active config."""
-    return self.NormalizeConfig(GetUmpireConfig(self.name))
-
-  @staticmethod
-  def NormalizeConfig(config):
-    bundle_id_set = set(b['id'] for b in config['bundles'])
-
-    # We do not allow multiple rulesets referring to the same bundle, so
-    # duplicate the bundle if we have found such cases.
-    ruleset_id_set = set()
-    for r in config['rulesets']:
-      # TODO(littlecvr): how to deal with a ruleset that refers to a
-      #                  non-existing bundle?
-
-      if r['bundle_id'] not in ruleset_id_set:
-        ruleset_id_set.add(r['bundle_id'])
-      else:  # need to duplicate
-        # generate a new name, may generate very long _copy_copy_copy... at the
-        # end if there are many conflicts
-        new_name = r['bundle_id']
-        while True:
-          new_name = '%s_copy' % new_name
-          if new_name not in ruleset_id_set and new_name not in bundle_id_set:
-            ruleset_id_set.add(new_name)
-            bundle_id_set.add(new_name)
-            break
-
-        # find the original bundle and duplicate it
-        src_bundle = next(
-            b for b in config['bundles'] if b['id'] == r['bundle_id'])
-        dst_bundle = copy.deepcopy(src_bundle)
-        dst_bundle['id'] = new_name
-        config['bundles'].append(dst_bundle)
-
-        # update the ruleset
-        r['bundle_id'] = new_name
-
-      # The key match is deprecated.
-      r.pop('match', None)
-
-    # sort 'bundles' section by their IDs
-    config['bundles'].sort(key=lambda b: b['id'])
-
-    # We do not allow bundles exist in 'bundles' section but not in 'ruleset'
-    # section.
-    for b in config['bundles']:
-      if b['id'] not in ruleset_id_set:
-        ruleset_id_set.add(b['id'])
-        config['rulesets'].append({'active': False,
-                                   'bundle_id': b['id'],
-                                   'note': b['note']})
-
-    return config
+  def GetActiveConfig(self):
+    """Return active Umpire config."""
+    return GetUmpireConfig(self.name)
 
   def MapNetbootResourceToTFTP(self, bundle_name):
     umpire_server = GetUmpireServer(self.name)
@@ -636,24 +585,23 @@ class Bundle(object):
   @staticmethod
   def HasResource(project_name, bundle_name, resource_name):
     project = Project.GetProjectByName(project_name)
-    config = project.GetNormalizedActiveConfig()
+    config = project.GetActiveConfig()
     bundle = next(b for b in config['bundles'] if b['id'] == bundle_name)
     payloads = GetUmpireServer(project_name).GetPayloadsDict(bundle['payloads'])
     return resource_name in payloads
 
   @staticmethod
-  def _FromUmpireBundleAndRuleset(project_name, bundle, ruleset):
-    """Take the target entry in the "bundles" and "rulesets" sections in Umpire
-    config, and turns them into the Bundle entity in Dome.
+  def _FromUmpireBundle(project_name, bundle):
+    """Take the target entry in the "bundles" sections in Umpire config, and
+    turns them into the Bundle entity in Dome.
 
     Args:
       bundle: the target bundle in the "bundles" section in Umpire config.
-      ruleset: ruleset that refers the the target bundle in Umpire config.
     """
     payloads = GetUmpireServer(project_name).GetPayloadsDict(bundle['payloads'])
     return Bundle(bundle['id'],  # name
-                  ruleset['note'],  # note
-                  ruleset['active'],  # active
+                  bundle['note'],  # note
+                  bundle['active'],  # active
                   payloads)  # payloads
 
   @staticmethod
@@ -665,14 +613,12 @@ class Bundle(object):
       bundle_name: name of the bundle to delete.
     """
     project = Project.GetProjectByName(project_name)
-    config = project.GetNormalizedActiveConfig()
+    config = project.GetActiveConfig()
     if not any(b['id'] == bundle_name for b in config['bundles']):
       raise DomeClientException(
           detail='Bundle %s not found' % bundle_name,
           status_code=rest_framework.status.HTTP_404_NOT_FOUND)
 
-    config['rulesets'] = [
-        r for r in config['rulesets'] if r['bundle_id'] != bundle_name]
     config['bundles'] = [
         b for b in config['bundles'] if b['id'] != bundle_name]
 
@@ -688,12 +634,10 @@ class Bundle(object):
           field in umpire config.
     """
     project = Project.GetProjectByName(project_name)
-    config = project.GetNormalizedActiveConfig()
+    config = project.GetActiveConfig()
 
     logger.info('Finding bundle %r in project %r', bundle_name, project_name)
     try:
-      ruleset = next(
-          r for r in config['rulesets'] if r['bundle_id'] == bundle_name)
       bundle = next(b for b in config['bundles'] if b['id'] == bundle_name)
     except StopIteration:
       logger.exception(traceback.format_exc())
@@ -701,15 +645,11 @@ class Bundle(object):
       logger.error(error_message)
       raise DomeClientException(error_message)
 
-    return Bundle._FromUmpireBundleAndRuleset(project_name, bundle, ruleset)
+    return Bundle._FromUmpireBundle(project_name, bundle)
 
   @staticmethod
   def ListAll(project_name):
     """Return all bundles as a list.
-
-    This function lists bundles in the following order:
-    1. bundles in the 'rulesets' section
-    2. bundles in the 'bunedles' section but not in the 'rulesets' section
 
     Args:
       project_name: name of the project.
@@ -718,16 +658,10 @@ class Bundle(object):
       A list of all bundles.
     """
     project = Project.GetProjectByName(project_name)
-    config = project.GetNormalizedActiveConfig()
+    config = project.GetActiveConfig()
 
-    bundle_dict = dict((b['id'], b) for b in config['bundles'])
-
-    bundle_list = []
-    for r in config['rulesets']:
-      b = bundle_dict[r['bundle_id']]
-      bundle_list.append(Bundle._FromUmpireBundleAndRuleset(project_name, b, r))
-
-    return bundle_list
+    return [Bundle._FromUmpireBundle(project_name, b)
+            for b in config['bundles']]
 
   @staticmethod
   def ModifyOne(project_name, src_bundle_name, dst_bundle_name=None,
@@ -748,13 +682,11 @@ class Bundle(object):
           partial update without listing all resources.
     """
     project = Project.GetProjectByName(project_name)
-    config = project.GetNormalizedActiveConfig()
+    config = project.GetActiveConfig()
 
     try:
       src_bundle = next(
           b for b in config['bundles'] if b['id'] == src_bundle_name)
-      src_ruleset = next(
-          r for r in config['rulesets'] if r['bundle_id'] == src_bundle_name)
     except StopIteration:
       logger.exception(traceback.format_exc())
       error_message = 'Bundle %r does not exist' % src_bundle_name
@@ -764,7 +696,6 @@ class Bundle(object):
     if not dst_bundle_name:
       # in-place update
       bundle = src_bundle
-      ruleset = src_ruleset
     else:
       if any(b for b in config['bundles'] if b['id'] == dst_bundle_name):
         raise DomeClientException(
@@ -774,18 +705,13 @@ class Bundle(object):
       bundle = copy.deepcopy(src_bundle)
       bundle['id'] = dst_bundle_name
       config['bundles'].insert(0, bundle)
-      ruleset = copy.deepcopy(src_ruleset)
-      ruleset['bundle_id'] = dst_bundle_name
-      config['rulesets'].insert(0, ruleset)
-      config = project.NormalizeConfig(config)
 
     if note is not None:
       # TODO(littlecvr): unit tests for unicode.
       bundle['note'] = note
-      ruleset['note'] = note
 
     if active is not None:
-      ruleset['active'] = active
+      bundle['active'] = active
 
     # only deploy if at least one thing has changed
     if dst_bundle_name or note is not None or active is not None:
@@ -810,7 +736,7 @@ class Bundle(object):
       new_order: a list of bundle names.
     """
     project = Project.GetProjectByName(project_name)
-    old_config = project.GetNormalizedActiveConfig()
+    old_config = project.GetActiveConfig()
 
     # make sure all names are in current config
     old_bundle_set = set(b['id'] for b in old_config['bundles'])
@@ -819,11 +745,11 @@ class Bundle(object):
       raise DomeClientException('All bundles must be listed when reordering')
 
     # build a map for fast query later
-    rulesets = dict((r['bundle_id'], r) for r in old_config['rulesets'])
+    bundles = dict((b['id'], b) for b in old_config['bundles'])
 
     # reorder bundles
     new_config = copy.deepcopy(old_config)
-    new_config['rulesets'] = [rulesets[n] for n in new_order]
+    new_config['bundles'] = [bundles[n] for n in new_order]
 
     project.UploadAndDeployConfig(new_config)
 
@@ -874,16 +800,6 @@ class Bundle(object):
         else:
           raise DomeServerException(detail=e.faultString)
 
-    config = GetUmpireConfig(project_name)
-    for ruleset in config['rulesets']:
-      if ruleset['bundle_id'] == bundle_name:
-        ruleset['note'] = bundle_note
-        ruleset['active'] = True
-        break
-
-    project = Project.GetProjectByName(project_name)
-    project.UploadAndDeployConfig(config)
-
     # find and return the new bundle
     return Bundle.ListOne(project_name, bundle_name)
 
@@ -902,12 +818,12 @@ class Service(object):
   @staticmethod
   def ListAll(project_name):
     project = Project.objects.get(pk=project_name)
-    return project.GetNormalizedActiveConfig()['services']
+    return project.GetActiveConfig()['services']
 
   @staticmethod
   def Update(project_name, data):
     project = Project.GetProjectByName(project_name)
-    config = project.GetNormalizedActiveConfig()
+    config = project.GetActiveConfig()
     config['services'].update(data)
     return project.UploadAndDeployConfig(config)
 

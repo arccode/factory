@@ -33,10 +33,7 @@ class HTTPServiceTest(unittest.TestCase):
         'bundles': [{
             'id': 'default',
             'note': '',
-            'payloads': 'payload.99914b932bd37a50b983c5e7c90ae93b.json'}],
-        'rulesets': [{
-            'bundle_id': 'default',
-            'note': '',
+            'payloads': 'payload.99914b932bd37a50b983c5e7c90ae93b.json',
             'active': True}]}
     self.env.config = umpire_config.UmpireConfig(umpire_config_dict)
     config_path = http.HTTPService.GenerateNginxConfig(

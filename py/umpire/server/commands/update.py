@@ -68,7 +68,7 @@ class ResourceUpdater(object):
             'Destination bundle ID already exists: %s' % dest_id)
       bundle = copy.deepcopy(bundle)
       bundle['id'] = dest_id
-      config.bundles.append(bundle)
+      config['bundles'].append(bundle)
 
     payloads = self._daemon.env.GetPayloadsDict(bundle['payloads'])
     for type_name, path in payloads_to_update:

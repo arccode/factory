@@ -5,8 +5,8 @@
 # found in the LICENSE file.
 
 import copy
+import json
 import os
-import re
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -23,60 +23,39 @@ EMPTY_SERVICES_CONFIG = os.path.join(TESTDATA_DIR,
 RESOURCE_CHECK_CONFIG = os.path.join(TESTDATA_DIR,
                                      'umpire_resource_check.json')
 
-_RE_COMMENT = re.compile(r'\s*# .+')
-
 
 class UmpireConfigTest(unittest.TestCase):
 
   def testLoadConfig(self):
     conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
-    self.assertEqual(1, len(conf['rulesets']))
-    ruleset = conf['rulesets'][0]
-    self.assertDictEqual(
-        {'bundle_id': 'test',
-         'note': 'ruleset for test',
-         'active': True},
-        ruleset)
-
     self.assertEqual(1, len(conf['bundles']))
     bundle = conf['bundles'][0]
     self.assertEqual('test', bundle['id'])
     self.assertEqual('bundle for test', bundle['note'])
+    self.assertTrue(bundle['active'])
 
   def testLoadConfigNotFound(self):
     self.assertRaises(
         IOError, config.UmpireConfig, file_path='/path/to/no/where')
 
   def testLoadConfigFromDict(self):
-    conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
-    self.assertEqual(1, len(conf['rulesets']))
-    ruleset = conf['rulesets'][0]
-    self.assertDictEqual(
-        {'bundle_id': 'test',
-         'note': 'ruleset for test',
-         'active': True},
-        ruleset)
-
+    with open(EMPTY_SERVICES_CONFIG) as f:
+      config_dict = json.load(f)
+    conf = config.UmpireConfig(config=config_dict)
     self.assertEqual(1, len(conf['bundles']))
     bundle = conf['bundles'][0]
     self.assertEqual('test', bundle['id'])
     self.assertEqual('bundle for test', bundle['note'])
+    self.assertTrue(bundle['active'])
 
   def testLoadConfigString(self):
     config_str = file_utils.ReadFile(EMPTY_SERVICES_CONFIG)
-    conf = config.UmpireConfig(config_str)
-    self.assertEqual(1, len(conf['rulesets']))
-    ruleset = conf['rulesets'][0]
-    self.assertDictEqual(
-        {'bundle_id': 'test',
-         'note': 'ruleset for test',
-         'active': True},
-        ruleset)
-
+    conf = config.UmpireConfig(config=config_str)
     self.assertEqual(1, len(conf['bundles']))
     bundle = conf['bundles'][0]
     self.assertEqual('test', bundle['id'])
     self.assertEqual('bundle for test', bundle['note'])
+    self.assertTrue(bundle['active'])
 
   def testLoadConfigFromConfigDeepCopy(self):
     conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
@@ -89,48 +68,33 @@ class UmpireConfigTest(unittest.TestCase):
     self.assertEqual(original_payloads, conf['bundles'][0]['payloads'])
 
   def testDumpConfig(self):
-    def RemoveComments(lines):
-      return [_RE_COMMENT.sub('', line.rstrip()) for line in lines]
+    conf = config.UmpireConfig(file_path=MINIMAL_CONFIG)
+    new_config = conf.Dump()
 
-    # TODO(deanliao): remove validate=False once services are implemented.
-    conf = config.UmpireConfig(file_path=MINIMAL_CONFIG, validate=False)
-    new_config_lines = conf.Dump().splitlines()
-    # TODO(deanliao): remove this once we can dump comments.
-    config_lines = RemoveComments(file_utils.ReadLines(MINIMAL_CONFIG))
-
-    self.maxDiff = None
-    self.assertListEqual(config_lines, new_config_lines)
+    self.assertEqual(conf, json.loads(new_config))
 
   def testGetDefaultBundle(self):
     conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
     self.assertEqual('test', conf.GetDefaultBundle()['id'])
 
-    conf['rulesets'].insert(
-        0, {'bundle_id': 'new_bundle', 'note': '', 'active': True})
     new_bundle = copy.deepcopy(conf['bundles'][0])
     new_bundle['id'] = 'new_bundle'
-    conf['bundles'].append(new_bundle)
+    conf['bundles'].insert(0, new_bundle)
     conf = config.UmpireConfig(conf)
     self.assertEqual('new_bundle', conf.GetDefaultBundle()['id'])
 
-    # First ruleset is inactive, use the lower one.
-    conf['rulesets'][0]['active'] = False
+    # First bundle is inactive, use the lower one.
+    conf['bundles'][0]['active'] = False
     self.assertEqual('test', conf.GetDefaultBundle()['id'])
 
   def testGetDefaultBundleNotFound(self):
     conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
-
-    # A default bundle ID derived from rulesets doesn't exist in bundles
-    # section.
-    conf['rulesets'].insert(0, {'bundle_id': 'new_bundle', 'active': True})
+    # no active bundle.
+    conf['bundles'][0]['active'] = False
     self.assertIsNone(conf.GetDefaultBundle())
 
-    # no active ruleset.
-    conf['rulesets'][1]['active'] = False
-    self.assertIsNone(conf.GetDefaultBundle())
-
-    # no ruleset.
-    del conf['rulesets'][:]
+    # no bundle.
+    del conf['bundles'][:]
     self.assertIsNone(conf.GetDefaultBundle())
 
   def testGetBundle(self):
@@ -157,19 +121,14 @@ class UmpireConfigTest(unittest.TestCase):
 
   def testGetActiveBundles(self):
     conf = config.UmpireConfig(file_path=EMPTY_SERVICES_CONFIG)
-    conf['rulesets'] = [
-        {'bundle_id': 'id_1', 'note': '', 'active': True},
-        {'bundle_id': 'id_2', 'note': '', 'active': False},
-        {'bundle_id': 'id_3', 'note': '', 'active': True},
-        {'bundle_id': 'id_5', 'note': '', 'active': True}]
     conf['bundles'] = [
-        {'id': 'id_1', 'note': '', 'payloads': ''},
-        {'id': 'id_2', 'note': '', 'payloads': ''},
-        {'id': 'id_3', 'note': '', 'payloads': ''},
-        {'id': 'id_4', 'note': '', 'payloads': ''}]
+        {'id': 'id_1', 'note': '', 'payloads': '', 'active': True},
+        {'id': 'id_2', 'note': '', 'payloads': '', 'active': False},
+        {'id': 'id_3', 'note': '', 'payloads': '', 'active': True},
+        {'id': 'id_4', 'note': '', 'payloads': '', 'active': True}]
     conf = config.UmpireConfig(conf)
     self.assertEqual(
-        [b['id'] for b in conf.GetActiveBundles()], ['id_1', 'id_3'])
+        [b['id'] for b in conf.GetActiveBundles()], ['id_1', 'id_3', 'id_4'])
 
 
 class ValidateResourcesTest(unittest.TestCase):
@@ -189,8 +148,8 @@ class ValidateResourcesTest(unittest.TestCase):
     config.ValidateResources(self.conf, self.env)
 
   def testFileNotFound(self):
-    # Resources in the second ruleset's bundle are not presented.
-    self.conf['rulesets'][1]['active'] = True
+    # Resources in the second bundle are not presented.
+    self.conf['bundles'][1]['active'] = True
     self.assertRaisesRegexp(common.UmpireError, 'NOT FOUND.+hwid.404.gz',
                             config.ValidateResources, self.conf, self.env)
 

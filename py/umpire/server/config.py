@@ -23,15 +23,6 @@ from cros.factory.utils.schema import List
 from cros.factory.utils.schema import Scalar
 
 
-# Rulesets validator.
-_RULESETS_SCHEMA = List(
-    'Rule sets for selecting configuration',
-    FixedDict(
-        'Rule and description',
-        items={
-            'bundle_id': Scalar('The target bundle', basestring),
-            'note': Scalar('Brief summary of this rule', basestring),
-            'active': Scalar('Initial state of this rule', bool)}))
 # Single bundle validator.
 # A valid configuration can contain multiple bundles. At any time, one device
 # state (mac, sn, mlb_sn) can map to one bundle only.
@@ -40,7 +31,8 @@ _BUNDLE_SCHEMA = FixedDict(
     items={
         'id': Scalar('Unique key for this bundle', basestring),
         'note': Scalar('Notes', basestring),
-        'payloads': Scalar('Payload', basestring)})
+        'payloads': Scalar('Payload', basestring),
+        'active': Scalar('State of this bundle', bool)})
 
 
 def ValidateConfig(config):
@@ -62,7 +54,6 @@ def ValidateConfig(config):
   schema = FixedDict(
       'Top level Umpire config fields',
       items={
-          'rulesets': _RULESETS_SCHEMA,
           'services': umpire_service.GetServiceSchemata(),
           'bundles': List('Bundles', _BUNDLE_SCHEMA)})
   schema.Validate(config)
@@ -100,9 +91,6 @@ class UmpireConfig(dict):
 
   Once validated, the UmpireConfig object is a dict for users to access config.
 
-  Properties:
-    bundle_map: maps bundle ID to bundle dict.
-
   Raises:
     TypeError: when 'services' is not a dict.
     KeyError: when top level key 'services' not found.
@@ -138,8 +126,6 @@ class UmpireConfig(dict):
       config = json_utils.LoadFile(file_path, convert_to_str=False)
     super(UmpireConfig, self).__init__(config)
 
-    self.bundle_map = {bundle['id']: bundle for bundle in self['bundles']}
-
     if validate:
       ValidateConfig(config)
       if not self.GetDefaultBundle():
@@ -159,9 +145,9 @@ class UmpireConfig(dict):
     Returns:
       The default bundle object. None if not found.
     """
-    for rule in self['rulesets']:
-      if rule['active']:
-        return self.GetBundle(rule['bundle_id'])
+    for bundle in self['bundles']:
+      if bundle['active']:
+        return bundle
     return None
 
   def GetBundle(self, bundle_id):
@@ -173,7 +159,7 @@ class UmpireConfig(dict):
     Returns:
       The bundle object. None if not found.
     """
-    return self.bundle_map.get(bundle_id)
+    return next((b for b in self['bundles'] if b['id'] == bundle_id), None)
 
   def GetActiveBundles(self):
     """Gets active bundles.
@@ -181,7 +167,6 @@ class UmpireConfig(dict):
     Returns:
       Iterable of active bundles.
     """
-    for active_rule in (r for r in self['rulesets'] if r['active']):
-      bundle_id = active_rule['bundle_id']
-      if bundle_id in self.bundle_map:
-        yield self.bundle_map[bundle_id]
+    for bundle in self['bundles']:
+      if bundle['active']:
+        yield bundle

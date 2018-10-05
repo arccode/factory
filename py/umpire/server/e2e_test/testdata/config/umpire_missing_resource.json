@@ -3,14 +3,8 @@
         {
             "id": "empty_init_bundle",
             "note": "n/a",
-            "payloads": "payload.nonexist.json"
-        }
-    ],
-    "rulesets": [
-        {
-            "active": true,
-            "bundle_id": "empty_init_bundle",
-            "note": "n/a"
+            "payloads": "payload.nonexist.json",
+            "active": true
         }
     ],
     "services": {

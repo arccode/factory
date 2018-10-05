@@ -134,7 +134,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
     cls.PROJECT_WITHOUT_UMPIRE_NAME = 'project_without_umpire'
     cls.PROJECT_WITH_UMPIRE_NAME = 'project_with_umpire'
     cls.PROJECT_WITH_UMPIRE_PORT = 8080
-    cls.MOCK_UMPIRE_VERSION = 2
+    cls.MOCK_UMPIRE_VERSION = 3
 
     models.Project.objects.create(name=cls.PROJECT_WITHOUT_UMPIRE_NAME)
     models.Project.objects.create(name=cls.PROJECT_WITH_UMPIRE_NAME,
@@ -468,21 +468,13 @@ class DomeAPITest(rest_framework.test.APITestCase):
                      rest_framework.status.HTTP_404_NOT_FOUND)
     self.assertIn('not found', response.json()['detail'])
 
-  def testListBundlesAndNormalizeUmpireConfig(self):
+  def testListBundles(self):
     response = self.client.get(
         '/projects/%s/bundles/' % self.PROJECT_WITH_UMPIRE_NAME,
         format='json')
     self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
 
     bundle_list = response.json()
-    # See testdata/expected_response-get_bundle_list.json,
-    # we enforce a one-to-one mapping between 'rulesets' and 'bundles' sections,
-    # after normalization:
-    # - 'testing_bundle_01' appears twice in the rulesets sections, so it should
-    #   be duplicated, becoming 'testing_bundle_01_copy'
-    # - 'testing_bundle_03' appears in the 'bundles' section but not in the
-    #   'rulesets' section, so it should be appended at the end of the
-    #   'rulesets' section (but set to inactive)
     with TestData('expected_response-get_bundle_list.json') as r:
       self.assertEqual(r, bundle_list)
 
@@ -490,7 +482,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
     response = self._ReorderBundles(self.PROJECT_WITH_UMPIRE_NAME,
                                     ['testing_bundle_02',
                                      'testing_bundle_01',
-                                     'testing_bundle_01_copy',
                                      'testing_bundle_03',
                                      'empty_init_bundle',
                                      u'testing_bundle_04_with_\u4e2d\u6587'])
@@ -513,8 +504,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.assertTrue('All bundles must be listed' in response.json()['detail'])
 
   def testUploadBundle(self):
-    # Cannot use the default mock because UploadNew() probes the staging config.
-    # We'll have to mock ourselves here.
     with TestData(
         'umpire_config-uploaded.json', deserialize=False) as config_str:
       self.mocks['xmlrpclib.ServerProxy']().GetActiveConfig = mock.MagicMock(
@@ -527,10 +516,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_201_CREATED)
-    with TestData('umpire_config-uploaded.json') as c:
-      self.assertEqual(c, self._GetLastestUploadedConfig())
-    with TestData('expected_response-upload_new_bundle.json') as r:
-      self.assertEqual(r, response.json())
+    self.mocks['xmlrpclib.ServerProxy']().ImportBundle.assert_called_once()
 
   def testUploadBundleThatAlreadyExists(self):
     BUNDLE_NAME = 'existing_bundle'
@@ -589,7 +575,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
       self.assertEqual(c, self._GetUploadedConfig(0))
 
     # just make sure Update() is called
-    self.assertTrue(self.mocks['xmlrpclib.ServerProxy']().Update.called)
+    self.mocks['xmlrpclib.ServerProxy']().Update.assert_called_once()
 
   def _ActivateBundle(self, project_name, bundle_name):
     return self.client.put('/projects/%s/bundles/%s/' % (project_name,
