@@ -93,44 +93,6 @@ def ValidateResources(config, env):
     raise common.UmpireError(''.join(error))
 
 
-def ShowDiff(original, new):
-  """Shows difference between original and new UmpireConfig.
-
-  Note that it only compares active bundles, i.e. bundles which are used by
-  active rulesets.
-
-  Args:
-    original: Original UmpireConfig object.
-    new: New UmpireConfig object.
-
-  Returns:
-    List of string showing the difference.
-  """
-  def DumpRulesets(rulesets):
-    INDENT_SPACE = '  '
-    for r in rulesets:
-      rule_json = json_utils.DumpStr(r, pretty=True)
-      result.extend((INDENT_SPACE + line) for line in rule_json.splitlines())
-
-  result = []
-  original_active_rulesets = [r for r in original['rulesets'] if r['active']]
-  new_active_rulesets = [r for r in new['rulesets'] if r['active']]
-  newly_added_rulesets = [r for r in new_active_rulesets
-                          if r not in original_active_rulesets]
-  deleted_rulesets = [r for r in original_active_rulesets
-                      if r not in new_active_rulesets]
-
-  if newly_added_rulesets:
-    result.append('Newly added rulesets:')
-    DumpRulesets(newly_added_rulesets)
-
-  if deleted_rulesets:
-    result.append('Deleted rulesets:')
-    DumpRulesets(deleted_rulesets)
-
-  return result
-
-
 class UmpireConfig(dict):
   """Container of Umpire configuration.
 
