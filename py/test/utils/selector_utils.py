@@ -97,9 +97,8 @@ class DataShelfSelector(ISelector):
     self._proxy = proxy
     self._key = key
 
-  def SetValue(self, key, value):
-    key = shelve_utils.DictKey.Join(self._key, key)
-    self._proxy.DataShelfSetValue(key, value)
+  def Set(self, value):
+    self._proxy.DataShelfSetValue(self._key, value)
 
   def Get(self, default=_DEFAULT_NOT_SET):
     if default is _DEFAULT_NOT_SET or self._proxy.DataShelfHasKey(self._key):
@@ -107,15 +106,9 @@ class DataShelfSelector(ISelector):
     else:
       return default
 
-  def Set(self, value):
-    self.SetValue('', value)
-
   def __getitem__(self, key):
     key = shelve_utils.DictKey.Join(self._key, key)
     return self.__class__(self._proxy, key)
-
-  def __setitem__(self, key, value):
-    self.SetValue(key, value)
 
   def __iter__(self):
     return iter(self._proxy.DataShelfGetChildren(self._key))
@@ -127,21 +120,21 @@ class DataShelfSelector(ISelector):
 class DictSelector(ISelector):
 
   def __init__(self, key='', value=_DEFAULT_NOT_SET):
-    self.key = key
-    self.value = value
+    self._key = key
+    self._value = value
 
   def __getitem__(self, key):
     parent, basename = shelve_utils.DictKey.Split(key)
     if parent:
       return self[parent][basename]
-    new_key = shelve_utils.DictKey.Join(self.key, basename)
-    if isinstance(self.value, collections.Mapping):
+    new_key = shelve_utils.DictKey.Join(self._key, basename)
+    if isinstance(self._value, collections.Mapping):
       return DictSelector(key=new_key,
-                          value=self.value.get(basename, _DEFAULT_NOT_SET))
+                          value=self._value.get(basename, _DEFAULT_NOT_SET))
     else:
       return DictSelector(key=new_key)
 
   def Get(self, default=_DEFAULT_NOT_SET):
-    if self.value is _DEFAULT_NOT_SET and default is _DEFAULT_NOT_SET:
-      raise KeyError(self.key)
-    return self.value if self.value is not _DEFAULT_NOT_SET else default
+    if self._value is _DEFAULT_NOT_SET and default is _DEFAULT_NOT_SET:
+      raise KeyError(self._key)
+    return self._value if self._value is not _DEFAULT_NOT_SET else default

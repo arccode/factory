@@ -511,7 +511,7 @@ def GetInstance(address=None, port=None):
   """
   proxy = goofy_proxy.GetRPCProxy(
       address, port, goofy_proxy.STATE_URL)
-  proxy.__dict__['data_shelf'] = DataShelfSelector(proxy)
+  proxy.data_shelf = DataShelfSelector(proxy)
   return proxy
 
 
