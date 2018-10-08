@@ -55,7 +55,6 @@ class ProjectSerializer(serializers.ModelSerializer):
               regex=r'^%s$' % common.PROJECT_NAME_RE,
               message='Invalid project name')])
 
-  is_umpire_recent = serializers.ReadOnlyField()
   has_existing_umpire = serializers.ReadOnlyField()
 
   class Meta(object):

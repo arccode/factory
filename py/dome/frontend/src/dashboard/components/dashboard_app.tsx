@@ -50,12 +50,6 @@ class DashboardApp extends React.Component<DashboardAppProps> {
       enableUmpireWithSettings,
     } = this.props;
 
-    const styles = {
-      warningText: {
-        color: 'red',
-      },
-    };
-
     return (
       <>
         {/* TODO(littlecvr): add <ProductionLineInfoPanel /> */}
@@ -79,12 +73,6 @@ class DashboardApp extends React.Component<DashboardAppProps> {
                 <>
                   <ListSubheader>Info</ListSubheader>
                   <Divider />
-                  {!project.isUmpireRecent &&
-                    <ListItem style={styles.warningText} disabled>
-                      The umpire instance is using an old version of umpire,
-                      and may not function properly, please restart it by
-                      disabling and re-enabling it.
-                    </ListItem>}
                   <ListItem>
                     port: {project.umpirePort}
                   </ListItem>

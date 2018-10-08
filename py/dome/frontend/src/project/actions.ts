@@ -57,8 +57,6 @@ export const updateProject = (
     task.actions.runTask<UmpireServerResponse>(
       description, 'PUT', `/projects/${name}/`, body, optimisticUpdate));
   dispatch(updateProjectImpl(name, {
-    umpireVersion: data.umpireVersion,
-    isUmpireRecent: data.isUmpireRecent,
     umpireReady: data.umpireEnabled,
   }));
 };

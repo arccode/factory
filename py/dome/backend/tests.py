@@ -211,8 +211,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
             'umpireEnabled': True,
             'umpirePort': UMPIRE_PORT,
-            'umpireVersion': self.MOCK_UMPIRE_VERSION,
-            'isUmpireRecent': True,
             'hasExistingUmpire': True
         })
 
@@ -231,9 +229,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'name': PROJECT_NAME,
             'umpireEnabled': False,
             'umpirePort': None,
-            'umpireVersion': None,
             'netbootBundle': None,
-            'isUmpireRecent': False,
             'hasExistingUmpire': False
         })
 
@@ -293,9 +289,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'name': self.PROJECT_WITH_UMPIRE_NAME,
             'umpireEnabled': False,
             'umpirePort': 8080,
-            'umpireVersion': None,
             'netbootBundle': None,
-            'isUmpireRecent': False,
             'hasExistingUmpire': False
         })
 
@@ -312,9 +306,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
             'umpireEnabled': False,
             'umpirePort': None,
-            'umpireVersion': None,
             'netbootBundle': None,
-            'isUmpireRecent': False,
             'hasExistingUmpire': False
         })
 
@@ -339,9 +331,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
             'name': self.PROJECT_WITHOUT_UMPIRE_NAME,
             'umpireEnabled': True,
             'umpirePort': UMPIRE_PORT,
-            'umpireVersion': self.MOCK_UMPIRE_VERSION,
             'netbootBundle': None,
-            'isUmpireRecent': True,
             'hasExistingUmpire': True
         })
 

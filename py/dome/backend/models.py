@@ -309,17 +309,12 @@ class Project(django.db.models.Model):
   name = django.db.models.CharField(max_length=200, primary_key=True)
   umpire_enabled = django.db.models.BooleanField(default=False)
   umpire_port = django.db.models.PositiveIntegerField(null=True)
-  umpire_version = django.db.models.PositiveIntegerField(null=True)
   netboot_bundle = django.db.models.CharField(max_length=200, null=True)
 
   # TODO(littlecvr): add TFTP and Overlord ports
 
   class Meta(object):
     ordering = ['name']
-
-  @property
-  def is_umpire_recent(self):
-    return self.umpire_version == umpire_common.UMPIRE_VERSION
 
   @property
   def has_existing_umpire(self):
@@ -437,12 +432,12 @@ class Project(django.db.models.Model):
         umpire_server.ExportPayload(bundle_name, payload_type, path_in_umpire)
     return self
 
-  def GetUmpireVersion(self, port):
-    logger.info('Waiting for umpire localhost:%s to start', port)
+  def GetUmpireVersion(self):
+    logger.info('Waiting for umpire localhost:%s to start', self.umpire_port)
     start_time = time.time()
     while time.time() < start_time + UMPIRE_START_WAIT_SECS:
       try:
-        server = GetUmpireServerFromPort(port)
+        server = GetUmpireServerFromPort(self.umpire_port)
         version = server.GetVersion()
         break
       except socket.error:
@@ -467,10 +462,10 @@ class Project(django.db.models.Model):
     container_name = Project.GetUmpireContainerName(self.name)
     logger.info('Adding Umpire container %r', container_name)
     port = self.GetExistingUmpirePort()
-    self.umpire_version = self.GetUmpireVersion(port)
     self.umpire_enabled = True
     self.umpire_port = port
     self.save()
+    self.TryRestartOldUmpireContainer()
     return self
 
   def CreateUmpireContainer(self, port):
@@ -523,17 +518,42 @@ class Project(django.db.models.Model):
       raise
 
     # push into the database
-    return self.AddExistingUmpireContainer()
+    self.umpire_enabled = True
+    self.umpire_port = port
+    self.save()
+    return self
 
   def DeleteUmpireContainer(self):
     logger.info('Deleting Umpire container %r', self.name)
     container_name = Project.GetUmpireContainerName(self.name)
     subprocess.call(['docker', 'stop', container_name])
     subprocess.call(['docker', 'rm', container_name])
-    self.umpire_version = None
     self.umpire_enabled = False
     self.save()
     return self
+
+  def TryRestartOldUmpireContainer(self):
+    if not self.umpire_enabled:
+      return
+
+    version = self.GetUmpireVersion()
+    if version == umpire_common.UMPIRE_VERSION:
+      return
+
+    logger.info('Restarting old Umpire container for %s at port %d '
+                '(version = %d, latest version = %d)', self.name,
+                self.umpire_port, version, umpire_common.UMPIRE_VERSION)
+    self.DeleteUmpireContainer()
+    self.CreateUmpireContainer(self.umpire_port)
+
+    version = self.GetUmpireVersion()
+    if version != umpire_common.UMPIRE_VERSION:
+      raise DomeServerException(
+          "Umpire version of new instance (%d) doesn't "
+          'match the version of what Dome expected (%d).' %
+          (version, umpire_common.UMPIRE_VERSION))
+
+    logger.info('Umpire container for %s had been restarted.', self.name)
 
   @staticmethod
   def GetUmpireContainerName(name):

@@ -10,10 +10,8 @@ export interface UmpireSetting {
 
 export interface UmpireServerResponse {
   name: string;
-  isUmpireRecent: boolean;
   umpireEnabled: boolean;
   umpirePort: number | null;
-  umpireVersion: number | null;
   netbootBundle: string | null;
   hasExistingUmpire: boolean;
 }

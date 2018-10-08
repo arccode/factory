@@ -892,6 +892,16 @@ do_prepare_dome() {
     "${DOCKER_IMAGE_NAME}" \
     python manage.py shell --command \
     "import backend; backend.models.TemporaryUploadedFile.objects.all().delete()"
+
+  # Restart all old umpire instances.
+  ${DOCKER} run \
+    --rm \
+    --volume /var/run/docker.sock:/var/run/docker.sock \
+    --volume "${HOST_DOME_DIR}/${db_filename}:${docker_db_dir}/${db_filename}" \
+    --volume "${host_log_dir}:${docker_log_dir}" \
+    --workdir "${DOCKER_DOME_DIR}" \
+    "${DOCKER_IMAGE_NAME}" \
+    python manage.py restart_old_umpire
 }
 
 do_run() {
