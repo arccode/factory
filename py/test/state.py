@@ -134,8 +134,7 @@ class FactoryState(object):
 
   TEST STATUS
     To track the execution status of factory auto tests, you can use
-    GetTestState, GetTestStates methods, and update_test_state
-    methods.
+    GetTestState(), GetTestStates(), and UpdateTestState() methods.
 
   All arguments may be provided either as strings, or as Unicode strings in
   which case they are converted to strings using UTF-8. All returned values
