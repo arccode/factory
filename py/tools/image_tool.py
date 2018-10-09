@@ -3283,7 +3283,8 @@ class EditLSBCommand(SubCommand):
     """
     answer = self._DoOptions(
         'Select cutoff method', 'CUTOFF_METHOD',
-        ['shutdown', 'reboot', 'battery_cutoff', 'ectool_cutoff'])
+        ['shutdown', 'reboot', 'battery_cutoff', 'ectool_cutoff',
+         'ec_hibernate'])
     if not answer.endswith('cutoff'):
       return
     self._DoOptions(
@@ -3514,7 +3515,8 @@ class EditToolkitConfigCommand(SubCommand):
     self.config_wip = {}
     answer = self._DoOptions(
         'Select cutoff method', 'CUTOFF_METHOD',
-        ['shutdown', 'reboot', 'battery_cutoff', 'ectool_cutoff'])
+        ['shutdown', 'reboot', 'battery_cutoff', 'ectool_cutoff',
+         'ec_hibernate'])
     if answer.endswith('cutoff'):
       self._DoOptions(
           'Select cutoff AC state', 'CUTOFF_AC_STATE',

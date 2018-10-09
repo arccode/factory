@@ -45,7 +45,7 @@ in your board overlay and put the files in `files/py/config/cutoff.json`.
 There are few options you can set:
 
  - `CUTOFF_METHOD`: What to do for cut-off. Available options: `shutdown`,
-     `reboot`, `ectool_cutoff` and `battery_cutoff`.
+     `reboot`, `ectool_cutoff`, `battery_cutoff` and `ec_hibernate`.
  - `CUTOFF_AC_STATE`: Should AC be removed of not. Available options:
      `connect_ac`, `remove_ac`.
  - `CUTOFF_BATTERY_MIN_PERCENTAGE`: Minimal allowed value for battery charging

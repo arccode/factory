@@ -3,7 +3,13 @@
   "type": "object",
   "properties": {
     "CUTOFF_METHOD": {
-      "enum": ["shutdown", "reboot", "battery_cutoff", "ectool_cutoff"]
+      "enum": [
+        "shutdown",
+        "reboot",
+        "battery_cutoff",
+        "ectool_cutoff",
+        "ec_hibernate"
+      ]
     },
     "CUTOFF_AC_STATE": {
       "enum": ["connect_ac", "remove_ac"]

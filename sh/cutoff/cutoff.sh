@@ -206,6 +206,9 @@ main() {
       battery_cutoff)
         crossystem battery_cutoff_request=1 && sleep 3 && reboot
       ;;
+      ec_hibernate)
+        ectool reboot_ec hibernate at-shutdown && shutdown -h now
+      ;;
       shutdown | *)
         # By default we shutdown the device without doing anything.
         shutdown -h now

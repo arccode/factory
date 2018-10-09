@@ -114,13 +114,21 @@ option_check_set() {
 # Usage: options_check_values
 options_check_values() {
   option_check_set "${CUTOFF_METHOD}" CUTOFF_METHOD \
-    shutdown reboot battery_cutoff ectool_cutoff
+    shutdown reboot battery_cutoff ectool_cutoff ec_hibernate
   option_check_set "${CUTOFF_AC_STATE}" CUTOFF_AC_STATE \
     connect_ac remove_ac
   option_check_range "${CUTOFF_BATTERY_MIN_PERCENTAGE}" \
     CUTOFF_BATTERY_MIN_PERCENTAGE 0 100
   option_check_range "${CUTOFF_BATTERY_MAX_PERCENTAGE}" \
     CUTOFF_BATTERY_MAX_PERCENTAGE 0 100
+
+  # Check if the options are not conflict to each other.
+  if [ "${CUTOFF_METHOD}" = "ec_hibernate" ] &&
+     [ "${CUTOFF_AC_STATE}" != "remove_ac" ]; then
+    die "G3 state cutoff requires the charger not to be plugged, please" \
+        "explicitly specify the option \"CUTOFF_AC_STATE\" to \"remove_ac\"."
+  fi
+
   if [ ! -e "${TTY}" ]; then
     die "Cannot find valid TTY in ${TTY}."
   fi
@@ -141,7 +149,7 @@ options_check_values() {
 # Usage: options_usage_help
 options_usage_help() {
   echo "Usage: $0
-    [--method shutdown|reboot|battery_cutoff|ectool_cutoff]
+    [--method shutdown|reboot|battery_cutoff|ectool_cutoff|ec_hibernate]
     [--check-ac connect_ac|remove_ac]
     [--min-battery-percent <minimum battery percentage>]
     [--max-battery-percent <maximum battery percentage>]
