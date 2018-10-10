@@ -388,8 +388,8 @@ class ShutdownTest(GoofyUITest):
     self.assertFalse(self.goofy.RunOnce())
 
     # There should be a list of tests to run on wake-up.
-    test_list_iterator = self.state.GetSharedData(
-        goofy.TESTS_AFTER_SHUTDOWN, True)
+    test_list_iterator = self.state.DataShelfGetValue(
+        goofy.TESTS_AFTER_SHUTDOWN, optional=True)
     self.assertEqual('test:RebootStep', test_list_iterator.Top().node)
     self._Wait()
 
@@ -456,7 +456,7 @@ class RebootFailureTest(GoofyUITest):
 
     # Something pretty close to the current time should be written
     # as the shutdown time.
-    shutdown_time = self.state.GetSharedData('shutdown_time')
+    shutdown_time = self.state.DataShelfGetValue('shutdown_time')
     self.assertTrue(math.fabs(time.time() - shutdown_time) < 2)
 
     # Kill and restart Goofy to simulate a reboot.

@@ -290,13 +290,13 @@ class TouchscreenCalibration(test_case.TestCase):
       except Exception as e:
         session.console.info('Exception at refreshing touch screen: %s', e)
       finally:
-        state.SetSharedData('touchscreen_status', self.touchscreen_status)
-        state.SetSharedData('num_tx', self.num_tx)
-        state.SetSharedData('num_rx', self.num_rx)
+        state.DataShelfSetValue('touchscreen_status', self.touchscreen_status)
+        state.DataShelfSetValue('num_tx', self.num_tx)
+        state.DataShelfSetValue('num_rx', self.num_rx)
     else:
-      self.touchscreen_status = state.GetSharedData('touchscreen_status')
-      self.num_tx = state.GetSharedData('num_tx')
-      self.num_rx = state.GetSharedData('num_rx')
+      self.touchscreen_status = state.DataShelfGetValue('touchscreen_status')
+      self.num_tx = state.DataShelfGetValue('num_tx')
+      self.num_rx = state.DataShelfGetValue('num_rx')
 
     session.console.info('tx = %d, rx = %d', self.num_tx, self.num_rx)
     self.ui.CallJSFunction('setTouchscreenStatus', self.touchscreen_status)
@@ -356,11 +356,11 @@ class TouchscreenCalibration(test_case.TestCase):
       else:
         shopfloor_status = 'Skipped for debugging'
 
-      state.SetSharedData('bb_status', bb_status)
-      state.SetSharedData('shopfloor_status', shopfloor_status)
+      state.DataShelfSetValue('bb_status', bb_status)
+      state.DataShelfSetValue('shopfloor_status', shopfloor_status)
     else:
-      bb_status = state.GetSharedData('bb_status')
-      shopfloor_status = state.GetSharedData('shopfloor_status')
+      bb_status = state.DataShelfGetValue('bb_status')
+      shopfloor_status = state.DataShelfGetValue('shopfloor_status')
 
     session.console.info('host_ips: %s', str(self.host_ip_dict))
     session.console.info('bb_status: %s', bb_status)

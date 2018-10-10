@@ -142,11 +142,11 @@ class TestInvocation(object):
     self.resume_test = False
     self.session_json_path = None
     key_post_shutdown = state.KEY_POST_SHUTDOWN % self.test.path
-    if state.GetSharedData(key_post_shutdown):
+    if state.DataShelfGetValue(key_post_shutdown):
       # If this is going to be a post-shutdown run of an active shutdown test,
       # reuse the existing invocation as uuid so that we can accumulate all the
       # logs in the same log file.
-      self.uuid = state.GetSharedData(key_post_shutdown)['invocation']
+      self.uuid = state.DataShelfGetValue(key_post_shutdown)['invocation']
     else:
       self.uuid = time_utils.TimedUUID()
     self.output_dir = os.path.join(paths.DATA_TESTS_DIR,
@@ -170,7 +170,7 @@ class TestInvocation(object):
         session.ENV_TEST_PATH: self.test.path}
 
     # Resuming from an active shutdown test, try to restore its metadata file.
-    if state.GetSharedData(key_post_shutdown):
+    if state.DataShelfGetValue(key_post_shutdown):
       try:
         self._LoadMetadata()
       except Exception:

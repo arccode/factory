@@ -494,7 +494,7 @@ class UI(object):
 
   def GetUILocale(self):
     """Returns current enabled locale in UI."""
-    return state.GetSharedData('ui_locale')
+    return state.DataShelfGetValue('ui_locale')
 
   def PlayAudioFile(self, audio_file):
     """Plays an audio file in the given path.

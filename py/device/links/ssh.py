@@ -119,9 +119,9 @@ class SSHLink(types.DeviceLink):
   @property
   def host(self):
     if self._host is None:
-      if not state.HasSharedData(_DEVICE_DATA_KEY):
+      if not state.DataShelfHasKey(_DEVICE_DATA_KEY):
         raise ClientNotExistError
-      return state.GetSharedData(_DEVICE_DATA_KEY)
+      return state.DataShelfGetValue(_DEVICE_DATA_KEY)
     else:
       return self._host
 
@@ -271,12 +271,12 @@ class SSHLink(types.DeviceLink):
 
   @classmethod
   def SetLinkIP(cls, ip):
-    state.SetSharedData(_DEVICE_DATA_KEY, ip)
+    state.DataShelfSetValue(_DEVICE_DATA_KEY, ip)
 
   @classmethod
   def ResetLinkIP(cls):
-    if state.HasSharedData(_DEVICE_DATA_KEY):
-      state.DeleteSharedData(_DEVICE_DATA_KEY)
+    if state.DataShelfHasKey(_DEVICE_DATA_KEY):
+      state.DataShelfDeleteKeys(_DEVICE_DATA_KEY)
 
   # pylint: disable=arguments-differ
   @classmethod

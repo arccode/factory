@@ -207,13 +207,12 @@ class GoofyRPC(object):
                  note['text'])
     if note['level'] == 'CRITICAL':
       self.goofy.RunEnqueue(self.goofy.stop)
-    self.goofy.state_instance.AppendSharedDataList(
-        'factory_note', note)
+    self.goofy.state_instance.DataShelfAppendToList('factory_note', note)
     self.PostEvent(Event(Event.Type.UPDATE_NOTES))
 
   def ClearNotes(self):
     logging.info('Clearing factory note')
-    self.goofy.state_instance.DeleteSharedData('factory_note', optional=True)
+    self.goofy.state_instance.DataShelfDeleteKeys('factory_note', optional=True)
     self.PostEvent(Event(Event.Type.UPDATE_NOTES))
 
   def LogStackTraces(self):
@@ -476,7 +475,7 @@ class GoofyRPC(object):
 
       ret_val = {}
       if self.goofy.run_id is None:
-        if self.goofy.state_instance.GetSharedData('run_id', optional=True):
+        if self.goofy.state_instance.DataShelfGetValue('run_id', optional=True):
           # A run ID is present in shared data but hasn't been restored.
           ret_val['status'] = RunState.STARTING
         else:

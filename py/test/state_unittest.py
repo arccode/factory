@@ -66,57 +66,57 @@ class FactoryStateTest(unittest.TestCase):
 
     self.assertSequenceEqual([], self.state.GetTestPaths())
 
-  def testSetSharedData(self):
-    self.state.SetSharedData('a', 1)
-    self.state.SetSharedData('b', 'abc')
+  def testDataShelfSetValue(self):
+    self.state.DataShelfSetValue('a', 1)
+    self.state.DataShelfSetValue('b', 'abc')
 
-    self.assertEqual(1, self.state.GetSharedData('a'))
-    self.assertEqual('abc', self.state.GetSharedData('b'))
+    self.assertEqual(1, self.state.DataShelfGetValue('a'))
+    self.assertEqual('abc', self.state.DataShelfGetValue('b'))
 
-  def testGetSharedData(self):
-    self.state.SetSharedData('a', 1)
-    self.state.SetSharedData('b', 'abc')
+  def testDataShelfGetValue(self):
+    self.state.DataShelfSetValue('a', 1)
+    self.state.DataShelfSetValue('b', 'abc')
 
-    self.assertEqual(1, self.state.GetSharedData('a'))
-    self.assertEqual('abc', self.state.GetSharedData('b'))
-    self.assertIsNone(self.state.GetSharedData('c', optional=True))
+    self.assertEqual(1, self.state.DataShelfGetValue('a'))
+    self.assertEqual('abc', self.state.DataShelfGetValue('b'))
+    self.assertIsNone(self.state.DataShelfGetValue('c', optional=True))
 
-  def testHasSharedData(self):
-    self.state.SetSharedData('a', 1)
-    self.state.SetSharedData('b', 'abc')
-    self.assertTrue(self.state.HasSharedData('a'))
-    self.assertFalse(self.state.HasSharedData('c'))
+  def testDataShelfHasKey(self):
+    self.state.DataShelfSetValue('a', 1)
+    self.state.DataShelfSetValue('b', 'abc')
+    self.assertTrue(self.state.DataShelfHasKey('a'))
+    self.assertFalse(self.state.DataShelfHasKey('c'))
 
-  def testDeleteSharedData(self):
-    self.state.SetSharedData('a', 1)
-    self.state.SetSharedData('b', 'abc')
-    self.state.DeleteSharedData('a')
-    self.state.DeleteSharedData('c', optional=True)
+  def testDataShelfDeleteKeys(self):
+    self.state.DataShelfSetValue('a', 1)
+    self.state.DataShelfSetValue('b', 'abc')
+    self.state.DataShelfDeleteKeys('a')
+    self.state.DataShelfDeleteKeys('c', optional=True)
 
-    self.assertFalse(self.state.HasSharedData('a'))
+    self.assertFalse(self.state.DataShelfHasKey('a'))
+    self.assertEqual('abc', self.state.DataShelfGetValue('b'))
 
-  def testUpdateSharedDataDict(self):
-    self.state.SetSharedData('data', {'a': 1})
-    self.state.UpdateSharedDataDict('data', {'a': 2, 'b': 3})
+    self.state.DataShelfSetValue('data', {'a': 1, 'b': 2})
+    self.state.DataShelfDeleteKeys('data.b')
+    self.state.DataShelfDeleteKeys('data.c', optional=True)
 
-    self.assertEqual({'a': 2, 'b': 3}, self.state.GetSharedData('data'))
+    self.assertEqual({'a': 1}, self.state.DataShelfGetValue('data'))
 
-    self.state.UpdateSharedDataDict('data', {'c': 4, 'b': 2})
+  def testDataShelfUpdateValue(self):
+    self.state.DataShelfSetValue('data', {'a': 1})
+    self.state.DataShelfUpdateValue('data', {'a': 2, 'b': 3})
+
+    self.assertEqual({'a': 2, 'b': 3}, self.state.DataShelfGetValue('data'))
+
+    self.state.DataShelfUpdateValue('data', {'c': 4, 'b': 2})
     self.assertEqual({'a': 2, 'b': 2, 'c': 4},
-                     self.state.GetSharedData('data'))
+                     self.state.DataShelfGetValue('data'))
 
-  def testDeleteSharedDataDictItem(self):
-    self.state.SetSharedData('data', {'a': 1, 'b': 2})
-    self.state.DeleteSharedData('data.b')
-    self.state.DeleteSharedData('data.c', optional=True)
+  def testDataShelfAppendToList(self):
+    self.state.DataShelfSetValue('data', [1, 2])
+    self.state.DataShelfAppendToList('data', 3)
 
-    self.assertEqual({'a': 1}, self.state.GetSharedData('data'))
-
-  def testAppendSharedDataList(self):
-    self.state.SetSharedData('data', [1, 2])
-    self.state.AppendSharedDataList('data', 3)
-
-    self.assertEqual([1, 2, 3], self.state.GetSharedData('data'))
+    self.assertEqual([1, 2, 3], self.state.DataShelfGetValue('data'))
 
   def testLayers(self):
     self.state.DataShelfSetValue('data', {'a': 0, 'b': 2})

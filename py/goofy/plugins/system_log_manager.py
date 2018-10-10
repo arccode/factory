@@ -333,9 +333,8 @@ class SystemLogManager(plugin.Plugin):
 
   def _FindKcrash(self):
     """Finds kcrash files, logs them, and marks them as seen."""
-    seen_crashes = set(
-        self.goofy.state_instance.GetSharedData('seen_crashes', optional=True)
-        or [])
+    seen_crashes = set(self.goofy.state_instance.DataShelfGetValue(
+        'seen_crashes', optional=True) or [])
 
     for path in glob.glob('/var/spool/crash/*'):
       if not os.path.isfile(path):
@@ -381,5 +380,5 @@ class SystemLogManager(plugin.Plugin):
         logging.exception('Unable to handle crash files %s', path)
       seen_crashes.add(path)
 
-    self.goofy.state_instance.SetSharedData(
+    self.goofy.state_instance.DataShelfSetValue(
         'seen_crashes', list(seen_crashes))

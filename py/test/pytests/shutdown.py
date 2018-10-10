@@ -335,13 +335,14 @@ class ShutdownTest(test_case.TestCase):
 
   def LocalShutdown(self):
     key_post_shutdown = state.KEY_POST_SHUTDOWN % self.test_info.path
-    post_shutdown = self.goofy.GetSharedData(key_post_shutdown, True)
+    post_shutdown = self.goofy.DataShelfGetValue(key_post_shutdown,
+                                                 optional=True)
     if post_shutdown:
       # Only do post shutdown verification once.
       self.ui.SetState(
           _('Verifying system state after {operation}',
             operation=self.operation_label))
-      self.goofy.DeleteSharedData(key_post_shutdown)
+      self.goofy.DataShelfDeleteKeys(key_post_shutdown)
 
       if post_shutdown['goofy_error']:
         raise ShutdownError(post_shutdown['goofy_error'])

@@ -256,8 +256,12 @@ def DeleteDeviceData(delete_keys, optional=False):
   if isinstance(delete_keys, basestring):
     delete_keys = [delete_keys]
   logging.info('Deleting device data: %s', delete_keys)
-  data = state.GetInstance().DeleteSharedDataDictItem(
-      state.KEY_DEVICE_DATA, delete_keys, optional)
+
+  delete_device_keys = [shelve_utils.DictKey.Join(state.KEY_DEVICE_DATA, key)
+                        for key in delete_keys]
+  instance = state.GetInstance()
+  instance.DataShelfDeleteKeys(delete_device_keys, optional)
+  data = instance.DataShelfGetValue(state.KEY_DEVICE_DATA, optional=True) or {}
   logging.info('Updated device data; complete device data is now %s',
                privacy.FilterDict(data))
   _PostUpdateSystemInfo()
@@ -297,8 +301,9 @@ def UpdateDeviceData(new_device_data):
 
   VerifyDeviceData(new_device_data)
 
-  data = state.GetInstance().UpdateSharedDataDict(
-      state.KEY_DEVICE_DATA, new_device_data)
+  instance = state.GetInstance()
+  instance.DataShelfUpdateValue(state.KEY_DEVICE_DATA, new_device_data)
+  data = instance.DataShelfGetValue(state.KEY_DEVICE_DATA, optional=True) or {}
   logging.info('Updated device data; complete device data is now %s',
                privacy.FilterDict(data))
   _PostUpdateSystemInfo()

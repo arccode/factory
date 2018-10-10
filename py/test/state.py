@@ -129,7 +129,7 @@ class FactoryState(object):
   The major provided features are:
   SHARED DATA
     You can get/set simple data into the states and share between all tests.
-    See GetSharedData(name) and SetSharedData(name, value) for more
+    See DataShelfGetValue(name) and DataShelfSetValue(name, value) for more
     information.
 
   TEST STATUS
@@ -247,120 +247,9 @@ class FactoryState(object):
     for layer in self.layers:
       layer.tests_shelf.Clear()
 
-  @sync_utils.Synchronized
-  def SetSharedData(self, key, value):
-    """Sets shared data item."""
-    self.DataShelfSetValue(key, value)
-
-  @sync_utils.Synchronized
-  def GetSharedData(self, key, optional=False):
-    """Retrieves a shared data item.
-
-    Args:
-      key: The key whose value to retrieve.
-      optional: True to return None if not found; False to raise a KeyError.
-    """
-    return self.DataShelfGetValue(key, optional)
-
-  @sync_utils.Synchronized
-  def HasSharedData(self, key):
-    """Returns if a shared data item exists."""
-    return self.DataShelfHasKey(key)
-
-  @sync_utils.Synchronized
-  def DeleteSharedData(self, key, optional=False):
-    """Deletes a shared data item.
-
-    Args:
-      key: The key whose value to delete.
-      optional: False to raise a KeyError if not found.
-    """
-    self.DataShelfDeleteKeys([key], optional)
-
-  @sync_utils.Synchronized
-  def UpdateSharedDataDict(self, key, new_data):
-    """Updates values a shared data item whose value is a dictionary.
-
-    This is roughly equivalent to
-
-      data = GetSharedData(key) or {}
-      data.Update(new_data)
-      SetSharedData(key, data)
-      return data
-
-    except that it is atomic.
-
-    Args:
-      key: The key for the data item to update.
-      new_data: A dictionary of items to update.
-
-    Returns:
-      The updated value.
-    """
-    self.DataShelfUpdateValue(key, new_data)
-    return self.DataShelfGetValue(key, True) or {}
-
-  @sync_utils.Synchronized
-  def DeleteSharedDataDictItem(self, shared_data_key,
-                               delete_keys, optional):
-    """Deletes items from a shared data item whose value is a dict.
-
-    This is roughly equivalent to
-
-      data = GetSharedData(shared_data_key) or {}
-      for key in delete_keys:
-        try:
-          del data[key]
-        except KeyError:
-          if not optional:
-            raise
-      SetSharedData(shared_data_key, data)
-      return data
-
-    except that it is atomic.
-
-    Args:
-      shared_data_key: The key for the data item to update.
-      delete_keys: A list of keys to delete from the dict.
-      optional: False to raise a KeyError if not found.
-
-    Returns:
-      The updated value.
-    """
-    self.DataShelfDeleteKeys(
-        [shelve_utils.DictKey.Join(shared_data_key, key)
-         for key in delete_keys],
-        optional)
-    return self.DataShelfGetValue(shared_data_key, True) or {}
-
-  @sync_utils.Synchronized
-  def AppendSharedDataList(self, key, new_item):
-    """Appends an item to a shared data item whose value is a list.
-
-    This is roughly equivalent to
-
-      data = GetSharedData(key) or []
-      data.append(new_item)
-      SetSharedData(key, data)
-      return data
-
-    except that it is atomic.
-
-    Args:
-      key: The key for the data item to append.
-      new_item: The item to be appended.
-
-    Returns:
-      The updated value.
-    """
-    data = self.DataShelfGetValue(key, optional=True) or []
-    data.append(new_item)
-    self.DataShelfSetValue(key, data)
-    return data
-
   #############################################################################
   # The following functions are exposed for data_shelf APIs.
-  # In the future, *_shared_data APIs might be deprecated, users shall use
+  # *SharedData APIs are deprecated. Users shall use
   # `state_proxy.data_shelf.{GetValue, SetValue, GetKeys, ...}`, which use the
   # following functions.
   #
@@ -385,26 +274,6 @@ class FactoryState(object):
   # it is a dict, it should always be a dict.
   #############################################################################
   @sync_utils.Synchronized
-  def DataShelfSetValue(self, key, value):
-    """Set key to value on top layer."""
-    self.layers[-1].data_shelf.SetValue(key, value)
-
-  @sync_utils.Synchronized
-  def DataShelfUpdateValue(self, key, value):
-    """Update key by value on top layer."""
-    self.layers[-1].data_shelf.UpdateValue(key, value)
-
-  @sync_utils.Synchronized
-  def DataShelfDeleteKeys(self, keys, optional=False):
-    """Delete data with keys on top layer."""
-    self.layers[-1].data_shelf.DeleteKeys(keys, optional=optional)
-
-  @sync_utils.Synchronized
-  def DataShelfHasKey(self, key):
-    """Returns True if any layer contains the key."""
-    return any(layer.data_shelf.HasKey(key) for layer in self.layers)
-
-  @sync_utils.Synchronized
   def DataShelfGetValue(self, key, optional=False):
     """Get the merged value of given key.
 
@@ -417,6 +286,11 @@ class FactoryState(object):
 
         DataShelfGetValue('a')  => '456'
         DataShelfGetValue('a.b') => '123'
+
+    Args:
+      key: The key whose value to be retrieved.
+      optional: If key is not found, True to return None and False to raise a
+      KeyError
 
     Returns:
       A merged value, can be any JSON supported types.
@@ -437,6 +311,29 @@ class FactoryState(object):
     raise KeyError(key)
 
   @sync_utils.Synchronized
+  def DataShelfSetValue(self, key, value):
+    """Set key to value on top layer."""
+    self.layers[-1].data_shelf.SetValue(key, value)
+
+  @sync_utils.Synchronized
+  def DataShelfUpdateValue(self, key, value):
+    """Update key by value on top layer."""
+    self.layers[-1].data_shelf.UpdateValue(key, value)
+
+  @sync_utils.Synchronized
+  def DataShelfDeleteKeys(self, keys, optional=False):
+    """Delete data with keys on top layer."""
+    # In case there's only one single key.
+    if isinstance(keys, basestring):
+      keys = [keys]
+    self.layers[-1].data_shelf.DeleteKeys(keys, optional=optional)
+
+  @sync_utils.Synchronized
+  def DataShelfHasKey(self, key):
+    """Returns True if any layer contains the key."""
+    return any(layer.data_shelf.HasKey(key) for layer in self.layers)
+
+  @sync_utils.Synchronized
   def DataShelfGetChildren(self, key):
     """Returns children of given path (key)."""
     if not self.DataShelfHasKey(key):
@@ -449,6 +346,13 @@ class FactoryState(object):
       except KeyError:
         pass
     return list(ret)
+
+  @sync_utils.Synchronized
+  def DataShelfAppendToList(self, key, new_item):
+    """Appends data to a list with given key. d[key] += [new_item]."""
+    data = self.DataShelfGetValue(key, optional=True) or []
+    data.append(new_item)
+    self.DataShelfSetValue(key, data)
 
   #############################################################################
   # The following functions are exposed for layer APIs
@@ -516,24 +420,24 @@ def GetInstance(address=None, port=None):
 
 
 # ---------------------------------------------------------------------------
-# Helper functions for shared data
-def GetSharedData(key, default=None):
-  if not GetInstance().HasSharedData(key):
+# Helper functions for data shelf manipulation.
+
+def DataShelfGetValue(key, default=None):
+  if not GetInstance().DataShelfHasKey(key):
     return default
-  return GetInstance().GetSharedData(key)
+  return GetInstance().DataShelfGetValue(key)
 
+def DataShelfSetValue(key, value):
+  return GetInstance().DataShelfSetValue(key, value)
 
-def SetSharedData(key, value):
-  return GetInstance().SetSharedData(key, value)
+def DataShelfUpdateValue(key, value):
+  return GetInstance().DataShelfUpdateValue(key, value)
 
+def DataShelfHasKey(key):
+  return GetInstance().DataShelfHasKey(key)
 
-def HasSharedData(key):
-  return GetInstance().HasSharedData(key)
-
-
-def DeleteSharedData(key):
-  return GetInstance().DeleteSharedData(key)
-
+def DataShelfDeleteKeys(key, optional=False):
+  return GetInstance().DataShelfDeleteKeys(key, optional=optional)
 
 class TestState(object):
   """The complete state of a test.
