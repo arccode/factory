@@ -153,10 +153,10 @@ class GooftoolTest(unittest.TestCase):
   }
 
   _SIMPLE_VALID_RW_VPD_DATA = {
-      'gbind_attribute': ('=CjAKIP______TESTING_______-rhGkyZUn_zbTOX'
-                          '_9OQI_3EAAaCmNocm9tZWJvb2sQouDUgwQ='),
-      'ubind_attribute': ('=CjAKIP______TESTING_______-pcjzxZ-RLS7_mk'
-                          'oo4HAAaEAEaCmNocm9tZWJvb2sQjd7I8w0='),
+      'gbind_attribute': ('=CjAKIAABAgMEBQYHCAkKCwwNDg8QERITFBUWF'
+                          'xgZGhscHR4fEAAaCmNocm9tZWJvb2sQhOfLlA8='),
+      'ubind_attribute': ('=CjAKIAABAgMEBQYHCAkKCwwNDg8QERITFBUWF'
+                          'xgZGhscHR4fEAEaCmNocm9tZWJvb2sQgdSQ-AI='),
       'rlz_embargo_end_date': '2018-03-09',
       'should_send_rlz_ping': '1',
   }
@@ -434,6 +434,16 @@ class GooftoolTest(unittest.TestCase):
     self.mox.ReplayAll()
     self.assertRaisesRegexp(
         ValueError, 'gbind_attribute is invalid:', self._gooftool.VerifyVPD)
+
+  def testVerifyVPD_InvalidTestingRegistrationCode(self):
+    rw_vpd_value = self._SIMPLE_VALID_RW_VPD_DATA.copy()
+    rw_vpd_value['gbind_attribute'] = (
+        '=CjAKIP______TESTING_______-rhGkyZUn_'
+        'zbTOX_9OQI_3EAAaCmNocm9tZWJvb2sQouDUgwQ=')
+    self._SetupVPDMocks(ro=self._SIMPLE_VALID_RO_VPD_DATA, rw=rw_vpd_value)
+    self.mox.ReplayAll()
+    self.assertRaisesRegexp(
+        ValueError, 'Incorrect VPD: gbind_attribute', self._gooftool.VerifyVPD)
 
   def testVerifyVPD_UnexpectedValues(self):
     ro_vpd_value = self._SIMPLE_VALID_RO_VPD_DATA.copy()
