@@ -427,6 +427,15 @@ class GooftoolTest(unittest.TestCase):
     self.assertRaisesRegexp(ValueError, 'Unknown region: "nonexist".',
                             self._gooftool.VerifyVPD)
 
+  def testVerifyVPD_InvalidMACKey(self):
+    ro_vpd_value = self._SIMPLE_VALID_RO_VPD_DATA.copy()
+    ro_vpd_value['wifi_mac'] = '00:11:de:ad:be:ef'
+    self._SetupVPDMocks(ro=ro_vpd_value, rw=self._SIMPLE_VALID_RW_VPD_DATA)
+    self.mox.ReplayAll()
+    self.assertRaisesRegexp(KeyError,
+                            'Unexpected RO VPD: wifi_mac=00:11:de:ad:be:ef.',
+                            self._gooftool.VerifyVPD)
+
   def testVerifyVPD_InvalidRegistrationCode(self):
     rw_vpd_value = self._SIMPLE_VALID_RW_VPD_DATA.copy()
     rw_vpd_value['gbind_attribute'] = 'badvalue'
