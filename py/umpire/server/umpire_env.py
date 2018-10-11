@@ -20,6 +20,7 @@ from cros.factory.umpire import common
 from cros.factory.umpire.server import config
 from cros.factory.umpire.server import resource
 from cros.factory.utils import file_utils
+from cros.factory.utils import json_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
@@ -36,11 +37,13 @@ DEFAULT_BASE_DIR = os.path.join('var', 'db', 'factory', 'umpire')
 DEFAULT_SERVER_DIR = os.path.join('usr', 'local', 'factory')
 
 SESSION_JSON_FILE = 'session.json'
+PARAMETER_JSON_FILE = 'parameters.json'
 
 # File name under base_dir
 _ACTIVE_UMPIRE_CONFIG = 'active_umpire.json'
 _UMPIRE_DATA_DIR = 'umpire_data'
 _RESOURCES_DIR = 'resources'
+_PARAMETERS_DIR = 'parameters'
 _CONFIG_DIR = 'conf'
 _LOG_DIR = 'log'
 _PID_DIR = 'run'
@@ -83,6 +86,10 @@ class UmpireEnv(object):
     return os.path.join(self.base_dir, _RESOURCES_DIR)
 
   @property
+  def parameters_dir(self):
+    return os.path.join(self.base_dir, _PARAMETERS_DIR)
+
+  @property
   def config_dir(self):
     return os.path.join(self.base_dir, _CONFIG_DIR)
 
@@ -105,6 +112,10 @@ class UmpireEnv(object):
   @property
   def active_config_file(self):
     return os.path.join(self.base_dir, _ACTIVE_UMPIRE_CONFIG)
+
+  @property
+  def parameter_json_file(self):
+    return os.path.join(self.parameters_dir, PARAMETER_JSON_FILE)
 
   @property
   def umpire_base_port(self):
@@ -216,8 +227,17 @@ class UmpireEnv(object):
     file_utils.SymlinkRelative(config_to_activate, self.active_config_file,
                                base=self.base_dir)
 
-  def _AddResource(self, src_path, res_name, use_move):
-    dst_path = os.path.join(self.resources_dir, res_name)
+  def _AddFile(self, src_path, dst_path, use_move):
+    """Check if destination file exists and add file.
+
+    Args:
+      src_path: source file path.
+      dst_path: destination file path.
+      use_move: use os.rename() or file_utils.AtomicCopy().
+
+    Raise:
+      UmpireError if dst_path exists but has different content from src_path.
+    """
     if os.path.exists(dst_path):
       if filecmp.cmp(src_path, dst_path, shallow=False):
         logging.warning('Skip copying as file already exists: %s', dst_path)
@@ -229,7 +249,11 @@ class UmpireEnv(object):
     else:
       file_utils.AtomicCopy(src_path, dst_path)
     os.chmod(dst_path, 0o644)
-    logging.info('Resource added: %s', dst_path)
+    logging.info('File added: %s', dst_path)
+
+  def _AddResource(self, src_path, res_name, use_move):
+    dst_path = os.path.join(self.resources_dir, res_name)
+    self._AddFile(src_path, dst_path, use_move)
 
   def AddPayload(self, file_path, type_name):
     """Adds a cros_payload component into <base_dir>/resources.
@@ -320,6 +344,146 @@ class UmpireEnv(object):
     if check:
       file_utils.CheckPath(path, 'resource')
     return path
+
+  def _DumpParameter(self, parameter):
+    """Dump parameter to json file."""
+    json_utils.DumpFile(self.parameter_json_file, parameter)
+
+  def _AddParameter(self, src_path):
+    original_filename = os.path.basename(src_path)
+    md5sum = file_utils.MD5InHex(src_path)
+    new_filemame = '.'.join([original_filename, md5sum])
+    dst_path = os.path.join(self.parameters_dir, new_filemame)
+    self._AddFile(src_path, dst_path, False)
+    return dst_path
+
+  def UpdateParameterComponent(self, comp_id, dir_id, comp_name, using_ver,
+                               src_path):
+    """Update a parameter component file.
+
+    Support following types of actions:
+      1) Create new component.
+      2) Rollback component to existed version.
+      3) Update component to new version.
+
+    Args:
+      comp_id: component id. None if intend to create a new component.
+      dir_id: directory id where the component will be created.
+              None if component is at root directory.
+      comp_name: component name.
+      using_ver: file version component will use.
+      src_path: uploaded file path.
+
+    Returns:
+      Updated component dictionary.
+    """
+    parameters = self.GetParameterInfo()
+
+    dst_path = self._AddParameter(src_path) if src_path else None
+
+    if comp_id is None:
+      # check if same name component already existed in same dir
+      existed_comp = next((c for c in parameters['files']
+                           if c['name'] == comp_name and c['dir_id'] == dir_id),
+                          None)
+      if existed_comp:
+        # create file but name existed in same dir, view as updating version
+        comp_id = existed_comp['id']
+
+    if comp_id is None:
+      # create new component
+      comp_id = len(parameters['files'])
+      parameters['files'].append({
+          'id': comp_id,
+          'dir_id': dir_id,
+          'name': comp_name,
+          'using_ver': 0,
+          'revisions': [dst_path]
+      })
+    else:
+      # TODO(hsinyi): add rename component
+      component = parameters['files'][comp_id]
+      if dst_path:
+        # update component to new version
+        if using_ver is not None:
+          raise common.UmpireError(
+              'Intend to update version and use old version at the same time.')
+        version_count = len(component['revisions'])
+        component['revisions'].append(dst_path)
+        component['using_ver'] = version_count
+      elif using_ver is not None:
+        # rollback component to existed version
+        if using_ver >= len(component['revisions']) or using_ver < 0:
+          raise common.UmpireError(
+              'Intend to use unexisted version of parameter %d.' % comp_id)
+        component['using_ver'] = using_ver
+      else:
+        raise common.UmpireError('Unknown operation.')
+
+    self._DumpParameter(parameters)
+    return parameters['files'][comp_id]
+
+  def GetParameterInfo(self):
+    """Dump parameter info.
+
+    Returns:
+      Parameter dictionary, which contains component files and directories.
+      {
+        "files": FileComponent[],
+        "dirs": Directory[]
+      }
+      FileComponent = {
+        "id": number, // index
+        "dir_id": number | null, // directory index
+        "name": string, // component name
+        "using_ver": number, // version to use, range: [0, len(revisions))
+        "revisions": string[], // file paths
+      }
+      Directory = {
+        "id": number, // index
+        "parent_id": number | null, // parent directory index
+        "name": string, // directory name
+        "children_ids": number[], // children directory index
+      }
+    """
+    return json_utils.LoadFile(self.parameter_json_file)
+
+  def CreateParameterDirectory(self, parent_id, name):
+    """Create a parameter directory.
+
+    Args:
+      parent_id: parent directory id where the dir will be created.
+                 None if parent is root directory.
+      name: dir name.
+
+    Returns:
+      Created directory dictionary.
+    """
+    parameters = self.GetParameterInfo()
+
+    existed_dir = next((c for c in parameters['dirs']
+                        if c['name'] == name and c['parent_id'] == parent_id),
+                       None)
+    if existed_dir is not None:
+      # create dir but name existed in parent dir, directly return
+      return existed_dir
+
+    dir_id = len(parameters['dirs'])
+    new_dir = {
+        'id': dir_id,
+        'parent_id': parent_id,
+        'name': name,
+        'children_ids': []
+    }
+    parameters['dirs'].append(new_dir)
+
+    if parent_id is not None:
+      parameters['dirs'][parent_id]['children_ids'].append(dir_id)
+
+    # TODO(hsinyi): add rename directory
+
+    self._DumpParameter(parameters)
+    return new_dir
 
 
 class UmpireEnvForTest(UmpireEnv):

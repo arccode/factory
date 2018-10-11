@@ -192,3 +192,17 @@ class CLICommand(umpire_rpc.UmpireRPC):
   def StopServices(self, services):
     """Stops a list of services."""
     return self.daemon.StopServices(services)
+
+  @umpire_rpc.RPCCall
+  def UpdateParameterComponent(self, comp_id, dir_id, comp_name, using_ver,
+                               file_path=None):
+    return self.env.UpdateParameterComponent(comp_id, dir_id, comp_name,
+                                             using_ver, file_path)
+
+  @umpire_rpc.RPCCall
+  def GetParameterInfo(self):
+    return self.env.GetParameterInfo()
+
+  @umpire_rpc.RPCCall
+  def CreateParameterDirectory(self, parent_id, name):
+    return self.env.CreateParameterDirectory(parent_id, name)
