@@ -1027,7 +1027,7 @@ class Goofy(object):
     def PreUpdateHook():
       if auto_run_on_restart:
         self.SetForceAutoRun()
-      self.state_instance.close()
+      self.state_instance.Close()
 
     if updater.TryUpdate(pre_update_hook=PreUpdateHook):
       if post_update_hook:
