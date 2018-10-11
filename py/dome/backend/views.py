@@ -15,14 +15,18 @@ from rest_framework import status
 from rest_framework import views
 
 from backend import common
-from backend.models import Project
 from backend.models import Bundle
 from backend.models import DomeConfig
+from backend.models import ParameterComponent
+from backend.models import ParameterDirectory
+from backend.models import Project
 from backend.models import Service
 from backend.models import TemporaryUploadedFile
-from backend.serializers import ProjectSerializer
 from backend.serializers import BundleSerializer
 from backend.serializers import ConfigSerializer
+from backend.serializers import ParameterComponentSerializer
+from backend.serializers import ParameterDirectorySerializer
+from backend.serializers import ProjectSerializer
 from backend.serializers import ResourceSerializer
 from backend.serializers import ServiceSerializer
 from backend.serializers import UploadedFileSerializer
@@ -169,6 +173,28 @@ class BundleElementView(generics.GenericAPIView):
 class ResourceCollectionView(generics.CreateAPIView):
 
   serializer_class = ResourceSerializer
+
+  def perform_create(self, serializer):
+    serializer.save(project_name=self.kwargs['project_name'])
+
+
+class ParameterComponentsView(generics.ListCreateAPIView):
+
+  serializer_class = ParameterComponentSerializer
+
+  def get_queryset(self):
+    return ParameterComponent.ListAll(self.kwargs['project_name'])
+
+  def perform_create(self, serializer):
+    serializer.save(project_name=self.kwargs['project_name'])
+
+
+class ParameterDirectoriesView(generics.ListCreateAPIView):
+
+  serializer_class = ParameterDirectorySerializer
+
+  def get_queryset(self):
+    return ParameterDirectory.ListAll(self.kwargs['project_name'])
 
   def perform_create(self, serializer):
     serializer.save(project_name=self.kwargs['project_name'])

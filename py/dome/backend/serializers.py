@@ -8,9 +8,11 @@ from rest_framework import serializers
 from rest_framework import validators
 
 from backend import common
-from backend.models import Project
 from backend.models import Bundle
 from backend.models import DomeConfig
+from backend.models import ParameterComponent
+from backend.models import ParameterDirectory
+from backend.models import Project
 from backend.models import Resource
 from backend.models import Service
 from backend.models import TemporaryUploadedFile
@@ -129,3 +131,39 @@ class ServiceSerializer(serializers.ModelSerializer):
   class Meta(object):
     model = Service
     fields = '__all__'
+
+
+class ParameterComponentSerializer(serializers.Serializer):
+
+  id = serializers.IntegerField(allow_null=True)
+  dir_id = serializers.IntegerField(required=False, allow_null=True)
+  name = serializers.CharField()
+  using_ver = serializers.IntegerField(required=False)
+  revisions = serializers.ListField(required=False,
+                                    child=serializers.CharField())
+  file_id = serializers.IntegerField(required=False, write_only=True)
+
+  def create(self, validated_data):
+    """Override parent's method."""
+    project_name = validated_data.pop('project_name')
+    data = {'id': validated_data.pop('id'),
+            'dir_id': validated_data.pop('dir_id', None),
+            'name': validated_data.pop('name'),
+            'using_ver': validated_data.pop('using_ver', None),
+            'file_id': validated_data.pop('file_id', None)}
+    return ParameterComponent.CreateOne(project_name, **data)
+
+
+class ParameterDirectorySerializer(serializers.Serializer):
+
+  # TODO(hsinyi): id will be like component's id when rename feature is added.
+  id = serializers.IntegerField(required=False)
+  parent_id = serializers.IntegerField(required=False, allow_null=True)
+  name = serializers.CharField()
+
+  def create(self, validated_data):
+    """Override parent's method."""
+    project_name = validated_data.pop('project_name')
+    data = {'parent_id': validated_data.pop('parent_id'),
+            'name': validated_data.pop('name')}
+    return ParameterDirectory.CreateOne(project_name, **data)

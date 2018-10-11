@@ -890,3 +890,60 @@ class Service(object):
     config = project.GetNormalizedActiveConfig()
     config['services'].update(data)
     return project.UploadAndDeployConfig(config)
+
+
+class ParameterDirectory(object):
+
+  def __init__(self, id, parent_id, name, children_ids):
+    # pylint: disable=redefined-builtin
+    self.id = id
+    self.parent_id = parent_id
+    self.name = name
+    self.children_ids = children_ids
+
+  @staticmethod
+  def CreateOne(project_name, parent_id, name):
+    umpire_server = GetUmpireServer(project_name)
+    directory = umpire_server.CreateParameterDirectory(parent_id, name)
+    return ParameterDirectory(**directory)
+
+  @staticmethod
+  def ListAll(project_name):
+    umpire_server = GetUmpireServer(project_name)
+    parameters = umpire_server.GetParameterInfo()
+    return [ParameterDirectory(**p) for p in parameters['dirs']]
+
+
+class ParameterComponent(object):
+
+  def __init__(self, id, dir_id, name, using_ver, revisions):
+    # pylint: disable=redefined-builtin
+    self.id = id
+    self.dir_id = dir_id
+    self.name = name
+    self.using_ver = using_ver
+    self.revisions = revisions
+
+  @staticmethod
+  def CreateOne(project_name, id, dir_id, name, using_ver, file_id):
+    # pylint: disable=redefined-builtin
+    umpire_server = GetUmpireServer(project_name)
+    try:
+      component = None
+      if file_id:
+        with UploadedFile(file_id) as file_path:
+          component = umpire_server.UpdateParameterComponent(
+              id, dir_id, name, using_ver, file_path)
+      else:
+        component = umpire_server.UpdateParameterComponent(
+            id, dir_id, name, using_ver)
+      return ParameterComponent(**component)
+    except xmlrpclib.Fault as e:
+      raise DomeServerException(detail=e.faultString)
+    return None
+
+  @staticmethod
+  def ListAll(project_name):
+    umpire_server = GetUmpireServer(project_name)
+    parameters = umpire_server.GetParameterInfo()
+    return [ParameterComponent(**p) for p in parameters['files']]

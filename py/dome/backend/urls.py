@@ -56,6 +56,10 @@ urlpatterns = [
     url(r'^projects/%s/services/$' % PROJECT_URL_ARG,
         views.ServiceCollectionView.as_view()),
     url(r'^projects/%s/services/schema$' % PROJECT_URL_ARG,
-        views.ServiceSchemaView.as_view())]
+        views.ServiceSchemaView.as_view()),
+    url(r'^projects/%s/parameters/files/$' % PROJECT_URL_ARG,
+        views.ParameterComponentsView.as_view()),
+    url(r'^projects/%s/parameters/dirs/$' % PROJECT_URL_ARG,
+        views.ParameterDirectoriesView.as_view())]
 
 urlpatterns = format_suffix_patterns(urlpatterns)
