@@ -11,6 +11,7 @@ import config from '@app/config';
 import domeApp from '@app/dome_app';
 import error from '@app/error';
 import formDialog from '@app/form_dialog';
+import parameter from '@app/parameters';
 import project from '@app/project';
 import service from '@app/service';
 import task from '@app/task';
@@ -26,6 +27,7 @@ const appReducer = wrapReducer(combineReducers({
   [domeApp.constants.NAME]: domeApp.reducer,
   [error.constants.NAME]: error.reducer,
   [formDialog.constants.NAME]: formDialog.reducer,
+  [parameter.constants.NAME]: parameter.reducer,
   [project.constants.NAME]: project.reducer,
   [service.constants.NAME]: service.reducer,
   [task.constants.NAME]: task.reducer,

@@ -5,7 +5,8 @@
 import React from 'react';
 
 interface HiddenFileSelectProps {
-  onChange: (file: File | null) => void;
+  multiple: boolean;
+  onChange: (files: FileList | null) => void;
 }
 
 export class HiddenFileSelect extends React.Component<HiddenFileSelectProps> {
@@ -29,7 +30,7 @@ export class HiddenFileSelect extends React.Component<HiddenFileSelectProps> {
   handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     event.preventDefault();
     if (event.target.files) {
-      this.props.onChange(event.target.files[0]);
+      this.props.onChange(event.target.files);
     }
   }
 
@@ -40,6 +41,7 @@ export class HiddenFileSelect extends React.Component<HiddenFileSelectProps> {
         type="file"
         onChange={this.handleChange}
         ref={this.fileInputRef}
+        multiple={this.props.multiple}
       />);
   }
 }

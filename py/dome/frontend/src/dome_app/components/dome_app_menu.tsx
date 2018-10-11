@@ -70,9 +70,18 @@ const DomeAppMenu: React.SFC<DomeAppMenuProps> = ({
               key="BUNDLES_APP"
               className={classes.nested}
               disabled={!project.umpireReady}
-              divider
             >
               Bundles {project.umpireEnabled &&
+                !project.umpireReady && '(activating...)'}
+            </DomeAppMenuItem>,
+            <DomeAppMenuItem
+              app="PARAMETER_APP"
+              key="PARAMETER_APP"
+              className={classes.nested}
+              disabled={!project.umpireReady}
+              divider
+            >
+              Parameters {project.umpireEnabled &&
                 !project.umpireReady && '(activating...)'}
             </DomeAppMenuItem>,
           ]}

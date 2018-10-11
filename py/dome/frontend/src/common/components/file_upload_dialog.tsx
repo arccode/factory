@@ -11,39 +11,55 @@ import React from 'react';
 
 import {HiddenFileSelect} from './hidden_file_select';
 
-interface FileUploadDialogProps<T> {
+export type SelectProps<T = {}> = {
+  multiple: true,
+  onSubmit: (values: T & {files: FileList}) => void,
+} | {
+  multiple: false,
+  onSubmit: (values: T & {file: File}) => void,
+};
+
+type FileUploadDialogProps<T> = {
   children: JSX.Element;
   open: boolean;
   title: string;
   submitForm: () => void;
-  onSubmit: (values: T & {file: File}) => void;
   onCancel: () => void;
-}
+} & SelectProps<T>;
 
 interface FileUploadDialogState {
-  file: File | null;
+  files: FileList | null;
 }
 
-export default class FileUploadDialog<T>
-  extends React.Component<FileUploadDialogProps<T>, FileUploadDialogState> {
+export default class FileUploadDialog<T = {}> extends React.Component<
+  FileUploadDialogProps<T>, FileUploadDialogState> {
 
-  state: FileUploadDialogState = {
-    file: null,
+  static defaultProps = {
+    multiple: false,
   };
 
-  handleFileChange = (file: File | null) => {
-    this.setState({file});
+  state: FileUploadDialogState = {
+    files: null,
+  };
+
+  handleFileChange = (files: FileList | null) => {
+    this.setState({files});
   }
 
   handleSubmit = (values: T) => {
-    const file = this.state.file;
-    if (file == null) {
+    const files = this.state.files;
+    if (files == null) {
       throw new Error(
-        'File is null in FileUploadDialog, but handleSubmit is called.');
+        'Files are null in FileUploadDialog, but handleSubmit is called.');
     }
     // TODO(pihsun): We probably can use the spread operator after
     // https://github.com/Microsoft/TypeScript/issues/10727 is resolved.
-    this.props.onSubmit(Object.assign({file}, values));
+    if (this.props.multiple) {
+      this.props.onSubmit(Object.assign({files}, values));
+    } else {
+      const file = files[0];
+      this.props.onSubmit(Object.assign({file}, values));
+    }
   }
 
   componentWillUnmount() {
@@ -57,11 +73,15 @@ export default class FileUploadDialog<T>
 
   render() {
     const {children, open, title, onCancel, submitForm} = this.props;
-    const {file} = this.state;
-    const openDialog = open && file != null;
+    const {files} = this.state;
+    const openDialog = open && files != null;
     return (
       <>
-        {open && <HiddenFileSelect onChange={this.handleFileChange} />}
+        {open &&
+          <HiddenFileSelect
+            onChange={this.handleFileChange}
+            multiple={this.props.multiple}
+          />}
         <Dialog open={openDialog} onClose={onCancel}>
           <DialogTitle>{title}</DialogTitle>
           <DialogContent>

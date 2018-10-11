@@ -48,7 +48,9 @@ export const basicActions = {
 const filterFileFields = (obj: any): string[][] => {
   const result: string[][] = [];
   for (const [key, value] of Object.entries(obj)) {
-    if (value.constructor === Object) {
+    if (value == null) {
+      continue;
+    } else if (value.constructor === Object) {
       result.push(
         ...filterFileFields(value).map((path) => [key, ...path]));
     } else if (value instanceof File) {

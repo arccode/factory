@@ -5,6 +5,8 @@
 import bundle from '@app/bundle';
 import {UpdateResourceFormPayload} from '@app/bundle/types';
 import dashboard from '@app/dashboard';
+import parameter from '@app/parameters';
+import {UpdateParameterFormPayload} from '@app/parameters/types';
 
 import {Unionize} from '@common/types';
 
@@ -12,6 +14,8 @@ export interface FormPayloadTypeMap {
   [dashboard.constants.ENABLE_UMPIRE_FORM]: {};
   [bundle.constants.UPLOAD_BUNDLE_FORM]: {};
   [bundle.constants.UPDATE_RESOURCE_FORM]: UpdateResourceFormPayload;
+  [parameter.constants.UPDATE_PARAMETER_FORM]: UpdateParameterFormPayload;
+  [parameter.constants.CREATE_DIRECTORY_FORM]: {};
 }
 
 export type FormNames = keyof FormPayloadTypeMap;

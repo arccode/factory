@@ -6,7 +6,8 @@ export type AppName =
   'PROJECTS_APP' |
   'BUNDLES_APP' |
   'CONFIG_APP' |
-  'DASHBOARD_APP';
+  'DASHBOARD_APP' |
+  'PARAMETER_APP';
 
 export interface DomeInfo {
   dockerImageGithash: string;
