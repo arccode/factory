@@ -1361,22 +1361,26 @@ class ChromeOSFactoryBundle(object):
     # Build a new image based on first image's layout.
     gpt = pygpt.GPT.LoadFromFile(images[0])
     pad_blocks = gpt.header.FirstUsableLBA
-    # We can remove at least `diff_payload_size` space from stateful partition
-    state_blocks = (
+    # We can remove at least `diff_payload_size` space from stateful partition,
+    # but cannot make it smaller than the original size before copying the
+    # contents.
+    final_state_blocks = (
         sum(p.blocks for p in stateful_parts) - diff_payload_size / block_size)
+    state_blocks = max(stateful_parts[0].blocks, final_state_blocks)
     data_blocks = state_blocks + sum(p.blocks for p in kern_rootfs_parts)
     # pad_blocks hold header and partition tables, in front and end of image.
     new_size = (data_blocks + pad_blocks * 2) * block_size
 
+    logging.info('Creating new image file as %s M...', new_size / MEGABYTE)
     Shell(['truncate', '-s', '0', output])
     Shell(['truncate', '-s', str(new_size), output])
-    gpt.Resize(new_size)
-    assert (gpt.header.LastUsableLBA - gpt.header.FirstUsableLBA + 1 >=
-            data_blocks), 'Disk image is too small.'
 
     # Clear existing entries because this GPT was cloned from other image.
     for p in gpt.partitions:
       p.Zero()
+    gpt.Resize(new_size)
+    assert (gpt.header.LastUsableLBA - gpt.header.FirstUsableLBA + 1 >=
+            data_blocks), 'Disk image is too small.'
 
     used_guids = []
     def AddPartition(number, p, begin, blocks=None):
@@ -1400,27 +1404,42 @@ class ChromeOSFactoryBundle(object):
       gpt.UpdatePartition(p, number=number)
       return next_lba
 
-    begin = AddPartition(
-        1, stateful_parts[0], gpt.header.FirstUsableLBA, state_blocks)
+    # Put stateful partition at the end so we can resize it if needed.
+    begin = gpt.header.FirstUsableLBA
     for i, p in enumerate(kern_rootfs_parts, 2):
       begin = AddPartition(i, p, begin)
+    stateful_begin = begin
+    AddPartition(1, stateful_parts[0], stateful_begin, state_blocks)
 
     gpt.WriteToFile(output)
     gpt.WriteProtectiveMBR(output, create=True)
-
-    logging.info('Creating new image file as %s M...', new_size / MEGABYTE)
     new_state = Partition(output, PART_CROS_STATEFUL)
     old_state = Partition(images[0], PART_CROS_STATEFUL)
-    # TODO(chenghan): Deal with cases where new_state is smaller than old_state
+    # TODO(chenghan): Find a way to copy stateful without cros_payloads/
     old_state.Copy(new_state, check_equal=False)
-    logging.debug('Maximize stateful file system...')
-    new_state.ResizeFileSystem()
-
     with new_state.Mount(rw=True) as stateful:
-      # TODO(chenghan): Only remove files that are not selected due to
-      #                 duplicate boards
       payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
       Sudo('rm -rf "%s"/*' % payloads_dir)
+
+    if state_blocks == final_state_blocks:
+      # Stateful partition is expanded
+      logging.debug('Maximize stateful file system...')
+      new_state.ResizeFileSystem()
+    else:
+      # Stateful partition needs to shrink
+      logging.debug('Shrinking stateful file system...')
+      new_state.ResizeFileSystem(final_state_blocks * block_size)
+      final_size = new_size - (state_blocks - final_state_blocks) * block_size
+      logging.info('Resizing new image file to %s M...', final_size / MEGABYTE)
+      Shell(['truncate', '-s', str(final_size), output])
+      # Update GPT
+      new_state.Update(LastLBA=stateful_begin + final_state_blocks - 1)
+      gpt.UpdatePartition(new_state, number=1)
+      gpt.Resize(final_size)
+      gpt.WriteToFile(output)
+      gpt.WriteProtectiveMBR(output, create=True)
+
+    with new_state.Mount(rw=True) as stateful:
       board_list = []
       board_index = 0
 
@@ -1482,6 +1501,25 @@ class ChromeOSFactoryBundle(object):
       return resolved_entries
 
     ChromeOSFactoryBundle._RecreateRMAImage(output, images, _ResolveDuplicate)
+
+  @staticmethod
+  def ExtractRMAImage(output, image, select=None):
+    """Extract a board image from a universal RMA image."""
+
+    def _SelectBoard(image_entries):
+      assert len(image_entries) == 1, 'Does not support multiple boards.'
+      if select is not None:
+        selected = int(select) - 1
+        if not 0 <= selected < len(image_entries[0]):
+          raise ValueError('Index %d out of range.' % selected)
+      else:
+        title = 'Please select a board to extract.'
+        options = [str(entry.versions) for entry in image_entries[0]]
+        selected = UserSelect(title, options)
+
+      return [[image_entries[0][selected]]]
+
+    ChromeOSFactoryBundle._RecreateRMAImage(output, [image], _SelectBoard)
 
   @staticmethod
   def GetKernelVersion(image_path):
@@ -2053,6 +2091,41 @@ class MergeRMAImageCommand(SubCommand):
         self.args.output, self.args.images, self.args.auto_select)
     print('OK: Merged successfully in new image: %s' % output)
 
+class ExtractRMAImageCommand(SubCommand):
+  """Extract an RMA image from a universal RMA image."""
+  name = 'rma-extract'
+  aliases = ['extract_rma']
+
+  def Init(self):
+    self.subparser.add_argument(
+        '-f', '--force', action='store_true',
+        help='Overwrite existing output image file.')
+    self.subparser.add_argument(
+        '-o', '--output', required=True,
+        help='Path to the merged output image.')
+    self.subparser.add_argument(
+        '-i', '--image', required=True,
+        type=ArgTypes.ExistsPath,
+        help='Path to input RMA image.')
+    self.subparser.add_argument(
+        '-s', '--select', default=None,
+        help='Select the SELECT-th board in the shim to extract.')
+
+  def Run(self):
+    """Extract RMA (USB installation) disk image from a universal RMA image.
+
+    The RMA image should be created by 'image_tool rma-create' or
+    'image_tool rma-merge' command.
+    """
+    output = self.args.output
+    if os.path.exists(output) and not self.args.force:
+      raise RuntimeError(
+          'Output already exists (add -f to overwrite): %s' % output)
+
+    print('Scanning input image file...')
+    ChromeOSFactoryBundle.ExtractRMAImage(
+        self.args.output, self.args.image, self.args.select)
+    print('OK: Extracted successfully in new image: %s' % output)
 
 class ShowRMAImageCommand(SubCommand):
   """Show the content of a RMA image."""

@@ -213,6 +213,15 @@ class ImageToolRMATest(unittest.TestCase):
     self.assertEqual(data, [{'board': 'test2', 'kernel': 2, 'rootfs': 3},
                             {'board': 'test1', 'kernel': 4, 'rootfs': 5}])
 
+    # `rma-extract` to extract a board from a universal shim.
+    self.ImageTool(
+        'rma-extract', '-f', '-o', 'extract.bin', '-i', 'rma21.bin', '-s', '2')
+    image_tool.Partition('extract.bin', 1).CopyFile(
+        image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
+    with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
+      data = json.load(f)
+    self.assertEqual(data, [{'board': 'test1', 'kernel': 2, 'rootfs': 3}])
+
 
 if __name__ == '__main__':
   # Support `cros_payload` in bin/ folder.
