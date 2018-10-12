@@ -139,6 +139,7 @@ class Finalize(test_case.TestCase):
   ARGS = [
       Arg('write_protection', bool,
           'Check and enable write protection.', default=None),
+      Arg('has_ectool', bool, 'Has ectool utility or not.', default=True),
       Arg('secure_wipe', bool,
           'Wipe the stateful partition securely (False for a fast wipe).',
           default=True),
@@ -330,6 +331,8 @@ class Finalize(test_case.TestCase):
     if not self.args.write_protection:
       self.Warn('WRITE PROTECTION IS DISABLED.')
       command += ' --no_write_protect'
+    if not self.args.has_ectool:
+      command += ' --no_ectool'
     if not self.args.secure_wipe:
       command += ' --fast'
 

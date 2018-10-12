@@ -686,6 +686,7 @@ def UploadReport(options):
                 help='Do not enable firmware write protection.'),
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'),
+         _no_ectool_cmd_arg,
          _shopfloor_url_args_cmd_arg,
          _hwdb_path_cmd_arg,
          _hwid_status_list_cmd_arg,
