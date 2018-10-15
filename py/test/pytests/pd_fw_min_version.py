@@ -33,12 +33,14 @@ To verify PD chip in the port 0, add this in test list::
   }
 
 To verify multiple PD chips (ex: port 0 and 1), add this in test list::
+
   {
     "pytest_name": "pd_fw_min_version",
     "args": {
       "ports": [0, 1]
     }
   }
+
 """
 
 import logging

@@ -295,6 +295,10 @@ msgid "Partition Table"
 msgstr "分区表"
 
 #: ../build/pytests_label_generated.json
+msgid "PD FW Min Version"
+msgstr "PD 轫体最小版本"
+
+#: ../build/pytests_label_generated.json
 msgid "Ping Test"
 msgstr "连线测试"
 
