@@ -6,15 +6,16 @@ import {OVERRIDE_DELETE_KEY, OVERRIDE_REPLACE_KEY} from './common';
 
 export type JSONType =
     null | boolean | number | string | JSONArray | JSONObject;
+
 export interface JSONArray extends Array<JSONType> {
 }
+
 export interface JSONObject {
   [key: string]: JSONType;
 }
 
-export const isJSONObject = (x: JSONType): x is JSONObject => {
-  return x !== null && typeof x === 'object' && !Array.isArray(x);
-};
+export const isJSONObject = (x: JSONType): x is JSONObject =>
+    x !== null && typeof x === 'object' && !Array.isArray(x);
 
 export const prettyJSON = (obj: JSONType) => {
   const getAllKeys = (o: JSONType) => {

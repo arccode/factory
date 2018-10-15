@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es6",
     "module": "esnext",
-    "lib": ["es6", "dom", "dom.iterable", "scripthost"],
+    "lib": ["esnext", "dom"],
     "types": ["node"],
     "baseUrl": ".",
     "paths": {"@/*": ["src/*"]},
