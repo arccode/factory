@@ -24,7 +24,6 @@ from twisted.web import xmlrpc
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
-from cros.factory.umpire.server import http_post_resource
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.umpire.server import utils
 from cros.factory.umpire.server.web import wsgi as umpire_wsgi
@@ -38,7 +37,7 @@ class UmpireDaemon(object):
 
   Umpire daemon builds XMLRPC sites that serves command line utility and
   DUT requests related to Umpire configuration. It also builds web application
-  sites that provides interfaces for simple HTTP GET and POST.
+  sites that provides interfaces for simple HTTP GET.
 
   The daemon also has functional interfaces to restart service processes on
   configuration change.
@@ -149,13 +148,6 @@ class UmpireDaemon(object):
     self.twisted_ports.append(reactor.listenTCP(port, rpc_site,
                                                 interface=interface))
 
-  def BuildHTTPPOSTSite(self, port, interface=net_utils.LOCALHOST):
-    """Builds HTTP POST resource and site."""
-    resource = http_post_resource.HTTPPOSTResource(self.env)
-    http_post_site = server.Site(resource)
-    self.twisted_ports.append(reactor.listenTCP(port, http_post_site,
-                                                interface=interface))
-
   def Run(self):
     """Starts the daemon and event loop."""
     self.BuildWebAppSite()
@@ -163,7 +155,6 @@ class UmpireDaemon(object):
     self.BuildRPCSite(self.env.umpire_cli_port, self.methods_for_cli, '0.0.0.0')
     self.BuildRPCSite(self.env.umpire_rpc_port, self.methods_for_dut)
 
-    self.BuildHTTPPOSTSite(self.env.umpire_http_post_port)
     # Start services.
     reactor.callWhenRunning(self.OnStart)
     # And start reactor loop.

@@ -52,7 +52,6 @@ _WEBAPP_PORT_OFFSET = 1
 _CLI_PORT_OFFSET = 2
 _RPC_PORT_OFFSET = 3
 _RSYNC_PORT_OFFSET = 4
-_HTTP_POST_PORT_OFFSET = 5
 _INSTALOG_PULL_SOCKET_OFFSET = 6
 _INSTALOG_HTTP_PORT_OFFSET = 7
 
@@ -136,10 +135,6 @@ class UmpireEnv(object):
   @property
   def umpire_rsync_port(self):
     return GetRsyncPortFromBasePort(self.umpire_base_port)
-
-  @property
-  def umpire_http_post_port(self):
-    return self.umpire_base_port + _HTTP_POST_PORT_OFFSET
 
   @property
   def umpire_instalog_http_port(self):

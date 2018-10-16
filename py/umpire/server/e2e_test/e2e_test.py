@@ -193,37 +193,6 @@ class DownloadSlotsManagerTest(UmpireDockerTestCase):
     self.assertIsNotNone(
         re.search(r'^UUID: (%s)$' % res.group(1), r.text, re.MULTILINE))
 
-class PostTest(UmpireDockerTestCase):
-  """Tests for Umpire /post."""
-  def testPostEcho(self):
-    r = requests.post('%s/post/Echo' % ADDR_BASE, data={'foo': 'bar'})
-    self.assertEqual(200, r.status_code)
-    self.assertEqual('{"foo": "[\'bar\']"}', r.text)
-
-  def testPostException(self):
-    r = requests.post('%s/post/Echo' % ADDR_BASE, data={'exception': 'bang!'})
-    self.assertEqual(500, r.status_code)
-
-  def testPostExternal(self):
-    r = requests.post('%s/post/disk_space' % ADDR_BASE)
-    self.assertEqual(200, r.status_code)
-    self.assertIn('Disk space used (bytes%/inodes%)', r.text)
-
-  def testPostEmpty(self):
-    r = requests.post('%s/post' % ADDR_BASE)
-    self.assertEqual(400, r.status_code)
-
-  def testPostNotExist(self):
-    r = requests.post('%s/post/i_do_not_exist' % ADDR_BASE)
-    # TODO(pihsun): This should be 4xx, not 500.
-    self.assertEqual(500, r.status_code)
-
-  def testPostRunExternalHandler(self):
-    r = requests.post('%s/post/RunExternalHandler' % ADDR_BASE,
-                      data={'handler': 'disk_space'})
-    self.assertEqual(200, r.status_code)
-    self.assertIn('Disk space used (bytes%/inodes%)', r.text)
-
 
 class UmpireRPCTest(UmpireDockerTestCase):
   """Tests for Umpire RPC."""

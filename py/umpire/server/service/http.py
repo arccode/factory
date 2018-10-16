@@ -27,9 +27,6 @@ UMPIRE_RPC_PREFIX = '/umpire'
 WEB_APP_PREFIX = '/webapps'
 # Handles legacy /resourcemap request which is moved under /webapps.
 RESOURCE_MAP_PREFIX = '/resourcemap'
-# Handles POST request
-POST_PREFIX = '/post'
-LEGACY_POST_PREFIX = '/upload'
 # Handles Instalog HTTP plugin request
 INSTALOG_PREFIX = '/instalog'
 
@@ -188,10 +185,6 @@ class HTTPService(umpire_service.UmpireService):
     # /webapps/resourcemap.
     _append_to_handlers(RESOURCE_MAP_PREFIX, env.umpire_webapp_port,
                         WEB_APP_PREFIX + RESOURCE_MAP_PREFIX)
-    # POSTrequests
-    _append_to_handlers(POST_PREFIX, env.umpire_http_post_port)
-    # POST (legacy URL)
-    _append_to_handlers(LEGACY_POST_PREFIX, env.umpire_http_post_port)
     # Instalog HTTP plugin
     _append_to_handlers(INSTALOG_PREFIX, env.umpire_instalog_http_port)
 
