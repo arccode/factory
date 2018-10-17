@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import '@mdi/font/css/materialdesignicons.css';
 import 'material-design-icons/iconfont/material-icons.css';
 import Vue from 'vue';
 
