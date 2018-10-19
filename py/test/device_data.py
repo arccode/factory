@@ -216,7 +216,7 @@ def GetDeviceData(key, default=None):
   if not isinstance(key, basestring):
     raise KeyError('key must be a string')
 
-  return _GetInstance().GetValue(key, default)
+  return _GetInstance()[key].Get(default)
 
 
 def GetAllDeviceData():

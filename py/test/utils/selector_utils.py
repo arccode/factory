@@ -59,9 +59,6 @@ class ISelector(object):
       selector['a'] shall return another selector rooted at 'a', thus
       selector['a'].Get() shall return {'b': {'c': 3}}.
 
-      selector.GetValue('a') shall return {'b': {'c': 3}}
-      selector['a'].GetValue('b') shall return {'c': 3}
-
       selector['a']['b'] and selector['a.b'] are equivalent, they both return a
       selector rooted at 'b'.
   """
@@ -73,9 +70,6 @@ class ISelector(object):
 
   def Get(self, default=_DEFAULT_NOT_SET):
     raise NotImplementedError
-
-  def GetValue(self, key, default=_DEFAULT_NOT_SET):
-    return self[key].Get(default=default)
 
   def __nonzero__(self):
     return bool(self.Get(default=False))
