@@ -690,7 +690,7 @@ class AudioLoopTest(test_case.TestCase):
       freq = audio_utils.GetRoughFreq(sox_output)
       freq_threshold = self._current_test_args.get(
           'freq_threshold', _DEFAULT_SINEWAV_FREQ_THRESHOLD)
-      session.console.info('Extected frequency %r +- %d',
+      session.console.info('Expected frequency %r +- %d',
                            self._freq, freq_threshold)
       if freq is None or (abs(freq - self._freq) > freq_threshold):
         self.AppendErrorMessage('Test Fail at frequency %r' % freq)
