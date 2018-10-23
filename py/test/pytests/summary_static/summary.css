@@ -27,3 +27,33 @@ th, td {
 #test-status-label {
   font-size: 3em;
 }
+
+.screensaver-msg-0 {
+  color: #c00;
+}
+
+.screensaver-msg-1 {
+  color: #0c0;
+}
+
+.screensaver-msg-2 {
+  color: #00c;
+}
+
+.screensaver-disabled {
+  display: none;
+}
+
+.screensaver-enabled {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+}
+
+#screensaver-msg {
+  position: absolute;
+  white-space: nowrap;
+  font-size: 3em;
+}

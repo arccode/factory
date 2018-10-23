@@ -134,6 +134,10 @@ class Report(test_case.TestCase):
           'Notify DUT that external test is over, will use DUT interface to '
           'write result file under /run/factory/external/<NAME>.',
           default=None),
+      Arg('screensaver_timeout', int,
+          'Timeout in seconds to turn on the screensaver, set to ``None`` to '
+          'disable the screensaver.',
+          default=None)
   ]
 
   def _SetFixtureStatusLight(self, all_pass):
@@ -146,8 +150,12 @@ class Report(test_case.TestCase):
       logging.exception('Unable to set status color on BFT fixture')
 
   def setUp(self):
+    self.assertTrue(self.args.screensaver_timeout is None or
+                    self.args.screensaver_timeout >= 1)
+
     self.dut = device_utils.CreateDUTInterface()
-    self._frontend_proxy = self.ui.InitJSTestObject('SummaryTest')
+    self._frontend_proxy = self.ui.InitJSTestObject(
+        'SummaryTest', self.args.screensaver_timeout)
 
   def runTest(self):
     test_list = self.test_info.ReadTestList()

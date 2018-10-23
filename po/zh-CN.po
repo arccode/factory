@@ -2445,6 +2445,10 @@ msgstr "点击或按空白键继续"
 msgid "Unable to proceed, since some previous tests have not passed."
 msgstr "之前所有的测试必须通过才能通过此项目"
 
+#: ../py/test/pytests/summary_static/summary.html
+msgid "Click or press any key to continue..."
+msgstr "点击或按任意键继续"
+
 #: ../py/test/pytests/summary_static/summary.js
 msgid "passed"
 msgstr "良好"
