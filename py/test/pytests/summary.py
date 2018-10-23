@@ -88,12 +88,12 @@ import logging
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture
-from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test import state
 from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils.type_utils import Obj
 
 
 _EXTERNAL_DIR = '/run/factory/external'
@@ -147,16 +147,7 @@ class Report(test_case.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
-
-  def MakeStatusLabel(self, status):
-    """Returns the label for test state."""
-    STATUS_LABEL = {
-        state.TestState.PASSED: _('passed'),
-        state.TestState.FAILED: _('failed'),
-        state.TestState.ACTIVE: _('active'),
-        state.TestState.UNTESTED: _('untested')
-    }
-    return STATUS_LABEL.get(status, status)
+    self._frontend_proxy = self.ui.InitJSTestObject('SummaryTest')
 
   def runTest(self):
     test_list = self.test_info.ReadTestList()
@@ -171,20 +162,11 @@ class Report(test_case.TestCase):
           lambda t: t != current, current.parent.subtests)) + previous_tests
       current = current.parent
 
-    # Try to render a table and collect statuses.
-    table = []
-    statuses = []
-    for t in previous_tests:
-      test_state = states.get(t.path)
-      table.append([
-          '<tr class="test-status-%s"><th>' % test_state.status.replace(
-              '_', '-'),
-          i18n.HTMLEscape(t.label), '</th><td>',
-          self.MakeStatusLabel(test_state.status), '</td></tr>'
-      ])
-      statuses.append(test_state.status)
-
-    overall_status = state.TestState.OverallStatus(statuses)
+    test_results = [Obj(path=t.path, label=t.label,
+                        status=states.get(t.path).status)
+                    for t in previous_tests]
+    overall_status = state.TestState.OverallStatus(
+        [r.status for r in test_results])
     all_pass = overall_status in _EXTENED_PASSED_STATE
 
     goofy = state.GetInstance()
@@ -200,37 +182,22 @@ class Report(test_case.TestCase):
       if all_pass:
         self.dut.WriteFile(file_path, 'PASS')
       else:
-        report = ''.join(
-            '%s: %s\n' % (t.path, status) for t, status in
-            zip(previous_tests, statuses))
+        report = ''.join('%s: %s\n' % (r.path, r.status) for r in test_results)
         self.dut.WriteFile(file_path, report)
 
     if all_pass and self.args.pass_without_prompt:
       return
 
-    html = []
-
     if not self.args.disable_input_on_fail or all_pass:
-      html.extend([
-          '<a onclick="onclick:window.test.pass()" href="#"'
-          ' class="prompt_message">',
-          self.args.prompt_message, '</a>'
-      ])
+      self._frontend_proxy.SetPromptMessage(self.args.prompt_message, True)
     else:
-      html.extend([
-          '<span class="prompt_message">',
+      self._frontend_proxy.SetPromptMessage(
           _('Unable to proceed, since some previous tests have not passed.'),
-          '</span>'
-      ])
+          False)
 
-    html.extend([
-        '<br>',
-        _('Test Status for {test}:', test=test.parent.path),
-        '<div class="test-status-%s" style="font-size: 3em">' % overall_status,
-        self.MakeStatusLabel(overall_status), '</div>',
-        '<div id="test-status-table-container"><table>', table, '</table></div>'
-    ])
-
+    self._frontend_proxy.SetTestName(test.parent.path)
+    self._frontend_proxy.SetOverallTestStatus(overall_status)
+    self._frontend_proxy.SetDetailTestResults(test_results)
 
     if not self.args.disable_input_on_fail:
       self.ui.BindStandardKeys()
@@ -239,8 +206,7 @@ class Report(test_case.TestCase):
     elif all_pass:
       self.ui.BindStandardPassKeys()
 
-    self.ui.SetState(html)
     if self.args.accessibility and not all_pass:
-      self.ui.RunJS('window.template.classList.add("test-accessibility")')
+      self._frontend_proxy.EnableAccessibility()
     logging.info('overall_status=%r', overall_status)
     self.WaitTaskEnd()
