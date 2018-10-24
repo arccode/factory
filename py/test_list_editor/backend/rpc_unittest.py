@@ -35,10 +35,6 @@ class _FakePytest(object):
 
 class RPCTest(unittest.TestCase):
 
-  def testGetTestListSchema(self):
-    rpc_obj = rpc.RPC([])
-    json.loads(rpc_obj.GetTestListSchema())
-
   def testLoadFiles(self):
     rpc_obj = rpc.RPC([('', paths.FACTORY_DIR)])
     res = rpc_obj.LoadFiles()

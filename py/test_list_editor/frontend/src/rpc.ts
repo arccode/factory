@@ -23,9 +23,6 @@ const call = async (method: string, ...params: any[]) => {
 // For the detailed description and implementation of these RPC functions,
 // see 'factory/py/test_list_editor/backend/rpc.py'.
 
-export const getTestListSchema = (): Promise<string> =>
-    call('GetTestListSchema');
-
 export const loadFiles = (): Promise<common.FileSystemState> =>
     call('LoadFiles');
 

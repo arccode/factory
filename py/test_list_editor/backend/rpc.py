@@ -9,7 +9,6 @@ import numbers
 import os
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.env import paths
 from cros.factory.test import i18n
 from cros.factory.test.test_lists import manager
 from cros.factory.test.utils import pytest_utils
@@ -57,17 +56,6 @@ class RPC(object):
 
   def __init__(self, dirs):
     self.dirs = dirs
-
-  @type_utils.LazyProperty
-  def _test_list_schema(self):
-    return file_utils.ReadFile(os.path.join(
-        paths.FACTORY_DIR,
-        manager.TEST_LISTS_RELPATH,
-        manager.TEST_LIST_SCHEMA_NAME + config_utils.SCHEMA_FILE_EXT))
-
-  def GetTestListSchema(self):
-    """Returns the JSON schema of test list files (as a string)."""
-    return self._test_list_schema
 
   def LoadFiles(self):
     """Load test list folders and files.
