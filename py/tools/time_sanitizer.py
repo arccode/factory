@@ -28,19 +28,6 @@ def _FormatTime(t):
                        int(us * 1000000))
 
 
-def CheckHwclock():
-  """Check hwclock is working by a write(retry once if fail) and a read."""
-  for _ in xrange(2):
-    if process_utils.Spawn(['hwclock', '-w', '--utc', '--noadjfile'], log=True,
-                           log_stderr_on_error=True).returncode == 0:
-      break
-    else:
-      logging.error('Unable to set hwclock time')
-
-  logging.info('Current hwclock time: %s',
-               process_utils.Spawn(['hwclock', '-r'], log=True,
-                                   read_stdout=True).stdout_data)
-
 librt_name = find_library('rt')
 librt = ctypes.cdll.LoadLibrary(librt_name)
 
@@ -53,17 +40,39 @@ class timespec(ctypes.Structure):
 class Time(object):
   """Time object for mocking."""
 
+  def __init__(self):
+    self.lock = threading.RLock()
+
   def Time(self):
     return time.time()
 
-  def SetTime(self, new_time):
+  def SetTime(self, new_time=None):
+    new_time = new_time or self.Time()
     logging.warn('Setting time to %s', _FormatTime(new_time))
     us, s = math.modf(new_time)
     value = timespec(int(s), int(us * 1000000))
     librt.clock_settime(0, ctypes.pointer(value))
 
     # Set hwclock after we set time(in a background thread, since this is slow).
-    process_utils.StartDaemonThread(target=CheckHwclock)
+    self.RequestCheckHwClock()
+
+  def RequestCheckHwClock(self):
+    process_utils.StartDaemonThread(target=self._CheckHwclock)
+
+  def _CheckHwclock(self):
+    """Check hwclock is working by a write(retry once if fail) and a read."""
+    with self.lock:
+      for _ in xrange(2):
+        if process_utils.Spawn(['hwclock', '-w', '--utc', '--noadjfile'],
+                               log=True,
+                               log_stderr_on_error=True).returncode == 0:
+          break
+        else:
+          logging.error('Unable to set hwclock time')
+
+      logging.info('Current hwclock time: %s',
+                   process_utils.Spawn(['hwclock', '-r'], log=True,
+                                       read_stdout=True).stdout_data)
 
 SECONDS_PER_DAY = 86400
 
@@ -121,7 +130,7 @@ class TimeSanitizer(object):
 
     # Set hwclock (in a background thread, since this is slow).
     # Do this upon startup to ensure hwclock is working
-    process_utils.StartDaemonThread(target=CheckHwclock)
+    self._time.RequestCheckHwClock()
 
   def Run(self):
     """Runs forever, immediately and then every monitor_interval_secs."""
@@ -200,6 +209,9 @@ class TimeSanitizer(object):
                                    log_stderr_on_error=True).returncode == 0
       if not synced:
         raise Error('cannot sync time successfully with htpdate.')
+
+      self._time.SetTime()
+      self.SaveTime()
     except OSError:
       raise Error('htpdate is not installed.')
 
