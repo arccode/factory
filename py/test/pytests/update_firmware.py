@@ -47,12 +47,11 @@ To update only RW Main(AP) firmware using remote firmware updater::
     "args": {
       "download_from_server": true,
       "rw_only": true,
-      "update_ec": false,
-      "update_pd": false
+      "host_only": true
     }
   }
 
-Not to update firmwares if the version is the same with current one
+Not to update firmware if the version is the same with current one
 in the DUT::
 
   {
@@ -93,15 +92,15 @@ class UpdateFirmwareTest(test_case.TestCase):
       Arg('firmware_updater', str, 'Full path of %s.' % _FIRMWARE_UPDATER_NAME,
           default=paths.FACTORY_FIRMWARE_UPDATER_PATH),
       Arg('rw_only', bool, 'Update only RW firmware', default=False),
-      Arg('update_ec', bool, 'Update EC firmware.', default=True),
-      Arg('update_pd', bool, 'Update PD firmware.', default=True),
+      # Updating only EC/PD is not supported.
+      Arg('host_only', bool, 'Update only host (AP, BIOS) firmware.',
+          default=False),
       Arg('download_from_server', bool, 'Download firmware updater from server',
           default=False),
       Arg('from_release', bool, 'Find the firmware from release rootfs.',
           default=False),
-      Arg('update_main', bool, 'Update main firmware.', default=True),
       Arg('force_update', bool,
-          'force to update firmwares even if the version is the same.',
+          'force to update firmware even if the version is the same.',
           default=True)
   ]
 
@@ -155,10 +154,9 @@ class UpdateFirmwareTest(test_case.TestCase):
       logging.warn('Removing %s', LOCK_FILE)
       os.unlink(LOCK_FILE)
 
-    command = [self.args.firmware_updater, '--force',
-               '--update_main' if self.args.update_main else '--noupdate_main',
-               '--update_ec' if self.args.update_ec else '--noupdate_ec',
-               '--update_pd' if self.args.update_pd else '--noupdate_pd']
+    command = [self.args.firmware_updater, '--force']
+    if self.args.host_only:
+      command += ['--host_only']
     if self.args.rw_only:
       command += ['--mode=recovery', '--wp=1']
     else:
