@@ -165,12 +165,6 @@
     "label": {
       "type": "string"
     },
-    "inherit": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
     "options": {
       "$ref": "#/definitions/test_options"
     },
