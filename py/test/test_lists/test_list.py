@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """Test list builder."""
 
 import abc
@@ -15,7 +14,6 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import i18n
-from cros.factory.test.i18n import _
 from cros.factory.test.i18n import translation
 from cros.factory.test.rules import phase
 from cros.factory.test import state
@@ -275,7 +273,7 @@ class FactoryTestList(test_object_module.FactoryTest):
     self.test_list_id = test_list_id
     self.state_change_callback = None
     self.options = options
-    self.label = i18n.Translated(label or test_list_id or _('Untitled'))
+    self.label = label
     self.source_path = None
     self.constants = type_utils.AttrDict(constants or {})
 

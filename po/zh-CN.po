@@ -3415,10 +3415,6 @@ msgstr "主测项（未定义）"
 msgid "Station-Based Test Template"
 msgstr "测试站模板"
 
-#: ../py/test/test_lists/test_list.py
-msgid "Untitled"
-msgstr "无名"
-
 #: ../py/test/test_lists/test_object.py
 msgid "Test Group"
 msgstr "测试群组"
