@@ -788,6 +788,12 @@ cros.factory.Goofy = class {
      */
     this.testUIManagerType = null;
 
+    /**
+     * The cached viewport size.
+     * @type {?goog.math.Size}
+     */
+    this.cachedViewportSize = null;
+
     // Set up magic keyboard shortcuts.
     goog.events.listen(
         window, goog.events.EventType.KEYDOWN, this.keyListener, true, this);
@@ -957,9 +963,21 @@ cros.factory.Goofy = class {
     };
 
     // Recalculate the sub-container size when the window is resized.
+    this.cachedViewportSize = viewportSize;
     goog.events.listen(window, goog.events.EventType.RESIZE, () => {
       fixSplitPaneSize(topSplitPane);
-      fixSplitPaneSize(mainAndConsole);
+
+      // To fix the main and console panel size, we need to re-calculate the
+      // size of the main container manually.
+      const prevConsoleHeight = this.cachedViewportSize.height
+                                - mainAndConsole.getFirstComponentSize();
+      const currViewportSize =
+          goog.dom.getViewportSize(goog.dom.getWindow(document));
+      const currMainHeight = Math.max(
+          0, currViewportSize.height - prevConsoleHeight);
+      mainAndConsole.setFirstComponentSize(currMainHeight);
+
+      this.cachedViewportSize = currViewportSize;
     });
 
     goog.events.listen(
