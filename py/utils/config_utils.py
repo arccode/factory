@@ -94,6 +94,10 @@ _INHERIT_KEY = 'inherit'
 CALLER_DIR = None
 
 
+class ConfigNotFoundError(Exception):
+  pass
+
+
 def _DummyLogger(*unused_arg, **unused_kargs):
   """A dummy log function."""
   pass
@@ -570,7 +574,9 @@ def _LoadRawConfigList(config_name, config_dirs, allow_inherit,
 
     if new_config is not None:
       found_configs.append((config_dir, new_config))
-  assert found_configs, 'No configuration files found for %s.' % config_name
+  if not found_configs:
+    raise ConfigNotFoundError(
+        'No configuration files found for %s.' % config_name)
   config_list[config_name] = found_configs
 
   # Get the current config dict.

@@ -19,17 +19,29 @@ and `factory test-list <test-list-id>` to activate the test list.
 
 THE ACTIVE TEST LIST
 --------------------
-If a file called `ACTIVE` is present in this directory, it contains the
-ID of the active test list.  So, for example, to activate the `generic_main`
-test list on a device:
+Normally, the ID of the active test list is stored in
+`/usr/local/factory/py/config/active_test_list.json` just like other build time
+configurations.  Goofy first tries to read the ID of the active test list
+from that config file.  And the command `factory test-list <test-list-id>`
+stores the specified test list ID to that file.
 
-    echo generic_main > /usr/local/factory/py/test/test_lists/ACTIVE
-
-If no `ACTIVE` file is present, then there are two ways to determine the default
-test list;
+If no active test list configuration is present, then there are two ways to
+determine the default test list:
 
 1. ID - `main_${model}` would be checked first where `${model}` is came from
 output of command - `mosys platform model`.
 2. the test list with ID - `main` or `generic_main` is used.
 
-(Note that `ACTIVE` is a file, not a symlink to a file as in the past.)
+### Override the Active Test List
+`setup/cros_docker.sh goofy try` allows developers to run the factory software
+from source locally.  In this usecase, we suggest the developers to manually
+save the active test list ID to `/var/factory/config/active_test_list.json`
+in the docker because having `py/config/active_test_list.json` on the
+developer's computer makes it easy to build a toolkit with unexpected default
+active test list.
+
+Please note that `factory test-list <test-list-id>` command will become not
+working when `/var/factory/config/active_test_list.json` is set.  The reason
+is that Goofy will always try to get the ID from the configuration under `/var`
+first but `factory test-list <test-list-id>` command will still save the
+ID to `/usr/local/factory/py/config/active_test_list.json`.

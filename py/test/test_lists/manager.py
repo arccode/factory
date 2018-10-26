@@ -8,7 +8,6 @@ import collections
 import glob
 import logging
 import os
-import re
 import sys
 import zipimport
 
@@ -18,8 +17,8 @@ from cros.factory.test.test_lists import checker as checker_module
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import json_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils import type_utils
 
 
 # Directory for test lists.
@@ -27,8 +26,8 @@ TEST_LISTS_RELPATH = os.path.join('py', 'test', 'test_lists')
 TEST_LISTS_PATH = os.path.join(paths.FACTORY_DIR, TEST_LISTS_RELPATH)
 
 # File identifying the active test list.
-ACTIVE_RELPATH = os.path.join(TEST_LISTS_RELPATH, 'ACTIVE')
-ACTIVE_PATH = os.path.join(paths.FACTORY_DIR, ACTIVE_RELPATH)
+ACTIVE_TEST_LIST_CONFIG_NAME = 'active_test_list'
+ACTIVE_TEST_LIST_CONFIG_ID_KEY = 'id'
 
 # Default test list.
 DEFAULT_TEST_LIST_ID = 'main'
@@ -242,27 +241,24 @@ class Manager(object):
   def GetActiveTestListId():
     """Returns the ID of the active test list.
 
-    This is read from the py/test/test_lists/ACTIVE file, if it exists.
-    If there is no ACTIVE file, then 'main' is returned.
+    This method first try to load the active test list id by loading the
+    ``active_test_list`` config file.  If there is no such configuration,
+    'main' is returned.
     """
-    # Make sure it's a real file (and the user isn't trying to use the
-    # old symlink method).
-    if os.path.islink(ACTIVE_PATH):
-      raise type_utils.TestListError(
-          '%s is a symlink (should be a file containing a test list ID)' %
-          ACTIVE_PATH)
+    try:
+      config_data = config_utils.LoadConfig(
+          config_name=ACTIVE_TEST_LIST_CONFIG_NAME)
+      return config_data[ACTIVE_TEST_LIST_CONFIG_ID_KEY]
 
-    test_list_id = ''
-    if os.path.exists(ACTIVE_PATH):
-      test_list_id = file_utils.ReadFile(ACTIVE_PATH).strip()
-      if re.search(r'\s', test_list_id):
-        raise type_utils.TestListError(
-            '%s should contain only a test list ID' % test_list_id)
+    except config_utils.ConfigNotFoundError:
+      logging.info('No active test list configuration is found, '
+                   'fall back to select the default test list.')
 
-    if not test_list_id:
-      test_list_id = Manager.SelectDefaultTestList()
+    except Exception as e:
+      logging.warning(
+          'Failed to load the active test list configuration: %r.', e)
 
-    return test_list_id
+    return Manager.SelectDefaultTestList()
 
   @staticmethod
   def SelectDefaultTestList():
@@ -281,12 +277,19 @@ class Manager(object):
   def SetActiveTestList(new_id):
     """Sets the active test list.
 
-    This writes the name of the new active test list to ACTIVE_PATH.
+    This writes the name of the new active test list to the build time config
+    file.
     """
-    with open(ACTIVE_PATH, 'w') as f:
-      f.write(new_id + '\n')
-      f.flush()
-      os.fdatasync(f)
+    # The active test list ID is the most important factory data that we
+    # can't afford it to disappear unexpectedly.  Therefore, instead of
+    # saving it as a runtime configuration, we would rather saving it as
+    # a buildtime configuration manually.
+    config_path = os.path.join(config_utils.GetBuildConfigDirectory(),
+                               ACTIVE_TEST_LIST_CONFIG_NAME)
+    config_data = json_utils.DumpStr({ACTIVE_TEST_LIST_CONFIG_ID_KEY: new_id})
+
+    with file_utils.AtomicWrite(config_path) as f:
+      f.write(config_data)
 
 
 def BuildTestListForUnittest(test_list_config, manager=None):

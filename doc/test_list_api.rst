@@ -25,25 +25,25 @@ changed in various ways (see :ref:`active-test-list`).
 
 The active test list
 --------------------
-The file ``/usr/local/factory/py/test/test_lists/ACTIVE`` is used to
-determine which test list is currently active.  This file contains the
-ID of the active test list.  If this file is not present, then there are two
-ways to determine the default test list;
+The file ``/usr/local/factory/py/config/active_test_list.json`` is used to
+determine which test list is currently active.  This file contains the ID of
+the active test list.  If this file is not present, then there are two ways to
+determine the default test list;
 
 * ID - ``main_${model}`` would be checked first where ``${model}`` is came from
   output of command - ``mosys platform model``.
 * the test list with ID - ``main`` or ``generic_main`` is used.
 
 If you want a different test list to be included by default, you
-may simply create an ``ACTIVE`` file in the factory image.
-The file should contain a single line of text: the ID
-of the test list to activate.
+may simply add an argument ``--default-test-list <test-list-id>`` to the
+factory toolkit installer while installing it to either a test image or a
+device.
 
 In engineering mode in the test UI, the operator may select `Select
 test list` from the main menu.  This will display all
 available test lists.  Selecting one will clear all test state,
-write the ID of the selected test list to the ``ACTIVE`` file, and
-restart the test harness.
+write the ID of the selected test list to the ``active_test_list.json`` file,
+and restart the test harness.
 
 .. _test-paths:
 
