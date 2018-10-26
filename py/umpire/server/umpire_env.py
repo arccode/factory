@@ -52,6 +52,7 @@ _WEBAPP_PORT_OFFSET = 1
 _CLI_PORT_OFFSET = 2
 _RPC_PORT_OFFSET = 3
 _RSYNC_PORT_OFFSET = 4
+_HTTP_POST_PORT_OFFSET = 5
 _INSTALOG_PULL_SOCKET_OFFSET = 6
 _INSTALOG_HTTP_PORT_OFFSET = 7
 
@@ -60,6 +61,137 @@ PROJECT_NAME_ENV_KEY = 'UMPIRE_PROJECT_NAME'
 
 def GetRsyncPortFromBasePort(base_port):
   return base_port + _RSYNC_PORT_OFFSET
+
+class Parameter(object):
+  """Provides operation on parameter objects.
+
+  Properties:
+    data: including files and dirs.
+    files: parmeter component files.
+    dirs: parameter directory.
+  """
+  def __init__(self, data):
+    self.data = data
+
+  @property
+  def files(self):
+    return self.data['files']
+
+  @property
+  def dirs(self):
+    return self.data['dirs']
+
+  def _FindComponentsByName(self, dir_id, name):
+    """Return List of component(s) in given directory and component name.
+
+    If name is None, return all components in this directory.
+    """
+    fs = [f for f in self.files if f['dir_id'] == dir_id]
+    if name is not None:
+      fs = [f for f in fs if f['name'] == name]
+    return fs
+
+  def _FindChildDirByName(self, parent_id, dir_name):
+    """Return directory in given parent directory and directory name."""
+    return next((d for d in self.dirs
+                 if d['name'] == dir_name and d['parent_id'] == parent_id),
+                None)
+
+  def _FindComponentById(self, comp_id):
+    """Return component with given id."""
+    return next((c for c in self.files if c['id'] == comp_id), None)
+
+  def _UpdateExistingComponent(self, component, using_ver, dst_path):
+    """Update existing component, including revision and update new version."""
+    if dst_path:
+      # update component to new version
+      if using_ver is not None:
+        raise common.UmpireError(
+            'Intend to update version and use old version at the same time.')
+      version_count = len(component['revisions'])
+      component['revisions'].append(dst_path)
+      component['using_ver'] = version_count
+    elif using_ver is not None:
+      # rollback component to existed version
+      if not 0 <= using_ver < len(component['revisions']):
+        raise common.UmpireError(
+            'Intend to use invalid version of parameter %d.' % component['id'])
+      component['using_ver'] = using_ver
+    else:
+      raise common.UmpireError('Unknown operation.')
+    # TODO(hsinyi): add rename component
+    return component
+
+  def _CreateComponent(self, dir_id, comp_name, dst_path):
+    """Create new component."""
+    comp_id = len(self.files)
+    component = {
+        'id': comp_id,
+        'dir_id': dir_id,
+        'name': comp_name,
+        'using_ver': 0,
+        'revisions': [dst_path]
+    }
+    self.files.append(component)
+    return component
+
+  def UpdateComponent(self, comp_id, dir_id, comp_name, using_ver, dst_path):
+    """See UmpireEnv.UpdateParameterComponent for detail"""
+    if comp_id is not None:
+      component = self._FindComponentById(comp_id)
+      return self._UpdateExistingComponent(component, using_ver, dst_path)
+    else:
+      # check if same name component already existed in same dir
+      existed_comp = self._FindComponentsByName(dir_id, comp_name)
+      if existed_comp:
+        # create file but name existed in same dir, view as updating version
+        return self._UpdateExistingComponent(existed_comp[0], using_ver,
+                                             dst_path)
+      else:
+        if using_ver is not None:
+          raise common.UmpireError(
+              'Intend to create component but assigned using_ver.')
+        return self._CreateComponent(dir_id, comp_name, dst_path)
+
+  def CreateDirectory(self, parent_id, name):
+    """See UmpireEnv.CreateParameterDirectory for detail."""
+    existed_dir = self._FindChildDirByName(parent_id, name)
+    if existed_dir is not None:
+      # create dir but name existed in parent dir, directly return
+      return existed_dir
+
+    dir_id = len(self.dirs)
+    new_dir = {
+        'id': dir_id,
+        'parent_id': parent_id,
+        'name': name
+    }
+    self.dirs.append(new_dir)
+    # TODO(hsinyi): add rename directory
+    return new_dir
+
+  def _GetDirIdByNameSpace(self, namespace):
+    """Retrieve directory by given namespace."""
+    if namespace is None:
+      return None
+    namespace = namespace.split('/')
+    current_id = None
+    for name in namespace:
+      next_dir = self._FindChildDirByName(current_id, name)
+      if next_dir is None:
+        raise common.UmpireError('Directory namespace not exists.')
+      current_id = next_dir['id']
+    return current_id
+
+  def GetComponentsAbsPath(self, namespace, name):
+    """See UmpireEnv.QueryParameters for detail."""
+    try:
+      dir_id = self._GetDirIdByNameSpace(namespace)
+    except common.UmpireError:
+      logging.error('Intend to request non-existent namespace.')
+      return []
+    fs = self._FindComponentsByName(dir_id, name)
+    return [(f['name'], f['revisions'][f['using_ver']]) for f in fs]
 
 
 class UmpireEnv(object):
@@ -79,6 +211,7 @@ class UmpireEnv(object):
     self.server_toolkit_dir = os.path.join(root_dir, DEFAULT_SERVER_DIR)
     self.config_path = None
     self.config = None
+    self._parameter = None
 
   @property
   def resources_dir(self):
@@ -137,12 +270,22 @@ class UmpireEnv(object):
     return GetRsyncPortFromBasePort(self.umpire_base_port)
 
   @property
+  def umpire_http_post_port(self):
+    return self.umpire_base_port + _HTTP_POST_PORT_OFFSET
+
+  @property
   def umpire_instalog_http_port(self):
     return self.umpire_base_port + _INSTALOG_HTTP_PORT_OFFSET
 
   @property
   def umpire_instalog_pull_socket_port(self):
     return self.umpire_base_port + _INSTALOG_PULL_SOCKET_OFFSET
+
+  @property
+  def parameter(self):
+    if self._parameter is None:
+      self._parameter = Parameter(json_utils.LoadFile(self.parameter_json_file))
+    return self._parameter
 
   @type_utils.LazyProperty
   def docker_host_ip(self):
@@ -340,15 +483,19 @@ class UmpireEnv(object):
       file_utils.CheckPath(path, 'resource')
     return path
 
-  def _DumpParameter(self, parameter):
+  def _DumpParameter(self):
     """Dump parameter to json file."""
-    json_utils.DumpFile(self.parameter_json_file, parameter)
+    json_utils.DumpFile(self.parameter_json_file, self.parameter.data)
 
-  def _AddParameter(self, src_path):
+  def GetParameterDstPath(self, src_path):
+    """Prepend file MD5 sum to file path"""
     original_filename = os.path.basename(src_path)
     md5sum = file_utils.MD5InHex(src_path)
     new_filemame = '.'.join([original_filename, md5sum])
-    dst_path = os.path.join(self.parameters_dir, new_filemame)
+    return os.path.join(self.parameters_dir, new_filemame)
+
+  def AddParameter(self, src_path):
+    dst_path = self.GetParameterDstPath(src_path)
     self._AddFile(src_path, dst_path, False)
     return dst_path
 
@@ -372,51 +519,11 @@ class UmpireEnv(object):
     Returns:
       Updated component dictionary.
     """
-    parameters = self.GetParameterInfo()
-
-    dst_path = self._AddParameter(src_path) if src_path else None
-
-    if comp_id is None:
-      # check if same name component already existed in same dir
-      existed_comp = next((c for c in parameters['files']
-                           if c['name'] == comp_name and c['dir_id'] == dir_id),
-                          None)
-      if existed_comp:
-        # create file but name existed in same dir, view as updating version
-        comp_id = existed_comp['id']
-
-    if comp_id is None:
-      # create new component
-      comp_id = len(parameters['files'])
-      parameters['files'].append({
-          'id': comp_id,
-          'dir_id': dir_id,
-          'name': comp_name,
-          'using_ver': 0,
-          'revisions': [dst_path]
-      })
-    else:
-      # TODO(hsinyi): add rename component
-      component = parameters['files'][comp_id]
-      if dst_path:
-        # update component to new version
-        if using_ver is not None:
-          raise common.UmpireError(
-              'Intend to update version and use old version at the same time.')
-        version_count = len(component['revisions'])
-        component['revisions'].append(dst_path)
-        component['using_ver'] = version_count
-      elif using_ver is not None:
-        # rollback component to existed version
-        if using_ver >= len(component['revisions']) or using_ver < 0:
-          raise common.UmpireError(
-              'Intend to use unexisted version of parameter %d.' % comp_id)
-        component['using_ver'] = using_ver
-      else:
-        raise common.UmpireError('Unknown operation.')
-
-    self._DumpParameter(parameters)
-    return parameters['files'][comp_id]
+    dst_path = self.AddParameter(src_path) if src_path else None
+    component = self.parameter.UpdateComponent(comp_id, dir_id, comp_name,
+                                               using_ver, dst_path)
+    self._DumpParameter()
+    return component
 
   def GetParameterInfo(self):
     """Dump parameter info.
@@ -438,10 +545,9 @@ class UmpireEnv(object):
         "id": number, // index
         "parent_id": number | null, // parent directory index
         "name": string, // directory name
-        "children_ids": number[], // children directory index
       }
     """
-    return json_utils.LoadFile(self.parameter_json_file)
+    return self.parameter.data
 
   def CreateParameterDirectory(self, parent_id, name):
     """Create a parameter directory.
@@ -452,33 +558,25 @@ class UmpireEnv(object):
       name: dir name.
 
     Returns:
-      Created directory dictionary.
+      Created directory dictionary and its index.
     """
-    parameters = self.GetParameterInfo()
+    directory = self.parameter.CreateDirectory(parent_id, name)
+    self._DumpParameter()
+    return directory
 
-    existed_dir = next((c for c in parameters['dirs']
-                        if c['name'] == name and c['parent_id'] == parent_id),
-                       None)
-    if existed_dir is not None:
-      # create dir but name existed in parent dir, directly return
-      return existed_dir
+  def QueryParameters(self, namespace, name):
+    """Gets file path of queried component(s).
 
-    dir_id = len(parameters['dirs'])
-    new_dir = {
-        'id': dir_id,
-        'parent_id': parent_id,
-        'name': name,
-        'children_ids': []
-    }
-    parameters['dirs'].append(new_dir)
+    Args:
+      namespace: relative directory path(separate by '/') of queried
+                 component(s). None if they are in root directory.
+      name: component name of queried component. None if queries all components
+            under namespace.
 
-    if parent_id is not None:
-      parameters['dirs'][parent_id]['children_ids'].append(dir_id)
-
-    # TODO(hsinyi): add rename directory
-
-    self._DumpParameter(parameters)
-    return new_dir
+    Returns:
+      List of tuple(component name, file path)
+    """
+    return self.parameter.GetComponentsAbsPath(namespace, name)
 
 
 class UmpireEnvForTest(UmpireEnv):
@@ -503,6 +601,7 @@ class UmpireEnvForTest(UmpireEnv):
         self.pid_dir,
         self.resources_dir,
         self.temp_dir,
+        self.parameters_dir,
         self.umpire_data_dir):
       os.makedirs(fundamental_subdir)
     self.AddConfigFromBlob('{}', resource.ConfigTypeNames.payload_config)

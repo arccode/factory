@@ -18,6 +18,7 @@ from cros.factory.utils import file_utils
 TESTDATA_DIR = os.path.join(os.path.dirname(__file__), 'testdata')
 TEST_CONFIG = os.path.join(TESTDATA_DIR, 'minimal_empty_services_umpire.json')
 TOOLKIT_DIR = os.path.join(TESTDATA_DIR, 'install_factory_toolkit.run')
+TEST_PARAMETER = os.path.join(TESTDATA_DIR, 'test_parameter.json')
 
 
 class UmpireEnvTest(unittest.TestCase):
@@ -68,6 +69,23 @@ class UmpireEnvTest(unittest.TestCase):
     # Without check, just output resource_dir/resource_name
     self.assertEqual(os.path.join(self.env.resources_dir, 'foobar'),
                      self.env.GetResourcePath('foobar', check=False))
+
+  def testQueryParameters(self):
+    parameter_json_file = self.env.parameter_json_file
+    shutil.copy(TEST_PARAMETER, parameter_json_file)
+
+    # Query w.sh in parent directory
+    query_file = self.env.QueryParameters(None, 'w.sh')
+    self.assertEqual(query_file, [('w.sh', 'some/path/w0.sh')])
+
+    # Query all components under dir0/dir1
+    query_namespace = self.env.QueryParameters('dir0/dir1', None)
+    self.assertEqual(query_namespace, [('x.json', 'some/path/x2.json'),
+                                       ('a.html', 'some/path/a1.html')])
+
+    # Query not existed component
+    query_error = self.env.QueryParameters('dir0', 'not_existed_file')
+    self.assertEqual(query_error, [])
 
 
 if __name__ == '__main__':

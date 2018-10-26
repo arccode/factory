@@ -830,12 +830,11 @@ class Service(object):
 
 class ParameterDirectory(object):
 
-  def __init__(self, id, parent_id, name, children_ids):
+  def __init__(self, id, parent_id, name):
     # pylint: disable=redefined-builtin
     self.id = id
     self.parent_id = parent_id
     self.name = name
-    self.children_ids = children_ids
 
   @staticmethod
   def CreateOne(project_name, parent_id, name):

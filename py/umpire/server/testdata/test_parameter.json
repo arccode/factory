@@ -1,0 +1,45 @@
+{
+  "dirs": [
+    {
+      "id": 0,
+      "name": "dir0",
+      "parent_id": null
+    },
+    {
+      "id": 1,
+      "name": "dir1",
+      "parent_id": 0
+    }
+  ],
+  "files": [
+    {
+      "id": 0,
+      "dir_id": null,
+      "name": "w.sh",
+      "revisions": [
+        "some/path/w0.sh"
+      ],
+      "using_ver": 0
+    },
+    {
+      "id": 1,
+      "dir_id": 1,
+      "name": "x.json",
+      "revisions": [
+        "some/path/x1.json",
+        "some/path/x2.json"
+      ],
+      "using_ver": 1
+    },
+    {
+      "id": 2,
+      "dir_id": 1,
+      "name": "a.html",
+      "revisions": [
+        "some/path/a1.html",
+        "some/path/a2.html"
+      ],
+      "using_ver": 0
+    }
+  ]
+}

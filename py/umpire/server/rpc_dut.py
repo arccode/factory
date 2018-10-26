@@ -8,6 +8,7 @@ import csv
 import glob
 import os
 import shutil
+import tarfile
 import time
 import xmlrpclib
 
@@ -75,6 +76,8 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
   def GetTime(self):
     return time.time()
 
+  # TODO(hsinyi): Remove ListParameters and GetParameter and modify related
+  #               pytest codes.
   @umpire_rpc.RPCCall
   @utils.Deprecate
   def ListParameters(self, pattern):
@@ -124,6 +127,36 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
       raise ValueError('File does not exist or it is not a file')
 
     return xmlrpc.Binary(file_utils.ReadFile(abspath))
+
+  @umpire_rpc.RPCCall
+  def GetParameters(self, namespace=None, name=None):
+    """Gets parameter components by querying namespace and component name.
+
+    Args:
+      namespace: relative directory path of queried component(s). None if
+                 they are in root directory.
+      name: component name of queried component. None if targeting all
+            components under namespace.
+
+    Returns:
+      Content of the parameter. It is always wrapped in a shopfloor.Binary
+      object to provides best flexibility.
+
+    Raises:
+      ValueError if the parameter does not exist.
+    """
+    abspaths = self.env.QueryParameters(namespace, name)
+
+    if not abspaths:
+      raise ValueError('File does not exist or it is not a file')
+
+    # Pack files to tar
+    with file_utils.UnopenedTemporaryFile() as tar_path:
+      tar = tarfile.open(tar_path, 'w')
+      for name, path in abspaths:
+        tar.add(path, arcname=name)
+      tar.close()
+      return xmlrpc.Binary(file_utils.ReadFile(tar_path))
 
   @umpire_rpc.RPCCall
   @xmlrpc.withRequest
