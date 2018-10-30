@@ -338,9 +338,26 @@ sub command in `image_tool`:
       --release_image=path/to/chromiumos_image.bin \
       --hwid=path/to/hwid_bundle.sh
 
-Flash the `rma_image.bin` to a USB stick, boot it in with developer switch
-enabled in recovery mode, and then you will see the installation menu that can
-install directly from same USB stick without network.
+Flash the `rma_image.bin` to a USB stick, boot it with developer switch
+enabled in recovery mode (see following steps), and then you will see the
+installation menu that can install directly from same USB stick without network.
+
+#### Boot from RMA shim (clamshells / convertibles)
+  1. `ESC+REFRESH+POWER` to recovery mode
+  2. `CTRL+D` to turn on dev switch
+  3. `ENTER` to confirm
+  4. `ESC+REFRESH+POWER` to recovery mode again (no need to wait for transition)
+  5. Insert and boot from USB stick with `rma_image.bin`
+
+#### Boot from RMA shim (tablets / detachables)
+  1. Enter recovery mode by pressing `POWER+VOL_UP+VOL_DOWN` for at least 10
+     seconds, then release them
+  2. `VOL_UP+VOL_DOWN` to show RECOVERY menu
+  3. Select "enter developer mode"
+  4. Select "confirm"
+  5. Enter recovery mode by pressing `POWER+VOL_UP+VOL_DOWN` for at least 10
+     seconds, then release them (no need to wait for transition)
+  6. Insert and boot from USB stick with `rma_image.bin`
 
 ## Modifying factory test image or adding test cases
 The factory test image runs the series of [pytests](py/pytests) located at
