@@ -71,7 +71,8 @@ charge_control() {
 
 run_stressapptest() {
   local VERY_LONG_TIME="1000000"
-  stressapptest -s "${VERY_LONG_TIME}" >/dev/null &
+  # It may crash the system if it use too much memory on Factory Shim.
+  stressapptest -M 128 -s "${VERY_LONG_TIME}" >/dev/null &
   echo "$!"
 }
 
