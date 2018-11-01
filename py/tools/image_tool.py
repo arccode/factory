@@ -1312,7 +1312,7 @@ class ChromeOSFactoryBundle(object):
     Args:
       output: a path to output image file.
       images: a list of image files.
-      select_func: A function that takes a 2D list of RMABoardEntry, and returns
+      select_func: A function that takes a list of RMABoardEntry, and returns
                    a reduced list with same or less elements. The remaining
                    board entries will be merged into a single RMA shim.
     """
@@ -1324,7 +1324,10 @@ class ChromeOSFactoryBundle(object):
       payloads_size = sum(p[1] for p in payloads_set)
       return payloads_size
 
-    image_entries = []  # List of lists of boards in each images
+    # A list of entries in every images.
+    entries = []
+    # A dict that maps an image to a list of entries that belongs to the image.
+    image_entries_map = {}
     stateful_parts = []
     kern_rootfs_parts = []
     block_size = 0
@@ -1337,32 +1340,35 @@ class ChromeOSFactoryBundle(object):
           'Cannot merge image %s due to different block size (%s, %s)' %
           (image, block_size, gpt.block_size))
       stateful_parts.append(gpt.GetPartition(PART_CROS_STATEFUL))
+      # A list of entries in `image`.
+      image_entries = []
       with gpt.GetPartition(PART_CROS_STATEFUL).Mount() as stateful:
         src_metadata = _ReadRMAMetadata(stateful)
-        board_entries = []
         for board_info in src_metadata:
           with gpt.GetPartition(
               board_info.rootfs).MountAsCrOSRootfs() as rootfs:
             versions = _ReadBoardResourceVersions(rootfs, stateful, board_info)
-          board_entries.append(ChromeOSFactoryBundle.RMABoardEntry(
+          entry = ChromeOSFactoryBundle.RMABoardEntry(
               board_info.board, image, versions,
               gpt.GetPartition(board_info.kernel),
-              gpt.GetPartition(board_info.rootfs)))
-        image_entries.append(board_entries)
+              gpt.GetPartition(board_info.rootfs))
+          image_entries.append(entry)
+
+      entries += image_entries
+      image_entries_map[image] = image_entries
 
     # Count the payload size of each images separately.
-    old_payload_size = sum(
-        [_GetPayloadSize(entries) for entries in image_entries])
-    image_entries = select_func(image_entries)
+    old_payload_size = sum([_GetPayloadSize(image_entries)
+                            for image_entries in image_entries_map.values()])
+    entries = select_func(entries)
     # Count the payload size in the merged image.
-    new_payload_size = _GetPayloadSize(sum(image_entries, []))
+    new_payload_size = _GetPayloadSize(entries)
     diff_payload_size = old_payload_size - new_payload_size
     assert diff_payload_size >= 0, 'Merged payload should not become larger.'
 
-    for board_entries in image_entries:
-      for entry in board_entries:
-        kern_rootfs_parts.append(entry.kernel)
-        kern_rootfs_parts.append(entry.rootfs)
+    for entry in entries:
+      kern_rootfs_parts.append(entry.kernel)
+      kern_rootfs_parts.append(entry.rootfs)
 
     # Build a new image based on first image's layout.
     gpt = pygpt.GPT.LoadFromFile(images[0])
@@ -1447,28 +1453,23 @@ class ChromeOSFactoryBundle(object):
 
     with new_state.Mount(rw=True) as stateful:
       board_list = []
-      board_index = 0
-
-      for i, src_path in enumerate(images):
-        print('Copying boards in %s ...' % src_path)
-        with Partition(src_path, PART_CROS_STATEFUL).Mount() as src_dir:
-          for board_entry in image_entries[i]:
-            print('Copying %s board ...' % board_entry.board)
-            # Copy payloads in stateful partition
-            src_payloads_dir = os.path.join(src_dir, DIR_CROS_PAYLOADS)
-            src_metadata_path = os.path.join(src_payloads_dir,
-                                             '%s.json' % board_entry.board)
-            target_payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
-            ChromeOSFactoryBundle.CopyPayloads(
-                src_payloads_dir, target_payloads_dir, src_metadata_path)
-            # Copy kernel/rootfs partitions
-            new_kernel = board_index * 2 + PART_CROS_KERNEL_A
-            new_rootfs = board_index * 2 + PART_CROS_ROOTFS_A
-            board_index += 1
-            board_entry.kernel.Copy(Partition(output, new_kernel))
-            board_entry.rootfs.Copy(Partition(output, new_rootfs))
-            board_list.append(
-                RMAImageBoardInfo(board_entry.board, new_kernel, new_rootfs))
+      for index, entry in enumerate(entries):
+        with Partition(entry.image, PART_CROS_STATEFUL).Mount() as src_dir:
+          print('Copying %s board ...' % entry.board)
+          # Copy payloads in stateful partition
+          src_payloads_dir = os.path.join(src_dir, DIR_CROS_PAYLOADS)
+          src_metadata_path = os.path.join(src_payloads_dir,
+                                           '%s.json' % entry.board)
+          target_payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+          ChromeOSFactoryBundle.CopyPayloads(
+              src_payloads_dir, target_payloads_dir, src_metadata_path)
+          # Copy kernel/rootfs partitions
+          new_kernel = index * 2 + PART_CROS_KERNEL_A
+          new_rootfs = index * 2 + PART_CROS_ROOTFS_A
+          entry.kernel.Copy(Partition(output, new_kernel))
+          entry.rootfs.Copy(Partition(output, new_rootfs))
+          board_list.append(
+              RMAImageBoardInfo(entry.board, new_kernel, new_rootfs))
 
       _WriteRMAMetadata(stateful, board_list)
 
@@ -1480,29 +1481,26 @@ class ChromeOSFactoryBundle(object):
     decide which one to use, or auto-select if `auto_select` is set.
     """
 
-    def _ResolveDuplicate(image_entries):
+    def _ResolveDuplicate(entries):
       board_map = {}
-      for board_entries in image_entries:
-        for entry in board_entries:
-          board_name = entry.board
-          if board_name not in board_map:
-            board_map[board_name] = []
-          board_map[board_name].append(entry)
+      for entry in entries:
+        if entry.board not in board_map:
+          board_map[entry.board] = []
+        board_map[entry.board].append(entry)
 
       selected_entries = set()
-      for board_name, entries in board_map.iteritems():
-        if len(entries) == 1 or auto_select:
+      for board_name, board_entries in board_map.iteritems():
+        if len(board_entries) == 1 or auto_select:
           selected = 0
         else:
           title = 'Board %s has more than one entry.' % board_name
           options = ['From %s\n%s' % (entry.image, entry.versions)
-                     for entry in entries]
+                     for entry in board_entries]
           selected = UserSelect(title, options)
-        selected_entries.add(entries[selected])
+        selected_entries.add(board_entries[selected])
 
       resolved_entries = [
-          [entry for entry in board_entries if entry in selected_entries]
-          for board_entries in image_entries]
+          entry for entry in entries if entry in selected_entries]
 
       return resolved_entries
 
@@ -1512,18 +1510,17 @@ class ChromeOSFactoryBundle(object):
   def ExtractRMAImage(output, image, select=None):
     """Extract a board image from a universal RMA image."""
 
-    def _SelectBoard(image_entries):
-      assert len(image_entries) == 1, 'Does not support multiple boards.'
+    def _SelectBoard(entries):
       if select is not None:
         selected = int(select) - 1
-        if not 0 <= selected < len(image_entries[0]):
+        if not 0 <= selected < len(entries):
           raise ValueError('Index %d out of range.' % selected)
       else:
         title = 'Please select a board to extract.'
-        options = [str(entry.versions) for entry in image_entries[0]]
+        options = [str(entry.versions) for entry in entries]
         selected = UserSelect(title, options)
 
-      return [[image_entries[0][selected]]]
+      return [entries[selected]]
 
     ChromeOSFactoryBundle._RecreateRMAImage(output, [image], _SelectBoard)
 
