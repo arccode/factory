@@ -305,7 +305,7 @@ class TestInvocation(object):
                 'Before starting: %s' % self._AbortedMessage())
 
           self._process = self.goofy.pytest_prespawner.spawn(
-              PytestInfo(test_list=self.goofy.options.test_list,
+              PytestInfo(test_list=self.goofy.test_list.test_list_id,
                          path=self.test.path,
                          pytest_name=pytest_name,
                          args=self.resolved_dargs,
@@ -503,11 +503,11 @@ class TestInvocation(object):
     else:
       try:
         logging.debug('Resolving self.test.dargs from test list [%s]...',
-                      self.goofy.options.test_list)
+                      self.goofy.test_list.test_list_id)
         self.resolved_dargs = ResolveTestArgs(
             self.goofy,
             self.test,
-            test_list_id=self.goofy.options.test_list,
+            test_list_id=self.goofy.test_list.test_list_id,
             dut_options=self.dut_options)
       except Exception as e:
         logging.exception('Unable to resolve test arguments')

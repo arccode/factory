@@ -133,7 +133,7 @@ class GoofyTest(unittest.TestCase):
   def InitGoofy(self, restart=True):
     """Initializes and returns a Goofy."""
     new_goofy = Goofy()
-    args = ['--test_list', 'test']
+    args = []
     if restart:
       args.append('--restart')
 
@@ -178,6 +178,7 @@ class GoofyTest(unittest.TestCase):
       test_list.options.read_device_data_from_vpd_on_init = False
       self.test_list_manager.BuildAllTestLists().AndReturn(
           ({'test': test_list}, {}))
+      self.test_list_manager.GetActiveTestListId().AndReturn('test')
 
   def RecordGoofyDestroy(self):
     if self.mock_goofy_server:

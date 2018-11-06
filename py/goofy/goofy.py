@@ -1093,16 +1093,14 @@ class Goofy(object):
         startup_errors.append('Error in test list file (%s):\n%s'
                               % (f, exc_string))
 
-    if not self.options.test_list:
-      self.options.test_list = self.test_list_manager.GetActiveTestListId()
+    active_test_list = self.test_list_manager.GetActiveTestListId()
 
     # Check for a non-existent test list ID.
     try:
-      self.test_list = self.GetTestList(self.options.test_list)
+      self.test_list = self.GetTestList(active_test_list)
       logging.info('Active test list: %s', self.test_list.test_list_id)
     except type_utils.TestListError as e:
-      logging.exception('Invalid active test list: %s',
-                        self.options.test_list)
+      logging.exception('Invalid active test list: %s', active_test_list)
       startup_errors.append(e.message)
 
     # Show all startup errors.
@@ -1140,9 +1138,6 @@ class Goofy(object):
     parser.add_option('--restart', dest='restart',
                       action='store_true',
                       help='Clear all test state')
-    parser.add_option('--test_list', dest='test_list',
-                      metavar='TEST_LIST_ID',
-                      help='Use test list whose id is TEST_LIST_ID')
     parser.add_option('--no-goofy-ui', dest='goofy_ui',
                       action='store_false', default=True,
                       help='start without Goofy UI')
