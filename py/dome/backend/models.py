@@ -813,7 +813,7 @@ class Service(object):
 
   @staticmethod
   def GetServiceSchemata():
-    return umpire_service.GetAllServiceSchemata().schema['properties']
+    return umpire_service.GetAllServiceSchemata()['properties']
 
   @staticmethod
   def ListAll(project_name):

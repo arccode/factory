@@ -28,7 +28,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import utils
 from cros.factory.utils import file_utils
-from cros.factory.utils.schema import JSONSchemaDict
 from cros.factory.utils import type_utils
 
 # A list of all available umpire services
@@ -509,11 +508,10 @@ class UmpireService(object):
 
 
 def GetAllServiceSchemata():
-  """Gets a dictionary of configuration schemata of all available umpire
-    services.
+  """Return the JSON schema of all available Umpire services.
 
   Returns:
-    A schema.FixedDict items composed of schema of all services.
+    The JSON schema of all services.
   """
   for service_name in _SERVICE_LIST:
     LoadServiceModule(service_name)
@@ -521,10 +519,10 @@ def GetAllServiceSchemata():
 
 
 def GetServiceSchemata():
-  """Gets a dictionary of service configuration schemata.
+  """Return the JSON schema of Umpire services loaded in _SERVICE_MAP.
 
   Returns:
-    A schema.JSONSchemaDict items parameter for validating service schemata.
+    The JSON schema of field 'service' in Umpire config.
   """
   properties = {}
   for name, module in _SERVICE_MAP.iteritems():
@@ -543,7 +541,7 @@ def GetServiceSchemata():
       "properties": properties,
       "additionalProperties": False
   }
-  return JSONSchemaDict('Service schemata', schemata)
+  return schemata
 
 
 def LoadServiceModule(module_name):

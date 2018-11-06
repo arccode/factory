@@ -18,22 +18,22 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.utils import json_utils
-from cros.factory.utils.schema import FixedDict
-from cros.factory.utils.schema import List
-from cros.factory.utils.schema import Scalar
+from cros.factory.utils.schema import JSONSchemaDict
 
 
 # Single bundle validator.
 # A valid configuration can contain multiple bundles. At any time, one device
 # state (mac, sn, mlb_sn) can map to one bundle only.
-_BUNDLE_SCHEMA = FixedDict(
-    'Bundle for one device',
-    items={
-        'id': Scalar('Unique key for this bundle', basestring),
-        'note': Scalar('Notes', basestring),
-        'payloads': Scalar('Payload', basestring),
-        'active': Scalar('State of this bundle', bool)})
-
+_BUNDLE_JSON_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'id': {'type': 'string'},
+        'note': {'type': 'string'},
+        'payloads': {'type': 'string'},
+        'active': {'type': 'boolean'}
+    },
+    'required': ['id', 'note', 'payloads', 'active'],
+    'additionalProperties': False}
 
 def ValidateConfig(config):
   """Validates Umpire config dict.
@@ -51,11 +51,19 @@ def ValidateConfig(config):
   """
   for service in config['services']:
     umpire_service.LoadServiceModule(service)
-  schema = FixedDict(
+  schema = JSONSchemaDict(
       'Top level Umpire config fields',
-      items={
-          'services': umpire_service.GetServiceSchemata(),
-          'bundles': List('Bundles', _BUNDLE_SCHEMA)})
+      {
+          'type': 'object',
+          'properties': {
+              'services': umpire_service.GetServiceSchemata(),
+              'bundles': {
+                  'type': 'array',
+                  'items': _BUNDLE_JSON_SCHEMA
+              }
+          },
+          'required': ['services', 'bundles'],
+          'additionalProperties': False})
   schema.Validate(config)
 
 
