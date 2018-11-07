@@ -1003,6 +1003,7 @@ class ChromeOSFactoryBundle(object):
       lsb_file = LSBFile(lsb_path if os.path.exists(lsb_path) else None)
       lsb_file.AppendValue('FACTORY_INSTALL_FROM_USB', '1')
       lsb_file.AppendValue('USE_CROS_PAYLOAD', '1')
+      lsb_file.AppendValue('RMA_AUTORUN', 'true')
       lsb_file.Install(lsb_path)
 
       _WriteRMAMetadata(stateful,
@@ -1923,11 +1924,11 @@ class EditLSBCommand(SubCommand):
 
   def EditBoardPrompt(self):
     """Enable/disable board prompt on download."""
-    answer = raw_input('Enable (y) or disable (n) board prompt? ').lower()
-    while not answer.strip() in ['y', 'n']:
-      answer = raw_input('Please input "y" or "n": ').lower()
-    self.lsb.SetValue('USER_SELECT',
-                      'true' if answer.strip() == 'y' else 'false')
+    answer = raw_input(
+        'Enable (y) or disable (n) board prompt? ').strip().lower()
+    while not answer in ['y', 'n']:
+      answer = raw_input('Please input "y" or "n": ').strip().lower()
+    self.lsb.SetValue('USER_SELECT', 'true' if answer == 'y' else 'false')
 
   def EditCutOff(self):
     """Modify cutoff method after factory reset.
@@ -1957,6 +1958,18 @@ class EditLSBCommand(SubCommand):
     self._DoURL(
         'Chrome OS Factory Server or Shopfloor Service for OQC ReFinalize',
         ['SHOPFLOOR_URL'])
+
+  def EditRMAAutorun(self):
+    """Enable/disable autorun in RMA shim.
+
+    If RMA autorun is set, automatically do RSU (RMA Server Unlock) or install,
+    depending on HWWP status.
+    """
+    answer = raw_input(
+        'Enable (y) or disable (n) autorun in RMA? ').strip().lower()
+    while not answer in ['y', 'n']:
+      answer = raw_input('Please input "y" or "n": ').strip().lower()
+    self.lsb.SetValue('RMA_AUTORUN', 'true' if answer == 'y' else 'false')
 
   def DoMenu(self, *args, **kargs):
     redo_options = True
@@ -2017,6 +2030,7 @@ class EditLSBCommand(SubCommand):
       self.DoMenu(self.EditServerAddress,
                   self.EditBoardPrompt,
                   self.EditCutOff,
+                  self.EditRMAAutorun,
                   w=self.Write,
                   q=self.Quit)
 
