@@ -283,23 +283,30 @@ class Goofy(object):
     sys_utils.ResetCommitTime()
 
     self.state_instance = state.FactoryState()
-    # After SKU ID is updated and DUT is reboot, test list might be switched
-    # because model name is changed too. In this case, shared state should be
-    # cleared; otherwise shared data like TESTS_AFTER_SHUTDOWN prevents tests
-    # from running automatically.
-    previous_id = self.state_instance.DataShelfGetValue(ACTIVE_TEST_LIST_ID,
-                                                        optional=True)
-    if previous_id != self.test_list.test_list_id:
-      logging.info('Test list is changed from %s to %s.',
-                   previous_id, self.test_list.test_list_id)
-      if previous_id:
-        self.state_instance.Close()
-        state.ClearState()
-        self.state_instance = state.FactoryState()
+    self.last_shutdown_time = (
+        self.state_instance.DataShelfGetValue('shutdown_time', optional=True))
+    self.state_instance.DataShelfDeleteKeys('shutdown_time', optional=True)
+    self.state_instance.DataShelfDeleteKeys('startup_error', optional=True)
 
-      self.state_instance.DataShelfSetValue(ACTIVE_TEST_LIST_ID,
-                                            self.test_list.test_list_id)
+  def _ResetStateInstance(self):
+    PRESERVED_KEYS = ['startup_error']
 
+    # Backup the required data.
+    preserved_data = {
+        key: self.state_instance.DataShelfGetValue(key, optional=True)
+        for key in PRESERVED_KEYS}
+
+    # Reset the state instance.
+    self.state_instance.Close()
+    state.ClearState()
+    self.state_instance = state.FactoryState()
+
+    # Write back the preserved data.
+    for key, value in preserved_data.iteritems():
+      if value is not None:
+        self.state_instance.DataShelfSetValue(key, value)
+
+  def _InitGoofyRPC(self):
     self.goofy_server.AddRPCInstance(goofy_proxy.STATE_URL, self.state_instance)
 
     # Setup Goofy RPC.
@@ -1070,47 +1077,77 @@ class Goofy(object):
     Returns:
       True if the active test list could be set, False if failed.
     """
-    startup_errors = []
-
-    self.test_lists, failed_files = self.test_list_manager.BuildAllTestLists()
-
-    logging.info('Loaded test lists: %r', sorted(self.test_lists.keys()))
-
-    # Check for any syntax errors in test list files.
-    if failed_files:
-      logging.info('Failed test list files: [%s]',
-                   ' '.join(failed_files.keys()))
-      for f, exc_info in failed_files.iteritems():
-        logging.error('Error in test list file: %s', f,
-                      exc_info=exc_info)
-
-        # Limit the stack trace to the very last entry.
-        exc_type, exc_value, exc_traceback = exc_info
-        while exc_traceback and exc_traceback.tb_next:
-          exc_traceback = exc_traceback.tb_next
-
-        exc_string = ''.join(
-            traceback.format_exception(
-                exc_type, exc_value, exc_traceback)).rstrip()
-        startup_errors.append('Error in test list file (%s):\n%s'
-                              % (f, exc_string))
-
-    active_test_list = self.test_list_manager.GetActiveTestListId()
-
-    # Check for a non-existent test list ID.
     try:
-      self.test_list = self.GetTestList(active_test_list)
-      logging.info('Active test list: %s', self.test_list.test_list_id)
-    except type_utils.TestListError as e:
-      logging.exception('Invalid active test list: %s', active_test_list)
-      startup_errors.append(e.message)
+      startup_errors = []
 
-    # Show all startup errors.
-    if startup_errors:
-      self._RecordStartError('\n\n'.join(startup_errors))
+      self.test_lists, failed_files = self.test_list_manager.BuildAllTestLists()
+
+      logging.info('Loaded test lists: %r', sorted(self.test_lists.keys()))
+
+      # Check for any syntax errors in test list files.
+      if failed_files:
+        logging.info('Failed test list files: [%s]',
+                     ' '.join(failed_files.keys()))
+        for f, exc_info in failed_files.iteritems():
+          logging.error('Error in test list file: %s', f,
+                        exc_info=exc_info)
+
+          # Limit the stack trace to the very last entry.
+          exc_type, exc_value, exc_traceback = exc_info
+          while exc_traceback and exc_traceback.tb_next:
+            exc_traceback = exc_traceback.tb_next
+
+          exc_string = ''.join(
+              traceback.format_exception(
+                  exc_type, exc_value, exc_traceback)).rstrip()
+          startup_errors.append('Error in test list file (%s):\n%s'
+                                % (f, exc_string))
+
+      active_test_list = self.test_list_manager.GetActiveTestListId()
+
+      # Check for a non-existent test list ID.
+      try:
+        self.test_list = self.GetTestList(active_test_list)
+        logging.info('Active test list: %s', self.test_list.test_list_id)
+      except type_utils.TestListError as e:
+        logging.exception('Invalid active test list: %s', active_test_list)
+        startup_errors.append(e.message)
+
+      # Show all startup errors.
+      if startup_errors:
+        self._RecordStartError('\n\n'.join(startup_errors))
+
+    except Exception:
+      logging.exception('Unable to initialize test lists')
+      self._RecordStartError(
+          'Unable to initialize test lists\n%s' % traceback.format_exc())
+
+    success = bool(self.test_list)
+    if not success:
+      # Create an empty test list with default options so that the rest of
+      # startup can proceed.
+      # A message box will pop up in UI for the error details.
+      self.test_list = manager.DummyTestList(self.test_list_manager)
+
+    # After SKU ID is updated and DUT is reboot, test list might be switched
+    # because model name is changed too. In this case, shared state should be
+    # cleared; otherwise shared data like TESTS_AFTER_SHUTDOWN prevents tests
+    # from running automatically.
+    previous_id = self.state_instance.DataShelfGetValue(ACTIVE_TEST_LIST_ID,
+                                                        optional=True)
+    if previous_id != self.test_list.test_list_id:
+      logging.info('Test list is changed from %s to %s.',
+                   previous_id, self.test_list.test_list_id)
+      if previous_id:
+        self._ResetStateInstance()
+
+      self.state_instance.DataShelfSetValue(ACTIVE_TEST_LIST_ID,
+                                            self.test_list.test_list_id)
+
+    self.test_list.state_instance = self.state_instance
 
     # Only return False if failed to load the active test list.
-    return bool(self.test_list)
+    return success
 
   def _InitHooks(self):
     """Initializes hooks.
@@ -1221,27 +1258,13 @@ class Goofy(object):
     logging.info('Starting goofy server')
     self.goofy_server_thread.start()
 
-    success = False
-    try:
-      success = self._InitTestLists()
-    except Exception:
-      logging.exception('Unable to initialize test lists')
-      self._RecordStartError(
-          'Unable to initialize test lists\n%s' % traceback.format_exc())
-
-    if not success:
-      # Create an empty test list with default options so that the rest of
-      # startup can proceed.
-      # A message box will pop up in UI for the error details.
-      self.test_list = manager.DummyTestList(self.test_list_manager)
-
     self._InitStateInstance()
-    self.last_shutdown_time = (
-        self.state_instance.DataShelfGetValue('shutdown_time', optional=True))
-    self.state_instance.DataShelfDeleteKeys('shutdown_time', optional=True)
-    self.state_instance.DataShelfDeleteKeys('startup_error', optional=True)
 
-    self.test_list.state_instance = self.state_instance
+    # _InitTestLists might reset the state_instance, all initializations which
+    # rely on the state_instance need to be done after this step.
+    success = self._InitTestLists()
+
+    self._InitGoofyRPC()
 
     self._InitHooks()
     self.testlog.init_hooks(self.test_list.options.testlog_hooks)
