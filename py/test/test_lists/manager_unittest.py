@@ -121,7 +121,7 @@ class TestListLoaderTest(unittest.TestCase):
     self.assertItemsEqual(
         ['a', 'b', 'base', 'locals', 'override_args', 'flatten_group',
          'skipped_waived_tests', 'invalid'],
-        self.loader.FindTestListIDs())
+        self.loader.FindTestLists())
 
   def testBuildAllTestLists(self):
     test_lists, unused_error = self.manager.BuildAllTestLists()
@@ -177,15 +177,15 @@ class TestListLoaderTest(unittest.TestCase):
     self.assertFalse(test_list.modified)
 
     # 'b' is modified
-    os.utime(self.loader.GetConfigPath('b'), None)
+    os.utime(self._GetTestListConfigPath('b'), None)
     self.assertTrue(test_list.modified)
 
     # let's go back in time
-    os.utime(self.loader.GetConfigPath('b'), (0, 0))
+    os.utime(self._GetTestListConfigPath('b'), (0, 0))
     self.assertTrue(test_list.modified)
 
     # b inherits base
-    os.utime(self.loader.GetConfigPath('base'), None)
+    os.utime(self._GetTestListConfigPath('base'), None)
     self.assertTrue(test_list.modified)
 
   def testAutoReloadTestList(self):
@@ -195,9 +195,9 @@ class TestListLoaderTest(unittest.TestCase):
     self.assertTrue(test_list.LookupPath('SMT'))
 
     # modified content
-    with open(self.loader.GetConfigPath('a'), 'r') as f:
+    with open(self._GetTestListConfigPath('a'), 'r') as f:
       json_object = json.load(f)
-    with open(self.loader.GetConfigPath('a'), 'w') as f:
+    with open(self._GetTestListConfigPath('a'), 'w') as f:
       json_object['constants']['timestamp'] = 123
       json_object['tests'] = [
           {
@@ -206,7 +206,7 @@ class TestListLoaderTest(unittest.TestCase):
           }
       ]
       json.dump(json_object, f)
-    os.utime(self.loader.GetConfigPath('a'), None)
+    os.utime(self._GetTestListConfigPath('a'), None)
 
     # test list should be automatically reloaded
     self.assertIsNone(test_list.LookupPath('SMT'))
@@ -232,9 +232,9 @@ class TestListLoaderTest(unittest.TestCase):
     self.assertTrue(test_list.LookupPath('SMT'))
 
     # modified content
-    with open(self.loader.GetConfigPath('a'), 'r') as f:
+    with open(self._GetTestListConfigPath('a'), 'r') as f:
       json_object = json.load(f)
-    with open(self.loader.GetConfigPath('a'), 'w') as f:
+    with open(self._GetTestListConfigPath('a'), 'w') as f:
       json_object['constants']['timestamp'] = 123
       json_object['tests'] = [
           {
@@ -244,7 +244,7 @@ class TestListLoaderTest(unittest.TestCase):
           }
       ]
       json.dump(json_object, f)
-    os.utime(self.loader.GetConfigPath('a'), None)
+    os.utime(self._GetTestListConfigPath('a'), None)
 
     # test list reloading should fail, and will keep getting old value
     self.assertEqual(test_list.constants.timestamp, 1)
@@ -270,6 +270,10 @@ class TestListLoaderTest(unittest.TestCase):
     for test in test_list.Walk():
       if test.IsLeaf():
         self.assertEqual(test.locals_, expected[test.path])
+
+  def _GetTestListConfigPath(self, test_list_id):
+    return os.path.join(
+        self.temp_dir, test_list_id + manager.CONFIG_SUFFIX + '.json')
 
 
 if __name__ == '__main__':

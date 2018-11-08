@@ -932,6 +932,9 @@ class TestList(ITestList):
     Returns:
       True if the test list config is modified, otherwise False.
     """
+    # Note that this method can't catch all kind of potential modification.
+    # For example, this property won't become `True` if the user add an
+    # additional test list in /var/factory/config/ to override an existing one.
     for config_file, timestamp in self._config.GetDepend().iteritems():
       if os.path.exists(config_file):
         if timestamp != os.stat(config_file).st_mtime:

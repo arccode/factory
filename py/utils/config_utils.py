@@ -45,6 +45,7 @@ Usage:
 from __future__ import print_function
 
 import collections
+import glob
 import inspect
 import json
 import logging
@@ -96,6 +97,37 @@ CALLER_DIR = None
 
 class ConfigNotFoundError(Exception):
   pass
+
+
+class _JsonFileInvalidError(Exception):
+  def __init__(self, filename, detail):
+    super(_JsonFileInvalidError, self).__init__(filename, detail)
+    self.filename = filename
+    self.detail = detail
+
+
+class ConfigFileInvalidError(_JsonFileInvalidError):
+  def __str__(self):
+    return 'Failed to load the config file %r: %r' % (self.filename,
+                                                      self.detail)
+
+
+class SchemaFileInvalidError(_JsonFileInvalidError):
+  def __str__(self):
+    return 'Failed to load the schema file %r: %r' % (self.filename,
+                                                      self.detail)
+
+
+class ConfigInvalidError(Exception):
+  def __init__(self, fail_reason, config_files):
+    super(ConfigInvalidError, self).__init__(fail_reason, config_files)
+    self.fail_reason = fail_reason
+    self.config_files = config_files
+
+  def __str__(self):
+    return 'The config is invalid: %r\nThe config is loaded from:\n%s' % (
+        self.fail_reason,
+        '\n'.join('  ' + config_file for config_file in self.config_files))
 
 
 def _DummyLogger(*unused_arg, **unused_kargs):
@@ -176,9 +208,8 @@ def _LoadJsonFile(file_path, logger):
     try:
       with open(file_path) as f:
         return json.load(f)
-    except ValueError as e:
-      raise ValueError('%s: %s' % (e.message, file_path), *e.args[1:])
-
+    except Exception as e:
+      raise _JsonFileInvalidError(file_path, str(e))
 
   # file_path does not exist, but it may be a PAR virtual path.
   if '.par' in file_path.lower():
@@ -188,11 +219,15 @@ def _LoadJsonFile(file_path, logger):
       importer = zipimport.zipimporter(file_dir)
       zip_path = os.path.join(importer.prefix, file_name)
       logger('config_utils: Loading from %s!%s', importer.archive, zip_path)
-      return json.loads(importer.get_data(zip_path))
     except zipimport.ZipImportError:
       logger('config_utils: No PAR/ZIP in %s. Ignore.', file_path)
     except IOError:
       logger('config_utils: PAR path %s does not exist. Ignore.', file_path)
+    else:
+      try:
+        return json.loads(importer.get_data(zip_path))
+      except Exception as e:
+        raise _JsonFileInvalidError(file_path, str(e))
   return None
 
 
@@ -202,9 +237,12 @@ def _LoadRawConfig(config_dir, config_name, logger=_DummyLogger):
   Returns:
     A configuration object.
   """
-  config_path = os.path.join(config_dir, config_name + CONFIG_FILE_EXT)
-  logger('config_utils: Checking %s', config_path)
-  return _LoadJsonFile(config_path, logger)
+  try:
+    config_path = os.path.join(config_dir, config_name + CONFIG_FILE_EXT)
+    logger('config_utils: Checking %s', config_path)
+    return _LoadJsonFile(config_path, logger)
+  except _JsonFileInvalidError as e:
+    raise ConfigFileInvalidError(e.filename, e.detail)
 
 
 def _LoadRawSchema(config_dir, schema_name, logger=_DummyLogger):
@@ -213,8 +251,11 @@ def _LoadRawSchema(config_dir, schema_name, logger=_DummyLogger):
   Returns:
     A schema object.
   """
-  schema_path = os.path.join(config_dir, schema_name + SCHEMA_FILE_EXT)
-  return _LoadJsonFile(schema_path, logger)
+  try:
+    schema_path = os.path.join(config_dir, schema_name + SCHEMA_FILE_EXT)
+    return _LoadJsonFile(schema_path, logger)
+  except _JsonFileInvalidError as e:
+    raise SchemaFileInvalidError(e.filename, e.detail)
 
 
 def _LoadConfigUtilsConfig():
@@ -423,6 +464,13 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
 
   Returns:
     The config as mapping object.
+
+  Raises:
+    - `ConfigNotFoundError` if no available config is found.
+    - `ConfigFileInvalidError` if the config files are found, but it fails
+        to load one of them.
+    - `SchemaFileInvalidError` if the schema file is invalid.
+    - `ConfigInvalidError` if the resolved config is invalid.
   """
   if not isinstance(default_config_dirs, list):
     default_config_dirs = [default_config_dirs]
@@ -431,7 +479,8 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   config_name, config_dirs = _ResolveConfigInfo(
       config_name, current_frame, default_config_dirs)
 
-  assert config_name, 'LoadConfig() requires a config name.'
+  if not config_name:
+    raise ConfigNotFoundError('LoadConfig() requires a config name.')
 
   logger = _GetLogger()
   raw_config_list = _LoadRawConfigList(config_name, config_dirs, allow_inherit,
@@ -458,7 +507,13 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
         break
     assert schema, 'Need JSON schema file defined for %s.' % config_name
     if _CAN_VALIDATE_SCHEMA:
-      jsonschema.validate(config, schema)
+      try:
+        jsonschema.validate(config, schema)
+      except Exception as e:
+        # Only get the `message` property of the exception to prevent
+        # from dumping whole schema data in the log.
+        raise ConfigInvalidError(e.message, raw_config_list.CollectDepend())
+
     else:
       logger('Configuration schema <%s> not validated because jsonschema '
              'Python library not installed.', config_name)
@@ -472,6 +527,38 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   if generate_depend:
     config.SetDepend(raw_config_list.CollectDepend())
   return config
+
+
+def GlobConfig(config_pattern, default_config_dirs=CALLER_DIR):
+  """Globs a configuration by given configuration name pattern.
+
+  The config files are located in multiple directories (see `LoadConfig` for
+  detail) and it's hard to find all of them.  This function helps the caller
+  to search the matched configuration names in multiple directories.
+
+  Args:
+    config_pattern: a string of config name pattern to match.
+    default_config_dirs: A list of directories in which the config files are
+        retrieved.  See `LoadConfig` for detail.
+
+  Returns:
+    A set of matched config names.
+  """
+  def _ToConfigName(path):
+    return os.path.basename(path)[:-len(CONFIG_FILE_EXT)]
+
+  if not isinstance(default_config_dirs, list):
+    default_config_dirs = [default_config_dirs]
+
+  current_frame = sys._getframe(1)  # pylint: disable=protected-access
+  unused_config_name, config_dirs = _ResolveConfigInfo(
+      None, current_frame, default_config_dirs)
+
+  ret = set()
+  for config_dir in config_dirs:
+    pattern = os.path.join(config_dir, config_pattern + CONFIG_FILE_EXT)
+    ret |= set(_ToConfigName(p) for p in glob.iglob(pattern))
+  return ret
 
 
 class _ConfigList(collections.OrderedDict):

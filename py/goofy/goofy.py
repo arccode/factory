@@ -1080,28 +1080,19 @@ class Goofy(object):
     try:
       startup_errors = []
 
-      self.test_lists, failed_files = self.test_list_manager.BuildAllTestLists()
+      self.test_lists, failed_test_lists = (
+          self.test_list_manager.BuildAllTestLists())
 
       logging.info('Loaded test lists: %r', sorted(self.test_lists.keys()))
 
       # Check for any syntax errors in test list files.
-      if failed_files:
-        logging.info('Failed test list files: [%s]',
-                     ' '.join(failed_files.keys()))
-        for f, exc_info in failed_files.iteritems():
-          logging.error('Error in test list file: %s', f,
-                        exc_info=exc_info)
-
-          # Limit the stack trace to the very last entry.
-          exc_type, exc_value, exc_traceback = exc_info
-          while exc_traceback and exc_traceback.tb_next:
-            exc_traceback = exc_traceback.tb_next
-
-          exc_string = ''.join(
-              traceback.format_exception(
-                  exc_type, exc_value, exc_traceback)).rstrip()
-          startup_errors.append('Error in test list file (%s):\n%s'
-                                % (f, exc_string))
+      if failed_test_lists:
+        logging.info('Failed test list IDs: [%s]',
+                     ' '.join(failed_test_lists.keys()))
+        for test_list_id, reason in failed_test_lists.iteritems():
+          logging.error('Error in test list %s: %s', test_list_id, reason)
+          startup_errors.append('Error in test list %s:\n%s'
+                                % (test_list_id, reason))
 
       active_test_list = self.test_list_manager.GetActiveTestListId()
 

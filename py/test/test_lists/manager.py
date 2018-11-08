@@ -5,10 +5,8 @@
 """Loader of test_list.json"""
 
 import collections
-import glob
 import logging
 import os
-import sys
 import zipimport
 
 import factory_common  # pylint: disable=unused-import
@@ -127,32 +125,27 @@ class Loader(object):
           validate_schema=True,
           default_config_dirs=self.config_dir,
           allow_inherit=allow_inherit,
-          generate_depend=allow_inherit)
+          generate_depend=True)
     except Exception:
-      logging.exception('Cannot load test list "%s"', test_list_id)
+      logging.error('Cannot load test list "%s"', test_list_id)
       raise
 
     loaded_config = TestListConfig(
         resolved_config=loaded_config,
         test_list_id=test_list_id,
-        source_path=self.GetConfigPath(test_list_id))
+        source_path=loaded_config.GetDepend()[0])
 
     return loaded_config
-
-  def GetConfigPath(self, test_list_id):
-    """Returns the test list config file path of `test_list_id`."""
-    return os.path.join(
-        self.config_dir,
-        self._GetConfigName(test_list_id) + config_utils.CONFIG_FILE_EXT)
 
   def _GetConfigName(self, test_list_id):
     """Returns the test list config file corresponding to `test_list_id`."""
     return test_list_id + CONFIG_SUFFIX
 
-  def FindTestListIDs(self):
-    suffix = CONFIG_SUFFIX + config_utils.CONFIG_FILE_EXT
-    return [os.path.basename(p)[:-len(suffix)] for p in
-            glob.iglob(os.path.join(self.config_dir, '*' + suffix))]
+  def FindTestLists(self):
+    """Returns a dict which maps the id to the file path of each test list."""
+    globbed_configs = config_utils.GlobConfig(
+        '*' + CONFIG_SUFFIX, default_config_dirs=self.config_dir)
+    return [name[:-len(CONFIG_SUFFIX)] for name in globbed_configs]
 
 
 class Manager(object):
@@ -208,15 +201,14 @@ class Manager(object):
     return self.test_lists.keys()
 
   def BuildAllTestLists(self):
-    failed_files = {}
-    for test_list_id in self.loader.FindTestListIDs():
+    failed_test_lists = {}
+    for test_list_id in self.loader.FindTestLists():
       logging.debug('try to load test list: %s', test_list_id)
       try:
         test_list = self.GetTestListByID(test_list_id)
-      except Exception:
-        path = self.loader.GetConfigPath(test_list_id)
-        logging.exception('Unable to import %s', path)
-        failed_files[path] = sys.exc_info()
+      except Exception as e:
+        logging.exception('Unable to load the test list %r', test_list_id)
+        failed_test_lists[test_list_id] = str(e)
 
     valid_test_lists = {}  # test lists that will be returned
     for test_list_id, test_list in self.test_lists.iteritems():
@@ -227,15 +219,14 @@ class Manager(object):
           continue
         try:
           test_list.CheckValid()
-        except Exception:
-          path = self.loader.GetConfigPath(test_list_id)
-          logging.exception('test list %s is invalid', path)
-          failed_files[path] = sys.exc_info()
+        except Exception as e:
+          logging.exception('Test list %s is invalid', test_list_id)
+          failed_test_lists[test_list_id] = repr(e)
           continue
       valid_test_lists[test_list_id] = test_list
 
     logging.debug('loaded test lists: %r', self.test_lists.keys())
-    return valid_test_lists, failed_files
+    return valid_test_lists, failed_test_lists
 
   @staticmethod
   def GetActiveTestListId():
