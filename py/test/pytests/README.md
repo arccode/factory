@@ -6,53 +6,26 @@ For more details of individual test, please look at the
 [SDK document](https://storage.googleapis.com/chromeos-factory-docs/sdk/pytests/index.html)
 or read the source of individual tests.
 
-## Writing a new test
+## Pytest Overview
 
-All the tests must be have implementation file named in
-`lowercase_with_underline` style and the Python class named in `CamelCase`
-style, following PEP-8 and Chrome OS Factory Coding Style.
-You can write test as a single Python file like [`nop.py`](nop.py), or
-implement it as Python package in its own folder like [`start/`](start/).
+Take [`start.py`](start.py) as an example, a pytest should contain 4 sections.
+  * Copyright header
+  * Test documentation
+  * Imports
+  * Implementation
 
-Tests should be implemented using Python
-[unittest](https://docs.python.org/2/library/unittest.html) framework. Take
-[`nop.py`](nop.py) as a simple example to create your own test.
+### Copyright header
 
-To use your test (say `mytest.py`), define an entry in test list:
+Always add copyright header to the beginning of the file.
 ```python
-  {
-    "pytest_name": "mytest"
-  }
+# Copyright 2018 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
 ```
 
-## Using arguments
+`2018` is year of file created date.
 
-To read arguments specified from test list, use
-`cros.factory.utils.arg_utils.Arg` by adding declarations as class variable. For
-example:
-```python
-  ARGS = [Arg('wait_secs', int, 'Wait for N seconds.', default=0)]
-```
-
-Then you can use this by reading `self.args.wait_secs`.
-
-Since JSON serialization doesn't support `tuple` type, new pytests shouldn't
-use `tuple` in argument type, and should use `list` instead.
-
-## Using user interface
-
-The Chrome OS Factory Software provides a web based user interface.  If you need
-to render anything on screen, try to import and initialize a
-`cros.factory.test.test_ui` object, with one of the templates from
-`cros.factory.test.ui_templates`.
-
-The extra files needed by test, for example HTML or JavaScript files, can be put
-in a folder as `${pytest_name}_static`, for example test `countdown` has its
-files in [`countdown_static`](countdown_static/). Or, if the test has its own
-package folder, put in a `static` folder inside the package; for example
-[`keyboard/static`](keyboard/static).
-
-## Test Documentation
+### Test Documentation
 
 To help both developers and non-developers understand better how these tests
 works, how to use it and what's needed to make it run, we have defined a
@@ -108,3 +81,62 @@ to look at following tests:
 - [touchpad](touchpad.py), [HTML version](https://storage.googleapis.com/chromeos-factory-docs/sdk/pytests/touchpad.html)
 - [sync_factory_server](sync_factory_server.py), [HTML version](https://storage.googleapis.com/chromeos-factory-docs/sdk/pytests/sync_factory_server.html)
 - [shopfloor_service](shopfloor_service.py), [HTML version](https://storage.googleapis.com/chromeos-factory-docs/sdk/pytests/shopfloor_service.html)
+
+### Imports
+
+Import lines are organized in 3 categories:
+* Standard python libraries, e.g. `import os`
+* Third-party modules, e.g. `import jsonlibrpc`
+* ChromeOS Factory modules
+
+`import factory_common  # pylint: disable=unused-import` injects
+`cros.factory` namespace, so the following `from cros.factory....` lines could
+work.
+
+### Implementation
+
+All pytests are a python class inherits [`test_case.TestCase`](../test_case.py),
+which is a subclass of `unittest.TestCase` from Python
+[unittest](https://docs.python.org/2/library/unittest.html) module.  When a
+pytest is executed, the following functions will be called (in exact order):
+1. `setUp()`
+2. `runTest()`
+3. `tearDown()`
+
+## Writing a new test
+
+All the tests must have implementation file named in
+`lowercase_with_underline` style and the Python class named in `CamelCase`
+style, following [PEP-8](https://www.python.org/dev/peps/pep-0008/) and Chrome
+OS Factory Coding Style.  You can write test as a single Python file like
+[`start.py`](start.py), or implement it as Python package in its own folder like
+[`probe/`](probe/).
+
+To use your test (say `mytest.py`), define an entry in
+[test list](../test_lists/README.md):
+```python
+  {
+    "pytest_name": "mytest"
+  }
+```
+
+## Using arguments
+
+To read arguments specified from test list, use
+`cros.factory.utils.arg_utils.Arg` by adding declarations as class variable. For
+example:
+```python
+  ARGS = [Arg('wait_secs', int, 'Wait for N seconds.', default=0)]
+```
+
+Then you can use this by reading `self.args.wait_secs`.
+
+Since JSON serialization doesn't support `tuple` type, new pytests shouldn't
+use `tuple` in argument type, and should use `list` instead.
+
+## Using user interface
+
+The Chrome OS Factory Software provides a web based user interface.  The test UI
+object will be injected to test instance as `self.ui`.  Read
+[Test UI API](https://storage.googleapis.com/chromeos-factory-docs/sdk/test_ui_api.html)
+for more details.
