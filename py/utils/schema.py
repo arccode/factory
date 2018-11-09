@@ -283,14 +283,17 @@ class JSONSchemaDict(BaseType):
     schema: a JSON schema object.
 
   Raises:
-    SchemaException if given schema is invalid.
-    ValidationError if argument format is incorrect.
+    SchemaException if given schema is invalid (SchemaError) or fail
+    to validate data using the schema (ValidationError).
   """
   def __init__(self, label, schema):
     super(JSONSchemaDict, self).__init__(label)
     self.label = label
     if _HAVE_JSONSCHEMA:
-      jsonschema.Draft4Validator.check_schema(schema)
+      try:
+        jsonschema.Draft4Validator.check_schema(schema)
+      except Exception as e:
+        raise SchemaException('Schema %r is invalid: %r' % (schema, e))
     self.schema = schema
 
   def __repr__(self):
@@ -298,7 +301,11 @@ class JSONSchemaDict(BaseType):
 
   def Validate(self, data):
     if _HAVE_JSONSCHEMA:
-      jsonschema.validate(data, self.schema)
+      try:
+        jsonschema.validate(data, self.schema)
+      except Exception as e:
+        raise SchemaException('Fail to validate %r with JSON schema %r: %r' %
+                              (data, self.schema, e))
 
 
 class List(BaseType):
