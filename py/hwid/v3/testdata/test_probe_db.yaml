@@ -4,9 +4,12 @@ project: CHROMEBOOK
 
 encoding_patterns: {0: default}
 
-image_id: {0: PROTO, 1: EVT}
+image_id: {0: PROTO, 1: EVT, 15: RMA}
 
 pattern:
+  - image_ids: [15]
+    encoding_scheme: base8192
+    fields: []
   - image_ids: [0, 1]
     encoding_scheme: base8192
     fields: []

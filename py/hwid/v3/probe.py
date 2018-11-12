@@ -119,8 +119,14 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
           'Probed components %r are not matched with any component records in '
           'the database.' % mismatched_components)
 
+  if mode == common.OPERATION_MODE.rma:
+    # If RMA image ID is not available, fallback to max image ID.
+    image_id = database.rma_image_id or database.max_image_id
+  else:
+    image_id = database.max_image_id
+
   bom = BOM(encoding_pattern_index=0,
-            image_id=database.max_image_id,
+            image_id=image_id,
             components=matched_components)
 
   # Evaluate device_info rules to fill unprobeable data in the BOM object.

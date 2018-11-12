@@ -234,6 +234,10 @@ class Database(object):
   def max_image_id(self):
     return self._image_id.max_image_id
 
+  @property
+  def rma_image_id(self):
+    return self._image_id.rma_image_id
+
   def GetImageName(self, image_id):
     return self._image_id[image_id]
 
@@ -513,6 +517,9 @@ class ImageId(_NamedNumber):
   NUMBER_TAG = 'image id'
   NAME_TAG = 'image name'
 
+  RMA_IMAGE_ID = max(NUMBER_RANGE)
+  """Preserve the max image ID for RMA pattern."""
+
   def GetImageIdByName(self, image_name):
     """Returns the image id of the given image name.
 
@@ -528,7 +535,21 @@ class ImageId(_NamedNumber):
   @property
   def max_image_id(self):
     """Returns the maximum image id."""
-    return max(self.keys())
+    return self.GetMaxImageIDFromList(self.keys())
+
+  @property
+  def rma_image_id(self):
+    return self.GetRMAImageIDFromList(self.keys())
+
+  @classmethod
+  def GetMaxImageIDFromList(cls, image_ids):
+    return max(set(image_ids) - {cls.RMA_IMAGE_ID})
+
+  @classmethod
+  def GetRMAImageIDFromList(cls, image_ids):
+    if cls.RMA_IMAGE_ID in image_ids:
+      return cls.RMA_IMAGE_ID
+    return None
 
 
 class EncodedFields(object):
@@ -1228,8 +1249,6 @@ class Pattern(object):
 
         self._image_id_to_pattern[image_id] = pattern_obj
 
-    self._max_image_id = max(self._image_id_to_pattern.keys())
-
   def __eq__(self, rhs):
     # pylint: disable=protected-access
     return (isinstance(rhs, Pattern) and
@@ -1277,7 +1296,6 @@ class Pattern(object):
           'The image id %r is already in used.' % image_id)
 
     self._image_id_to_pattern[image_id] = _PatternDatum(encoding_scheme, [])
-    self._max_image_id = max(self._max_image_id, image_id)
 
   def AddImageId(self, reference_image_id, image_id):
     """Adds an image id to a pattern by the specific image id.
@@ -1294,7 +1312,6 @@ class Pattern(object):
           'The image id %r has already been in used.' % image_id)
 
     self._image_id_to_pattern[image_id] = self._GetPattern(reference_image_id)
-    self._max_image_id = max(self._max_image_id, image_id)
 
   def AppendField(self, field_name, bit_length, image_id=None):
     """Append a field to the pattern.
@@ -1427,6 +1444,10 @@ class Pattern(object):
       raise common.HWIDException('No pattern for image id %r.' % image_id)
 
     return self._image_id_to_pattern[image_id]
+
+  @property
+  def _max_image_id(self):
+    return ImageId.GetMaxImageIDFromList(self._image_id_to_pattern.keys())
 
 
 class Rules(object):

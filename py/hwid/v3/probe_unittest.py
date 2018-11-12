@@ -29,6 +29,14 @@ class GenerateBOMFromProbedResultsTest(unittest.TestCase):
     # No rule for image_id, use the maximum one.
     self.assertEquals(bom.image_id, 1)
 
+    bom = probe.GenerateBOMFromProbedResults(
+        self.database, {}, {}, {}, common.OPERATION_MODE.rma, False)[0]
+
+    # The encoding pattern is always 0 for now.
+    self.assertEquals(bom.encoding_pattern_index, 0)
+    # Image ID should be RMA
+    self.assertEquals(bom.image_id, 15)
+
   def testUseDefaultComponents(self):
     bom, mismatched_probed_results = probe.GenerateBOMFromProbedResults(
         self.database, {}, {}, {}, common.OPERATION_MODE.normal, False)

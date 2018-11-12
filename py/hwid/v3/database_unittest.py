@@ -83,6 +83,13 @@ class ImageIdTest(unittest.TestCase):
   def testGettingMethods(self):
     image_id = ImageId({0: 'EVT', 1: 'DVT', 2: 'PVT'})
     self.assertEquals(image_id.max_image_id, 2)
+    self.assertEquals(image_id.rma_image_id, None)
+    self.assertEquals(image_id[1], 'DVT')
+    self.assertEquals(image_id.GetImageIdByName('EVT'), 0)
+
+    image_id = ImageId({0: 'EVT', 1: 'DVT', 2: 'PVT', 15: 'RMA'})
+    self.assertEquals(image_id.max_image_id, 2)
+    self.assertEquals(image_id.rma_image_id, 15)
     self.assertEquals(image_id[1], 'DVT')
     self.assertEquals(image_id.GetImageIdByName('EVT'), 0)
 
@@ -252,6 +259,17 @@ class PatternTest(unittest.TestCase):
              'fields': []}]
     pattern = Pattern(expr)
     self.assertEquals(Unordered(pattern.Export()), expr)
+
+  def testGetImageId(self):
+    expr = [{'image_ids': [1, 2],
+             'encoding_scheme': 'base32',
+             'fields': [{'aaa': 1}, {'ccc': 2}]},
+            {'image_ids': [15],
+             'encoding_scheme': 'base8192',
+             'fields': []}]
+    pattern = Pattern(expr)
+    # pylint: disable=protected-access
+    self.assertEquals(pattern._max_image_id, 2)
 
   def testSyntaxError(self):
     # missing "image_ids" field
