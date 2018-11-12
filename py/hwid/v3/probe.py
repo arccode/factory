@@ -43,7 +43,7 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
     device_info: None or a dict of device info.
     vpd: None or a dict of vpd data.
     mode: None or "rma" or "normal".
-    allow_mismatched_components: Whether to Allows some probed components to be
+    allow_mismatched_components: Whether to allow some probed components to be
         ignored if no any component in the database matches with them.
     use_name_match: Use component name from probed results as matched component.
 
@@ -73,6 +73,19 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
 
     return default_comp
 
+  def _GetEncodedCompClasses(image_id):
+    comp_classes = set()
+    for field_name in database.GetEncodedFieldsBitLength(image_id):
+      for cls in database.GetComponentClasses(field_name):
+        comp_classes.add(cls)
+    return comp_classes
+
+  if mode == common.OPERATION_MODE.rma:
+    # If RMA image ID is not available, fallback to max image ID.
+    image_id = database.rma_image_id or database.max_image_id
+  else:
+    image_id = database.max_image_id
+
   if use_name_match:
     matched_components = {}
     mismatched_components = {}
@@ -80,14 +93,21 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
     for comp_cls, comps in probed_results.iteritems():
       matched_components[comp_cls] = [comp['name'] for comp in comps]
   else:
-    # Construct a dict of component classes to list of component names.
-    matched_components = {comp_cls: []
-                          for comp_cls in database.GetComponentClasses()}
-    mismatched_components = {comp_cls: comps
-                             for comp_cls, comps in probed_results.iteritems()
-                             if comp_cls not in matched_components}
+    if mode == common.OPERATION_MODE.rma:
+      component_classes = _GetEncodedCompClasses(image_id)
+      # In RMA mode, we don't care about those components that won't be encoded.
+      mismatched_components = {}
+    else:
+      component_classes = database.GetComponentClasses()
+      # In normal mode, treat unrecognized components as mismatched components.
+      mismatched_components = {comp_cls: comps
+                               for comp_cls, comps in probed_results.iteritems()
+                               if comp_cls not in component_classes}
 
-    for comp_cls in database.GetComponentClasses():
+    # Construct a dict of component classes to list of component names.
+    matched_components = {comp_cls: [] for comp_cls in component_classes}
+
+    for comp_cls in component_classes:
       default_comp = _GetDefaultComponent(comp_cls)
 
       for probed_comp in probed_results.get(comp_cls, []):
@@ -118,12 +138,6 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
       raise common.HWIDException(
           'Probed components %r are not matched with any component records in '
           'the database.' % mismatched_components)
-
-  if mode == common.OPERATION_MODE.rma:
-    # If RMA image ID is not available, fallback to max image ID.
-    image_id = database.rma_image_id or database.max_image_id
-  else:
-    image_id = database.max_image_id
 
   bom = BOM(encoding_pattern_index=0,
             image_id=image_id,

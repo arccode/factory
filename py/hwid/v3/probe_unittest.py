@@ -95,6 +95,15 @@ class GenerateBOMFromProbedResultsTest(unittest.TestCase):
                       self.database, probed_results, {}, {},
                       common.OPERATION_MODE.normal, False)
 
+    # In test_probe_db.yaml, encoded_fields only contains 'comp_cls_3',
+    # therefore, all other fields will be ignored when
+    # 'ignore_nonencoded_components' is set.
+    bom, mismatched_probed_results = probe.GenerateBOMFromProbedResults(
+        self.database, probed_results, {}, {}, common.OPERATION_MODE.rma,
+        True)
+    self.assertEquals(mismatched_probed_results, {})
+    self.assertEquals(bom.components, {'comp_cls_3': []})
+
   def testIgnoreDefaultUnsupportedComponent(self):
     probed_results = {
         'comp_cls_1': [],
