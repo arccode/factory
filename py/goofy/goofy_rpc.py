@@ -623,6 +623,26 @@ class GoofyRPC(object):
     return self.CallExtension(
         'SetDisplayProperties', timeout=timeout, id=id_, info=info)
 
+  def DeviceSetDisplayMirrorMode(self, info,
+                                 timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
+    """Set the display mirror mode on the device (by calling extension RPC).
+
+    Args:
+      info: The mirror mode information to set.
+          See Chrome Extension API chrome.system.display.setMirrorMode for
+          the details.
+      timeout: Seconds to wait before RPC timeout.
+
+    Returns:
+      `None` if the RPC call succeed; otherwise an string of failure reason
+          will be returned.
+
+    Raises:
+      type_utils.TimeoutError: if no response until timeout.
+    """
+    return self.CallExtension(
+        'SetDisplayMirrorMode', timeout=timeout, info=info)
+
   def DiagnosisToolRpc(self, *args):
     """Receives a rpc request for diagnosis tool."""
     return getattr(self.diagnosis_tool_rpc, args[0])(*args[1:])

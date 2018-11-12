@@ -16,6 +16,11 @@ chrome.runtime.onMessageExternal.addListener(
             request.args.id, request.args.info,
             () => { sendResponse(chrome.runtime.lastError); });
         return true;
+      } else if (request.name === 'SetDisplayMirrorMode') {
+        chrome.system.display.setMirrorMode(
+            request.args.info,
+            () => { sendResponse(chrome.runtime.lastError); });
+        return true;
       } else {
         window.console.log('Unknown RPC call', request);
       }

@@ -47,7 +47,6 @@ is specified. The test loops through all items in ``display_info`` and:
 
 Dependency
 ----------
-- Python evdev library <https://github.com/gvalkov/python-evdev>.
 - ``display`` component in device API.
 - Optional ``audio`` and ``usb_c`` components in device API.
 - Optional fixture can be used to support automated test.
@@ -71,17 +70,14 @@ from __future__ import print_function
 import collections
 import logging
 import random
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.external import evdev
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
 from cros.factory.test.pytests import audio
 from cros.factory.test import state
 from cros.factory.test import test_case
-from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 
 
@@ -213,15 +209,14 @@ class ExtDisplayTest(test_case.TestCase):
 
   def CheckVideo(self, args):
     self.ui.BindStandardFailKeys()
-    original_primary_id = self._GetPrimaryDisplayId()
-    self.SetMainDisplay(original_primary_id, False)
+    self.SetMainDisplay(False)
     try:
       if self._fixture:
         self.CheckVideoFixture(args)
       else:
         self.CheckVideoManual(args)
     finally:
-      self.SetMainDisplay(original_primary_id, True)
+      self.SetMainDisplay(True)
 
   def CheckVideoManual(self, args):
     pass_digit = random.randrange(10)
@@ -268,13 +263,7 @@ class ExtDisplayTest(test_case.TestCase):
               'Failed to see screen on external display after %d retries.' %
               retry_times)
 
-  def _GetPrimaryDisplayId(self):
-    for info in state.GetInstance().DeviceGetDisplayInfo():
-      if info['isPrimary']:
-        return info['id']
-    raise ValueError('Fail to get display ID')
-
-  def SetMainDisplay(self, original_primary_id, recover_original=True):
+  def SetMainDisplay(self, to_internal):
     """Sets the main display.
 
     If there are two displays, this method can switch main display based on
@@ -282,9 +271,7 @@ class ExtDisplayTest(test_case.TestCase):
     display is an external display (e.g. on a chromebox).
 
     Args:
-      original_primary_id: The original primary display id.
-      recover_original: True to set the original display as main;  False to
-          set the other (external) display as main.
+      to_internal: Set the internal display to the main display or not.
     """
     display_info = state.GetInstance().DeviceGetDisplayInfo()
     if len(display_info) == 1:
@@ -293,15 +280,25 @@ class ExtDisplayTest(test_case.TestCase):
         self.FailTask('Fail to detect external display')
       return
 
-    # Try to switch main display for at most 5 times.
-    for unused_i in range(5):
-      is_original = self._GetPrimaryDisplayId() == original_primary_id
-      if is_original == recover_original:
-        return
-      evdev_utils.SendKeys([evdev.ecodes.KEY_LEFTALT, evdev.ecodes.KEY_F4])
-      self.Sleep(2)
+    # In regular case, we assume and only accept to find 2 displays, one
+    # internal and one external.
+    self.assertEqual(len(display_info), 2,
+                     'At most 1 external display is allowed.')
+    self.assertNotEqual(display_info[0]['isInternal'],
+                        display_info[1]['isInternal'],
+                        'Should be 1 internal and 1 external display.')
+    if display_info[0]['isInternal']:
+      internal_display_id = display_info[0]['id']
+      external_display_id = display_info[1]['id']
+    else:
+      internal_display_id = display_info[1]['id']
+      external_display_id = display_info[0]['id']
+    primary_display_id = (internal_display_id
+                          if to_internal else external_display_id)
 
-    self.FailTask('Fail to switch main display')
+    err = state.GetInstance().DeviceSetDisplayProperties(primary_display_id,
+                                                         {'isPrimary': True})
+    self.assertIsNone(err, 'Failed to set the main display: %s' % err)
 
   def SetupAudio(self, args):
     for card, action in args.init_actions:
@@ -322,17 +319,6 @@ class ExtDisplayTest(test_case.TestCase):
         _('Disconnect external display: {display}', display=args.display_label))
     self._WaitDisplayConnection(args, False)
 
-  def _SetExtendMode(self):
-    """Simulate pressing Ctrl+F4 to switch to extend mode from mirror mode."""
-    t = time.time()
-    # Ctrl+F4 actually toggles the mode, while what we want is extend mode.
-    # It takes about 0.5 seconds to switch the mode. We should avoid pressing
-    # them again in a short time or it might get back to mirror mode, so we
-    # wait for 2 seconds for the previous transition to be completed.
-    if self._toggle_timestamp < t - 2:
-      evdev_utils.SendKeys([evdev.ecodes.KEY_LEFTCTRL, evdev.ecodes.KEY_F4])
-      self._toggle_timestamp = t
-
   def _WaitDisplayConnection(self, args, connect):
     if self._fixture and not (connect and self.args.already_connect):
       try:
@@ -349,12 +335,17 @@ class ExtDisplayTest(test_case.TestCase):
         if port_info[args.display_id].connected == connect:
           display_info = state.GetInstance().DeviceGetDisplayInfo()
           # In the case of connecting an external display, make sure there
-          # is an item in display_info with 'isInternal' False.
+          # is an item in display_info with 'isInternal' False.  If no such
+          # display_info item, we assume the device's default mode is mirror
+          # mode and try to turn off mirror mode.
           # On the other hand, in the case of disconnecting an external display,
           # we can not check display info has no display with 'isInternal' False
           # because any display for chromebox has 'isInternal' False.
           if connect and all(x['isInternal'] for x in display_info):
-            self._SetExtendMode()
+            err = state.GetInstance().DeviceSetDisplayMirrorMode(
+                {'mode': 'off'})
+            if err is not None:
+              logging.warning('Failed to turn off the mirror mode: %s', err)
           else:
             logging.info('Get display info %r', display_info)
             break
