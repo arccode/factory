@@ -560,6 +560,11 @@ class Resource(object):
       payloads = umpire_server.AddPayload(p, type_name)
     return Resource(type_name, payloads[type_name]['version'])
 
+  @staticmethod
+  def GarbageCollection(project_name):
+    umpire_server = GetUmpireServer(project_name)
+    return umpire_server.ResourceGarbageCollection()
+
 
 class Bundle(object):
   """Represent a bundle in umpire."""

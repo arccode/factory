@@ -53,6 +53,8 @@ urlpatterns = [
         views.BundleElementView.as_view()),
     url(r'^projects/%s/resources/$' % PROJECT_URL_ARG,
         views.ResourceCollectionView.as_view()),
+    url(r'^projects/%s/resources/gc$' % PROJECT_URL_ARG,
+        views.ResourceGarbageCollectionView.as_view()),
     url(r'^projects/%s/services/$' % PROJECT_URL_ARG,
         views.ServiceCollectionView.as_view()),
     url(r'^projects/%s/services/schema$' % PROJECT_URL_ARG,

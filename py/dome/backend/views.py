@@ -20,6 +20,7 @@ from backend.models import DomeConfig
 from backend.models import ParameterComponent
 from backend.models import ParameterDirectory
 from backend.models import Project
+from backend.models import Resource
 from backend.models import Service
 from backend.models import TemporaryUploadedFile
 from backend.serializers import BundleSerializer
@@ -177,6 +178,12 @@ class ResourceCollectionView(generics.CreateAPIView):
   def perform_create(self, serializer):
     serializer.save(project_name=self.kwargs['project_name'])
 
+
+class ResourceGarbageCollectionView(views.APIView):
+
+  def post(self, request, *args, **kwargs):
+    del request, args  # unused
+    return Response(Resource.GarbageCollection(kwargs['project_name']))
 
 class ParameterComponentsView(generics.ListCreateAPIView):
 
