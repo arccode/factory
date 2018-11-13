@@ -11,6 +11,7 @@ import filecmp
 import json
 import logging
 import os
+import re
 import shutil
 import tempfile
 import urlparse
@@ -465,6 +466,23 @@ class UmpireEnv(object):
     """
     return json.loads(file_utils.ReadFile(self.GetResourcePath(payloads_name)))
 
+  def GetPayloadFiles(self, payloads_name):
+    """Gets files in a payload config.
+
+    Args:
+      payloads_name: filename of payload config in resources directory.
+
+    Returns:
+      A set of tuples of (resource type, part, file name).
+    """
+    files = set()
+    payloads = self.GetPayloadsDict(payloads_name)
+    for type_name, payload_dict in payloads.iteritems():
+      for part, res_name in payload_dict.iteritems():
+        if part == 'file' or re.match(r'part\d+$', part) or part == 'crx_cache':
+          files.add((type_name, part, res_name))
+    return files
+
   def GetResourcePath(self, resource_name, check=True):
     """Gets a resource's full path.
 
@@ -482,6 +500,28 @@ class UmpireEnv(object):
     if check:
       file_utils.CheckPath(path, 'resource')
     return path
+
+  def ResourceGarbageCollection(self):
+    """Remove inactive resources.
+
+    Remove resource files that are not used by any bundles in active config.
+    """
+    active_files = set()
+
+    for bundle in self.config['bundles']:
+      for unused_type, unused_part, res_name in self.GetPayloadFiles(
+          bundle['payloads']):
+        active_files.add(res_name)
+
+    deleted_files = []
+    deleted_size = 0
+    for f in os.listdir(self.resources_dir):
+      if not resource.IsConfigFileName(f) and f not in active_files:
+        deleted_files.append(f)
+        f_path = os.path.join(self.resources_dir, f)
+        deleted_size += os.path.getsize(f_path)
+        os.unlink(f_path)
+    return {'files': deleted_files, 'size': deleted_size}
 
   def _DumpParameter(self):
     """Dump parameter to json file."""

@@ -91,3 +91,14 @@ def BuildConfigFileName(type_name, file_path):
   return '.'.join([cfg_type.fn_prefix,
                    GetResourceHashFromFile(file_path),
                    cfg_type.fn_suffix])
+
+
+def IsConfigFileName(basename):
+  """Check if basename is a config file."""
+  s = basename.split('.')
+  if len(s) == 3:
+    for type_name in ConfigTypeNames:
+      type_info = getattr(ConfigTypes, type_name)
+      if s[0] == type_info.fn_prefix and s[2] == type_info.fn_suffix:
+        return True
+  return False

@@ -12,7 +12,6 @@ To validate a Umpire config file 'abc.json':
 from __future__ import print_function
 
 import copy
-import re
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
@@ -79,15 +78,12 @@ def ValidateResources(config, env):
   """
   error = []
   for bundle in config.GetActiveBundles():
-    payloads = env.GetPayloadsDict(bundle['payloads'])
-    for type_name, payload_dict in payloads.iteritems():
-      for part, res_name in payload_dict.iteritems():
-        if part == 'file' or re.match(r'part\d+$', part):
-          try:
-            env.GetResourcePath(res_name)
-          except IOError:
-            error.append('[NOT FOUND] resource %s:%s:%r for bundle %r\n' % (
-                type_name, part, res_name, bundle['id']))
+    for type_name, part, res_name in env.GetPayloadFiles(bundle['payloads']):
+      try:
+        env.GetResourcePath(res_name)
+      except IOError:
+        error.append('[NOT FOUND] resource %s:%s:%r for bundle %r\n' % (
+            type_name, part, res_name, bundle['id']))
   if error:
     raise common.UmpireError(''.join(error))
 

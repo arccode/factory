@@ -184,6 +184,11 @@ class CLICommand(umpire_rpc.UmpireRPC):
     return file_utils.ReadFile(self.daemon.env.active_config_file)
 
   @umpire_rpc.RPCCall
+  def ResourceGarbageCollection(self):
+    """Resource garbage collection."""
+    return self.env.ResourceGarbageCollection()
+
+  @umpire_rpc.RPCCall
   def StartServices(self, services):
     """Starts a list of services."""
     return self.daemon.StartServices(services)
