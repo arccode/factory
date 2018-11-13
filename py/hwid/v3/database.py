@@ -513,7 +513,7 @@ class ImageId(_NamedNumber):
   ```
   """
   PART_TAG = 'image_id'
-  NUMBER_RANGE = range(16)
+  NUMBER_RANGE = range(1 << common.IMAGE_ID_BIT_LENGTH)
   NUMBER_TAG = 'image id'
   NAME_TAG = 'image name'
 
@@ -1212,7 +1212,7 @@ class Pattern(object):
               'image_ids': schema.List(
                   'image ids',
                   element_type=schema.Scalar(
-                      'image id', int, choices=range(16)),
+                      'image id', int, choices=ImageId.NUMBER_RANGE),
                   min_length=1),
               'encoding_scheme': schema.Scalar(
                   'encoding scheme', str, choices=['base32', 'base8192']),

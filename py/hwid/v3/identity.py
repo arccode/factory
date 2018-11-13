@@ -52,8 +52,7 @@ _Converters = {
 }
 
 
-_IMAGE_ID_BIT_LENGTH = common.HEADER_BIT_LENGTH - 1
-_HEADER_FORMAT_STR = '{0:01b}{1:0%db}' % _IMAGE_ID_BIT_LENGTH
+_HEADER_FORMAT_STR = '{0:01b}{1:0%db}' % common.IMAGE_ID_BIT_LENGTH
 
 
 def _VerifyPart(condition, part, value):
@@ -171,7 +170,7 @@ class Identity(object):
     _VerifyProjectPart(project)
     _VerifyPart(lambda val: val in [0, 1],
                 'encoding_pattern_index', encoding_pattern_index)
-    _VerifyPart(lambda val: val in range(1 << _IMAGE_ID_BIT_LENGTH),
+    _VerifyPart(lambda val: val in range(1 << common.IMAGE_ID_BIT_LENGTH),
                 'image_id', image_id)
     _VerifyPart(lambda val: val and not set(val) - set('01') and val[-1] == '1',
                 'components_bitset', components_bitset)
