@@ -61,7 +61,6 @@ class OutputBigQuery(plugin_base.OutputPlugin):
           'How many events to queue before transmitting.',
           default=_DEFAULT_BATCH_SIZE),
       Arg('key_path', (str, unicode),
-          #'Path to BigQuery service account JSON key file.'),
           'Path to BigQuery/CloudStorage service account JSON key file.'),
       Arg('gcs_target_dir', (str, unicode),
           'Path to the target bucket and directory on Google Cloud Storage.'),

@@ -74,7 +74,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     # Remove previous temporary folder if any.
     if self.data_dir is not None:
       shutil.rmtree(self.data_dir)
-    self.data_dir = tempfile.mkdtemp(prefix='buffer_simple_file')
+    self.data_dir = tempfile.mkdtemp(prefix='buffer_simple_file_unittest_')
     logging.info('Create state directory: %s', self.data_dir)
     self.sf = buffer_simple_file.BufferSimpleFile(
         config={} if config is None else config,

@@ -55,7 +55,7 @@ class TestOutputHTTP(unittest.TestCase):
 
   def setUp(self):
     self._CreatePlugin()
-    self._tmp_dir = tempfile.mkdtemp(prefix='output_http_')
+    self._tmp_dir = tempfile.mkdtemp(prefix='output_http_unittest_')
 
   def tearDown(self):
     self.output_sandbox.Stop(True)

@@ -30,7 +30,7 @@ class TestBufferPriorityFile(unittest.TestCase):
     # Remove previous temporary folder if any.
     if self.data_dir is not None:
       shutil.rmtree(self.data_dir)
-    self.data_dir = tempfile.mkdtemp(prefix='buffer_priority_file_')
+    self.data_dir = tempfile.mkdtemp(prefix='buffer_priority_file_unittest_')
     logging.info('Create state directory: %s', self.data_dir)
     self.sf = buffer_priority_file.BufferPriorityFile(
         config={} if config is None else config,
