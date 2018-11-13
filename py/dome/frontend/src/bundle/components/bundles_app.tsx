@@ -15,6 +15,7 @@ import {DispatchProps} from '@common/types';
 import {UPLOAD_BUNDLE_FORM} from '../constants';
 
 import BundleList from './bundle_list';
+import ResourcesGarbageCollectionButton from './resources_gc';
 import UpdateResourceDialog from './update_resource_dialog';
 import UploadBundleDialog from './upload_bundle_dialog';
 
@@ -35,15 +36,20 @@ const BundlesApp: React.SFC<BundlesAppProps> =
 
       {/* upload button */}
       {overlay &&
-        <Portal container={overlay}>
-          <Button
-            variant="fab"
-            color="primary"
-            onClick={openUploadNewBundleForm}
-          >
-            <AddIcon />
-          </Button>
-        </Portal>
+        <>
+          <Portal container={overlay}>
+            <Button
+              variant="fab"
+              color="primary"
+              onClick={openUploadNewBundleForm}
+            >
+              <AddIcon />
+            </Button>
+          </Portal>
+          <Portal container={overlay}>
+            <ResourcesGarbageCollectionButton />
+          </Portal>
+        </>
       }
     </>
   );

@@ -44,3 +44,8 @@ export interface Bundle {
   active: boolean;
   resources: ResourceMap;
 }
+
+export interface DeletedResources {
+  files: string[];
+  size: number;
+}

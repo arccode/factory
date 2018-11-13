@@ -6,13 +6,14 @@ import produce from 'immer';
 import {ActionType, getType} from 'typesafe-actions';
 
 import {basicActions as actions} from './actions';
-import {Bundle} from './types';
+import {Bundle, DeletedResources} from './types';
 
 export interface BundleState {
   entries: Bundle[];
   // Controls whether a bundle card is expanded or not. The key is the name of
   // the bundle, value is a boolean indicating whether it's expanded or not.
   expanded: {[name: string]: boolean};
+  deletedResources: DeletedResources | null;
 }
 
 type BundleAction = ActionType<typeof actions>;
@@ -20,6 +21,7 @@ type BundleAction = ActionType<typeof actions>;
 const INITIAL_STATE = {
   entries: [],
   expanded: {},
+  deletedResources: null,
 };
 
 export default produce<BundleState, BundleAction>((draft, action) => {
@@ -75,6 +77,14 @@ export default produce<BundleState, BundleAction>((draft, action) => {
 
     case getType(actions.collapseBundle):
       draft.expanded[action.payload.name] = false;
+      return;
+
+    case getType(actions.receiveDeletedResources):
+      draft.deletedResources = action.payload.resources;
+      return;
+
+    case getType(actions.closeGarbageCollectionSnackbar):
+      draft.deletedResources = null;
       return;
 
     default:

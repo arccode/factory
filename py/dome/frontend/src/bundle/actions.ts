@@ -17,6 +17,7 @@ import {UPDATE_RESOURCE_FORM, UPLOAD_BUNDLE_FORM} from './constants';
 import {getBundles} from './selectors';
 import {
   Bundle,
+  DeletedResources,
   UpdateResourceRequestPayload,
   UploadBundleRequestPayload,
 } from './types';
@@ -36,6 +37,11 @@ const deleteBundleImpl = createAction('DELETE_BUNDLE', (resolve) =>
 const addBundle = createAction('ADD_BUNDLE', (resolve) =>
   (bundle: Bundle) => resolve({bundle}));
 
+const receiveDeletedResources = createAction('RECEIVE_GC', (resolve) =>
+  (resources: DeletedResources) => resolve({resources}));
+
+export const closeGarbageCollectionSnackbar = createAction('CLOSE_GC');
+
 export const expandBundle = createAction('EXPAND_BUNDLE', (resolve) =>
   (name: string) => resolve({name}));
 
@@ -50,6 +56,8 @@ export const basicActions = {
   addBundle,
   expandBundle,
   collapseBundle,
+  receiveDeletedResources,
+  closeGarbageCollectionSnackbar,
 };
 
 const baseURL = (getState: () => RootState): string => {
@@ -203,6 +211,15 @@ export const startUpdateResource =
       dispatch(activateBundle(dstBundleName, true));
       dispatch(activateBundle(srcBundleName, false));
     };
+
+export const startResourcesGarbageCollection = () =>
+  async (dispatch: Dispatch, getState: () => RootState) => {
+    const description = 'Delete unused resources.';
+
+    const deletedFiles = await dispatch(task.actions.runTask<DeletedResources>(
+      description, 'POST', `${baseURL(getState)}/resources/gc`, {}));
+    dispatch(receiveDeletedResources(deletedFiles));
+  };
 
 export const setBundleAsNetboot = (name: string, projectName: string) => (
   project.actions.updateProject(

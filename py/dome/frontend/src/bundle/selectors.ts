@@ -10,7 +10,7 @@ import {displayedState} from '@common/optimistic_update';
 
 import {NAME} from './constants';
 import {BundleState} from './reducer';
-import {Bundle} from './types';
+import {Bundle, DeletedResources} from './types';
 
 export const localState = (state: RootState): BundleState =>
   displayedState(state)[NAME];
@@ -21,3 +21,6 @@ export const getBundleNames = createSelector(getBundles, (bundles) => (
   bundles.map((bundle) => bundle.name)));
 export const getExpandedMap =
   (state: RootState): {[name: string]: boolean} => localState(state).expanded;
+export const getDeletedResources =
+  (state: RootState): (DeletedResources | null) =>
+      localState(state).deletedResources;
