@@ -4,6 +4,7 @@
 
 import Button from '@material-ui/core/Button';
 import Card from '@material-ui/core/Card';
+import CardActions from '@material-ui/core/CardActions';
 import CardContent from '@material-ui/core/CardContent';
 import CardHeader from '@material-ui/core/CardHeader';
 import React from 'react';
@@ -32,21 +33,19 @@ class ParameterApp extends React.Component<ParameterAppProps, ParameterState> {
 
   state = {currentDirId: null};
 
-  getCurrentDirId = (id: number) => {
-    console.log(id);
+  setCurrentDirId = (id: number | null) => {
     this.setState({currentDirId: id});
   }
 
   render() {
+    const {currentDirId} = this.state;
     return (
       <>
         <UpdateParameterDialog />
-        <CreateDirectoryForm dirId={this.state.currentDirId}/>
+        <CreateDirectoryForm dirId={currentDirId}/>
         <Card>
           <CardHeader title="Parameter" />
-          <p>{this.props.loading ? 'LOADING' : ''}</p>
-          <CardContent>
-            <ParameterList dirClicked={this.getCurrentDirId}/>
+          <CardActions>
             <Button
               variant="outlined"
               onClick={() => this.props.updateComponent(
@@ -60,6 +59,14 @@ class ParameterApp extends React.Component<ParameterAppProps, ParameterState> {
             >
               Add directory
             </Button>
+          </CardActions>
+          <CardContent>
+            {this.props.loading ? 'LOADING' : (
+              <ParameterList
+                currentDirId={currentDirId}
+                dirClicked={this.setCurrentDirId}
+              />
+            )}
           </CardContent>
         </Card>
       </>

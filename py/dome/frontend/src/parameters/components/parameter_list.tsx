@@ -5,8 +5,14 @@
 import Button from '@material-ui/core/Button';
 import grey from '@material-ui/core/colors/grey';
 import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogTitle from '@material-ui/core/DialogTitle';
+import IconButton from '@material-ui/core/IconButton';
+import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
+import ListItemIcon from '@material-ui/core/ListItemIcon';
+import ListSubheader from '@material-ui/core/ListSubheader';
 import {
   createStyles,
   Theme,
@@ -14,6 +20,7 @@ import {
   WithStyles,
 } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
+import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import classNames from 'classnames';
 import React from 'react';
 import {connect} from 'react-redux';
@@ -30,9 +37,19 @@ import {getParameterDirs, getParameters} from '../selector';
 import {Parameter} from '../types';
 
 const styles = (theme: Theme) => createStyles({
-  root: {
+  directoryTable: {
     display: 'grid',
-    gridTemplateColumns: '1fr 2fr auto',
+    gridTemplateColumns: 'auto',
+    width: '100%',
+  },
+  componentTable: {
+    display: 'grid',
+    gridTemplateColumns: '1fr auto auto',
+    width: '100%',
+  },
+  revisionTable: {
+    display: 'grid',
+    gridTemplateColumns: '32px 1fr 2fr auto',
     width: '100%',
   },
   cell: {
@@ -50,16 +67,31 @@ const styles = (theme: Theme) => createStyles({
   },
   actionColumn: {
     justifyContent: 'center',
+    gridColumn: 'span 2',
+  },
+  directoryLabel: {
+    justifyContent: 'left',
+    textTransform: 'none',
+    fontWeight: theme.typography.fontWeightRegular,
+  },
+  padLeft: {
+    paddingLeft: 24,
+  },
+  revisionActionColumn: {
+    justifyContent: 'center',
+  },
+  bold: {
+    fontWeight: 600,
   },
 });
 
 interface ParameterListState {
-  currentDirId: number | null;
-  openedId: number | null;
+  openedComponentId: number | null;
 }
 
 interface ParameterListOwnProps {
-  dirClicked: (id: number) => any;
+  currentDirId: number | null;
+  dirClicked: (id: number | null) => any;
 }
 
 type ParameterListProps =
@@ -71,19 +103,25 @@ type ParameterListProps =
 class ParameterList extends
   React.Component<ParameterListProps, ParameterListState> {
 
-  state = {currentDirId: null, openedId: null};
+  state = {openedComponentId: null};
 
-  handleClickDir = (dirId: number) => {
-    this.setState({currentDirId: dirId});
+  handleClickDir = (dirId: number | null) => {
     this.props.dirClicked(dirId);
   }
 
-  handleclickVersion = (compId: number) => {
-    this.setState({openedId: compId});
+  handleClickBack = (dirId: number | null) => {
+    if (dirId == null) {
+      return;
+    }
+    this.handleClickDir(this.props.parameterDirs[dirId].parentId);
+  }
+
+  handleClickVersion = (compId: number) => {
+    this.setState({openedComponentId: compId});
   }
 
   handleCloseClickVersion = () => {
-    this.setState({openedId: null});
+    this.setState({openedComponentId: null});
   }
 
   componentDidMount() {
@@ -91,120 +129,164 @@ class ParameterList extends
   }
 
   render() {
-    const {classes, parameters, parameterDirs} = this.props;
-    const {currentDirId, openedId} = this.state;
-    const openedComponent = openedId == null ? null : parameters[openedId];
-    const currentDir =
-      currentDirId == null ? null : parameterDirs[currentDirId];
-    const currentLevelDirectories = parameterDirs
-      .filter((dir) => dir.parentId === currentDirId)
-      .map((parameterDir) => (
-        <React.Fragment key={parameterDir.id}>
-          <div className={classes.cell}>
-            <Button onClick={() => this.handleClickDir(parameterDir.id)}>
-              {parameterDir.name}
-            </Button>
-          </div>
-          <div className={classes.cell}>
-            {parameterDir.id}
-          </div>
-          <div className={classes.cell}>
-            {parameterDir.parentId}
-          </div>
-        </React.Fragment>
-      ));
-    const currentLevelComponents = parameters
-      .filter((parameter) => parameter.dirId === currentDirId)
-      .map((parameter) => (
-        <React.Fragment key={parameter.id}>
-          <div className={classes.cell}>
-            {parameter.name} {parameter.id} {parameter.dirId}
-          </div>
-          <div className={classes.cell}>
-            <Button onClick={() => this.handleclickVersion(parameter.id)}>
-              Version
-            </Button>
-          </div>
-          <div className={classes.cell}>
-            <Button
-              onClick={() => this.props.updateComponent(
-                parameter.id, parameter.dirId, parameter.name, false)}
-            >
-              Update
-            </Button>
-          </div>
-        </React.Fragment>
-      ));
-    const componentRevisions = (component: Parameter) => {
-      return component.revisions.map((filePath, versionId) => {
-        // Generate file name and hash from file path form:
-        // {filePath}/{fileName}.{md5hash}
-        const baseName = filePath.split('/').pop();
-        const parts = baseName ? baseName.split('.') : undefined;
-        const hash = parts ? parts.pop() : undefined;
-        const fileName = parts ? parts.join('.') : undefined;
-        return (
-          <React.Fragment key={versionId}>
-            <div className={classes.cell}>{versionId}:{fileName}</div>
-            <div className={classNames(classes.cell, classes.ellipsis)}>
-              {hash}
-            </div>
-            <div className={classes.cell}>
-              <Button
-                onClick={() => this.props.updateComponentVersion(
-                          component.id,
-                          component.name,
-                          versionId)
-                }
-              >
-                Use
-              </Button>
-            </div>
-          </React.Fragment>
-        );
-      });
+    const {currentDirId, classes, parameters, parameterDirs} = this.props;
+    const {openedComponentId} = this.state;
+    const openedComponent =
+      openedComponentId == null ? null : parameters[openedComponentId];
+
+    const getPath = (dirId: number | null): string => {
+      if (dirId == null) {
+        return '/';
+      }
+      const dir = parameterDirs[dirId];
+      return `${getPath(dir.parentId)}${dir.name}/`;
     };
+    const currentPath = getPath(currentDirId);
+
+    const directoryTable = (
+      <div className={classes.directoryTable}>
+        <div className={classNames(classes.cell, classes.padLeft)}>
+          <Typography variant="caption">name</Typography>
+        </div>
+        {parameterDirs
+          .filter((dir) => dir.parentId === currentDirId)
+          .map((parameterDir) => (
+            <React.Fragment key={parameterDir.id}>
+              <div className={classes.cell}>
+                <Button
+                  classes={{root: classes.directoryLabel}}
+                  fullWidth
+                  onClick={() => this.handleClickDir(parameterDir.id)}
+                >
+                  {parameterDir.name}
+                </Button>
+              </div>
+            </React.Fragment>
+          ))}
+      </div>);
+
+    const componentTable = (
+      <div className={classes.componentTable}>
+        <div className={classNames(classes.cell, classes.padLeft)}>
+          <Typography variant="caption">name</Typography>
+        </div>
+        <div className={classNames(classes.cell, classes.actionColumn)}>
+          <Typography variant="caption">actions</Typography>
+        </div>
+        {parameters
+          .filter((parameter) => parameter.dirId === currentDirId)
+          .map((parameter) => (
+            <React.Fragment key={parameter.id}>
+              <div className={classNames(classes.cell, classes.padLeft)}>
+                {parameter.name}
+              </div>
+              <div className={classes.cell}>
+                <Button onClick={() => this.handleClickVersion(parameter.id)}>
+                  Versions
+                </Button>
+              </div>
+              <div className={classes.cell}>
+                <Button
+                  onClick={() => this.props.updateComponent(
+                    parameter.id, parameter.dirId, parameter.name, false)}
+                >
+                  Update
+                </Button>
+              </div>
+            </React.Fragment>
+          ))}
+      </div>);
+
+    // TODO(pihsun): Move revision dialog into another component.
+    const revisionTable = (component: Parameter) => (
+      <div className={classes.revisionTable}>
+        <div className={classes.cell}>
+          <Typography variant="caption">ID</Typography>
+        </div>
+        <div className={classes.cell}>
+          <Typography variant="caption">name</Typography>
+        </div>
+        <div className={classes.cell}>
+          <Typography variant="caption">hash</Typography>
+        </div>
+        <div className={classNames(classes.cell, classes.revisionActionColumn)}>
+          <Typography variant="caption">actions</Typography>
+        </div>
+        {component.revisions.map((filePath, versionId) => {
+          // Generate file name and hash from file path form:
+          // {filePath}/{fileName}.{md5hash}
+          const baseName = filePath.split('/').pop();
+          const parts = baseName ? baseName.split('.') : undefined;
+          const hash = parts ? parts.pop() : undefined;
+          const fileName = parts ? parts.join('.') : undefined;
+          const isUsing = component.usingVer === versionId;
+          const rowClass = classNames(classes.cell, isUsing && classes.bold);
+          return (
+            <React.Fragment key={versionId}>
+              <div className={rowClass}>{versionId}</div>
+              <div className={rowClass}>{fileName}</div>
+              <div className={classNames(rowClass, classes.ellipsis)}>
+                {hash}
+              </div>
+              <div className={classes.cell}>
+                <Button
+                  onClick={() => this.props.updateComponentVersion(
+                            component.id, component.name, versionId)}
+                  color="primary"
+                  fullWidth
+                >
+                  {isUsing ? 'Using' : 'Use'}
+                </Button>
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>);
 
     return (
-      <div>
-        <p>current dir id: {currentDirId}</p>
-        <Typography variant="subheading" gutterBottom>DIRECTORIES</Typography>
-        {currentDir != null &&
-          <Button onClick={() => this.handleClickDir(currentDir.parentId)}>
-            ..
-          </Button>
-        }
-        <div className={classes.root}>{currentLevelDirectories}</div>
-        <Typography variant="subheading" gutterBottom>FILES</Typography>
-        <div className={classes.root}>{currentLevelComponents}</div>
+      <List>
+        <ListItem disableGutters dense>
+          <ListItemIcon>
+            <IconButton
+              onClick={() => this.handleClickBack(currentDirId)}
+              disabled={currentDirId == null}
+            >
+              <ArrowBackIcon />
+            </IconButton>
+          </ListItemIcon>
+          <Typography variant="subheading">
+            Current directory: {currentPath}
+          </Typography>
+        </ListItem>
+        <ListSubheader>DIRECTORIES</ListSubheader>
+        <ListItem>{directoryTable}</ListItem>
+        <ListSubheader>Files</ListSubheader>
+        <ListItem>{componentTable}</ListItem>
+
         <Dialog
-          open={this.state.openedId != null}
+          open={openedComponentId != null}
           onClose={this.handleCloseClickVersion}
-          scroll="paper"
-          aria-labelledby="scroll-dialog-title"
         >
-          {
-            openedComponent != null &&
+          {openedComponent != null &&
             <>
               <DialogTitle id="scroll-dialog-title">
-                {openedComponent.name}
+                Revisions of file {openedComponent.name}
               </DialogTitle>
               <DialogContent>
-                <p>current version: {openedComponent.usingVer}</p>
-                <div className={classes.root}>
-                  {componentRevisions(openedComponent)}
-                </div>
+                {revisionTable(openedComponent)}
+              </DialogContent>
+              <DialogActions>
                 <Button
                   onClick={this.handleCloseClickVersion}
                   color="primary"
                 >
                   Close
                 </Button>
-              </DialogContent>
+              </DialogActions>
             </>
           }
         </Dialog>
-      </div>
+      </List>
     );
   }
 }
