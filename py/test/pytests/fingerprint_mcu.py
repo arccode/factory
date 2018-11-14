@@ -137,6 +137,9 @@ class FingerprintTest(unittest.TestCase):
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
 
+  def tearDown(self):
+    self.MCUCommand('fpmode', 'reset')
+
   def isDetectZone(self, x, y):
     for x1, y1, x2, y2 in self.args.detect_zones:
       if (x in range(x1, x2 + 1) and
