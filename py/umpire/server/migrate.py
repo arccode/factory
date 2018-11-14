@@ -74,8 +74,9 @@ def _RunMigration(migration_id):
 
   if env:
     if env.get(_WIP_KEY):
-      raise "Please remove field %r from %r before running migrations." % (
-          _WIP_KEY, _SESSION_JSON_PATH)
+      raise RuntimeError(
+          "Please remove field %r from %r before running migrations." % (
+              _WIP_KEY, _SESSION_JSON_PATH))
     env[_WIP_KEY] = True
     env.Save()
 
