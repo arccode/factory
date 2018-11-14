@@ -57,7 +57,7 @@ class ResourceUpdater(object):
 
     config = umpire_config.UmpireConfig(self._daemon.env.config)
     if not source_id:
-      source_id = config.GetDefaultBundle()['id']
+      source_id = config.GetActiveBundle()['id']
     bundle = config.GetBundle(source_id)
     if not bundle:
       raise common.UmpireError(

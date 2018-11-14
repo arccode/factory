@@ -129,7 +129,7 @@
     }
   },
   {
-    "active": true,
+    "active": false,
     "name": "empty_init_bundle",
     "note": "n/a",
     "resources": {

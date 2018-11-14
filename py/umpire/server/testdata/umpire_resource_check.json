@@ -3,21 +3,19 @@
     {
       "id": "test1",
       "note": "bundle for test",
-      "payloads": "payload.99914b932bd37a50b983c5e7c90ae93b.json",
-      "active": true
+      "payloads": "payload.99914b932bd37a50b983c5e7c90ae93b.json"
     },
     {
       "id": "test2",
       "note": "bundle for test",
-      "payloads": "payload.96faf6aaf0395dc8c8795bf65131bc32.json",
-      "active": false
+      "payloads": "payload.96faf6aaf0395dc8c8795bf65131bc32.json"
     },
     {
       "id": "test3",
       "note": "bundle for test",
-      "payloads": "payload.99914b932bd37a50b983c5e7c90ae93b.json",
-      "active": false
+      "payloads": "payload.99914b932bd37a50b983c5e7c90ae93b.json"
     }
   ],
-  "services": {}
+  "services": {},
+  "active_bundle_id": "test1"
 }

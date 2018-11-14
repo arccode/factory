@@ -28,10 +28,9 @@ _BUNDLE_JSON_SCHEMA = {
     'properties': {
         'id': {'type': 'string'},
         'note': {'type': 'string'},
-        'payloads': {'type': 'string'},
-        'active': {'type': 'boolean'}
+        'payloads': {'type': 'string'}
     },
-    'required': ['id', 'note', 'payloads', 'active'],
+    'required': ['id', 'note', 'payloads'],
     'additionalProperties': False}
 
 def ValidateConfig(config):
@@ -59,31 +58,34 @@ def ValidateConfig(config):
               'bundles': {
                   'type': 'array',
                   'items': _BUNDLE_JSON_SCHEMA
+              },
+              'active_bundle_id': {
+                  'type': 'string'
               }
           },
-          'required': ['services', 'bundles'],
+          'required': ['services', 'bundles', 'active_bundle_id'],
           'additionalProperties': False})
   schema.Validate(config)
 
 
 def ValidateResources(config, env):
-  """Validates resources in each active bundle.
+  """Validates resources in active bundle.
 
   Args:
     config: Umpire config dict.
     env: UmpireEnv.
 
   Raises:
-    UmpireError if there's any resources for active bundles missing.
+    UmpireError if there's any resources for active bundle missing.
   """
   error = []
-  for bundle in config.GetActiveBundles():
-    for type_name, part, res_name in env.GetPayloadFiles(bundle['payloads']):
-      try:
-        env.GetResourcePath(res_name)
-      except IOError:
-        error.append('[NOT FOUND] resource %s:%s:%r for bundle %r\n' % (
-            type_name, part, res_name, bundle['id']))
+  bundle = config.GetActiveBundle()
+  for type_name, part, res_name in env.GetPayloadFiles(bundle['payloads']):
+    try:
+      env.GetResourcePath(res_name)
+    except IOError:
+      error.append('[NOT FOUND] resource %s:%s:%r for bundle %r\n' % (
+          type_name, part, res_name, bundle['id']))
   if error:
     raise common.UmpireError(''.join(error))
 
@@ -132,8 +134,7 @@ class UmpireConfig(dict):
 
     if validate:
       ValidateConfig(config)
-      if not self.GetDefaultBundle():
-        raise common.UmpireError('Missing default bundle')
+      self.GetActiveBundle()
 
   def Dump(self):
     """Dump UmpireConfig to a JSON string.
@@ -143,16 +144,16 @@ class UmpireConfig(dict):
     """
     return json_utils.DumpStr(self, pretty=True)
 
-  def GetDefaultBundle(self):
-    """Gets the default bundle.
+  def GetActiveBundle(self):
+    """Gets the active bundle.
 
     Returns:
-      The default bundle object. None if not found.
+      The active bundle object.
     """
-    for bundle in self['bundles']:
-      if bundle['active']:
-        return bundle
-    return None
+    bundle = self.GetBundle(self['active_bundle_id'])
+    if bundle is None:
+      raise common.UmpireError('Missing active bundle')
+    return bundle
 
   def GetBundle(self, bundle_id):
     """Gets a bundle object with specific bundle ID.
@@ -164,13 +165,3 @@ class UmpireConfig(dict):
       The bundle object. None if not found.
     """
     return next((b for b in self['bundles'] if b['id'] == bundle_id), None)
-
-  def GetActiveBundles(self):
-    """Gets active bundles.
-
-    Returns:
-      Iterable of active bundles.
-    """
-    for bundle in self['bundles']:
-      if bundle['active']:
-        yield bundle

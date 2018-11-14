@@ -1,20 +1,20 @@
 {
-    "bundles": [
-        {
-            "id": "empty_init_bundle",
-            "note": "n/a",
-            "payloads": "payload.489a1c39af84e02926c0937ae95e4f23.json",
-            "active": true
-        }
-    ],
-    "services": {
-        "http": {},
-        "instalog": {
-            "archive": {
-                "enable": true
-            }
-        },
-        "rsync": {},
-        "shop_floor": {}
+  "active_bundle_id": "empty_init_bundle",
+  "bundles": [
+    {
+      "id": "empty_init_bundle",
+      "note": "n/a",
+      "payloads": "payload.489a1c39af84e02926c0937ae95e4f23.json"
     }
+  ],
+  "services": {
+    "http": {},
+    "instalog": {
+      "archive": {
+        "enable": true
+      }
+    },
+    "rsync": {},
+    "shop_floor": {}
+  }
 }

@@ -1,10 +1,10 @@
 {
-    "bundles": [
-        {
-            "id": "empty_init_bundle",
-            "note": "n/a",
-            "payloads": "payload.99914b932bd37a50b983c5e7c90ae93b.json",
-            "active": true
-        }
-    ]
+  "active_bundle_id": "empty_init_bundle",
+  "bundles": [
+    {
+      "id": "empty_init_bundle",
+      "note": "n/a",
+      "payloads": "payload.99914b932bd37a50b983c5e7c90ae93b.json"
+    }
+  ]
 }

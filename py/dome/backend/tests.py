@@ -134,7 +134,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
     cls.PROJECT_WITHOUT_UMPIRE_NAME = 'project_without_umpire'
     cls.PROJECT_WITH_UMPIRE_NAME = 'project_with_umpire'
     cls.PROJECT_WITH_UMPIRE_PORT = 8080
-    cls.MOCK_UMPIRE_VERSION = 3
+    cls.MOCK_UMPIRE_VERSION = 4
 
     models.Project.objects.create(name=cls.PROJECT_WITHOUT_UMPIRE_NAME)
     models.Project.objects.create(name=cls.PROJECT_WITH_UMPIRE_NAME,
@@ -422,33 +422,6 @@ class DomeAPITest(rest_framework.test.APITestCase):
     with TestData('expected_response-activated_bundle_unicode.json') as r:
       self.assertEqual(r, response.json(encoding='UTF-8'))
 
-  def testDeactivateBundle(self):
-    response = self._DeactivateBundle(self.PROJECT_WITH_UMPIRE_NAME,
-                                      'testing_bundle_01')
-    self.assertEqual(response.status_code, rest_framework.status.HTTP_200_OK)
-    with TestData('umpire_config-deactivated.json') as c:
-      self.assertEqual(c, self._GetLastestUploadedConfig())
-    with TestData('expected_response-deactivated_bundle.json') as r:
-      self.assertEqual(r, response.json())
-
-  def testDeactivateDefaultBundle(self):
-    # Umpire does not allow deactivating the default bundle and will raise
-    # exception, mock this behavior
-    self.mocks['xmlrpclib.ServerProxy']().Deploy = mock.MagicMock(
-        side_effect=xmlrpclib.Fault(
-            -32500,  # application error, doesn't matter actually
-            'UmpireError: Missing default bundle'))
-
-    response = self.client.put(
-        '/projects/%s/bundles/%s/' % (self.PROJECT_WITH_UMPIRE_NAME,
-                                      'testing_bundle_03'),
-        data={'active': False},
-        format='json')
-
-    self.assertEqual(response.status_code,
-                     rest_framework.status.HTTP_400_BAD_REQUEST)
-    self.assertIn('Cannot remove or deactivate', response.json()['detail'])
-
   def testDeleteBundle(self):
     response = self.client.delete(
         '/projects/%s/bundles/%s/' % (self.PROJECT_WITH_UMPIRE_NAME,
@@ -458,6 +431,14 @@ class DomeAPITest(rest_framework.test.APITestCase):
                      rest_framework.status.HTTP_204_NO_CONTENT)
     with TestData('umpire_config-deleted.json') as c:
       self.assertEqual(c, self._GetLastestUploadedConfig())
+
+  def testDeleteActiveBundle(self):
+    response = self.client.delete(
+        '/projects/%s/bundles/%s/' % (self.PROJECT_WITH_UMPIRE_NAME,
+                                      'testing_bundle_01'),
+        format='json')
+    self.assertEqual(response.status_code,
+                     rest_framework.status.HTTP_422_UNPROCESSABLE_ENTITY)
 
   def testDeleteNonExistingBundle(self):
     response = self.client.delete(

@@ -349,9 +349,9 @@ class UmpireRPCTest(UmpireDockerTestCase):
           os.path.exists(os.path.join(HOST_RESOURCE_DIR, resource)))
       self.assertEqual(new_payload[resource_type]['file'], resource)
 
+    self.assertEqual('umpire_test', active_config['active_bundle_id'])
     for bundle in active_config['bundles']:
       if bundle['id'] == 'umpire_test':
-        self.assertTrue(bundle['active'])
         self.assertEqual('', bundle['note'])
 
 

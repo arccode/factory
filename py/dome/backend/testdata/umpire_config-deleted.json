@@ -1,26 +1,23 @@
 {
   "project": "testing_project",
+  "active_bundle_id": "testing_bundle_01",
   "bundles": [
     {
-      "active": true,
       "id": "testing_bundle_01",
       "note": "flying like an eagle",
       "payloads": "payload-01.json"
     },
     {
-      "active": true,
       "id": "empty_init_bundle",
       "note": "n/a",
       "payloads": "payload-none.json"
     },
     {
-      "active": false,
       "id": "testing_bundle_03",
       "note": "running like a leopard",
       "payloads": "payload-03.json"
     },
     {
-      "active": false,
       "id": "testing_bundle_04_with_中文",
       "note": "🐰",
       "payloads": "payload-04.json"

@@ -76,9 +76,9 @@ class BundleImporter(object):
     config['bundles'].insert(0, {
         'id': bundle_id,
         'note': note,
-        'payloads': payload_json_name,
-        'active': True,
+        'payloads': payload_json_name
     })
+    config['active_bundle_id'] = bundle_id
     deploy.ConfigDeployer(self._daemon).Deploy(
         self._daemon.env.AddConfigFromBlob(
             config.Dump(), resource.ConfigTypeNames.umpire_config))

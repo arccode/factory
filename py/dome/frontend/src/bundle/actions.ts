@@ -113,6 +113,10 @@ export const activateBundle = (name: string, active: boolean) =>
     await dispatch(task.actions.runTask(
       description, 'PUT', `${baseURL(getState)}/bundles/${name}/`, body,
       optimisticUpdate));
+    // TODO(pihsun): Need this hack to refresh bundle list, and disable other
+    // active bundle when activating a bundle. Should refine this to
+    // optimisticUpdate on frontend.
+    await dispatch(fetchBundles());
   };
 
 export const deleteBundle = (name: string) =>

@@ -32,9 +32,7 @@ def GetResourceMap(env):
   """
   result = []
 
-  bundle = env.config.GetDefaultBundle()
-  if not bundle:
-    return None
+  bundle = env.config.GetActiveBundle()
 
   # TODO(hungte) Remove __token__ and shop_floor_handler when most DUTs have
   # finished migration.

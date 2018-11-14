@@ -171,7 +171,7 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
       URL of cros_payload JSON file, or empty string if no available bundle.
     """
     del x_umpire_dut  # Unused.
-    bundle = self.env.config.GetDefaultBundle()
+    bundle = self.env.config.GetActiveBundle()
     if bundle:
       return 'http://%s:%d/res/%s' % (
           GetServerIpPortFromRequest(request, self.env) + (bundle['payloads'],))

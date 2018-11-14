@@ -353,14 +353,7 @@ class Project(django.db.models.Model):
     except xmlrpclib.Fault as e:
       logger.error(
           'Deploying failed. Error message from Umpire: %r', e.faultString)
-      # TODO(littlecvr): we should probably refine Umpire's error message so
-      #                  Dome has to forward the message to the user only
-      #                  without knowing what's really happened
-      if 'Missing default bundle' in e.faultString:
-        raise DomeClientException(
-            detail='Cannot remove or deactivate default bundle')
-      else:
-        raise DomeServerException(detail=e.faultString)
+      raise DomeServerException(detail=e.faultString)
 
   def GetActiveConfig(self):
     """Return active Umpire config."""
@@ -591,17 +584,18 @@ class Bundle(object):
     return resource_name in payloads
 
   @staticmethod
-  def _FromUmpireBundle(project_name, bundle):
+  def _FromUmpireBundle(project_name, bundle, config):
     """Take the target entry in the "bundles" sections in Umpire config, and
     turns them into the Bundle entity in Dome.
 
     Args:
       bundle: the target bundle in the "bundles" section in Umpire config.
+      config: Umpire config.
     """
     payloads = GetUmpireServer(project_name).GetPayloadsDict(bundle['payloads'])
     return Bundle(bundle['id'],  # name
                   bundle['note'],  # note
-                  bundle['active'],  # active
+                  bundle['id'] == config['active_bundle_id'],  # active
                   payloads)  # payloads
 
   @staticmethod
@@ -618,6 +612,11 @@ class Bundle(object):
       raise DomeClientException(
           detail='Bundle %s not found' % bundle_name,
           status_code=rest_framework.status.HTTP_404_NOT_FOUND)
+
+    if config['active_bundle_id'] == bundle_name:
+      raise DomeClientException(
+          detail='Can not delete active bundle',
+          status_code=rest_framework.status.HTTP_422_UNPROCESSABLE_ENTITY)
 
     config['bundles'] = [
         b for b in config['bundles'] if b['id'] != bundle_name]
@@ -645,7 +644,7 @@ class Bundle(object):
       logger.error(error_message)
       raise DomeClientException(error_message)
 
-    return Bundle._FromUmpireBundle(project_name, bundle)
+    return Bundle._FromUmpireBundle(project_name, bundle, config)
 
   @staticmethod
   def ListAll(project_name):
@@ -660,7 +659,7 @@ class Bundle(object):
     project = Project.GetProjectByName(project_name)
     config = project.GetActiveConfig()
 
-    return [Bundle._FromUmpireBundle(project_name, b)
+    return [Bundle._FromUmpireBundle(project_name, b, config)
             for b in config['bundles']]
 
   @staticmethod
@@ -674,8 +673,7 @@ class Bundle(object):
       dst_bundle_name: if None, do an in-place update; otherwise, duplicate the
           bundle, name it dst_bundle_name, then update it.
       note: note of the bundle.
-      active: True to make the bundle active, False to make the bundle inactive.
-          None means no change.
+      active: True to make the bundle active.
       resources: a dict deserialized by ResourceSerializer, listing all
           resources that should be updated. If a resource is not listed, nothing
           would be changed to the particular resource, so the client can do
@@ -707,11 +705,14 @@ class Bundle(object):
       config['bundles'].insert(0, bundle)
 
     if note is not None:
-      # TODO(littlecvr): unit tests for unicode.
       bundle['note'] = note
 
-    if active is not None:
-      bundle['active'] = active
+    # We don't actually "deactivate" bundle, since there's only one active
+    # bundle in Umpire now.
+    # TODO(pihsun): Move this to Project's active_bundle_id, and change
+    # frontend accordingly.
+    if active:
+      config['active_bundle_id'] = bundle['id']
 
     # only deploy if at least one thing has changed
     if dst_bundle_name or note is not None or active is not None:
