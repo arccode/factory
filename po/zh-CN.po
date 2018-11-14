@@ -537,6 +537,10 @@ msgid "VSWR"
 msgstr "VSWR"
 
 #: ../build/pytests_label_generated.json
+msgid "Vsync"
+msgstr "Vsync"
+
+#: ../build/pytests_label_generated.json
 msgid "Wait External Test"
 msgstr "等待外部測試"
 
@@ -2368,7 +2372,7 @@ msgstr "装置位置不正确"
 msgid "Please put the device in face-up position (press Enter to continue)"
 msgstr "请将装置面向上(按 Enter 继续)"
 
-#: ../py/test/pytests/spatial_sensor_calibration.py
+#: ../py/test/pytests/spatial_sensor_calibration.py ../py/test/pytests/vsync.py
 msgid "Waiting for device..."
 msgstr "正在等待装置..."
 
@@ -2974,6 +2978,10 @@ msgstr "连接 {name} 天线至 port {port}<br>"
 #: ../py/test/pytests/vswr/vswr.py
 msgid "Then press key \"{key}\" to next stage."
 msgstr "完成后按 {key} 键"
+
+#: ../py/test/pytests/vsync.py
+msgid "Verifying VSync pin... ({count}/{total})"
+msgstr "正在验证 VSync pin... ({count}/{total})"
 
 #: ../py/test/pytests/wait_external_test.py
 msgid "Please run external test: {name}"
