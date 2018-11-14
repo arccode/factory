@@ -15,17 +15,17 @@ export interface TaskState {
 
 type TaskAction = ActionType<typeof actions>;
 
-const findTaskIndex = (tasks: Task[], taskID: string) => {
-  return tasks.findIndex((task) => task.taskID === taskID);
+const findTaskIndex = (tasks: Task[], taskId: string) => {
+  return tasks.findIndex((task) => task.taskId === taskId);
 };
 
 const tasksReducer = produce<Task[], TaskAction>(
   (draft: Task[], action: TaskAction) => {
     switch (action.type) {
       case getType(actions.createTaskImpl): {
-        const {taskID, description, method, url} = action.payload;
+        const {taskId, description, method, url} = action.payload;
         draft.push({
-          taskID,
+          taskId,
           state: 'WAITING',
           description,
           method,
@@ -41,8 +41,8 @@ const tasksReducer = produce<Task[], TaskAction>(
       }
 
       case getType(actions.changeTaskState): {
-        const {taskID, state} = action.payload;
-        const taskIndex = findTaskIndex(draft, taskID);
+        const {taskId, state} = action.payload;
+        const taskIndex = findTaskIndex(draft, taskId);
         if (taskIndex > -1) {
           draft[taskIndex].state = state;
         }
@@ -50,7 +50,7 @@ const tasksReducer = produce<Task[], TaskAction>(
       }
 
       case getType(actions.dismissTaskImpl): {
-        const taskIndex = findTaskIndex(draft, action.payload.taskID);
+        const taskIndex = findTaskIndex(draft, action.payload.taskId);
         if (taskIndex > -1) {
           draft.splice(taskIndex, 1);
         }
@@ -58,8 +58,8 @@ const tasksReducer = produce<Task[], TaskAction>(
       }
 
       case getType(actions.updateTaskProgress): {
-        const {taskID, progress} = action.payload;
-        const taskIndex = findTaskIndex(draft, taskID);
+        const {taskId, progress} = action.payload;
+        const taskIndex = findTaskIndex(draft, taskId);
         if (taskIndex > -1) {
           Object.assign(draft[taskIndex].progress, progress);
         }

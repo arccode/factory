@@ -19,7 +19,7 @@ export interface TaskProgress {
 }
 
 export interface Task {
-  taskID: string;
+  taskId: string;
   state: TaskState;
   description: string;
   method: string;

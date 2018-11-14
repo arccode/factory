@@ -21,7 +21,7 @@ import ParameterList from './parameter_list';
 import UpdateParameterDialog from './update_parameter_dialog';
 
 interface ParameterState {
-  currentDirID: number | null;
+  currentDirId: number | null;
 }
 
 type ParameterAppProps =
@@ -30,18 +30,18 @@ type ParameterAppProps =
 
 class ParameterApp extends React.Component<ParameterAppProps, ParameterState> {
 
-  state = {currentDirID: null};
+  state = {currentDirId: null};
 
   getCurrentDirId = (id: number) => {
     console.log(id);
-    this.setState({currentDirID: id});
+    this.setState({currentDirId: id});
   }
 
   render() {
     return (
       <>
         <UpdateParameterDialog />
-        <CreateDirectoryForm dirId={this.state.currentDirID}/>
+        <CreateDirectoryForm dirId={this.state.currentDirId}/>
         <Card>
           <CardHeader title="Parameter" />
           <p>{this.props.loading ? 'LOADING' : ''}</p>
@@ -50,7 +50,7 @@ class ParameterApp extends React.Component<ParameterAppProps, ParameterState> {
             <Button
               variant="outlined"
               onClick={() => this.props.updateComponent(
-                this.state.currentDirID, 'unused_name', true)}
+                this.state.currentDirId, 'unused_name', true)}
             >
               Upload file
             </Button>

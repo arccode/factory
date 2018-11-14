@@ -62,18 +62,18 @@ class TaskList extends React.Component<TaskListProps, TaskListState> {
   }
 
   cancelAllWaitingTasks = () => {
-    this.props.cancelWaitingTaskAfter(this.props.tasks[0].taskID);
+    this.props.cancelWaitingTaskAfter(this.props.tasks[0].taskId);
   }
 
   dismissAllSucceededTasks = () => {
-    for (const {state, taskID} of this.props.tasks) {
+    for (const {state, taskId} of this.props.tasks) {
       if (state === 'SUCCEEDED') {
-        this.props.dismissTask(taskID);
+        this.props.dismissTask(taskId);
       }
     }
   }
 
-  retryTask = (taskID: string) => {
+  retryTask = (taskId: string) => {
     console.warn('not implemented yet');
   }
 
@@ -98,16 +98,16 @@ class TaskList extends React.Component<TaskListProps, TaskListState> {
           <div className={classes.tasklist}>
             {/* task list */}
             {!this.state.collapsed &&
-              tasks.map(({taskID, state, description, progress}) => {
+              tasks.map(({taskId, state, description, progress}) => {
                 return (
                   <TaskComponent
-                    key={taskID}
+                    key={taskId}
                     state={state}
                     description={description}
                     progress={progress}
-                    cancel={() => cancelWaitingTaskAfter(taskID)}
-                    dismiss={() => dismissTask(taskID)}
-                    retry={() => this.retryTask(taskID)}
+                    cancel={() => cancelWaitingTaskAfter(taskId)}
+                    dismiss={() => dismissTask(taskId)}
+                    retry={() => this.retryTask(taskId)}
                   />
                 );
               })

@@ -21,22 +21,22 @@ import {TaskProgress, TaskState} from './types';
 
 const createTaskImpl = createAction('CREATE_TASK', (resolve) =>
   (
-    taskID: string,
+    taskId: string,
     description: string,
     method: string,
     url: string,
     debugBody: any,
-  ) => resolve({taskID, description, method, url, debugBody}));
+  ) => resolve({taskId, description, method, url, debugBody}));
 
 const dismissTaskImpl = createAction('DISMISS_TASK', (resolve) =>
-  (taskID: string) => resolve({taskID}));
+  (taskId: string) => resolve({taskId}));
 
 export const changeTaskState = createAction('CHANGE_TASK_STATE', (resolve) =>
-  (taskID: string, state: TaskState) => resolve({taskID, state}));
+  (taskId: string, state: TaskState) => resolve({taskId, state}));
 
 export const updateTaskProgress = createAction('UPDATE_TASK_PROGRESS',
-  (resolve) => (taskID: string, progress: Partial<TaskProgress>) =>
-    resolve({taskID, progress}));
+  (resolve) => (taskId: string, progress: Partial<TaskProgress>) =>
+    resolve({taskId, progress}));
 
 export const basicActions = {
   createTaskImpl,
@@ -105,16 +105,16 @@ export const runTask =
   ) =>
   (dispatch: Dispatch, getState: () => RootState): Promise<T> =>
     new Promise((resolve, reject) => {
-      const taskID = uuid();
+      const taskId = uuid();
       // if all tasks before succeed, start this task now.
       const startNow =
         getAllTasks(getState()).every(({state}) => state === 'SUCCEEDED');
       const debugBody = makeDebugBody(body);
 
-      taskBodies[taskID] = body;
-      taskResolves[taskID] = resolve;
-      taskRejects[taskID] = reject;
-      taskOptimisticUpdate[taskID] = optimisticUpdate;
+      taskBodies[taskId] = body;
+      taskResolves[taskId] = resolve;
+      taskRejects[taskId] = reject;
+      taskOptimisticUpdate[taskId] = optimisticUpdate;
 
       if (optimisticUpdate) {
         setOptimisticUpdating(true);
@@ -122,26 +122,26 @@ export const runTask =
         setOptimisticUpdating(null);
       }
 
-      dispatch(createTaskImpl(taskID, description, method, url, debugBody));
+      dispatch(createTaskImpl(taskId, description, method, url, debugBody));
 
       if (startNow) {
-        dispatch(runTaskImpl(taskID));
+        dispatch(runTaskImpl(taskId));
       }
     });
 
-export const dismissTask = (taskID: string) => (dispatch: Dispatch) => {
-  delete taskBodies[taskID];
-  delete taskResolves[taskID];
-  dispatch(dismissTaskImpl(taskID));
+export const dismissTask = (taskId: string) => (dispatch: Dispatch) => {
+  delete taskBodies[taskId];
+  delete taskResolves[taskId];
+  dispatch(dismissTaskImpl(taskId));
 };
 
-export const cancelWaitingTaskAfter = (taskID: string) =>
+export const cancelWaitingTaskAfter = (taskId: string) =>
   (dispatch: Dispatch, getState: () => RootState) => {
     // TODO(pihsun): probably need a better action name.
     // This action tries to cancel all waiting or failed tasks below and
-    // include taskID.
+    // include taskId.
     const tasks = getAllTasks(getState());
-    const taskIndex = tasks.findIndex((task) => task.taskID === taskID);
+    const taskIndex = tasks.findIndex((task) => task.taskId === taskId);
     if (taskIndex === -1) {
       return;
     }
@@ -152,7 +152,7 @@ export const cancelWaitingTaskAfter = (taskID: string) =>
       ({state}) => state !== 'SUCCEEDED');
 
     setOptimisticUpdating(true);
-    for (const {taskID: id} of toReplayTasks) {
+    for (const {taskId: id} of toReplayTasks) {
       const optimisticUpdate = taskOptimisticUpdate[id];
       if (optimisticUpdate) {
         optimisticUpdate();
@@ -166,20 +166,20 @@ export const cancelWaitingTaskAfter = (taskID: string) =>
       )).reverse();
 
     // cancel all tasks below and include the target task
-    for (const {taskID: id} of toCancelTasks) {
+    for (const {taskId: id} of toCancelTasks) {
       taskRejects[id](new CancelledTaskError());
       dispatch(dismissTask(id));
     }
   };
 
-const runTaskImpl = (taskID: string) =>
+const runTaskImpl = (taskId: string) =>
   async (dispatch: Dispatch, getState: () => RootState) => {
-    const task = getAllTasks(getState()).find((t) => t.taskID === taskID);
+    const task = getAllTasks(getState()).find((t) => t.taskId === taskId);
     if (!task) {
-      console.warn(`Get runTaskImpl with non-exist taskID: ${taskID}`);
+      console.warn(`Get runTaskImpl with non-exist taskId: ${taskId}`);
       return;
     }
-    const body = taskBodies[taskID];
+    const body = taskBodies[taskId];
 
     try {
       const client = authorizedAxios();
@@ -192,11 +192,11 @@ const runTaskImpl = (taskID: string) =>
         .map((path) => (getIn(body, path) as File).size)
         .reduce((a, b) => a + b, 0);
 
-      dispatch(updateTaskProgress(taskID, {
+      dispatch(updateTaskProgress(taskId, {
         totalFiles: fileFields.length,
         totalSize,
       }));
-      dispatch(changeTaskState(taskID, 'RUNNING_UPLOAD_FILE'));
+      dispatch(changeTaskState(taskId, 'RUNNING_UPLOAD_FILE'));
 
       let data = body;
       let uploadedFiles = 0;
@@ -209,7 +209,7 @@ const runTaskImpl = (taskID: string) =>
         const response = await authorizedAxios().post('/files/', formData, {
           onUploadProgress: (event) => {
             payloadSize = event.total;
-            dispatch(updateTaskProgress(taskID, {
+            dispatch(updateTaskProgress(taskId, {
               totalSize: totalSize - file.size + payloadSize,
               uploadedSize: uploadedSize + event.loaded,
             }));
@@ -225,10 +225,10 @@ const runTaskImpl = (taskID: string) =>
         totalSize += payloadSize - file.size;
         uploadedSize += payloadSize;
         uploadedFiles += 1;
-        dispatch(updateTaskProgress(taskID, {uploadedFiles}));
+        dispatch(updateTaskProgress(taskId, {uploadedFiles}));
       }
 
-      dispatch(changeTaskState(taskID, 'RUNNING_WAIT_RESPONSE'));
+      dispatch(changeTaskState(taskId, 'RUNNING_WAIT_RESPONSE'));
 
       // send the end request
       const endResponse = await client.request({
@@ -237,7 +237,7 @@ const runTaskImpl = (taskID: string) =>
         data,
       });
 
-      const optimisticUpdate = taskOptimisticUpdate[taskID];
+      const optimisticUpdate = taskOptimisticUpdate[taskId];
       if (optimisticUpdate) {
         setOptimisticUpdating(false);
         optimisticUpdate();
@@ -246,15 +246,15 @@ const runTaskImpl = (taskID: string) =>
 
       // if all sub-tasks succeeded, mark it as succeeded, and start the next
       // task.
-      dispatch(changeTaskState(taskID, 'SUCCEEDED'));
+      dispatch(changeTaskState(taskId, 'SUCCEEDED'));
 
-      taskResolves[taskID](endResponse.data);
+      taskResolves[taskId](endResponse.data);
 
       // find the first waiting task and start it
       const nextTask =
         getAllTasks(getState()).find(({state}) => state === 'WAITING');
       if (nextTask) {
-        dispatch(runTaskImpl(nextTask.taskID));
+        dispatch(runTaskImpl(nextTask.taskId));
       }
     } catch (err) {
       // if any sub-task above failed, display the error message
@@ -272,6 +272,6 @@ const runTaskImpl = (taskID: string) =>
           `Unexpected Dome error: ${err}`));
       }
       // mark the task as failed
-      dispatch(changeTaskState(taskID, 'FAILED'));
+      dispatch(changeTaskState(taskId, 'FAILED'));
     }
   };
