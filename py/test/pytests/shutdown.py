@@ -335,8 +335,7 @@ class ShutdownTest(test_case.TestCase):
 
   def LocalShutdown(self):
     key_post_shutdown = state.KEY_POST_SHUTDOWN % self.test_info.path
-    post_shutdown = self.goofy.DataShelfGetValue(key_post_shutdown,
-                                                 optional=True)
+    post_shutdown = self.goofy.DataShelfGetValue(key_post_shutdown, True)
     if post_shutdown:
       # Only do post shutdown verification once.
       self.ui.SetState(

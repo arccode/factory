@@ -261,7 +261,7 @@ def DeleteDeviceData(delete_keys, optional=False):
                         for key in delete_keys]
   instance = state.GetInstance()
   instance.DataShelfDeleteKeys(delete_device_keys, optional)
-  data = instance.DataShelfGetValue(state.KEY_DEVICE_DATA, optional=True) or {}
+  data = instance.DataShelfGetValue(state.KEY_DEVICE_DATA, True) or {}
   logging.info('Updated device data; complete device data is now %s',
                privacy.FilterDict(data))
   _PostUpdateSystemInfo()
@@ -303,7 +303,7 @@ def UpdateDeviceData(new_device_data):
 
   instance = state.GetInstance()
   instance.DataShelfUpdateValue(state.KEY_DEVICE_DATA, new_device_data)
-  data = instance.DataShelfGetValue(state.KEY_DEVICE_DATA, optional=True) or {}
+  data = instance.DataShelfGetValue(state.KEY_DEVICE_DATA, True) or {}
   logging.info('Updated device data; complete device data is now %s',
                privacy.FilterDict(data))
   _PostUpdateSystemInfo()

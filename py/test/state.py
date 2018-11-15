@@ -437,7 +437,7 @@ def DataShelfHasKey(key):
   return GetInstance().DataShelfHasKey(key)
 
 def DataShelfDeleteKeys(key, optional=False):
-  return GetInstance().DataShelfDeleteKeys(key, optional=optional)
+  return GetInstance().DataShelfDeleteKeys(key, optional)
 
 class TestState(object):
   """The complete state of a test.
