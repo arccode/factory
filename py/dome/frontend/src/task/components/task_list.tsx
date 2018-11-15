@@ -43,7 +43,12 @@ const styles = (theme: Theme) => createStyles({
   },
 });
 
+interface TaskListOwnProps {
+  className?: string;
+}
+
 type TaskListProps =
+  TaskListOwnProps &
   WithStyles<typeof styles> &
   ReturnType<typeof mapStateToProps> &
   DispatchProps<typeof mapDispatchToProps>;
@@ -78,14 +83,20 @@ class TaskList extends React.Component<TaskListProps, TaskListState> {
   }
 
   render() {
-    const {tasks, cancelWaitingTaskAfter, dismissTask, classes} = this.props;
+    const {
+      tasks,
+      cancelWaitingTaskAfter,
+      dismissTask,
+      classes,
+      className,
+    } = this.props;
 
     if (tasks.length === 0) {
       return null;
     }
 
     return (
-      <Card>
+      <Card className={className}>
         <div className={classes.root}>
           <TaskListHeader
             tasks={tasks}

@@ -71,6 +71,9 @@ const style = (theme: Theme) => createStyles({
       pointerEvents: 'auto',
     },
   },
+  taskList: {
+    order: 10000,
+  },
 });
 
 type DomeAppProps =
@@ -142,9 +145,8 @@ To visit Dome, please use Chrome/Chromium to avoid unnecessary issues.`);
         <div
           className={classNames(classes.app, appMenuOpened && classes.appShift)}
         >
-          <div className={classes.overlay}>
-            <div ref={this.overlayRef} />
-            <TaskList />
+          <div className={classes.overlay} ref={this.overlayRef}>
+            <TaskList className={classes.taskList} />
           </div>
           <Grid container justify="center">
             <Grid item xs={12} sm={9} md={6}>
