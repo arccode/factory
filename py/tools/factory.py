@@ -333,7 +333,7 @@ class TestListCommand(Subcommand):
                  'see available test lists' % self.args.id)
       mgr.SetActiveTestList(self.args.id)
       print 'Set active test list to %s (wrote %r to %s)' % (
-          self.args.id, self.args.id, manager.ACTIVE_PATH)
+          self.args.id, self.args.id, manager.ACTIVE_TEST_LIST_CONFIG_PATH)
       sys.stdout.flush()
     else:
       print mgr.GetActiveTestListId()

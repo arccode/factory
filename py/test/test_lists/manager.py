@@ -27,6 +27,16 @@ TEST_LISTS_PATH = os.path.join(paths.FACTORY_DIR, TEST_LISTS_RELPATH)
 ACTIVE_TEST_LIST_CONFIG_NAME = 'active_test_list'
 ACTIVE_TEST_LIST_CONFIG_ID_KEY = 'id'
 
+# The active test list ID is the most important factory data that we
+# can't afford it to disappear unexpectedly.  Therefore, instead of
+# saving it as a runtime configuration, we would rather saving it as
+# a buildtime configuration manually.
+ACTIVE_TEST_LIST_CONFIG_RELPATH = os.path.join(
+    TEST_LISTS_RELPATH,
+    ACTIVE_TEST_LIST_CONFIG_NAME + config_utils.CONFIG_FILE_EXT)
+ACTIVE_TEST_LIST_CONFIG_PATH = os.path.join(
+    paths.FACTORY_DIR, ACTIVE_TEST_LIST_CONFIG_RELPATH)
+
 # Default test list.
 DEFAULT_TEST_LIST_ID = 'main'
 
@@ -238,7 +248,8 @@ class Manager(object):
     """
     try:
       config_data = config_utils.LoadConfig(
-          config_name=ACTIVE_TEST_LIST_CONFIG_NAME)
+          config_name=ACTIVE_TEST_LIST_CONFIG_NAME,
+          default_config_dirs=os.path.dirname(ACTIVE_TEST_LIST_CONFIG_PATH))
       return config_data[ACTIVE_TEST_LIST_CONFIG_ID_KEY]
 
     except config_utils.ConfigNotFoundError:
@@ -271,15 +282,9 @@ class Manager(object):
     This writes the name of the new active test list to the build time config
     file.
     """
-    # The active test list ID is the most important factory data that we
-    # can't afford it to disappear unexpectedly.  Therefore, instead of
-    # saving it as a runtime configuration, we would rather saving it as
-    # a buildtime configuration manually.
-    config_path = os.path.join(config_utils.GetBuildConfigDirectory(),
-                               ACTIVE_TEST_LIST_CONFIG_NAME)
     config_data = json_utils.DumpStr({ACTIVE_TEST_LIST_CONFIG_ID_KEY: new_id})
 
-    with file_utils.AtomicWrite(config_path) as f:
+    with file_utils.AtomicWrite(ACTIVE_TEST_LIST_CONFIG_PATH) as f:
       f.write(config_data)
 
 
