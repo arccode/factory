@@ -38,10 +38,15 @@ class InstalogService(umpire_service.UmpireService):
       update_info: The Umpire configuration used to update instalog_config.
       env: UmpireEnv object.
     """
+    if update_info.get('data_truncate', {}).get('enable', False):
+      # If enable data_truncate, Instalog truncate once a day.
+      instalog_config['buffer']['args']['truncate_interval'] = 86400
+
     threshold = update_info.get('input_http', {}).get(
         'log_level_threshold', logging.NOTSET)
     instalog_config['input']['http_in']['args']['log_level_threshold'] = (
         threshold)
+
     if update_info.get('forward', {}).get('enable', False):
       args = update_info.get('forward', {}).get('args', {}).copy()
       # We only can use the port which is published by Umpire.
@@ -52,6 +57,7 @@ class InstalogService(umpire_service.UmpireService):
       }
       for input_name in instalog_config['input']:
         instalog_config['input'][input_name]['targets'].append('forward')
+
     if update_info.get('archive', {}).get('enable', False):
       instalog_config['output']['archive'] = {
           'plugin': 'output_archive',

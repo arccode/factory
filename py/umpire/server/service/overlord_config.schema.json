@@ -1,14 +1,14 @@
 {
-	"lan_disc_iface": {
-		"description": "LAN discovery interface",
-		"type": "string"
-	},
-	"noauth": {
-		"description": "Disable authentication",
-		"type": "boolean"
-	},
-	"tls": {
-		"description": "TLS settings",
-		"type": "string"
-	}
+  "lan_disc_iface": {
+    "description": "LAN discovery interface",
+    "type": "string"
+  },
+  "noauth": {
+    "description": "Disable authentication",
+    "type": "boolean"
+  },
+  "tls": {
+    "description": "TLS settings",
+    "type": "string"
+  }
 }

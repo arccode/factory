@@ -1,21 +1,21 @@
 {
-	"reverse_proxies": {
-		"description": "Reverse proxy list",
-		"type": "array",
-		"items": {
-			"description": "Proxy IP range",
-			"type": "object",
-			"properties": {
-				"proxy_addr": {
-					"description": "IP address",
-					"type": "string"
-				},
-				"remoteip": {
-					"description": "DUT ip range",
-					"type": "string"
-				}
-			},
-			"required": ["proxy_addr", "remoteip"]
-		}
-	}
+  "reverse_proxies": {
+    "description": "Reverse proxy list",
+    "type": "array",
+    "items": {
+      "description": "Proxy IP range",
+      "type": "object",
+      "properties": {
+        "proxy_addr": {
+          "description": "IP address",
+          "type": "string"
+        },
+        "remoteip": {
+          "description": "DUT ip range",
+          "type": "string"
+        }
+      },
+      "required": ["proxy_addr", "remoteip"]
+    }
+  }
 }
