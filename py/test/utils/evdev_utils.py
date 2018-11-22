@@ -200,12 +200,23 @@ class InputDeviceDispatcher(asyncore.file_dispatcher):
     self.event_handler = event_handler
     asyncore.file_dispatcher.__init__(self, device)
 
-  def recv(self, ign=None):
-    del ign  # Unused.
-    return self.device.read()
-
   def handle_read(self):
-    for event in self.recv():
+    # Spec - https://docs.python.org/2/library/asyncore.html mentions about
+    # that recv() may raise socket.error with EAGAIN or EWOULDBLOCK, even
+    # though select.select() or select.poll() has reported the socket ready
+    # for reading.
+    #
+    # We have the similar issue here; the buffer might be still empty when
+    # reading from an input device even though asyncore calls handle_read().
+    # As a result, we call read_one() here because it will return None when
+    # buffer is empty. On the other hand, if we call read() and iterate the
+    # returned generator object then an IOError - EAGAIN might be thrown but
+    # this behavior is not documented so can't leverage on it.
+    while True:
+      event = self.device.read_one()
+      if event is None:
+        break
+
       self.event_handler(event)
 
   def writable(self):
