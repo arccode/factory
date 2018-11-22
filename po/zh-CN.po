@@ -355,6 +355,10 @@ msgid "Retrieve Config"
 msgstr "载入设定"
 
 #: ../build/pytests_label_generated.json
+msgid "Retrieve Parameter"
+msgstr "下载档案"
+
+#: ../build/pytests_label_generated.json
 msgid "RF Graphyte"
 msgstr "RF Graphyte"
 
