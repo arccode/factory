@@ -1,0 +1,446 @@
+checksum: unused-value
+
+project: CHROMEBOOK
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: EVT
+  1: PVT
+  15: RMA
+
+pattern:
+- image_ids:
+  - 0
+  - 1
+  encoding_scheme: base8192
+  fields:
+  - mainboard_field: 3
+  - region_field: 5
+  - chassis_field: 5
+  - storage_field: 5
+  - dram_field: 5
+  - firmware_keys_field: 3
+  - audio_codec_field: 1
+- image_ids:
+  - 15
+  encoding_scheme: base8192
+  fields:
+  - mainboard_field: 3
+  - region_field: 5
+  - chassis_field: 5
+  - storage_field: 5
+  - dram_field: 5
+  - firmware_keys_field: 3
+
+encoded_fields:
+  region_field: !region_field
+  - us
+  - gb
+  chassis_field:
+    0:
+      chassis: NOCTURNE
+  audio_codec_field:
+    0:
+      audio_codec:
+      - dmic_codec
+      - ehdaudio0D2
+      - i2c_MX98373_00
+      - i2c_MX98373_01
+    1:
+      audio_codec:
+      - DMIC_00
+      - dmic_codec
+      - ehdaudio0D2
+      - i2c_MX98373_00
+      - i2c_MX98373_01
+  dram_field:
+    0:
+      dram:
+      - MT52L256M32D1PF-10_2048mb_0
+      - MT52L256M32D1PF-10_2048mb_1
+    1:
+      dram:
+      - MT52L512M32D2PF-10_4096mb_0
+      - MT52L512M32D2PF-10_4096mb_1
+    2:
+      dram:
+      - K4E6E304EC-EGCF_4096mb_0
+      - K4E6E304EC-EGCF_4096mb_1
+    3:
+      dram:
+      - K4EBE304EC-EGCF_8192mb_0
+      - K4EBE304EC-EGCF_8192mb_1
+    4:
+      dram:
+      - MT52L1G32D4PG-107_8192mb_0
+      - MT52L1G32D4PG-107_8192mb_1
+  mainboard_field:
+    0:
+      mainboard: rev8
+    1:
+      mainboard: rev2
+    2:
+      mainboard: rev3
+    3:
+      mainboard: rev4
+  storage_field:
+    0:
+      storage: KLMDG4UCTA-B041_0200000000000000
+    1:
+      storage: KLMBG2JETD-B041_0300000000000000
+    2:
+      storage: KLMBG2JETD-B041_0200000000000000
+    3:
+      storage: KLMCG2KCTA-B041_0200000000000000
+  firmware_keys_field:
+    0:
+      firmware_keys: firmware_keys_dev
+    1:
+      firmware_keys: firmware_keys_premp
+    2:
+      firmware_keys: firmware_keys_mp
+
+components:
+  region: !region_component
+  battery:
+    items:
+      SMP8230:
+        values:
+          manufacturer: SMP8230
+          technology: Li-ion
+  ro_main_firmware:
+    items:
+      Google_Nocturne_10800_0_2018_06_19_2316:
+        status: deprecated
+        values:
+          hash: fc82fb21a9588f282616a4d9368157821db4ea7e2f1b05a0b909b500d121f8b0
+          version: Google_Nocturne.10800.0.2018_06_19_2316
+      Google_Nocturne_10861_0_0:
+        status: deprecated
+        values:
+          hash: bf801d67471f93c95516c136d0e3607be63b51bf4860b7a844a121afc03806f5
+          version: Google_Nocturne.10861.0.0
+      Google_Nocturne_10819_1_0:
+        status: deprecated
+        values:
+          hash: d0ac9e79df1019413e90e2999c736c4ac385f3fd2a5ff2948f7f2df81fd6408e
+          version: Google_Nocturne.10819.1.0
+      Google_Nocturne_10984_2_0:
+        status: deprecated
+        values:
+          hash: ef99116faafe81203614394b4e3ea1f6c8bbe809790903b366d0070bb1567755
+          version: Google_Nocturne.10984.2.0
+      Google_Nocturne_10986_3_0:
+        status: deprecated
+        values:
+          hash: 806280bc85c1275a54aa7d1229c6082914244662f306be68dca0844d381c8098
+          version: Google_Nocturne.10986.3.0
+      Google_Nocturne_10984_21_0:
+        status: deprecated
+        values:
+          hash: da93578c7dda8526ab764f68da97739390c43fa73e8013a75892bcb7c28e5dab
+          version: Google_Nocturne.10984.21.0
+      Google_Nocturne_10984_26_0:
+        status: deprecated
+        values:
+          hash: 9ac80e1555c32562293c80022fd834f571b154e44f24efd37f5d38b81826ec82
+          version: Google_Nocturne.10984.26.0
+      Google_Nocturne_10984_28_0:
+        values:
+          hash: 836cba50a3cfa0bdd6a24eb0757f6ad717bf9ef0c29f48e319527b8ee3c31bc1
+          version: Google_Nocturne.10984.28.0
+  bluetooth:
+    items:
+      Stonepeak_2-D1_bluetooth:
+        values:
+          bcdDevice: '0003'
+          idProduct: 0a2a
+          idVendor: '8087'
+  stylus:
+    items:
+      WCOM50C1_00_2D1F_486C_Pen:
+        values:
+          name: WCOM50C1:00 2D1F:486C Pen
+          product: 486c
+          vendor: 2d1f
+  video:
+    items:
+      video_f8278f5c:
+        status: unsupported
+        values:
+          bus_type: pci
+          device: '0x1919'
+          device_path: /sys/class/video4linux/video0
+          revision_id: '0x01'
+          vendor: '0x8086'
+      video_1db3a754:
+        status: unsupported
+        values:
+          bus_type: pci
+          device: '0x9d32'
+          device_path: /sys/class/video4linux/video6
+          revision_id: '0x01'
+          vendor: '0x8086'
+      video_c5023888:
+        status: unsupported
+        values:
+          bus_type: pci
+          device: '0x9d32'
+          device_path: /sys/class/video4linux/video0
+          revision_id: '0x01'
+          vendor: '0x8086'
+      video_180eec7d:
+        status: unsupported
+        values:
+          bus_type: pci
+          device: '0x1919'
+          device_path: /sys/class/video4linux/video4
+          revision_id: '0x01'
+          vendor: '0x8086'
+      imx355_9_001a:
+        values:
+          name: imx355 9-001a
+          vendor: ''
+      imx319_8_0010:
+        values:
+          name: imx319 8-0010
+          vendor: ''
+      video_pci_1919:
+        values:
+          bus_type: pci
+          device: '0x1919'
+          revision_id: '0x01'
+          vendor: '0x8086'
+      video_pci_9d32:
+        values:
+          bus_type: pci
+          device: '0x9d32'
+          revision_id: '0x01'
+          vendor: '0x8086'
+  audio_codec:
+    items:
+      ehdaudio0D2:
+        values:
+          name: ehdaudio0D2
+      dmic_codec:
+        values:
+          name: dmic-codec
+      i2c_MX98373_01:
+        values:
+          name: i2c-MX98373:01
+      i2c_MX98373_00:
+        values:
+          name: i2c-MX98373:00
+      DMIC_00:
+        values:
+          name: DMIC:00
+  usb_hosts:
+    items:
+      usb_hosts_a57691e0:
+        values:
+          device: '0x9d2f'
+          revision_id: '0x21'
+          vendor: '0x8086'
+  storage:
+    items:
+      KLMDG4UCTA-B041_0200000000000000:
+        values:
+          emmc5_fw_ver: 0200000000000000 (2)
+          hwrev: '0x0'
+          manfid: '0x000015'
+          name: DUTA42
+          oemid: '0x0100'
+          prv: '0x2'
+          sectors: '244277248'
+          type: MMC
+      KLMBG2JETD-B041_0300000000000000:
+        values:
+          emmc5_fw_ver: 0300000000000000 (3)
+          hwrev: '0x0'
+          manfid: '0x000015'
+          name: BJTD4R
+          oemid: '0x0100'
+          prv: '0x3'
+          sectors: '61071360'
+          type: MMC
+      KLMBG2JETD-B041_0200000000000000:
+        values:
+          emmc5_fw_ver: 0200000000000000 (2)
+          hwrev: '0x0'
+          manfid: '0x000015'
+          name: BJTD4R
+          oemid: '0x0100'
+          prv: '0x2'
+          sectors: '122142720'
+          type: MMC
+      KLMCG2KCTA-B041_0200000000000000:
+        values:
+          emmc5_fw_ver: 0200000000000000 (2)
+          hwrev: '0x0'
+          manfid: '0x000015'
+          name: CKTA42
+          oemid: '0x0100'
+          prv: '0x2'
+          sectors: '122142720'
+          type: MMC
+      H26T87001CMR_3030303300000000:
+        values:
+          emmc5_fw_ver: 3030303300000000 (0003)
+          hwrev: '0x0'
+          manfid: '0x000090'
+          name: hDEaP3
+          oemid: '0x014a'
+          prv: '0x1'
+          sectors: '244285440'
+          type: MMC
+      H26M74002HMR_3030303200000000:
+        values:
+          emmc5_fw_ver: 3030303200000000 (0002)
+          hwrev: '0x0'
+          manfid: '0x000090'
+          name: hC8aP>
+          oemid: '0x014a'
+          sectors: '122142720'
+          type: MMC
+      H26M74002HMR_3030303100000000:
+        values:
+          emmc5_fw_ver: 3030303100000000 (0001)
+          hwrev: '0x0'
+          manfid: '0x000090'
+          name: hC8aP>
+          oemid: '0x014a'
+          sectors: '122142720'
+          type: MMC
+      KLMEG8UERM-C041_0100000000000000:
+        values:
+          emmc5_fw_ver: 0100000000000000 (1)
+          hwrev: '0x0'
+          manfid: '0x000015'
+          name: EURM4S
+          oemid: '0x0100'
+          prv: '0x1'
+          sectors: '488554496'
+          type: MMC
+      H26M62002JPR_3030303200000000:
+        values:
+          emmc5_fw_ver: 3030303200000000 (0002)
+          hwrev: '0x0'
+          manfid: '0x000090'
+          name: hB8aP>
+          oemid: '0x014a'
+          sectors: '61071360'
+          type: MMC
+      KLMEG8UCTA-B041_0100000000000000:
+        values:
+          emmc5_fw_ver: 0100000000000000 (1)
+          hwrev: '0x0'
+          manfid: '0x000015'
+          name: EUTA42
+          oemid: '0x0100'
+          prv: '0x1'
+          sectors: '488554496'
+          type: MMC
+  firmware_keys:
+    items:
+      firmware_keys_dev:
+        status: unsupported
+        values:
+          key_recovery: kv3#c14bd720b70d97394257e3e826bd8f43de48d4ed#devkeys/recovery
+          key_root: kv3#b11d74edd286c144e1135b49e7f0bc20cf041f10#devkeys/rootkey
+      firmware_keys_premp:
+        status: unsupported
+        values:
+          key_recovery: kv3#678ed17e0423e8a98c599b77af3ad069b97ecb86
+          key_root: kv3#cfdb59d5f65a6d72ab4a18c6b524f76b59b90c2c
+      firmware_keys_mp:
+        values:
+          key_recovery: kv3#ff71381ae19cd455383e94cef94800584fd119c7
+          key_root: kv3#1087f0196beb00cb312900bc92ff885fc62c7764
+  mainboard:
+    items:
+      rev8:
+        status: unsupported
+        values:
+          version: rev8
+      rev2:
+        status: unsupported
+        values:
+          version: rev2
+      rev3:
+        status: unsupported
+        values:
+          version: rev3
+      rev4:
+        values:
+          version: rev4
+  chassis:
+    items:
+      NOCTURNE:
+        values:
+          id: NOCTURNE
+  dram:
+    items:
+      MT52L256M32D1PF-10_2048mb_0:
+        values:
+          part: MT52L256M32D1PF-10
+          size: '2048'
+          slot: '0'
+          timing: LPDDR3-800,LPDDR3-1066,LPDDR3-1333,LPDDR3-1600,LPDDR3-1866
+      MT52L256M32D1PF-10_2048mb_1:
+        values:
+          part: MT52L256M32D1PF-10
+          size: '2048'
+          slot: '1'
+          timing: LPDDR3-800,LPDDR3-1066,LPDDR3-1333,LPDDR3-1600,LPDDR3-1866
+      MT52L512M32D2PF-10_4096mb_0:
+        values:
+          part: MT52L512M32D2PF-10
+          size: '4096'
+          slot: '0'
+          timing: LPDDR3-800,LPDDR3-1066,LPDDR3-1333,LPDDR3-1600,LPDDR3-1866
+      MT52L512M32D2PF-10_4096mb_1:
+        values:
+          part: MT52L512M32D2PF-10
+          size: '4096'
+          slot: '1'
+          timing: LPDDR3-800,LPDDR3-1066,LPDDR3-1333,LPDDR3-1600,LPDDR3-1866
+      K4E6E304EC-EGCF_4096mb_0:
+        values:
+          part: K4E6E304EC-EGCF
+          size: '4096'
+          slot: '0'
+          timing: LPDDR3-800,LPDDR3-1066,LPDDR3-1333,LPDDR3-1600,LPDDR3-1866
+      K4E6E304EC-EGCF_4096mb_1:
+        values:
+          part: K4E6E304EC-EGCF
+          size: '4096'
+          slot: '1'
+          timing: LPDDR3-800,LPDDR3-1066,LPDDR3-1333,LPDDR3-1600,LPDDR3-1866
+      K4EBE304EC-EGCF_8192mb_0:
+        values:
+          part: K4EBE304EC-EGCF
+          size: '8192'
+          slot: '0'
+          timing: LPDDR3-800,LPDDR3-1066,LPDDR3-1333,LPDDR3-1600,LPDDR3-1866
+      K4EBE304EC-EGCF_8192mb_1:
+        values:
+          part: K4EBE304EC-EGCF
+          size: '8192'
+          slot: '1'
+          timing: LPDDR3-800,LPDDR3-1066,LPDDR3-1333,LPDDR3-1600,LPDDR3-1866
+      MT52L1G32D4PG-107_8192mb_0:
+        values:
+          part: MT52L1G32D4PG-107
+          size: '8192'
+          slot: '0'
+          timing: LPDDR3-800,LPDDR3-1066,LPDDR3-1333,LPDDR3-1600,LPDDR3-1866
+      MT52L1G32D4PG-107_8192mb_1:
+        values:
+          part: MT52L1G32D4PG-107
+          size: '8192'
+          slot: '1'
+          timing: LPDDR3-800,LPDDR3-1066,LPDDR3-1333,LPDDR3-1600,LPDDR3-1866
+
+rules: []

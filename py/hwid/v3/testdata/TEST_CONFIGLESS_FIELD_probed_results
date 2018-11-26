@@ -1,0 +1,71 @@
+{
+  "chassis": [
+    {
+      "name": "generic",
+      "values": {
+        "id": "NOCTURNE"
+      }
+    }
+  ],
+  "dram": [
+    {
+      "name": "generic",
+      "values": {
+        "part": "K4E6E304EC-EGCF",
+        "size": "4096",
+        "slot": "0",
+        "timing": "LPDDR3-800,LPDDR3-1066,LPDDR3-1333,LPDDR3-1600,LPDDR3-1866"
+      }
+    },
+    {
+      "name": "generic",
+      "values": {
+        "part": "K4E6E304EC-EGCF",
+        "size": "4096",
+        "slot": "1",
+        "timing": "LPDDR3-800,LPDDR3-1066,LPDDR3-1333,LPDDR3-1600,LPDDR3-1866"
+      }
+    }
+  ],
+  "storage": [
+    {
+      "name": "generic",
+      "values": {
+        "emmc5_fw_ver": "0200000000000000 (2)",
+        "hwrev": "0x0",
+        "manfid": "0x000015",
+        "name": "CKTA42",
+        "oemid": "0x0100",
+        "prv": "0x2",
+        "sectors": "122142720",
+        "type": "MMC"
+      }
+    }
+  ],
+  "firmware_keys": [
+    {
+      "name": "generic",
+      "values": {
+        "key_recovery": "kv3#ff71381ae19cd455383e94cef94800584fd119c7",
+        "key_root": "kv3#1087f0196beb00cb312900bc92ff885fc62c7764"
+      }
+    }
+  ],
+  "mainboard": [
+    {
+      "name": "generic",
+      "values": {
+        "version": "rev4"
+      }
+    }
+  ],
+  "region": [
+    {
+      "name": "generic",
+      "values": {
+        "region_code": "us"
+      }
+    }
+  ]
+}
+
