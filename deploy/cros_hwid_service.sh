@@ -83,6 +83,7 @@ prepare_cros_regions() {
 
 do_deploy() {
   gcp_project="$1"
+  shift
   check_gcloud
   check_credentials "${gcp_project}"
 
@@ -108,7 +109,7 @@ do_deploy() {
   if [ "${gcp_project}" != "${ENV_LOCAL}" ]; then
     run_in_temp gcloud --project="${gcp_project}" app deploy app.yaml cron.yaml
   else
-    run_in_temp dev_appserver.py app.yaml
+    run_in_temp dev_appserver.py "${@}" app.yaml
   fi
 }
 
@@ -147,8 +148,12 @@ commands:
       Shows this help message.
       More about HWIDService: go/factory-git/py/hwid/service/appengine/README.md
 
-  $0 deploy [prod|staging|local]
-      Deploys HWID Service to the given environment.
+  $0 deploy [prod|staging]
+      Deploys HWID Service to the given environment by gcloud command.
+
+  $0 deploy local [args...]
+      Deploys HWID Service locally via dep_appserver.py tool.  Arguments will
+      be delegated to the tool.
 
   $0 build
       Builds docker image for AppEngine integration test.
@@ -178,7 +183,8 @@ main() {
         *)
           usage && exit 1
       esac
-      do_deploy "${project}"
+      shift
+      do_deploy "${project}" "${@}"
        ;;
     build)
       do_build
