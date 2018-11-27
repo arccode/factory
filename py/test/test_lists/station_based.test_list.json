@@ -16,10 +16,6 @@
     "plugin_config_name": "goofy_plugin_station"
   },
   "definitions": {
-    "CheckSerialNumber": {
-      "pytest_name": "check_serial_number",
-      "run_if": "constants.check_serial_number"
-    },
     "ConnectDevice": {
       "pytest_name": "station_entry",
       "label": "Connect Device",
@@ -85,6 +81,10 @@
         "FactoryStateCopyFromDUT"
       ]
     },
+    "StationCheckSerialNumber": {
+      "inherit": "CheckSerialNumber",
+      "run_if": "constants.check_serial_number"
+    },
     "StationLoop": {
       "iterations": -1,
       "retries": -1,
@@ -140,7 +140,7 @@
         "SyncFactoryServer",
         "StationLoopItemsBeforeConnection",
         "ConnectDevice",
-        "CheckSerialNumber",
+        "StationCheckSerialNumber",
         "FactoryStateSetup"
       ]
     },

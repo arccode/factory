@@ -189,6 +189,10 @@
         "use_netboot": false
       }
     },
+    "CheckSerialNumber": {
+      "pytest_name": "check_serial_number",
+      "label": "Check Serial Number"
+    },
     "ClearFactoryVPDEntries": {
       "inherit": "TestGroup",
       "label": "Clear factory VPD entries",

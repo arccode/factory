@@ -130,6 +130,7 @@ msgid "Check Image Version"
 msgstr "检查映像版本"
 
 #: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Check Serial Number"
 msgstr "检查机器序号"
 
