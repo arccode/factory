@@ -64,7 +64,7 @@ from cros.factory.utils.arg_utils import Arg
 
 
 HTML = """
-<div>
+<div style="font-size:2em">
   <div>
     Device Data: <span id='device-data-value'></span>
   <div>
@@ -84,6 +84,7 @@ class CheckDeviceState(test_case.TestCase):
   ]
 
   def setUp(self):
+    self.dut = device_utils.CreateDUTInterface()
     self.ui.SetTitle(_('Checking Device State'))
 
   def runTest(self):
@@ -93,22 +94,24 @@ class CheckDeviceState(test_case.TestCase):
 
     success = True
 
-    dut = device_utils.CreateDUTInterface()
-    proxy = state.get_instance(dut.link.host)
+    if self.dut.link.IsLocal():
+      proxy = state.GetInstance()
+    else:
+      proxy = state.GetInstance(self.dut.link.host)
 
     # must have device_id
-    if not dut.info.device_id:
+    if not self.dut.info.device_id:
       self.ui.SetHTML(
           'No device_id<br />',
           id='message',
           append=True)
       success = False
 
-    device_data_sn = proxy.data_shelf.GetValue(
-        'device.serials.%s' % sn_name, default=None)
-    self.ui.SetHTML(repr(device_data_sn), id='device-data-value')
-    vpd_sn = dut.CallOutput('vpd -g %s' % sn_name) or None
-    self.ui.SetHTML(repr(vpd_sn), id='vpd-value')
+    device_data_sn = proxy.DataShelfGetValue(
+        key='device.serials.%s' % sn_name, optional=True)
+    self.ui.SetHTML(str(device_data_sn), id='device-data-value')
+    vpd_sn = self.dut.CallOutput('vpd -g %s' % sn_name) or None
+    self.ui.SetHTML(str(vpd_sn), id='vpd-value')
 
     if not device_data_sn:
       self.ui.SetHTML('%s not in device data<br />' % sn_name,
