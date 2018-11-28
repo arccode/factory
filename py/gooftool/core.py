@@ -816,8 +816,8 @@ class Gooftool(object):
     disabled.
     """
     def _GetCr50Version():
-      cmd = ['gsctool', '-a', '-f']
-      return re.search(r'^RW\s*(\d+\.\d+\.\d+)',
+      cmd = ['gsctool', '-a', '-f', '-M']
+      return re.search(r'^RW_FW_VER=(\d+\.\d+\.\d+)',
                        self._util.shell(cmd).stdout,
                        re.MULTILINE).group(1)
 
