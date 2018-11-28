@@ -10,7 +10,7 @@ This pytest helps you control `FactoryStateLayer`s.  The factory state server
 (an instance of `cros.factory.test.state.FactoryState`) could have multiple
 layers.  The first layer (layer 0) is the default layer which uses python shelve
 module and will be saved under /var/factory/state/ by default.  You can create
-levels on top of layer 0, but all additional layers only exists in memroy, the
+levels on top of layer 0, but all additional layers only exists in memory, the
 data will be destroyed when the layer is removed.  Unless the layer is merged to
 first layer.  For example::
 
