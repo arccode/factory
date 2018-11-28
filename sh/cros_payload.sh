@@ -881,8 +881,11 @@ install_components() {
         done
         ;;
       release_image)
-        for mapping in "4 4" "3 5" \
-          "6 6" "7 7" "8 8" "9 9" "10 10" "11 11" "12 12"; do
+        # The Root FS partition should be the last one to be written, since
+        # this process is not atomic and we can only get image version from
+        # lsb-release.
+        for mapping in "6 6" "7 7" "8 8" "9 9" "10 10" "11 11" "12 12" \
+          "4 4" "3 5"; do
           from="${mapping% *}"
           to="${mapping#* }"
           install_payload "partition" "${json_url}" \

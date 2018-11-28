@@ -92,6 +92,7 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.gooftool import commands
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
@@ -114,6 +115,9 @@ class CheckImageVersionTest(test_case.TestCase):
           'True to require a space key press before re-imaging.', default=True),
       Arg('check_release_image', bool,
           'True to check release image instead of test image.', default=False),
+      Arg('verify_rootfs', bool,
+          'True to verify rootfs before install image.',
+          default=True),
       Arg('use_netboot', bool,
           'True to image with netboot, otherwise cros_payload.', default=True)]
 
@@ -128,7 +132,12 @@ class CheckImageVersionTest(test_case.TestCase):
       self.Sleep(0.5)
 
   def runTest(self):
-    if self.CheckImageVersion():
+    # If this test stop unexpectedly during installing new image, we need to
+    # check image version and verify Root FS to ensure the DUT is successfully
+    # installed or not. The partition of Root FS is the last one to be written,
+    # so the image version from lsb-release and the verification of Root FS can
+    # ensure the result of installation.
+    if self.CheckImageVersion() and self.VerifyRootFS():
       return
 
     if not self.args.reimage:
@@ -216,3 +225,8 @@ class CheckImageVersionTest(test_case.TestCase):
     logging.info('current version: %r, expected: %r', ver, expected)
     # TODO(hungte) In future we may want 'exact' match more than min_version.
     return version_format(ver) >= version_format(expected)
+
+  def VerifyRootFS(self):
+    if self.args.check_release_image and self.args.verify_rootfs:
+      commands.VerifyRootFS(
+          release_rootfs=self.dut.partitions.RELEASE_ROOTFS.path)
