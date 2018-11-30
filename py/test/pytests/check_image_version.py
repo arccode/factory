@@ -217,6 +217,10 @@ class CheckImageVersionTest(test_case.TestCase):
       ver = self.dut.info.factory_image_version
       name = 'test_image'
 
+    if ver is None:
+      logging.warning('Can\'t find current version')
+      return False
+
     testlog.LogParam(name=name, value=ver)
     expected = self.args.min_version
     version_format = (version.LooseVersion if self.args.loose_version else
