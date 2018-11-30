@@ -101,7 +101,7 @@ def TweakTestLists(args):
   if args.test_list:
     manager.Manager.SetActiveTestList(args.test_list)
   else:
-    file_utils.TryUnlink(manager.ACTIVE_PATH)
+    file_utils.TryUnlink(manager.ACTIVE_TEST_LIST_CONFIG_PATH)
 
 
 def main():
