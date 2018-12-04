@@ -109,7 +109,12 @@ do_deploy() {
   if [ "${gcp_project}" != "${ENV_LOCAL}" ]; then
     run_in_temp gcloud --project="${gcp_project}" app deploy app.yaml cron.yaml
   else
-    run_in_temp dev_appserver.py "${@}" app.yaml
+    # Hack for local environment. Renames the URL handle from /_ah/sp[i]/ to
+    # /_ah/spi/, so that one can access the local service through
+    # http://localhost:<port>/_ah/api/
+    run_in_temp sed 's/\/_ah\/sp\[i\]/\/_ah\/spi/g' app.yaml \
+        >"${TEMP_DIR}/app.local.yaml"
+    run_in_temp dev_appserver.py "${@}" app.local.yaml
   fi
 }
 

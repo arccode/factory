@@ -30,6 +30,8 @@ automatic_scaling:
 # this is deemed unlikely by the apiary team.
 # As a second line of defense, we have an _AuthCheck method in hwid_api.py,
 # see the comment in that file for more details.
+# Also note that "/_ah/sp[i]/" will be replaced by "/_ah/spi/" when the service
+# is deployed locally so that developers can access the APIs via "/_ah/api/".
 # Full discussion:
 # https://groups.google.com/a/google.com/forum/#!topic/apiary-users/qhLJjYDSmWg
 handlers:
