@@ -296,6 +296,12 @@ cmd_help() {
       List all available components in JSON_URL.
 
       Example: $0 list http://192.168.200.1:8080/static/test.json
+
+  get_file JSON_URL COMPONENT
+
+      Get the payload file of COMPONENT in JSON_URL.
+
+      Example: $0 get_file http://192.168.200.1:8080/static/test.json hwid
   "
 }
 
@@ -385,6 +391,55 @@ json_get_keys() {
   fi
 
   python -c "import json; import sys; print('\n'.join(json.load(sys.stdin)))"
+}
+
+# Gets the files of an image from a given JSON file or stdin.
+json_get_image_files() {
+  local component="$1"
+  local json_file="$2"
+
+  if [ -n "${JQ}" ]; then
+    local filter=".${component}.part1"
+    for i in $(seq 2 12); do
+      filter="${filter},.${component}.part${i}"
+    done
+    "${JQ}" -r "${filter} | select(. != null)" "${json_file}"
+    return
+  fi
+
+  python -c "\
+import json
+import sys
+
+def get_fd(path):
+  return sys.stdin if path == '-' else open(path)
+
+component_data = json.load(get_fd(sys.argv[2])).get(sys.argv[1], None)
+if component_data:
+  files = [component_data.get('part%d' % i, '') for i in range(1, 13)]
+  print('\n'.join(files))" "${component}" "${json_file}"
+}
+
+# Gets the file of a component from a given JSON file or stdin.
+json_get_file() {
+  local component="$1"
+  local json_file="$2"
+
+  if [ -n "${JQ}" ]; then
+          "${JQ}" -r ".${component}.file | select(. != null)" "${json_file}"
+    return
+  fi
+
+  python -c "\
+import json
+import sys
+
+def get_fd(path):
+  return sys.stdin if path == '-' else open(path)
+
+component_data = json.load(get_fd(sys.argv[2])).get(sys.argv[1], None)
+if component_data:
+  print(component_data.get('file', ''))" "${component}" "${json_file}"
 }
 
 # Encodes a string from argument to single JSON string.
@@ -1019,6 +1074,28 @@ cmd_list() {
   fetch "${json_url}" | json_get_keys
 }
 
+# Get payload file of a component.
+# Usage: cmd_get_file COMPONENT JSON_URL
+cmd_get_file() {
+  local json_url="$1"
+  local component="$2"
+  json_url="$(get_canonical_url "${json_url}")"
+
+  case "${component}" in
+    release_image | test_image)
+      info "Getting JSON config from ${json_url}..."
+      fetch "${json_url}" 2>/dev/null | json_get_image_files "${component}" -
+      ;;
+    toolkit | hwid | firmware | complete | netboot_* | toolkit_config)
+      info "Getting JSON config from ${json_url}..."
+      fetch "${json_url}" 2>/dev/null | json_get_file "${component}" -
+      ;;
+    *)
+      die "Unknown component: ${component}"
+      ;;
+  esac
+}
+
 # Main entry.
 # Usage: main "$@"
 main() {
@@ -1086,6 +1163,10 @@ main() {
     list)
       shift
       cmd_list "$@"
+      ;;
+    get_file)
+      shift
+      cmd_get_file "$@"
       ;;
     *)
       cmd_help

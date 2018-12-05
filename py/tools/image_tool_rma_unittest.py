@@ -141,6 +141,13 @@ class ImageToolRMATest(unittest.TestCase):
       f.write('#!/bin/sh\necho Toolkit Version 1.0\n')
     os.chmod(toolkit_path, 0o755)
 
+  def RemoveBundleEnvironment(self):
+    for dir_name in ['factory_shim', 'test_image', 'release_image',
+                     'toolkit', 'hwid', 'complete', 'firmware']:
+      dir_path = os.path.join(self.temp_dir, dir_name)
+      if os.path.exists(dir_path):
+        shutil.rmtree(dir_path)
+
   def setUp(self):
     if DEBUG:
       self.temp_dir = '/tmp/t'
@@ -175,6 +182,7 @@ class ImageToolRMATest(unittest.TestCase):
     self.ImageTool('rma-create', '-o', 'rma1.bin')
     self.SetupBundleEnvironment(image_path2)
     self.ImageTool('rma-create', '-o', 'rma2.bin')
+    self.RemoveBundleEnvironment()
 
     # Verify content of RMA shim.
     image_tool.Partition('rma1.bin', 1).CopyFile('tag', 'tag.1')
@@ -221,6 +229,20 @@ class ImageToolRMATest(unittest.TestCase):
     with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
       data = json.load(f)
     self.assertEqual(data, [{'board': 'test1', 'kernel': 2, 'rootfs': 3}])
+
+    # `rma-replace` to replace the toolkit.
+    toolkit2_path = os.path.join(self.temp_dir, 'toolkit2.run')
+    with open(toolkit2_path, 'w') as f:
+      f.write('#!/bin/sh\necho Toolkit Version 2.0\n')
+    os.chmod(toolkit2_path, 0o755)
+    self.ImageTool(
+        'rma-replace', '-i', 'rma12.bin',
+        '--board', 'test2', '--toolkit', toolkit2_path)
+    image_tool.Partition('rma12.bin', 1).CopyFile(
+        'cros_payloads/test2.json', self.temp_dir)
+    with open('test2.json') as f:
+      data = json.load(f)
+    self.assertEqual(data['toolkit']['version'], u'Toolkit Version 2.0')
 
 
 if __name__ == '__main__':

@@ -824,6 +824,7 @@ class ChromeOSFactoryBundle(object):
   PREFLASH = 1
   RMA = 2
   BUNDLE = 3
+  REPLACEABLE = 4
 
   def __init__(self, temp_dir, board, release_image, test_image, toolkit,
                factory_shim=None, enable_firmware=True, firmware=None,
@@ -852,26 +853,45 @@ class ChromeOSFactoryBundle(object):
     Args:
       parser: An argparse subparser to add argument definitions.
     """
-    # Common arguments for all types.
-    parser.add_argument(
-        '--release_image', default='release_image/*.bin',
-        type=ArgTypes.GlobPath,
-        help=('path to a Chromium OS (release or recovery) image. '
-              'default: %(default)s'))
-    parser.add_argument(
-        '--test_image', default='test_image/*.bin',
-        type=ArgTypes.GlobPath,
-        help='path to a Chromium OS test image. default: %(default)s')
-    parser.add_argument(
-        '--toolkit', default='toolkit/*.run',
-        type=ArgTypes.GlobPath,
-        help='path to a Chromium OS factory toolkit. default: %(default)s')
+    # Common arguments for all types. For ChromeOSFactoryBundle.REPLACEABLE,
+    # everything is optional.
+    if build_type in [ChromeOSFactoryBundle.REPLACEABLE]:
+      parser.add_argument(
+          '--release_image', default='-release_image/*.bin',
+          type=ArgTypes.GlobPath,
+          help=('path to a Chromium OS (release or recovery) image. '
+                'default: %(default)s'))
+      parser.add_argument(
+          '--test_image', default='-test_image/*.bin',
+          type=ArgTypes.GlobPath,
+          help='path to a Chromium OS test image. default: %(default)s')
+      parser.add_argument(
+          '--toolkit', default='-toolkit/*.run',
+          type=ArgTypes.GlobPath,
+          help='path to a Chromium OS factory toolkit. default: %(default)s')
+    else:
+      parser.add_argument(
+          '--release_image', default='release_image/*.bin',
+          type=ArgTypes.GlobPath,
+          help=('path to a Chromium OS (release or recovery) image. '
+                'default: %(default)s'))
+      parser.add_argument(
+          '--test_image', default='test_image/*.bin',
+          type=ArgTypes.GlobPath,
+          help='path to a Chromium OS test image. default: %(default)s')
+      parser.add_argument(
+          '--toolkit', default='toolkit/*.run',
+          type=ArgTypes.GlobPath,
+          help='path to a Chromium OS factory toolkit. default: %(default)s')
+
     parser.add_argument(
         '--hwid', default='-hwid/*.sh',
         type=ArgTypes.GlobPath,
         help='path to a HWID bundle if available. default: %(default)s')
 
-    if build_type in [ChromeOSFactoryBundle.RMA, ChromeOSFactoryBundle.BUNDLE]:
+    # Additional arguments.
+    if build_type in [ChromeOSFactoryBundle.RMA, ChromeOSFactoryBundle.BUNDLE,
+                      ChromeOSFactoryBundle.REPLACEABLE]:
       # firmware/ may be updater*.sh or chromeos-firmwareupdate.
       parser.add_argument(
           '--firmware', default='-firmware/*update*',
@@ -879,15 +899,6 @@ class ChromeOSFactoryBundle(object):
           help=('optional path to a firmware update (chromeos-firmwareupdate); '
                 'if not specified, extract firmware from --release_image '
                 'unless if --no-firmware is specified'))
-      parser.add_argument(
-          '--no-firmware', dest='enable_firmware', action='store_false',
-          default=True,
-          help='skip running firmware updater')
-      parser.add_argument(
-          '--factory_shim', default='factory_shim/*.bin',
-          type=ArgTypes.GlobPath,
-          help=('path to a factory shim (build_image factory_install), '
-                'default: %(default)s'))
       parser.add_argument(
           '--complete_script', dest='complete', default='-complete/*.sh',
           type=ArgTypes.GlobPath,
@@ -899,6 +910,17 @@ class ChromeOSFactoryBundle(object):
       parser.add_argument(
           '--board',
           help='board name for dynamic installation')
+
+    if build_type in [ChromeOSFactoryBundle.RMA, ChromeOSFactoryBundle.BUNDLE]:
+      parser.add_argument(
+          '--no-firmware', dest='enable_firmware', action='store_false',
+          default=True,
+          help='skip running firmware updater')
+      parser.add_argument(
+          '--factory_shim', default='factory_shim/*.bin',
+          type=ArgTypes.GlobPath,
+          help=('path to a factory shim (build_image factory_install), '
+                'default: %(default)s'))
 
     if build_type in [ChromeOSFactoryBundle.BUNDLE]:
       parser.add_argument(
@@ -944,7 +966,8 @@ class ChromeOSFactoryBundle(object):
         PATH_CROS_FIRMWARE_UPDATER, self._temp_dir, fs_type=FS_TYPE_CROS_ROOTFS)
     return self._firmware
 
-  def CreateDirectory(self, dir_name, mode=MODE_NEW_DIR):
+  @staticmethod
+  def CreateDirectory(dir_name, mode=MODE_NEW_DIR):
     with SysUtils.SetUmask(0o022):
       os.mkdir(dir_name, mode)
 
@@ -1303,6 +1326,7 @@ class ChromeOSFactoryBundle(object):
 
       print('This RMA shim contains boards: %s' % (
           ' '.join(board_info.board for board_info in metadata)))
+
       split_line = '-' * 25
       print(split_line)
       for board_info in metadata:
@@ -1578,6 +1602,104 @@ class ChromeOSFactoryBundle(object):
       return [entries[selected]]
 
     ChromeOSFactoryBundle._RecreateRMAImage(output, [image], _SelectBoard)
+
+  @staticmethod
+  def ReplaceRMAPayload(image, board=None, **kargs):
+    """Replace payloads in an RMA shim."""
+
+    replaced_payloads = {
+        component: payload for component, payload in kargs.iteritems()
+        if payload is not None}
+    for component in replaced_payloads:
+      assert component in PAYLOAD_COMPONENTS, (
+          'Unknown component "%s"', component)
+
+    cros_payload = SysUtils.FindCommand('cros_payload')
+
+    def _GetPayloadComponentFiles(json_path, component):
+      files = Shell([cros_payload, 'get_file', json_path, component],
+                    output=True).strip().splitlines()
+      return files
+
+    with SysUtils.TempDirectory() as temp_dir:
+      new_payloads_dir = os.path.join(temp_dir, DIR_CROS_PAYLOADS)
+      ChromeOSFactoryBundle.CreateDirectory(new_payloads_dir)
+      with Partition(image, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
+        old_payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+        if not os.path.exists(old_payloads_dir):
+          raise RuntimeError('Cannot find dir /%s, is this a RMA shim?' %
+                             DIR_CROS_PAYLOADS)
+
+        metadata = _ReadRMAMetadata(stateful)
+        if not metadata:
+          raise RuntimeError('Cannot get metadata, is this a RMA shim?')
+
+        if board is None:
+          if len(metadata) == 1:
+            board = metadata[0].board
+            print('Setting target board to %s.' % board)
+          else:
+            raise RuntimeError('Board not set.')
+
+        # Copy metadata json file.
+        old_json_path = os.path.join(old_payloads_dir, '%s.json' % board)
+        if not os.path.exists(old_json_path):
+          raise RuntimeError('Cannot find board config "%s.json".' % board)
+        new_json_path = os.path.join(new_payloads_dir, '%s.json' % board)
+        Shell(['cp', '-pf', old_json_path, new_json_path])
+
+        # Add new payload in temp_dir/cros_payloads.
+        for component, payload in replaced_payloads.iteritems():
+          Shell([cros_payload, 'add', new_json_path, component, payload])
+
+        # Remove unused and duplicate files.
+        replaced_files = set()
+        added_files = set()
+        other_files = set()
+        for component in replaced_payloads:
+          replaced_files.update(
+              _GetPayloadComponentFiles(old_json_path, component))
+          added_files.update(
+              _GetPayloadComponentFiles(new_json_path, component))
+          for info in metadata:
+            if info.board != board:
+              board_component_files = _GetPayloadComponentFiles(
+                  os.path.join(old_payloads_dir, '%s.json' % info.board),
+                  component)
+              other_files.update(board_component_files)
+
+        # Remove replaced files that are not used by other boards.
+        for f in replaced_files - added_files - other_files:
+          file_path = os.path.join(old_payloads_dir, f)
+          print('Remove unused payload file %s.' % os.path.basename(f))
+          Sudo(['rm', '-f', file_path])
+
+        # Don't copy files that already exists.
+        for f in added_files & (replaced_files | other_files):
+          file_path = os.path.join(new_payloads_dir, f)
+          print('Remove duplicate payload file %s.' % os.path.basename(f))
+          Sudo(['rm', '-f', file_path])
+
+        remain_size = ChromeOSFactoryBundle.GetRemainingSize(stateful)
+        new_payloads_size = ChromeOSFactoryBundle.GetDiskUsage(new_payloads_dir)
+
+      # Expand stateful partition if needed.
+      if remain_size < new_payloads_size:
+        ChromeOSFactoryBundle.ExpandPartition(
+            image, PART_CROS_STATEFUL, new_payloads_size - remain_size)
+
+      # Move the added payloads to stateful partition
+      with Partition(image, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
+        Sudo(['chown', '-R', 'root:root', new_payloads_dir])
+        Sudo(['rsync', '-a', new_payloads_dir, stateful])
+
+      # Shrink stateful partition if used space decreases.
+      if remain_size > new_payloads_size:
+        ChromeOSFactoryBundle.ShrinkPartition(
+            image, PART_CROS_STATEFUL, remain_size - new_payloads_size)
+
+      with Partition(image, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
+        Sudo(['df', '-h', stateful])
 
   @staticmethod
   def GetKernelVersion(image_path):
@@ -2191,11 +2313,38 @@ class ShowRMAImageCommand(SubCommand):
 
   def Init(self):
     self.subparser.add_argument(
-        'rma_image', type=ArgTypes.ExistsPath,
-        help='the path to mount partition')
+        'image', type=ArgTypes.ExistsPath,
+        help='Path to input RMA image.')
 
   def Run(self):
-    ChromeOSFactoryBundle.ShowRMAImage(self.args.rma_image)
+    ChromeOSFactoryBundle.ShowRMAImage(self.args.image)
+
+
+class ReplaceRMAPayloadCommand(SubCommand):
+  """Replace payloads in an RMA shim."""
+  name = 'rma-replace'
+  aliases = ['replace_rma']
+
+  def Init(self):
+    ChromeOSFactoryBundle.DefineBundleArguments(
+        self.subparser, ChromeOSFactoryBundle.REPLACEABLE)
+    self.subparser.add_argument(
+        '-i', '--image', required=True,
+        type=ArgTypes.ExistsPath,
+        help='Path to input RMA image.')
+
+  def Run(self):
+    ChromeOSFactoryBundle.ReplaceRMAPayload(
+        self.args.image,
+        board=self.args.board,
+        release_image=self.args.release_image,
+        test_image=self.args.test_image,
+        toolkit=self.args.toolkit,
+        firmware=self.args.firmware,
+        hwid=self.args.hwid,
+        complete=self.args.complete,
+        toolkit_config=self.args.toolkit_config)
+    print('OK: Replaced payloads successfully in image: %s' % self.args.image)
 
 
 class CreateBundleCommand(SubCommand):
