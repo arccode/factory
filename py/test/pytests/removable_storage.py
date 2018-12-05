@@ -170,8 +170,9 @@ class RemovableStorageTest(test_case.TestCase):
       Arg('usbpd_port_polarity', list,
           'Two integers [port, polarity]', default=None),
       Arg('fail_check_polarity', bool,
-          'If set to True, would fail the test directly when polarity is wrong.'
-          ' Otherwise, will prompt operator to flip the storage.',
+          'If set to True or skip_insert_remove is True, would fail the test '
+          'directly when polarity is wrong. '
+          'Otherwise, will prompt operator to flip the storage.',
           default=False),
       Arg('create_partition', bool,
           'Try to create a small partition on the media. This is to check if '
@@ -694,6 +695,10 @@ class RemovableStorageTest(test_case.TestCase):
           self._dut.path.join(self._dut.udev.GetDevBlockPath(), device_node),
           self.args.sysfs_path)
       self._SetTargetDevice(device)
+      # If skip_insert_remove is True, would fail the test directly when
+      # polarity is wrong.
+      if not self.CheckUSBPDPolarity():
+        self.FailTask('USB CC polarity mismatch.')
     else:
       if self._bft_fixture:
         self.FixtureCommand('insert')
