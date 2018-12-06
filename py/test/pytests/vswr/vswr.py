@@ -42,7 +42,6 @@ from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
 from cros.factory.test import rf
 from cros.factory.test.rf import e5071c_scpi
-from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test import test_case
@@ -64,13 +63,10 @@ class VSWR(test_case.TestCase):
       Arg('event_log_name', str, 'Name of the event_log, like '
           '"vswr_prepressed" or "vswr_postpressed".'),
       Arg('config_path', str, 'Configuration path relative to the root of '
-          'either (1) pytest vswr folder (if load_from_shopfloor is False) or '
-          '(2) shopfloor parameters directory (if load_from_shopfloor is True).'
-          ' E.g. path/to/config_file_name.',
+          'pytest vswr folder. E.g. path/to/config_file_name. Can use '
+          '``retrieve_parameter`` pytest for downloading latest config files.',
           default=None),
       Arg('timezone', str, 'Timezone of shopfloor.', default='Asia/Taipei'),
-      Arg('load_from_shopfloor', bool, 'Whether to load parameters from '
-          'shopfloor or not.', default=True),
       Arg('serial_number_key', str, 'The key referring to the serial number in '
           'question. This key will be used to retrieve the serial number from '
           'the shared data. Default key is `serial_number`.',
@@ -110,9 +106,8 @@ class VSWR(test_case.TestCase):
             'failures': []}}
 
     logging.info(
-        '(config_path: %s, timezone: %s, load_from_shopfloor: %s)',
-        self.args.config_path, self.args.timezone,
-        self.args.load_from_shopfloor)
+        '(config_path: %s, timezone: %s)',
+        self.args.config_path, self.args.timezone)
 
     # Set timezone.
     os.environ['TZ'] = self.args.timezone
@@ -159,17 +154,6 @@ class VSWR(test_case.TestCase):
     # Check if this is an expected ENA.
     self.log['network_analyzer']['id'] = self._ena.GetSerialNumber()
     logging.info('Connected to ENA %s.', self.log['network_analyzer']['id'])
-
-  def _DownloadParametersFromShopfloor(self):
-    """Downloads parameters from factory server."""
-    logging.info('Downloading parameters from factory server...')
-
-    proxy = server_proxy.GetServerProxy()
-    config_content = proxy.GetParameter(self.args.config_path)
-
-    logging.info('Parameters downloaded.')
-    # Parse and load parameters.
-    self._LoadConfig(config_content.data)
 
   def _SerializeTraces(self, traces):
     result = {}
@@ -414,17 +398,13 @@ class VSWR(test_case.TestCase):
     At each step, we first call self._ShowMessageBlock(BLOCK_ID) to display the
     message we want. (See the HTML file for all message IDs.) Then we do
     whatever we want at that step, e.g. calling
-    self._DownloadParametersFromShopfloor(). Then maybe we wait for some
+    self._LoadParametersFromLocalDisk(). Then maybe we wait for some
     specific user's action like pressing the ENTER key to continue, e.g.
     self._WaitForKey(test_ui.ENTER_KEY).
     """
     # Load config.
-    if self.args.load_from_shopfloor:
-      self._ShowMessageBlock('download-parameters-from-shopfloor')
-      self._DownloadParametersFromShopfloor()
-    else:
-      self._ShowMessageBlock('load-parameters-from-local-disk')
-      self._LoadParametersFromLocalDisk()
+    self._ShowMessageBlock('load-parameters-from-local-disk')
+    self._LoadParametersFromLocalDisk()
 
     # Check the DUT serial number is valid.
     self._sn_config = self._GetConfigForSerialNumber()

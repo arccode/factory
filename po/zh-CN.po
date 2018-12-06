@@ -2903,10 +2903,6 @@ msgid "Loading parameters from local disk..."
 msgstr "从本地硬盘载入测试参数中..."
 
 #: ../py/test/pytests/vswr/static/vswr.html
-msgid "Downloading parameters from shopfloor..."
-msgstr "从 Shopfloor 下载测试参数中..."
-
-#: ../py/test/pytests/vswr/static/vswr.html
 msgid "Setting up network..."
 msgstr "设定网路环境中..."
 
