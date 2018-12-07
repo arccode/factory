@@ -33,3 +33,8 @@ skip_files:
 - ^(.*/)?.*/RCS/.*$
 - ^(.*/)?\..*$
 - ^env/.*$
+
+#[START env]
+env_variables:
+    PUBSUB_TOPIC: gce-worker
+#[END env]

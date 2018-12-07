@@ -2,20 +2,24 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import base64
+import os
 import time
 
 from protorpc import remote  # pylint: disable=import-error
 from protorpc import definition  # pylint: disable=import-error
 from protorpc import protobuf  # pylint: disable=import-error
 from protorpc.wsgi import service  # pylint: disable=import-error
-from google.appengine.api import taskqueue  # pylint: disable=import-error
 from google.appengine.api import mail  # pylint: disable=import-error
+from googleapiclient.discovery import build  # pylint: disable=import-error
 
 definition.import_file_set('rpc/factorybundle.proto.def')
 from cros.factory import proto  # pylint: disable=import-error
 
 
 _SERVICE_PATH = '/_ah/stubby/FactoryBundleService'
+_PROJECT_ID = os.environ['APPLICATION_ID'][2:]  # format should be google.com:x
+_PUBSUB_TOPIC = os.environ['PUBSUB_TOPIC']
 
 
 class TimeoutError(Exception):
@@ -38,9 +42,18 @@ class FactoryBundleService(remote.Service):
 
   @remote.method(proto.CreateBundleRpcRequest, proto.CreateBundleRpcResponse)
   def CreateBundleAsync(self, request):
-    taskqueue.taskqueue.add(queue_name='gce-worker',
-                            payload=protobuf.encode_message(request),
-                            method='PULL')
+    pubsub_service = build('pubsub', 'v1')
+    topic_path = 'projects/{project_id}/topics/{topic}'.format(
+        project_id=_PROJECT_ID,
+        topic=_PUBSUB_TOPIC)
+    pubsub_service.projects().topics().publish(
+        topic=topic_path,
+        body={
+            'messages': [{
+                'data': base64.b64encode(protobuf.encode_message(request)),
+            }]
+        }
+    ).execute()
     return proto.CreateBundleRpcResponse()
 
   @remote.method(proto.WorkerResult, proto.CreateBundleRpcResponse)
