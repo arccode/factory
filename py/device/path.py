@@ -18,7 +18,7 @@ class Path(types.DeviceComponent):
   Path.DELEGATED_ATTRIBUTES.
   Not all functions in posixpath are ported, unsupported methods:
 
-      getsize, getmtime, getatime, getctime, ismount, walk, expanduser,
+      getmtime, getatime, getctime, ismount, walk, expanduser,
       expandvars, abspath, samefile, sameopenfile, samestat, relpath
   """
 
@@ -41,6 +41,20 @@ class Path(types.DeviceComponent):
   def exists(self, path):
     """Tests whether a path exists. Returns False for broken symbolic links."""
     return self._device.Call(['test', '-e', path]) == 0
+
+  def getsize(self, path):
+    if not self.exists(path):
+      raise OSError('No such file or directory: %r' % path)
+
+    cmd = ['stat', '--printf', '%F\n%s', path]
+    output = self._device.CheckOutput(cmd)
+    (file_type, size) = output.splitlines()
+
+    if file_type in ('block special file', 'block device'):
+      return int(self._device.CallOutput(['blockdev', '--getsize64', path]))
+    else:
+      # For other files, just returns what we got from stat
+      return int(size)
 
   def isdir(self, path):
     """Returns True if path refers to an existing directory."""

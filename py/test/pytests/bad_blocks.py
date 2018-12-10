@@ -4,13 +4,50 @@
 
 """Tests a storage device by running the badblocks command.
 
-By default the unused portion of the stateful partition is used.  (For
-instance, on a device with a 32GB hard drive, cgpt reports that partition 1 is
-about 25 GiB, but the size of the filesystem is only about 1 GiB.  We
-run the test on the unused 24 GiB.)
+Description
+-----------
+This test uses ``badblocks(8)`` command to search for badblocks on a device.  By
+default the unused portion of the stateful partition is used
+(``mode=stateful_partition_free_space``).  (For instance, on
+a device with a 32 GB hard drive, cgpt reports that partition 1 is about 25 GB,
+but the size of the filesystem is only about 1 GB.  We run the test on the
+unused 24 GB.)
 
 Alternatively one can specify the use of a file in the filesystem allocated by
 the test, or raw mode where a specific file/partition must be provided.
+(``mode=file`` or ``mode=raw``)
+
+When ``mode=stateful_partition_free_space``, unused portion after stateful
+partition must exist.  An error message ``'There is no unused space after
+stateful partition.'`` will be shown if it cannot find any extra space.
+(If you install the image by ``chromeos-install``, by default, there will be no
+free space after stateful partition.)
+
+Test Procedure
+--------------
+This test does not require operator interaction.  An UI will be shown to
+indicate the process of testing.
+
+Dependency
+----------
+This pytest depends on ``badblocks(8)``.
+
+Examples
+--------
+This pytest is defined as ``BadBlocks`` in ``generic_common.test_list.json``.
+It will use **unused portion of the stateful partition** for testing.  It will
+test for 1 GB of space.  On most devices, ``badblocks`` takes ~0.5s/MB (for four
+passes).  So the default setup will take about 9 minutes.  Normally you only
+want to override ``max_bytes`` in your test list.  For example, to change it to
+2 GB::
+
+  "definitions": {
+    "BadBlocks": {
+      "args": {
+        "max_bytes": 2147483648
+      }
+    }
+  }
 """
 
 from collections import namedtuple
@@ -29,7 +66,6 @@ from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
@@ -140,8 +176,7 @@ class BadBlocksTest(test_case.TestCase):
     elif self.args.mode == _TestModes.raw:
       # For some files like dev nodes we cannot trust the stats provided by
       # the os, so we manually seek to the end of the file to determine size.
-      raw_file_bytes = file_utils.GetFileSizeInBytes(self.args.device_path,
-                                                     dut=self.dut)
+      raw_file_bytes = self.dut.path.getsize(self.args.device_path)
       if self.args.max_bytes is None or self.args.max_bytes > raw_file_bytes:
         logging.info('Setting max_bytes to the available size of %dB.',
                      raw_file_bytes)
@@ -199,9 +234,10 @@ class BadBlocksTest(test_case.TestCase):
                      'first_block',
                      'last_block']]))
 
-      self.assertGreaterEqual(
-          last_block, first_block,
-          'This test requires factory server installed factory test image')
+      fail_desc = 'There is no unused space after stateful partition.'
+      session.console.error(
+          fail_desc + '  Was the OS installed by `chromeos-install`?')
+      self.assertGreaterEqual(last_block, first_block, fail_desc)
     else:
       raise ValueError('Invalid mode selected, check test_list mode setting.')
 

@@ -97,7 +97,7 @@
     },
     "BadBlocks": {
       "pytest_name": "bad_blocks",
-      "__comment": "When run alone, this takes ~.5s/MiB (for four passes).  We'll do a gigabyte, which takes about about 9 minutes.",
+      "__comment": "When run alone, this takes ~.5s/MiB (for four passes).  We'll do a gigabyte, which takes about 9 minutes.",
       "args": {
         "timeout_secs": 120,
         "log_threshold_secs": 10,
