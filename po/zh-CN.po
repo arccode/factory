@@ -2250,10 +2250,6 @@ msgstr "提取 {media} 存储并关闭写保护开关..."
 msgid "Executing Graphyte"
 msgstr "执行 Graphyte"
 
-#: ../py/test/pytests/rf_graphyte/rf_graphyte.py
-msgid "Fetching config files from factory server"
-msgstr "从工厂伺服器下载测试参数"
-
 #: ../py/test/pytests/robot_movement.py
 msgid "Initializing Robot..."
 msgstr "正在初始化机器手臂..."

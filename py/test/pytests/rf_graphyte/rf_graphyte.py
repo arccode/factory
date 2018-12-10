@@ -19,9 +19,8 @@ Test Procedure
 --------------
 This is an automated test without user interaction.
 
-1. If the argument `enable_factory_server` is True, fetch the config files from
-   the Chrome OS factory server. The folder name is assigned by the argument
-   `server_parameter_dir`.
+1. (Optional) Use pytest ``retrieve parameter`` to fetch the config files from
+   the Chrome OS factory server.
 2. Start running Graphyte framework with the assigned config file.
 3. Parse the result and upload them via testlog.
 
@@ -59,8 +58,6 @@ this in test list::
     "pytest_name": "rf_graphyte",
     "args": {
       "graphyte_config_file": "conductive_config.json",
-      "server_parameter_dir": "rf_conductive",
-      "enable_factory_server": true,
       "verbose": true
     }
   }
@@ -76,7 +73,6 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths
 from cros.factory.test.i18n import _
-from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
@@ -108,25 +104,12 @@ class RFGraphyteTest(test_case.TestCase):
           default=False),
       Arg('verbose', bool, 'Enable Graphyte debug logging',
           default=True),
-      Arg('enable_factory_server', bool,
-          'Whether or not to use Chrome OS factory server. '
-          'If True, the test will try to update config files from server, '
-          'and upload the log and result file to factory server. '
-          'If False, load config file from local disk and does not upload log.',
-          default=True),
-      Arg('server_parameter_dir', str,
-          'Directory in which to place the updated config files. All the files '
-          'in this folder will be downloaded to `test/pytests/rf_graphyte` '
-          'folder if argument "enable_factory_server" is True.',
-          default='rf_graphyte'),
   ]
 
   ui_class = test_ui.ScrollableLogUI
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    if self.args.enable_factory_server:
-      self._server_proxy = server_proxy.GetServerProxy()
 
     timestamp = time.strftime('%H%M%S')
     self.config_dir = os.path.join(self.args.graphyte_package,
@@ -152,9 +135,6 @@ class RFGraphyteTest(test_case.TestCase):
 
 
   def runTest(self):
-    # Update the config file from factory server.
-    self.FetchConfigFromFactoryServer()
-
     # Check the config file exists.
     if not os.path.exists(self.config_file_path):
       self.fail('Graphyte config file %s does not exist.' %
@@ -269,26 +249,6 @@ class RFGraphyteTest(test_case.TestCase):
     self.config_file_path += '.patched'
     with open(self.config_file_path, 'w') as f:
       json.dump(global_config, f)
-
-  def FetchConfigFromFactoryServer(self):
-    """Fetch all config files from factory server.
-
-    The Graphyte config file lists other needed files, such as port config, test
-    plan, and DUT/instrument config file. Since we don't only need one config
-    file, we fetch all config files from the factory server to local side.
-    """
-    if not self.args.enable_factory_server:
-      return
-
-    self.ui.SetInstruction(_('Fetching config files from factory server'))
-    config_file_paths = self._server_proxy.ListParameters(
-        os.path.join(self.args.server_parameter_dir, '*'))
-    for file_path in config_file_paths:
-      session.console.info('Fetch config file from server: %s', file_path)
-      content = self._server_proxy.GetParameter(file_path).data
-      file_name = os.path.basename(file_path)
-      with open(os.path.join(self.config_dir, file_name), 'w') as f:
-        f.write(content)
 
   def SaveParamsToTestlog(self):
     def _ConvertToNumber(value):
