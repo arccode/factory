@@ -7,7 +7,6 @@
 import json
 import logging
 import os
-import re
 import resource
 import shutil
 import signal
@@ -192,14 +191,6 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
   old_root = 'old_root'
 
   try:
-    # pango load library module dynamically. Therefore we need to query it
-    # first.
-    pango_query_output = process_utils.SpawnOutput(
-        ['pango-querymodules', '--system'])
-    m = re.search(r'^# ModulesPath = (.+)$', pango_query_output, re.M)
-    assert m is not None, 'Failed to find pango module path.'
-    pango_module = m.group(1)
-
     with chroot.TmpChroot(
         new_root,
         file_dir_list=[
@@ -211,8 +202,6 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
             '/usr/local/factory/sh',
             # Factory config files
             '/usr/local/factory/py/config',
-            # Fonts and assets required for showing message.
-            pango_module,
             '/usr/share/fonts/notocjk',
             '/usr/share/cache/fontconfig',
             '/usr/share/chromeos-assets/images',
