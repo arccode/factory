@@ -65,8 +65,7 @@ from cros.factory.utils import sys_utils
 
 GSCTOOL = '/usr/sbin/gsctool'
 DEFAULT_FIRMWARE_PATH = '/opt/google/cr50/firmware/cr50.bin.prod'
-BOARD_ID_FLAG_RE = re.compile(r'^RO_A:[^\[]*\[[0-9A-F]*:[0-9A-F]*:([01]*)\]',
-                              re.MULTILINE)
+BOARD_ID_FLAG_RE = re.compile(r'^IMAGE_BID_FLAGS=([0-9a-f]*)', re.MULTILINE)
 PREPVT_FLAG_MASK = 0x7F
 
 
@@ -115,12 +114,12 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
           self._UpdateCr50Firmware(dut_temp_file)
 
   def _IsPrePVTFirmware(self, firmware_file):
-    p = self.dut.CheckOutput([GSCTOOL, '-b', firmware_file]).strip()
+    p = self.dut.CheckOutput([GSCTOOL, '-b', '-M', firmware_file]).strip()
     board_id_flag = int(BOARD_ID_FLAG_RE.search(p).group(1), 16)
     logging.info('Cr50 firmware board ID flag: %s', hex(board_id_flag))
     testlog.LogParam('cr50_firmware_file_info', p)
     testlog.UpdateParam('cr50_firmware_file_info',
-                        description='Output of gsctool -b.')
+                        description='Output of gsctool -b -M.')
     return board_id_flag & PREPVT_FLAG_MASK
 
   def _UpdateCr50Firmware(self, firmware_file):
