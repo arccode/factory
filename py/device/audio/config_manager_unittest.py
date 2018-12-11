@@ -38,7 +38,8 @@ card 2: card_2 [card_2], device 8: Audio (*) []
 
     config_mgr = config_manager.UCMConfigManager(device, mixer_controller)
 
-    device.CallOutput.assert_called_once_with(['aplay', '-l'])
+    device.CallOutput.assert_any_call(['aplay', '-l'])
+    self.assertEqual(device.CallOutput.call_count, 5)
 
     # pylint: disable=protected-access
     self.assertEqual(config_mgr._card_map, {

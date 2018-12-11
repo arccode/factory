@@ -419,13 +419,13 @@ class UCMConfigManager(BaseConfigManager):
 
       mixer_controller: The alsa mixer controller.
 
-      card_map: A dict to map index to card name.
+      card_map: A dict to map index to card name with UCM suffix.
         Key: index of the card. See /proc/asound/cards.
         Value: A string stands for the card name. This should be the
                folder name listed under /usr/share/alsa/ucm/
                One can also pass a card name, which will be mapped to '0'.
         Default: Use 'aplay -l' to guess the card name.
-                 See _GetCardNameMapFromAplay for more details.
+                 See _GetCardNameMap for more details.
 
       device_map: Specify the device name.
         Key: A string defined in AudioDeviceType (e.g., 'Speaker').
@@ -450,10 +450,22 @@ class UCMConfigManager(BaseConfigManager):
     if self._verb is None:
       self._verb = self._DefaultVerb
 
-  def _GetCardNameMapFromAplay(self):
-    def _HasUCMConfig(card_name):
-      return self._device.path.isdir(
-          self._device.path.join(self._AlsaUCMPath, card_name))
+  def _GetCardNameMap(self):
+    """Get card name with UCM suffix from aplay and cros_config."""
+    def _GetUCMConfigDir(card_name):
+      # The new directory is named as "<card-name>.<ucm-suffix>".
+      ucm_suffix = self._device.CallOutput(
+          ['cros_config', '/audio/main', 'ucm-suffix'])
+      if ucm_suffix:
+        ucm_dir = '%s.%s' % (card_name, ucm_suffix)
+        ucm_path = self._device.path.join(self._AlsaUCMPath, ucm_dir)
+        if self._device.path.isdir(ucm_path):
+          return ucm_dir
+
+      # The legacy directory is named as "<card-name>".
+      legacy_ucm_path = self._device.path.join(self._AlsaUCMPath, card_name)
+      if self._device.path.isdir(legacy_ucm_path):
+        return card_name
 
     output = self._device.CallOutput(['aplay', '-l'])
     card_map = {}
@@ -462,13 +474,14 @@ class UCMConfigManager(BaseConfigManager):
       if m is not None:
         card = m.group(1)
         card_name = m.group(2)
-        if card_name not in card_map.values() and _HasUCMConfig(card_name):
-          card_map[card] = card_name
+        ucm_config_dir = _GetUCMConfigDir(card_name)
+        if ucm_config_dir and ucm_config_dir not in card_map.values():
+          card_map[card] = ucm_config_dir
     return card_map
 
   def _PrepareCardNameMap(self, card_map):
     if card_map is None:
-      card_map = self._GetCardNameMapFromAplay()
+      card_map = self._GetCardNameMap()
 
     if not isinstance(card_map, dict) or not card_map:
       raise Exception("No valid card name can be found.")
@@ -476,6 +489,7 @@ class UCMConfigManager(BaseConfigManager):
     return card_map
 
   def _GetCardName(self, card):
+    """Get card name of the card index with UCM suffix."""
     return self._card_map[card]
 
   def _GetDeviceName(self, device):
