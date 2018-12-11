@@ -92,7 +92,6 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.gooftool import commands
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
@@ -137,7 +136,7 @@ class CheckImageVersionTest(test_case.TestCase):
     # installed or not. The partition of Root FS is the last one to be written,
     # so the image version from lsb-release and the verification of Root FS can
     # ensure the result of installation.
-    if self.CheckImageVersion() and self.VerifyRootFS():
+    if self.CheckImageVersion() and self.VerifyRootFs():
       return
 
     if not self.args.reimage:
@@ -230,7 +229,11 @@ class CheckImageVersionTest(test_case.TestCase):
     # TODO(hungte) In future we may want 'exact' match more than min_version.
     return version_format(ver) >= version_format(expected)
 
-  def VerifyRootFS(self):
+  def VerifyRootFs(self):
     if self.args.check_release_image and self.args.verify_rootfs:
-      commands.VerifyRootFS(
-          release_rootfs=self.dut.partitions.RELEASE_ROOTFS.path)
+      factory_tool = deploy_utils.CreateFactoryTools(self.dut)
+      exit_code = factory_tool.Call(
+          ['gooftool', 'verify_rootfs', '--release_rootfs',
+           self.dut.partitions.RELEASE_ROOTFS.path])
+      return exit_code == 0
+    return True
