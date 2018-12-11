@@ -6,12 +6,9 @@
 
 Description
 -----------
-This test calls `trunks_send` on DUT to update Cr50 firmware. The Cr50 firmware
-image to update is either from a given path in station or from the release
-partition on DUT.
-
-`trunks_send` is a program with ability to update Cr50 firmware. Notice that
-some older factory branches might have only `usb_updater` but no `trunks_send`.
+This test calls `gsctool` on DUT to update Cr50 firmware. The Cr50 firmware
+image to update is either from a given path in station or DUT, or from the
+release partition on DUT.
 
 To prepare Cr50 firmware image on station, download the release image with
 desired Cr50 firmware image and find the image in DEFAULT_FIRMWARE_PATH below.
@@ -22,13 +19,15 @@ This is an automatic test that doesn't need any user interaction.
 
 1. Firstly, this test will create a DUT link.
 2. If Cr50 firmware image source is from station, the image would be sent to
-   DUT. Else, the release partition on DUT will be mounted.
-3. DUT runs `trunks_send` to update Cr50 firmware.
+   DUT.
+3. DUT runs `gsctool` to update Cr50 firmware using the specified cr50 image.
+   If the cr50 image is in release partition, the test will also mount the
+   release partition.
 
 Dependency
 ----------
 - DUT link must be ready before running this test.
-- `trunks_send` on DUT.
+- `gsctool` on DUT.
 - Cr50 firmware image must be prepared.
 
 Examples
@@ -64,7 +63,6 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sys_utils
 
 
-TRUNKS_SEND = '/usr/sbin/trunks_send'
 GSCTOOL = '/usr/sbin/gsctool'
 DEFAULT_FIRMWARE_PATH = '/opt/google/cr50/firmware/cr50.bin.prod'
 BOARD_ID_FLAG_RE = re.compile(r'^RO_A:[^\[]*\[[0-9A-F]*:[0-9A-F]*:([01]*)\]',
@@ -78,8 +76,6 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
           default=None),
       Arg('from_release', bool, 'Find the firmware from release rootfs.',
           default=True),
-      Arg('force', bool, 'Force update',
-          default=False),
       Arg('skip_prepvt_flag_check',
           bool, 'Skip prepvt flag check. For non-dogfood devcies, '
           'we should always use prod firmware, rather than prepvt one. '
@@ -131,11 +127,10 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
     if not self.args.skip_prepvt_flag_check:
       if self._IsPrePVTFirmware(firmware_file):
         raise ValueError('Cr50 firmware board ID flag is PrePVT.')
-    if self.args.force:
-      cmd = [TRUNKS_SEND, '--force', '--update', firmware_file]
-    else:
-      cmd = [TRUNKS_SEND, '--update', firmware_file]
-
+    cmd = [GSCTOOL, '-a', '-u', firmware_file]
     returncode = self.ui.PipeProcessOutputToUI(cmd)
-    self.assertEqual(0, returncode,
-                     'Cr50 firmware update failed: %d.' % returncode)
+    # `gsctool -a -u` return values:
+    # 0: noop. 1: all_updated, 2: rw_updated, 3: update_error
+    # See platform/ec/extra/usb_updater/gsctool.h for more detail.
+    self.assertTrue(0 <= returncode <= 2,
+                    'Cr50 firmware update failed: %d.' % returncode)
