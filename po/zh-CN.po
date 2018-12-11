@@ -1298,22 +1298,6 @@ msgid "Waiting for IP address"
 msgstr "等待 IP 设定"
 
 #: ../py/test/pytests/audio_quality.py
-msgid "Connecting to ShopFloor..."
-msgstr "连接到 ShopFloor 中..."
-
-#: ../py/test/pytests/audio_quality.py
-msgid "Downloading parameters"
-msgstr "下载测试规格中"
-
-#: ../py/test/pytests/audio_quality.py
-msgid "Remove Ethernet connectivity"
-msgstr "移除网路介面卡"
-
-#: ../py/test/pytests/audio_quality.py
-msgid "Waiting for Ethernet connectivity to audio fixture"
-msgstr "等待网路介面卡连接到 audio 置具"
-
-#: ../py/test/pytests/audio_quality.py
 msgid "Ready for connection"
 msgstr "准备完成,等待链接"
 

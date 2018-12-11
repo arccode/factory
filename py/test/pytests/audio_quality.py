@@ -42,13 +42,12 @@ Here is an example, assuming your audio device is ``<audio_device>``::
       "initial_actions": [["<audio_device>", "initial"]],
       "input_dev": ["<audio_device>", "1"],
       "output_dev": ["<audio_device>", "0"],
-      "enable_factory_server": true,
       "wav_file": "/usr/local/factory/third_party/SPK48k.wav"
     }
   }
 
-Set ``enable_factory_server`` to ``false`` if you don't want to download
-parameters from factory server.
+(Optional) Use pytest ``retrieve parameter`` to download parameters from factory
+server.
 """
 
 from __future__ import print_function
@@ -70,13 +69,10 @@ from cros.factory.device import device_utils
 from cros.factory.goofy import goofy
 from cros.factory.test.env import paths
 from cros.factory.test.i18n import _
-from cros.factory.test import server_proxy
 from cros.factory.test import session
-from cros.factory.test import state
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test.utils import audio_utils
-from cros.factory.test.utils import time_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -106,11 +102,6 @@ _LABEL_MLBDMIC_ON = _('MLB Dmic on')
 _LABEL_PLAYTONE_LEFT = _('Playing tone to left channel')
 _LABEL_PLAYTONE_RIGHT = _('Playing tone to right channel')
 _LABEL_WAITING_IP = _('Waiting for IP address')
-_LABEL_CONNECT_SHOPFLOOR = _('Connecting to ShopFloor...')
-_LABEL_DOWNLOADING_PARAMETERS = _('Downloading parameters')
-_LABEL_REMOVE_ETHERNET = _('Remove Ethernet connectivity')
-_LABEL_WAITING_ETHERNET = _(
-    'Waiting for Ethernet connectivity to audio fixture')
 _LABEL_READY = _('Ready for connection')
 
 # Regular expression to match external commands.
@@ -163,8 +154,6 @@ class AudioQualityTest(test_case.TestCase):
       Arg('loop_buffer_count', int, 'Count of loop buffer', default=10),
       Arg('fixture_param', list, 'Fixture parameters',
           default=_FIXTURE_PARAMETERS),
-      Arg('enable_factory_server', bool, 'Get parameters from factory server',
-          default=True),
       Arg('network_setting', dict, 'Network setting to define *local_ip*, '
           '*port*, *gateway_ip*', default={}),
       Arg('audio_conf', str, 'Audio config file path', default=None),
@@ -232,7 +221,6 @@ class AudioQualityTest(test_case.TestCase):
     self._use_multitone = self.args.use_multitone
     self._loop_buffer_count = self.args.loop_buffer_count
     self._parameters = self.args.fixture_param
-    self._enable_factory_server = self.args.enable_factory_server
     self._local_ip = self.args.network_setting.get('local_ip', _LOCAL_IP)
     self._port = self.args.network_setting.get('port', _PORT)
 
@@ -394,9 +382,6 @@ class AudioQualityTest(test_case.TestCase):
 
   def HandleVersion(self, *args):
     """Returns the md5 checksum of configuration file."""
-    if self._enable_factory_server:
-      self.InitAudioParameter()
-
     file_path = os.path.join(self._caches_dir, self._parameters[0])
     try:
       with open(file_path, 'rb') as md5_file:
@@ -774,43 +759,6 @@ class AudioQualityTest(test_case.TestCase):
         handler()
         break
 
-  def InitAudioParameter(self):
-    """Downloads parameters from factory server and saved to state/caches.
-
-    The parameters include a ZIP file and a md5 checksum file.
-    ZIP file is including all the files which are needed by Audio
-    analysis software.
-    md5 checksum file is used to check ZIP file version.
-    If the version is mismatch, analysis software can download
-    latest parameter and apply it.
-    """
-    session.console.info('Start downloading parameters...')
-    self.SetMessage(_LABEL_CONNECT_SHOPFLOOR)
-    proxy = server_proxy.GetServerProxy()
-    logging.info('Syncing time with factory server...')
-    time_utils.SyncTimeWithFactoryServer()
-
-    self.SetMessage(_LABEL_DOWNLOADING_PARAMETERS)
-    download_list = []
-    for glob_expression in self._parameters:
-      logging.info('Listing %s', glob_expression)
-      download_list.extend(
-          proxy.ListParameters(glob_expression))
-    session.console.info('Download list prepared:\n%s',
-                         '\n'.join(download_list))
-    if len(download_list) < len(self._parameters):
-      session.console.warn('Parameters cannot be found on factory server:\n%s',
-                           self._parameters)
-      return
-
-    # Download the list and saved to caches in state directory.
-    for filepath in download_list:
-      path = os.path.join(self._caches_dir, filepath)
-      file_utils.TryMakeDirs(os.path.dirname(path))
-      binary_obj = proxy.GetParameter(filepath)
-      with open(path, 'wb') as fd:
-        fd.write(binary_obj.data)
-
   def RunAudioServer(self):
     """Initializes server and starts listening for external commands."""
     # Setup alias IP, the subnet is the same as Fixture
@@ -842,8 +790,4 @@ class AudioQualityTest(test_case.TestCase):
     self.RunAudioServer()
 
     if not self._test_passed:
-      if self._enable_factory_server:
-        session.console.info('Test failed. Force to flush event logs...')
-        goofy_instance = state.GetInstance()
-        goofy_instance.FlushEventLogs()
       self.FailTask('Test fail, find more detail in log.')
