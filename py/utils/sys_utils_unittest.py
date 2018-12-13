@@ -14,11 +14,8 @@ import unittest
 import mox
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.device.boards import linux
 from cros.factory.device import device_utils
-from cros.factory.device import ec
 from cros.factory.utils import file_utils
-from cros.factory.utils import process_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils
 
@@ -395,46 +392,6 @@ class TestLogMessagesTest(unittest.TestCase):
           ("19:26:17 kernel: That's all, folks.\n"
            "<after reboot, kernel came up at 19:26:56>\n"),
           sys_utils.GetVarLogMessagesBeforeReboot(path=f.name, lines=1))
-
-  def testGetStartupMessages(self):
-    output = {
-        'var_log_messages_before_reboot': 'var_log_message',
-        'mosys_log': 'mosys_log',
-        'ec_console_log': 'ec_console_log',
-        'ec_panic_info': 'ec_panic_info'}
-
-    # With DUT.
-    dut = self.mox.CreateMock(linux.LinuxBoard)
-    dut.ec = self.mox.CreateMockAnything(ec.EmbeddedController)
-
-    self.mox.StubOutWithMock(sys_utils, 'GetVarLogMessagesBeforeReboot')
-    sys_utils.GetVarLogMessagesBeforeReboot(dut=dut).AndReturn(
-        output['var_log_messages_before_reboot'])
-    dut.CallOutput(['mosys', 'eventlog', 'list'],
-                   stderr=subprocess.STDOUT).AndReturn(output['mosys_log'])
-    dut.ec.GetECConsoleLog().AndReturn(output['ec_console_log'])
-    dut.ec.GetECPanicInfo().AndReturn(output['ec_panic_info'])
-
-    # Without DUT.
-    self.mox.StubOutWithMock(sys_utils.process_utils, 'SpawnOutput')
-    sys_utils.GetVarLogMessagesBeforeReboot(dut=None).AndReturn(
-        output['var_log_messages_before_reboot'])
-    sys_utils.process_utils.SpawnOutput(
-        ['mosys', 'eventlog', 'list'],
-        stderr=subprocess.STDOUT).AndReturn(output['mosys_log'])
-    sys_utils.process_utils.SpawnOutput(
-        ['ectool', 'console']).AndReturn(output['ec_console_log'])
-    sys_utils.process_utils.SpawnOutput(
-        ['ectool', 'panicinfo']).AndReturn(output['ec_panic_info'])
-
-    self.mox.ReplayAll()
-    self.assertEquals(
-        output,
-        sys_utils.GetStartupMessages(dut))
-
-    self.assertEquals(
-        output,
-        sys_utils.GetStartupMessages())
 
 class TestGetRunningFactoryPythonArchivePath(unittest.TestCase):
   def setUp(self):

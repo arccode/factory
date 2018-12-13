@@ -229,6 +229,32 @@ def ReadFile(path):
     return f.read()
 
 
+def TailFile(path, max_length=5 * 1024 * 1024, dut=None):
+  """Returns the last n bytes of the given file.
+
+  Args:
+    path: path to the file to read
+    max_length: Maximum characters of messages.
+    dut: a cros.factory.device.types.DeviceInterface instance, None for local.
+  """
+  if dut:
+    data = dut.CheckOutput(['tail', '-c', str(max_length), path])
+    size = int(dut.CheckOutput(['stat', '--printf=%s', path]))
+    offset = size - len(data)
+  else:
+    offset = max(0, os.path.getsize(path) - max_length)
+    with open(path) as f:
+      f.seek(offset)
+      data = f.read()
+
+  if offset:
+    # Skip the first (probably incomplete) line
+    skipped_line, unused_sep, data = data.partition('\n')
+    offset += len(skipped_line) + 1
+    data = ('<truncated %d bytes>\n' % offset) + data
+  return data
+
+
 def WriteFile(path, data, log=False):
   """Writes a value to a file.
 

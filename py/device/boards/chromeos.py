@@ -14,6 +14,7 @@ from cros.factory.device import power
 from cros.factory.device import types
 from cros.factory.device import vpd
 from cros.factory.device import wifi
+from cros.factory.utils import type_utils
 
 
 class ChromeOSBoard(linux.LinuxBoard):
@@ -47,3 +48,15 @@ class ChromeOSBoard(linux.LinuxBoard):
   @types.DeviceProperty
   def vpd(self):
     return vpd.ChromeOSVitalProductData(self)
+
+  @type_utils.Overrides
+  def GetStartupMessages(self):
+    res = super(ChromeOSBoard, self).GetStartupMessages()
+
+    mosys_log = self.CallOutput(
+        ['mosys', 'eventlog', 'list'], stderr=self.STDOUT)
+
+    if mosys_log:
+      res['mosys_log'] = mosys_log
+
+    return res

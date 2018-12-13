@@ -6,7 +6,6 @@ import logging
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.state import TestState
-from cros.factory.utils import sys_utils
 
 
 class Hooks(object):
@@ -62,7 +61,7 @@ class Hooks(object):
 
   def OnUnexpectedReboot(self, goofy_instance):
     """Callback invoked after the device experiences an unexpected reboot."""
-    logging.info(sys_utils.GetStartupMessages(goofy_instance.dut))
+    logging.info(goofy_instance.dut.GetStartupMessages())
 
 
 class StationTestListHooks(Hooks):

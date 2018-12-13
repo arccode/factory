@@ -9,7 +9,6 @@ import logging
 import os
 import re
 import stat
-import subprocess
 import tempfile
 
 from . import file_utils
@@ -614,34 +613,6 @@ def InCrOSDevice():
   return re.match(r'^CHROMEOS_RELEASE', lsb_release, re.MULTILINE) is not None
 
 
-def _GetFileContent(path,
-                    max_length=5 * 1024 * 1024,
-                    dut=None):
-  """Returns the last n bytes of the given file.
-
-  Args:
-    path: path to the file to read
-    max_length: Maximum characters of messages.
-    dut: a cros.factory.device.types.DeviceInterface instance, None for local.
-  """
-  if dut:
-    data = dut.CheckOutput(['tail', '-c', str(max_length), path])
-    size = int(dut.CheckOutput(['stat', '--printf=%s', path]))
-    offset = size - len(data)
-  else:
-    offset = max(0, os.path.getsize(path) - max_length)
-    with open(path) as f:
-      f.seek(offset)
-      data = f.read()
-
-  if offset:
-    # Skip the first (probably incomplete) line
-    skipped_line, unused_sep, data = data.partition('\n')
-    offset += len(skipped_line) + 1
-    data = ('<truncated %d bytes>\n' % offset) + data
-  return data
-
-
 def GetVarLogMessages(max_length=256 * 1024,
                       path='/var/log/messages',
                       dut=None):
@@ -652,7 +623,7 @@ def GetVarLogMessages(max_length=256 * 1024,
     path: path to /var/log/messages.
     dut: a cros.factory.device.types.DeviceInterface instance, None for local.
   """
-  return _GetFileContent(path, max_length, dut)
+  return file_utils.TailFile(path, max_length, dut)
 
 
 def GetVarLogMessagesBeforeReboot(lines=100,
@@ -672,7 +643,7 @@ def GetVarLogMessagesBeforeReboot(lines=100,
     Empty if the marker indicating kernel boot could not be found.
   """
 
-  data = _GetFileContent(path, max_length, dut)
+  data = file_utils.TailFile(path, max_length, dut)
 
   # Find the last element matching the RE signaling kernel start.
   matches = list(re.finditer(
@@ -697,73 +668,3 @@ def GetVarLogMessagesBeforeReboot(lines=100,
   output = tail_lines[-lines:] + [
       '<after reboot, kernel came up at %s>' % match.group(1)]
   return '\n'.join(output) + '\n'
-
-
-def GetStartupMessages(dut=None):
-  """Get various startup messages.
-
-  This is usually useful for debugging issues like unexpected reboot during
-  test.
-
-  Args:
-    dut: a cros.factory.device.types.DeviceInterface instance, None for local.
-
-  Returns: a dict that contains logs.
-  """
-
-  res = {}
-  try:
-    # Grab /var/log/messages for context.
-    var_log_message = GetVarLogMessagesBeforeReboot(dut=dut)
-    res['var_log_messages_before_reboot'] = var_log_message
-  except Exception:
-    logging.exception('Unable to grok /var/log/messages')
-
-  if dut:
-    mosys_log = dut.CallOutput(
-        ['mosys', 'eventlog', 'list'], stderr=subprocess.STDOUT)
-  else:
-    mosys_log = process_utils.SpawnOutput(
-        ['mosys', 'eventlog', 'list'], stderr=subprocess.STDOUT)
-
-  if mosys_log:
-    res['mosys_log'] = mosys_log
-
-  try:
-    if dut:
-      ec_console_log = dut.ec.GetECConsoleLog()
-    else:
-      ec_console_log = process_utils.SpawnOutput(['ectool', 'console'])
-    res['ec_console_log'] = ec_console_log
-  except Exception:
-    logging.exception('Error retrieving EC console log')
-
-  try:
-    if dut:
-      ec_panic_info = dut.ec.GetECPanicInfo()
-    else:
-      ec_panic_info = process_utils.SpawnOutput(['ectool', 'panicinfo'])
-    res['ec_panic_info'] = ec_panic_info
-  except Exception:
-    logging.exception('Error retrieving EC panic info')
-
-  # The console-ramoops file changed names with linux-3.19+.
-  try:
-    res['console_ramoops'] = _GetFileContent(
-        '/sys/fs/pstore/console-ramoops-0')
-  except Exception:
-    try:
-      res['console_ramoops'] = _GetFileContent(
-          '/sys/fs/pstore/console-ramoops')
-    except Exception:
-      logging.debug('Error to retrieve console ramoops log '
-                    '(This is normal for cold reboot).')
-
-  try:
-    res['i915_error_state'] = _GetFileContent(
-        '/sys/kernel/debug/dri/0/i915_error_state')
-  except Exception:
-    logging.debug('Error to retrieve i915 error state log '
-                  '(This is normal on an non-Intel systems).')
-
-  return res

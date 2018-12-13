@@ -331,6 +331,16 @@ class DeviceInterface(sys_interface.SystemInterface):
     """Interface for read / write Vital Product Data (VPD)."""
     raise NotImplementedError
 
+  def GetStartupMessages(self):
+    """Get various startup messages.
+
+    This is usually useful for debugging issues like unexpected reboot during
+    test.
+
+    Returns: a dict that contains logs.
+    """
+    raise NotImplementedError
+
   def IsReady(self):
     """Returns True if a device is ready for access.
 

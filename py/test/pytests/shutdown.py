@@ -270,13 +270,13 @@ class ShutdownTest(test_case.TestCase):
                          time_utils.TimeString(last_shutdown_time),
                          time_utils.TimeString(now))),
           duration=(now - last_shutdown_time))
-      logging.info(sys_utils.GetStartupMessages(self.dut))
+      logging.info(self.dut.GetStartupMessages())
     elif self.test_state.shutdown_count > self.test.iterations:
       # Shut down too many times
       LogAndEndTest(status=state.TestState.FAILED,
                     error_msg=('Too many shutdowns (count=%s)' %
                                self.test_state.shutdown_count))
-      logging.info(sys_utils.GetStartupMessages(self.dut))
+      logging.info(self.dut.GetStartupMessages())
 
     elif self.args.check_tag_file and self.CheckShutdownFailureTagFile():
       LogAndEndTest(status=state.TestState.FAILED,

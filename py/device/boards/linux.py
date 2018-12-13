@@ -37,6 +37,7 @@ from cros.factory.device import udev
 from cros.factory.device import usb_c
 from cros.factory.device import wifi
 from cros.factory.utils import file_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
 
@@ -343,3 +344,44 @@ class LinuxBoard(types.DeviceBoard):
 
     results = self.CallOutput('ls -d %s' % pattern)
     return results.splitlines() if results else []
+
+  @type_utils.Overrides
+  def GetStartupMessages(self):
+    res = {}
+    try:
+      # Grab /var/log/messages for context.
+      var_log_message = sys_utils.GetVarLogMessagesBeforeReboot(dut=self)
+      res['var_log_messages_before_reboot'] = var_log_message
+    except Exception:
+      logging.exception('Unable to grok /var/log/messages')
+
+    # The console-ramoops file changed names with linux-3.19+.
+    try:
+      res['console_ramoops'] = file_utils.TailFile(
+          '/sys/fs/pstore/console-ramoops-0', dut=self)
+    except Exception:
+      try:
+        res['console_ramoops'] = file_utils.TailFile(
+            '/sys/fs/pstore/console-ramoops', dut=self)
+      except Exception:
+        logging.debug('Error to retrieve console ramoops log '
+                      '(This is normal for cold reboot).')
+
+    try:
+      res['i915_error_state'] = file_utils.TailFile(
+          '/sys/kernel/debug/dri/0/i915_error_state', dut=self)
+    except Exception:
+      logging.debug('Error to retrieve i915 error state log '
+                    '(This is normal on an non-Intel systems).')
+
+    try:
+      res['ec_console_log'] = self.ec.GetECConsoleLog()
+    except Exception:
+      logging.exception('Error retrieving EC console log')
+
+    try:
+      res['ec_panic_info'] = self.ec.GetECPanicInfo()
+    except Exception:
+      logging.exception('Error retrieving EC panic info')
+
+    return res

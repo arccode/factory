@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Tests for SystemInterface in LinuxBoard."""
+"""Tests for SystemInterface and DeviceInterface in LinuxBoard."""
 
 import unittest
 
@@ -124,6 +124,18 @@ class LinuxTargetTest(unittest.TestCase):
     self.assertEquals(self.dut.Glob('/non-exist'), [])
     self.dut.CallOutput = mock.MagicMock(return_value='/ab\n/a1b\n/a2b\n')
     self.assertEquals(self.dut.Glob('/a*b'), ['/ab', '/a1b', '/a2b'])
+
+  @mock.patch('cros.factory.utils.sys_utils.GetVarLogMessagesBeforeReboot',
+              return_value='var_log_msg')
+  @mock.patch('cros.factory.utils.file_utils.TailFile', side_effect=IOError)
+  @mock.patch('cros.factory.device.ec.EmbeddedController.GetECConsoleLog',
+              return_value='ec_console_log_value')
+  @mock.patch('cros.factory.device.ec.EmbeddedController.GetECPanicInfo',
+              side_effect=IOError)
+  def testGetStartupMessages(self, *unused_mocked_funcs):
+    self.assertEquals(self.dut.GetStartupMessages(),
+                      {'var_log_messages_before_reboot': 'var_log_msg',
+                       'ec_console_log': 'ec_console_log_value'})
 
 
 if __name__ == '__main__':
