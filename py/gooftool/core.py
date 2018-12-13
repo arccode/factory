@@ -19,6 +19,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Util
 from cros.factory.gooftool import crosfw
+from cros.factory.gooftool import vpd
 from cros.factory.gooftool import vpd_data
 from cros.factory.gooftool import wipe
 from cros.factory.hwid.v2 import hwid_tool
@@ -31,7 +32,6 @@ from cros.factory.test.rules import registration_codes
 from cros.factory.test.rules.registration_codes import RegistrationCode
 from cros.factory.utils import file_utils
 from cros.factory.utils import service_utils
-from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error
 
 # The mismatch result tuple.
@@ -85,7 +85,7 @@ class Gooftool(object):
 
     self._util = Util()
     self._crosfw = crosfw
-    self._vpd = sys_utils.VPDTool()
+    self._vpd = vpd.VPDTool()
     self._unpack_bmpblock = unpack_bmpblock
     self._named_temporary_file = tempfile.NamedTemporaryFile
     self._db = None
@@ -380,8 +380,8 @@ class Gooftool(object):
                     (section, ','.join(missing_keys)))
 
     # Check required data
-    ro_vpd = self._vpd.GetAllData(partition=self._vpd.RO_PARTITION)
-    rw_vpd = self._vpd.GetAllData(partition=self._vpd.RW_PARTITION)
+    ro_vpd = self._vpd.GetAllData(partition=vpd.VPD_READONLY_PARTITION_NAME)
+    rw_vpd = self._vpd.GetAllData(partition=vpd.VPD_READWRITE_PARTITION_NAME)
     CheckVPDFields(
         'RO', ro_vpd, vpd_data.REQUIRED_RO_DATA, vpd_data.KNOWN_RO_DATA,
         vpd_data.KNOWN_RO_DATA_RE)
@@ -479,7 +479,7 @@ class Gooftool(object):
     self._vpd.UpdateData({
         'should_send_rlz_ping': '1',
         'rlz_embargo_end_date': embargo_date.isoformat(),
-    }, partition=self._vpd.RW_PARTITION)
+    }, partition=vpd.VPD_READWRITE_PARTITION_NAME)
 
   def WriteHWID(self, hwid=None):
     """Writes specified HWID value into the system BB.
@@ -592,7 +592,8 @@ class Gooftool(object):
       not supported.
     """
     image_file = self._crosfw.LoadMainFirmware().GetFileName()
-    ro_vpd = self._vpd.GetAllData(partition=self._vpd.RO_PARTITION)
+    ro_vpd = self._vpd.GetAllData(
+        partition=vpd.VPD_READONLY_PARTITION_NAME)
     region = ro_vpd.get('region')
     if region is None:
       raise Error('Missing VPD "region".')
@@ -657,7 +658,7 @@ class Gooftool(object):
       known_names = ['factory.', 'component.', 'serials.']
       return any(name for name in known_names if k.startswith(name))
 
-    rw_vpd = self._vpd.GetAllData(partition=self._vpd.RW_PARTITION)
+    rw_vpd = self._vpd.GetAllData(partition=vpd.VPD_READWRITE_PARTITION_NAME)
     dot_entries = dict((k, v) for k, v in rw_vpd.iteritems() if '.' in k)
     entries = dict((k, v) for k, v in dot_entries.iteritems()
                    if _IsFactoryVPD(k))
@@ -669,7 +670,7 @@ class Gooftool(object):
     if entries:
       try:
         self._vpd.UpdateData(dict((k, None) for k in entries.keys()),
-                             partition=self._vpd.RW_PARTITION)
+                             partition=vpd.VPD_READWRITE_PARTITION_NAME)
       except Exception as e:
         raise Error('Failed to remove VPD entries: %r' % e)
 
@@ -746,7 +747,7 @@ class Gooftool(object):
     with scrub_exceptions('Error writing device secret to VPD'):
       self._vpd.UpdateData(
           {'stable_device_secret_DO_NOT_SHARE': secret_bytes.encode('hex')},
-          partition=self._vpd.RO_PARTITION)
+          partition=vpd.VPD_READONLY_PARTITION_NAME)
 
 
   def Cr50SetBoardId(self):

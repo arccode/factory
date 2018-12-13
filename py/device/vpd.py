@@ -2,28 +2,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import functools
 import logging
-import re
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 from cros.factory.test.rules import privacy
-from cros.factory.utils import sys_utils
-
-
-# One line in vpd -l output.
-VPD_LIST_PATTERN = re.compile(r'^"([^"]+)"="([^"]*)"$')
-
-# Allowable VPD keys: alphanumeric and _ and .
-VPD_KEY_PATTERN = re.compile(r'^[a-zA-Z0-9_.]+')
-
-# Allowable VPD values: all printable ASCII characters except for
-# double-quote.
-VPD_VALUE_PATTERN = re.compile(r'^[ !#-~]*$')
-
-# ChromeOS firmware VPD partition names.
-VPD_READONLY_PARTITION_NAME = 'RO_VPD'
-VPD_READWRITE_PARTITION_NAME = 'RW_VPD'
+from cros.factory.gooftool import common as gooftool_common
+from cros.factory.gooftool import vpd
 
 
 class Partition(types.DeviceComponent):
@@ -80,7 +66,8 @@ class CommandVPDPartition(Partition):
     """
     super(CommandVPDPartition, self).__init__(dut)
     self.name = name
-    self._vpd_tool = sys_utils.VPDTool(self._device)
+    shell_func = functools.partial(gooftool_common.Shell, popen=dut.Popen)
+    self._vpd_tool = vpd.VPDTool(shell_func)
 
   def get(self, key, default=None):
     """See Partition.get."""
@@ -209,11 +196,11 @@ class CommandVPDSource(VPDSource):
 
   @types.DeviceProperty
   def ro(self):
-    return CommandVPDPartition(self._device, VPD_READONLY_PARTITION_NAME)
+    return CommandVPDPartition(self._device, vpd.VPD_READONLY_PARTITION_NAME)
 
   @types.DeviceProperty
   def rw(self):
-    return CommandVPDPartition(self._device, VPD_READWRITE_PARTITION_NAME)
+    return CommandVPDPartition(self._device, vpd.VPD_READWRITE_PARTITION_NAME)
 
 
 class FileBasedVPDSource(VPDSource):

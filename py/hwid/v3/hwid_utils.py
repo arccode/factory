@@ -320,11 +320,11 @@ def GetVPDData(run_vpd=False, infile=None):
   """
   assert not (run_vpd and infile)
   if run_vpd:
-    from cros.factory.utils import sys_utils
-    vpd_tool = sys_utils.VPDTool()
+    from cros.factory.gooftool import vpd
+    vpd_tool = vpd.VPDTool()
     return {
-        'ro': vpd_tool.GetAllData(partition=vpd_tool.RO_PARTITION),
-        'rw': vpd_tool.GetAllData(partition=vpd_tool.RW_PARTITION)
+        'ro': vpd_tool.GetAllData(partition=vpd.VPD_READONLY_PARTITION_NAME),
+        'rw': vpd_tool.GetAllData(partition=vpd.VPD_READWRITE_PARTITION_NAME)
     }
   elif infile:
     return json_utils.LoadFile(infile)

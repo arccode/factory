@@ -23,7 +23,7 @@ from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool import core
 from cros.factory.gooftool import crosfw
-from cros.factory.utils.sys_utils import VPDTool
+from cros.factory.gooftool import vpd
 from cros.factory.utils.type_utils import Error
 from cros.factory.utils.type_utils import Obj
 
@@ -313,7 +313,7 @@ class GooftoolTest(unittest.TestCase):
 
     self._gooftool._vpd.UpdateData(
         dict(stable_device_secret_DO_NOT_SHARE='00' * 32),
-        partition=VPDTool.RO_PARTITION)
+        partition=vpd.VPD_READONLY_PARTITION_NAME)
     self.mox.ReplayAll()
     self._gooftool.GenerateStableDeviceSecret()
 
@@ -354,7 +354,7 @@ class GooftoolTest(unittest.TestCase):
             StubStdout('00' * 32 + '\n'))
     self._gooftool._vpd.UpdateData(
         dict(stable_device_secret_DO_NOT_SHARE='00' * 32),
-        partition=VPDTool.RO_PARTITION).AndRaise(Exception())
+        partition=vpd.VPD_READONLY_PARTITION_NAME).AndRaise(Exception())
     self.mox.ReplayAll()
     self.assertRaisesRegexp(Error, 'Error writing device secret',
                             self._gooftool.GenerateStableDeviceSecret)
@@ -399,10 +399,10 @@ class GooftoolTest(unittest.TestCase):
     """
     if ro is not None:
       self._gooftool._vpd.GetAllData(
-          partition=VPDTool.RO_PARTITION).InAnyOrder().AndReturn(ro)
+          partition=vpd.VPD_READONLY_PARTITION_NAME).InAnyOrder().AndReturn(ro)
     if rw is not None:
       self._gooftool._vpd.GetAllData(
-          partition=VPDTool.RW_PARTITION).InAnyOrder().AndReturn(rw)
+          partition=vpd.VPD_READWRITE_PARTITION_NAME).InAnyOrder().AndReturn(rw)
 
   def testVerifyVPD_AllValid(self):
     self._SetupVPDMocks(ro=self._SIMPLE_VALID_RO_VPD_DATA,

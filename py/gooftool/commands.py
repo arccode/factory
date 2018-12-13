@@ -28,6 +28,7 @@ from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool.core import Gooftool
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import report_upload
+from cros.factory.gooftool import vpd
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.probe.functions import chromeos_firmware
 from cros.factory.test.env import paths
@@ -637,8 +638,7 @@ _add_file_cmd_arg = CmdArg(
          _add_file_cmd_arg)
 def UploadReport(options):
   """Create a report containing key device details."""
-  ro_vpd = sys_utils.VPDTool().GetAllData(
-      partition=sys_utils.VPDTool.RO_PARTITION)
+  ro_vpd = vpd.VPDTool().GetAllData(partition=vpd.VPD_READONLY_PARTITION_NAME)
   device_sn = ro_vpd.get('serial_number', None)
   if device_sn is None:
     logging.warning('RO_VPD missing device serial number')
@@ -783,14 +783,14 @@ def VerifyHWID(options):
 
   probed_results = hwid_utils.GetProbedResults(infile=options.probe_results)
   device_info = hwid_utils.GetDeviceInfo()
-  vpd = hwid_utils.GetVPDData(run_vpd=options.hwid_run_vpd,
-                              infile=options.hwid_vpd_data_file)
+  vpd_data = hwid_utils.GetVPDData(run_vpd=options.hwid_run_vpd,
+                                   infile=options.hwid_vpd_data_file)
 
   event_log.Log('probed_results', probed_results=FilterDict(probed_results))
-  event_log.Log('vpd', vpd=FilterDict(vpd))
+  event_log.Log('vpd', vpd=FilterDict(vpd_data))
 
   hwid_utils.VerifyHWID(database, encoded_string, probed_results,
-                        device_info, vpd, options.rma_mode)
+                        device_info, vpd_data, options.rma_mode)
 
   event_log.Log('verified_hwid', hwid=encoded_string)
 

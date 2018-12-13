@@ -9,7 +9,7 @@ import mox
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
-from cros.factory.utils.sys_utils import VPDTool
+from cros.factory.gooftool.vpd import VPDTool
 
 
 class VPDTest(unittest.TestCase):

@@ -5,11 +5,14 @@
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import sys_utils
+from cros.factory.gooftool import vpd
 from cros.factory.utils import type_utils
 
 
 PARTITION = type_utils.Enum(['ro', 'rw'])
+
+_PARTITION_NAME_MAP = {PARTITION.ro: vpd.VPD_READONLY_PARTITION_NAME,
+                       PARTITION.rw: vpd.VPD_READWRITE_PARTITION_NAME}
 
 
 class VPDFunction(cached_probe_function.LazyCachedProbeFunction):
@@ -156,8 +159,7 @@ class VPDFunction(cached_probe_function.LazyCachedProbeFunction):
 
   @classmethod
   def ProbeDevices(cls, category):
-    vpd_tool = sys_utils.VPDTool()
-    vpd_data = vpd_tool.GetAllData(
-        partition=getattr(vpd_tool, category.upper() + '_PARTITION'))
+    vpd_tool = vpd.VPDTool()
+    vpd_data = vpd_tool.GetAllData(partition=_PARTITION_NAME_MAP[category])
 
     return vpd_data
