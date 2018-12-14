@@ -98,7 +98,10 @@ class SuspendResumeTest(test_case.TestCase):
           default=None),
       Arg('early_resume_retry_wait_secs', int,
           'Time to wait before re-suspending after early resume',
-          default=3)]
+          default=3),
+      Arg('ensure_wakealarm_cleared', bool,
+          'Raise exception if wakealarm is not cleared after resume',
+          default=True)]
 
   def setUp(self):
     self.assertTrue(os.path.exists(self.args.wakealarm_path), 'wakealarm_path '
@@ -162,7 +165,7 @@ class SuspendResumeTest(test_case.TestCase):
     self.alarm_thread.join(5)
     self.assertFalse(self.alarm_thread.isAlive(), 'Alarm thread failed join.')
     # Clear any active wake alarms
-    open(self.args.wakealarm_path, 'w').write('0')
+    self._SetWakealarm('0')
 
   def _GetIgnoredWakeupSourceCount(self):
     """Return the recorded wakeup count for the ignored wakeup source."""
@@ -188,7 +191,7 @@ class SuspendResumeTest(test_case.TestCase):
 
   def _MonitorWakealarm(self):
     """Start and extend the wakealarm as needed for the main thread."""
-    file_utils.WriteFile(self.args.wakealarm_path, str(self.resume_at))
+    self._SetWakealarm(str(self.resume_at))
     self.alarm_started.set()
     # CAUTION: the loop below is subject to race conditions with suspend time.
     while (self._ReadSuspendCount() < self.initial_suspend_count + self.run
@@ -196,14 +199,11 @@ class SuspendResumeTest(test_case.TestCase):
       cur_time = self._ReadCurrentTime()
       if cur_time >= self.resume_at - 1:
         self.attempted_wake_extensions += 1
-        logging.warn('Late suspend detected, attempting wake extension')
+        logging.warn('Late suspend detected, attempting wake extension.')
         try:
-          file_utils.WriteFile(self.args.wakealarm_path,
-                               '+=' + str(_MIN_SUSPEND_MARGIN_SECS))
+          self._SetWakealarm('+=%d' % _MIN_SUSPEND_MARGIN_SECS)
         except IOError:
-          # The write to wakealarm returns EINVAL (22) if no alarm is active
-          logging.warn('Write to wakealarm failed, assuming we woke: %s',
-                       debug_utils.FormatExceptionOnly())
+          logging.warn('Write to wakealarm failed, assuming we woke.')
           break
         if (self._ReadSuspendCount() >= self.initial_suspend_count + self.run
             and self._ReadCurrentTime() < cur_time + _MIN_SUSPEND_MARGIN_SECS):
@@ -227,28 +227,29 @@ class SuspendResumeTest(test_case.TestCase):
     process_utils.Spawn(['sync'], check_call=True, log_stderr_on_error=True)
 
     prev_suspend_ignore_count = self._GetIgnoredWakeupSourceCount()
-    logging.info('Suspending at %d', self._ReadCurrentTime())
+    logging.info('Suspending at %d.', self._ReadCurrentTime())
 
     try:
       # Write out our expected wakeup_count. Wakeup_count is a mechanism to
       # handle wakeup events in a non-racy way. If there is an IO error during
       # this write, it means someone else issues a wakeup event at the same
       # time.
-      file_utils.WriteFile(self.args.wakeup_count_path, self.wakeup_count,
-                           log=True)
+      logging.info('Writing "%s" to %s.',
+                   self.wakeup_count, self.args.wakeup_count_path)
+      file_utils.WriteFile(self.args.wakeup_count_path, self.wakeup_count)
     except Exception:
       raise RuntimeError('Failed to write to wakeup_count. Maybe there is '
                          'another program trying to suspend at the same time?')
 
     try:
       # Suspend to memory
-      file_utils.WriteFile('/sys/power/state', self.args.suspend_type,
-                           log=True)
+      logging.info('Writing "%s" to /sys/power/state.', self.args.suspend_type)
+      file_utils.WriteFile('/sys/power/state', self.args.suspend_type)
     except IOError as err:
       # Both of the write could result in IOError if there is an early wake.
       if err.errno in [errno.EBUSY, errno.EINVAL]:
         if prev_suspend_ignore_count:
-          logging.info('Early wake event when attempting suspend')
+          logging.info('Early wake event when attempting suspend.')
           if prev_suspend_ignore_count != self._GetIgnoredWakeupSourceCount():
             if retry_count == _MAX_EARLY_RESUME_RETRY_COUNT:
               raise RuntimeError('Maximum re-suspend retry exceeded for '
@@ -267,7 +268,7 @@ class SuspendResumeTest(test_case.TestCase):
       else:
         raise IOError('Failed to write to /sys/power/state: %s' %
                       debug_utils.FormatExceptionOnly())
-    logging.info('Returning from suspend at %d', self._ReadCurrentTime())
+    logging.info('Returning from suspend at %d.', self._ReadCurrentTime())
 
   def _ReadSuspendCount(self):
     """Read the current suspend count from /sys/kernel/debug/suspend_stats.
@@ -327,6 +328,64 @@ class SuspendResumeTest(test_case.TestCase):
         'Incorrect suspend count: ' + (
             'no suspend?' if actual_count < count else 'spurious suspend?'))
 
+  def _SetWakealarm(self, content, raise_exception=True):
+    """Set wakealarm by writing a string to wakealarm file.
+
+    See drivers/rtc/rtc-sysfs.c for detailed implementation for setting
+    wakealarm value.
+
+    Args:
+      content: the string to write to wakealarm file. It can be
+        TIME: Set the wakealarm time to TIME, where TIME is in seconds since
+              epoch. If TIME is earlier than current time, the write will clear
+              the active wakealarm. If TIME is later then current time and there
+              is an active wakealarm, the write fails and raises IOError
+              (EBUSY).
+        +TIME: Set the wakealarm time to (current time + TIME seconds). If
+               there is an active wakealarm, the write fails and raises IOError
+               (EBUSY).
+        +=TIME: Extend the wakealarm time by TIME seconds. If there is no
+                active wakealarm, the write fails with IOError (EINVAL).
+      raise_exception: True to raise IOError when writing to wakealarm file
+                       fails.
+
+    Raises:
+      IOError: when raise_exception is True and writing to wakealarm file fails.
+    """
+    try:
+      logging.info('Writing "%s" to %s.', content, self.args.wakealarm_path)
+      file_utils.WriteFile(self.args.wakealarm_path, content)
+    except IOError:
+      error_msg = 'Failed to write to wakealarm.'
+      if raise_exception:
+        raise IOError(error_msg)
+      else:
+        logging.warn(error_msg)
+
+  def _VerifyWakealarmCleared(self, raise_exception=True):
+    """Verify that wakealarm is cleared after resume.
+
+    Wakealarm should be cleared after resume, but sometimes it isn't cleared
+    and will cause write error at next suspend (b/120858506). Report warnings
+    or raise an exception if wakealarm is not cleared, and always explicitly
+    clear it again to make sure we can set wakealarm at next suspend.
+
+    Args:
+      raise_exception: True to raise an exception if wakealarm is not cleared,
+                       otherwise only show warning message.
+
+    Raises:
+      RuntimeError: If raise_exception is True and wakealarm is not cleared.
+    """
+    content = file_utils.ReadFile(self.args.wakealarm_path).strip()
+    if content:
+      error_msg = 'Wakealarm is not cleared after resume, value: %s.' % content
+      if raise_exception:
+        raise RuntimeError(error_msg)
+      else:
+        logging.warn(error_msg)
+    self._SetWakealarm('0')
+
   def _HandleMessages(self, messages_start):
     """Finds the suspend/resume chunk in /var/log/messages.
 
@@ -356,7 +415,7 @@ class SuspendResumeTest(test_case.TestCase):
             messages = messages[:match.end()]
             return messages
       except IOError:
-        logging.exception('Unable to read %s', _MESSAGES)
+        logging.exception('Unable to read %s.', _MESSAGES)
       return None
     messages = sync_utils.Retry(10, 0.2, None, ReadMessages, messages_start)
 
@@ -372,7 +431,7 @@ class SuspendResumeTest(test_case.TestCase):
     # Find the wake source
     match = re.search('active wakeup source: (.+)', messages)
     wake_source = match.group(1) if match else None
-    logging.info('Wakeup source: %s', wake_source or 'unknown')
+    logging.info('Wakeup source: %s.', wake_source or 'unknown')
 
     self.messages = messages
     return wake_source
@@ -400,7 +459,8 @@ class SuspendResumeTest(test_case.TestCase):
       self.resume_at = suspend_time + self.start_time
       logging.info('Suspend %d of %d for %d seconds, starting at %d.',
                    self.run, self.args.cycles, suspend_time, self.start_time)
-      self.wakeup_count = open(self.args.wakeup_count_path).read().strip()
+      self.wakeup_count = file_utils.ReadFile(
+          self.args.wakeup_count_path).strip()
       self.alarm_thread.start()
       self.assertTrue(self.alarm_started.wait(_MIN_SUSPEND_MARGIN_SECS),
                       'Alarm thread timed out.')
@@ -412,6 +472,8 @@ class SuspendResumeTest(test_case.TestCase):
                             wake_source,
                             self.initial_suspend_count + self.run,
                             self.resume_at)
+      self._VerifyWakealarmCleared(
+          raise_exception=self.args.ensure_wakealarm_cleared)
       logging.info('Resumed %d of %d for %d seconds.',
                    self.run, self.args.cycles, resume_time)
       self.Sleep(resume_time)
@@ -422,7 +484,7 @@ class SuspendResumeTest(test_case.TestCase):
         self.Sleep(1)
         self.assertGreaterEqual(self.start_time +
                                 self.args.suspend_worst_case_secs,
-                                int(open(self.args.time_path).read().strip()),
+                                self._ReadCurrentTime(),
                                 'alarm thread did not return within %d sec.' %
                                 self.args.suspend_worst_case_secs)
       suspend_count = self._ReadSuspendCount()
