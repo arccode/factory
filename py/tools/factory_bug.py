@@ -118,6 +118,17 @@ def DummyContext(arg):
   yield arg
 
 
+def HasEC():
+  """Return whether the platform has EC chip."""
+  try:
+    has_ec = Spawn(['ectool', 'version'], read_stdout=True,
+                   ignore_stderr=True).returncode == 0
+  except OSError:
+    # The system might not have 'ectool' command if the platform has no EC chip.
+    has_ec = False
+  return has_ec
+
+
 def SaveLogs(output_dir, include_network_log=False, archive_id=None,
              var='/var', usr_local='/usr/local', etc='/etc'):
   """Saves dmesg and relevant log files to a new archive in output_dir.
@@ -154,7 +165,7 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
   tmp = tempfile.mkdtemp(prefix='factory_bug.')
 
   # SuperIO-based platform has no EC chip, check its existence first.
-  has_ec = sys_utils.HasEC()
+  has_ec = HasEC()
 
   try:
     with open(os.path.join(tmp, 'crossystem'), 'w') as f:

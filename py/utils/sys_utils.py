@@ -530,17 +530,6 @@ def ResetCommitTime():
     process.wait()
 
 
-def HasEC():
-  """Return whether the platform has EC chip."""
-  try:
-    has_ec = process_utils.Spawn(['ectool', 'version'], read_stdout=True,
-                                 ignore_stderr=True).returncode == 0
-  except OSError:
-    # The system might not have 'ectool' command if the platform has no EC chip.
-    has_ec = False
-  return has_ec
-
-
 def InChroot():
   """Returns True if currently in the chroot."""
   return 'CROS_WORKON_SRCROOT' in os.environ
