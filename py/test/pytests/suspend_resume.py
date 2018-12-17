@@ -19,12 +19,11 @@ Will fail if device wakes too early, or if unexpected reboot (or crash) found.
 
 Dependency
 ----------
-- ``powerd_suspend`` utility.
 - rtc's ``wakealarm`` entry in ``sysfs``.
 
 Note that the rtc sysfs entry may vary from device to device, so the test_list
 must define the path to the correct sysfs entry for the specific device, the
-default assumes a typical ``/sys/class/rtc/rtc0 entry``.
+default assumes a typical ``/sys/class/rtc/rtc0`` entry.
 
 Examples
 --------
@@ -122,11 +121,6 @@ class SuspendResumeTest(test_case.TestCase):
     self.goofy = state.GetInstance()
 
     self.ui.ToggleTemplateClass('font-large', True)
-
-    # Remove lid-opened, which will prevent suspend.
-    file_utils.TryUnlink('/run/power_manager/lid_opened')
-    # Create this directory so powerd_suspend doesn't fail.
-    file_utils.TryMakeDirs('/run/power_manager/root')
 
     self.done = False
     self.wakeup_count = ''
