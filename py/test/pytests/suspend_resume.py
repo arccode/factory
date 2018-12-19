@@ -224,7 +224,11 @@ class SuspendResumeTest(test_case.TestCase):
     self.alarm_started.clear()
 
   def _Suspend(self, retry_count=0):
-    """Suspend the device by writing to /sys/power/state."""
+    """Suspend the device by writing to /sys/power/state.
+
+    First write to wakeup_count, then write to /sys/power/state. See
+    kernel/power/main.c for detailed description.
+    """
     # Explicitly sync the filesystem
     process_utils.Spawn(['sync'], check_call=True, log_stderr_on_error=True)
 
@@ -232,41 +236,44 @@ class SuspendResumeTest(test_case.TestCase):
     logging.info('Suspending at %d.', self._ReadCurrentTime())
 
     try:
-      # Write out our expected wakeup_count. Wakeup_count is a mechanism to
-      # handle wakeup events in a non-racy way. If there is an IO error during
-      # this write, it means someone else issues a wakeup event at the same
-      # time.
-      logging.info('Writing "%s" to %s.',
-                   self.wakeup_count, self.args.wakeup_count_path)
+      # Write out the expected wakeup_count. Wakeup_count is a mechanism to
+      # handle wakeup events in a non-racy way. The write could fail with
+      # EINVAL if another wakeup event occurred since the last read of
+      # wakeup_count, and we should not write to /sys/power/state if this
+      # happens.
+      logging.info('Writing "%s" to wakeup_count.', self.wakeup_count)
       file_utils.WriteFile(self.args.wakeup_count_path, self.wakeup_count)
-    except Exception:
-      raise RuntimeError('Failed to write to wakeup_count. Maybe there is '
-                         'another program trying to suspend at the same time?')
+    except IOError as err:
+      if err.errno == errno.EINVAL:
+        raise IOError('EINVAL: Failed to write to wakeup_count. Maybe there is '
+                      'another program trying to suspend at the same time?')
+      else:
+        raise IOError('Failed to write to wakeup_count: %s' %
+                      debug_utils.FormatExceptionOnly())
 
     try:
-      # Suspend to memory
+      # Suspend to memory. The write could fail with EBUSY if another wakeup
+      # event occurred since the last write to /sys/power/wakeup_count.
       logging.info('Writing "%s" to /sys/power/state.', self.args.suspend_type)
       file_utils.WriteFile('/sys/power/state', self.args.suspend_type)
     except IOError as err:
-      # Both of the write could result in IOError if there is an early wake.
-      if err.errno in [errno.EBUSY, errno.EINVAL]:
-        if prev_suspend_ignore_count:
-          logging.info('Early wake event when attempting suspend.')
-          if prev_suspend_ignore_count != self._GetIgnoredWakeupSourceCount():
-            if retry_count == _MAX_EARLY_RESUME_RETRY_COUNT:
-              raise RuntimeError('Maximum re-suspend retry exceeded for '
-                                 'ignored wakeup source %s' %
-                                 self.args.ignore_wakeup_source)
+      if err.errno == errno.EBUSY:
+        logging.info('Early wake event when attempting suspend.')
+        if prev_suspend_ignore_count != self._GetIgnoredWakeupSourceCount():
+          if retry_count == _MAX_EARLY_RESUME_RETRY_COUNT:
+            raise RuntimeError('Maximum re-suspend retry exceeded for '
+                               'ignored wakeup source %s' %
+                               self.args.ignore_wakeup_source)
 
-            logging.info('Wakeup source ignored, re-suspending...')
-            self.Sleep(self.args.early_resume_retry_wait_secs)
-            self.wakeup_count = file_utils.ReadFile(
-                self.args.wakeup_count_path).strip()
-            self._Suspend(retry_count + 1)
-            return
-          else:
-            raise IOError('EBUSY: Early wake event when attempting suspend: %s'
-                          % debug_utils.FormatExceptionOnly())
+          logging.info('Wakeup source ignored, re-suspending...')
+          self.Sleep(self.args.early_resume_retry_wait_secs)
+          self.wakeup_count = file_utils.ReadFile(
+              self.args.wakeup_count_path).strip()
+          self._Suspend(retry_count + 1)
+          return
+        else:
+          raise IOError('EBUSY: Early wake event when attempting suspend: %s' %
+                        debug_utils.FormatExceptionOnly())
       else:
         raise IOError('Failed to write to /sys/power/state: %s' %
                       debug_utils.FormatExceptionOnly())
