@@ -63,13 +63,15 @@ class RegionTest(unittest.TestCase):
 
     bmp_locale_dir = os.path.join(bmpblk_dir, 'strings', 'locale')
     for r in regions.BuildRegionsDict(include_all=False).values():
+      paths = []
       for l in r.language_codes:
-        paths = [os.path.join(bmp_locale_dir, l)]
+        paths.append(os.path.join(bmp_locale_dir, l))
         if '-' in l:
           paths.append(os.path.join(bmp_locale_dir, l.partition('-')[0]))
-        if not any([os.path.exists(x) for x in paths]):
-          self.fail(
-              'For region %r, none of %r exists' % (r.region_code, paths))
+        if any([os.path.exists(x) for x in paths]):
+          break
+      else:
+        self.fail('For region %r, none of %r exists' % (r.region_code, paths))
 
   def testFieldsDict(self):
     # 'description' and 'notes' should be missing.
