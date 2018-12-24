@@ -86,6 +86,7 @@ class OutputArchive(output_file.OutputFile):
       self._gcs = gcs_utils.CloudStorage(self.args.key_path)
 
   def ProcessEvents(self, base_dir):
+    """Archives events which are saved on base_dir."""
     # Create the archive.
     cur_time = datetime.datetime.now()
     archive_name = cur_time.strftime('InstalogEvents_%Y%m%d%H%M%S')

@@ -33,6 +33,7 @@ from instalog.utils import time_utils
 
 _PROCESS_MESSAGE_INTERVAL = 60  # 60sec
 _DEFAULT_INTERVAL = 1 * 60 * 60  # 1hr
+_DEFAULT_BATCH_SIZE = float('inf')  # Infinity. Only change when needed.
 _DEFAULT_THRESHOLD_SIZE = 200 * 1024 * 1024  # 200mb
 EVENT_FILE_NAME = 'events.json'
 ATT_DIR_NAME = 'attachments'
@@ -57,8 +58,11 @@ class OutputFile(plugin_base.OutputPlugin):
 
   ARGS = [
       Arg('interval', (int, float),
-          'How long to wait, in seconds, before creating the next archive.',
+          'How long to wait, in seconds, before the next process.',
           default=_DEFAULT_INTERVAL),
+      Arg('batch_size', (int, float),
+          'How many events to queue before transmitting.',
+          default=_DEFAULT_BATCH_SIZE),
       Arg('threshold_size', int,
           'If the total_size bigger than threshold_size, process these events.',
           default=_DEFAULT_THRESHOLD_SIZE),
@@ -128,7 +132,8 @@ class OutputFile(plugin_base.OutputPlugin):
         num_events = 0
         total_size = 0
         time_last = time_utils.MonotonicTime()
-        for event in event_stream.iter(timeout=self.args.interval):
+        for event in event_stream.iter(timeout=self.args.interval,
+                                       count=self.args.batch_size):
           serialized_event = self.PrepareEvent(event, base_dir)
           attachment_size = self.GetEventAttachmentSize(event)
           events_f.write(serialized_event + '\n')

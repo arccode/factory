@@ -1,10 +1,10 @@
 #!/usr/bin/python2
 #
-# Copyright 2017 The Chromium OS Authors. All rights reserved.
+# Copyright 2019 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Unittests for output archive plugin."""
+"""Unittests for output file plugin."""
 
 from __future__ import print_function
 
