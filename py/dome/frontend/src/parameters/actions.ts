@@ -12,11 +12,17 @@ import {Dispatch, RootState} from '@app/types';
 
 import {authorizedAxios} from '@common/utils';
 
-import {CREATE_DIRECTORY_FORM, UPDATE_PARAMETER_FORM} from './constants';
+import {
+  CREATE_DIRECTORY_FORM,
+  RENAME_DIRECTORY_FORM,
+  RENAME_PARAMETER_FORM,
+  UPDATE_PARAMETER_FORM,
+} from './constants';
 import {
   CreateDirectoryRequest,
   Parameter,
   ParameterDirectory,
+  RenameRequest,
   UpdateParameterRequest,
   UpdateParameterVersionRequest,
 } from './types';
@@ -79,6 +85,27 @@ export const startUpdateComponentVersion =
           description, 'POST', `${baseURL(getState)}/parameters/files/`, data));
       dispatch(updateParameter(parameterComponent));
     };
+
+export const startRenameParameter = (data: RenameRequest) =>
+    async (dispatch: Dispatch, getState: () => RootState) => {
+  dispatch(formDialog.actions.closeForm(RENAME_PARAMETER_FORM));
+  // send the request
+  const description = `Rename parameter "${data.name}"`;
+  const parameterComponent = await dispatch(task.actions.runTask<Parameter>(
+      description, 'POST', `${baseURL(getState)}/parameters/files/`, data));
+  dispatch(updateParameter(parameterComponent));
+};
+
+export const startRenameDirectory = (data: RenameRequest) =>
+    async (dispatch: Dispatch, getState: () => RootState) => {
+  dispatch(formDialog.actions.closeForm(RENAME_DIRECTORY_FORM));
+  // send the request
+  const description = `Rename directory "${data.name}"`;
+  const directoryComponent =
+    await dispatch(task.actions.runTask<ParameterDirectory>(
+      description, 'POST', `${baseURL(getState)}/parameters/dirs/`, data));
+  dispatch(updateParameterDir(directoryComponent));
+};
 
 export const fetchParameters = () =>
     async (dispatch: Dispatch, getState: () => RootState) => {

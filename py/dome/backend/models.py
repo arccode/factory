@@ -843,9 +843,10 @@ class ParameterDirectory(object):
     self.name = name
 
   @staticmethod
-  def CreateOne(project_name, parent_id, name):
+  def CreateOne(project_name, id, parent_id, name):
+    # pylint: disable=redefined-builtin
     umpire_server = GetUmpireServer(project_name)
-    directory = umpire_server.CreateParameterDirectory(parent_id, name)
+    directory = umpire_server.UpdateParameterDirectory(id, parent_id, name)
     return ParameterDirectory(**directory)
 
   @staticmethod

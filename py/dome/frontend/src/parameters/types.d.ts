@@ -23,6 +23,11 @@ export interface UpdateParameterVersionRequest {
   usingVer: number;
 }
 
+export interface RenameRequest {
+  id: number;
+  name: string;
+}
+
 export interface Parameter {
   id: number;
   dirId: number | null;

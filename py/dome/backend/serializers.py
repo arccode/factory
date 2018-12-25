@@ -155,7 +155,6 @@ class ParameterComponentSerializer(serializers.Serializer):
 
 class ParameterDirectorySerializer(serializers.Serializer):
 
-  # TODO(hsinyi): id will be like component's id when rename feature is added.
   id = serializers.IntegerField(required=False)
   parent_id = serializers.IntegerField(required=False, allow_null=True)
   name = serializers.CharField()
@@ -163,6 +162,7 @@ class ParameterDirectorySerializer(serializers.Serializer):
   def create(self, validated_data):
     """Override parent's method."""
     project_name = validated_data.pop('project_name')
-    data = {'parent_id': validated_data.pop('parent_id'),
+    data = {'id': validated_data.pop('id', None),
+            'parent_id': validated_data.pop('parent_id', None),
             'name': validated_data.pop('name')}
     return ParameterDirectory.CreateOne(project_name, **data)

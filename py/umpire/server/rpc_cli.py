@@ -209,5 +209,5 @@ class CLICommand(umpire_rpc.UmpireRPC):
     return self.env.GetParameterInfo()
 
   @umpire_rpc.RPCCall
-  def CreateParameterDirectory(self, parent_id, name):
-    return self.env.CreateParameterDirectory(parent_id, name)
+  def UpdateParameterDirectory(self, dir_id, parent_id, name):
+    return self.env.UpdateParameterDirectory(dir_id, parent_id, name)

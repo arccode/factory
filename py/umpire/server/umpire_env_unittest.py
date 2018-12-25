@@ -124,12 +124,20 @@ class UmpireEnvTest(unittest.TestCase):
     self.assertRaises(common.UmpireError, self.env.UpdateParameterComponent,
                       0, None, 'w.sh', 10, None)
 
-  def testCreateParameterDirectory(self):
+  def testUpdateParameterDirectory(self):
     # Create directory
-    directory = self.env.CreateParameterDirectory(0, 'dir2')
+    directory = self.env.UpdateParameterDirectory(None, 0, 'dir2')
     self.assertEqual(directory, {
         'id': 2,
         'name': 'dir2',
+        'parent_id': 0
+    })
+
+    # Rename directory
+    directory = self.env.UpdateParameterDirectory(1, None, 'dir1.1')
+    self.assertEqual(directory, {
+        'id': 1,
+        'name': 'dir1.1',
         'parent_id': 0
     })
 

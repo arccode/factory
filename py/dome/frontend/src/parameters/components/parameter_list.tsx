@@ -19,8 +19,12 @@ import {
   withStyles,
   WithStyles,
 } from '@material-ui/core/styles';
+import Tooltip from '@material-ui/core/Tooltip';
 import Typography from '@material-ui/core/Typography';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
+import BorderColorIcon from '@material-ui/icons/BorderColor';
+import CloudUploadIcon from '@material-ui/icons/CloudUpload';
+import UpdateIcon from '@material-ui/icons/Update';
 import classNames from 'classnames';
 import React from 'react';
 import {connect} from 'react-redux';
@@ -32,19 +36,26 @@ import {thinScrollBarX} from '@common/styles';
 import {DispatchProps} from '@common/types';
 
 import {fetchParameters, startUpdateComponentVersion} from '../actions';
-import {UPDATE_PARAMETER_FORM} from '../constants';
+import {
+  RENAME_DIRECTORY_FORM,
+  RENAME_PARAMETER_FORM,
+  UPDATE_PARAMETER_FORM,
+} from '../constants';
 import {getParameterDirs, getParameters} from '../selector';
 import {Parameter} from '../types';
+
+import RenameDirectoryForm from './rename_directory_form';
+import RenameParameterForm from './rename_parameter_form';
 
 const styles = (theme: Theme) => createStyles({
   directoryTable: {
     display: 'grid',
-    gridTemplateColumns: 'auto',
+    gridTemplateColumns: '1fr auto',
     width: '100%',
   },
   componentTable: {
     display: 'grid',
-    gridTemplateColumns: '1fr auto auto',
+    gridTemplateColumns: '1fr auto auto auto',
     width: '100%',
   },
   revisionTable: {
@@ -67,7 +78,7 @@ const styles = (theme: Theme) => createStyles({
   },
   actionColumn: {
     justifyContent: 'center',
-    gridColumn: 'span 2',
+    gridColumn: 'span 3',
   },
   directoryLabel: {
     justifyContent: 'left',
@@ -124,6 +135,14 @@ class ParameterList extends
     this.setState({openedComponentId: null});
   }
 
+  handleRenameParameter = (compId: number) => {
+    this.props.renameParameter(compId, this.props.parameters[compId].name);
+  }
+
+  handleRenameDirectory = (dirId: number) => {
+    this.props.renameDirectory(dirId, this.props.parameterDirs[dirId].name);
+  }
+
   componentDidMount() {
     this.props.fetchParameters();
   }
@@ -145,14 +164,18 @@ class ParameterList extends
 
     const directoryTable = (
       <div className={classes.directoryTable}>
+        <RenameDirectoryForm />
         <div className={classNames(classes.cell, classes.padLeft)}>
           <Typography variant="caption">name</Typography>
+        </div>
+        <div className={classNames(classes.cell)}>
+          <Typography variant="caption">actions</Typography>
         </div>
         {parameterDirs
           .filter((dir) => dir.parentId === currentDirId)
           .map((parameterDir) => (
             <React.Fragment key={parameterDir.id}>
-              <div className={classes.cell}>
+              <div className={classNames(classes.cell, classes.padLeft)}>
                 <Button
                   classes={{root: classes.directoryLabel}}
                   fullWidth
@@ -161,12 +184,22 @@ class ParameterList extends
                   {parameterDir.name}
                 </Button>
               </div>
+              <div className={classes.cell}>
+                <Tooltip title="Rename">
+                  <IconButton
+                    onClick={() => this.handleRenameDirectory(parameterDir.id)}
+                  >
+                    <BorderColorIcon />
+                  </IconButton>
+                </Tooltip>
+              </div>
             </React.Fragment>
           ))}
       </div>);
 
     const componentTable = (
       <div className={classes.componentTable}>
+        <RenameParameterForm />
         <div className={classNames(classes.cell, classes.padLeft)}>
           <Typography variant="caption">name</Typography>
         </div>
@@ -181,17 +214,32 @@ class ParameterList extends
                 {parameter.name}
               </div>
               <div className={classes.cell}>
-                <Button onClick={() => this.handleClickVersion(parameter.id)}>
-                  Versions
-                </Button>
+                <Tooltip title="Rename">
+                  <IconButton
+                    onClick={() => this.handleRenameParameter(parameter.id)}
+                  >
+                    <BorderColorIcon />
+                  </IconButton>
+                </Tooltip>
               </div>
               <div className={classes.cell}>
-                <Button
-                  onClick={() => this.props.updateComponent(
-                    parameter.id, parameter.dirId, parameter.name, false)}
-                >
-                  Update
-                </Button>
+                <Tooltip title="Versions">
+                  <IconButton
+                    onClick={() => this.handleClickVersion(parameter.id)}
+                  >
+                    <UpdateIcon />
+                  </IconButton>
+                </Tooltip>
+              </div>
+              <div className={classes.cell}>
+                <Tooltip title="Update" className={classes.cell}>
+                  <IconButton
+                    onClick={() => this.props.updateComponent(
+                      parameter.id, parameter.dirId, parameter.name, false)}
+                  >
+                    <CloudUploadIcon />
+                  </IconButton>
+                </Tooltip>
               </div>
             </React.Fragment>
           ))}
@@ -304,6 +352,10 @@ const mapDispatchToProps = {
         UPDATE_PARAMETER_FORM, {id, dirId, name, multiple}),
   updateComponentVersion: (id: number, name: string, usingVer: number) =>
     startUpdateComponentVersion({id, name, usingVer}),
+  renameParameter: (id: number, name: string) =>
+    formDialog.actions.openForm(RENAME_PARAMETER_FORM, {id, name}),
+  renameDirectory: (id: number, name: string) =>
+    formDialog.actions.openForm(RENAME_DIRECTORY_FORM, {id, name}),
 };
 
 export default connect(mapStateToProps, mapDispatchToProps)(

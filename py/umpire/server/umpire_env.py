@@ -102,13 +102,17 @@ class Parameter(object):
     """Return component with given id."""
     return next((c for c in self.files if c['id'] == comp_id), None)
 
-  def _UpdateExistingComponent(self, component, using_ver, dst_path):
-    """Update existing component, including revision and update new version."""
+  def _FindDirectoryById(self, dir_id):
+    """Return directory with given id."""
+    return next((d for d in self.dirs if d['id'] == dir_id), None)
+
+  def _UpdateExistingComponent(self, component, rename, using_ver, dst_path):
+    """Update existing component: revision, update new version, and rename."""
+    if sum(attr is not None for attr in [rename, using_ver, dst_path]) > 1:
+      raise common.UmpireError(
+          'Intend to do multiple operations at the same time.')
     if dst_path:
       # update component to new version
-      if using_ver is not None:
-        raise common.UmpireError(
-            'Intend to update version and use old version at the same time.')
       version_count = len(component['revisions'])
       component['revisions'].append(dst_path)
       component['using_ver'] = version_count
@@ -118,9 +122,9 @@ class Parameter(object):
         raise common.UmpireError(
             'Intend to use invalid version of parameter %d.' % component['id'])
       component['using_ver'] = using_ver
-    else:
-      raise common.UmpireError('Unknown operation.')
-    # TODO(hsinyi): add rename component
+    elif rename is not None:
+      # rename component
+      component['name'] = rename
     return component
 
   def _CreateComponent(self, dir_id, comp_name, dst_path):
@@ -140,36 +144,55 @@ class Parameter(object):
     """See UmpireEnv.UpdateParameterComponent for detail"""
     if comp_id is not None:
       component = self._FindComponentById(comp_id)
-      return self._UpdateExistingComponent(component, using_ver, dst_path)
+      rename = comp_name if comp_name != component['name'] else None
+      if rename and self._FindComponentsByName(component['dir_id'], rename):
+        raise common.UmpireError('Intend to rename to existing component.')
+      return self._UpdateExistingComponent(component, rename, using_ver,
+                                           dst_path)
     else:
       # check if same name component already existed in same dir
       existed_comp = self._FindComponentsByName(dir_id, comp_name)
       if existed_comp:
         # create file but name existed in same dir, view as updating version
-        return self._UpdateExistingComponent(existed_comp[0], using_ver,
-                                             dst_path)
+        return self._UpdateExistingComponent(existed_comp[0], None,
+                                             using_ver, dst_path)
       else:
         if using_ver is not None:
           raise common.UmpireError(
               'Intend to create component but assigned using_ver.')
         return self._CreateComponent(dir_id, comp_name, dst_path)
 
-  def CreateDirectory(self, parent_id, name):
-    """See UmpireEnv.CreateParameterDirectory for detail."""
-    existed_dir = self._FindChildDirByName(parent_id, name)
-    if existed_dir is not None:
-      # create dir but name existed in parent dir, directly return
-      return existed_dir
+  def _UpdateExistingDirectory(self, directory, rename):
+    """Update existing directory: rename."""
+    if rename is not None:
+      directory['name'] = rename
+    return directory
 
+  def _CreateDirectory(self, parent_id, dir_name):
+    """Create new directory"""
     dir_id = len(self.dirs)
     new_dir = {
         'id': dir_id,
         'parent_id': parent_id,
-        'name': name
+        'name': dir_name
     }
     self.dirs.append(new_dir)
-    # TODO(hsinyi): add rename directory
     return new_dir
+
+  def UpdateDirectory(self, dir_id, parent_id, dir_name):
+    """See UmpireEnv.UpdateParameterDirectory for detail."""
+    if dir_id is not None:
+      directory = self._FindDirectoryById(dir_id)
+      rename = dir_name if dir_name != directory['name'] else None
+      if rename and self._FindChildDirByName(directory['parent_id'], rename):
+        raise common.UmpireError('Intend to rename to existing directory.')
+      return self._UpdateExistingDirectory(directory, rename)
+    else:
+      existed_dir = self._FindChildDirByName(parent_id, dir_name)
+      if existed_dir:
+        # create dir but name existed in parent dir, directly return
+        return existed_dir
+      return self._CreateDirectory(parent_id, dir_name)
 
   def _GetDirIdByNameSpace(self, namespace):
     """Retrieve directory by given namespace."""
@@ -547,12 +570,13 @@ class UmpireEnv(object):
       1) Create new component.
       2) Rollback component to existed version.
       3) Update component to new version.
+      4) Rename component.
 
     Args:
       comp_id: component id. None if intend to create a new component.
       dir_id: directory id where the component will be created.
               None if component is at root directory.
-      comp_name: component name.
+      comp_name: new component name.
       using_ver: file version component will use.
       src_path: uploaded file path.
 
@@ -589,18 +613,22 @@ class UmpireEnv(object):
     """
     return self.parameter.data
 
-  def CreateParameterDirectory(self, parent_id, name):
-    """Create a parameter directory.
+  def UpdateParameterDirectory(self, dir_id, parent_id, name):
+    """Update a parameter directory.
+
+    Support following types of actions:
+      1) Create new directory.
+      2) Rename directory.
 
     Args:
       parent_id: parent directory id where the dir will be created.
                  None if parent is root directory.
-      name: dir name.
+      name: new directory name.
 
     Returns:
-      Created directory dictionary and its index.
+      Updated directory dictionary.
     """
-    directory = self.parameter.CreateDirectory(parent_id, name)
+    directory = self.parameter.UpdateDirectory(dir_id, parent_id, name)
     self._DumpParameter()
     return directory
 
