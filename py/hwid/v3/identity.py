@@ -22,7 +22,7 @@ string which length is greater than 5.  The binary string contains 3 parts:
 
   1. The 1st (left most) digit is the `encoding_pattern_index`,
      which value can be either 0 or 1.
-  2. The 2ed to the 5th digits is a 4-bit big-endian integer of the `image_id`.
+  2. The 2nd to the 5th digits is a 4-bit big-endian integer of the `image_id`.
   3. The reset of the digits is called `components_bitset`.  A
      `components_bitset`  is an arbitrary binary string which ends with '1'.
      A `components_bitset` can be decoded into a set of installed components
@@ -46,13 +46,98 @@ from cros.factory.hwid.v3 import base8192
 from cros.factory.hwid.v3 import common
 
 
-_Converters = {
+_ENCODING_SCHEME_MAP = {
     common.ENCODING_SCHEME.base32: base32.Base32,
     common.ENCODING_SCHEME.base8192: base8192.Base8192
 }
 
 
 _HEADER_FORMAT_STR = '{0:01b}{1:0%db}' % common.IMAGE_ID_BIT_LENGTH
+
+
+class _IdentityConverter(object):
+  """Identity converter.
+
+  Identity can be represented by two ways:
+
+  1. key value pairs::
+      {
+        encoding_scheme,
+        project,
+        encoding_pattern_index,
+        image_id,
+        components_bitset,
+      }
+
+  2. key value pairs::
+      {
+        encoded_string,
+        encoding_scheme,
+      }
+
+  (1) and (2) should be an 1-to-1 mapping.
+  """
+  def __init__(self, base):
+    self._base = base
+
+  def FormatComponentsField(self, encoded_string):
+    """Insert dash to encoded components string"""
+    return '-'.join([encoded_string[idx:idx + self._base.DASH_INSERTION_WIDTH]
+                     for idx in xrange(0, len(encoded_string),
+                                       self._base.DASH_INSERTION_WIDTH)])
+
+  def EncodeComponentsBitset(self, encoding_pattern_index, image_id,
+                             components_bitset):
+    """Encode components bitset according to chosen scheme"""
+    binary_string = _HEADER_FORMAT_STR.format(
+        encoding_pattern_index, image_id) + components_bitset
+    binary_string += '0' * self._base.GetPaddingLength(len(binary_string))
+    return self._base.Encode(binary_string)
+
+  def DecodeComponentsFields(self, encoded_string):
+    """Decode encodeded components string to components bitset"""
+    binary_string = self._base.Decode(encoded_string).rstrip('0')
+
+    _VerifyPart(lambda val: len(val) > common.HEADER_BIT_LENGTH,
+                'binary_string', binary_string)
+
+    encoding_pattern_index = int(binary_string[0], 2)
+    image_id = int(binary_string[1:common.HEADER_BIT_LENGTH], 2)
+    components_bitset = binary_string[common.HEADER_BIT_LENGTH:]
+    return {
+        'encoding_pattern_index': encoding_pattern_index,
+        'image_id': image_id,
+        'components_bitset': components_bitset,
+    }
+
+  def GenerateEncodedString(self, project, encoding_pattern_index, image_id,
+                            components_bitset):
+    """Encode components fields and calculate checksum."""
+    encoded_components = self.EncodeComponentsBitset(encoding_pattern_index,
+                                                     image_id,
+                                                     components_bitset)
+    checksum = self._base.Checksum(' '.join([project, encoded_components]))
+    return ' '.join([project,
+                     self.FormatComponentsField(encoded_components + checksum)])
+
+  def DecodeEncodedString(self, encoded_string):
+    """Decode components fields and verify checksum."""
+    project, _, encoded_body_and_checksum = encoded_string.partition(' ')
+    encoded_body_and_checksum = encoded_body_and_checksum.replace('-', '')
+
+    checksum_size = self._base.ENCODED_CHECKSUM_SIZE
+    _VerifyPart(lambda val: len(val) > checksum_size,
+                'encoded_body+checksum', encoded_body_and_checksum)
+
+    encoded_body = encoded_body_and_checksum[:-checksum_size]
+    checksum = encoded_body_and_checksum[-checksum_size:]
+    _VerifyPart(
+        lambda val: val == self._base.Checksum(project + ' ' + encoded_body),
+        'checksum', checksum)
+
+    result_dict = self.DecodeComponentsFields(encoded_body)
+    result_dict['project'] = project
+    return result_dict
 
 
 def _VerifyPart(condition, part, value):
@@ -65,7 +150,7 @@ def _VerifyProjectPart(project):
 
 
 def _VerifyEncodingSchemePart(encoding_scheme):
-  _VerifyPart(lambda val: val in _Converters,
+  _VerifyPart(lambda val: val in _ENCODING_SCHEME_MAP,
               'encoding_scheme', encoding_scheme)
 
 
@@ -104,8 +189,8 @@ def GetImageIdFromEncodedString(encoded_string):
   _VerifyProjectPart(project)
   _VerifyPart(lambda val: len(val) > 2,
               'encoded_body+checksum', encoded_body_and_checksum)
-
-  return common.HEADER_ALPHABET.index(encoded_body_and_checksum[0]) & 0x0f
+  components_field = encoded_body_and_checksum.split()[-1]
+  return common.HEADER_ALPHABET.index(components_field[0]) & 0x0f
 
 
 class Identity(object):
@@ -118,6 +203,15 @@ class Identity(object):
     image_id: A integer of the image id.
     components_bitset: A binary string ends with '1'.
   """
+
+  __slots__ = [
+      'components_bitset',
+      'encoded_string',
+      'encoding_pattern_index',
+      'image_id',
+      'project',
+  ]
+
   def __init__(self, project, encoded_string, encoding_pattern_index, image_id,
                components_bitset):
     """Constructor.
@@ -132,17 +226,33 @@ class Identity(object):
     self.image_id = image_id
     self.components_bitset = components_bitset
 
-    self.binary_string = _HEADER_FORMAT_STR.format(
-        encoding_pattern_index, image_id) + components_bitset
+  @property
+  def binary_string(self):
+    return _HEADER_FORMAT_STR.format(
+        self.encoding_pattern_index, self.image_id) + self.components_bitset
 
   def __eq__(self, rhs):
-    return isinstance(rhs, Identity) and self.__dict__ == rhs.__dict__
+    return (isinstance(rhs, Identity) and
+            all(getattr(self, k) == getattr(rhs, k)
+                for k in self.__slots__))
 
   def __ne__(self, rhs):
     return not self.__eq__(rhs)
 
   def __repr__(self):
-    return 'Identity(%r)' % self.__dict__
+    return 'Identity(%r)' % {k: getattr(self, k) for k in self.__slots__}
+
+  @staticmethod
+  def Verify(encoding_scheme, project, encoding_pattern_index, image_id,
+             components_bitset):
+    _VerifyEncodingSchemePart(encoding_scheme)
+    _VerifyProjectPart(project)
+    _VerifyPart(lambda val: val in [0, 1],
+                'encoding_pattern_index', encoding_pattern_index)
+    _VerifyPart(lambda val: val in range(1 << common.IMAGE_ID_BIT_LENGTH),
+                'image_id', image_id)
+    _VerifyPart(lambda val: val and not set(val) - set('01') and val[-1] == '1',
+                'components_bitset', components_bitset)
 
   @staticmethod
   def GenerateFromBinaryString(encoding_scheme, project,
@@ -159,35 +269,18 @@ class Identity(object):
       project: A string of the Chromebook project name.
       encoding_pattern_index: An integer of the encode pattern index.
       image_id: An integer of the image id.
-      compoents_bitset: A binary string ends with '1'.
+      components_bitset: A binary string ends with '1'.
 
     Returns:
       An instance of Identity.
     """
-    _VerifyEncodingSchemePart(encoding_scheme)
-    converter = _Converters[encoding_scheme]
-
-    _VerifyProjectPart(project)
-    _VerifyPart(lambda val: val in [0, 1],
-                'encoding_pattern_index', encoding_pattern_index)
-    _VerifyPart(lambda val: val in range(1 << common.IMAGE_ID_BIT_LENGTH),
-                'image_id', image_id)
-    _VerifyPart(lambda val: val and not set(val) - set('01') and val[-1] == '1',
-                'components_bitset', components_bitset)
-
-    # Generate the binary string with paddings.
-    binary_string = _HEADER_FORMAT_STR.format(
-        encoding_pattern_index, image_id) + components_bitset
-    binary_string += '0' * converter.GetPaddingLength(len(binary_string))
-
-    encoded_body = converter.Encode(binary_string)
-    checksum = converter.Checksum(project + ' ' + encoded_body)
-    encoded_body_with_checksum = encoded_body + checksum
-    encoded_string = project + ' ' + '-'.join(
-        [encoded_body_with_checksum[idx:idx + converter.DASH_INSERTION_WIDTH]
-         for idx in xrange(0, len(encoded_body_with_checksum),
-                           converter.DASH_INSERTION_WIDTH)])
-
+    Identity.Verify(encoding_scheme, project, encoding_pattern_index, image_id,
+                    components_bitset)
+    converter = _IdentityConverter(_ENCODING_SCHEME_MAP[encoding_scheme])
+    encoded_string = converter.GenerateEncodedString(project,
+                                                     encoding_pattern_index,
+                                                     image_id,
+                                                     components_bitset)
     return Identity(project, encoded_string, encoding_pattern_index, image_id,
                     components_bitset)
 
@@ -206,29 +299,7 @@ class Identity(object):
       An instance of Identity.
     """
     _VerifyEncodingSchemePart(encoding_scheme)
-    converter = _Converters[encoding_scheme]
+    converter = _IdentityConverter(_ENCODING_SCHEME_MAP[encoding_scheme])
 
-    project, _, encoded_body_and_checksum = encoded_string.partition(' ')
-    _VerifyProjectPart(project)
-    encoded_body_and_checksum = encoded_body_and_checksum.replace('-', '')
-    _VerifyPart(lambda val: len(val) > converter.ENCODED_CHECKSUM_SIZE,
-                'encoded_body+checksum', encoded_body_and_checksum)
-    encoded_body = encoded_body_and_checksum[:-converter.ENCODED_CHECKSUM_SIZE]
-    checksum = encoded_body_and_checksum[-converter.ENCODED_CHECKSUM_SIZE:]
-
-    _VerifyPart(
-        lambda val: val == converter.Checksum(project + ' ' + encoded_body),
-        'checksum', checksum)
-
-    # Decode and remove the padding.
-    binary_string = converter.Decode(encoded_body).rstrip('0')
-
-    _VerifyPart(lambda val: len(val) > common.HEADER_BIT_LENGTH,
-                'binary_string', binary_string)
-
-    encoding_pattern_index = int(binary_string[0], 2)
-    image_id = int(binary_string[1:common.HEADER_BIT_LENGTH], 2)
-    components_bitset = binary_string[common.HEADER_BIT_LENGTH:]
-
-    return Identity(project, encoded_string, encoding_pattern_index, image_id,
-                    components_bitset)
+    return Identity(encoded_string=encoded_string,
+                    **converter.DecodeEncodedString(encoded_string))
