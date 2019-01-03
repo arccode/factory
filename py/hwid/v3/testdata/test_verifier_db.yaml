@@ -76,6 +76,34 @@ components:
         status: supported
         values: {unused_value: value_3}
 
+  dram:
+    items:
+      K4E6E304EC-EGCF_4096mb_0:
+        values:
+          part: K4E6E304EC-EGCF
+          size: '4096'
+          slot: '0'
+          timing: LPDDR3-800,LPDDR3-1066,LPDDR3-1333,LPDDR3-1600,LPDDR3-1866
+      K4E6E304EC-EGCF_4096mb_1:
+        values:
+          part: K4E6E304EC-EGCF
+          size: '4096'
+          slot: '1'
+          timing: LPDDR3-800,LPDDR3-1066,LPDDR3-1333,LPDDR3-1600,LPDDR3-1866
+
+  storage:
+    items:
+      KLMCG2KCTA-B041_0200000000000000:
+        values:
+          emmc5_fw_ver: 0200000000000000 (2)
+          hwrev: '0x0'
+          manfid: '0x000015'
+          name: CKTA42
+          oemid: '0x0100'
+          prv: '0x2'
+          sectors: '122142720'
+          type: MMC
+
   firmware_keys:
     items:
       firmware_keys_dev:

@@ -35,6 +35,8 @@ class GetImageIdFromEncodedStringTest(unittest.TestCase):
     self.assertEqual(0, identity.GetImageIdFromEncodedString('PROJ ACK'))
     self.assertEqual(1, identity.GetImageIdFromEncodedString('PROJ BCK'))
     self.assertEqual(2, identity.GetImageIdFromEncodedString('PROJ CCK'))
+    self.assertEqual(
+        2, identity.GetImageIdFromEncodedString('PROJ 0-8-40-0 CCK'))
 
   def testStringTooShort(self):
     self.assertRaises(
@@ -45,7 +47,7 @@ class GetImageIdFromEncodedStringTest(unittest.TestCase):
 
 class _Sample(dict):
   _ARGS = ['encoded_string', 'project', 'encoding_pattern_index', 'image_id',
-           'components_bitset', 'encoding_scheme']
+           'components_bitset', 'encoding_scheme', 'encoded_configless']
 
   def __init__(self, *args):
     super(_Sample, self).__init__({attr_name: args[idx]
@@ -53,10 +55,14 @@ class _Sample(dict):
 
 
 _SAMPLES = [
-    _Sample('PROJ ERVY-5O', 'PROJ', 0, 4, '100011010111', _BASE32),
-    _Sample('PROJ GR3L-QK4', 'PROJ', 0, 6, '1000111011010111', _BASE32),
-    _Sample('PROJ E6N-O42', 'PROJ', 0, 4, '100011010111', _BASE8192),
-    _Sample('PROJ G6O-29A-A8M', 'PROJ', 0, 6, '1000111011010111', _BASE8192)]
+    _Sample('PROJ ERVY-5O', 'PROJ', 0, 4, '100011010111', _BASE32, None),
+    _Sample('PROJ GR3L-QK4', 'PROJ', 0, 6, '1000111011010111', _BASE32, None),
+    _Sample('PROJ E6N-O42', 'PROJ', 0, 4, '100011010111', _BASE8192, None),
+    _Sample('PROJ G6O-29A-A8M', 'PROJ', 0, 6, '1000111011010111', _BASE8192,
+            None),
+    _Sample('PROJ 0-8-3A-80 G6O-29A-A5F', 'PROJ', 0, 6, '1000111011010111',
+            _BASE8192,
+            '0-8-3A-80')]
 
 class _IdentityGeneratorTestBase(object):
   NEEDED_ARGS = []
@@ -87,7 +93,7 @@ class _IdentityGeneratorTestBase(object):
 class IdentityGenerateFromBinaryStringTest(unittest.TestCase,
                                            _IdentityGeneratorTestBase):
   NEEDED_ARGS = ['encoding_scheme', 'project', 'encoding_pattern_index',
-                 'image_id', 'components_bitset']
+                 'image_id', 'components_bitset', 'encoded_configless']
 
   def GenerateIdentity(self, **kwargs):
     return Identity.GenerateFromBinaryString(**kwargs)

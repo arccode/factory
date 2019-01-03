@@ -19,6 +19,7 @@ import re
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
 from cros.factory.test.rules import phase
+from cros.factory.hwid.v3.configless_fields import ConfiglessFields
 
 
 def VerifyComponentStatus(database, bom, mode, current_phase=None):
@@ -173,3 +174,49 @@ def VerifyBOM(database, decoded_bom, probed_bom):
       raise common.HWIDException(
           'Component class %r ' % comp_cls + ' and '.join(err_msgs) +
           '.  Expected components are: %r' % probed_bom.components[comp_cls])
+
+
+def VerifyConfigless(database, decoded_configless, bom, device_info):
+  """Verifies that the configless dict decoded from the HWID identity matches
+  the one obtained by probing the device.
+
+  Args:
+    database: The Database object which records what components to check.
+    decoded_configless: The configless dict decoded from the the HWID identity.
+    bom: The BOM object generated from the probed results.
+    device_info: The device info object.
+
+  Raises:
+    HWIDException if the configless dict mismatch.
+  """
+  def _GetExtraComponents(comps1, comps2):
+    return list(set(comps1.keys()) - set(comps2.keys()))
+
+  if 'version' not in decoded_configless:
+    raise common.HWIDException('Configless dict lacks version field.')
+
+  encoded_configless = ConfiglessFields.Encode(database, bom, device_info,
+                                               decoded_configless['version'])
+  configless_fields = ConfiglessFields.Decode(encoded_configless)
+
+  err_msgs = []
+  extra_components = _GetExtraComponents(decoded_configless, configless_fields)
+  if extra_components:
+    err_msgs.append('has extra components: %r' % extra_components)
+
+  missing_components = _GetExtraComponents(configless_fields,
+                                           decoded_configless)
+  if missing_components:
+    err_msgs.append('is missing components: %r' % missing_components)
+
+  if err_msgs:
+    raise common.HWIDException('Configless dict ' + ' and '.join(err_msgs))
+
+  for field in configless_fields:
+    if configless_fields[field] != decoded_configless[field]:
+      err_msgs.append('%r should be %r (got %r)' % (field,
+                                                    configless_fields[field],
+                                                    decoded_configless[field]))
+
+  if err_msgs:
+    raise common.HWIDException('Configless field ' + ', '.join(err_msgs))

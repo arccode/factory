@@ -8,17 +8,19 @@ The identity for a Chromebook project is called HWID encoded strings.  The
 format of a HWID encoded string is
 
 ```
-<project_name> <encoded_body><encoded_checksum>
+<project_name> [<encoded_configless>] <encoded_components><encoded_checksum>
 ```
 
 For human readibility, it's allowed to insert some dash to seperate
-`<encoded_body><encoded_checksum>` into multiple parts, but the dash symbols
-will be ignored by the program.
+`<encoded_components><encoded_checksum>` into multiple parts, but the dash
+symbols will be ignored by the program.
 
 The `project_name` is a non-empty string of upper case alphanumeric.
-The `encoded_checksum` is the checksum of `<project_name> <encoded_body>`
-Given the encoding scheme, the `<encoded_body>` can be decoded into a binary
-string which length is greater than 5.  The binary string contains 3 parts:
+The `encoded_checksum` is the checksum of
+`<project_name> [<encoded_configless>] <encoded_components>`.
+Given the encoding scheme, the `<encoded_components>` can be decoded into a
+binary string which length is greater than 5.
+The binary string contains 3 parts:
 
   1. The 1st (left most) digit is the `encoding_pattern_index`,
      which value can be either 0 or 1.
@@ -34,8 +36,11 @@ For example, if the binary string is `0 0010 0111010101011`, then we have:
   2. `image_id` = 2
   3. `components_bitset` = '0111010101011'
 
-This package implements the encoding/decoding logic between the 3 parts of the
-binary string and the encoded string.
+If <encoded_configless> is given, the `<encoded_configless>` will be included to
+the HWID string. See configless_fields.py for details.
+
+This package implements the encoding/decoding logic between the binary string
+and the encoded string.
 """
 
 import re
@@ -67,6 +72,7 @@ class _IdentityConverter(object):
         encoding_pattern_index,
         image_id,
         components_bitset,
+        configless_fields,  # optional
       }
 
   2. key value pairs::
@@ -122,7 +128,8 @@ class _IdentityConverter(object):
 
   def DecodeEncodedString(self, encoded_string):
     """Decode components fields and verify checksum."""
-    project, _, encoded_body_and_checksum = encoded_string.partition(' ')
+    (project, unused_separator,
+     encoded_body_and_checksum) = encoded_string.partition(' ')
     encoded_body_and_checksum = encoded_body_and_checksum.replace('-', '')
 
     checksum_size = self._base.ENCODED_CHECKSUM_SIZE
@@ -139,6 +146,40 @@ class _IdentityConverter(object):
     result_dict['project'] = project
     return result_dict
 
+class _IdentityConverterWithConfiglessFields(_IdentityConverter):
+  def GenerateEncodedString(self, project, encoding_pattern_index, image_id,
+                            components_bitset, encoded_configless):
+    """"Generate encoded string with configless fields"""
+    encoded_components = self.EncodeComponentsBitset(encoding_pattern_index,
+                                                     image_id,
+                                                     components_bitset)
+    checksum = self._base.Checksum(' '.join([project, encoded_configless,
+                                             encoded_components]))
+    return ' '.join([project, encoded_configless,
+                     self.FormatComponentsField(encoded_components + checksum)])
+
+  def DecodeEncodedString(self, encoded_string):
+    """Decode components fields and verify checksum."""
+    (project, encoded_configless,
+     encoded_components_and_checksum) = encoded_string.split()
+    encoded_components_and_checksum = encoded_components_and_checksum.replace(
+        '-', '')
+
+    checksum_size = self._base.ENCODED_CHECKSUM_SIZE
+    _VerifyPart(lambda val: len(val) > checksum_size, 'encoded_body+checksum',
+                encoded_components_and_checksum)
+
+    checksum = encoded_components_and_checksum[-checksum_size:]
+    encoded_components = encoded_components_and_checksum[:-checksum_size]
+    _VerifyPart(
+        lambda val: val == self._base.Checksum(' '.join(
+            [project, encoded_configless, encoded_components])), 'checksum',
+        checksum)
+
+    result_dict = self.DecodeComponentsFields(encoded_components)
+    result_dict['project'] = project
+    result_dict['encoded_configless'] = encoded_configless
+    return result_dict
 
 def _VerifyPart(condition, part, value):
   if not condition(value):
@@ -185,7 +226,8 @@ def GetImageIdFromEncodedString(encoded_string):
   Returns:
     An integer of the image id.
   """
-  project, _, encoded_body_and_checksum = encoded_string.partition(' ')
+  (project, unused_separator,
+   encoded_body_and_checksum) = encoded_string.partition(' ')
   _VerifyProjectPart(project)
   _VerifyPart(lambda val: len(val) > 2,
               'encoded_body+checksum', encoded_body_and_checksum)
@@ -202,10 +244,13 @@ class Identity(object):
     encoding_pattern_index: A integer of the encode pattern index.
     image_id: A integer of the image id.
     components_bitset: A binary string ends with '1'.
+    encoded_configless: None or a string of encoded configless fields.
+
   """
 
   __slots__ = [
       'components_bitset',
+      'encoded_configless',
       'encoded_string',
       'encoding_pattern_index',
       'image_id',
@@ -213,7 +258,7 @@ class Identity(object):
   ]
 
   def __init__(self, project, encoded_string, encoding_pattern_index, image_id,
-               components_bitset):
+               components_bitset, encoded_configless=None):
     """Constructor.
 
     This constructor shouldn't be called by the user directly.  The user should
@@ -225,6 +270,7 @@ class Identity(object):
     self.encoding_pattern_index = encoding_pattern_index
     self.image_id = image_id
     self.components_bitset = components_bitset
+    self.encoded_configless = encoded_configless
 
   @property
   def binary_string(self):
@@ -257,7 +303,7 @@ class Identity(object):
   @staticmethod
   def GenerateFromBinaryString(encoding_scheme, project,
                                encoding_pattern_index, image_id,
-                               components_bitset):
+                               components_bitset, encoded_configless=None):
     """Generates an instance of Identity from the given 3 parts of the binary
     string.
 
@@ -270,19 +316,30 @@ class Identity(object):
       encoding_pattern_index: An integer of the encode pattern index.
       image_id: An integer of the image id.
       components_bitset: A binary string ends with '1'.
+      encoded_configless: None or a string of encoded configless fields.
 
     Returns:
       An instance of Identity.
     """
     Identity.Verify(encoding_scheme, project, encoding_pattern_index, image_id,
                     components_bitset)
+
     converter = _IdentityConverter(_ENCODING_SCHEME_MAP[encoding_scheme])
-    encoded_string = converter.GenerateEncodedString(project,
-                                                     encoding_pattern_index,
-                                                     image_id,
-                                                     components_bitset)
+    kwargs = {
+        'project': project,
+        'encoding_pattern_index': encoding_pattern_index,
+        'image_id': image_id,
+        'components_bitset': components_bitset,
+    }
+
+    if encoded_configless:
+      converter = _IdentityConverterWithConfiglessFields(
+          _ENCODING_SCHEME_MAP[encoding_scheme])
+      kwargs['encoded_configless'] = encoded_configless
+
+    encoded_string = converter.GenerateEncodedString(**kwargs)
     return Identity(project, encoded_string, encoding_pattern_index, image_id,
-                    components_bitset)
+                    components_bitset, encoded_configless)
 
   @staticmethod
   def GenerateFromEncodedString(encoding_scheme, encoded_string):
@@ -299,7 +356,11 @@ class Identity(object):
       An instance of Identity.
     """
     _VerifyEncodingSchemePart(encoding_scheme)
-    converter = _IdentityConverter(_ENCODING_SCHEME_MAP[encoding_scheme])
+    if len(encoded_string.split()) > 2:
+      converter = _IdentityConverterWithConfiglessFields(
+          _ENCODING_SCHEME_MAP[encoding_scheme])
+    else:
+      converter = _IdentityConverter(_ENCODING_SCHEME_MAP[encoding_scheme])
 
     return Identity(encoded_string=encoded_string,
                     **converter.DecodeEncodedString(encoded_string))

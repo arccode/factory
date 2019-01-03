@@ -14,6 +14,7 @@ from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import identity as identity_utils
 from cros.factory.hwid.v3.identity import Identity
 from cros.factory.hwid.v3.rule import Context
+from cros.factory.hwid.v3.configless_fields import ConfiglessFields
 from cros.factory.hwid.v3 import transformer
 from cros.factory.hwid.v3 import verifier
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
@@ -28,7 +29,8 @@ def _HWIDMode(rma_mode):
 
 
 def GenerateHWID(database, probed_results, device_info, vpd, rma_mode,
-                 allow_mismatched_components=False, use_name_match=False):
+                 with_configless_fields, allow_mismatched_components=False,
+                 use_name_match=False):
   """Generates a HWID v3 from the given data.
 
   The HWID is generated based on the given device info and a BOM object. If
@@ -45,6 +47,7 @@ def GenerateHWID(database, probed_results, device_info, vpd, rma_mode,
     vpd: A dict of RO and RW VPD values.  This argument should be set
         if some rules in the HWID database rely on the VPD values.
     rma_mode: Whether to verify components status in RMA mode.
+    with_configless_fields: Whether to include configless fields.
     allow_mismatched_components: Whether to allows some probed components to be
         ignored if no any component in the database matches with them.
     use_name_match: Use component name from probed results as matched component.
@@ -61,8 +64,11 @@ def GenerateHWID(database, probed_results, device_info, vpd, rma_mode,
       allow_mismatched_components, use_name_match)[0]
   verifier.VerifyComponentStatus(database, bom, hwid_mode)
 
-  identity = transformer.BOMToIdentity(database, bom)
+  encoded_configless = None
+  if with_configless_fields:
+    encoded_configless = ConfiglessFields.Encode(database, bom, device_info, 0)
 
+  identity = transformer.BOMToIdentity(database, bom, encoded_configless)
   return identity
 
 
@@ -74,14 +80,19 @@ def DecodeHWID(database, encoded_string):
     encoded_string: An encoded HWID string to test.
 
   Returns:
-    The corresponding Identity object of the given `encoded_string` and the
-        decoded BOM object.
+    The corresponding Identity object of the given `encoded_string`, the
+        decoded BOM object and decoded configless fields.
   """
   image_id = identity_utils.GetImageIdFromEncodedString(encoded_string)
   encoding_scheme = database.GetEncodingScheme(image_id)
   identity = Identity.GenerateFromEncodedString(encoding_scheme, encoded_string)
   bom = transformer.IdentityToBOM(database, identity)
-  return identity, bom
+
+  configless_fields = None
+  if identity.encoded_configless:
+    configless_fields = ConfiglessFields.Decode(identity.encoded_configless)
+
+  return identity, bom, configless_fields
 
 
 def VerifyHWID(database, encoded_string,
@@ -129,12 +140,16 @@ def VerifyHWID(database, encoded_string,
       database, probed_results, device_info, vpd, hwid_mode,
       allow_mismatched_components)[0]
 
-  decoded_bom = DecodeHWID(database, encoded_string)[1]
+  unused_identity, decoded_bom, decoded_configless = DecodeHWID(
+      database, encoded_string)
 
   verifier.VerifyBOM(database, decoded_bom, probed_bom)
   verifier.VerifyComponentStatus(
       database, decoded_bom, hwid_mode, current_phase=current_phase)
   verifier.VerifyPhase(database, decoded_bom, current_phase)
+  if decoded_configless:
+    verifier.VerifyConfigless(
+        database, decoded_configless, probed_bom, device_info)
 
   context = Context(
       database=database, bom=decoded_bom, mode=hwid_mode, vpd=vpd)

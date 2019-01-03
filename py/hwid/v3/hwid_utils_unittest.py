@@ -23,6 +23,8 @@ _TEST_PROBED_RESULTS_PATH = os.path.join(
 
 _TEST_ENCODED_STRING_GOOD = 'CHROMEBOOK B9M-A6P'
 
+_TEST_ENCODED_STRING_WITH_CONFIGLESS_GOOD = 'CHROMEBOOK 0-8-3A-00 B9M-A4P'
+
 _TEST_ENCODED_STRING_BATTERY_UNSUPPORTED = 'CHROMEBOOK B3M-A4Z'
 
 _TEST_ENCODED_STRING_FIRMWARE_KEYS_PREMP = 'CHROMEBOOK B8M-A7Y'
@@ -46,32 +48,72 @@ class _HWIDTestCaseBase(unittest.TestCase):
 class GenerateHWIDTest(_HWIDTestCaseBase):
   def testNormal(self):
     identity = hwid_utils.GenerateHWID(
-        self.database, self.probed_results, {}, {}, False)
+        self.database, self.probed_results, {}, {}, False, False, None)
     self.assertEquals(identity.encoded_string, _TEST_ENCODED_STRING_GOOD)
+
+  def testWithConfigless(self):
+    identity = hwid_utils.GenerateHWID(
+        self.database, self.probed_results, {}, {}, False, True, 'BRAND')
+    self.assertEquals(identity.encoded_string,
+                      _TEST_ENCODED_STRING_WITH_CONFIGLESS_GOOD)
 
   def testBadComponentStatus(self):
     # The function should also verify if all the component status are valid.
     self.probed_results['battery'] = [{'name': 'battery_unsupported',
                                        'values': {'size': '1'}}]
     self.assertRaises(common.HWIDException, hwid_utils.GenerateHWID,
-                      self.database, self.probed_results, {}, {}, False)
+                      self.database, self.probed_results, {}, {}, False, False,
+                      None)
 
 
 class DecodeHWIDTest(_HWIDTestCaseBase):
   def testNormal(self):
-    identity, bom = hwid_utils.DecodeHWID(
+    identity, bom, configless = hwid_utils.DecodeHWID(
         self.database, _TEST_ENCODED_STRING_FIRMWARE_KEYS_PREMP)
 
     self.assertEquals(identity.encoded_string,
                       _TEST_ENCODED_STRING_FIRMWARE_KEYS_PREMP)
     self.assertBOMEquals(bom, BOM(0, 1, {'battery': ['battery_supported'] * 2,
+                                         'storage': [],
+                                         'dram': [],
                                          'firmware_keys': ['key_premp'],
                                          'region': ['tw']}))
+    self.assertEquals(configless, None)
 
+  def testWithConfigless(self):
+    identity, bom, configless = hwid_utils.DecodeHWID(
+        self.database, _TEST_ENCODED_STRING_WITH_CONFIGLESS_GOOD)
+
+    self.assertEquals(identity.encoded_string,
+                      _TEST_ENCODED_STRING_WITH_CONFIGLESS_GOOD)
+    self.assertBOMEquals(bom, BOM(0, 1, {'battery': ['battery_supported'] * 2,
+                                         'storage': [],
+                                         'dram': [],
+                                         'firmware_keys': ['key_mp'],
+                                         'region': ['tw']}))
+    self.assertEquals(configless, {'version': 0,
+                                   'memory': 8,
+                                   'storage': 58,
+                                   'feature_list': {
+                                       'has_touchscreen': 0,
+                                       'has_touchpad': 0,
+                                       'has_stylus': 0,
+                                       'has_front_camera': 0,
+                                       'has_rear_camera': 0,
+                                       'has_fingerprint': 0,
+                                       'is_convertible': 0,
+                                       'is_rma_device': 0}})
 
 class VerifyHWIDTest(_HWIDTestCaseBase):
   def testNormal(self):
     hwid_utils.VerifyHWID(self.database, _TEST_ENCODED_STRING_GOOD,
+                          self.probed_results, {}, {},
+                          False, current_phase='PVT',
+                          allow_mismatched_components=False)
+
+  def testWithConfigless(self):
+    hwid_utils.VerifyHWID(self.database,
+                          _TEST_ENCODED_STRING_WITH_CONFIGLESS_GOOD,
                           self.probed_results, {}, {},
                           False, current_phase='PVT',
                           allow_mismatched_components=False)

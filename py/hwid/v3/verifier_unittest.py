@@ -183,5 +183,119 @@ class VerifyBOMTest(unittest.TestCase):
                       self.database, self.decoded_bom, probed_bom)
 
 
+class VerifyConfiglessTest(unittest.TestCase):
+  def setUp(self):
+    self.database = Database.LoadFile(_TEST_DATABASE_PATH,
+                                      verify_checksum=False)
+    self.probed_bom = BOM(
+        encoding_pattern_index=0, image_id=0, components={
+            'storage': ['KLMCG2KCTA-B041_0200000000000000'],
+            'dram': ['K4E6E304EC-EGCF_4096mb_0', 'K4E6E304EC-EGCF_4096mb_1']})
+
+    self.device_info = {
+        'component': {
+            'has_touchscreen': True
+        }
+    }
+
+  def testPass(self):
+    decoded_configless = {
+        'version': 0,
+        'memory': 8,
+        'storage': 58,
+        'feature_list': {
+            'has_touchscreen': 1,
+            'has_touchpad': 0,
+            'has_stylus': 0,
+            'has_front_camera': 0,
+            'has_rear_camera': 0,
+            'has_fingerprint': 0,
+            'is_convertible': 0,
+            'is_rma_device': 0
+        }
+    }
+    verifier.VerifyConfigless(self.database, decoded_configless,
+                              self.probed_bom, self.device_info)
+
+  def testLacksVersionField(self):
+    decoded_configless = {
+        'memory': 8,
+        'storage': 58,
+        'feature_list': {
+            'has_touchscreen': 1,
+            'has_touchpad': 0,
+            'has_stylus': 0,
+            'has_front_camera': 0,
+            'has_rear_camera': 0,
+            'has_fingerprint': 0,
+            'is_convertible': 0,
+            'is_rma_device': 0
+        }
+    }
+    self.assertRaises(common.HWIDException, verifier.VerifyConfigless,
+                      self.database, decoded_configless, self.probed_bom,
+                      self.device_info)
+
+  def testHasExtraComponents(self):
+    decoded_configless = {
+        'version': 0,
+        'memory': 8,
+        'storage': 58,
+        'feature_list': {
+            'has_touchscreen': 1,
+            'has_touchpad': 0,
+            'has_stylus': 0,
+            'has_front_camera': 0,
+            'has_rear_camera': 0,
+            'has_fingerprint': 0,
+            'is_convertible': 0,
+            'is_rma_device': 0,
+            'is_detachable': 0
+        }
+    }
+    self.assertRaises(common.HWIDException, verifier.VerifyConfigless,
+                      self.database, decoded_configless, self.probed_bom,
+                      self.device_info)
+
+  def testIsMissingComponents(self):
+    decoded_configless = {
+        'version': 0,
+        'memory': 8,
+        'storage': 58,
+        'feature_list': {
+            'has_touchpad': 0,
+            'has_stylus': 0,
+            'has_front_camera': 0,
+            'has_rear_camera': 0,
+            'has_fingerprint': 0,
+            'is_convertible': 0,
+            'is_rma_device': 0
+        }
+    }
+    self.assertRaises(common.HWIDException, verifier.VerifyConfigless,
+                      self.database, decoded_configless, self.probed_bom,
+                      self.device_info)
+
+  def testMisMatch(self):
+    decoded_configless = {
+        'version': 0,
+        'memory': 4,
+        'storage': 64,
+        'feature_list': {
+            'has_touchscreen': 0,
+            'has_touchpad': 0,
+            'has_stylus': 0,
+            'has_front_camera': 0,
+            'has_rear_camera': 0,
+            'has_fingerprint': 1,
+            'is_convertible': 0,
+            'is_rma_device': 0
+        }
+    }
+    self.assertRaises(common.HWIDException, verifier.VerifyConfigless,
+                      self.database, decoded_configless, self.probed_bom,
+                      self.device_info)
+
+
 if __name__ == '__main__':
   unittest.main()

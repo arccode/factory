@@ -235,14 +235,16 @@ def UpdateDatabaseWrapper(options):
                 'component in the database matches with them.'),
     CmdArg('--use-name-match', action='store_true',
            help='Use component name from probed results as matched component.'),
+    CmdArg('--with-configless-fields', action='store_true',
+           help='Include the configless field.'),
     *(_OUTPUT_FORMAT_COMMON_ARGS + _DEVICE_DATA_COMMON_ARGS + _RMA_COMMON_ARGS))
 def GenerateHWIDWrapper(options):
   """Generates HWID."""
   device_data = ObtainAllDeviceData(options)
 
   identity = hwid_utils.GenerateHWID(
-      options.database, device_data.probed_results,
-      device_data.device_info, device_data.vpd, options.rma_mode,
+      options.database, device_data.probed_results, device_data.device_info,
+      device_data.vpd, options.rma_mode, options.with_configless_fields,
       allow_mismatched_components=options.allow_mismatched_components,
       use_name_match=options.use_name_match)
 
@@ -259,13 +261,15 @@ def GenerateHWIDWrapper(options):
 def DecodeHWIDWrapper(options):
   """Decodes HWID."""
   encoded_string = options.hwid if options.hwid else GetHWIDString()
-  identity, bom = hwid_utils.DecodeHWID(options.database, encoded_string)
+  identity, bom, configless = hwid_utils.DecodeHWID(options.database,
+                                                    encoded_string)
 
   OutputObject(options,
                {'project': identity.project,
                 'binary_string': identity.binary_string,
                 'image_id': bom.image_id,
-                'components': bom.components})
+                'components': bom.components,
+                'configless': configless})
 
 
 @Command(

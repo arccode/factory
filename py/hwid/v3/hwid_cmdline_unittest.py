@@ -155,7 +155,7 @@ class GenerateHWIDWrapperTest(TestCaseBaseWithMockedOutputObject):
     generate_hwid_mock.assert_called_once_with(
         options.database, device_data.probed_results,
         device_data.device_info, device_data.vpd,
-        options.rma_mode,
+        options.rma_mode, options.with_configless_fields,
         allow_mismatched_components=options.allow_mismatched_components,
         use_name_match=options.use_name_match)
 
@@ -169,20 +169,22 @@ class GenerateHWIDWrapperTest(TestCaseBaseWithMockedOutputObject):
 
 class DecodeHWIDWrapperTest(TestCaseBaseWithMockedOutputObject):
   @mock.patch('cros.factory.hwid.v3.hwid_utils.DecodeHWID',
-              return_value=(mock.MagicMock(), mock.MagicMock()))
+              return_value=(mock.MagicMock(), mock.MagicMock(),
+                            mock.MagicMock()))
   def testNormal(self, decode_hwid_mock):
     options = mock.MagicMock()
     hwid_cmdline.DecodeHWIDWrapper(options)
 
     decode_hwid_mock.assert_called_once_with(options.database, options.hwid)
-    identity, bom = decode_hwid_mock.return_value
+    identity, bom, configless = decode_hwid_mock.return_value
 
     hwid_cmdline.OutputObject.assert_called_once_with(
         options,
         {'project': identity.project,
          'binary_string': identity.binary_string,
          'image_id': bom.image_id,
-         'components': bom.components})
+         'components': bom.components,
+         'configless': configless})
 
 
 class VerifyHWIDWrapperTest(TestCaseBaseWithFakeOutput):
