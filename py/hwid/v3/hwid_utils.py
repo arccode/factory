@@ -29,8 +29,8 @@ def _HWIDMode(rma_mode):
 
 
 def GenerateHWID(database, probed_results, device_info, vpd, rma_mode,
-                 with_configless_fields, allow_mismatched_components=False,
-                 use_name_match=False):
+                 with_configless_fields, brand_code,
+                 allow_mismatched_components=False, use_name_match=False):
   """Generates a HWID v3 from the given data.
 
   The HWID is generated based on the given device info and a BOM object. If
@@ -48,6 +48,7 @@ def GenerateHWID(database, probed_results, device_info, vpd, rma_mode,
         if some rules in the HWID database rely on the VPD values.
     rma_mode: Whether to verify components status in RMA mode.
     with_configless_fields: Whether to include configless fields.
+    brand_code: None or a string of Chromebook brand code.
     allow_mismatched_components: Whether to allows some probed components to be
         ignored if no any component in the database matches with them.
     use_name_match: Use component name from probed results as matched component.
@@ -68,7 +69,8 @@ def GenerateHWID(database, probed_results, device_info, vpd, rma_mode,
   if with_configless_fields:
     encoded_configless = ConfiglessFields.Encode(database, bom, device_info, 0)
 
-  identity = transformer.BOMToIdentity(database, bom, encoded_configless)
+  identity = transformer.BOMToIdentity(database, bom, brand_code,
+                                       encoded_configless)
   return identity
 
 
@@ -380,6 +382,28 @@ def ProbeProject():
   return cros_board_utils.BuildBoard().short_name
 
 
+def ProbeBrandCode():
+  """Probes the brand code.
+
+  This function will run the command `mosys platform brand` to get the brand
+  code.
+
+  Returns:
+    The probed brand code as a string.
+  """
+  from cros.factory.utils import process_utils
+  from cros.factory.utils import sys_utils
+
+  if sys_utils.InChroot():
+    raise ValueError('Cannot probe brand code in chroot. Please use '
+                     '--brand-code to specify brand code.')
+
+  brand_code = process_utils.CheckOutput(
+      ['mosys', 'platform', 'brand']).strip().lower()
+
+  return brand_code
+
+
 _DEFAULT_DATA_PATH = None
 
 def GetDefaultDataPath():
@@ -410,3 +434,8 @@ def GetHWIDBundleName(project=None):
   """
   project = project or ProbeProject()
   return 'hwid_v3_bundle_%s.sh' % project.upper()
+
+
+def GetBrandCode(brand_code=None):
+  brand_code = brand_code or ProbeBrandCode()
+  return brand_code.upper()

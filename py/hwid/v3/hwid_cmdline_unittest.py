@@ -156,6 +156,7 @@ class GenerateHWIDWrapperTest(TestCaseBaseWithMockedOutputObject):
         options.database, device_data.probed_results,
         device_data.device_info, device_data.vpd,
         options.rma_mode, options.with_configless_fields,
+        options.brand_code,
         allow_mismatched_components=options.allow_mismatched_components,
         use_name_match=options.use_name_match)
 
@@ -184,6 +185,7 @@ class DecodeHWIDWrapperTest(TestCaseBaseWithMockedOutputObject):
          'binary_string': identity.binary_string,
          'image_id': bom.image_id,
          'components': bom.components,
+         'brand_code': identity.brand_code,
          'configless': configless})
 
 

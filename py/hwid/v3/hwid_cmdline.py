@@ -237,6 +237,8 @@ def UpdateDatabaseWrapper(options):
            help='Use component name from probed results as matched component.'),
     CmdArg('--with-configless-fields', action='store_true',
            help='Include the configless field.'),
+    CmdArg('--brand-code', default=None,
+           help='Device brand code for configless format.'),
     *(_OUTPUT_FORMAT_COMMON_ARGS + _DEVICE_DATA_COMMON_ARGS + _RMA_COMMON_ARGS))
 def GenerateHWIDWrapper(options):
   """Generates HWID."""
@@ -245,6 +247,7 @@ def GenerateHWIDWrapper(options):
   identity = hwid_utils.GenerateHWID(
       options.database, device_data.probed_results, device_data.device_info,
       device_data.vpd, options.rma_mode, options.with_configless_fields,
+      options.brand_code,
       allow_mismatched_components=options.allow_mismatched_components,
       use_name_match=options.use_name_match)
 
@@ -269,6 +272,7 @@ def DecodeHWIDWrapper(options):
                 'binary_string': identity.binary_string,
                 'image_id': bom.image_id,
                 'components': bom.components,
+                'brand_code': identity.brand_code,
                 'configless': configless})
 
 
@@ -429,6 +433,10 @@ def InitializeDefaultOptions(options):
       verify_checksum=(not options.no_verify_checksum))
 
   phase.OverridePhase(options.phase)
+
+  # Get brand code if generate hwid with configless fields.
+  if options.command_name == 'generate' and options.with_configless_fields:
+    options.brand_code = hwid_utils.GetBrandCode(options.brand_code)
 
 
 def Main():

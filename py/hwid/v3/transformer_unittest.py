@@ -25,33 +25,33 @@ class _TransformerTestBase(unittest.TestCase):
     self.test_data = [
         # Simplest case.
         ('001', BOM(0, 0, dict(cpu=['cpu_0'], audio=[], video=[], battery=[])),
-         None),
+         None, None),
 
         # battery_field is 0.
         ('0001', BOM(0, 2, dict(cpu=['cpu_0'], audio=[], video=[],
-                                battery=['battery_0'])), None),
+                                battery=['battery_0'])), None, None),
 
         # battery_field is 2.
         ('00000000101', BOM(0, 3, dict(cpu=['cpu_0'], audio=[], video=[],
-                                       battery=['battery_2'] * 2)), None),
+                                       battery=['battery_2'] * 2)), None, None),
 
         # audio_and_video_field is 2
         ('1001', BOM(0, 2, dict(cpu=['cpu_0'], audio=['audio_1', 'audio_0'],
-                                video=[], battery=['battery_0'])), None),
+                                video=[], battery=['battery_0'])), None, None),
 
         # audio_and_video_field is 4
         ('00000100001', BOM(0, 3, dict(cpu=['cpu_0'], audio=['audio_0'],
                                        video=['video_0'],
-                                       battery=['battery_0'])), None),
+                                       battery=['battery_0'])), None, None),
 
         # audio_and_video_field is 7, battery_field is 2
         ('00000111101', BOM(0, 3, dict(cpu=['cpu_0'],
                                        audio=['audio_0'],
                                        video=['video_0', 'video_1'],
-                                       battery=['battery_2'] * 2)), None),
+                                       battery=['battery_2'] * 2)), None, None),
         # with configless fields
         ('001', BOM(0, 0, dict(cpu=['cpu_0'], audio=[], video=[], battery=[])),
-         '0-8-74-80')]
+         'BRAND', '0-8-74-80')]
 
 
 class BOMToIdentityTest(_TransformerTestBase):
@@ -76,21 +76,24 @@ class BOMToIdentityTest(_TransformerTestBase):
                       transformer.BOMToIdentity, self.database, bom)
 
   def testNormal(self):
-    def _VerifyTransformer(components_bitset, bom, encoded_configless):
-      identity = transformer.BOMToIdentity(self.database, bom,
+    def _VerifyTransformer(components_bitset, bom, brand_code,
+                           encoded_configless):
+      identity = transformer.BOMToIdentity(self.database, bom, brand_code,
                                            encoded_configless)
       self.assertEqual(identity.project, 'CHROMEBOOK')
       self.assertEqual(identity.encoding_pattern_index, 0)
       self.assertEqual(identity.image_id, bom.image_id)
       self.assertEqual(identity.components_bitset, components_bitset)
+      self.assertEqual(identity.brand_code, brand_code)
       self.assertEqual(identity.encoded_configless, encoded_configless)
 
-    for components_bitset, bom, encoded_configless in self.test_data:
-      _VerifyTransformer(components_bitset, bom, encoded_configless)
+    for (components_bitset, bom, brand_code,
+         encoded_configless) in self.test_data:
+      _VerifyTransformer(components_bitset, bom, brand_code, encoded_configless)
 
       # Extra components shouldn't fail the transformer.
       bom.SetComponent('cool', 'meow')
-      _VerifyTransformer(components_bitset, bom, encoded_configless)
+      _VerifyTransformer(components_bitset, bom, None, None)
 
 
 class IdentityToBOMTest(_TransformerTestBase):
@@ -98,7 +101,7 @@ class IdentityToBOMTest(_TransformerTestBase):
                                     encoding_scheme=None, project=None,
                                     encoding_pattern_index=None,
                                     image_id=None, components_bitset=None,
-                                    encoded_configless=None):
+                                    brand_code=None, encoded_configless=None):
     test_data = self.test_data[test_data_idx]
 
     project = project or self.database.project
@@ -110,11 +113,12 @@ class IdentityToBOMTest(_TransformerTestBase):
     encoding_scheme = (
         encoding_scheme or self.database.GetEncodingScheme(image_id))
 
-    encoded_configless = encoded_configless or test_data[2]
+    brand_code = brand_code or test_data[2]
+    encoded_configless = encoded_configless or test_data[3]
 
     return Identity.GenerateFromBinaryString(
         encoding_scheme, project, encoding_pattern_index, image_id,
-        components_bitset, encoded_configless)
+        components_bitset, brand_code, encoded_configless)
 
   def testInvalidEncodingScheme(self):
     identity = self._GenerateIdentityFromTestData(0, encoding_scheme='base8192')

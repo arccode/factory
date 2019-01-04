@@ -23,7 +23,7 @@ _TEST_PROBED_RESULTS_PATH = os.path.join(
 
 _TEST_ENCODED_STRING_GOOD = 'CHROMEBOOK B9M-A6P'
 
-_TEST_ENCODED_STRING_WITH_CONFIGLESS_GOOD = 'CHROMEBOOK 0-8-3A-00 B9M-A4P'
+_TEST_ENCODED_STRING_WITH_CONFIGLESS_GOOD = 'CHROMEBOOK-BRAND 0-8-3A-00 B9M-A2N'
 
 _TEST_ENCODED_STRING_BATTERY_UNSUPPORTED = 'CHROMEBOOK B3M-A4Z'
 
@@ -78,6 +78,7 @@ class DecodeHWIDTest(_HWIDTestCaseBase):
                                          'dram': [],
                                          'firmware_keys': ['key_premp'],
                                          'region': ['tw']}))
+    self.assertEquals(identity.brand_code, None)
     self.assertEquals(configless, None)
 
   def testWithConfigless(self):
@@ -91,6 +92,7 @@ class DecodeHWIDTest(_HWIDTestCaseBase):
                                          'dram': [],
                                          'firmware_keys': ['key_mp'],
                                          'region': ['tw']}))
+    self.assertEquals(identity.brand_code, 'BRAND')
     self.assertEquals(configless, {'version': 0,
                                    'memory': 8,
                                    'storage': 58,

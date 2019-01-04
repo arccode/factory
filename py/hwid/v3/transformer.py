@@ -10,13 +10,14 @@ from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.identity import Identity
 
 
-def BOMToIdentity(database, bom, encoded_configless=None):
+def BOMToIdentity(database, bom, brand_code=None, encoded_configless=None):
   """Encodes the given BOM object to a binary string.
 
   Args:
     database: A Database object that is used to provide device-specific
         information for encoding.
     bom: A BOM object to be decoded.
+    brand_code: None or a string of Chromebook brand code.
     encoded_configless: None or a string of encoded configless fields.
 
   Returns:
@@ -62,7 +63,7 @@ def BOMToIdentity(database, bom, encoded_configless=None):
   return Identity.GenerateFromBinaryString(
       database.GetEncodingScheme(bom.image_id), database.project,
       bom.encoding_pattern_index, bom.image_id, components_bitset,
-      encoded_configless)
+      brand_code, encoded_configless)
 
 
 def IdentityToBOM(database, identity):
