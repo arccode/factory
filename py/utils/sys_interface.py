@@ -120,6 +120,11 @@ class SystemInterface(object):
             log=False):
     """Executes a command on target device using subprocess.Popen convention.
 
+    Compare to `subprocess.Popen`, the argument `shell=True/False` is not
+    available for this function.  When `command` is a list, it treats each
+    item as a command to be invoked.  When `command` is a string, it treats
+    the string as a shell script to invoke.
+
     Args:
       command: A string or a list of strings for command to execute.
       stdin: A file object to override standard input.

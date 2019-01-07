@@ -66,7 +66,7 @@ class CommandVPDPartition(Partition):
     """
     super(CommandVPDPartition, self).__init__(dut)
     self.name = name
-    shell_func = functools.partial(gooftool_common.Shell, popen=dut.Popen)
+    shell_func = functools.partial(gooftool_common.Shell, sys_interface=dut)
     self._vpd_tool = vpd.VPDTool(shell_func)
 
   def get(self, key, default=None):

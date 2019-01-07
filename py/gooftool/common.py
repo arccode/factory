@@ -19,7 +19,7 @@ from cros.factory.utils.type_utils import Obj
 
 
 # TODO(hungte) Deprecate this by dut.Shell
-def Shell(cmd, stdin=None, log=True, popen=None):
+def Shell(cmd, stdin=None, log=True, sys_interface=None):
   """Run cmd in a shell, return Obj containing stdout, stderr, and status.
 
   The cmd stdout and stderr output is debug-logged.
@@ -30,10 +30,12 @@ def Shell(cmd, stdin=None, log=True, popen=None):
     stdin: String that will be passed as stdin to the command.
     log: log command and result.
   """
-  popen = popen or Popen
   if not isinstance(cmd, basestring):
     cmd = ' '.join(pipes.quote(param) for param in cmd)
-  process = popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+  if sys_interface is None:
+    process = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+  else:
+    process = sys_interface.Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
   stdout, stderr = process.communicate(input=stdin)
   if log:
     logging.debug('running %s' % repr(cmd) +
