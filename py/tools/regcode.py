@@ -98,7 +98,10 @@ def GenerateDummy(options):
     CmdArg(
         '--project', '-b', metavar='PROJECT',
         help=('Project to check (default: probed project name if run on DUT; '
-              'board name in .default_board if in chroot)')))
+              'board name in .default_board if in chroot)')),
+    CmdArg(
+        '--allow_dummy', action='store_true',
+        help='Allow dummy regcode (regcode containing "__TESTING__")'))
 def Check(options):
   if not options.project:
     if sys_utils.InChroot():
@@ -131,7 +134,8 @@ def Check(options):
         sys.exit(1)
 
     try:
-      registration_codes.CheckRegistrationCode(code, code_type, options.project)
+      registration_codes.CheckRegistrationCode(code, code_type, options.project,
+                                               options.allow_dummy)
       logging.info('%s: success', code_type)
     except registration_codes.RegistrationCodeException as e:
       success = False

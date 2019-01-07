@@ -385,6 +385,7 @@ class Gooftool(object):
     CheckVPDFields(
         'RO', ro_vpd, vpd_data.REQUIRED_RO_DATA, vpd_data.KNOWN_RO_DATA,
         vpd_data.KNOWN_RO_DATA_RE)
+
     CheckVPDFields(
         'RW', rw_vpd, vpd_data.REQUIRED_RW_DATA, vpd_data.KNOWN_RW_DATA,
         vpd_data.KNOWN_RW_DATA_RE)
@@ -398,8 +399,10 @@ class Gooftool(object):
       vpd_field_name = type_prefix[0].lower() + 'bind_attribute'
       type_name = getattr(RegistrationCode.Type, type_prefix + '_CODE')
       try:
+        # RegCode should be ready since PVT
         registration_codes.CheckRegistrationCode(
-            rw_vpd[vpd_field_name], type=type_name, device=self._project)
+            rw_vpd[vpd_field_name], type=type_name, device=self._project,
+            allow_dummy=(phase.GetPhase() < phase.PVT_DOGFOOD))
       except registration_codes.RegistrationCodeException as e:
         raise ValueError('%s is invalid: %r' % (vpd_field_name, e))
 

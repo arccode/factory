@@ -174,6 +174,18 @@ class RegistrationCodeTest(unittest.TestCase):
                             'Invalid registration code',
                             CheckRegistrationCode, 'abcde')
 
+  def testCheckRegistrationCode_Dummy(self):
+    dummy_code = ('=Ci0KIP______TESTING________ijuWNtKM'
+                  'IZnagx0HbWaTIEAEaB2Zyb2JiZXIQ3rXp-ws=')
+    CheckRegistrationCode(dummy_code, type=RegistrationCode.Type.UNIQUE_CODE,
+                          device='frobber', allow_dummy=True)
+    self.assertRaisesRegexp(
+        RegistrationCodeException, 'is dummy',
+        lambda: CheckRegistrationCode(dummy_code,
+                                      type=RegistrationCode.Type.UNIQUE_CODE,
+                                      device='frobber',
+                                      allow_dummy=False))
+
   def testCheckRegistrationCode_Legacy(self):
     # Types and devices are ignored for legacy codes, since they do
     # not contain type or device fields.

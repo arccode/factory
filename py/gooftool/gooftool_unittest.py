@@ -452,7 +452,7 @@ class GooftoolTest(unittest.TestCase):
     self._SetupVPDMocks(ro=self._SIMPLE_VALID_RO_VPD_DATA, rw=rw_vpd_value)
     self.mox.ReplayAll()
     self.assertRaisesRegexp(
-        ValueError, 'Incorrect VPD: gbind_attribute', self._gooftool.VerifyVPD)
+        ValueError, 'gbind_attribute is invalid: ', self._gooftool.VerifyVPD)
 
   def testVerifyVPD_UnexpectedValues(self):
     ro_vpd_value = self._SIMPLE_VALID_RO_VPD_DATA.copy()

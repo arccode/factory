@@ -25,9 +25,8 @@ REQUIRED_RO_DATA = {
 }
 
 REQUIRED_RW_DATA = {
-    # See b/117463731.
-    'ubind_attribute': r'^((?!__TESTING__).)+$',
-    'gbind_attribute': r'^((?!__TESTING__).)+$',
+    'ubind_attribute': ANY,
+    'gbind_attribute': ANY,
 }
 
 # KNOWN = Recommended + Optional, and "required but is auto generated".

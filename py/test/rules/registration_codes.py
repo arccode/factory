@@ -4,6 +4,7 @@
 
 import base64
 import binascii
+import logging
 import re
 import struct
 
@@ -156,7 +157,8 @@ def CheckLegacyRegistrationCode(code):
 
 
 # pylint: disable=redefined-builtin
-def CheckRegistrationCode(encoded_string, type=None, device=None):
+def CheckRegistrationCode(encoded_string, type=None, device=None,
+                          allow_dummy=False):
   """Checks that a registration code is valid.
 
   Args:
@@ -172,6 +174,14 @@ def CheckRegistrationCode(encoded_string, type=None, device=None):
     RegistrationCodeException: If the registration code is invalid or does
         not match the required type or device.
   """
+  # Check if this is dummy regcode. See b/117463731.
+  if '__TESTING__' in encoded_string:
+    if allow_dummy:
+      logging.warning('Registration code %r is dummy.', encoded_string)
+    else:
+      raise RegistrationCodeException('Registration code %r is dummy' % (
+          encoded_string))
+
   reg_code = RegistrationCode(encoded_string)
   if (type and reg_code.type != RegistrationCode.Type.LEGACY and
       reg_code.type != type):
