@@ -1374,9 +1374,20 @@ class ChromeOSFactoryBundle(object):
     bundle_dir = os.path.join(self._temp_dir, 'bundle')
     os.mkdir(bundle_dir)
 
-    part = Partition(self.release_image, PART_CROS_ROOTFS_A)
-    release_firmware_updater = part.CopyFile(
-        PATH_CROS_FIRMWARE_UPDATER, self._temp_dir, fs_type=FS_TYPE_CROS_ROOTFS)
+    try:
+      part = Partition(self.release_image, PART_CROS_ROOTFS_A)
+      release_firmware_updater = part.CopyFile(
+          PATH_CROS_FIRMWARE_UPDATER, self._temp_dir,
+          fs_type=FS_TYPE_CROS_ROOTFS)
+    except IOError:
+      if phase not in {'proto', 'evt', 'dvt'}:
+        # chromeos-firmwareupate should always be available since PVT
+        # Currently, phase name like 'evt2' is not allowed, allowed phase names
+        # are {'proto', 'evt', 'dvt', 'pvt', 'mp'}
+        raise
+      logging.warning('Failed to get firmware updater from release image',
+                      exc_info=1)
+      release_firmware_updater = None
 
     # The 'vmlinuz' may be in netboot/ folder (factory zip style) or
     # netboot/tftp/chrome-bot/$BOARD/vmlinuz (factory bundle style).
