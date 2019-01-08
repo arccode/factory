@@ -1095,6 +1095,79 @@ class ChromeOSFactoryBundle(object):
   def GetDiskUsage(path):
     return int(SudoOutput(['du', '-sk', path]).split()[0]) * 1024
 
+  @staticmethod
+  def GetRemainingSize(path):
+    return int(
+        SudoOutput(['df', '-k', '--output=avail', path]).splitlines()[1]) * 1024
+
+  @staticmethod
+  def ExpandPartition(image, number, size):
+    """Expands an image partition for at least `size` bytes.
+
+    By default, ext2/3/4 file system reserves 5% space for root, so we round
+    (`size` * 1.05) up to a multiple of block size, and expand that amount
+    of space. The partition should be the last partition of the image.
+
+    Args:
+      image: a path to an image file.
+      number: 1-based partition number.
+      size: Amount of space in bytes to expand.
+    """
+    gpt = GPT.LoadFromFile(image)
+    part = gpt.GetPartition(number)
+    # Check that the partition is the last partition.
+    if part.IsUnused() or gpt.GetMaxUsedLBA() > part.LastLBA:
+      raise RuntimeError('Cannot expand partition %d; '
+                         'must be the last one in LBA layout.' % number)
+
+    old_size = gpt.GetSize()
+    new_size = old_size + Aligned(int(size * 1.05), part.block_size)
+    print('Changing size: %d M => %d M' %
+          (old_size / MEGABYTE, new_size / MEGABYTE))
+
+    Shell(['truncate', '-s', str(new_size), image])
+    gpt.Resize(new_size)
+    gpt.ExpandPartition(number)
+    gpt.WriteToFile(image)
+    gpt.WriteProtectiveMBR(image, create=True)
+    part.ResizeFileSystem()
+
+  @staticmethod
+  def ShrinkPartition(image, number, size):
+    """Shrinks an image partition for at most `size` bytes.
+
+    Round `size` down to a multiple of block size, and reduce that amount of
+    space for a partition. The partition should be the last partition of the
+    image.
+
+    Args:
+      image: a path to an image file.
+      number: 1-based partition number.
+      size: Amount of space in bytes to reduce.
+    """
+    gpt = GPT.LoadFromFile(image)
+    part = gpt.GetPartition(number)
+    reduced_size = (size / part.block_size) * part.block_size
+    # Check that the partition is the last partition.
+    if part.IsUnused() or gpt.GetMaxUsedLBA() > part.LastLBA:
+      raise RuntimeError('Cannot expand partition %d; '
+                         'must be the last one in LBA layout.' % number)
+    # Check that the partition size is greater than shrink size.
+    if part.size <= reduced_size:
+      raise RuntimeError('Cannot shrink partition %d. Size too small.' % number)
+
+    old_size = gpt.GetSize()
+    new_size = old_size - reduced_size
+    print('Changing size: %d M => %d M' %
+          (old_size / MEGABYTE, new_size / MEGABYTE))
+
+    part.ResizeFileSystem(part.size - reduced_size)
+    Shell(['truncate', '-s', str(new_size), image])
+    gpt.Resize(new_size, check_overlap=False)
+    gpt.ExpandPartition(number)
+    gpt.WriteToFile(image)
+    gpt.WriteProtectiveMBR(image, create=True)
+
   def InitDiskImage(self, output, sectors, sector_size, verbose=False):
     """Initializes (resize and partition) a new disk image.
 
@@ -1185,22 +1258,12 @@ class ChromeOSFactoryBundle(object):
 
     payloads_size = ChromeOSFactoryBundle.GetDiskUsage(payloads_dir)
     print('cros_payloads size: %s M' % (payloads_size / MEGABYTE))
+
     shutil.copyfile(self.factory_shim, output)
+    ChromeOSFactoryBundle.ExpandPartition(
+        output, PART_CROS_STATEFUL, payloads_size)
 
-    block_size = Partition(output, PART_CROS_STATEFUL).block_size
-    old_size = os.path.getsize(output)
-    new_size = Aligned(old_size + payloads_size, block_size)
-    print('Changing size: %s M => %s M' %
-          (old_size / MEGABYTE, new_size / MEGABYTE))
-    Shell(['truncate', '-s', str(new_size), output])
-    gpt = pygpt.GPT.LoadFromFile(output)
-    gpt.Resize(new_size)
-    gpt.ExpandPartition(PART_CROS_STATEFUL)
-    gpt.WriteToFile(output)
-    part = Partition(output, PART_CROS_STATEFUL)
-    part.ResizeFileSystem()
-
-    with part.Mount(rw=True) as stateful:
+    with Partition(output, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
       print('Moving payload files to disk image...')
       new_name = os.path.join(stateful, DIR_CROS_PAYLOADS)
       if os.path.exists(new_name):
@@ -1440,16 +1503,8 @@ class ChromeOSFactoryBundle(object):
     else:
       # Stateful partition needs to shrink
       logging.debug('Shrinking stateful file system...')
-      new_state.ResizeFileSystem(final_state_blocks * block_size)
-      final_size = new_size - (state_blocks - final_state_blocks) * block_size
-      logging.info('Resizing new image file to %s M...', final_size / MEGABYTE)
-      Shell(['truncate', '-s', str(final_size), output])
-      # Update GPT
-      new_state.Update(LastLBA=stateful_begin + final_state_blocks - 1)
-      gpt.UpdatePartition(new_state, number=1)
-      gpt.Resize(final_size)
-      gpt.WriteToFile(output)
-      gpt.WriteProtectiveMBR(output, create=True)
+      ChromeOSFactoryBundle.ShrinkPartition(
+          output, PART_CROS_STATEFUL, diff_payload_size)
 
     with new_state.Mount(rw=True) as stateful:
       board_list = []

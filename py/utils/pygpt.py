@@ -669,13 +669,18 @@ class GPT(object):
     part.block_size = ref.block_size
     self.partitions[number - 1] = part
 
-  def Resize(self, new_size):
+  def GetSize(self):
+    return self.block_size * (self.header.BackupLBA + 1)
+
+  def Resize(self, new_size, check_overlap=True):
     """Adjust GPT for a disk image in given size.
 
     Args:
       new_size: Integer for new size of disk image file.
+      check_overlap: Checks if the backup partition table overlaps used
+                     partitions.
     """
-    old_size = self.block_size * (self.header.BackupLBA + 1)
+    old_size = self.GetSize()
     if new_size % self.block_size:
       raise GPTError(
           'New file size %d is not valid for image files.' % new_size)
@@ -692,7 +697,7 @@ class GPT(object):
     backup_lba = new_blocks - 1
     last_usable_lba = backup_lba - self.header.FirstUsableLBA
 
-    if last_usable_lba < self.header.LastUsableLBA:
+    if check_overlap and last_usable_lba < self.header.LastUsableLBA:
       max_used_lba = self.GetMaxUsedLBA()
       if last_usable_lba < max_used_lba:
         raise GPTError('Backup partition tables will overlap used partitions')
@@ -707,6 +712,9 @@ class GPT(object):
 
   def ExpandPartition(self, number):
     """Expands a given partition to last usable LBA.
+
+    The size of the partition can actually be reduced if the last usable LBA
+    decreases.
 
     Args:
       number: an integer to specify partition in 1-based number.
@@ -729,7 +737,7 @@ class GPT(object):
     p.Update(LastLBA=self.header.LastUsableLBA)
     new_blocks = p.blocks
     logging.warn(
-        '%s expanded, size in LBA: %d -> %d.', p, old_blocks, new_blocks)
+        '%s size changed in LBA: %d -> %d.', p, old_blocks, new_blocks)
     return (old_blocks, new_blocks)
 
   def CheckIntegrity(self):
