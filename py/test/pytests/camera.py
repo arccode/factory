@@ -176,7 +176,8 @@ class CameraTest(test_case.TestCase):
       Arg('e2e_mode', bool, 'Perform end-to-end test or not (for camera).',
           default=False),
       Arg('device_index', (int, type_utils.Enum(['front', 'rear'])),
-          'If in normal mode, index of video device (0 for default). '
+          'If in normal mode, index of video (camera-internal) device (default '
+          'is automatically searching one). '
           'If in e2e mode, string "front" or "rear" for the camera to test '
           '(default is "front").',
           default=None),
@@ -439,11 +440,12 @@ class CameraTest(test_case.TestCase):
         # image in this case to speed up the process.
         self.need_transmit_to_ui = True
     else:
-      device_index = (0 if self.args.device_index is None else
-                      self.args.device_index)
-      if not isinstance(device_index, int):
-        raise ValueError('device_index should be integer in normal mode.')
-      self.camera_device = self.dut.camera.GetCameraDevice(device_index)
+      if not (isinstance(self.args.device_index, int) or
+              self.args.device_index is None):
+        raise ValueError(
+            'device_index should be integer or None in normal mode.')
+      self.camera_device = self.dut.camera.GetCameraDevice(
+          self.args.device_index)
 
   def runTest(self):
     self.ui.StartCountdownTimer(self.args.timeout_secs, self._Timeout)

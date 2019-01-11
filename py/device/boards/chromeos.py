@@ -8,6 +8,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import utils as audio_utils
 from cros.factory.device.boards import linux
 from cros.factory.device.chromeos import bluetooth
+from cros.factory.device.chromeos import camera
 from cros.factory.device.chromeos import display
 from cros.factory.device import fan
 from cros.factory.device import power
@@ -28,6 +29,10 @@ class ChromeOSBoard(linux.LinuxBoard):
   @types.DeviceProperty
   def bluetooth(self):
     return bluetooth.ChromeOSBluetoothManager(self)
+
+  @types.DeviceProperty
+  def camera(self):
+    return camera.ChromeOSCamera(self)
 
   @types.DeviceProperty
   def display(self):

@@ -124,11 +124,11 @@ class CameraReaderBase(object):
 class CVCameraReader(CameraReaderBase):
   """Camera device reader via OpenCV V4L2 interface."""
 
-  def __init__(self, device_index=-1):
+  def __init__(self, device_index=None):
     super(CVCameraReader, self).__init__()
 
     self._device_index = device_index
-    if self._device_index < 0:
+    if self._device_index is None:
       self._device_index = self._SearchDevice()
     self._device = None
 
