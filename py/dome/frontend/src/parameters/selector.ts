@@ -18,6 +18,3 @@ export const getParameters =
 
 export const getParameterDirs =
   (state: RootState): ParameterDirectory[] => localState(state).dirs;
-
-export const getLoadingStatus =
-  (state: RootState): boolean => localState(state).loading;

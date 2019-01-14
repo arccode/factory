@@ -19,11 +19,9 @@ import React from 'react';
 import {connect} from 'react-redux';
 
 import formDialog from '@app/form_dialog';
-import {RootState} from '@app/types';
 import {DispatchProps} from '@common/types';
 
 import {CREATE_DIRECTORY_FORM, UPDATE_PARAMETER_FORM} from '../constants';
-import {getLoadingStatus} from '../selector';
 
 import CreateDirectoryForm from './create_directory_form';
 import ParameterList from './parameter_list';
@@ -47,7 +45,6 @@ interface ParameterState {
 
 type ParameterAppProps =
   WithStyles<typeof styles> &
-  ReturnType<typeof mapStateToProps> &
   DispatchProps<typeof mapDispatchToProps>;
 
 class ParameterApp extends React.Component<ParameterAppProps, ParameterState> {
@@ -89,12 +86,10 @@ class ParameterApp extends React.Component<ParameterAppProps, ParameterState> {
             </div>
           </CardContent>
           <CardContent>
-            {this.props.loading ? 'LOADING' : (
-              <ParameterList
-                currentDirId={currentDirId}
-                dirClicked={this.setCurrentDirId}
-              />
-            )}
+            <ParameterList
+              currentDirId={currentDirId}
+              dirClicked={this.setCurrentDirId}
+            />
           </CardContent>
         </Card>
       </>
@@ -102,10 +97,6 @@ class ParameterApp extends React.Component<ParameterAppProps, ParameterState> {
   }
 
 }
-
-const mapStateToProps = (state: RootState) => ({
-  loading: getLoadingStatus(state),
-});
 
 const mapDispatchToProps = {
   updateComponent:
@@ -115,5 +106,5 @@ const mapDispatchToProps = {
   createDirectory: () => formDialog.actions.openForm(CREATE_DIRECTORY_FORM),
 };
 
-export default connect(mapStateToProps, mapDispatchToProps)(
+export default connect(null, mapDispatchToProps)(
   withStyles(styles)(ParameterApp));

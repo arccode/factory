@@ -38,7 +38,7 @@ export interface Parameter {
 
 export interface ParameterDirectory {
   id: number;
-  parentId: number;
+  parentId: number | null;
   name: string;
 }
 
