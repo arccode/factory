@@ -318,62 +318,13 @@ You can image directly to a device, or to a .bin file. Available options are:
 
  * `--sectors=XX` specifies the number of sectors in the bin file
 
-### USB Installation (RMA)
+### USB Installation (RMA shim)
 ![Diagram of USB (RMA) Installation](doc/images/usb_installation.png)
 
 It is possible to install everything from same USB that boots system without
 network. This is helpful in proto builds if network is not ready, and if copy
-machine is not available. This is also known as the "RMA shim" since it is
-widely used in RMA (Return Materiel Authorization) flow:
-
-To generate a USB installation image from a [bundle](setup/BUNDLE.md), use 'rma'
-sub command in `image_tool`:
-
-    ./setup/image_tool \
-      rma-create -o rma_image.bin \
-      --board=BOARD \
-      --factory_shim=path/to/factory_install_shim.bin \
-      --test_image=path/to/chromiumos_test_image.bin \
-      --toolkit=path/to/install_factory_toolkit.run \
-      --release_image=path/to/chromiumos_image.bin \
-      --hwid=path/to/hwid_bundle.sh
-
-Flash the `rma_image.bin` to a USB stick, boot it with developer switch
-enabled in recovery mode (see following steps), and then the shim will decide
-which action to perform, which includes:
-  1. If hardware write protect is enabled, and cr50 version is older than the
-     cr50 image in the shim, update the cr50 firmware using the cr50 image in
-     the shim (option U in shim menu). After cr50 is updated, the device will
-     reboot. The user should enter recovery mode and boot to shim again.
-  2. If hardware write protect is enabled, and cr50 version is not older than
-     the cr50 image in the shim, do RSU (RMA Server Unlock) to disable hardware
-     write protect and enter factory mode (option E in shim menu). After RSU,
-     the device will reboot. The user should enter recovery mode and boot to
-     shim again.
-  3. If hardware write protect is disabled, install payloads from USB (option I
-     in shim menu). If hardware write protect is disabled by disconnecting the
-     battery instead of doing RSU, the install script will also enable factory
-     mode at the end of installation.
-
-You can stop the default action and return to shim menu by pressing any key
-within 3 seconds when the console prompts "press any key to show menu instead".
-
-#### Boot from RMA shim (clamshells / convertibles)
-  1. `ESC+REFRESH+POWER` to recovery mode
-  2. `CTRL+D` to turn on dev switch
-  3. `ENTER` to confirm
-  4. `ESC+REFRESH+POWER` to recovery mode again (no need to wait for transition)
-  5. Insert and boot from USB stick with `rma_image.bin`
-
-#### Boot from RMA shim (tablets / detachables)
-  1. Enter recovery mode by pressing `POWER+VOL_UP+VOL_DOWN` for at least 10
-     seconds, then release them
-  2. `VOL_UP+VOL_DOWN` to show RECOVERY menu
-  3. Select "enter developer mode"
-  4. Select "confirm"
-  5. Enter recovery mode by pressing `POWER+VOL_UP+VOL_DOWN` for at least 10
-     seconds, then release them (no need to wait for transition)
-  6. Insert and boot from USB stick with `rma_image.bin`
+machine is not available. Read [RMA shim](setup/RMA_SHIM.md) guide for more
+details.
 
 ## Modifying factory test image or adding test cases
 The factory test image runs the series of [pytests](py/pytests) located at
