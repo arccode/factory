@@ -60,7 +60,7 @@
         "rma_mode": true,
         "enable_factory_server": false,
         "upload_method": "none",
-        "write_protection": "eval! constants.force_write_protect or options.phase == 'PVT'"
+        "write_protection": "eval! constants.grt.force_write_protect or options.phase == 'PVT'"
       }
     }
   },
