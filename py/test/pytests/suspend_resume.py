@@ -60,6 +60,7 @@ _MIN_SUSPEND_MARGIN_SECS = 5
 _MESSAGES = '/var/log/messages'
 
 _KERNEL_DEBUG_WAKEUP_SOURCES = '/sys/kernel/debug/wakeup_sources'
+_KERNEL_DEBUG_SUSPEND_STATS = '/sys/kernel/debug/suspend_stats'
 _MAX_EARLY_RESUME_RETRY_COUNT = 3
 
 
@@ -103,6 +104,10 @@ class SuspendResumeTest(test_case.TestCase):
           default=True)]
 
   def setUp(self):
+    self.assertTrue(os.path.exists(_KERNEL_DEBUG_WAKEUP_SOURCES),
+                    'wakeup_sources file not found.')
+    self.assertTrue(os.path.exists(_KERNEL_DEBUG_SUSPEND_STATS),
+                    'suspend_stats file not found.')
     self.assertTrue(os.path.exists(self.args.wakealarm_path), 'wakealarm_path '
                     '%s is not found, bad path?' % self.args.wakealarm_path)
     self.assertTrue(os.path.exists(self.args.time_path), 'time_path %s is not '
@@ -187,9 +192,14 @@ class SuspendResumeTest(test_case.TestCase):
     """Start and extend the wakealarm as needed for the main thread."""
     self._SetWakealarm(str(self.resume_at))
     self.alarm_started.set()
-    # CAUTION: the loop below is subject to race conditions with suspend time.
-    while (self._ReadSuspendCount() < self.initial_suspend_count + self.run
-           and not self.done):
+    self.Sleep(_MIN_SUSPEND_MARGIN_SECS)  # Wait for suspend.
+    # The loop below will be run after resume, or when the device doesn't
+    # suspend in _MIN_SUSPEND_MARGIN_SECS seconds.
+    while not self.done:
+      self.Sleep(0.5)  # Wait for suspend_stats to get updated after resume.
+      if self._ReadSuspendCount() >= self.initial_suspend_count + self.run:
+        break
+      # A normal suspend-resume should not get here.
       cur_time = self._ReadCurrentTime()
       if cur_time >= self.resume_at - 1:
         self.attempted_wake_extensions += 1
@@ -197,11 +207,10 @@ class SuspendResumeTest(test_case.TestCase):
         try:
           self._SetWakealarm('+=%d' % _MIN_SUSPEND_MARGIN_SECS)
         except IOError:
+          # This happens when the device actually suspends and resumes but
+          # suspend_stats is not updated yet, or when the device hangs for a
+          # while and suspends just before we try to extend the wake time.
           logging.warn('Write to wakealarm failed, assuming we woke.')
-          break
-        if (self._ReadSuspendCount() >= self.initial_suspend_count + self.run
-            and self._ReadCurrentTime() < cur_time + _MIN_SUSPEND_MARGIN_SECS):
-          logging.info('Attempted wake time extension, but suspended before.')
           break
         self.resume_at = self.resume_at + _MIN_SUSPEND_MARGIN_SECS
         self.actual_wake_extensions += 1
@@ -212,7 +221,6 @@ class SuspendResumeTest(test_case.TestCase):
           cur_time,
           'Suspend timeout, device did not suspend within %d sec.' %
           self.args.suspend_worst_case_secs)
-      self.Sleep(0.1)
     self.alarm_started.clear()
 
   def _Suspend(self, retry_count=0):
@@ -275,12 +283,7 @@ class SuspendResumeTest(test_case.TestCase):
     Returns:
       Int, the number of suspends the system has executed since last reboot.
     """
-    self.assertTrue(os.path.exists('/sys/kernel/debug/suspend_stats'),
-                    'suspend_stats file not found.')
-    # If we just resumed, the suspend_stats file can take some time to update.
-    self.Sleep(0.1)
-    line_content = file_utils.ReadFile(
-        '/sys/kernel/debug/suspend_stats').strip()
+    line_content = file_utils.ReadFile(_KERNEL_DEBUG_SUSPEND_STATS).strip()
     return int(re.search(r'[0-9]+', line_content).group(0))
 
   def _ReadCurrentTime(self):
