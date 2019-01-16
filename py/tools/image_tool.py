@@ -726,8 +726,9 @@ class RMABoardResourceVersions(object):
       setattr(self, component, version)
 
   def __str__(self):
-    return '\n'.join(
-        ['%-13s: %s' % (k, getattr(self, k, 'None')) for k in self.__slots__])
+    max_len = max([len(s) for s in self.__slots__])
+    return '\n'.join(['%-*s: %s' % (max_len, k, getattr(self, k, 'None'))
+                      for k in self.__slots__])
 
 
 def _ReadBoardResourceVersions(rootfs, stateful, board_info):
@@ -1552,6 +1553,8 @@ class ChromeOSFactoryBundle(object):
 
       _WriteRMAMetadata(stateful, board_list)
 
+      Sudo(['df', '-h', stateful])
+
   @staticmethod
   def MergeRMAImage(output, images, auto_select):
     """Merges multiple RMA disk images into a single universal RMA image.
@@ -2209,11 +2212,18 @@ class CreateRMAImageCommmand(SubCommand):
     ChromeOSFactoryBundle.DefineBundleArguments(
         self.subparser, ChromeOSFactoryBundle.RMA)
     self.subparser.add_argument(
+        '-f', '--force', action='store_true',
+        help='Overwrite existing output image file.')
+    self.subparser.add_argument(
         '-o', '--output', required=True,
         help='path to the output RMA image file')
 
   def Run(self):
-    # TODO(hungte) always print bundle info (what files have been found)
+    output = self.args.output
+    if os.path.exists(output) and not self.args.force:
+      raise RuntimeError(
+          'Output already exists (add -f to overwrite): %s' % output)
+
     with SysUtils.TempDirectory(prefix='rma_') as temp_dir:
       bundle = ChromeOSFactoryBundle(
           temp_dir=temp_dir,
@@ -2228,6 +2238,7 @@ class CreateRMAImageCommmand(SubCommand):
           complete=self.args.complete,
           toolkit_config=self.args.toolkit_config)
       bundle.CreateRMAImage(self.args.output)
+      bundle.ShowRMAImage(output)
       print('OK: Generated %s RMA image at %s' %
             (bundle.board, self.args.output))
 
@@ -2269,6 +2280,7 @@ class MergeRMAImageCommand(SubCommand):
     print('Scanning %s input image files...' % len(self.args.images))
     ChromeOSFactoryBundle.MergeRMAImage(
         self.args.output, self.args.images, self.args.auto_select)
+    ChromeOSFactoryBundle.ShowRMAImage(output)
     print('OK: Merged successfully in new image: %s' % output)
 
 class ExtractRMAImageCommand(SubCommand):
@@ -2305,6 +2317,7 @@ class ExtractRMAImageCommand(SubCommand):
     print('Scanning input image file...')
     ChromeOSFactoryBundle.ExtractRMAImage(
         self.args.output, self.args.image, self.args.select)
+    ChromeOSFactoryBundle.ShowRMAImage(output)
     print('OK: Extracted successfully in new image: %s' % output)
 
 class ShowRMAImageCommand(SubCommand):
@@ -2344,6 +2357,7 @@ class ReplaceRMAPayloadCommand(SubCommand):
         hwid=self.args.hwid,
         complete=self.args.complete,
         toolkit_config=self.args.toolkit_config)
+    ChromeOSFactoryBundle.ShowRMAImage(self.args.image)
     print('OK: Replaced payloads successfully in image: %s' % self.args.image)
 
 
