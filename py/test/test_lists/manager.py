@@ -294,7 +294,8 @@ class Manager(object):
     This writes the name of the new active test list to the build time config
     file.
     """
-    config_data = json_utils.DumpStr({ACTIVE_TEST_LIST_CONFIG_ID_KEY: new_id})
+    config_data = json_utils.DumpStr({ACTIVE_TEST_LIST_CONFIG_ID_KEY: new_id},
+                                     pretty=True)
 
     with file_utils.AtomicWrite(ACTIVE_TEST_LIST_CONFIG_PATH) as f:
       f.write(config_data)
