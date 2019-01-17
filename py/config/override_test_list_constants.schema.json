@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "description": "reference: http://goto/cros-factory-test-list, ./TEST_LIST.md, ./JSON_TEST_LIST.md",
+  "type": "object",
+  "patternProperties": {
+    "^__comment_[A-Za-z0-9_-]+$": {
+      "type": "string"
+    },
+    "^[A-Za-z0-9][A-Za-z0-9_]*$": {
+    }
+  },
+  "additionalProperties": false
+}

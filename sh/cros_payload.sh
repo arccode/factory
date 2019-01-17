@@ -31,7 +31,7 @@
 
 # Constants
 COMPONENTS_ALL="test_image release_image toolkit hwid firmware complete \
-netboot_kernel netboot_firmware netboot_cmdline"
+netboot_kernel netboot_firmware netboot_cmdline toolkit_config"
 
 # A variable for the file name of tracking temp files.
 TMP_OBJECTS=""
@@ -597,6 +597,9 @@ get_file_component_version() {
     netboot_firmware)
       strings "${file}" | grep 'Google_' | uniq
       ;;
+    toolkit_config)
+      # Treat the file name as the version.
+      echo "$(basename "${file}")"
   esac
 }
 
@@ -667,7 +670,7 @@ cmd_add() {
       file="$(get_uncompressed_file "${file}")"
       add_image_component "${json_path}" "${component}" "${file}"
       ;;
-    toolkit | hwid | firmware | complete | netboot_*)
+    toolkit | hwid | firmware | complete | netboot_* | toolkit_config)
       file="$(get_uncompressed_file "${file}")"
       add_file_component "${json_path}" "${component}" "${file}"
       ;;
@@ -692,6 +695,36 @@ cmd_add_meta() {
   update_json_meta "${json_path}" "${component}" "${name}" "${value}"
 }
 
+# Prints a python script to extract toolkit config files. The toolkit config
+# file is a combination of multiple configs. The script splits these configs
+# into separate config files and move them to their respective paths.
+get_install_toolkit_config_script() {
+  cat <<END_PYTHON_SCRIPT
+import json
+import sys
+import os
+
+INSTALL_PATH_MAP = {
+  'active_test_list': '/usr/local/factory/py/test/test_lists',
+  'override_test_list_constants': '/usr/local/factory/py/config'
+}
+
+with open(sys.argv[1]) as f:
+  config = json.load(f)
+
+for k, v in config.iteritems():
+  dir_path = INSTALL_PATH_MAP.get(k, None)
+  if dir_path:
+    config_file_path = os.path.join(dir_path, '%s.json' % k)
+    if os.path.isfile(config_file_path):
+      continue
+    if not os.path.exists(dir_path):
+      os.makedirs(path)
+    with open(config_file_path, 'w') as f:
+      json.dump(v, f, indent=2, sort_keys=True)
+END_PYTHON_SCRIPT
+}
+
 # Adds a stub file for component installation.
 # Usage: install_add_stub COMPONENT FILE
 install_add_stub() {
@@ -702,16 +735,19 @@ install_add_stub() {
   # so we have to implement the stub as pure shell scripts, and invoke the
   # component via shell.
   local stub="${output_dir}/${component}.sh"
-  local command="sh ./${component}"
+  local cmd=""
 
   case "${component}" in
     toolkit)
-      command="sh ./${component} -- --yes"
+      cmd="sh ./${component} -- --yes"
       ;;
     hwid)
       # Current HWID bundle expects parent folder to exist before being able to
       # extract HWID files so we have to mkdir first.
-      command="mkdir -p /usr/local/factory; ${command}"
+      cmd="mkdir -p /usr/local/factory; sh ./${component}"
+      ;;
+    toolkit_config)
+      cmd="python -c \"$(get_install_toolkit_config_script)\" ./${component}"
       ;;
     *)
       return
@@ -721,7 +757,7 @@ install_add_stub() {
   echo '#!/bin/sh' >"${stub}"
   # shellcheck disable=SC2016
   echo 'cd "$(dirname "$(readlink -f "$0")")"/..' >>"${stub}"
-  echo "${command}" >>"${stub}"
+  echo "${cmd}" >>"${stub}"
 }
 
 # Installs (or downloads) a payload (component or part of component).
@@ -897,7 +933,8 @@ install_components() {
         install_payload "partition" "${json_url}" \
           "${dest}" "${json_file}" "${component}"
         ;;
-      toolkit | hwid | firmware | complete | *_image.* | netboot_*)
+      toolkit | hwid | firmware | complete | *_image.* | netboot_* | \
+          toolkit_config)
         install_payload "file" "${json_url}" \
           "${dest}" "${json_file}" "${component}"
         ;;

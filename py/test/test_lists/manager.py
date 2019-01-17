@@ -37,6 +37,10 @@ ACTIVE_TEST_LIST_CONFIG_RELPATH = os.path.join(
 ACTIVE_TEST_LIST_CONFIG_PATH = os.path.join(
     paths.FACTORY_DIR, ACTIVE_TEST_LIST_CONFIG_RELPATH)
 
+# Override constants config
+OVERRIDE_CONSTANTS_CONFIG_NAME = 'override_test_list_constants'
+CONSTANTS_KEY = 'constants'
+
 # Default test list.
 DEFAULT_TEST_LIST_ID = 'main'
 
@@ -139,6 +143,14 @@ class Loader(object):
     except Exception:
       logging.error('Cannot load test list "%s"', test_list_id)
       raise
+
+    # Override constants from py/config if it exists
+    try:
+      constants = config_utils.LoadConfig(OVERRIDE_CONSTANTS_CONFIG_NAME)
+    except Exception:
+      logging.warn('Cannot load override constants')
+      constants = {}
+    loaded_config.get(CONSTANTS_KEY, {}).update(constants)
 
     loaded_config = TestListConfig(
         resolved_config=loaded_config,
