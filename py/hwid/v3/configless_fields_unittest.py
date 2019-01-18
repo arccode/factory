@@ -46,18 +46,21 @@ class ConfiglessFieldsTest(unittest.TestCase):
         common.OPERATION_MODE.normal,
         False,
         False)[0]
+    # 0-8-3A-180's feature list field will be different if we extend new feature
+    # to the end of version 0, see configless_fields.py for details
     self.assertEqual(_CF.Encode(self.database, bom, device_info, 0),
-                     '0-8-3A-01')
+                     '0-8-3A-180')
 
   def testDecode(self):
+    # If we extend version 0, the decoded dict should be same.
     self.assertEqual(
-        _CF.Decode('0-8-3A-00'),
+        _CF.Decode('0-8-3A-180'),
         {
             'version': 0,
             'memory': 8,
             'storage': 58,
             'feature_list': {
-                'has_touchscreen': 0,
+                'has_touchscreen': 1,
                 'has_touchpad': 0,
                 'has_stylus': 0,
                 'has_front_camera': 0,

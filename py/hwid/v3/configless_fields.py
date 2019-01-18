@@ -8,42 +8,9 @@ Configless fields are some numeric fields in HWID that can be decoded without
 board / project specific database (e.g. HWID database).
 """
 
-import ctypes
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
 from cros.factory.test import device_data
-
-
-class _FeatureList(ctypes.Structure):
-  """Dump/Load feature list according to _fields_ in _FeatureList_{version}"""
-  def Dump(self):
-    buf = ctypes.create_string_buffer(ctypes.sizeof(self))
-    ctypes.memmove(buf, ctypes.addressof(self), ctypes.sizeof(self))
-    return buf.raw.encode('hex').upper().replace('0X', '')
-
-  @classmethod
-  def Load(cls, buf):
-    obj = cls()
-    ctypes.memmove(ctypes.addressof(obj), buf.decode('hex'), ctypes.sizeof(obj))
-    return obj
-
-  @property
-  def features(self):
-    return [field[0] for field in self._fields_]
-
-
-class _FeatureList_0(_FeatureList):
-  _fields_ = [
-      ('has_touchscreen', ctypes.c_uint8, 1),
-      ('has_touchpad', ctypes.c_uint8, 1),
-      ('has_stylus', ctypes.c_uint8, 1),
-      ('has_front_camera', ctypes.c_uint8, 1),
-      ('has_rear_camera', ctypes.c_uint8, 1),
-      ('has_fingerprint', ctypes.c_uint8, 1),
-      ('is_convertible', ctypes.c_uint8, 1),
-      ('is_rma_device', ctypes.c_uint8, 1)
-  ]
 
 
 class ConfiglessFields(object):
@@ -53,8 +20,11 @@ class ConfiglessFields(object):
 
   `hex(<FIELDS[0]>)-hex(<FIELDS[1]>)-...-hex(<FIELDS[-1]>)`
 
-  And the content of feature list field is decided by _FeatureList_{version}
-  where version is FIELDS[0].
+  And the content of feature list field is decided by FEATURE_LIST[version]
+  where version is FIELDS[0]. To make it easier to extend (that is, add
+  'has_new_feature' to the end of existing FEATURE_LIST[version]), always add
+  a leading 1, so we can determine the length of feature list when it was
+  encoded.
 
   For example,
 
@@ -66,11 +36,39 @@ class ConfiglessFields(object):
   ]
 
   FEATURE_LIST = {
-    0: _FeatureList_0,
+      0: [
+          'has_touchscreen',
+          'has_touchpad',
+          'has_stylus',
+          'has_front_camera',
+          'has_rear_camera',
+          'has_fingerprint',
+          'is_convertible',
+          'is_rma_device'
+      ]
   }
 
-  encoded string "0-8-74-01" represents version 0, 8G memory, 116G storage and
-  has touchscreen.
+  encoded string "0-8-74-180" represents version 0, 8G memory, 116G storage and
+  has touchscreen('180' is 0b110000000).
+
+  If we extend version 0,
+
+  FEATURE_LIST = {
+      0: [
+          'has_touchscreen',
+          'has_touchpad',
+          'has_stylus',
+          'has_front_camera',
+          'has_rear_camera',
+          'has_fingerprint',
+          'is_convertible',
+          'is_rma_device',
+          'has_new_feature',
+      ]
+  }
+
+  then, feature list field '180' means has touchscreen and don't have value for
+  'has_new_feature'.
   """
 
   FIELDS = [
@@ -81,7 +79,16 @@ class ConfiglessFields(object):
   ]
 
   FEATURE_LIST = {
-      0: _FeatureList_0,
+      0: [
+          'has_touchscreen',
+          'has_touchpad',
+          'has_stylus',
+          'has_front_camera',
+          'has_rear_camera',
+          'has_fingerprint',
+          'is_convertible',
+          'is_rma_device'
+      ]
   }
 
 
@@ -106,10 +113,9 @@ class ConfiglessFields(object):
     Returns:
       A string of encoded configless fields.
     """
-    feature_list = cls.FEATURE_LIST[version]
-    getter = _ConfiglessFieldGetter(db, bom, device_info, version,
-                                    feature_list())
-    return '-'.join(getter(field) for field in cls.FIELDS)
+    getter = _ConfiglessFieldGetter(db, bom, device_info, version)
+    return '-'.join(
+        hex(getter(field)).upper().replace('0X', '') for field in cls.FIELDS)
 
   @classmethod
   def Decode(cls, encoded_string):
@@ -140,7 +146,7 @@ class ConfiglessFields(object):
       means configless fileds version 0, 8G memory, 116G storage and has
       touchscreen.
     """
-    decoder = _ConfiglessFieldDecoder(encoded_string, cls.FEATURE_LIST)
+    decoder = _ConfiglessFieldDecoder(encoded_string)
     fields = {
         field: decoder(field)
         for field in cls.FIELDS
@@ -148,14 +154,42 @@ class ConfiglessFields(object):
     return fields
 
 
+class FeatureList(object):
+  """Encode/Decode feature list according to ConfiglessFields.FeatureList"""
+  def __init__(self, version):
+    self.features = ConfiglessFields.FEATURE_LIST[version]
+
+  def Encode(self, components):
+    encoded_value = 1
+    for feature in self.features:
+      encoded_value <<= 1
+      encoded_value |= components.get(feature, 0)
+    return encoded_value
+
+  def Decode(self, encoded_value):
+    feature_count = len(self.features)
+    if encoded_value >= 2 ** (feature_count + 1):
+      raise common.HWIDException(
+          'The given configless fields is invalid. The last field should be a '
+          'hex value in [0, %s].' %
+          hex(2 ** (feature_count + 1) - 1).upper().replace('0X', ''))
+
+    bin_string = bin(encoded_value).replace('0b', '')[1:]
+    result = {
+        self.features[i]: int(bin_string[i])
+        for i in xrange(len(bin_string))
+    }
+    return result
+
+
 class _ConfiglessFieldGetter(object):
   """Extract value of from BOM / device_info for configless fields."""
-  def __init__(self, db, bom, device_info, version, feature_list):
+  def __init__(self, db, bom, device_info, version):
     self._db = db
     self._bom = bom
     self._device_info = device_info or {}
     self._version = version
-    self._feature_list = feature_list
+    self._feature_list = FeatureList(version)
 
   def __call__(self, field_name):
     """Get value of a field."""
@@ -165,42 +199,37 @@ class _ConfiglessFieldGetter(object):
   def memory(self):
     size_mb = sum(int(self._db.GetComponents('dram')[comp].values['size'])
                   for comp in self._bom.components['dram'])
-    return hex(size_mb / 1024).upper().replace('0X', '')
+    return size_mb / 1024
 
   @property
   def storage(self):
     sectors = sum(int(self._db.GetComponents('storage')[comp].values['sectors'])
                   for comp in self._bom.components['storage'])
     # Assume sector size is 512 bytes
-    return hex(sectors / 2 / 1024 / 1024).upper().replace('0X', '')
+    return sectors / 2 / 1024 / 1024
 
   @property
   def version(self):
-    return hex(self._version).upper().replace('0X', '')
+    return self._version
 
   @property
   def feature_list(self):
     """Get feature list encoded string."""
     components = self._device_info.get(device_data.KEY_COMPONENT, {})
-    for feature in self._feature_list.features:
-      value = components.get(feature, 0)  # default value is 0 (False)
-      setattr(self._feature_list, feature, value)
-    return self._feature_list.Dump()
+    return self._feature_list.Encode(components)
 
 
 class _ConfiglessFieldDecoder(object):
   """Extract value of encoded string for configless fields."""
-  def __init__(self, encoded_string, feature_list):
-    encoded_fields = encoded_string.split('-')
+  def __init__(self, encoded_string):
+    encoded_fields = [int(field, 16) for field in encoded_string.split('-')]
     if len(encoded_fields) != len(ConfiglessFields.FIELDS):
       raise common.HWIDException(
           'The given configless fields %r is invalid. It must have %r fields.' %
           (encoded_string, len(ConfiglessFields.FIELDS)))
 
     self._encoded_fields = dict(zip(ConfiglessFields.FIELDS, encoded_fields))
-    version = int(self._encoded_fields['version'], 16)
-    self._feature_list = feature_list[version].Load(
-        self._encoded_fields['feature_list'])
+    self._feature_list = FeatureList(self._encoded_fields['version'])
 
   def __call__(self, field_name):
     """Get decoded value of a field.
@@ -212,13 +241,9 @@ class _ConfiglessFieldDecoder(object):
     try:
       return getattr(self, field_name)
     except Exception:
-      return int(self._encoded_fields[field_name], 16)
+      return self._encoded_fields[field_name]
 
   @property
   def feature_list(self):
     """Construct the dict of feature list"""
-    result = {
-        feature: getattr(self._feature_list, feature)
-        for feature in self._feature_list.features
-    }
-    return result
+    return self._feature_list.Decode(self._encoded_fields['feature_list'])
