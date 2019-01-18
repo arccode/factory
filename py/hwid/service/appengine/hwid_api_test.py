@@ -47,17 +47,19 @@ class HwidApiTest(unittest.TestCase):
 
   @mock.patch.object(
       users, 'get_current_user', return_value=mock.MagicMock(autospec=True))
-  @mock.patch.object(
-      CONFIG, 'skip_auth_check', return_value=False)
-  def testAuthCheckNotAuth(self, unused_mock_AuthCheck, mock_get_current_user):
+  @mock.patch.object(CONFIG, 'skip_auth_check', new=False)
+  def testAuthCheckNotAuth(self, mock_get_current_user):
+    # make sure we correctly mock CONFIG.skip_auth_check
+    assert not CONFIG.skip_auth_check, repr(CONFIG.skip_auth_check)
     mock_get_current_user.return_value.email.return_value = 'noone@example.com'
     self.assertRaises(endpoints.UnauthorizedException, hwid_api._AuthCheck)
 
   @mock.patch.object(
       users, 'get_current_user', return_value=mock.MagicMock(autospec=True))
-  @mock.patch.object(
-      CONFIG, 'skip_auth_check', return_value=False)
-  def testAuthCheckUnknown(self, unused_mock_AuthCheck, mock_get_current_user):
+  @mock.patch.object(CONFIG, 'skip_auth_check', new=False)
+  def testAuthCheckUnknown(self, mock_get_current_user):
+    # make sure we correctly mock CONFIG.skip_auth_check
+    assert not CONFIG.skip_auth_check, repr(CONFIG.skip_auth_check)
     mock_get_current_user.return_value = None
     self.assertRaises(endpoints.UnauthorizedException, hwid_api._AuthCheck)
 
