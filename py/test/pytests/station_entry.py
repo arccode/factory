@@ -167,7 +167,7 @@ class StationEntry(test_case.TestCase):
       def _TryCreateStateProxy():
         try:
           state_proxy = state.GetInstance(self._dut.link.host)
-          state_proxy.data_shelf_has_key('test_list_options')
+          state_proxy.DataShelfHasKey('test_list_options')
           return True
         except Exception:
           session.console.exception('Cannot create state proxy')

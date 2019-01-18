@@ -40,8 +40,15 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.test = station_entry.StationEntry()
     self.test.ui_class = lambda event_loop: mock.Mock(spec=test_ui.StandardUI)
 
-    self.mock_state = mock.Mock()
-    self._CreatePatcher(state, 'GetInstance').return_value = self.mock_state
+    self.mock_state = mock.Mock(spec=state.StubFactoryState)
+    self.mock_state.PostHookEvent = mock.MagicMock()
+    self.mock_remote_state = mock.Mock(spec=state.StubFactoryState)
+    def _MockGetInstance(address=None, port=None):
+      del port  # unused
+      if address:
+        return self.mock_remote_state
+      return self.mock_state
+    self._CreatePatcher(state, 'GetInstance').side_effect = _MockGetInstance
     self.mock_state.GetTestStates.return_value = _MOCK_TEST_STATES
 
     self.mock_dut = mock.Mock()
@@ -118,6 +125,7 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.assertEqual(self.mock_dut.info.GetSerialNumber.call_args_list,
                      [(('serial_number',),), (('mlb_serial_number',),)])
     self.mock_state.PostHookEvent.assert_not_called()
+    self.mock_remote_state.DataShelfHasKey.assert_called_once()
 
     self.assertTrue(self.mock_dut.link.IsReady())
     self._timeline.AssertTimeAt(10)
