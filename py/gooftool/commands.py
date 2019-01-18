@@ -264,11 +264,13 @@ def SetFirmwareBitmapLocale(options):
 
 
 @Command('verify_system_time',
-         _release_rootfs_cmd_arg)
+         _release_rootfs_cmd_arg,
+         _rma_mode_cmd_arg)
 def VerifySystemTime(options):
   """Verify system time is later than release filesystem creation time."""
 
-  return GetGooftool(options).VerifySystemTime(options.release_rootfs)
+  return GetGooftool(options).VerifySystemTime(options.release_rootfs,
+                                               rma_mode=options.rma_mode)
 
 
 @Command('verify_rootfs',

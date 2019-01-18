@@ -260,7 +260,8 @@ class Gooftool(object):
 
     logging.info('SUCCESS: Verification completed.')
 
-  def VerifySystemTime(self, release_rootfs=None, system_time=None):
+  def VerifySystemTime(self, release_rootfs=None, system_time=None,
+                       rma_mode=False):
     """Verify system time is later than release filesystem creation time."""
     if release_rootfs is None:
       release_rootfs = self._util.GetReleaseRootPartitionPath()
@@ -280,8 +281,12 @@ class Gooftool(object):
     logging.debug('Comparing system time <%s> and filesystem time <%s>',
                   system_time, created_time)
     if system_time < created_time:
-      raise Error('System time (%s) earlier than file system (%s) creation '
-                  'time (%s)' % (system_time, release_rootfs, created_time))
+      if not rma_mode:
+        raise Error('System time (%s) earlier than file system (%s) creation '
+                    'time (%s)' % (system_time, release_rootfs, created_time))
+      logging.warning('Set system time to file system creation time (%s)',
+                      created_time)
+      self._util.shell('toybox date @%d' % int(created_time))
 
   def VerifyRootFs(self, release_rootfs=None):
     """Verify rootfs on SSD is valid by checking hash."""
