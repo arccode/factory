@@ -13,9 +13,9 @@ flow.
 
 ### Create an RMA shim
 
-[image_tool](./image_tool.py) is a useful tool to manage RMA shims. To create an
-RMA shim image from a [bundle](setup/BUNDLE.md), use `rma-create` subcommand in
-`image_tool`:
+[image_tool](../py/tools/image_tool.py) is a useful tool to manage RMA shims. To
+create an RMA shim image from a [bundle](./BUNDLE.md), use `rma-create`
+subcommand in `image_tool`:
 
     $ ./setup/image_tool rma-create \
         --board=BOARD \
