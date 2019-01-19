@@ -499,6 +499,7 @@
     },
     "SyncFactoryServer": {
       "pytest_name": "sync_factory_server",
+      "run_if": "constants.enable_factory_server",
       "args": {
         "server_url": "eval! constants.default_factory_server_url"
       }
