@@ -41,7 +41,11 @@ def CheckTestList(manager_, test_list_id, dump):
   try:
     test_list.CheckValid()
   except Exception as e:
-    logging.error('Test list %s is invalid: %s.', test_list_id, e)
+    if isinstance(e, KeyError) and e.message == 'tests':
+      logging.warning('Test list "%s" does not have "tests" field. '
+                      'Fine for generic test lists.', test_list_id)
+    else:
+      logging.error('Test list "%s" is invalid: %s.', test_list_id, e)
     return
 
   failed_tests = []

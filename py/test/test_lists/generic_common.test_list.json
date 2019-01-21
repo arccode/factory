@@ -239,7 +239,13 @@
     "ExternalDisplay": {
       "pytest_name": "external_display",
       "args": {
-        "main_display": "eDP-1"
+        "main_display": "eDP-1",
+        "display_info": [
+          "External Dispaly",
+          "HDMI",
+          null,
+          0
+        ]
       }
     },
     "Finish": {
@@ -694,7 +700,24 @@
       "pytest_name": "wifi_throughput",
       "label": "Wifi"
     },
-    "Wireless": "WirelessRadiotap",
+    "Wireless": {
+      "inherit": "WirelessRadiotap",
+      "args": {
+        "device_name": "wlan0",
+        "services": [
+          [
+            "antenna_test",
+            2412,
+            null
+          ]
+        ],
+        "strength": {
+          "main": -60,
+          "aux": -60,
+          "all": -60
+        }
+      }
+    },
     "WirelessAntenna": {
       "pytest_name": "wireless_antenna",
       "exclusive_resources": [

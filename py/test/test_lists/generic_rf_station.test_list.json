@@ -30,9 +30,7 @@
       "args": {
         "verbose": true,
         "patch_dhcp_ssh_dut_ip": true,
-        "enable_shopfloor": true,
-        "graphyte_config_file": "eval! 'rf_%s_config.json' % locals.type",
-        "shopfloor_log_dir": "eval! 'rf_%s' % locals.type"
+        "graphyte_config_file": "eval! 'rf_%s_config.json' % locals.type"
       }
     },
     "RFGraphyteConductive": {
