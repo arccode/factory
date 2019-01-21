@@ -3283,14 +3283,6 @@ msgid "Generic RF Station"
 msgstr "一般射频測試站"
 
 #: ../py/test/test_lists/generic_rma.test_list.json
-msgid "Clear RMA Unlock State"
-msgstr "清除退货授权 (RMA) 的解锁状态"
-
-#: ../py/test/test_lists/generic_rma.test_list.json
-msgid "Cr50 RMA Cleanup"
-msgstr "清除 CR50 的退货授权 (RMA) 状态"
-
-#: ../py/test/test_lists/generic_rma.test_list.json
 msgid "FFT"
 msgstr "最终功能测试"
 
