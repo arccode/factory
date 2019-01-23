@@ -150,7 +150,7 @@ i.e., built with multiple components and concatenated by period ".".
 For example, `factory.end_SMT` is a valid key name with `factory` as its top
 domain and `end_SMT` is the component name for member.
 
-The `FactoryDeviceData` may contain following members:
+The `FactoryDeviceData` contains only following members:
  - `serials`: A domain with serial numbers for different components. A typical
     Chromebook should at least support:
    - `serials.serial_number`: Serial number of device (printed on case).
@@ -161,6 +161,10 @@ The `FactoryDeviceData` may contain following members:
      Most Shopfloor Service APIs will also track what has been invoked here,
      for example:
    - `factory.end_SMT`: Set to true to indicate the SMT tests are done.
+
+Other fields are not included on purpose, for reducing unnecessary traffic,
+security and privacy concern. For example, VPD values (especially ECHO codes or
+registration codes) should never be included.
 
 ### Data Format: DeviceData
 The `DeviceData` is the structure for return value of Shopfloor Service function
@@ -350,7 +354,7 @@ known as ECHO codes) successfully.
 
 This registration code should be marked as "used" and logged on shopfloor
 backend, then sent back to Google CPFE for being activated. Due to privacy
-concern, this code should be NEVER associated with serial number and any other
+concern, this code should be *NEVER* associated with serial number and any other
 data, so this function is designed very differently - no `FactoryDeviceData`.
 
 When success, DUT software calling this API should set a

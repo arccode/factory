@@ -158,6 +158,13 @@ class ShopfloorService(test_case.TestCase):
   def GetFactoryDeviceData(self):
     """Returns a dictionary in FactoryDeviceData format."""
     data = {}
+    # Warning: DO NOT ADD ANY EXTRA DOMAINS HERE WITHOUT REVIEW.
+    # Any protocol here must be compliant to Chrome OS Factory Shopfloor Service
+    # Specification:
+    # https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/shopfloor/
+    # Extra fields may cause security or privacy concern, and fail other
+    # partners sharing same factory branch. Especially that DOMAIN_VPD cannot be
+    # added since that would break privacy concern by registration (ECHO) codes.
     for domain in [self.DOMAIN_SERIALS, self.DOMAIN_FACTORY]:
       flat_data = device_data.FlattenData(
           device_data.GetDeviceData(domain, {}), domain)
