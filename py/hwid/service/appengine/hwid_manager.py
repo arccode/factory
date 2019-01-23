@@ -267,7 +267,8 @@ class HwidManager(object):
       InvalidHwidError: If the HWID is invalid.
     """
     logging.debug('Getting BOM for %r.', hwid_string)
-    board, unusedi, unusedj = hwid_string.partition(' ')
+    board_and_brand, unusedi, unusedj = hwid_string.partition(' ')
+    board, unusedi, unusedj = board_and_brand.partition('-')
     del unusedi  # unused
     del unusedj  # unused
 
@@ -971,8 +972,8 @@ class _HwidV3Data(_HwidData):
     """
 
     try:
-      hwid, _bom = hwid_utils.DecodeHWID(self.database,
-                                         _NormalizeString(hwid_string))
+      hwid, _bom, _configless = hwid_utils.DecodeHWID(
+          self.database, _NormalizeString(hwid_string))
     except common.HWIDException as e:
       logging.info('Unable to decode a valid HWID. %s', hwid_string)
       raise HwidNotFoundError('HWID not found %s' % hwid_string, e)
