@@ -60,7 +60,7 @@ class FactoryBundleService(remote.Service):
   def ResponseCallback(self, request):
     if request.status == proto.WorkerResult.Status.NO_ERROR:
       subject = 'Bundle creation success'
-      body = request.gs_path
+      body = self.GenerateSuccessBody(request)
     else:
       subject = 'Bundle creation failed'
       body = request.error_message
@@ -70,6 +70,31 @@ class FactoryBundleService(remote.Service):
         subject=subject,
         body=body)
     return proto.CreateBundleRpcResponse()
+
+  def GenerateSuccessBody(self, work_result):
+    """Generate email body if bundle created successfully.
+
+    Args:
+      work_result: proto.WorkerResult defined in
+          '../../proto/factorybundle.proto'.
+
+    Returns:
+      a string of email body.
+    """
+    download_link = work_result.gs_path.replace(
+        'gs://', 'https://storage.cloud.google.com/')
+    req = work_result.original_request
+    body = 'Board: %s\n' % req.board
+    body += 'Device: %s\n' % req.project
+    body += 'Phase: %s\n' % req.phase
+    body += 'Toolkit Version: %s\n' % req.toolkit_version
+    body += 'Test Image Version: %s\n' % req.test_image_version
+    body += 'Release Image Version: %s\n' % req.release_image_version
+    if req.firmware_source:
+      body += 'Firmware Source: %s\n' % req.firmware_source
+    body += '\nDownload link: %s\n' % download_link
+    return body
+
 
 # Map the RPC service and path
 app = service.service_mappings([(_SERVICE_PATH, FactoryBundleService)])

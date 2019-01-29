@@ -4,6 +4,8 @@
 
 import base64
 import logging
+import os
+import subprocess
 import time
 
 from google.cloud import pubsub_v1  # pylint: disable=import-error
@@ -50,6 +52,14 @@ def PullTask():
       request_proto = factorybundle_pb2.CreateBundleRpcRequest.FromString(
           received_message.message.data)
       gs_path = util.CreateBundle(request_proto)
+      filename = os.path.basename(gs_path)
+      # Set read permission for the email of requestor
+      subprocess.call(['gsutil', 'acl', 'ch', '-u',
+                       '%s:READ' % request_proto.email, gs_path])
+      # Set metadata for the correct default download filename
+      subprocess.call(['gsutil', 'setmeta', '-h',
+                       'Content-Disposition: filename="%s"' % filename,
+                       gs_path])
 
       response_proto = factorybundle_pb2.WorkerResult()
       response_proto.status = factorybundle_pb2.WorkerResult.NO_ERROR
