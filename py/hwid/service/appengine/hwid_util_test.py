@@ -32,6 +32,23 @@ class HwidUtilTest(unittest.TestCase):
     self.assertEqual('4GB', sku['memory_str'])
     self.assertEqual(4294967296, sku['total_bytes'])
 
+  def testGetSkuFromBomWithConfigless(self):
+    bom = hwid_manager.Bom()
+    bom.AddAllComponents({
+        'dram': [EXAMPLE_MEMORY_STRING, EXAMPLE_MEMORY_STRING],
+        'cpu': 'longstringwithcpu'
+    })
+    bom.board = 'testboardname'
+
+    configless = {'memory' : 8}
+    sku = hwid_util.GetSkuFromBom(bom, configless)
+
+    self.assertEqual('testboardname_longstringwithcpu_8GB', sku['sku'])
+    self.assertEqual('testboardname', sku['board'])
+    self.assertEqual('longstringwithcpu', sku['cpu'])
+    self.assertEqual('8GB', sku['memory_str'])
+    self.assertEqual(8589934592, sku['total_bytes'])
+
   def testGetComponentValueFromBom(self):
     bom = hwid_manager.Bom()
     bom.AddAllComponents({'bar': 'baz', 'null': []})

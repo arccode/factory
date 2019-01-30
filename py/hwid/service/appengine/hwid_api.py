@@ -134,21 +134,21 @@ class HwidApi(remote.Service):
 
     return hwid_api_messages.BoardsResponse(boards=list(boards))
 
-  def _GetBom(self, raw_hwid):
+  def _GetBomAndConfigless(self, raw_hwid):
     try:
       hwid = urllib.unquote(raw_hwid)
-      bom = self._hwid_manager.GetBom(hwid)
+      bom, configless = self._hwid_manager.GetBomAndConfigless(hwid)
 
       if bom is None:
         raise endpoints.NotFoundException('HWID not found.')
     except KeyError as e:
       logging.exception('KeyError -> not found')
-      return None, str(e)
+      return None, None, str(e)
     except ValueError as e:
       logging.exception('ValueError -> bad input')
-      return None, str(e)
+      return None, None, str(e)
 
-    return bom, None
+    return bom, configless, None
 
   GET_BOM_REQUEST = endpoints.ResourceContainer(
       message_types.VoidMessage, hwid=messages.StringField(1, required=True))
@@ -167,7 +167,7 @@ class HwidApi(remote.Service):
       return hwid_api_messages.BomResponse(error=error)
 
     logging.debug('Retrieving HWID %s', request.hwid)
-    bom, error = self._GetBom(request.hwid)
+    bom, unused_configless, error = self._GetBomAndConfigless(request.hwid)
     if error:
       return hwid_api_messages.BomResponse(error=error)
 
@@ -203,12 +203,12 @@ class HwidApi(remote.Service):
     if error:
       return hwid_api_messages.SKUResponse(error=error)
 
-    bom, error = self._GetBom(request.hwid)
+    bom, configless, error = self._GetBomAndConfigless(request.hwid)
     if error:
       return hwid_api_messages.SKUResponse(error=error)
 
     try:
-      sku = hwid_util.GetSkuFromBom(bom)
+      sku = hwid_util.GetSkuFromBom(bom, configless)
     except hwid_util.HWIDUtilException as e:
       return hwid_api_messages.SKUResponse(error=str(e))
 
@@ -418,14 +418,14 @@ class HwidApi(remote.Service):
       return hwid_api_messages.DUTLabelResponse(
           error=error, possible_labels=possible_labels)
 
-    bom, error = self._GetBom(request.hwid)
+    bom, configless, error = self._GetBomAndConfigless(request.hwid)
 
     if error:
       return hwid_api_messages.DUTLabelResponse(
           error=error, possible_labels=possible_labels)
 
     try:
-      sku = hwid_util.GetSkuFromBom(bom)
+      sku = hwid_util.GetSkuFromBom(bom, configless)
     except hwid_util.HWIDUtilException as e:
       return hwid_api_messages.DUTLabelResponse(
           error=str(e), possible_labels=possible_labels)
@@ -448,11 +448,15 @@ class HwidApi(remote.Service):
 
     components = ['touchscreen', 'touchpad', 'stylus']
     for component in components:
-      component_value = hwid_util.GetComponentValueFromBom(bom, component)
-      if component_value and component_value[0]:
-        # The lab just want the existance of a component they do not care
-        # what type it is.
-        labels.append(hwid_api_messages.DUTLabel(name=component, value=None))
+      # The lab just want the existance of a component they do not care
+      # what type it is.
+      if configless and 'has_' + component in configless['feature_list']:
+        if configless['feature_list']['has_' + component]:
+          labels.append(hwid_api_messages.DUTLabel(name=component, value=None))
+      else:
+        component_value = hwid_util.GetComponentValueFromBom(bom, component)
+        if component_value and component_value[0]:
+          labels.append(hwid_api_messages.DUTLabel(name=component, value=None))
 
     if set([label.name for label in labels]) - set(possible_labels):
       return hwid_api_messages.DUTLabelResponse(

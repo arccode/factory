@@ -253,14 +253,15 @@ class HwidManager(object):
     else:
       return set(metadata.board for metadata in HwidMetadata.all())
 
-  def GetBom(self, hwid_string):
-    """Get the BOM for a given HWID.
+  def GetBomAndConfigless(self, hwid_string):
+    """Get the BOM and configless for a given HWID.
 
     Args:
       hwid_string: The HWID.
 
     Returns:
-      A bom dict.
+      A bom dict and configless field dict.
+      If there is no configless field in given HWID, return Bom dict and None.
 
     Raises:
       HwidNotFoundError: If a portion of the HWID is not found.
@@ -274,7 +275,7 @@ class HwidManager(object):
 
     hwid_data = self._LoadHwidData(board)
 
-    return hwid_data.GetBom(hwid_string)
+    return hwid_data.GetBomAndConfigless(hwid_string)
 
   def GetHwids(self,
                board,
@@ -570,14 +571,15 @@ class _HwidData(object):
     """Seeds the object from a dict of hwid definitions."""
     raise NotImplementedError()
 
-  def GetBom(self, hwid_string):
-    """Get the BOM for a given HWID.
+  def GetBomAndConfigless(self, hwid_string):
+    """Get the BOM and configless field for a given HWID.
 
     Args:
       hwid_string: The HWID.
 
     Returns:
-      A bom dict.
+      A bom dict and configless field dict.
+      If there is no configless field in given HWID, return Bom dict and None.
 
     Raises:
       HwidNotFoundError: If a portion of the HWID is not found.
@@ -722,8 +724,8 @@ class _HwidV2Data(_HwidData):
 
     raise InvalidHwidError('Invalid HWIDv2 format: %r' % hwid_string)
 
-  def GetBom(self, hwid_string):
-    """Get the BOM for a given HWID.
+  def GetBomAndConfigless(self, hwid_string):
+    """Get the BOM and configless field for a given HWID.
 
     Overrides superclass method.
 
@@ -731,7 +733,7 @@ class _HwidV2Data(_HwidData):
       hwid_string: The HWID string
 
     Returns:
-      A Bom object.
+      A Bom object and None since HWID v2 doesn't support configless field.
 
     Raises:
       HwidNotFoundError: If a portion of the HWID is not found.
@@ -766,7 +768,7 @@ class _HwidV2Data(_HwidData):
         raise HwidNotFoundError('volatile %r not found for board %r.' %
                                 (volatile, self.board))
 
-    return bom
+    return bom, None
 
   def GetHwids(self,
                board,
@@ -955,8 +957,8 @@ class _HwidV3Data(_HwidData):
     self.database = database.Database.LoadData(
         raw_hwid_data, expected_checksum=None)
 
-  def GetBom(self, hwid_string):
-    """Get the BOM for a given HWID.
+  def GetBomAndConfigless(self, hwid_string):
+    """Get the BOM and configless field for a given HWID.
 
     Overrides superclass method.
 
@@ -964,7 +966,8 @@ class _HwidV3Data(_HwidData):
       hwid_string: The HWID.
 
     Returns:
-      A Bom object
+      A bom dict and configless field dict.
+      If there is no configless field in given HWID, return Bom dict and None.
 
     Raises:
       HwidNotFoundError: If a portion of the HWID is not found or the HWID is
@@ -972,7 +975,7 @@ class _HwidV3Data(_HwidData):
     """
 
     try:
-      hwid, _bom, _configless = hwid_utils.DecodeHWID(
+      hwid, _bom, configless = hwid_utils.DecodeHWID(
           self.database, _NormalizeString(hwid_string))
     except common.HWIDException as e:
       logging.info('Unable to decode a valid HWID. %s', hwid_string)
@@ -984,7 +987,7 @@ class _HwidV3Data(_HwidData):
     bom.phase = self.database.GetImageName(hwid.image_id)
     bom.board = hwid.project
 
-    return bom
+    return bom, configless
 
   def GetHwids(self,
                board,

@@ -84,16 +84,18 @@ class HwidApiTest(unittest.TestCase):
   def testGetBomNone(self):
     request = hwid_api.HwidApi.GET_BOM_REQUEST.combined_message_class(
         hwid=TEST_HWID)
-    CONFIG.hwid_manager.GetBom = mock.Mock(return_value=None)
+    CONFIG.hwid_manager.GetBomAndConfigless = mock.Mock(
+        return_value=(None, None))
 
     self.assertRaises(endpoints.NotFoundException, self.api.GetBom, request)
 
-    CONFIG.hwid_manager.GetBom.assert_called_with(TEST_HWID)
+    CONFIG.hwid_manager.GetBomAndConfigless.assert_called_with(TEST_HWID)
 
   def testGetBomValueError(self):
     request = hwid_api.HwidApi.GET_BOM_REQUEST.combined_message_class(
         hwid=TEST_HWID)
-    CONFIG.hwid_manager.GetBom = mock.Mock(side_effect=ValueError('foo'))
+    CONFIG.hwid_manager.GetBomAndConfigless = mock.Mock(
+        side_effect=ValueError('foo'))
     response = self.api.GetBom(request)
     self.assertEqual('foo', response.error)
     self.assertEqual([], response.components)
@@ -103,7 +105,8 @@ class HwidApiTest(unittest.TestCase):
   def testGetBomKeyError(self):
     request = hwid_api.HwidApi.GET_BOM_REQUEST.combined_message_class(
         hwid=TEST_HWID)
-    CONFIG.hwid_manager.GetBom = mock.Mock(side_effect=KeyError('foo'))
+    CONFIG.hwid_manager.GetBomAndConfigless = mock.Mock(
+        side_effect=KeyError('foo'))
     response = self.api.GetBom(request)
     self.assertEqual('\'foo\'', response.error)
     self.assertEqual([], response.components)
@@ -114,7 +117,8 @@ class HwidApiTest(unittest.TestCase):
     request = hwid_api.HwidApi.GET_BOM_REQUEST.combined_message_class(
         hwid=TEST_HWID)
     bom = hwid_manager.Bom()
-    CONFIG.hwid_manager.GetBom.return_value = bom
+    configless = None
+    CONFIG.hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
 
     response = self.api.GetBom(request)
 
@@ -126,7 +130,8 @@ class HwidApiTest(unittest.TestCase):
         hwid=TEST_HWID)
     bom = hwid_manager.Bom()
     bom.AddAllComponents({'foo': 'bar', 'baz': ['qux', 'rox']})
-    CONFIG.hwid_manager.GetBom.return_value = bom
+    configless = None
+    CONFIG.hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
 
     response = self.api.GetBom(request)
 
@@ -141,7 +146,8 @@ class HwidApiTest(unittest.TestCase):
         hwid=TEST_HWID)
     bom = hwid_manager.Bom()
     bom.AddAllLabels({'foo': {'bar': None}, 'baz': {'qux': '1', 'rox': '2'}})
-    CONFIG.hwid_manager.GetBom.return_value = bom
+    configless = None
+    CONFIG.hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
 
     response = self.api.GetBom(request)
 
@@ -255,6 +261,26 @@ class HwidApiTest(unittest.TestCase):
     self.assertIn(charlie, response.components)
     self.assertIn(three, response.components)
 
+  def testGetComponentsWithConfigless(self):
+    request = hwid_api.HwidApi.GET_COMPONENTS_REQUEST.combined_message_class(
+        board=TEST_HWID)
+
+    components = dict(uno=['alfa'], dos=['bravo'], tres=['charlie', 'delta'])
+    alfa = hwid_api_messages.Component(componentClass='uno', name='alfa')
+    bravo = hwid_api_messages.Component(componentClass='dos', name='bravo')
+    charlie = hwid_api_messages.Component(componentClass='tres', name='charlie')
+    three = hwid_api_messages.Component(componentClass='tres', name='delta')
+
+    CONFIG.hwid_manager.GetComponents.return_value = components
+
+    response = self.api.GetComponents(request)
+
+    self.assertEquals(4, len(response.components))
+    self.assertIn(alfa, response.components)
+    self.assertIn(bravo, response.components)
+    self.assertIn(charlie, response.components)
+    self.assertIn(three, response.components)
+
   def testGetComponentsEmpty(self):
     request = hwid_api.HwidApi.GET_COMPONENTS_REQUEST.combined_message_class(
         board=TEST_HWID)
@@ -322,7 +348,8 @@ class HwidApiTest(unittest.TestCase):
     bom = hwid_manager.Bom()
     bom.AddAllComponents({'cpu': ['bar1', 'bar2'], 'dram': ['foo']})
     bom.board = 'foo'
-    CONFIG.hwid_manager.GetBom.return_value = bom
+    configless = None
+    CONFIG.hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
 
     response = self.api.GetSKU(request)
 
@@ -333,13 +360,33 @@ class HwidApiTest(unittest.TestCase):
     self.assertEquals('foo_bar1_bar2_1Mb', response.sku)
 
   @mock.patch.object(hwid_util, 'GetTotalRamFromHwidData')
+  def testGetSKUWithConfigless(self, mock_get_total_ram):
+    mock_get_total_ram.return_value = '1Mb', 100000000
+    request = hwid_api.HwidApi.GET_SKU_REQUEST.combined_message_class(
+        hwid=TEST_HWID)
+    bom = hwid_manager.Bom()
+    bom.AddAllComponents({'cpu': ['bar1', 'bar2'], 'dram': ['foo']})
+    bom.board = 'foo'
+    configless = {'memory': 4}
+    CONFIG.hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+
+    response = self.api.GetSKU(request)
+
+    self.assertEquals('foo', response.board)
+    self.assertEquals('bar1_bar2', response.cpu)
+    self.assertEquals('4GB', response.memory)
+    self.assertEquals(4294967296, response.memoryInBytes)
+    self.assertEquals('foo_bar1_bar2_4GB', response.sku)
+
+  @mock.patch.object(hwid_util, 'GetTotalRamFromHwidData')
   def testGetSKUBadDRAM(self, mock_get_total_ram):
     mock_get_total_ram.side_effect = hwid_util.HWIDUtilException('X')
     request = hwid_api.HwidApi.GET_SKU_REQUEST.combined_message_class(
         hwid=TEST_HWID)
     bom = hwid_manager.Bom()
     bom.AddAllComponents({'cpu': 'bar', 'dram': ['fail']})
-    CONFIG.hwid_manager.GetBom.return_value = bom
+    configless = None
+    CONFIG.hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
     response = self.api.GetSKU(request)
     self.assertEqual('X', response.error)
     self.assertIsNone(response.board)
@@ -356,8 +403,9 @@ class HwidApiTest(unittest.TestCase):
     bom = hwid_manager.Bom()
     bom.AddAllComponents({'dram': ['some_memory_chip', 'other_memory_chip']})
     bom.board = 'foo'
+    configless = None
 
-    CONFIG.hwid_manager.GetBom.return_value = bom
+    CONFIG.hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
 
     response = self.api.GetSKU(request)
 
@@ -377,7 +425,8 @@ class HwidApiTest(unittest.TestCase):
     bom.AddAllComponents({'touchscreen': ['testscreen']})
     bom.board = 'foo'
     bom.phase = 'bar'
-    CONFIG.hwid_manager.GetBom.return_value = bom
+    configless = None
+    CONFIG.hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
     request = hwid_api.HwidApi.GET_DUTLABEL_REQUEST.combined_message_class(
         hwid=TEST_HWID)
 
@@ -389,7 +438,46 @@ class HwidApiTest(unittest.TestCase):
         'total_bytes': None
     }
 
-    CONFIG.hwid_manager.GetBom.return_value = bom
+    CONFIG.hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+
+    response = self.api.GetDUTLabels(request)
+
+    self.assertTrue(self.CheckForLabelValue(response, 'phase', 'bar'))
+    self.assertTrue(
+        self.CheckForLabelValue(response, 'variant', 'found_device'))
+    self.assertTrue(self.CheckForLabelValue(response, 'sku', 'TestSku'))
+    self.assertTrue(self.CheckForLabelValue(response, 'touchscreen'))
+    self.assertEqual(4, len(response.labels))
+
+    self.api._goldeneye_memcache_adaptor.Get.return_value = None
+
+    response = self.api.GetDUTLabels(request)
+    self.assertEqual(0, len(response.labels))
+    self.assertEqual('Missing Regexp List', response.error)
+
+  @mock.patch.object(hwid_util, 'GetSkuFromBom')
+  def testGetDUTLabelsWithConfigless(self, mock_get_sku_from_bom):
+    self.api._goldeneye_memcache_adaptor = mock.MagicMock()
+    self.api._goldeneye_memcache_adaptor.Get.return_value = [
+        ('r1.*', 'b1', []), ('^Fo.*', 'found_device', [])
+    ]
+    bom = hwid_manager.Bom()
+    bom.board = 'foo'
+    bom.phase = 'bar'
+    configless = {'feature_list': {'has_touchscreen': 1}}
+    CONFIG.hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    request = hwid_api.HwidApi.GET_DUTLABEL_REQUEST.combined_message_class(
+        hwid=TEST_HWID)
+
+    mock_get_sku_from_bom.return_value = {
+        'sku': 'TestSku',
+        'board': None,
+        'cpu': None,
+        'memory_str': None,
+        'total_bytes': None
+    }
+
+    CONFIG.hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
 
     response = self.api.GetDUTLabels(request)
 

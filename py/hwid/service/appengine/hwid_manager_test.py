@@ -33,6 +33,7 @@ TEST_V2_HWID_TWO_DASH = 'CHROMEBOOK BAKER-ALFA-BETA A-A'
 TEST_V2_HWID_TWO_DASH_NO_VAR = 'CHROMEBOOK BAKER-ALFA-BETA'
 TEST_V2_HWID_TWO_DASH_NO_VOL = 'CHROMEBOOK BAKER-ALFA-BETA A'
 TEST_V3_HWID = 'CHROMEBOOK AA5A-Y6L'
+TEST_V3_HWID_WITH_CONFIGLESS = 'CHROMEBOOK-BRAND 0-8-74-180 AA5A-YZS'
 
 
 # pylint: disable=protected-access
@@ -97,35 +98,35 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
     """Test that an invalid HWID raises a InvalidHwidError."""
     manager = self._GetManager()
 
-    self.assertRaises(hwid_manager.InvalidHwidError, manager.GetBom,
-                      'CHROMEBOOK')
+    self.assertRaises(hwid_manager.InvalidHwidError,
+                      manager.GetBomAndConfigless, 'CHROMEBOOK')
 
   def testGetBomNonexistentBoard(self):
     """Test that a non-existent board raises a HwidNotFoundError."""
     manager = self._GetManager(load_blobstore=False, load_datastore=False)
 
-    self.assertRaises(hwid_manager.BoardNotFoundError, manager.GetBom,
-                      'CHROMEBOOK FOO A-A')
+    self.assertRaises(hwid_manager.BoardNotFoundError,
+                      manager.GetBomAndConfigless, 'CHROMEBOOK FOO A-A')
 
   def testGetBomMissingHWIDFile(self):
     """Test that when the hwid file is missing we get a MetadataError."""
     manager = self._GetManager(load_blobstore=False)
 
-    self.assertRaises(hwid_manager.MetadataError, manager.GetBom,
+    self.assertRaises(hwid_manager.MetadataError, manager.GetBomAndConfigless,
                       'CHROMEBOOK FOO A-A')
 
   def testGetBomInvalidBOM(self):
     """Test that an invalid BOM name raises a HwidNotFoundError."""
     manager = self._GetManager()
 
-    self.assertRaises(hwid_manager.HwidNotFoundError, manager.GetBom,
-                      'CHROMEBOOK FOO A-A')
+    self.assertRaises(hwid_manager.HwidNotFoundError,
+                      manager.GetBomAndConfigless, 'CHROMEBOOK FOO A-A')
 
   def testGetBomExistingBoard(self):
     """Test that a valid HWID returns a result."""
     manager = self._GetManager()
 
-    self.assertIsNotNone(manager.GetBom(TEST_V2_HWID))
+    self.assertIsNotNone(manager.GetBomAndConfigless(TEST_V2_HWID)[0])
 
   def testGetBomMultipleFiles(self):
     """Test when fetching from multiple files, both are supported."""
@@ -134,8 +135,8 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
     manager.RegisterBoard('CHROMEBOOK', 2, 'v2')
     manager.RegisterBoard('CHROMEBOOK', 3, 'v3')
 
-    self.assertRaises(hwid_manager.TooManyBoardsFound, manager.GetBom,
-                      TEST_V2_HWID)
+    self.assertRaises(hwid_manager.TooManyBoardsFound,
+                      manager.GetBomAndConfigless, TEST_V2_HWID)
 
   def testGetHwidsNonExistentBoard(self):
     """Test that a non-existent board raises a BoardNotFoundError."""
@@ -199,9 +200,9 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
     manager = self._GetManager(adapter=mock_storage)
 
     self.assertIsNone(manager.GetBoardDataFromCache('CHROMEBOOK'))
-    self.assertIsNotNone(manager.GetBom(TEST_V2_HWID))
+    self.assertIsNotNone(manager.GetBomAndConfigless(TEST_V2_HWID)[0])
     self.assertIsNotNone(manager.GetBoardDataFromCache('CHROMEBOOK'))
-    self.assertIsNotNone(manager.GetBom(TEST_V2_HWID))
+    self.assertIsNotNone(manager.GetBomAndConfigless(TEST_V2_HWID)[0])
     self.assertIsNotNone(manager.GetBoardDataFromCache('CHROMEBOOK'))
     mock_storage.ReadFile.assert_called_once_with('/live/v2')
 
@@ -213,7 +214,7 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
 
     manager.RegisterBoard('CHROMEBOOK', 10, 'v10')
 
-    self.assertRaises(hwid_manager.MetadataError, manager.GetBom,
+    self.assertRaises(hwid_manager.MetadataError, manager.GetBomAndConfigless,
                       'CHROMEBOOK FOOBAR')
     mock_storage.ReadFile.assert_called_once_with('/live/v10')
 
@@ -251,7 +252,7 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
     # We no longer allow composite HWID objects that have v2 and v3 definitions
     # last RegisterBoard command wins, so check that a V3 HWID is available.
     self.assertIsNotNone(manager.GetBoardDataFromCache('CHROMEBOOK'))
-    self.assertIsNotNone(manager.GetBom(TEST_V3_HWID))
+    self.assertIsNotNone(manager.GetBomAndConfigless(TEST_V3_HWID)[0])
 
   def testUpdateBoards(self):
     """Test the board updater adds a board."""
@@ -382,7 +383,7 @@ class HwidDataTest(unittest.TestCase):
 
   def testUnimplemented(self):
     self.assertRaises(NotImplementedError, self.data._SeedFromData, None)
-    self.assertRaises(NotImplementedError, self.data.GetBom, None)
+    self.assertRaises(NotImplementedError, self.data.GetBomAndConfigless, None)
     self.assertRaises(NotImplementedError, self.data.GetHwids, None, None, None,
                       None, None)
     self.assertRaises(NotImplementedError, self.data.GetComponentClasses, None)
@@ -442,7 +443,7 @@ class HwidV2DataTest(unittest.TestCase):
 
   def testGetBom(self):
     """Tests fetching a BOM."""
-    bom = self.data.GetBom(TEST_V2_HWID)
+    bom, configless = self.data.GetBomAndConfigless(TEST_V2_HWID)
 
     self.assertTrue(bom.HasComponent(hwid_manager.Component('chipset', 'snow')))
     self.assertTrue(
@@ -450,18 +451,21 @@ class HwidV2DataTest(unittest.TestCase):
     self.assertTrue(
         bom.HasComponent(hwid_manager.Component('volatile_a', 'test_volatile')))
 
-    bom = self.data.GetBom(TEST_V2_HWID_NO_VAR)
+    bom, configless = self.data.GetBomAndConfigless(TEST_V2_HWID_NO_VAR)
 
     self.assertTrue(bom.HasComponent(hwid_manager.Component('chipset', 'snow')))
     self.assertEqual([], bom.GetComponents('keyboard'))
     self.assertNotIn([], bom.GetComponents('volatile_a'))
+    self.assertEqual(None, configless)
 
-    self.assertRaises(hwid_manager.BoardMismatchError, self.data.GetBom,
-                      'NOTCHROMEBOOK HWID')
+    self.assertRaises(hwid_manager.BoardMismatchError,
+                      self.data.GetBomAndConfigless, 'NOTCHROMEBOOK HWID')
 
-    self.assertRaises(hwid_manager.HwidNotFoundError, self.data.GetBom,
+    self.assertRaises(hwid_manager.HwidNotFoundError,
+                      self.data.GetBomAndConfigless,
                       TEST_V2_HWID_NO_VAR + ' FOO')
-    self.assertRaises(hwid_manager.HwidNotFoundError, self.data.GetBom,
+    self.assertRaises(hwid_manager.HwidNotFoundError,
+                      self.data.GetBomAndConfigless,
                       TEST_V2_HWID_NO_VAR + ' A-FOO')
 
     self.assertEqual('CHROMEBOOK', bom.board)
@@ -585,7 +589,7 @@ class HwidV3DataTest(unittest.TestCase):
 
   def testGetBom(self):
     """Tests fetching a BOM."""
-    bom = self.data.GetBom(TEST_V3_HWID)
+    bom, configless = self.data.GetBomAndConfigless(TEST_V3_HWID)
 
     self.assertIn(
         hwid_manager.Component('chipset', 'chipset_0'),
@@ -597,9 +601,45 @@ class HwidV3DataTest(unittest.TestCase):
         hwid_manager.Component('dram', 'dram_0'), bom.GetComponents('dram'))
     self.assertEqual('EVT', bom.phase)
     self.assertEqual('CHROMEBOOK', bom.board)
+    self.assertEqual(None, configless)
 
-    self.assertRaises(hwid_manager.HwidNotFoundError, self.data.GetBom,
-                      'NOTCHROMEBOOK HWID')
+    self.assertRaises(hwid_manager.HwidNotFoundError,
+                      self.data.GetBomAndConfigless, 'NOTCHROMEBOOK HWID')
+
+  def testGetBomWithConfigless(self):
+    """Tests fetching a BOM."""
+    bom, configless = self.data.GetBomAndConfigless(
+        TEST_V3_HWID_WITH_CONFIGLESS)
+
+    self.assertIn(
+        hwid_manager.Component('chipset', 'chipset_0'),
+        bom.GetComponents('chipset'))
+    self.assertIn(
+        hwid_manager.Component('keyboard', 'keyboard_us'),
+        bom.GetComponents('keyboard'))
+    self.assertIn(
+        hwid_manager.Component('dram', 'dram_0'), bom.GetComponents('dram'))
+    self.assertEqual('EVT', bom.phase)
+    self.assertEqual('CHROMEBOOK', bom.board)
+    self.assertEqual(
+        {
+            'version': 0,
+            'memory': 8,
+            'storage': 116,
+            'feature_list': {
+                'has_fingerprint': 0,
+                'has_front_camera': 0,
+                'has_rear_camera': 0,
+                'has_stylus': 0,
+                'has_touchpad': 0,
+                'has_touchscreen': 1,
+                'is_convertible': 0,
+                'is_rma_device': 0
+            }
+        }, configless)
+
+    self.assertRaises(hwid_manager.HwidNotFoundError,
+                      self.data.GetBomAndConfigless, 'NOTCHROMEBOOK HWID')
 
   def testGetHwids(self):
     self.assertRaises(NotImplementedError, self.data.GetHwids,

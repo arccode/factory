@@ -72,7 +72,7 @@ def GetTotalRamFromHwidData(drams):
   return str(total_ram), total_ram.byte_count
 
 
-def GetSkuFromBom(bom):
+def GetSkuFromBom(bom, configless=None):
   """From a BOM construct a string that represents the hardware."""
   components = defaultdict(list)
   for component in bom.GetComponents():
@@ -84,7 +84,13 @@ def GetSkuFromBom(bom):
   if cpus:
     cpus.sort()
     cpu = '_'.join(cpus)
-  memory_str, total_bytes = GetTotalRamFromHwidData(components['dram'])
+
+  if configless and 'memory' in configless:
+    memory_str = str(configless['memory']) + 'GB'
+    total_bytes = configless['memory'] * 1024 * 1024 * 1024
+  else:
+    memory_str, total_bytes = GetTotalRamFromHwidData(components['dram'])
+
   board = bom.board.lower()
   sku = '%s_%s_%s' % (board, cpu, memory_str)
 
