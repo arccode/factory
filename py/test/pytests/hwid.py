@@ -55,7 +55,18 @@ mode::
     "pytest_name": "hwid",
     "label": "Write HWID",
     "args": {
-      "rma_mode": True
+      "rma_mode": true
+    }
+  }
+
+New HWID with 'configless' format is still under testing.  To enable this
+feature, set argument like this::
+
+  {
+    "pytest_name": "hwid",
+    "label": "Write HWID",
+    "args": {
+      "enable_configless_fields": true
     }
   }
 """
@@ -112,7 +123,10 @@ class HWIDV3Test(test_case.TestCase):
           default=False),
       Arg('verify_checksum', bool,
           'Enable database checksum verification.',
-          default=True)
+          default=True),
+      Arg('enable_configless_fields', bool,
+          'Include the configless fields',
+          default=False),
   ]
 
   def setUp(self):
@@ -188,6 +202,8 @@ class HWIDV3Test(test_case.TestCase):
         generate_cmd += ['--rma-mode']
       if not self.args.verify_checksum:
         generate_cmd += ['--no-verify-checksum']
+      if self.args.enable_configless_fields:
+        generate_cmd += ['--with-configless-fields']
 
       output = self.factory_tools.CallOutput(generate_cmd)
       self.assertIsNotNone(output, 'HWID generate failed.')
