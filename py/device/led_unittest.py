@@ -37,8 +37,6 @@ class LEDTest(unittest.TestCase):
     self.board.CheckCall(['ectool', 'led', 'battery', 'green=128'])
     self.board.CheckCall(['ectool', 'led', 'battery', 'green=0'])
 
-    self.board.CheckCall(['ectool', 'led', 'power', 'green'])
-
     self.board.CheckCall(['ectool', 'led', 'battery', 'auto'])
     # brightness does not take effect.
     self.board.CheckCall(['ectool', 'led', 'battery', 'auto'])
@@ -56,8 +54,6 @@ class LEDTest(unittest.TestCase):
     self.led.SetColor(self.led.Color.GREEN, brightness=50)
     self.led.SetColor(self.led.Color.GREEN, brightness=0)
 
-    self.led.SetColor(self.led.Color.GREEN, led_name='power', brightness=None)
-
     self.led.SetColor(self.led.Color.AUTO)
     self.led.SetColor(self.led.Color.AUTO, brightness=0)
 
@@ -65,12 +61,23 @@ class LEDTest(unittest.TestCase):
     self.led.SetColor(self.led.Color.OFF, brightness=100)
     self.mox.VerifyAll()
 
+  def testMultipleLEDs(self):
+    self.led = led.LeftRightLED(self.board)
+    self.board.CheckCall(['ectool', 'led', 'left', 'auto']).InAnyOrder()
+    self.board.CheckCall(['ectool', 'led', 'right', 'auto']).InAnyOrder()
+    self.board.CheckCall(['ectool', 'led', 'left', 'green'])
+    self.mox.ReplayAll()
+    self.led.SetColor(self.led.Color.AUTO)
+    self.led.SetColor(self.led.Color.GREEN, led_name='left')
+    self.mox.VerifyAll()
+
   def testSetColorInvalidInput(self):
     with self.assertRaisesRegexp(ValueError, 'Invalid color'):
       self.led.SetColor('invalid color')
     with self.assertRaisesRegexp(TypeError, 'Invalid brightness'):
       self.led.SetColor(self.led.Color.RED, brightness='1')
-    with self.assertRaisesRegexp(ValueError, 'brightness out-of-range'):
+    with self.assertRaisesRegexp(ValueError,
+                                 r'brightness \(255\) out-of-range'):
       self.led.SetColor(self.led.Color.RED, brightness=255)
 
   def testSetColorUnsupportedBoard(self):
