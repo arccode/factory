@@ -726,11 +726,9 @@ with open(sys.argv[1]) as f:
 for k, v in config.iteritems():
   dir_path = INSTALL_PATH_MAP.get(k, None)
   if dir_path:
-    config_file_path = os.path.join(dir_path, '%s.json' % k)
-    if os.path.isfile(config_file_path):
-      continue
     if not os.path.exists(dir_path):
       os.makedirs(path)
+    config_file_path = os.path.join(dir_path, '%s.json' % k)
     with open(config_file_path, 'w') as f:
       json.dump(v, f, indent=2, sort_keys=True)
 END_PYTHON_SCRIPT
@@ -742,22 +740,30 @@ install_add_stub() {
   local component="$1"
   local file="$2"
   local output_dir="$(dirname "${file}")/install"
+  # Test image runs the stub scripts in collating order. We want the toolkit to
+  # be installed first, so we prefix the stubs with prefixs to control their
+  # execution order. Currently we prefix toolkit with "0_" and other with "1_".
+  # See platform2/init/upstart/test-init/cros_payload.conf for the script to
+  # install these components.
+  local stub_prefix=""
   # Chrome OS test images may disable symlink and +exec on stateful partition,
   # so we have to implement the stub as pure shell scripts, and invoke the
   # component via shell.
-  local stub="${output_dir}/${component}.sh"
   local cmd=""
 
   case "${component}" in
     toolkit)
+      stub_prefix="0_"
       cmd="sh ./${component} -- --yes"
       ;;
     hwid)
+      stub_prefix="1_"
       # Current HWID bundle expects parent folder to exist before being able to
       # extract HWID files so we have to mkdir first.
       cmd="mkdir -p /usr/local/factory; sh ./${component}"
       ;;
     toolkit_config)
+      stub_prefix="1_"
       cmd="python -c \"$(get_install_toolkit_config_script)\" ./${component}"
       ;;
     *)
@@ -765,6 +771,7 @@ install_add_stub() {
   esac
 
   mkdir -m 0755 -p "${output_dir}"
+  local stub="${output_dir}/${stub_prefix}${component}.sh"
   echo '#!/bin/sh' >"${stub}"
   # shellcheck disable=SC2016
   echo 'cd "$(dirname "$(readlink -f "$0")")"/..' >>"${stub}"
