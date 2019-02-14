@@ -23,13 +23,15 @@ class ParseRegionFieldUnittest(unittest.TestCase):
     self.assertEquals({'region': 'us'}, decoded['foo'][29])
     self.assertTrue(decoded['foo'].is_legacy_style)
 
-    doc = 'foo: !region_field [us, gb]'
+    # "no" should not be parsed as "false" (boolean) here.
+    doc = 'foo: !region_field [us, gb, no]'
     decoded = yaml.load(doc)
     self.assertFalse(decoded['foo'].is_legacy_style)
     self.assertEquals(decoded['foo'], {
         0: {'region': []},
         1: {'region': 'us'},
-        2: {'region': 'gb'}})
+        2: {'region': 'gb'},
+        3: {'region': 'no'}})
 
   def testDumpRegionField(self):
     doc = 'foo: !region_field [us, gb]'
@@ -101,6 +103,24 @@ class ParseRegionComponentUnittest(unittest.TestCase):
     self.assertEquals(yaml.load(doc), load2(doc))
     doc = 'region: !region_component\n  unqualified: [zz]\n  unsupported: [aa]'
     self.assertEquals(yaml.load(doc), load2(doc))
+
+
+class StandardizeUnittest(unittest.TestCase):
+  def testParseBool(self):
+    self.assertEquals(yaml.load('true'), True)
+    self.assertEquals(yaml.load('TRUE'), True)
+    self.assertEquals(yaml.load('false'), False)
+    self.assertEquals(yaml.load('FALSE'), False)
+
+    self.assertEquals(yaml.load('no'), 'no')
+    self.assertEquals(yaml.load('NO'), 'NO')
+    self.assertEquals(yaml.load('yes'), 'yes')
+    self.assertEquals(yaml.load('YES'), 'YES')
+
+    self.assertEquals(yaml.load('on'), 'on')
+    self.assertEquals(yaml.load('ON'), 'ON')
+    self.assertEquals(yaml.load('off'), 'off')
+    self.assertEquals(yaml.load('OFF'), 'OFF')
 
 
 @rule.RuleFunction(['string'])

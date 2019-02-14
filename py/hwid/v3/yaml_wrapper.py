@@ -62,6 +62,29 @@ dump = _RemoveDummyStringWrapper(functools.partial(dump, Dumper=Dumper))
 dump_all = _RemoveDummyStringWrapper(functools.partial(dump_all, Dumper=Dumper))
 add_representer = functools.partial(add_representer, Dumper=Dumper)
 
+# Override existing YAML tags to disable some auto type conversion.
+def RestrictedBoolConstructor(self, node):
+  """Override PyYaml default behavior for bool values
+
+  Only 'true' and 'false' will be parsed as boolean.  Other values
+  (on|off|yes|no) will be return as string.
+
+  It does more harm than good to allow this conversion.  HWID database seldom
+  contains boolean values, writing 'true|false' instead of 'on|off|yes|no' for
+  boolean values should be ok.  Furthor more, 'no' (string) is the country code
+  for Norway.  We need to always remember to quote 'no' in region component if
+  we don't override the default behavior.
+  """
+  if not isinstance(node, nodes.ScalarNode):
+    return self.construct_scalar(node)  # this should raise an exception
+  value = node.value
+  if value.lower() == 'true':
+    return True
+  if value.lower() == 'false':
+    return False
+  return self.construct_scalar(node)
+
+add_constructor(u'tag:yaml.org,2002:bool', RestrictedBoolConstructor)
 
 # Register customized YAML tags
 
