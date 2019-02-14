@@ -103,8 +103,6 @@ class UmpireClientInfo(object):
     # new_info['macs'] is a dict like
     # {'eth0': 'xx:xx:xx:xx:xx:xx', 'eth1': 'xx:xx:xx:xx:xx:xx',
     #  'wlan0': 'xx:xx:xx:xx:xx:xx'}
-    if not system_info.eth_macs:
-      raise UmpireClientInfoException('No mac address detected')
     macs = dict(system_info.eth_macs)
     macs['wlan0'] = system_info.wlan0_mac
     new_info['macs'] = macs
