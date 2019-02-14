@@ -16,6 +16,7 @@ binaries:
   factory_bug:     full
   factory_restart: full
   flash_netboot:   full
+  image_tool:      mini
   gooftool:        mini
   goofy:           full
   goofy_control:   full
@@ -24,6 +25,6 @@ binaries:
   hwid:            mini
   make_par:        full
   merge_logs:      full
-  mount_partition: full
+  mount_partition: mini
   regcode:         mini
   run_pytest:      full
