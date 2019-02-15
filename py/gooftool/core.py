@@ -897,7 +897,7 @@ class Gooftool(object):
       try:
         board_id = gsctool.GetBoardID()
       except gsctool_module.GSCToolError as e:
-        raise Error('Failed to get boardID with gsctool command: %r', e)
+        raise Error('Failed to get boardID with gsctool command: %r' % e)
 
       RLZ = self._util.shell(['mosys', 'platform', 'brand']).stdout.strip()
       if RLZ == '':
@@ -922,10 +922,44 @@ class Gooftool(object):
       is_factory_mode = gsctool.IsFactoryMode()
 
     except gsctool_module.GSCToolError as e:
-      raise Error('gsctool command fail: %r', e)
+      raise Error('gsctool command fail: %r' % e)
 
     except Exception as e:
       raise Error('Unknown exception from gsctool: %r' % e)
 
     if is_factory_mode:
       raise Error('Failed to disable Cr50 factory mode.')
+
+  def FpmcuInitializeEntropy(self):
+    """Initialze entropy of FPMCU.
+
+    Verify entropy of FPMCU is not added yet and initialize the entropy in
+    FPMCU.
+    """
+
+    RBINFO_PATTERN = r'^Rollback block id:\s*(\d)+$'
+    RBINFO_REGEX = re.compile(RBINFO_PATTERN, re.MULTILINE)
+    RBINFO_CMD = ['ectool', '--name=cros_fp', 'rollbackinfo']
+    def get_rbinfo():
+      proc = self._util.shell(RBINFO_CMD)
+      if not proc.success:
+        raise Error('Fail to call %r. Log:\n%s' %
+                    (RBINFO_CMD, proc.stderr))
+      result = RBINFO_REGEX.search(proc.stdout)
+      if result is None:
+        raise Error('FPS rollback info not found.\n'\
+                    '%r not found in:\n%s' % (RBINFO_PATTERN, proc.stdout))
+      return int(result.group(1))
+
+    if get_rbinfo() != 0:
+      raise Error('FPMCU entropy should not be initialized already.')
+    BIOWASH_CMD = ['bio_wash', '--factory_init']
+    biowash = self._util.shell(BIOWASH_CMD)
+
+    if not biowash.success:
+      raise Error('Fail to call %r. Log:\n%s' %
+                  (BIOWASH_CMD, biowash.stderr))
+    if get_rbinfo() != 1:
+      raise Error('FPMCU entropy cannot be initialized properly.\n'\
+                  'Log of %r:\n%s' % (BIOWASH_CMD, biowash.stderr))
+    logging.info('FPMCU entropy initialized successfully.')

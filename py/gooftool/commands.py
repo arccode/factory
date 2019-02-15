@@ -244,6 +244,14 @@ _no_generate_mfg_date_cmd_arg = CmdArg(
     '--no_generate_mfg_date', action='store_false', dest='generate_mfg_date',
     help='Do not generate manufacturing date nor write mfg_date into VPD.')
 
+_has_fpmcu_cmd_arg = CmdArg(
+    '--has_fpmcu', action='store_true', default=None,
+    help='Force execution of fpmcu related commands.')
+
+_no_fpmcu_cmd_arg = CmdArg(
+    '--no_fpmcu', action='store_false', default=None, dest='has_fpmcu',
+    help='Skip fpmcu related commands.')
+
 
 @Command(
     'verify_ec_key',
@@ -730,7 +738,9 @@ def UploadReport(options):
          _rlz_embargo_end_date_offset_cmd_arg,
          _waive_list_cmd_arg,
          _skip_list_cmd_arg,
-         _no_generate_mfg_date_cmd_arg)
+         _no_generate_mfg_date_cmd_arg,
+         _has_fpmcu_cmd_arg,
+         _no_fpmcu_cmd_arg)
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.
 
@@ -742,6 +752,7 @@ def Finalize(options):
   - Clears all factory-friendly flags from the GBB
   - Removes factory-specific entries from RW_VPD (factory.*)
   - Enables firmware write protection (cannot rollback after this)
+  - Initialize Fpmcu entropy
   - Uploads system logs & reports
   - Wipes the testing kernel, rootfs, and stateful partition
   """
@@ -767,6 +778,7 @@ def Finalize(options):
     event_log.Log('wp', fw='both', status='skipped')
   else:
     EnableFwWp(options)
+  FpmcuInitializeEntropy(options)
   LogSystemDetails(options)
   UploadReport(options)
 
@@ -826,6 +838,22 @@ def GetFirmwareHash(options):
       print('  %s: %s' % (key, value))
   else:
     raise Error('File does not exist: %s' % options.file)
+
+
+@Command('fpmcu_initialize_entropy',
+         _has_fpmcu_cmd_arg,
+         _no_fpmcu_cmd_arg)
+def FpmcuInitializeEntropy(options):
+  """Initialze entropy of FPMCU."""
+  fpmcu_exists = os.path.exists('/dev/cros_fp')
+  if options.has_fpmcu is None:
+    options.has_fpmcu = fpmcu_exists
+  if options.has_fpmcu:
+    if not fpmcu_exists:
+      raise Error('FPS not found on device.')
+    GetGooftool(options).FpmcuInitializeEntropy()
+  elif fpmcu_exists:
+    logging.warning('FPS found. Entropy initialization skipped.')
 
 
 def main():
