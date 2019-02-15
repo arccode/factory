@@ -86,17 +86,27 @@ class LED(types.DeviceComponent):
       raise
 
 
+class BatteryLED(LED):
+  """Devices with only Battery LED (usually Tablet or Chromebook)."""
+  Index = Enum([LED.CrOSIndexes.BATTERY])
+
+
+class PowerLED(LED):
+  """Devices with only Power LED (usually Chromebox)."""
+  Index = Enum([LED.CrOSIndexes.POWER])
+
+
 class BatteryPowerLED(LED):
-  """Devices with Battery and Power LEDs."""
+  """Devices with Battery and Power LEDs (most recent x86 Chromebooks)."""
   Index = Enum([LED.CrOSIndexes.BATTERY, LED.CrOSIndexes.POWER])
 
 
 class BatteryPowerAdapterLED(LED):
-  """Devices with Battery, Power and Adapter LEDs."""
+  """Devices with Battery, Power and Adapter LEDs. (older Chromebooks)."""
   Index = Enum([LED.CrOSIndexes.BATTERY, LED.CrOSIndexes.POWER,
                 LED.CrOSIndexes.ADAPTER])
 
 
 class LeftRightLED(LED):
-  """Devices with only Left and Right LEDs."""
+  """Devices with only Left and Right LEDs (modern Chromebooks with 2 TypeC)."""
   Index = Enum([LED.CrOSIndexes.LEFT, LED.CrOSIndexes.RIGHT])
