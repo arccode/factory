@@ -98,5 +98,24 @@ class MakePARTest(unittest.TestCase):
     self.assertTrue('To run a file within this archive,' in process.stderr_data)
 
 
+class PARSelfTest(unittest.TestCase):
+  def setUp(self):
+    self.tmp = tempfile.mkdtemp(prefix='make_par_unittest.')
+    self.par = os.path.join(self.tmp, 'factory.par')
+    self.assertTrue(make_par.main(['-o', self.par, '--include-unittest']))
+
+  def tearDown(self):
+    shutil.rmtree(self.tmp)
+
+  def _RunUnittestInPar(self, unittest_module_path):
+    link = os.path.join(self.tmp, 'run_unittest_in_par')
+    os.symlink(self.par, link)
+    process = Spawn([link, unittest_module_path], call=True, env={}, cwd='/')
+    self.assertEqual(0, process.returncode)
+
+  def testCrosConfig(self):
+    self._RunUnittestInPar('cros.factory.utils.config_utils_unittest')
+
+
 if __name__ == '__main__':
   unittest.main()

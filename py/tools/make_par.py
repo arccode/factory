@@ -139,6 +139,9 @@ def main(argv=None):
   parser.add_argument(
       '--compiled', action='store_true',
       help='Build with compiled python code (*.pyc).')
+  parser.add_argument(
+      '--include-unittest', action='store_true',
+      help='Build with unittest files for self testing')
   args = parser.parse_args(argv)
   logging.basicConfig(level=logging.WARNING - 10 * (args.verbose or 0))
 
@@ -155,7 +158,6 @@ def main(argv=None):
            '--exclude', '/py/dome',
            '--exclude', '/py/test_list_editor',
            '--exclude', '/py/umpire/server',
-           '--exclude', 'testdata',
            os.path.join(paths.FACTORY_DIR, 'py'),
            os.path.join(paths.FACTORY_DIR, 'bin'),
            src],
@@ -168,18 +170,21 @@ def main(argv=None):
     cros_dir = os.path.join(par_build, 'cros')
     os.mkdir(cros_dir)
 
-    rsync_args = ['rsync', '-a',
-                  '--exclude', '*_unittest.py',
-                  '--exclude', 'factory_common.py*',
-                  '--exclude', '*.pyo',  # pyo will discard assert.
-                  '--include' if args.compiled else '--exclude', '*.pyc',
-                  '--include', '*.py']
+    rsync_args = ['rsync', '-a']
+
+    if not args.include_unittest:
+      rsync_args += ['--exclude', '*_unittest.py', '--exclude', 'testdata']
+
+    rsync_args += [
+        '--exclude', 'factory_common.py*',
+        '--exclude', '*.pyo',  # pyo will discard assert.
+        '--include' if args.compiled else '--exclude', '*.pyc',
+        '--include', '*.py']
 
     if args.mini:
       # Exclude some piggy directories we'll never need for the mini
       # par, since we will not run these things in a test image.
       rsync_args.extend(['--exclude', 'static',
-                         '--exclude', 'testdata',
                          '--exclude', 'goofy',
                          '--exclude', 'pytests'])
     else:

@@ -219,15 +219,14 @@ def _LoadJsonFile(file_path, logger):
       importer = zipimport.zipimporter(file_dir)
       zip_path = os.path.join(importer.prefix, file_name)
       logger('config_utils: Loading from %s!%s', importer.archive, zip_path)
+      # importer.get_data will raise IOError if file wasn't found.
+      return json.loads(importer.get_data(zip_path))
     except zipimport.ZipImportError:
       logger('config_utils: No PAR/ZIP in %s. Ignore.', file_path)
     except IOError:
       logger('config_utils: PAR path %s does not exist. Ignore.', file_path)
-    else:
-      try:
-        return json.loads(importer.get_data(zip_path))
-      except Exception as e:
-        raise _JsonFileInvalidError(file_path, str(e))
+    except Exception as e:
+      raise _JsonFileInvalidError(file_path, str(e))
   return None
 
 
