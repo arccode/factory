@@ -232,8 +232,10 @@ class EventLoopRunTest(EventLoopTestBase):
   def testRunFailed(self):
     self._MockEndEventLoopEvent(
         10, status=state.TestState.FAILED, error_msg='test failed.')
-    self.assertRaisesRegexp(type_utils.TestFailure, '^test failed.$',
-                            self.event_loop.Run)
+    end_event = self.event_loop.Run()
+    self.assertEqual(end_event.type, _EventType.END_EVENT_LOOP)
+    self.assertEqual(end_event.status, state.TestState.FAILED)
+    self.assertEqual(end_event.error_msg, 'test failed.')
 
   def testAddTimedHandler(self):
     """Test add a timed non-repeating handler.

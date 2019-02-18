@@ -12,11 +12,10 @@ from __future__ import print_function
 
 import argparse
 import ast
+import cPickle as pickle
 import logging
 import os
-import pickle
 import sys
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -63,8 +62,10 @@ def _RunPytestGoofy(pytest, args, dut_options):
     info = invocation.PytestInfo(None, None, pytest, args, results,
                                  dut_options=dut_options)
     pytest_runner.RunPytest(info)
-    status, error_msg = pickle.load(open(results))
-    return (status == state.TestState.PASSED, error_msg)
+    status, detail = pickle.load(open(results))
+    is_pass = status == state.TestState.PASSED
+    err_msg = None if is_pass else '\n'.join(str(e) for e, unused_tb in detail)
+    return (is_pass, err_msg)
 
 
 def _RunPytestRaw(pytest, args, dut_options):
@@ -98,17 +99,10 @@ def _RunPytestRaw(pytest, args, dut_options):
   except Exception as e:
     return (False, e.message)
 
-  # Run the test.
-  result = unittest.TestResult()
-  test.run(result)
-
-  # Collect errors and return them.
-  all_failures = result.failures + result.errors
-  error_msg = None
-  if all_failures:
-    error_msg = '\n'.join(_FormatErrorMessage(trace)
-                          for test_name, trace in all_failures)
-  return (error_msg is None, error_msg)
+  # Run the test and return the result.
+  result = pytest_utils.RunTestCase(test)
+  is_pass = bool(result.failure_details)
+  return is_pass, None if is_pass else result.DumpStr()
 
 
 def main():
@@ -142,12 +136,12 @@ def main():
           if cli_args.args else {})
   dut_options = (ast.literal_eval(cli_args.dut_options)
                  if cli_args.dut_options else {})
-  _, error_msg = RunPytest(pytest=cli_args.pytest,
-                           args=args,
-                           dut_options=dut_options,
-                           use_goofy=cli_args.use_goofy)
+  _, error_msg_or_none = RunPytest(pytest=cli_args.pytest,
+                                   args=args,
+                                   dut_options=dut_options,
+                                   use_goofy=cli_args.use_goofy)
   # Exit code and error message.
-  sys.exit(error_msg or None)
+  sys.exit(error_msg_or_none)
 
 
 if __name__ == '__main__':

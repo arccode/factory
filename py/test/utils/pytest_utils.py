@@ -2,8 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import logging
 import os
 import re
+import traceback
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -93,3 +95,58 @@ def LoadPytest(pytest_name):
 def RelpathToPytestName(relpath):
   """Convert a pytest relpath to dotted pytest name."""
   return os.path.splitext(relpath)[0].replace('/', '.')
+
+
+class IndirectException(Exception):
+  @property
+  def exception(self):
+    return self.args[0]
+
+  @property
+  def traceback_list(self):
+    return self.args[1]
+
+
+class TestResult(unittest.TestResult):
+  def __init__(self):
+    super(TestResult, self).__init__()
+    self.failure_details = []
+
+  def DumpStr(self):
+    return '\n=====\n'.join(''.join(traceback.format_list(tb)) + repr(exc)
+                            for exc, tb in self.failure_details)
+
+  def addError(self, test, err):
+    super(TestResult, self).__init__(test, err)
+    self._RecordFailureDetail(err)
+
+  def addFailure(self, test, err):
+    super(TestResult, self).__init__(test, err)
+    self._RecordFailureDetail(err)
+
+  def _RecordFailureDetail(self, err):
+    unused_exc_type, exc, tb = err
+    if isinstance(exc, IndirectException):
+      tb_list = exc.traceback_list
+      exc = exc.exception
+    else:
+      tb_list = traceback.extract_tb(tb)
+    self.failure_details.append((exc, tb_list))
+
+
+def RunTestCase(test_case):
+  """Runs the given test case.
+
+  This is the actual test case runner.  It runs the test case and returns the
+  test results.
+
+  Args:
+    test_case: The test case to run.
+
+  Returns:
+    The test result of the test case.
+  """
+  logging.debug('[%s] Really run test case: %s', os.getpid(), test_case.id())
+  result = TestResult()
+  test_case.run(result)
+  return result

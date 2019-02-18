@@ -7,6 +7,7 @@
 from __future__ import print_function
 
 import collections
+import cPickle as pickle
 import sys
 import threading
 import traceback
@@ -16,6 +17,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event as test_event
 from cros.factory.test import state
 from cros.factory.test import test_ui
+from cros.factory.test.utils import pytest_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
@@ -130,7 +132,14 @@ class TestCase(unittest.TestCase):
     """The main test procedure that would be run by unittest."""
     thread = process_utils.StartDaemonThread(target=self.__RunTasks)
     try:
-      self.event_loop.Run()
+      end_event = self.event_loop.Run()
+      if end_event.status == state.TestState.FAILED:
+        exception_str = getattr(end_event, 'exception_str')
+        traceback_list = getattr(end_event, 'traceback_list')
+        if not exception_str:
+          raise type_utils.TestFailure(getattr(end_event, 'error_msg', None))
+        raise pytest_utils.IndirectException(pickle.loads(exception_str),
+                                             traceback_list)
     finally:
       # Ideally, the background would be the one calling FailTask / PassTask,
       # or would be waiting in WaitTaskEnd when an exception is thrown, so the
@@ -188,15 +197,21 @@ class TestCase(unittest.TestCase):
     This should be called in the except clause, and is also called by the event
     loop in the main thread.
     """
-    exception = sys.exc_info()[1]
+    unused_exc_type, exception, tb = sys.exc_info()
     assert exception is not None, 'Not handling an exception'
 
     if not isinstance(exception, TaskEndException):
-      error_msg = traceback.format_exc()
+      try:
+        exception_str = pickle.dumps(exception)
+      except Exception:
+        exception_str = pickle.dumps(type_utils.Error(str(exception)))
+      traceback_list = traceback.extract_tb(tb)
+
       self.event_loop.PostNewEvent(
           test_event.Event.Type.END_EVENT_LOOP,
           status=state.TestState.FAILED,
-          error_msg=error_msg)
+          exception_str=exception_str,
+          traceback_list=traceback_list)
       self.__task_failed = True
     self.__task_end_event.set()
 

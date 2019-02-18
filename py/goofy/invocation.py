@@ -16,6 +16,7 @@ import sys
 import tempfile
 import threading
 import time
+import traceback
 
 import yaml
 
@@ -33,6 +34,7 @@ from cros.factory.testlog import testlog
 from cros.factory.testlog import testlog_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 from cros.factory.utils.service_utils import ServiceManager
 from cros.factory.utils.string_utils import DecodeUTF8
 from cros.factory.utils import time_utils
@@ -276,6 +278,10 @@ class TestInvocation(object):
     assert self.test.pytest_name
     assert self.resolved_dargs is not None
 
+    def _GenerateFailureResult(msg):
+      return TestState.FAILED, [(type_utils.Error(msg),
+                                 traceback.extract_stack()[1:])]
+
     files_to_delete = []
     try:
       def make_tmp(prefix):
@@ -301,7 +307,7 @@ class TestInvocation(object):
         env.update(self.env_additions)
         with self._lock:
           if self._aborted:
-            return TestState.FAILED, (
+            return _GenerateFailureResult(
                 'Before starting: %s' % self._AbortedMessage())
 
           self._process = self.goofy.pytest_prespawner.spawn(
@@ -327,19 +333,18 @@ class TestInvocation(object):
           pass
         with self._lock:
           if self._aborted:
-            return TestState.FAILED, self._AbortedMessage()
+            return _GenerateFailureResult(self._AbortedMessage())
         if self._process.returncode:
-          return TestState.FAILED, (
+          return _GenerateFailureResult(
               'Test returned code %d' % self._process.returncode)
 
       if not os.path.exists(results_path):
-        return TestState.FAILED, 'pytest did not complete'
+        return _GenerateFailureResult('pytest did not complete')
 
       with open(results_path) as f:
         return pickle.load(f)
-    except Exception:
-      logging.exception('Unable to retrieve pytest results')
-      return TestState.FAILED, 'Unable to retrieve pytest results'
+    except Exception as e:
+      return _GenerateFailureResult('Unable to retrieve pytest results: %r' % e)
     finally:
       for f in files_to_delete:
         try:
@@ -558,7 +563,10 @@ class TestInvocation(object):
     try:
       if status is None:  # dargs are successfully resolved
         if self.test.pytest_name:
-          status, error_msg = self._InvokePytest()
+          status, detail_fail_reasons = self._InvokePytest()
+          # TODO(yhong): Record the the detail failure reason for advanced
+          #     analysis.
+          error_msg = '; '.join(str(e) for e, unused_tb in detail_fail_reasons)
         else:
           status = TestState.FAILED
           error_msg = 'No pytest_name'

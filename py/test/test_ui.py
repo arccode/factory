@@ -107,7 +107,11 @@ class EventLoop(object):
     return self.PostEvent(test_event.Event(event_type, *args, **kwargs))
 
   def Run(self):
-    """Runs the test event loop, waiting until the test completes."""
+    """Runs the test event loop, waiting until the test completes.
+
+    Returns:
+      The event object that stops this event loop.
+    """
     threading.current_thread().name = _EVENT_LOOP_THREAD_NAME
 
     end_event = None
@@ -155,16 +159,13 @@ class EventLoop(object):
            event.test == self.test),
           timeout=timeout)
 
-    logging.info('Received end test event %r', end_event)
+    logging.debug('Received end test event %r', end_event)
     self.event_client.close()
 
-    if end_event.status == state.TestState.PASSED:
-      pass
-    elif end_event.status == state.TestState.FAILED:
-      error_msg = getattr(end_event, 'error_msg', '')
-      raise type_utils.TestFailure(error_msg)
-    else:
+    if (end_event.status != state.TestState.PASSED and
+        end_event.status != state.TestState.FAILED):
       raise ValueError('Unexpected status in event %r' % end_event)
+    return end_event
 
   def AddTimedHandler(self, handler, time_sec, repeat=False):
     """Add a handler to run in the event loop after time_sec seconds.

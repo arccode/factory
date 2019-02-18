@@ -39,6 +39,7 @@ from cros.factory.test.test_lists import manager
 from cros.factory.utils import log_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
 def MockPytest(name, test_state, error_msg, func=None):
@@ -55,7 +56,7 @@ def MockPytest(name, test_state, error_msg, func=None):
     if func:
       func()
     with open(info.results_path, 'w') as out:
-      pickle.dump((test_state, error_msg), out)
+      pickle.dump((test_state, [(type_utils.Error(error_msg), [])]), out)
     return process_utils.Spawn(['true'], stdout=subprocess.PIPE)
 
   prespawner.Prespawner.spawn(

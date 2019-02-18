@@ -14,7 +14,6 @@ import mock
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event as test_event
-from cros.factory.test import state
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.unittest_utils import mock_time_utils
@@ -39,9 +38,7 @@ class TestCaseTest(unittest.TestCase):
 
     def Run(self):
       end_event_kwargs = self._event_loop_end.get()
-      status = end_event_kwargs['status']
-      if status == state.TestState.FAILED:
-        raise type_utils.TestFailure(end_event_kwargs['error_msg'])
+      return type_utils.Obj(**end_event_kwargs)
 
     def __getattr__(self, name):
       return getattr(self.mock, name)

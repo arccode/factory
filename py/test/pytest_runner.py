@@ -13,7 +13,6 @@ import os
 import signal
 import sys
 import traceback
-import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -22,29 +21,12 @@ from cros.factory.test.state import TestState
 from cros.factory.test.utils import pytest_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Args
+from cros.factory.utils import file_utils
 from cros.factory.utils import log_utils
 from cros.factory.utils import type_utils
 
 # pylint: disable=no-name-in-module
 from cros.factory.external.setproctitle import setproctitle
-
-
-def RunTestCase(test_case):
-  """Runs the given test case.
-
-  This is the actual test case runner.  It runs the test case and returns the
-  test results.
-
-  Args:
-    test_case: The test case to run.
-
-  Returns:
-    The test result of the test case.
-  """
-  logging.debug('[%s] Really run test case: %s', os.getpid(), test_case.id())
-  result = unittest.TestResult()
-  test_case.run(result)
-  return result
 
 
 def RunPytest(test_info):
@@ -80,32 +62,29 @@ def RunPytest(test_info):
     if arg_spec:
       test.args = Args(*arg_spec).Parse(test_info.args)
 
-    result = RunTestCase(test)
+    result = pytest_utils.RunTestCase(test)
 
-    def FormatErrorMessage(trace):
-      """Formats a trace so that the actual error message is in the last line.
-      """
-      # The actual error is in the last line.
-      trace, unused_sep, error_msg = trace.strip().rpartition('\n')
-      error_msg = error_msg.replace('TestFailure: ', '')
-      return error_msg + '\n' + trace
-
-    all_failures = result.failures + result.errors
-    if all_failures:
+    if result.failure_details:
+      logging.info('pytest failure:\n%s', result.DumpStr())
       status = TestState.FAILED
-      error_msg = '\n'.join(FormatErrorMessage(trace)
-                            for test_name, trace in all_failures)
-      logging.info('pytest failure: %s', error_msg)
+      failures = result.failure_details
     else:
       status = TestState.PASSED
-      error_msg = ''
-  except Exception:
+      failures = []
+  except Exception as e:
     logging.exception('Unable to run pytest')
     status = TestState.FAILED
-    error_msg = traceback.format_exc()
+    failures = [(e, traceback.extract_tb(sys.exc_info()[2]))]
 
-  with open(test_info.results_path, 'w') as results:
-    pickle.dump((status, error_msg), results)
+  try:
+    pickled_result = pickle.dumps((status, failures))
+  except Exception:
+    logging.warning('Some exception objects are not pickle-able.  Convert them '
+                    'to generic exceptions first.')
+    pickled_result = pickle.dumps(
+        (status, [(type_utils.Error(str(e)), tb) for e, tb in failures]))
+
+  file_utils.WriteFile(test_info.results_path, pickled_result)
 
 
 def main():
