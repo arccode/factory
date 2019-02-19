@@ -7,8 +7,9 @@ import datetime
 import logging
 import os
 import os.path
+import random
+import string
 import subprocess
-import uuid
 import yaml
 
 from google.cloud import storage  # pylint: disable=import-error
@@ -24,6 +25,17 @@ class CreateBundleException(Exception):
   pass
 
 
+def RandomString(length):
+  """Returns a randomly generated string of ascii letters.
+  Args:
+    length: the length for the returned string
+
+  Returns:
+    a random ascii letters string
+  """
+  return ''.join([random.choice(string.ascii_letters) for _ in xrange(length)])
+
+
 def CreateBundle(req):
   logger = logging.getLogger('main.createbundle')
   storage_client = storage.Client.from_service_account_json(
@@ -33,7 +45,8 @@ def CreateBundle(req):
 
   with file_utils.TempDirectory() as temp_dir:
     os.chdir(temp_dir)
-    bundle_name = '{:%Y%m%d_%H%M}_{}'.format(datetime.datetime.now(), req.phase)
+    bundle_name = '{:%Y%m%d_%H%M}_{}_{}'.format(
+        datetime.datetime.now(), req.phase, RandomString(6))
 
     firmware_source = ('release_image/' + req.firmware_source
                        if req.HasField('firmware_source')
@@ -66,13 +79,16 @@ def CreateBundle(req):
     if process.wait() != 0:
       raise CreateBundleException(output)
 
-    random_id = uuid.uuid4()
     bucket = storage_client.get_bucket(config.BUNDLE_BUCKET)
-    blob = bucket.blob(
-        '{}/factory_bundle_{}_{}.tar.bz2'.format(
-            random_id, req.project, bundle_name),
-        chunk_size=100 * 1024 * 1024)
-    blob.upload_from_filename(
-        'factory_bundle_{}_{}.tar.bz2'.format(req.project, bundle_name))
-    return u'gs://{}/{}/factory_bundle_{}_{}.tar.bz2'.format(
-        config.BUNDLE_BUCKET, random_id, req.project, bundle_name)
+    bundle_filename = 'factory_bundle_{}_{}.tar.bz2'.format(
+        req.project, bundle_name)
+    bundle_path = '{}/{}/{}'.format(req.board, req.project, bundle_filename)
+    blob = bucket.blob(bundle_path, chunk_size=100 * 1024 * 1024)
+    # Set Content-Disposition for the correct default download filename
+    blob.content_disposition = 'filename="{}"'.format(bundle_filename)
+    blob.upload_from_filename(bundle_filename)
+    # Set read permission for the email of requestor, entity method here will
+    # create a new acl entity and add it to blob.
+    blob.acl.entity('user', req.email).grant_read()
+    blob.acl.save()
+    return u'gs://{}/{}'.format(config.BUNDLE_BUCKET, bundle_path)
