@@ -162,7 +162,7 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
       'initctl', 'mkfs.ext4', 'mktemp', 'mosys', 'mount', 'mount-encrypted',
       'od', 'pango-view', 'pkill', 'pv', 'python', 'reboot', 'setterm', 'sh',
       'shutdown', 'stop', 'umount', 'vpd', 'curl', 'lsof', 'jq', '/sbin/frecon',
-      'stressapptest']
+      'stressapptest', 'fuser']
 
   etc_issue = textwrap.dedent("""
     You are now in tmp file system created for in-place wiping.
@@ -329,6 +329,9 @@ def _UnmountStatefulPartition(root, state_dev):
     raise WipeError('wipe_init itself is using stateful partition')
 
   def _KillOpeningBySignal(sig):
+    for mount_point in mount_point_list:
+      cmd = ['fuser', '-k', '-%d' % sig, '-m', mount_point]
+      process_utils.Spawn(cmd, call=True, log=True)
     proc_list = _ListProcOpening(mount_point_list)
     if not proc_list:
       return True  # we are done
