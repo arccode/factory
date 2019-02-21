@@ -11,7 +11,7 @@ handlers:
 
 # Only pure Python libraries can be vendored
 # Python libraries that use C extensions can
-# only be included if they are part of the App Engine SDK 
+# only be included if they are part of the App Engine SDK
 # Using Third Party Libraries: https://cloud.google.com/appengine/docs/python/tools/using-libraries-python-27
 libraries:
 - name: ssl
@@ -37,4 +37,5 @@ skip_files:
 #[START env]
 env_variables:
     PUBSUB_TOPIC: gce-worker
+    BUCKET: factory-bundle
 #[END env]

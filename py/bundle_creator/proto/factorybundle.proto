@@ -30,8 +30,41 @@ message WorkerResult {
   optional string gs_path = 4;
 }
 
+message BundleHistoryProject {
+  optional string name = 1;
+}
+
+message BundleHistoryBoard {
+  optional string board_name = 1;
+  repeated BundleHistoryProject projects = 2;
+}
+
+message GetBundleHistoriesRpcRequest {
+  repeated BundleHistoryBoard board_projects = 1;
+}
+
+message BundleHistory {
+  optional string board = 1;
+  optional string project = 2;
+  optional string filename = 3;
+  optional string path = 4;
+  optional int64 uploaded_timestamp_ms = 5;
+  optional string creator = 6;
+  optional string toolkit_version = 7;
+  optional string test_image_version = 8;
+  optional string release_image_version = 9;
+  optional string firmware_source = 10;
+}
+
+message GetBundleHistoriesRpcResponse {
+  repeated BundleHistory histories = 1;
+}
+
 service FactoryBundleService {
-  rpc CreateBundleAsync(CreateBundleRpcRequest) 
+  rpc CreateBundleAsync(CreateBundleRpcRequest)
       returns (CreateBundleRpcResponse) {
+  }
+  rpc GetBundleHistories(GetBundleHistoriesRpcRequest)
+      returns (GetBundleHistoriesRpcResponse) {
   }
 }

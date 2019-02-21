@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 import base64
+import json
 import os
 import time
 
@@ -10,7 +11,9 @@ from protorpc import remote  # pylint: disable=import-error
 from protorpc import definition  # pylint: disable=import-error
 from protorpc import protobuf  # pylint: disable=import-error
 from protorpc.wsgi import service  # pylint: disable=import-error
+from google.appengine.api import app_identity  # pylint: disable=import-error
 from google.appengine.api import mail  # pylint: disable=import-error
+from google.appengine.api import urlfetch  # pylint: disable=import-error
 from googleapiclient.discovery import build  # pylint: disable=import-error
 
 definition.import_file_set('rpc/factorybundle.proto.def')
@@ -20,6 +23,7 @@ from cros.factory import proto  # pylint: disable=import-error
 _SERVICE_PATH = '/_ah/stubby/FactoryBundleService'
 _PROJECT_ID = os.environ['APPLICATION_ID'][2:]  # format should be google.com:x
 _PUBSUB_TOPIC = os.environ['PUBSUB_TOPIC']
+_BUCKET = os.environ['BUCKET']
 
 
 class TimeoutError(Exception):
@@ -70,6 +74,47 @@ class FactoryBundleService(remote.Service):
         subject=subject,
         body=body)
     return proto.CreateBundleRpcResponse()
+
+  @remote.method(
+      proto.GetBundleHistoriesRpcRequest, proto.GetBundleHistoriesRpcResponse)
+  def GetBundleHistories(self, request):
+    scope = 'https://www.googleapis.com/auth/devstorage.read_only'
+    token = app_identity.get_access_token(scope)
+
+    api_response = urlfetch.fetch(
+        'https://www.googleapis.com/storage/v1/b/{}/o'.format(_BUCKET),
+        method=urlfetch.GET,
+        headers={'Authorization': 'OAuth {}'.format(token[0])})
+    result = json.loads(api_response.content)
+    if api_response.status_code != 200:
+      raise Exception(result['error']['message'])
+    board_set = {}
+    for blob in result['items']:
+      bundle = proto.BundleHistory()
+      bundle.path = blob['name']
+      bundle.board, bundle.project, bundle.filename = blob['name'].split('/')
+      # 'generation' from cloud storage is file created timestamp in
+      # milliseconds.
+      bundle.uploaded_timestamp_ms = int(blob['generation'])
+      bundle.creator = blob['metadata'].get('Bundle-Creator', '-')
+      bundle.toolkit_version = blob['metadata'].get('Tookit-Version', '-')
+      bundle.test_image_version = \
+          blob['metadata'].get('Test-Image-Version', '-')
+      bundle.release_image_version = \
+          blob['metadata'].get('Release-Image-Version', '-')
+      bundle.firmware_source = blob['metadata'].get('Firmware-Source', '-')
+      project_set = board_set.setdefault(bundle.board, {})
+      project_set.setdefault(bundle.project, []).append(bundle)
+    response = proto.GetBundleHistoriesRpcResponse()
+    for board_projects in request.board_projects:
+      for project in board_projects.projects:
+        bundle_list = board_set \
+            .get(board_projects.board_name, {}) \
+            .get(project.name, [])
+        for bundle in bundle_list:
+          response.histories.append(bundle)
+    response.histories.sort(key=lambda b: b.uploaded_timestamp_ms, reverse=True)
+    return response
 
   def GenerateSuccessBody(self, work_result):
     """Generate email body if bundle created successfully.
