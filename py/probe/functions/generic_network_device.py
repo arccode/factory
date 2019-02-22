@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import logging
 import os
 import re
 import sys
@@ -125,7 +126,12 @@ class NetworkDevices(object):
     also an attributes field which contains a dict of attribute:value items.
     """
     if cls.cached_dev_list is None:
-      dev_list = cls._GetFlimflamDevices()
+      try:
+        dev_list = cls._GetFlimflamDevices()
+      except Exception:
+        # for Brillo devices, shill might not be running in factory
+        logging.debug('Cannot get wireless devices from shill', exc_info=1)
+        dev_list = []
 
       # On some Brillo (AP-type) devices, WiFi interfaces are blacklisted by
       # shill and needs to be discovered manually, so we have to try 'iw config'
