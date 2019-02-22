@@ -20,7 +20,7 @@ from cros.factory.utils.arg_utils import Arg
 
 
 LEDColor = led_module.LED.Color
-LEDIndex = led_module.LED.Index
+LEDIndex = led_module.LED.CrOSIndexes
 _COLOR_LABEL = {
     LEDColor.YELLOW: _('yellow'),
     LEDColor.GREEN: _('green'),
@@ -33,7 +33,11 @@ _INDEX_LABEL = {
     None: _('LED'),
     LEDIndex.POWER: _('power LED'),
     LEDIndex.BATTERY: _('battery LED'),
-    LEDIndex.ADAPTER: _('adapter LED')}
+    LEDIndex.ADAPTER: _('adapter LED'),
+    LEDIndex.LEFT: _('left LED'),
+    LEDIndex.RIGHT: _('right LED'),
+    LEDIndex.RECOVERY_HWREINIT: _('recovery hwreinit LED'),
+    getattr(LEDIndex, 'SYSRQ DEBUG'): _('sysrq debug LED')}
 
 
 class LEDTest(test_case.TestCase):

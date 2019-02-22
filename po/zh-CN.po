@@ -1951,6 +1951,22 @@ msgid "adapter LED"
 msgstr "电源适配器 LED"
 
 #: ../py/test/pytests/led.py
+msgid "left LED"
+msgstr "左侧 LED"
+
+#: ../py/test/pytests/led.py
+msgid "right LED"
+msgstr "右侧 LED"
+
+#: ../py/test/pytests/led.py
+msgid "recovery hwreinit LED"
+msgstr "还原硬件重启 LED"
+
+#: ../py/test/pytests/led.py
+msgid "sysrq debug LED"
+msgstr "系统请求调试 LED"
+
+#: ../py/test/pytests/led.py
 msgid "If the <strong>{name}</strong> is <strong>off</strong>, press ENTER."
 msgstr ""
 "请检查 <strong>{name}</strong> 是否 <strong>关掉</strong> 了，关掉了请按 "

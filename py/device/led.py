@@ -32,6 +32,8 @@ class LED(types.DeviceComponent):
 
   Run `ectool led non-exist x` or look up src/platform/ec/util/ectool.c for
   latest known names.
+
+  Note 'SYSRQ DEBUG' is one single index with space in name, not typo.
   """
 
   Index = Enum([CrOSIndexes.BATTERY])
