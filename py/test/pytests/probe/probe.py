@@ -66,7 +66,7 @@ To do probe test on DUT, add a test item in the test list::
     "args": {
       "config_file": "probe.json",
       "overridden_rules": [
-        ('camera', '==', 2)
+        ["camera", "==", 2]
       ]
     }
   }
