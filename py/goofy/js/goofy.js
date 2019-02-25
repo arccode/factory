@@ -2305,12 +2305,7 @@ cros.factory.Goofy = class {
     const title = cros.factory.i18n.i18nLabel('Save Factory Logs to USB');
 
     const doSave = () => {
-      const callback = async (/** ?string */ id) => {
-        if (id == null) {
-          // Cancelled.
-          return;
-        }
-
+      const save = async (/** string */ id, /** boolean */ probe) => {
         const dialog = new goog.ui.Dialog();
         this.registerDialog(dialog);
         cros.factory.Goofy.setDialogTitle(dialog, title);
@@ -2324,7 +2319,7 @@ cros.factory.Goofy = class {
           const {dev, name: filename, size, temporary} = /**
                 * @type {{dev: string, name: string, size: number,
                 *     temporary: boolean}}
-                */ (await this.sendRpc('SaveLogsToUSB', id));
+                */ (await this.sendRpc('SaveLogsToUSB', id, probe));
           if (temporary) {
             cros.factory.Goofy.setDialogContent(
                 dialog,
@@ -2348,15 +2343,59 @@ cros.factory.Goofy = class {
         this.positionOverConsole(dialog.getElement());
       };
 
-      const idDialog = new goog.ui.Prompt('', '', callback.bind(this));
-      cros.factory.Goofy.setDialogTitle(idDialog, title);
-      idDialog.getContentElement().prepend(cros.factory.i18n.i18nLabelNode(
-          'Enter an optional identifier for the archive ' +
-          '(or press Enter for none):'));
-      this.registerDialog(idDialog);
-      idDialog.setVisible(true);
-      idDialog.getElement().classList.add('goofy-log-identifier-prompt');
-      this.positionOverConsole(idDialog.getElement());
+      const dialog = new goog.ui.Dialog();
+      this.registerDialog(dialog);
+      dialog.setModal(true);
+
+      const rows = [];
+      rows.push(goog.html.SafeHtml.create('tr', {}, [
+        goog.html.SafeHtml.create(
+            'td', {}, cros.factory.i18n.i18nLabel(
+                'Enter an optional identifier for the archive ' +
+                '(or press Enter for none):'))
+      ]));
+      rows.push(goog.html.SafeHtml.create('tr', {}, [
+        goog.html.SafeHtml.create(
+            'td', {},
+            goog.html.SafeHtml.create(
+                'input', {id: 'goofy-usblog-id', size: 50}))
+      ]));
+      rows.push(goog.html.SafeHtml.create('tr', {}, [
+        goog.html.SafeHtml.create(
+            'td', {}, [
+              goog.html.SafeHtml.create(
+                  'input', {id: 'goofy-usblog-probe', type: 'checkbox'}),
+              cros.factory.i18n.i18nLabel(
+                  'Include probe result (takes longer time)')
+            ])
+      ]));
+
+      const table =
+          goog.html.SafeHtml.create(
+              'table', {class: 'goofy-usblog-table'}, rows);
+      cros.factory.Goofy.setDialogContent(dialog, table);
+
+      const buttons = goog.ui.Dialog.ButtonSet.createOkCancel();
+      dialog.setButtonSet(buttons);
+
+      cros.factory.Goofy.setDialogTitle(dialog, title);
+      dialog.setVisible(true);
+
+      const idElt = goog.asserts.assertInstanceof(
+          document.getElementById('goofy-usblog-id'), HTMLInputElement);
+      const probeElt = goog.asserts.assertInstanceof(
+          document.getElementById('goofy-usblog-probe'), HTMLInputElement);
+
+      goog.events.listen(
+          dialog, goog.ui.Dialog.EventType.SELECT,
+          (/** !goog.ui.Dialog.Event */ event) => {
+            if (event.key !== goog.ui.Dialog.DefaultButtonKeys.OK) {
+              return;
+            }
+            dialog.dispose();
+            save(idElt.value, probeElt.checked);
+            event.preventDefault();
+          });
     };
 
     const waitForUSBDialog = new goog.ui.Dialog();

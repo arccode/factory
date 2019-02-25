@@ -226,7 +226,7 @@ class GoofyRPC(object):
     except (IOError, OSError):
       return False
 
-  def SaveLogsToUSB(self, archive_id=None):
+  def SaveLogsToUSB(self, archive_id=None, probe=False):
     """Saves logs to a USB stick.
 
     Returns:
@@ -240,7 +240,8 @@ class GoofyRPC(object):
     try:
       with factory_bug.MountUSB() as mount:
         output_file = factory_bug.SaveLogs(mount.mount_point,
-                                           archive_id=archive_id)
+                                           archive_id=archive_id,
+                                           probe=probe)
         return {'dev': mount.dev,
                 'name': os.path.basename(output_file),
                 'size': os.path.getsize(output_file),

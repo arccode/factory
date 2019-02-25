@@ -798,6 +798,10 @@ msgid "Enter an optional identifier for the archive (or press Enter for none):"
 msgstr "请输入识别号给工厂记录文件，或按回车键不选："
 
 #: ../py/goofy/js/goofy.js
+msgid "Include probe result (takes longer time)"
+msgstr "加入侦测结果 (需要较久时间)"
+
+#: ../py/goofy/js/goofy.js
 msgid ""
 "Please insert a formatted USB stick and wait a moment for it to be mounted."
 msgstr "请插入 U盘后稍等挂载。"
