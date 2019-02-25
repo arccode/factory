@@ -125,7 +125,8 @@ def ResetLog(logfile=None):
 
 
 def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
-                station_port=None, wipe_finish_token=None):
+                station_port=None, wipe_finish_token=None,
+                keep_developer_mode_flag=False):
   """prepare to wipe by pivot root to tmpfs and unmount stateful partition.
 
   Args:
@@ -249,6 +250,8 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
       args += ['--release_rootfs', release_rootfs]
       args += ['--root_disk', root_disk]
       args += ['--old_root', old_root]
+      if keep_developer_mode_flag:
+        args += ['--keep_developer_mode_flag_after_clobber_state']
 
       ExecFactoryPar('gooftool', 'wipe_init', *args)
       raise WipeError('Should not reach here')
@@ -429,7 +432,8 @@ def _InformStation(ip, port, token, wipe_init_log=None,
     sock.close()
 
 
-def _WipeStateDev(release_rootfs, root_disk, wipe_args, state_dev):
+def _WipeStateDev(release_rootfs, root_disk, wipe_args, state_dev,
+                  keep_developer_mode_flag):
   clobber_state_env = os.environ.copy()
   clobber_state_env.update(ROOT_DEV=release_rootfs,
                            ROOT_DISK=root_disk)
@@ -455,11 +459,11 @@ def _WipeStateDev(release_rootfs, root_disk, wipe_args, state_dev):
     process_utils.Spawn(['tar', '-xpvf', CRX_CACHE_TAR_PATH, '-C',
                          STATEFUL_PARTITION_PATH], check_call=True, log=True)
 
-  # Remove developer flag, which is created by clobber-state after wiping.
   try:
-    # TODO(hungte) Unlink or create developer flag according to gooftool
-    # execution results.
-    os.unlink(os.path.join(STATEFUL_PARTITION_PATH, '.developer_mode'))
+    if not keep_developer_mode_flag:
+      # Remove developer flag, which is created by clobber-state after wiping.
+      os.unlink(os.path.join(STATEFUL_PARTITION_PATH, '.developer_mode'))
+    # Otherwise we don't care.
   except OSError:
     pass
 
@@ -499,7 +503,8 @@ def _Cutoff():
 
 
 def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
-             root_disk, old_root, station_ip, station_port, finish_token):
+             root_disk, old_root, station_ip, station_port, finish_token,
+             keep_developer_mode_flag):
   Daemonize()
   logfile = '/tmp/wipe_init.log'
   wipe_in_tmpfs_log = os.path.join(old_root, 'tmp', WIPE_IN_TMPFS_LOG)
@@ -534,7 +539,8 @@ def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
         call=True)
 
     try:
-      _WipeStateDev(release_rootfs, root_disk, wipe_args, state_dev)
+      _WipeStateDev(release_rootfs, root_disk, wipe_args, state_dev,
+                    keep_developer_mode_flag)
     except Exception:
       process_utils.Spawn(
           [os.path.join(CUTOFF_SCRIPT_DIR, 'display_wipe_message.sh'),

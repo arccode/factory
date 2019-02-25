@@ -463,16 +463,36 @@ class Gooftool(object):
     Args:
       is_fast: Whether or not to apply fast wipe.
     """
+    # check current GBB flags to determine if we need to keep .developer_mode
+    # after clobber-state.
+    try:
+      main_fw = self._crosfw.LoadMainFirmware()
+      fw_filename = main_fw.GetFileName(sections=['GBB'])
+      result = self._util.shell('futility gbb --get --flags "%s"' % fw_filename)
+      # The output should look like 'flags: 0x00000000'.
+      unused_prefix, gbb_flags = result.stdout.strip().split(' ')
+      gbb_flags = int(gbb_flags, 16)
+    except Exception:
+      logging.warning('Failed to get GBB flags, assume it is 0', exc_info=1)
+      gbb_flags = 0
+
+    if phase.GetPhase() >= phase.PVT and gbb_flags != 0:
+      raise Error('GBB flags should be cleared in PVT (it is 0x%x)' % gbb_flags)
+
+    GBB_FLAG_FORCE_DEV_SWITCH_ON = 0x00000008
+    keep_developer_mode_flag = bool(gbb_flags & GBB_FLAG_FORCE_DEV_SWITCH_ON)
+
     wipe.WipeInTmpFs(is_fast, shopfloor_url,
-                     station_ip, station_port, wipe_finish_token)
+                     station_ip, station_port, wipe_finish_token,
+                     keep_developer_mode_flag)
 
   def WipeInit(self, wipe_args, shopfloor_url, state_dev,
                release_rootfs, root_disk, old_root, station_ip, station_port,
-               wipe_finish_token):
+               wipe_finish_token, keep_developer_mode_flag):
     """Start wiping test image."""
     wipe.WipeInit(wipe_args, shopfloor_url, state_dev,
                   release_rootfs, root_disk, old_root, station_ip, station_port,
-                  wipe_finish_token)
+                  wipe_finish_token, keep_developer_mode_flag)
 
   def WriteVPDForRLZPing(self, embargo_offset=7):
     """Write VPD values related to RLZ ping into VPD."""

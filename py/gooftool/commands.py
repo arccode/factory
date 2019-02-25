@@ -208,6 +208,13 @@ _wipe_finish_token_cmd_arg = CmdArg(
     '--wipe_finish_token',
     help='Required token when notifying station after wipe finished')
 
+_keep_developer_mode_flag_after_clobber_state_cmd_arg = CmdArg(
+    # The argument name is super long because you should never use it by
+    # yourself when using command line tools.
+    '--keep_developer_mode_flag_after_clobber_state',
+    action='store_true', default=None,
+    help='After clobber-state, do not delete .developer_mode')
+
 _waive_list_cmd_arg = CmdArg(
     '--waive_list', nargs='*', default=[], metavar='SUBCMD',
     help='A list of waived checks, separated by whitespace. '
@@ -446,17 +453,20 @@ def WipeInPlace(options):
          _release_rootfs_cmd_arg,
          _station_ip_cmd_arg,
          _station_port_cmd_arg,
-         _wipe_finish_token_cmd_arg)
+         _wipe_finish_token_cmd_arg,
+         _keep_developer_mode_flag_after_clobber_state_cmd_arg)
 def WipeInit(options):
-  GetGooftool(options).WipeInit(options.wipe_args,
-                                options.shopfloor_url,
-                                options.state_dev,
-                                options.release_rootfs,
-                                options.root_disk,
-                                options.old_root,
-                                options.station_ip,
-                                options.station_port,
-                                options.wipe_finish_token)
+  GetGooftool(options).WipeInit(
+      options.wipe_args,
+      options.shopfloor_url,
+      options.state_dev,
+      options.release_rootfs,
+      options.root_disk,
+      options.old_root,
+      options.station_ip,
+      options.station_port,
+      options.wipe_finish_token,
+      options.keep_developer_mode_flag_after_clobber_state)
 
 @Command('verify',
          CmdArg('--no_write_protect', action='store_true',
