@@ -565,9 +565,20 @@ get_file_component_version() {
       sh "${file}" --lsm
       ;;
     firmware)
-      # TODO(b/64322603) Extract more firmware versions.
-      head -n 50 "${file}" | sed -n 's/^ *TARGET_.*FWID="\(.*\)"/\1/p' | \
-        uniq | paste -sd ';' -
+      local json_manifest="$(sh "${file}" --manifest)"
+      if [ -n "${JQ}" ]; then
+        echo "${json_manifest}" | "${JQ}" -r \
+          '.[].host.versions | "ro:" + .ro + ";" + "rw:" + .rw'
+        return
+      fi
+
+      echo "${json_manifest}" | python -c "\
+import json
+import sys
+j = json.load(sys.stdin)
+for k in j:
+  print('ro:%s;rw:%s' %
+        (j[k]['host']['versions']['ro'], j[k]['host']['versions']['rw']))"
       ;;
     hwid)
       # 'shar' may add leading X on some versions.

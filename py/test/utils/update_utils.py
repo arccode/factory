@@ -44,6 +44,7 @@ from cros.factory.utils import type_utils
 # A list of known components.
 COMPONENTS = type_utils.Enum([
     'hwid', 'toolkit', 'release_image', 'firmware', 'netboot_firmware'])
+MATCH_METHOD = type_utils.Enum(['exact', 'substring'])
 
 
 class Updater(object):
@@ -88,12 +89,14 @@ class Updater(object):
     info = self.GetUpdateInfo()
     return info.get(key)
 
-  def IsUpdateAvailable(self, current_version=None):
+  def IsUpdateAvailable(self, current_version=None,
+                        match_method=MATCH_METHOD.exact):
     """Checks if updates to component are available.
 
     Args:
       current_version: identifier of local version to compare with remote
           payload.
+      match_method: method of identifing the current_version and update_version.
 
     Returns:
       True if remote updates are available, otherwise False.
@@ -101,7 +104,10 @@ class Updater(object):
     update_version = self.GetUpdateVersion()
     if not update_version:
       return False
-    return current_version != update_version
+    if match_method == MATCH_METHOD.exact:
+      return current_version != update_version
+    else:
+      return current_version not in update_version
 
   def UpdateCallback(self, component, destination, url):
     """A callback function after an update is installed.

@@ -118,13 +118,11 @@ class UpdateFirmwareTest(test_case.TestCase):
 
     rw_version = self._dut.info.firmware_version
     ro_version = self._dut.info.ro_firmware_version
-    # Currently the version string in updates (via cros_payload) will merge RO
-    # and RW firmware version if they are the same, otherwise joined by ';'.
-    current_version = (
-        ';'.join([ro_version, rw_version]) if ro_version != rw_version else
-        ro_version)
 
-    if not updater.IsUpdateAvailable(current_version):
+    current_version = 'ro:%s;rw:%s' % (ro_version, rw_version)
+
+    if not updater.IsUpdateAvailable(
+        current_version, match_method=update_utils.MATCH_METHOD.substring):
       logging.info('Your firmware is already in same version as server (%s)',
                    updater.GetUpdateVersion())
       if not force_update:

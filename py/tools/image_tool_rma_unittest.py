@@ -31,7 +31,9 @@ The major difference is all output will be preserved in /tmp/t.
 class ImageToolRMATest(unittest.TestCase):
   """Unit tests for image_tool RMA related commands."""
 
-  UPDATER_CONTENT = '#!/bin/sh\necho FirmwareUpdate\n'
+  UPDATER_CONTENT = ('#!/bin/sh\n'
+                     'echo \'{"project": {"host": {"versions": '
+                     '{"ro": "RO", "rw": "RW"}}}}\'\n')
   LSB_CONTENT = 'CHROMEOS_RELEASE_VERSION=1.0\nCHROMEOS_RELEASE_BOARD=%s\n'
 
   PARTITION_COMMANDS = [
@@ -79,8 +81,10 @@ class ImageToolRMATest(unittest.TestCase):
     with image_tool.Partition(image_path, 3).Mount(rw=True) as d:
       fw_path = os.path.join(d, 'usr', 'sbin', 'chromeos-firmwareupdate')
       self.CheckCall('sudo mkdir -p %s' % os.path.dirname(fw_path))
-      self.CheckCall('echo "%s" | sudo dd of=%s' %
-                     (self.UPDATER_CONTENT.strip('\n'), fw_path))
+      tmp_fw_path = os.path.join(self.temp_dir, 'chromeos-firmwareupdate')
+      with open(tmp_fw_path, 'w') as f:
+        f.write(self.UPDATER_CONTENT)
+      self.CheckCall('sudo mv %s %s' % (tmp_fw_path, fw_path))
       self.CheckCall('sudo chmod a+rx %s' % fw_path)
       common_sh_path = os.path.join(
           d, 'usr', 'share', 'misc', 'chromeos-common.sh')
