@@ -36,6 +36,18 @@ def RandomString(length):
   return ''.join([random.choice(string.ascii_letters) for _ in xrange(length)])
 
 
+def SetMetadataByGsutil(key, value, gs_path):
+  """Set metadata for specified gs_path by using `gsutil` command.
+
+    Args:
+      key: the key name of metadata
+      value: the value for the key
+      gs_path: the path of google storage object needs to be set metadata
+  """
+  subprocess.call(['gsutil', 'setmeta', '-h',
+                   'x-goog-meta-{}:{}'.format(key, value), gs_path])
+
+
 def CreateBundle(req):
   logger = logging.getLogger('main.createbundle')
   storage_client = storage.Client.from_service_account_json(
@@ -91,4 +103,9 @@ def CreateBundle(req):
     # create a new acl entity and add it to blob.
     blob.acl.entity('user', req.email).grant_read()
     blob.acl.save()
-    return u'gs://{}/{}'.format(config.BUNDLE_BUCKET, bundle_path)
+
+    gs_path = u'gs://{}/{}'.format(config.BUNDLE_BUCKET, bundle_path)
+    # Since there is no way to modify metadata in blob class, use gsutil command
+    # to set metadata
+    SetMetadataByGsutil('Bundle-Creator', req.email, gs_path)
+    return gs_path
