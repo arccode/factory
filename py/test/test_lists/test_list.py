@@ -753,6 +753,15 @@ class TestList(ITestList):
 
     self._cached_test_list.state_change_callback = self._state_change_callback
     self._cached_test_list.source_path = self._config.source_path
+
+    if self._state_instance:
+      # Make sure the state server knows about all the tests, defaulting to an
+      # untested state.
+      # TODO(stimim): this code is copied from goofy/goofy.py, we should check
+      #               if we really need both.
+      for test in self._cached_test_list.GetAllTests():
+        test.UpdateState(update_parent=False)
+
     return self._cached_test_list
 
   def MakeTest(self,
