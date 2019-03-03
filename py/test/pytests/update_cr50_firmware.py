@@ -126,6 +126,8 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
     if not self.args.skip_prepvt_flag_check:
       if self._IsPrePVTFirmware(firmware_file):
         raise ValueError('Cr50 firmware board ID flag is PrePVT.')
+    # Get current version, PipeProcessOutputToUI will log the output.
+    self.ui.PipeProcessOutputToUI([GSCTOOL, '-a', '-f'])
     cmd = [GSCTOOL, '-a', '-u', firmware_file]
     returncode = self.ui.PipeProcessOutputToUI(cmd)
     # `gsctool -a -u` return values:
