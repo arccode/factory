@@ -20,10 +20,9 @@
 </template>
 
 <script lang="ts">
-import {Component, Prop, Vue} from 'vue-property-decorator';
-
 import {FormSchema} from '@/form_utils';
 import {JSONType} from '@/utils';
+import {Component, Prop, Vue} from 'vue-property-decorator';
 
 import JSONEditBasic from './json-edit-basic.vue';
 import JSONEditDict from './json-edit-dict.vue';

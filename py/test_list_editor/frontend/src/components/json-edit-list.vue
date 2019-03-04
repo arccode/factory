@@ -36,10 +36,9 @@
 </template>
 
 <script lang="ts">
-import {Component, Prop, Vue} from 'vue-property-decorator';
-
 import {ListFormSchema} from '@/form_utils';
 import {JSONArray, JSONType} from '@/utils';
+import {Component, Prop, Vue} from 'vue-property-decorator';
 
 @Component({components: {'json-edit': () => import('./json-edit.vue')}})
 export default class JSONEditList extends Vue {

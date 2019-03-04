@@ -3,10 +3,9 @@
 </template>
 
 <script lang="ts">
-import {Component, Prop, Vue} from 'vue-property-decorator';
-
 import {JSONFormSchema} from '@/form_utils';
 import {isJSONObject, JSONType, prettyJSON} from '@/utils';
+import {Component, Prop, Vue} from 'vue-property-decorator';
 
 const check =
     (schema: JSONFormSchema, val: JSONType): [JSONType, true | string] => {

@@ -25,10 +25,9 @@
 </template>
 
 <script lang="ts">
-import {Component, Prop, Vue} from 'vue-property-decorator';
-
 import {BasicFormSchema} from '@/form_utils';
 import {JSONType} from '@/utils';
+import {Component, Prop, Vue} from 'vue-property-decorator';
 
 interface Helper<ValType, WebType = ValType> {
   init(initial: JSONType): [ValType, WebType];

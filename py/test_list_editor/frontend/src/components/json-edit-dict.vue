@@ -22,10 +22,9 @@
 </template>
 
 <script lang="ts">
-import {Component, Prop, Vue} from 'vue-property-decorator';
-
 import {DictFormSchema} from '@/form_utils';
 import {isJSONObject, JSONObject, JSONType} from '@/utils';
+import {Component, Prop, Vue} from 'vue-property-decorator';
 
 @Component({components: {'json-edit': () => import('./json-edit.vue')}})
 export default class JSONEditDict extends Vue {

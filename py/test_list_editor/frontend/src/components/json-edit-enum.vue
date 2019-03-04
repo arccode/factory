@@ -3,10 +3,9 @@
 </template>
 
 <script lang="ts">
-import {Component, Prop, Vue} from 'vue-property-decorator';
-
 import {EnumFormSchema} from '@/form_utils';
 import {JSONType} from '@/utils';
+import {Component, Prop, Vue} from 'vue-property-decorator';
 
 @Component
 export default class JSONEditEnum extends Vue {
