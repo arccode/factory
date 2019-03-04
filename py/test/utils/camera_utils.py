@@ -30,6 +30,17 @@ _MOCK_IMAGE_720P = 'mock_A.jpg'
 _MOCK_IMAGE_VGA = 'mock_B.jpg'
 _MOCK_IMAGE_QR = 'mock_QR.jpg'
 
+# Bitmask for video capture capability.  Please check
+# Documentation/media/uapi/v4l/vidioc-querycap.rst under kernel source tree and
+# https://chromium.googlesource.com/chromiumos/third_party/autotest/+/9317af6a72647fec4e04ffe5cd089f6d00e1e109/client/site_tests/camera_V4L2/src/media_v4l2_is_capture_device.cc
+V4L2_CAP_VIDEO_CAPTURE = 0x1
+V4L2_CAP_VIDEO_CAPTURE_MPLANE = 0x00001000
+V4L2_CAP_VIDEO_OUTPUT = 0x00000002
+V4L2_CAP_VIDEO_OUTPUT_MPLANE = 0x00002000
+V4L2_CAP_VIDEO_M2M = 0x00004000
+V4L2_CAP_VIDEO_M2M_MPLANE = 0x00008000
+V4L2_CAP_DEVICE_CAPS = 0x80000000
+
 
 class CameraError(Exception):
   """Camera device exception class."""
@@ -124,12 +135,12 @@ class CameraReaderBase(object):
 class CVCameraReader(CameraReaderBase):
   """Camera device reader via OpenCV V4L2 interface."""
 
-  def __init__(self, device_index=None):
+  def __init__(self, device_index=None, dut=None):
     super(CVCameraReader, self).__init__()
 
     self._device_index = device_index
     if self._device_index is None:
-      self._device_index = self._SearchDevice()
+      self._device_index = self._SearchDevice(dut)
     self._device = None
 
   # pylint: disable=arguments-differ
@@ -166,8 +177,72 @@ class CVCameraReader(CameraReaderBase):
   def IsEnabled(self):
     return True if self._device else False
 
-  def _SearchDevice(self):
+  def _FilterNonVideoCapture(self, uvc_vid_dirs, dut):
+    """Filters video interface without V4L2_CAP_VIDEO_CAPTURE capability.
+
+    Since kernel 4.16, video capture interface also creates a "metadata
+    interface", which will also be r'/dev/video[0-9]+'.  To know if an interface
+    is video capture or metadata interface, we need to check the device
+    capability.
+
+    Args:
+      uvc_vid_dirs: list of video interface paths to filter
+      dut: a cros.factory.utils.sys_interface.SystemInterface object
+
+    Returns:
+      If possible, return a filtered list of interface paths, interfaces without
+      "video capture" capability will be removed.
+      Otherwise, return the original list.
+    """
+    if len(uvc_vid_dirs) == 1:
+      return uvc_vid_dirs
+
+    if dut is None:
+      logging.warning('Cannot filter interface list without DUT instance')
+      return uvc_vid_dirs
+
+    if dut.Call(['type', 'v4l2-ctl']) != 0:
+      logging.warning('Cannot filter interface list without v4l2-ctl command')
+      return uvc_vid_dirs
+
+    def _IsCaptureDevice(caps):
+      if not caps & (V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_VIDEO_CAPTURE_MPLANE):
+        return False
+      if caps & (V4L2_CAP_VIDEO_OUTPUT | V4L2_CAP_VIDEO_OUTPUT_MPLANE):
+        return False
+      if caps & (V4L2_CAP_VIDEO_M2M | V4L2_CAP_VIDEO_M2M_MPLANE):
+        return False
+      return True
+
+    result = []
+    for path in uvc_vid_dirs:
+      try:
+        interface_id = re.search(r'video([0-9]+)$', path).group(1)
+        output = dut.CheckOutput(
+            ['v4l2-ctl', '--info', '--device', interface_id])
+        match = re.search(r'Capabilities\s+:\s+(0x[0-9a-fA-F]+)', output, re.M)
+        caps = int(match.group(1), 16)
+
+        if caps & V4L2_CAP_DEVICE_CAPS:
+          # The driver fills the device_caps field.
+          match = re.search(r'Device Caps\s+:\s+(0x[0-9a-fA-F]+)', output, re.M)
+          if _IsCaptureDevice(int(match.group(1), 16)):
+            result.append(path)
+        else:
+          # Check capabilities instead.
+          if _IsCaptureDevice(caps):
+            result.append(path)
+      except Exception:
+        logging.exception('Failed to get info of video interface %s',
+                          interface_id)
+        raise
+    return result
+
+  def _SearchDevice(self, dut):
     """Looks for a camera device to use.
+
+    Args:
+      dut: a cros.factory.utils.sys_interface.SystemInterface instance.
 
     Returns:
       The device index found.
@@ -178,6 +253,7 @@ class CVCameraReader(CameraReaderBase):
         '/sys/bus/usb/drivers/uvcvideo/*/video4linux/video*')
     if not uvc_vid_dirs:
       raise CameraError('No video capture interface found')
+    uvc_vid_dirs = self._FilterNonVideoCapture(uvc_vid_dirs, dut)
     if len(uvc_vid_dirs) > 1:
       raise CameraError('Multiple video capture interface found')
     return int(re.search(r'video([0-9]+)$', uvc_vid_dirs[0]).group(1))

@@ -55,4 +55,5 @@ class ChromeOSCamera(camera.Camera):
     """
     real_index = self._GetRealDeviceIndex(index)
     return self._devices.setdefault(index, CameraDevice(
-        dut=self._device, sn_format=None, reader=CVCameraReader(real_index)))
+        dut=self._device, sn_format=None,
+        reader=CVCameraReader(real_index, self._device)))

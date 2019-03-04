@@ -38,4 +38,5 @@ class Camera(types.DeviceComponent):
       cros.factory.test.utils.camera_utils.CameraDevice.
     """
     return self._devices.setdefault(index, CameraDevice(
-        dut=self._device, sn_format=None, reader=CVCameraReader(index)))
+        dut=self._device, sn_format=None,
+        reader=CVCameraReader(index, self._device)))
