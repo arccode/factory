@@ -36,7 +36,7 @@ from cros.factory.utils import type_utils
 
 _RE_FREQ = re.compile(r'^freq: ([\d]*?)$')
 _RE_SIGNAL = re.compile(r'^signal: ([-\d.]*?) dBm')
-_RE_SSID = re.compile(r'^SSID: ([-\w]*)$')
+_RE_SSID = re.compile(r'^SSID: (.+)$')
 _RE_LAST_SEEN = re.compile(r'^last seen: ([\d]+) ms ago$')
 _RE_WIPHY = re.compile(r'wiphy (\d+)')
 
