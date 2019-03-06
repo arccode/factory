@@ -150,20 +150,23 @@ class NetworkDevices(object):
             if devtype is None or dev.devtype == devtype]
 
   @classmethod
-  def ReadSysfsDeviceIds(cls, devtype, ignore_usb=False):
+  def ReadSysfsDeviceIds(cls, devtype, ignore_others=False):
     """Return _ReadSysfsDeviceId result for each device of specified type."""
-    def ProbeSysfsDevices(path, ignore_usb):
+    def ProbeSysfsDevices(path, ignore_others):
       path = os.path.abspath(os.path.realpath(path))
       ret = function.InterpretFunction({'pci': path})()
       if ret:
         return ret
-      if not ignore_usb:
+      if not ignore_others:
         ret = function.InterpretFunction({'usb': os.path.join(path, '..')})()
+        if ret:
+          return ret
+        ret = function.InterpretFunction({'sdio': os.path.join(path, '..')})()
       return ret
 
     ret = []
     for dev in cls.GetDevices(devtype):
-      ret += ProbeSysfsDevices(dev.path, ignore_usb)
+      ret += ProbeSysfsDevices(dev.path, ignore_others)
     # Filter out 'None' results
     return sorted(device for device in ret if device is not None)
 
@@ -202,9 +205,9 @@ class GenericNetworkDeviceFunction(
 
   @classmethod
   def ProbeEthernet(cls):
-    # Build-in ethernet devices should not be attached to USB. They are usually
-    # either PCI or SOC.
-    return NetworkDevices.ReadSysfsDeviceIds('ethernet', ignore_usb=True)
+    # Built-in ethernet devices should be attached to either SOC or PCI,
+    # not other buses such as USB, SDIO.
+    return NetworkDevices.ReadSysfsDeviceIds('ethernet', ignore_others=True)
 
   @classmethod
   def ProbeCellular(cls):
