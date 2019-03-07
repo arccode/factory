@@ -74,6 +74,32 @@ Similarly, to test a SD card::
       "perform_random_test": false
     }
   }
+
+If this test can not properly find the device with a specific sysfs_path, try:
+
+- Replace sysfs_path with its real path which comes from `realpath` command.
+  For example::
+
+    (on DUT)
+    $ realpath -m /sys/bus/usb/devices/usb1/1-1/1-1.1
+    > /sys/devices/platform/soc/11201000.usb/11200000.xhci/usb1/1-1/1-1.1
+
+- Run `udevadm monitor` on DUT, plug / unplug USB devices and use paths
+  shown on the screen.  For example::
+
+    (on DUT)
+    $ udevadm monitor
+
+    (plug USB disk in)
+    ...
+    > UDEV  [20949.971277] add \
+      /devices/platform/soc/11201000.usb/11200000.xhci/usb1/1-1/1-1.1 (usb)
+    ...
+
+..
+
+  Notice that the path above is not actually a full real path.  Please add
+  "/sys" as prefix to get the full path.
 """
 
 from __future__ import print_function
