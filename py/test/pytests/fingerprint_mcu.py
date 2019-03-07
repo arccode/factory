@@ -107,6 +107,13 @@ class FingerprintTest(unittest.TestCase):
       Arg('rubber_finger_present', bool,
           'A Rubber finger is pressed against the sensor for quality testing.',
           default=False),
+      Arg('max_reset_pixel_dev', int,
+          'The maximum deviation from the median per column for a pixel from '
+          'test reset image.',
+          default=55),
+      Arg('max_error_reset_pixels', int,
+          'The maximum number of error pixels in the test_reset image.',
+          default=5),
   ]
 
   # Select the Fingerprint MCU cros_ec device
@@ -140,26 +147,43 @@ class FingerprintTest(unittest.TestCase):
   def tearDown(self):
     self.MCUCommand('fpmode', 'reset')
 
-  def isDetectZone(self, x, y):
+  def IsDetectZone(self, x, y):
     for x1, y1, x2, y2 in self.args.detect_zones:
       if (x in range(x1, x2 + 1) and
           y in range(y1, y2 + 1)):
         return True
     return False
 
-  def processCheckboardPixels(self, lines, parity):
-    # Keep only type-1 or type-2 pixels depending on parity
-    matrix = numpy.array([[(int(v), x, y) for x, v
-                           in enumerate(l.strip().split())
-                           if (x + y) % 2 == parity]
-                          for y, l in enumerate(lines)])
+  def CheckPnmAndExtractPixels(self, pnm):
+    if not pnm:
+      raise type_utils.TestFailure('Failed to retrieve image')
+    lines = pnm.split('\n')
+    if lines[0].strip() != 'P2':
+      raise type_utils.TestFailure('Unsupported/corrupted image')
+    try:
+      # strip header/footer
+      pixel_lines = lines[3:-1]
+    except (IndexError, ValueError):
+      raise type_utils.TestFailure('Corrupted image')
+
+    return pixel_lines
+
+  def CalculateMedianAndDev(self, matrix):
     # Transform the 2D array of triples in a 1-D array of triples
     pixels = matrix.reshape((-1, 3))
     median = numpy.median([v for v, x, y in pixels])
     dev = [(abs(v - median), x, y) for v, x, y in pixels]
     return median, dev
 
-  def checkerboardTest(self, inverted=False):
+  def ProcessCheckboardPixels(self, lines, parity):
+    # Keep only type-1 or type-2 pixels depending on parity
+    matrix = numpy.array([[(int(v), x, y) for x, v
+                           in enumerate(l.strip().split())
+                           if (x + y) % 2 == parity]
+                          for y, l in enumerate(lines)])
+    return self.CalculateMedianAndDev(matrix)
+
+  def CheckerboardTest(self, inverted=False):
     full_name = 'Inv. checkerboard' if inverted else 'Checkerboard'
     short_name = 'icb' if inverted else 'cb'
     # trigger the checkerboard test pattern and capture it
@@ -168,21 +192,13 @@ class FingerprintTest(unittest.TestCase):
     self.MCUCommand('waitevent', self.EC_MKBP_EVENT_FINGERPRINT, '500')
     # retrieve the resulting image as a PNM
     pnm = self.MCUCommand('fpframe')
-    if not pnm:
-      raise type_utils.TestFailure('Failed to retrieve checkerboard image')
-    lines = pnm.split('\n')
-    if lines[0].strip() != 'P2':
-      raise type_utils.TestFailure('Unsupported/corrupted image')
+
+    pixel_lines = self.CheckPnmAndExtractPixels(pnm)
     # Build arrays of black and white pixels (aka Type-1 / Type-2)
-    try:
-      # PNM image size: w, h = [int(i) for i in lines[1].split()]
-      # strip header/footer
-      pixel_lines = lines[3:-1]
-      # Compute pixels parameters for each type
-      median1, dev1 = self.processCheckboardPixels(pixel_lines, 0)
-      median2, dev2 = self.processCheckboardPixels(pixel_lines, 1)
-    except (IndexError, ValueError):
-      raise type_utils.TestFailure('Corrupted image')
+    # Compute pixels parameters for each type
+    median1, dev1 = self.ProcessCheckboardPixels(pixel_lines, 0)
+    median2, dev2 = self.ProcessCheckboardPixels(pixel_lines, 1)
+
     all_dev = dev1 + dev2
     max_dev = numpy.max([d for d, _, _ in all_dev])
     # Count dead pixels (deviating too much from the median)
@@ -191,7 +207,7 @@ class FingerprintTest(unittest.TestCase):
     for d, x, y in all_dev:
       if d > self.args.max_pixel_dev:
         dead_count += 1
-        if self.isDetectZone(x, y):
+        if self.IsDetectZone(x, y):
           dead_detect_count += 1
     # Log everything first for debugging
     logging.info('%s type 1 median:\t%d', full_name, median1)
@@ -243,6 +259,72 @@ class FingerprintTest(unittest.TestCase):
         max=self.args.pixel_median[t2][1]):
       raise type_utils.TestFailure('Out of range Type-2 pixels')
 
+  def CalculateMedianAndDevPerColumns(self, matrix):
+    # The data flow of the input matrix would be
+    #  1. original matrix:
+    #     [1, 2, 150]
+    #     [1, 2, 150]
+    #     [1, 2, 3  ]
+    #  2. rotate 90 to access column in an index of array:
+    #     [150, 150, 3]
+    #     [2,   2,   2]
+    #     [1,   1,   1]
+    #  3. flipud first level of array to put first column at index 0:
+    #     [1,   1,   1]
+    #     [2,   2,   2]
+    #     [150, 150, 3]
+    #  4. medians per column - [1, 2, 150]
+    #  5. devs per column:
+    #     [0, 0, 0  ]
+    #     [0, 0, 0  ]
+    #     [0, 0, 147]
+    matrix = numpy.rot90(matrix)
+    matrix = numpy.flipud(matrix)
+    medians = [numpy.median([v for v, x, y in l]) for l in matrix]
+    devs = [[(abs(v - medians[x]), x, y) for v, x, y in l] for l in matrix]
+    return medians, devs
+
+  def ProcessResetPixelImage(self, lines):
+    matrix = numpy.array([[(int(v), x, y) for x, v
+                           in enumerate(l.strip().split())]
+                          for y, l in enumerate(lines)])
+    return self.CalculateMedianAndDevPerColumns(matrix)
+
+  def ResetPixelTest(self):
+    # reset the sensor and leave it in reset state then capture the single
+    # frame.
+    self.MCUCommand('fpmode', 'capture', 'test_reset')
+    # wait for the end of capture (or timeout after 500 ms)
+    self.MCUCommand('waitevent', self.EC_MKBP_EVENT_FINGERPRINT, '500')
+    # retrieve the resulting image as a PNM
+    pnm = self.MCUCommand('fpframe')
+
+    pixel_lines = self.CheckPnmAndExtractPixels(pnm)
+    # Compute median value and the deviation of every pixels per column.
+    medians, devs = self.ProcessResetPixelImage(pixel_lines)
+    # Count error pixels (deviating too much from the median)
+    error_count = 0
+    max_dev_per_columns = [numpy.max([d for d, _, _ in col]) for col in devs]
+    for col in devs:
+      for d, _, _ in col:
+        if d > self.args.max_reset_pixel_dev:
+          error_count += 1
+
+    # Log everything first for debugging
+    logging.info('error_count:\t%d', error_count)
+    logging.info('median per columns: %s', medians)
+    logging.info('max dev per columns (col, max_dev, median):\t%s',
+                 max_dev_per_columns)
+    testlog.UpdateParam(
+        name='error_reset_pixel',
+        description='Number of error reset pixels',
+        value_unit='pixels')
+    if not testlog.CheckNumericParam(
+        name='error_reset_pixel',
+        value=error_count,
+        max=self.args.max_error_reset_pixels):
+      raise type_utils.TestFailure('Too many error reset pixels')
+
   def runTest(self):
     # Verify communication with the FPMCU
     fw_version = self.MCUCommand("version")
@@ -276,8 +358,9 @@ class FingerprintTest(unittest.TestCase):
       raise type_utils.TestFailure('Invalid sensor HWID: %r' % model)
 
     # checkerboard test patterns
-    self.checkerboardTest(inverted=False)
-    self.checkerboardTest(inverted=True)
+    self.CheckerboardTest(inverted=False)
+    self.CheckerboardTest(inverted=True)
+    self.ResetPixelTest()
 
     if self.args.rubber_finger_present:
       # Test sensor image quality
