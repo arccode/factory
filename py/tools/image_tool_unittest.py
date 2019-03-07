@@ -65,13 +65,14 @@ class ImageToolTest(unittest.TestCase):
     cmd_args.subcommand.Run()
 
   def CreateDiskImage(self, name):
+    cgpt = image_tool.SysUtils.FindCGPT()
     image_path = os.path.join(self.temp_dir, name)
     dir_path = os.path.dirname(image_path)
     if not os.path.exists(dir_path):
       os.makedirs(dir_path)
     self.CheckCall('truncate -s %s %s' % (16 * 1048576, name))
     for command in self.PARTITION_COMMANDS:
-      self.CheckCall(command % dict(command='cgpt', file=name))
+      self.CheckCall(command % dict(command=cgpt, file=name))
     with image_tool.GPT.Partition.MapAll(image_path) as f:
       self.CheckCall('sudo mkfs -F %sp3' % f)
       self.CheckCall('sudo mkfs -F %sp5' % f)
@@ -95,13 +96,13 @@ class ImageToolTest(unittest.TestCase):
       self.CheckCall('sudo mkdir -p %s' % os.path.dirname(write_gpt_path))
       tmp_write_gpt_path = os.path.join(self.temp_dir, 'write_gpt.sh')
       write_command = '\n'.join(
-          cmd % dict(command='cgpt', file='$1')
+          cmd % dict(command=cgpt, file='$1')
           for cmd in self.PARTITION_COMMANDS)
       with open(tmp_write_gpt_path, 'w') as f:
         f.write('\n'.join([
             '#!/bin/sh',
             'GPT=""',
-            'GPT="cgpt"',  # Override for unit test.
+            'GPT="%s"' % cgpt,  # Override for unit test.
             'write_base_table() {',
             write_command,
             '}',
