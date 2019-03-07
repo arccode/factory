@@ -100,6 +100,8 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
     self.assertEqual(self.args.firmware_file[0], '/',
                      'firmware_file should be a full path')
 
+    self._LogCr50Info()
+
     if self.args.from_release:
       with sys_utils.MountPartition(
           self.dut.partitions.RELEASE_ROOTFS.path, dut=self.dut) as root:
@@ -112,6 +114,12 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
         with self.dut.temp.TempFile() as dut_temp_file:
           self.dut.SendFile(self.args.firmware_file, dut_temp_file)
           self._UpdateCr50Firmware(dut_temp_file)
+
+  def _LogCr50Info(self):
+    # Report running Cr50 firmware versions
+    self.ui.PipeProcessOutputToUI([GSCTOOL, '-a', '-f'])
+    # Get Info1 board ID fields
+    self.ui.PipeProcessOutputToUI([GSCTOOL, '-a', '-i'])
 
   def _IsPrePVTFirmware(self, firmware_file):
     p = self.dut.CheckOutput([GSCTOOL, '-b', '-M', firmware_file]).strip()
