@@ -89,8 +89,8 @@ class RPC(object):
   def SaveFiles(self, requests):
     """Write data into specified files.
 
-    For safety purposes, both writing to anywhere other than test list folders
-    and using different filename extension are prohibited.
+    For safety purposes, file name for writing must end with '.test_list.json'
+    and file location must be under py/test/test_lists.
 
     Args:
       requests: Dict[filepath: str, content: str].

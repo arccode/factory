@@ -22,3 +22,9 @@ npm run lint
 ```
 npm run test
 ```
+
+## Project dev env setup
+Recommended extensions for vscode:
+ - `Debugger for Chrome`: Debug with Chrome
+ - `Vetur`: Vue plugin
+ - `TSLint`: Typescript Lint
