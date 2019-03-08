@@ -11,3 +11,4 @@ This folder contains various tools to help developer's life easier.
     Cloud.
 - mk/: Scripts for top level Makefile to use.
 - [vim/](vim/README.md): Scripts to help programming within VIM editor.
+- test_list_editor/: Configurations for developing test list editor with VSCODE.
