@@ -264,7 +264,13 @@ class SysUtils(object):
             dest.flush()
             os.fdatasync(fd)
           if verbose:
-            sys.stderr.write('.')
+            if sys.stderr.isatty():
+              width = 5
+              sys.stderr.write(
+                  '%*.1f%%%s' % (width, (1 - float(remains) / count) * 100,
+                                 '\b' * (width + 1)))
+            else:
+              sys.stderr.write('.')
     if verbose:
       sys.stderr.write('\n')
 
@@ -2258,6 +2264,13 @@ class InstallChromiumOSImageCommand(SubCommand):
         help=('install to given path of a disk image or USB stick device; '
               'default to boot disk'))
     self.subparser.add_argument(
+        '-x', '--exclude', type=str, default='dev_image/telemetry/*',
+        help='pattern to tar --exclude when copying stateful partition.')
+    self.subparser.add_argument(
+        '--no-stateful-partition', dest='do_stateful', action='store_false',
+        default=True,
+        help='skip copying stateful partition')
+    self.subparser.add_argument(
         '-p', '--partition_number', type=int, required=False,
         help=('kernel partition number to install (rootfs will be +1); '
               'default to %s or %s if active kernel is %s.' % (
@@ -2270,14 +2283,14 @@ class InstallChromiumOSImageCommand(SubCommand):
     from_image = self.args.image
     to_image = self.args.output
     arg_part = self.args.partition_number
+    exclude = self.args.exclude
     to_part = arg_part if arg_part is not None else PART_CROS_KERNEL_A
-    sync = False
 
     if to_image is None:
       to_image = SudoOutput('rootdev -s -d').strip()
+    is_block = GPT.IsBlockDevice(to_image)
 
-    if GPT.IsBlockDevice(to_image):
-      sync = True
+    if is_block:
       # to_part refers to kernel but rootdev -s refers to rootfs.
       to_rootfs = MakePartition(to_image, to_part + 1)
       if to_rootfs == SudoOutput('rootdev -s').strip():
@@ -2298,24 +2311,31 @@ class InstallChromiumOSImageCommand(SubCommand):
     # normal key, so we have to choose B when installed to disk.
     print('Installing [%s] to [%s#%s]...' % (from_image, to_image, to_part))
     gpt_from.GetPartition(PART_CROS_KERNEL_B).Copy(
-        gpt_to.GetPartition(to_part), sync=sync, verbose=True)
+        gpt_to.GetPartition(to_part), sync=is_block, verbose=True)
     gpt_from.GetPartition(PART_CROS_ROOTFS_A).Copy(
         gpt_to.GetPartition(to_part + 1),
-        check_equal=False, sync=sync, verbose=True)
-    if not sync:
-      print('Syncing...')
-      Shell('sync')
+        check_equal=False, sync=is_block, verbose=True)
 
     # Now, prioritize and make kernel A bootable.
     # TODO(hungte) Check if kernel key is valid.
     pri_cmd = pygpt.GPTCommands.Prioritize()
     pri_cmd.ExecuteCommandLine('-i', str(to_part), to_image)
 
+    # People may try to abort if installing stateful partition takes too much
+    # time, so we do want to sync now (for partition changes to commit).
+    print('Syncing...')
+    Shell('sync')
+
+    # Call 'which' directly to avoid error messages by FindCommand.
+    pv = SysUtils.Shell('which pv 2>/dev/null || echo cat', output=True).strip()
+
     # TODO(hungte) Do partition copy if stateful in to_image is not mounted.
     # Mount and copy files in stateful partition.
-    with gpt_from.GetPartition(PART_CROS_STATEFUL).Mount() as from_dir:
+    # Note stateful may not support mount with rw=False.
+    with gpt_from.GetPartition(PART_CROS_STATEFUL).Mount(rw=True) as from_dir:
       dev_image_from = os.path.join(from_dir, 'dev_image')
-      if os.path.exists(dev_image_from):
+      if self.args.do_stateful and os.path.exists(dev_image_from):
+        print('Copying stateful partition...')
         with gpt_to.GetPartition(PART_CROS_STATEFUL).Mount(rw=True) as to_dir:
           dev_image_old = os.path.join(to_dir, 'dev_image.old')
           dev_image_to = os.path.join(to_dir, 'dev_image')
@@ -2327,8 +2347,9 @@ class InstallChromiumOSImageCommand(SubCommand):
           # Use sudo instead of shutil.copytree sine people may invoke this
           # command with user permission (which works for copying partitions).
           # SysUtils.Sudo does not support pipe yet so we have to add 'sh -c'.
-          Sudo(['sh', '-c', 'tar -C %s -cvf - dev_image | tar -C %s -xf -' %
-                (from_dir, to_dir)])
+          Sudo(['sh', '-c', 'tar -C %s -cf - dev_image | %s | '
+                'tar -C %s --warning=none --exclude="%s" -xf -' %
+                (from_dir, pv, to_dir, exclude)])
 
     print('OK: Successfully installed image from [%s] to [%s].' %
           (from_image, to_image))
