@@ -565,7 +565,20 @@ get_file_component_version() {
       sh "${file}" --lsm
       ;;
     firmware)
-      local json_manifest="$(sh "${file}" --manifest)"
+      # The feature manifest is landed in 11163.0.0 .
+      local json_manifest="$(sh "${file}" --manifest 2>/dev/null)" || true
+      if [ -z "${json_manifest}" ]; then
+        # The legacy method of getting firmware version.
+        local version="$(head -n 50 "${file}" | \
+          sed -n 's/^ *TARGET_.*FWID="\(.*\)"/\1/p' | uniq | paste -sd ';' -)"
+        if [ -z "${version}" ]; then
+          echo "Unknown-$(md5sum "${file}")"
+          return
+        fi
+        echo ${version}
+        return
+      fi
+
       if [ -n "${JQ}" ]; then
         echo "${json_manifest}" | "${JQ}" -r \
           '.[].host.versions | "ro:" + .ro + ";" + "rw:" + .rw'
