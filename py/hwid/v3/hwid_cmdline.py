@@ -191,7 +191,8 @@ def RunDatabaseBuilder(database_builder, options):
 def BuildDatabaseWrapper(options):
   '''Build the HWID database from probed result.'''
   if not os.path.isdir(options.hwid_db_path):
-    raise IOError('%s is not a directory.' % options.hwid_db_path)
+    logging.info('%s is not a directory.  Creating...', options.hwid_db_path)
+    file_utils.TryMakeDirs(options.hwid_db_path)
   database_path = os.path.join(options.hwid_db_path, options.project.upper())
 
   database_builder = builder.DatabaseBuilder(project=options.project,
