@@ -686,8 +686,16 @@ def _ReadRMAMetadata(stateful):
           for e in metadata]
       return metadata
   else:
-    logging.warning('Cannot find %s/%s', stateful, PATH_CROS_RMA_METADATA)
-    return None
+    logging.warning('Cannot find %s.', PATH_CROS_RMA_METADATA)
+    # Check if it is a legacy single-board RMA shim.
+    found = glob.glob(os.path.join(stateful, DIR_CROS_PAYLOADS, '*.json'))
+    if len(found) == 1:
+      logging.warning('Found legacy RMA shim. Auto-generating metadata.')
+      board = os.path.basename(found[0]).split('.')[0]
+      metadata = [RMAImageBoardInfo(board=board, kernel=2, rootfs=3)]
+      return metadata
+    else:
+      return None
 
 
 class RMABoardResourceVersions(object):
@@ -1113,16 +1121,14 @@ class ChromeOSFactoryBundle(object):
 
     stateful_part = gpt.GetPartition(PART_CROS_STATEFUL)
     with stateful_part.Mount() as stateful:
-      if not os.path.exists(os.path.join(stateful, PATH_CROS_RMA_METADATA)):
-        raise RuntimeError('Cannot find file /%s, is this a RMA shim?' %
-                           PATH_CROS_RMA_METADATA)
-
       payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
       if not os.path.exists(payloads_dir):
         raise RuntimeError('Cannot find dir /%s, is this a RMA shim?' %
                            DIR_CROS_PAYLOADS)
 
       metadata = _ReadRMAMetadata(stateful)
+      if not metadata:
+        raise RuntimeError('Cannot get metadata, is this a RMA shim?')
 
       print('This RMA shim contains boards: %s' % (
           ' '.join(board_info.board for board_info in metadata)))
