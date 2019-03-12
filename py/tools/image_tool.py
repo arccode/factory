@@ -65,7 +65,8 @@ PATH_CROS_FIRMWARE_UPDATER = '/usr/sbin/chromeos-firmwareupdate'
 # The name of folder must match /etc/init/cros-payloads.conf.
 DIR_CROS_PAYLOADS = 'cros_payloads'
 # Relative path of RMA image metadata.
-PATH_CROS_RMA_METADATA = os.path.join(DIR_CROS_PAYLOADS, 'rma_metadata.json')
+CROS_RMA_METADATA = 'rma_metadata.json'
+PATH_CROS_RMA_METADATA = os.path.join(DIR_CROS_PAYLOADS, CROS_RMA_METADATA)
 # Mode for new created folder, 0755 = u+rwx, go+rx
 MODE_NEW_DIR = 0o755
 # Regular expression for parsing LSB value, which should be sh compatible.
@@ -288,6 +289,87 @@ class SysUtils(object):
 Shell = SysUtils.Shell
 Sudo = SysUtils.Sudo
 SudoOutput = SysUtils.SudoOutput
+
+
+class CrosPayloadUtils(object):
+  """Collection of cros_payload utilities."""
+
+  _cros_payload = None
+
+  @classmethod
+  def GetProgramPath(cls):
+    """Gets the path for `cros_payload` program."""
+    if cls._cros_payload:
+      return cls._cros_payload
+    cls._cros_payload = SysUtils.FindCommand('cros_payload')
+    return cls._cros_payload
+
+  @staticmethod
+  def GetJSONPath(payloads_dir, board):
+    return os.path.join(payloads_dir, '%s.json' % board)
+
+  @staticmethod
+  def AddMountedPayloadFile(mounted_payloads_dir, file_name, content):
+    with tempfile.NamedTemporaryFile() as f:
+      f.write(content)
+      f.flush()
+      os.chmod(f.name, 0o644)
+      dest = os.path.join(mounted_payloads_dir, file_name)
+      Sudo(['cp', '-pf', f.name, dest])
+      Sudo(['chown', 'root:root', dest])
+
+  @classmethod
+  def InitMetaData(cls, payloads_dir, board, mounted=False):
+    json_path = cls.GetJSONPath(payloads_dir, board)
+    if mounted:
+      cls.AddMountedPayloadFile(payloads_dir, os.path.basename(json_path), '{}')
+    else:
+      with open(json_path, 'w') as f:
+        f.write('{}')
+    return json_path
+
+  @classmethod
+  def AddComponent(cls, json_path, component, resource, **kargs):
+    if not os.path.exists(json_path):
+      logging.warning('Cannot find %s', json_path)
+      return
+    Shell([cls.GetProgramPath(), 'add', json_path, component, resource],
+          **kargs)
+
+  @classmethod
+  def InstallComponents(cls, json_path, dest, components, **kargs):
+    if not os.path.exists(json_path):
+      logging.warning('Cannot find %s', json_path)
+      return
+    if isinstance(components, basestring):
+      components = [components]
+    Sudo([cls.GetProgramPath(), 'install', json_path, dest] + components,
+         **kargs)
+
+  @classmethod
+  def GetComponentVersions(cls, json_path):
+    if not os.path.exists(json_path):
+      logging.warning('Cannot find %s', json_path)
+      return {}
+    with open(json_path) as f:
+      metadata = json.load(f)
+      component_versions = {
+          component: resource.get(PAYLOAD_SUBTYPE_VERSION, '<unknown>')
+          for component, resource in metadata.iteritems()}
+      # Make sure that there are no unknown components
+      for component in component_versions:
+        assert component in PAYLOAD_COMPONENTS, (
+            'Unknown component "%s"' % component)
+      return component_versions
+
+  @classmethod
+  def GetComponentFiles(cls, json_path, component):
+    if not os.path.exists(json_path):
+      logging.warning('Cannot find %s', json_path)
+      return []
+    files = Shell([cls.GetProgramPath(), 'get_file', json_path, component],
+                  output=True).strip().splitlines()
+    return files
 
 
 def Aligned(value, alignment):
@@ -675,13 +757,10 @@ def _WriteRMAMetadata(stateful, board_list):
     stateful: path of stateful partition mount point.
     board_list: a list of RMAImageBoardInfo object.
   """
-  with tempfile.NamedTemporaryFile(prefix='metadata_') as f:
-    json.dump([b.ToDict() for b in board_list], f)
-    f.flush()
-    os.chmod(f.name, 0o644)
-    destination = os.path.join(stateful, PATH_CROS_RMA_METADATA)
-    Sudo(['cp', '-pf', f.name, destination])
-    Sudo(['chown', 'root:root', destination])
+  payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+  content = json.dumps([b.ToDict() for b in board_list])
+  CrosPayloadUtils.AddMountedPayloadFile(
+      payloads_dir, CROS_RMA_METADATA, content)
 
 
 def _ReadRMAMetadata(stateful):
@@ -751,29 +830,12 @@ def _ReadBoardResourceVersions(rootfs, stateful, board_info):
     shim_version = LSBFile(lsb_path).GetChromeOSVersion(remove_timestamp=False)
     return shim_version
 
-  def _GetCrosPayloadVersions(stateful):
-    # Version of cros_payload components
-    cros_payload_metadata = os.path.join(
-        stateful, DIR_CROS_PAYLOADS, '%s.json' % board_info.board)
-    if os.path.exists(cros_payload_metadata):
-      with open(cros_payload_metadata) as f:
-        metadata = json.load(f)
-        payload_versions = {
-            component: resource.get(PAYLOAD_SUBTYPE_VERSION, '<unknown>')
-            for component, resource in metadata.iteritems()}
-        # Make sure that there are no unknown components
-        for component in payload_versions:
-          assert component in PAYLOAD_COMPONENTS, (
-              'Unknown component "%s"' % component)
-        return payload_versions
-    else:
-      logging.warning('Cannot find %s', cros_payload_metadata)
-      return {}
-
   versions = {
       'board': board_info.board,
       'install_shim': _GetInstallShimVersion(rootfs)}
-  payload_versions = _GetCrosPayloadVersions(stateful)
+  json_path = CrosPayloadUtils.GetJSONPath(
+      os.path.join(stateful, DIR_CROS_PAYLOADS), board_info.board)
+  payload_versions = CrosPayloadUtils.GetComponentVersions(json_path)
   versions.update(payload_versions)
   return RMABoardResourceVersions(**versions)
 
@@ -984,16 +1046,13 @@ class ChromeOSFactoryBundle(object):
       The JSON path in target_dir for cros_payload to use.
     """
     logging.debug('Generating cros_payload contents...')
-    json_path = os.path.join(target_dir, '%s.json' % self.board)
-    with open(json_path, 'wt') as f:
-      f.write('{}')
+    json_path = CrosPayloadUtils.InitMetaData(target_dir, self.board)
 
-    cros_payload = SysUtils.FindCommand('cros_payload')
     for component in PAYLOAD_COMPONENTS:
       resource = getattr(self, component)
       if resource:
         logging.debug('Add %s payloads from %s...', component, resource)
-        Shell([cros_payload, 'add', json_path, component, resource])
+        CrosPayloadUtils.AddComponent(json_path, component, resource)
       else:
         print('Leaving %s component payload as empty.' % component)
     return json_path
@@ -1238,10 +1297,9 @@ class ChromeOSFactoryBundle(object):
     self.CreateDirectory(payloads_dir)
     json_path = self.CreatePayloads(payloads_dir)
 
-    cros_payload = SysUtils.FindCommand('cros_payload')
     with GPT.Partition.MapAll(output) as output_dev:
-      Sudo([cros_payload, 'install', json_path, output_dev,
-            'test_image', 'release_image'])
+      CrosPayloadUtils.InstallComponents(
+          json_path, output_dev, ['test_image', 'release_image'])
 
     # output_dev (via /dev/loopX) needs root permission so we have to leave
     # previous context and resize using the real disk image file.
@@ -1252,7 +1310,7 @@ class ChromeOSFactoryBundle(object):
       targets = ['toolkit', 'release_image.crx_cache']
       if self.hwid:
         targets += ['hwid']
-      Sudo([cros_payload, 'install', json_path, output_dev] + targets)
+      CrosPayloadUtils.InstallComponents(json_path, output_dev, targets)
 
     logging.debug('Add /etc/lsb-factory if not exists.')
     with part.Mount(rw=True) as stateful:
@@ -1360,9 +1418,9 @@ class ChromeOSFactoryBundle(object):
       """Returns a list of (resource name, resource size) of the board."""
       resources = []
       with Partition(self.image, PART_CROS_STATEFUL).Mount() as stateful:
-        payload_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
-        json_file = '%s.json' % self.board
-        json_path = os.path.join(payload_dir, json_file)
+        payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+        json_path = CrosPayloadUtils.GetJSONPath(payloads_dir, self.board)
+        json_file = os.path.basename(json_path)
         resources.append(
             (json_file, ChromeOSFactoryBundle.GetDiskUsage(json_path)))
         with open(json_path) as f:
@@ -1371,7 +1429,7 @@ class ChromeOSFactoryBundle(object):
             for subtype, payload in resource.iteritems():
               if subtype == PAYLOAD_SUBTYPE_VERSION:
                 continue
-              path = os.path.join(payload_dir, payload)
+              path = os.path.join(payloads_dir, payload)
               resources.append(
                   (payload, ChromeOSFactoryBundle.GetDiskUsage(path)))
       return resources
@@ -1538,8 +1596,8 @@ class ChromeOSFactoryBundle(object):
           print('Copying %s board ...' % entry.board)
           # Copy payloads in stateful partition
           src_payloads_dir = os.path.join(src_dir, DIR_CROS_PAYLOADS)
-          src_metadata_path = os.path.join(src_payloads_dir,
-                                           '%s.json' % entry.board)
+          src_metadata_path = CrosPayloadUtils.GetJSONPath(
+              src_payloads_dir, entry.board)
           target_payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
           ChromeOSFactoryBundle.CopyPayloads(
               src_payloads_dir, target_payloads_dir, src_metadata_path)
@@ -1617,13 +1675,6 @@ class ChromeOSFactoryBundle(object):
       assert component in PAYLOAD_COMPONENTS, (
           'Unknown component "%s"', component)
 
-    cros_payload = SysUtils.FindCommand('cros_payload')
-
-    def _GetPayloadComponentFiles(json_path, component):
-      files = Shell([cros_payload, 'get_file', json_path, component],
-                    output=True).strip().splitlines()
-      return files
-
     with SysUtils.TempDirectory() as temp_dir:
       new_payloads_dir = os.path.join(temp_dir, DIR_CROS_PAYLOADS)
       ChromeOSFactoryBundle.CreateDirectory(new_payloads_dir)
@@ -1645,15 +1696,15 @@ class ChromeOSFactoryBundle(object):
             raise RuntimeError('Board not set.')
 
         # Copy metadata json file.
-        old_json_path = os.path.join(old_payloads_dir, '%s.json' % board)
+        old_json_path = CrosPayloadUtils.GetJSONPath(old_payloads_dir, board)
         if not os.path.exists(old_json_path):
-          raise RuntimeError('Cannot find board config "%s.json".' % board)
-        new_json_path = os.path.join(new_payloads_dir, '%s.json' % board)
+          raise RuntimeError('Cannot find board config "%s".' % old_json_path)
+        new_json_path = CrosPayloadUtils.GetJSONPath(new_payloads_dir, board)
         Shell(['cp', '-pf', old_json_path, new_json_path])
 
         # Add new payload in temp_dir/cros_payloads.
         for component, payload in replaced_payloads.iteritems():
-          Shell([cros_payload, 'add', new_json_path, component, payload])
+          CrosPayloadUtils.AddComponent(new_json_path, component, payload)
 
         # Remove unused and duplicate files.
         replaced_files = set()
@@ -1661,13 +1712,13 @@ class ChromeOSFactoryBundle(object):
         other_files = set()
         for component in replaced_payloads:
           replaced_files.update(
-              _GetPayloadComponentFiles(old_json_path, component))
+              CrosPayloadUtils.GetComponentFiles(old_json_path, component))
           added_files.update(
-              _GetPayloadComponentFiles(new_json_path, component))
+              CrosPayloadUtils.GetComponentFiles(new_json_path, component))
           for info in metadata:
             if info.board != board:
-              board_component_files = _GetPayloadComponentFiles(
-                  os.path.join(old_payloads_dir, '%s.json' % info.board),
+              board_component_files = CrosPayloadUtils.GetComponentFiles(
+                  CrosPayloadUtils.GetJSONPath(old_payloads_dir, info.board),
                   component)
               other_files.update(board_component_files)
 
@@ -2753,6 +2804,13 @@ class EditLSBCommand(SubCommand):
 
 
 def main():
+  # Support `cros_payload` in bin/ folder, so that we can run
+  # `py/tools/image_tool.py` directly.
+  new_path = os.path.realpath(os.path.join(
+      os.path.dirname(os.path.realpath(__file__)), '..', '..', 'bin'))
+  os.putenv('PATH', ':'.join(os.getenv('PATH', '').split(':') + [new_path]))
+  sys.path.append(new_path)
+
   parser = argparse.ArgumentParser(
       prog='image_tool',
       description=(
