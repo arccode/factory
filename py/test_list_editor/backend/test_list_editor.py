@@ -46,7 +46,7 @@ class Server(object):
     self.httpd.serve_forever()
 
 
-def _AddPrivateOverlay(dirs, board):
+def _GetPrivateOverlayDir(board):
   def Locate(path, name):
     while True:
       if os.path.isdir(os.path.join(path, name)):
@@ -68,7 +68,15 @@ def _AddPrivateOverlay(dirs, board):
     if (not private_overlay_dir or
         os.path.basename(os.path.dirname(private_overlay_dir)) !=
         'private-overlays'):
-      return
+      return None
+  return private_overlay_dir
+
+
+def _AddPrivateOverlay(dirs, board):
+  private_overlay_dir = _GetPrivateOverlayDir(board)
+  if private_overlay_dir is None:
+    return
+
   base_dir = os.path.join(private_overlay_dir, common.PRIVATE_FACTORY_RELPATH)
   test_list_dir = os.path.join(base_dir, manager.TEST_LISTS_RELPATH)
   if not os.path.isdir(test_list_dir):
