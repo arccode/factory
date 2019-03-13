@@ -88,6 +88,8 @@ DEFAULT_BLOCK_SIZE = pygpt.GPT.DEFAULT_BLOCK_SIZE
 PAYLOAD_COMPONENTS = [
     'release_image', 'test_image',
     'toolkit', 'firmware', 'hwid', 'complete', 'toolkit_config']
+# Payload types
+PAYLOAD_TYPE_TOOLKIT_CONFIG = 'toolkit_config'
 # Payload subtypes
 PAYLOAD_SUBTYPE_VERSION = 'version'
 
@@ -370,6 +372,21 @@ class CrosPayloadUtils(object):
     files = Shell([cls.GetProgramPath(), 'get_file', json_path, component],
                   output=True).strip().splitlines()
     return files
+
+  @classmethod
+  def ReplaceComponent(cls, json_path, component, resource):
+    """Replace a component in a payload directory with a given file.
+
+    Remove old payload files and add new files for a component. Doesn't check
+    if the removed file is used by other boards.
+    """
+    payloads_dir = os.path.dirname(json_path)
+    old_files = cls.GetComponentFiles(json_path, component)
+    for f in old_files:
+      old_file_path = os.path.join(payloads_dir, f)
+      if os.path.exists(old_file_path):
+        Sudo(['rm', '-f', old_file_path])
+    cls.AddComponent(json_path, component, resource)
 
 
 def Aligned(value, alignment):
@@ -1327,7 +1344,7 @@ class ChromeOSFactoryBundle(object):
            check=False)
     return new_size
 
-  def CreateRMAImage(self, output):
+  def CreateRMAImage(self, output, active_test_list=None):
     """Creates the RMA bootable installation disk image.
 
     This creates an RMA image that can boot and install all factory software
@@ -1345,7 +1362,25 @@ class ChromeOSFactoryBundle(object):
     # into disk image.
     payloads_dir = os.path.join(self._temp_dir, DIR_CROS_PAYLOADS)
     self.CreateDirectory(payloads_dir)
-    self.CreatePayloads(payloads_dir)
+    json_path = self.CreatePayloads(payloads_dir)
+
+    # Set active test_list
+    if active_test_list:
+      with tempfile.NamedTemporaryFile() as config_file:
+        try:
+          CrosPayloadUtils.InstallComponents(
+              json_path, config_file.name, PAYLOAD_TYPE_TOOLKIT_CONFIG,
+              silent=True)
+          config = json.load(config_file)
+        except Exception:
+          config = {}
+        config.update({'active_test_list': {'id': active_test_list}})
+        config_file.seek(0)
+        config_file.truncate()
+        config_file.write(json.dumps(config, indent=2, separators=(',', ': ')))
+        config_file.flush()
+        CrosPayloadUtils.ReplaceComponent(
+            json_path, PAYLOAD_TYPE_TOOLKIT_CONFIG, config_file.name)
 
     payloads_size = ChromeOSFactoryBundle.GetDiskUsage(payloads_dir)
     print('cros_payloads size: %s M' % (payloads_size / MEGABYTE))
@@ -2272,6 +2307,9 @@ class CreateRMAImageCommmand(SubCommand):
     ChromeOSFactoryBundle.DefineBundleArguments(
         self.subparser, ChromeOSFactoryBundle.RMA)
     self.subparser.add_argument(
+        '--active_test_list', default=None,
+        help='active test list')
+    self.subparser.add_argument(
         '-f', '--force', action='store_true',
         help='Overwrite existing output image file.')
     self.subparser.add_argument(
@@ -2297,7 +2335,7 @@ class CreateRMAImageCommmand(SubCommand):
           hwid=self.args.hwid,
           complete=self.args.complete,
           toolkit_config=self.args.toolkit_config)
-      bundle.CreateRMAImage(self.args.output)
+      bundle.CreateRMAImage(self.args.output, self.args.active_test_list)
       bundle.ShowRMAImage(output)
       print('OK: Generated %s RMA image at %s' %
             (bundle.board, self.args.output))

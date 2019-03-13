@@ -181,7 +181,7 @@ class ImageToolRMATest(unittest.TestCase):
     self.SetupBundleEnvironment(image_path1)
     self.ImageTool('rma-create', '-o', 'rma1.bin')
     self.SetupBundleEnvironment(image_path2)
-    self.ImageTool('rma-create', '-o', 'rma2.bin')
+    self.ImageTool('rma-create', '-o', 'rma2.bin', '--active_test_list', 'test')
     self.RemoveBundleEnvironment()
 
     # Verify content of RMA shim.

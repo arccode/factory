@@ -699,8 +699,8 @@ for k in j:
       strings "${file}" | grep 'Google_' | uniq
       ;;
     toolkit_config)
-      # Treat the file name as the version.
-      echo "$(basename "${file}")"
+      local temp="$(md5sum "${file}")"
+      echo "${temp%% *}"
   esac
 }
 
