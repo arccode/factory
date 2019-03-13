@@ -19,6 +19,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Util
 from cros.factory.gooftool import crosfw
+from cros.factory.gooftool import gsctool as gsctool_module
 from cros.factory.gooftool import vpd
 from cros.factory.gooftool import vpd_data
 from cros.factory.gooftool import wipe
@@ -854,14 +855,10 @@ class Gooftool(object):
     open ccd capabilities. Before finalizing the DUT, factory mode MUST be
     disabled.
     """
-    def _GetCr50Version():
-      cmd = ['gsctool', '-a', '-f', '-M']
-      return re.search(r'^RW_FW_VER=(\d+\.\d+\.\d+)',
-                       self._util.shell(cmd).stdout,
-                       re.MULTILINE).group(1)
+    gsctool = gsctool_module.GSCTool(self._util.shell)
 
     def _IsCCDInfoMandatory():
-      cr50_verion = _GetCr50Version()
+      cr50_verion = gsctool.GetCr50FirmwareVersion().rw_version
       # If second number is odd in version then it is prod version.
       is_prod = int(cr50_verion.split('.')[1]) % 2
 
@@ -873,39 +870,28 @@ class Gooftool(object):
 
       return res
 
-    gsctool_path = '/usr/sbin/gsctool'
-    if not os.path.exists(gsctool_path):
-      raise Error('gsctool is not available in path - %s.' % gsctool_path)
+    try:
+      try:
+        gsctool.SetFactoryMode(False)
+        factory_mode_disabled = True
+      except gsctool_module.GSCToolError:
+        factory_mode_disabled = False
 
-    factory_mode_disabled = False
-    cmd = ['gsctool', '-a', '-F', 'disable']
-    result = self._util.shell(cmd)
-    if result.success:
-      factory_mode_disabled = True
+      if not _IsCCDInfoMandatory():
+        logging.warn('Command of disabling factory mode %s and can not get CCD '
+                     'info so there is no way to make sure factory mode '
+                     'status.  cr50 version RW %s',
+                     'succeeds' if factory_mode_disabled else 'fails',
+                     gsctool.GetCr50FirmwareVersion().rw_version)
+        return
 
-    if not _IsCCDInfoMandatory():
-      logging.warn('Command of disabling factory mode %s and can not get CCD '
-                   'info so there is no way to make sure factory mode status. '
-                   'cr50 version RW %s',
-                   'succeeds' if factory_mode_disabled else 'fails',
-                   _GetCr50Version())
-      return
+      is_factory_mode = gsctool.IsFactoryMode()
 
-    ccd_info_cmd = ['gsctool', '-a', '-I']
-    result = self._util.shell(ccd_info_cmd)
-    if not result.success:
-      raise Error('Getting ccd info fails in cr50 RW %s' % _GetCr50Version())
+    except gsctool_module.GSCToolError as e:
+      raise Error('gsctool command fail: %r', e)
 
-    info = result.stdout
-    # The pattern of output is as below in case of factory mode enabled:
-    # State: Locked
-    # Password: None
-    # Flags: 000000
-    # Capabilities, current and default:
-    #   ...
-    # Capabilities are modified.
-    #
-    # If factory mode is disabed then the last line would be
-    # Capabilities are default.
-    if re.search('^Capabilities are modified.$', info, re.MULTILINE):
-      raise Error('Failed to disable Cr50 factory mode. CCD info:\n%s' % info)
+    except Exception as e:
+      raise Error('Unknown exception from gsctool: %r' % e)
+
+    if is_factory_mode:
+      raise Error('Failed to disable Cr50 factory mode.')

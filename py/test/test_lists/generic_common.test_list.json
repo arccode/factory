@@ -662,7 +662,14 @@
         {
           "pytest_name": "update_cr50_firmware"
         },
-        "RebootStep"
+        "RebootStep",
+        {
+          "pytest_name": "update_cr50_firmware",
+          "label": "Check Cr50 Firmware Version",
+          "args": {
+            "method": "CHECK_VERSION"
+          }
+        }
       ]
     },
     "UpdateDeviceData": {

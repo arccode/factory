@@ -3261,6 +3261,10 @@ msgid "Manual Test Right USB TypeC"
 msgstr "手动右 USB TypeC 测试"
 
 #: ../py/test/test_lists/generic_common.test_list.json
+msgid "Check Cr50 Firmware Version"
+msgstr "检查 CR50 韧体版本"
+
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Update Cr50 Firmware"
 msgstr "更新 CR50 韧体"
 
