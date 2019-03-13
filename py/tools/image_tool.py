@@ -266,6 +266,15 @@ class SysUtils(object):
     if verbose:
       sys.stderr.write('\n')
 
+  @staticmethod
+  @contextlib.contextmanager
+  def SetUmask(mask):
+    old_umask = os.umask(mask)
+    try:
+      yield
+    finally:
+      os.umask(old_umask)
+
 
 # Short cut to SysUtils.
 Shell = SysUtils.Shell
@@ -887,6 +896,10 @@ class ChromeOSFactoryBundle(object):
         PATH_CROS_FIRMWARE_UPDATER, self._temp_dir, fs_type=FS_TYPE_CROS_ROOTFS)
     return self._firmware
 
+  def CreateDirectory(self, dir_name, mode=MODE_NEW_DIR):
+    with SysUtils.SetUmask(0o022):
+      os.mkdir(dir_name, mode)
+
   def CreatePayloads(self, target_dir):
     """Builds cros_payload contents into target_dir.
 
@@ -1029,7 +1042,7 @@ class ChromeOSFactoryBundle(object):
     """
     new_size = self.InitDiskImage(output, sectors, sector_size, verbose)
     payloads_dir = os.path.join(self._temp_dir, DIR_CROS_PAYLOADS)
-    os.mkdir(payloads_dir)
+    self.CreateDirectory(payloads_dir)
     json_path = self.CreatePayloads(payloads_dir)
 
     cros_payload = SysUtils.FindCommand('cros_payload')
@@ -1071,7 +1084,7 @@ class ChromeOSFactoryBundle(object):
     # As a result, here we want to create payloads in temporary folder then copy
     # into disk image.
     payloads_dir = os.path.join(self._temp_dir, DIR_CROS_PAYLOADS)
-    os.mkdir(payloads_dir, MODE_NEW_DIR)
+    self.CreateDirectory(payloads_dir)
     self.CreatePayloads(payloads_dir)
 
     payloads_size = int(
@@ -1411,7 +1424,7 @@ class ChromeOSFactoryBundle(object):
     bundle_name = '%s_%s_%s' % (self.board, timestamp, phase)
     output_name = 'factory_bundle_%s.tar.bz2' % bundle_name
     bundle_dir = os.path.join(self._temp_dir, 'bundle')
-    os.mkdir(bundle_dir)
+    self.CreateDirectory(bundle_dir)
 
     try:
       part = Partition(self.release_image, PART_CROS_ROOTFS_A)
@@ -1498,7 +1511,7 @@ class ChromeOSFactoryBundle(object):
     if self.setup_dir:
       AddResource('setup', os.path.join(self.setup_dir, '*'))
     if self.netboot:
-      os.mkdir(os.path.join(bundle_dir, 'netboot'))
+      self.CreateDirectory(os.path.join(bundle_dir, 'netboot'))
       self.CreateNetbootFirmware(
           os.path.join(self.netboot, 'image.net.bin'),
           os.path.join(bundle_dir, 'netboot', 'image.net.bin'))

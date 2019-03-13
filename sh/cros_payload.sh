@@ -301,13 +301,34 @@ cmd_help() {
 
 # JSON helper functions - using jq or python.
 
+# Prettify json string
+json_prettify() {
+  local json_file="$1"
+
+  # jq prettifies output by default.
+  if [ -n "${JQ}" ]; then
+    "${JQ}" -s '.[]' "${json_file}"
+    return
+  fi
+
+  python -c "\
+import json
+import sys
+
+def get_fd(path):
+  return sys.stdin if path == '-' else open(path)
+
+json_obj = json.load(get_fd(sys.argv[1]))
+print(json.dumps(json_obj, indent=2, separators=(',', ': ')))" "${json_file}"
+}
+
 # Merges two json files into stdout.
 json_merge() {
   local base_path="$1"
   local update_path="$2"
 
   if [ -n "${JQ}" ]; then
-    "${JQ}" -s '.[0] * .[1]' "${base_path}" "${update_path}"
+    "${JQ}" -c -s '.[0] * .[1]' "${base_path}" "${update_path}"
     return
   fi
 
@@ -370,7 +391,7 @@ json_get_keys() {
 json_encode_str() {
   if [ -n "${JQ}" ]; then
     # shellcheck disable=SC2016
-    "${JQ}" -n --arg input "$1" '$input'
+    "${JQ}" -c -n --arg input "$1" '$input'
     return
   fi
   python -c "import json; import sys; print(json.dumps(sys.argv[1]))" "$1"
@@ -384,7 +405,8 @@ update_json() {
   local new_config="$(mktemp)"
   register_tmp_object "${new_config}"
 
-  echo "${new_json}" | json_merge "${json_path}" - >"${new_config}"
+  echo "${new_json}" | json_merge "${json_path}" - \
+    | json_prettify - >"${new_config}"
   cp -f "${new_config}" "${json_path}"
   chmod a+r "${json_path}"
 }
