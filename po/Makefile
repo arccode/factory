@@ -53,11 +53,15 @@ TARGET_PO = $(if $(BOARD_PO_DIR),$(BOARD_PO_DIR),$(PO_DIR))/$(LOCALE).po
 func-update-po = \
   $(if $(wildcard $(1)),, \
     mkdir -p $(dir $(1)) $(\n) \
-    sed "s/PO_REVISION_DATE/$(shell date +'%Y-%m-%d %H:%M+%Z')/; \
-      s/LOCALE/$(basename $(notdir $(1)))/" po-header > $(1) $(\n)) \
+    touch $(1) $(\n)) \
+  sed "s/PO_REVISION_DATE/$(shell date +'%Y-%m-%d %H:%M+%Z')/; \
+    s/LOCALE/$(basename $(notdir $(1)))/" po-header > \
+    $(TEMP_DIR)/header.po $(\n) \
   $(MSGMERGE) --force-po $(1) $(TEMP_DIR)/messages.pot \
     -o $(TEMP_DIR)/tmp.po $(\n) \
-  mv -f $(TEMP_DIR)/tmp.po $(1) $(\n)
+  $(MSGMERGE) --force-po $(TEMP_DIR)/header.po $(TEMP_DIR)/tmp.po \
+    -o $(TEMP_DIR)/final.po $(\n) \
+  mv -f $(TEMP_DIR)/final.po $(1) $(\n)
 
 func-gettext-and-update-po = \
   $(if $(strip $(2)), \

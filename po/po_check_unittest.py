@@ -167,8 +167,27 @@ class PoUpdateTest(unittest.TestCase):
       err_files = []
       for po_file in po_files:
         new_po_file = os.path.join(po_dir, os.path.basename(po_file))
-        if file_utils.ReadLines(po_file) != file_utils.ReadLines(new_po_file):
+
+        # Compare two contents except the line of PO-Revision-Date
+        old_content = file_utils.ReadLines(po_file)
+        new_content = file_utils.ReadLines(new_po_file)
+
+        if len(old_content) != len(new_content):
           err_files.append(os.path.basename(po_file))
+          continue
+
+        for old_line, new_line in zip(old_content, new_content):
+          if old_line == new_line:
+            continue
+
+          # Ignore the line of PO-Revision-Date since the date
+          # will be updated by `make update`
+          if 'PO-Revision-Date' in old_line and \
+             'PO-Revision-Date' in new_line:
+            continue
+
+          err_files.append(os.path.basename(po_file))
+          break
 
       self.assertFalse(
           err_files,
