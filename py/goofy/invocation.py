@@ -655,7 +655,7 @@ class _TestInvocationTestLogHelper(object):
           dargs, allow_types=(int, long, float, basestring, type(None)))
       for k, v in flattened_dargs:
         testlog_event.AddArgument(k, v)
-    for k, v in metadata['serial_numbers']:
+    for k, v in metadata['serial_numbers'].iteritems():
       testlog_event.AddSerialNumber(k, v)
 
     tag = metadata.get('tag')
