@@ -37,5 +37,6 @@ mount -t tmpfs none /var/tmp
 # Chrome to execute. Please manually do the line below after Chrome starts.
 # touch /run/disable_chrome_restart
 # Chromium dumps may fill up system space in early protos so we want to do it
-# manually. Uncomment the line below if you need to get dumps.
-# touch /mnt/stateful_partition/etc/enable_chromium_coredumps
+# manually. Uncomment the 2 lines below if you need to get dumps.
+# touch /root/.leave_core
+# touch /mnt/stateful_partition/etc/collect_chrome_crashes
