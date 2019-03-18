@@ -296,15 +296,6 @@ def VerifyWPSwitch(options):
   GetGooftool(options).VerifyWPSwitch(options.has_ectool)
 
 
-@Command('verify_switch_dev')
-def VerifyDevSwitch(options):
-  """Verify developer switch is disabled."""
-
-  if GetGooftool(options).CheckDevSwitchForDisabling():
-    logging.warn('VerifyDevSwitch: No physical switch.')
-    event_log.Log('switch_dev', type='virtual switch')
-
-
 @Command('verify_vpd')
 def VerifyVPD(options):
   """Verify that VPD values are properly set.
@@ -493,7 +484,6 @@ def Verify(options):
   if not options.no_write_protect:
     VerifyWPSwitch(options)
     VerifyManagementEngineLocked(options)
-  VerifyDevSwitch(options)
   VerifyHWID(options)
   VerifySystemTime(options)
   if options.chromebox:

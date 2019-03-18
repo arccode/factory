@@ -64,8 +64,6 @@ class SystemInfo(types.DeviceComponent):
   You can also "override" some properties by using Overrides(name, value).
   """
 
-  # Virtual dev switch flag.
-  _VBSD_HONOR_VIRT_DEV_SWITCH = 0x400
   _FIRMWARE_NV_INDEX = 0x1007
   _FLAG_VIRTUAL_DEV_MODE_ON = 0x02
 
@@ -276,12 +274,6 @@ class SystemInfo(types.DeviceComponent):
         hwid_utils.GetDefaultDataPath(), hwid_utils.ProbeProject().upper())
     # TODO(hungte) Support remote DUT.
     return hwid_utils.ComputeDatabaseChecksum(hwid_file_path)
-
-  @InfoProperty
-  def has_virtual_dev_switch(self):
-    """Returns true if the device has virtual dev switch."""
-    vdat_flags = int(self._device.CheckOutput(['crossystem', 'vdat_flags']), 16)
-    return bool(vdat_flags & self._VBSD_HONOR_VIRT_DEV_SWITCH)
 
   @InfoProperty
   def pci_device_number(self):

@@ -526,32 +526,6 @@ class Gooftool(object):
                      ectool_flashprotect, re.MULTILINE):
       raise Error('write protectioin switch of EC is disabled.')
 
-  def CheckDevSwitchForDisabling(self):
-    """Checks if the developer switch is ready for disabling.
-
-    It checks the developer switch is either already disabled or is virtual so
-    it could be disabled programmatically.
-
-    Returns:
-      Whether or not the developer switch is virtual.
-
-    Raises:
-      Error, if the developer switch is not ready for disabling. i.e. it is not
-      disabled and it is not virtual.
-    """
-
-    VBSD_HONOR_VIRT_DEV_SWITCH = 0x400
-    if (self._util.GetVBSharedDataFlags() & VBSD_HONOR_VIRT_DEV_SWITCH) != 0:
-      # Note when the system is using virtual developer switch. It could be
-      # disabled by "crossystem disable_dev_request=1", which is exactly what
-      # it does in prepare_wipe.sh.
-      return True
-
-    if self._util.GetCurrentDevSwitchPosition() == 0:
-      return False
-
-    raise Error('developer mode is not disabled')
-
   def GetBitmapLocales(self, image_file):
     """Get bitmap locales
 

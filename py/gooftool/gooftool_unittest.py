@@ -526,23 +526,6 @@ class GooftoolTest(unittest.TestCase):
                             self._gooftool.VerifyReleaseChannel,
                             enforced_channels)
 
-  def testCheckDevSwitchForDisabling(self):
-    # 1st call: virtual switch
-    self._gooftool._util.GetVBSharedDataFlags().AndReturn(0x400)
-
-    # 2nd call: dev mode disabled
-    self._gooftool._util.GetVBSharedDataFlags().AndReturn(0)
-    self._gooftool._util.GetCurrentDevSwitchPosition().AndReturn(0)
-
-    # 3rd call: dev mode enabled
-    self._gooftool._util.GetVBSharedDataFlags().AndReturn(0)
-    self._gooftool._util.GetCurrentDevSwitchPosition().AndReturn(1)
-
-    self.mox.ReplayAll()
-    self.assertTrue(self._gooftool.CheckDevSwitchForDisabling())
-    self.assertFalse(self._gooftool.CheckDevSwitchForDisabling())
-    self.assertRaises(Error, self._gooftool.CheckDevSwitchForDisabling)
-
   def testSetFirmwareBitmapLocalePass(self):
     """Test for a normal process of setting firmware bitmap locale."""
 
