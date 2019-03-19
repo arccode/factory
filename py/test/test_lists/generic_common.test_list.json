@@ -369,6 +369,12 @@
       "label": "Model and SKU",
       "action_on_failure": "STOP"
     },
+    "ModemSecurity": {
+      "pytest_name": "modem_security",
+      "disable_services": [
+        "modemmanager"
+      ]
+    },
     "PartitionTable": {
       "pytest_name": "partition_table"
     },

@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-03-14 11:58+CST\n"
+"PO-Revision-Date: 2019-03-27 16:18+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -269,6 +269,10 @@ msgstr "讯息"
 #: ../build/pytests_label_generated.json
 msgid "Model Sku"
 msgstr "组态与样式(SKU)"
+
+#: ../build/pytests_label_generated.json
+msgid "Modem Security"
+msgstr "调解器安全"
 
 #: ../build/pytests_label_generated.json
 #: ../py/test/test_lists/generic_common.test_list.json
