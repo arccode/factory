@@ -211,25 +211,24 @@ options_parse_command_line() {
   done
 }
 
-# Loads all known default config files.
-# Usage: options_load_all_default_files
-options_load_all_default_files() {
+# Try to load known default config files one by one until succeeds.
+# Usage: options_load_default_files
+options_load_default_files() {
   local cutoff_dir="$(dirname "$(readlink -f "$0")")"
 
-  # Default LSB config file.
-  options_load_file "${cutoff_dir}/cutoff.conf"
+  # Board-specific JSON config used by factory shim and finalize.
+  # In a factory shim, this file comes from board overlay at build time
+  # (copied from py/config/config.json), and is patched with toolkit_config
+  # payload after the shim is inserted.
+  # In factory toolkit, this file comes from toolkit_config payload.
+  options_load_file "${cutoff_dir}/cutoff.json" && return 0
 
-  # Board-specific JSON config (used by Finalize / in-place-wiping).
+  # Board-specific JSON config used by finalize (after wiping).
+  # This file comes from py/config/config.json in board overlay.
   options_load_file "${cutoff_dir}/../../py/config/cutoff.json"
-
-  # Board-specific JSON config (used by factory shim, copied from py/config).
-  options_load_file "${cutoff_dir}/cutoff.json"
-
-  # Manually modified LSB config on factory shim.
-  options_load_file "/mnt/stateful_partition/dev_image/etc/lsb-factory"
 }
 
-options_load_all_default_files
+options_load_default_files
 
 # Allow debugging options quickly.
 if [ "$(basename "$0")" = "options.sh" ]; then

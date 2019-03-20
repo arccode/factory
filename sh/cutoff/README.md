@@ -9,19 +9,16 @@ Quick Setup Guide
 -----------------
 To change cut-off options:
 
-1. If you are changing the cut-off options for the finalization (factory wipe),
-   copy the `cutoff.conf.default` to your board overlay into file path
-   `chromeos-base/factory-board/files/sh/cutoff/cutoff.conf`.
+1. If you are changing the cut-off options for the finalization when building
+   factory toolkit, copy the `cutoff.json.default` to your board overlay into
+   file path `chromeos-base/factory-board/files/py/config/cutoff.json`.
    Change values in the config file, and rebuild a new factory toolkit.
    This config file also applies to reset shim.
 
-   We also allow config files written in JSON. Put that in
-   `chromeos-base/factory-board/files/py/config/cutoff.json`,
-   using same key names and values.
-
 2. If you want to set a different value for reset shim (for example to reset
-   after OQC), modify the `lsb-factory` on reset shim partition 1, using
-   `factory_setup/image_tool edit_lsb`.
+   after OQC), or for finalization when the RMA shim is already created, use
+   `setup/image_tool edit_cutoff` to modify the cut-off config stored in
+   `toolkit_config` payload.
 
 Dependency Isolation
 --------------------
@@ -39,12 +36,12 @@ pytest. Reset shim (`build_image factory_install`) will invoke this by
 
 Setting cut-off options
 -----------------------
-As explained in previous section, the factory software may execute cutoff
+As explained in previous section, the factory software may execute cut-off
 scripts using different approaches that you may override execution options.
 
 But the most easy way would be to create a per-board configuration file so it
-will be shared as default value. To do that, go `chromeos-base/factory-board`
-in your board overlay and put the files in `files/sh/cutoff/cutoff.conf`.
+will be shared as default value. To do that, go to `chromeos-base/factory-board`
+in your board overlay and put the files in `files/py/config/cutoff.json`.
 
 There are few options you can set:
 
@@ -62,19 +59,7 @@ There are few options you can set:
      "device is cut-off and ready for packaging".
  - `TTY`: Path of terminal for output. Defaults to /run/frecon/vt0.
 
-The options should be set in same syntax that Linux /etc/lsb-release file is
-using; i.e., `KEY=VALUE`. For example,
-
-```sh
-    # Comments here
-    CUTOFF_METHOD=battery_cutoff
-    CUTOFF_AC_STATE=remove_ac
-    CUTOFF_BATTERY_MIN_PERCENTAGE=60
-    CUTOFF_BATTERY_MAX_PERCENTAGE=80
-    SHOPFLOOR_URL=http://192.168.1.1/
-```
-
-If you want to use JSON (`py/config/cutoff.json`), here's the example:
+The options should be set in JSON format. For example:
 
 ```json
     {

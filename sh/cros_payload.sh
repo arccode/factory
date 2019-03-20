@@ -818,6 +818,7 @@ import os
 
 INSTALL_PATH_MAP = {
   'active_test_list': '/usr/local/factory/py/test/test_lists',
+  'cutoff': '/usr/local/factory/sh/cutoff',
   'test_list_constants': '/usr/local/factory/py/config'
 }
 

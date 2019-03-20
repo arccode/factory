@@ -15,6 +15,7 @@ from __future__ import print_function
 
 import argparse
 import contextlib
+import copy
 import glob
 import inspect
 import json
@@ -86,7 +87,7 @@ MEGABYTE = 1048576
 GIGABYTE_STORAGE = 1000000000
 # Default size of each disk block (or sector).
 DEFAULT_BLOCK_SIZE = pygpt.GPT.DEFAULT_BLOCK_SIZE
-# Components for cros_payload
+# Components for cros_payload.
 PAYLOAD_COMPONENTS = [
     'release_image', 'test_image',
     'toolkit', 'firmware', 'hwid', 'complete', 'toolkit_config', 'lsb_factory']
@@ -94,7 +95,7 @@ PAYLOAD_COMPONENTS = [
 PAYLOAD_TYPE_TOOLKIT = 'toolkit'
 PAYLOAD_TYPE_TOOLKIT_CONFIG = 'toolkit_config'
 PAYLOAD_TYPE_LSB_FACTORY = 'lsb_factory'
-# Payload subtypes
+# Payload subtypes.
 PAYLOAD_SUBTYPE_VERSION = 'version'
 # Warning message in lsb-factory file.
 LSB_FACTORY_WARNING_MESSAGE = (
@@ -536,20 +537,27 @@ class CrosPayloadUtils(object):
       boards = [boards]
 
     with Partition(image, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
-      rma_metadata = _ReadRMAMetadata(stateful)
       old_payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+      try:
+        rma_metadata = _ReadRMAMetadata(stateful)
+        old_boards = [info.board for info in rma_metadata]
+      except Exception:
+        # Reset shim doesn't have rma_metadata.json and any payloads.
+        # By assigning `old_boards` same as `boards`, we can move everything
+        # into the shim.
+        old_boards = boards
 
       old_files = set()
       new_files = set()
       other_files = set()
-      for info in rma_metadata:
-        if info.board in boards:
-          old_json_path = cls.GetJSONPath(old_payloads_dir, info.board)
+      for board in old_boards:
+        if board in boards:
+          old_json_path = cls.GetJSONPath(old_payloads_dir, board)
           old_files.update(cls.GetAllComponentFiles(old_json_path))
-          new_json_path = cls.GetJSONPath(new_payloads_dir, info.board)
+          new_json_path = cls.GetJSONPath(new_payloads_dir, board)
           new_files.update(cls.GetAllComponentFiles(new_json_path))
         else:
-          other_json_path = cls.GetJSONPath(old_payloads_dir, info.board)
+          other_json_path = cls.GetJSONPath(old_payloads_dir, board)
           other_files.update(cls.GetAllComponentFiles(other_json_path))
 
       # Remove old files that are not used by any boards.
@@ -557,7 +565,6 @@ class CrosPayloadUtils(object):
         file_path = os.path.join(old_payloads_dir, f)
         print('Remove old payload file %s.' % os.path.basename(f))
         Sudo(['rm', '-f', file_path])
-
       # Don't copy files that already exists.
       for f in new_files & (old_files | other_files):
         file_path = os.path.join(new_payloads_dir, f)
@@ -1094,6 +1101,34 @@ def _ReadRMAMetadata(stateful):
       return metadata
     else:
       raise RuntimeError('Cannot get metadata, is this a RMA shim?')
+
+
+def _GetBoardName(image):
+  """Try to Find the board name from a single-board shim image.
+
+  Args:
+    image: factory shim image.
+
+  Returns:
+    Board name of the shim image.
+
+  Raises:
+    RuntimeError if the shim is a multi-board shim.
+  """
+  try:
+    with Partition(image, PART_CROS_STATEFUL).Mount() as stateful:
+      metadata = _ReadRMAMetadata(stateful)
+  except Exception:
+    # Just a reset shim. Read board name from lsb-release.
+    with Partition(image, PART_CROS_ROOTFS_A).Mount() as rootfs:
+      lsb_path = os.path.join(rootfs, 'etc', 'lsb-release')
+      return LSBFile(lsb_path).GetChromeOSBoard()
+
+  # Single-board RMA shim.
+  if len(metadata) == 1:
+    return metadata[0].board
+  # Multi-board shim.
+  raise RuntimeError('Cannot get board name in a multi-board shim.')
 
 
 class RMABoardResourceVersions(object):
@@ -1756,14 +1791,13 @@ class ChromeOSFactoryBundle(object):
       print('This RMA shim contains boards: %s' % (
           ' '.join(board_info.board for board_info in metadata)))
 
-      split_line = '-' * 25
-      print(split_line)
+      print(SPLIT_LINE)
       for board_info in metadata:
         with gpt.GetPartition(board_info.rootfs).MountAsCrOSRootfs() as rootfs:
           resource_versions = _ReadBoardResourceVersions(
               rootfs, stateful, board_info)
         print(resource_versions)
-        print(split_line)
+        print(SPLIT_LINE)
 
   class RMABoardEntry(object):
     """An internal class that stores the info of a board.
@@ -3066,17 +3100,17 @@ class EditLSBCommand(SubCommand):
     answer = UserInput.YesNo('Enable (y) or disable (n) board prompt?')
     self.lsb.SetValue('USER_SELECT', 'true' if answer else 'false')
 
-  def EditCutOff(self):
-    """Modify cutoff method after factory reset.
+  def EditCutoff(self):
+    """Modify cutoff config in cros payload (only for old devices).
 
     All options are defined in src/platform/factory/sh/cutoff/options.sh
     """
     answer = self._DoOptions(
-        'Select cutoff method after factory reset', 'CUTOFF_METHOD',
+        'Select cutoff method', 'CUTOFF_METHOD',
         ['shutdown', 'reboot', 'battery_cutoff', 'ectool_cutoff'])
     if not answer.endswith('cutoff'):
       return
-    answer = self._DoOptions(
+    self._DoOptions(
         'Select cutoff AC state', 'CUTOFF_AC_STATE',
         ['remove_ac', 'connect_ac'])
     answer = self._DoOptionalNumber(
@@ -3084,13 +3118,13 @@ class EditLSBCommand(SubCommand):
         0, 100)
     self._DoOptionalNumber(
         'Maximum allowed battery percentage', 'CUTOFF_BATTERY_MAX_PERCENTAGE',
-        0 if answer is None else answer, 100)
-    self._DoOptionalNumber(
+        answer or 0, 100)
+    answer = self._DoOptionalNumber(
         'Minimum allowed battery voltage (mA)', 'CUTOFF_BATTERY_MIN_VOLTAGE',
         None, None)
     self._DoOptionalNumber(
         'Maximum allowed battery voltage (mA)', 'CUTOFF_BATTERY_MAX_VOLTAGE',
-        None, None)
+        answer, None)
     self._DoURL(
         'Chrome OS Factory Server or Shopfloor Service for OQC ReFinalize',
         ['SHOPFLOOR_URL'])
@@ -3107,11 +3141,12 @@ class EditLSBCommand(SubCommand):
   def DoMenu(self, *args, **kargs):
     while True:
       Shell(['clear'])
-      title = 'Current LSB config%s:\n%s\n%s\n%s' % (
-          ' (modified)' if self.old_data != self.lsb.AsRawData() else '',
+      title = '\n'.join([
+          ('Current LSB config:' if self.old_data == self.lsb.AsRawData() else
+           'Current LSB config (modified):'),
           SPLIT_LINE,
           self.lsb.AsRawData(),
-          SPLIT_LINE)
+          SPLIT_LINE])
       options_list = [arg.__doc__.splitlines()[0] for arg in args]
       options_dict = {
           k: v.__doc__.splitlines()[0] for k, v in kargs.iteritems()}
@@ -3126,27 +3161,9 @@ class EditLSBCommand(SubCommand):
       if func():
         return
 
-  def FindBoard(self):
-    """Try to find the board name from a shim image."""
-    try:
-      with Partition(self.args.image, PART_CROS_STATEFUL).Mount() as stateful:
-        metadata = _ReadRMAMetadata(stateful)
-    except Exception:
-      # Just a reset shim. Read board from lsb-release.
-      with Partition(self.args.image, PART_CROS_ROOTFS_A).Mount() as rootfs:
-        lsb_path = os.path.join(rootfs, 'etc', 'lsb-release')
-        board = LSBFile(lsb_path).GetChromeOSBoard()
-        return board
-
-    # Single-board RMA shim.
-    if len(metadata) == 1:
-      return metadata[0].board
-    # Multi-board shim.
-    raise RuntimeError('Please specify board in a multi-board shim.')
-
   def Run(self):
     if self.args.board is None:
-      self.args.board = self.FindBoard()
+      self.args.board = _GetBoardName(self.args.image)
 
     with CrosPayloadUtils.TempPayloadsDir() as temp_dir:
       CrosPayloadUtils.CopyComponentsInImage(
@@ -3191,7 +3208,7 @@ class EditLSBCommand(SubCommand):
                 Sudo(['cp', '-pf', lsb_file.name, lsb_path])
                 Sudo(['chown', 'root:root', lsb_path])
             else:
-              CrosPayloadUtils.AddComponent(
+              CrosPayloadUtils.ReplaceComponent(
                   json_path, PAYLOAD_TYPE_LSB_FACTORY, lsb_file.name)
               CrosPayloadUtils.ReplaceComponentsInImage(
                   self.args.image, self.args.board, temp_dir)
@@ -3207,10 +3224,180 @@ class EditLSBCommand(SubCommand):
 
         self.DoMenu(self.EditServerAddress,
                     self.EditBoardPrompt,
-                    self.EditCutOff,
+                    self.EditCutoff,
                     self.EditRMAAutorun,
                     w=Write,
                     q=Quit)
+
+
+class EditToolkitConfigCommand(SubCommand):
+  """Edit toolkit config payload for factory_install image or RMA shim."""
+  name = 'edit_toolkit_config'
+
+  toolkit_config = None
+  old_toolkit_config = None
+  config_wip = None
+  # cutoff config in /usr/share/cutoff/cutoff.json.
+  shim_cutoff_config = None
+
+  def Init(self):
+    self.subparser.add_argument(
+        '-i', '--image', type=ArgTypes.ExistsPath, required=True,
+        help='Path to the factory_install image.')
+    self.subparser.add_argument(
+        '--board', type=str, default=None,
+        help='Board to edit lsb file.')
+
+  def Update(self, key, value):
+    self.config_wip.update({key: value})
+
+  def DeleteKey(self, key):
+    self.config_wip.pop(key, None)
+
+  def _DoURL(self, title, keys, default_port=8080, suffix=''):
+    host = UserInput.GetString('%s host' % title, optional=True)
+    if not host:
+      return
+    port = UserInput.GetString('Enter port (default=%s)' % default_port,
+                               optional=True)
+    if not port:
+      port = str(default_port)
+    url = 'http://%s:%s%s' % (host, port, suffix)
+    for key in keys:
+      self.Update(key, url)
+
+  def _DoOptions(self, title, key, options):
+    selected = UserInput.Select('%s (%s)' % (title, key), options)
+    value = options[selected]
+    self.Update(key, value)
+    return value
+
+  def _DoOptionalNumber(self, title, key, min_value, max_value):
+    selected = UserInput.GetNumber('%s (%s)' % (title, key),
+                                   min_value=min_value,
+                                   max_value=max_value,
+                                   optional=True)
+    if selected is not None:
+      self.Update(key, selected)
+    else:
+      self.DeleteKey(key)
+    return selected
+
+  def EditCutoff(self):
+    """Modify cutoff config.
+
+    All options are defined in src/platform/factory/sh/cutoff/options.sh
+    """
+    subconfig_key = 'cutoff'
+    self.config_wip = {}
+    answer = self._DoOptions(
+        'Select cutoff method', 'CUTOFF_METHOD',
+        ['shutdown', 'reboot', 'battery_cutoff', 'ectool_cutoff'])
+    if answer.endswith('cutoff'):
+      self._DoOptions(
+          'Select cutoff AC state', 'CUTOFF_AC_STATE',
+          ['remove_ac', 'connect_ac'])
+      answer = self._DoOptionalNumber(
+          'Minimum allowed battery percentage', 'CUTOFF_BATTERY_MIN_PERCENTAGE',
+          0, 100)
+      self._DoOptionalNumber(
+          'Maximum allowed battery percentage', 'CUTOFF_BATTERY_MAX_PERCENTAGE',
+          answer or 0, 100)
+      answer = self._DoOptionalNumber(
+          'Minimum allowed battery voltage (mA)', 'CUTOFF_BATTERY_MIN_VOLTAGE',
+          None, None)
+      self._DoOptionalNumber(
+          'Maximum allowed battery voltage (mA)', 'CUTOFF_BATTERY_MAX_VOLTAGE',
+          answer, None)
+      self._DoURL(
+          'Chrome OS Factory Server or Shopfloor Service for OQC ReFinalize',
+          ['SHOPFLOOR_URL'])
+    self.toolkit_config[subconfig_key] = self.config_wip
+
+  def DoMenu(self, *args, **kargs):
+    while True:
+      Shell(['clear'])
+      title = '\n'.join([
+          ('Toolkit config:' if self.old_toolkit_config == self.toolkit_config
+           else 'Toolkit config (modified):'),
+          SPLIT_LINE,
+          json.dumps(self.toolkit_config, indent=2),
+          SPLIT_LINE])
+
+      options_list = [arg.__doc__.splitlines()[0] for arg in args]
+      options_dict = {
+          k: v.__doc__.splitlines()[0] for k, v in kargs.iteritems()}
+
+      selected = UserInput.Select(title, options_list, options_dict)
+
+      if isinstance(selected, int):
+        func = args[selected]
+      else:
+        func = kargs.get(selected)
+
+      if func():
+        return
+
+  def GetRootfsCutoffConfig(self):
+    # Get the shim cutoff config in rootfs.
+    with Partition(self.args.image, PART_CROS_ROOTFS_A).Mount() as rootfs:
+      try:
+        cutoff_config_path = os.path.join(
+            rootfs, 'usr', 'share', 'cutoff', 'cutoff.json')
+        with open(cutoff_config_path) as f:
+          cutoff_config = json.load(f)
+      except Exception:
+        cutoff_config = {}
+    return cutoff_config
+
+  def Run(self):
+
+    if self.args.board is None:
+      self.args.board = _GetBoardName(self.args.image)
+
+
+    # Modify toolkit config in cros_payload.
+    with CrosPayloadUtils.TempPayloadsDir() as temp_dir:
+      CrosPayloadUtils.CopyComponentsInImage(
+          self.args.image, self.args.board, [PAYLOAD_TYPE_TOOLKIT_CONFIG],
+          temp_dir, create_metadata=True)
+      json_path = CrosPayloadUtils.GetJSONPath(temp_dir, self.args.board)
+      with tempfile.NamedTemporaryFile() as config_file:
+        try:
+          CrosPayloadUtils.InstallComponents(
+              json_path, config_file.name, PAYLOAD_TYPE_TOOLKIT_CONFIG,
+              silent=True)
+          self.toolkit_config = json.load(config_file)
+          self.old_toolkit_config = copy.deepcopy(self.toolkit_config)
+        except Exception:
+          # It is possible that the RMA shim doesn't have this payload.
+          # In this case, copy the config from cutoff/cutoff.json.
+          self.toolkit_config = self.GetRootfsCutoffConfig()
+          self.old_toolkit_config = {}
+
+        def Write():
+          """Apply changes and exit."""
+          if self.old_toolkit_config != self.toolkit_config:
+            SysUtils.WriteFile(
+                config_file,
+                json.dumps(self.toolkit_config,
+                           indent=2,
+                           separators=(',', ': ')))
+            CrosPayloadUtils.ReplaceComponent(
+                json_path, PAYLOAD_TYPE_TOOLKIT_CONFIG, config_file.name)
+            CrosPayloadUtils.ReplaceComponentsInImage(
+                self.args.image, self.args.board, temp_dir)
+            print('DONE. All changes saved properly.')
+          else:
+            print('QUIT. No modifications.')
+          return True
+
+        def Quit():
+          """Quit without saving changes."""
+          print('QUIT. No changes were applied.')
+          return True
+
+        self.DoMenu(self.EditCutoff, w=Write, q=Quit)
 
 
 def main():
