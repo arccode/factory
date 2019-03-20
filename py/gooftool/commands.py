@@ -230,6 +230,11 @@ _no_ectool_cmd_arg = CmdArg(
     help='There is no ectool utility so tests rely on ectool should be '
          'skipped.')
 
+_no_generate_mfg_date_cmd_arg = CmdArg(
+    '--no_generate_mfg_date', action='store_false', dest='generate_mfg_date',
+    help='Do not generate manufacturing date nor write mfg_date into VPD.')
+
+
 @Command(
     'verify_ec_key',
     _ec_pubkey_path_cmd_arg,
@@ -702,7 +707,8 @@ def UploadReport(options):
          _wipe_finish_token_cmd_arg,
          _rlz_embargo_end_date_offset_cmd_arg,
          _waive_list_cmd_arg,
-         _skip_list_cmd_arg)
+         _skip_list_cmd_arg,
+         _no_generate_mfg_date_cmd_arg)
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.
 
@@ -720,6 +726,8 @@ def Finalize(options):
   if not options.rma_mode:
     # Write VPD values related to RLZ ping into VPD.
     GetGooftool(options).WriteVPDForRLZPing(options.embargo_offset)
+    if options.generate_mfg_date:
+      GetGooftool(options).WriteVPDForMFGDate()
   Cr50SetSnBitsAndBoardId(options)
   Cr50DisableFactoryMode(options)
   Verify(options)

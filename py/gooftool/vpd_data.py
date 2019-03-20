@@ -33,6 +33,7 @@ REQUIRED_RW_DATA = {
 KNOWN_RO_DATA = {
     # Generated in finalization.
     'stable_device_secret_DO_NOT_SHARE': ANY,
+    'mfg_date': r'\d{4}-\d{2}-\d{2}',  # yyyy-mm-dd
 
     # Optional values.
     'mlb_serial_number': ANY,
