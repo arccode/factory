@@ -374,9 +374,13 @@ class GPT(object):
     is_secondary: boolean to indicate if the header is from primary or backup.
   """
   DEFAULT_BLOCK_SIZE = 512
+  # Old devices uses 'Basic data' type for stateful partition, and newer devices
+  # should use 'Linux (fS) data' type; so we added a 'stateful' suffix for
+  # migration.
   TYPE_GUID_MAP = {
       GUID('00000000-0000-0000-0000-000000000000'): 'Unused',
-      GUID('EBD0A0A2-B9E5-4433-87C0-68B6B72699C7'): 'Linux data',
+      GUID('EBD0A0A2-B9E5-4433-87C0-68B6B72699C7'): 'Basic data stateful',
+      GUID('0FC63DAF-8483-4772-8E79-3D69D8477DE4'): 'Linux data',
       GUID('FE3A2A5D-4F32-41A7-B725-ACCC3285A309'): 'ChromeOS kernel',
       GUID('3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC'): 'ChromeOS rootfs',
       GUID('2E0A753D-9E48-43B0-8337-B15192CB1B5E'): 'ChromeOS reserved',
