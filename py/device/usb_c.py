@@ -40,17 +40,17 @@ class USBTypeC(types.DeviceComponent):
           re.compile(
               r'Port C(?P<port>\d+) is (?P<enabled>enabled|disabled), '
               r'Role:(?P<role>SRC|SNK) (?P<datarole>DFP|UFP) '
-              r'Polarity:(?P<polarity>CC1|CC2) State:(?P<state>\w+)'),
+              r'Polarity:(?P<polarity>CC1|CC2) State:(?P<state>\w*)'),
       'USB_PD_INFO_RE_V1_1':
           re.compile(
               r'Port C(?P<port>\d+) is (?P<enabled>enabled|disabled),'
               r'(?P<connected>connected|disconnected), '
               r'Role:(?P<role>SRC|SNK) (?P<datarole>DFP|UFP) '
-              r'Polarity:(?P<polarity>CC1|CC2) State:(?P<state>\w+)'),
+              r'Polarity:(?P<polarity>CC1|CC2) State:(?P<state>\w*)'),
       'USB_PD_INFO_RE_V1_2':
           re.compile(
               r'Port C(?P<port>\d+): (?P<enabled>enabled|disabled), '
-              r'(?P<connected>connected|disconnected)  State:(?P<state>\w+)\n'
+              r'(?P<connected>connected|disconnected)  State:(?P<state>\w*)\n'
               r'Role:(?P<role>SRC|SNK) (?P<datarole>DFP|UFP) *(?P<vconn>VCONN|)'
               r', Polarity:(?P<polarity>CC1|CC2)'),
   }

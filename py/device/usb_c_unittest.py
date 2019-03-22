@@ -72,6 +72,11 @@ class USBTypeCTest(unittest.TestCase):
         ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1']
     ).AndReturn(
         'Port C1 is disabled, Role:SNK DFP Polarity:CC2 State:SNK_DISCOVERY')
+    # Empty return value of State
+    self.board.CheckOutput(
+        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1']
+    ).AndReturn(
+        'Port C1 is disabled, Role:SNK DFP Polarity:CC2 State:')
 
     self.mox.ReplayAll()
 
@@ -89,6 +94,13 @@ class USBTypeCTest(unittest.TestCase):
     self.assertEquals('CC2', status['polarity'])
     self.assertEquals('SNK_DISCOVERY', status['state'])
 
+    status = self.usb_c.GetPDStatus(1)
+    self.assertFalse(status['enabled'])
+    self.assertEquals('SNK', status['role'])
+    self.assertEquals('DFP', status['datarole'])
+    self.assertEquals('CC2', status['polarity'])
+    self.assertEquals('', status['state'])
+
     self.mox.VerifyAll()
 
   def testGetPDStatusV1_1(self):
@@ -100,6 +112,11 @@ class USBTypeCTest(unittest.TestCase):
         ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1']).AndReturn(
             'Port C1 is disabled,disconnected, Role:SNK DFP Polarity:CC2 '
             'State:SNK_DISCOVERY')
+    # Empty return value of State
+    self.board.CheckOutput(
+        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1']).AndReturn(
+            'Port C1 is disabled,disconnected, Role:SNK DFP Polarity:CC2 '
+            'State:')
 
     self.mox.ReplayAll()
 
@@ -119,6 +136,14 @@ class USBTypeCTest(unittest.TestCase):
     self.assertEquals('CC2', status['polarity'])
     self.assertEquals('SNK_DISCOVERY', status['state'])
 
+    status = self.usb_c.GetPDStatus(1)
+    self.assertFalse(status['enabled'])
+    self.assertFalse(status['connected'])
+    self.assertEquals('SNK', status['role'])
+    self.assertEquals('DFP', status['datarole'])
+    self.assertEquals('CC2', status['polarity'])
+    self.assertEquals('', status['state'])
+
     self.mox.VerifyAll()
 
   def testGetPDStatusV1_2(self):
@@ -134,6 +159,11 @@ class USBTypeCTest(unittest.TestCase):
     self.board.CheckOutput(
         ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1']).AndReturn(
             'Port C1: disabled, disconnected  State:SNK_DISCONNECTED\n'
+            'Role:SNK DFP, Polarity:CC2')
+    # Empty return value of State
+    self.board.CheckOutput(
+        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '1']).AndReturn(
+            'Port C1: disabled, disconnected  State:\n'
             'Role:SNK DFP, Polarity:CC2')
 
     self.mox.ReplayAll()
@@ -164,6 +194,15 @@ class USBTypeCTest(unittest.TestCase):
     self.assertEquals('', status['vconn'])
     self.assertEquals('CC2', status['polarity'])
     self.assertEquals('SNK_DISCONNECTED', status['state'])
+
+    status = self.usb_c.GetPDStatus(1)
+    self.assertFalse(status['enabled'])
+    self.assertFalse(status['connected'])
+    self.assertEquals('SNK', status['role'])
+    self.assertEquals('DFP', status['datarole'])
+    self.assertEquals('', status['vconn'])
+    self.assertEquals('CC2', status['polarity'])
+    self.assertEquals('', status['state'])
 
     self.mox.VerifyAll()
 
