@@ -33,4 +33,12 @@ components:
       comp_2_default: {values: null}
       comp_2_x: {status: unsupported, values: {key: valueX}}
 
+  comp_cls_3:
+    items:
+      comp_3_1: {values: {key: !re 'this is .*'}}
+      # This is bad because whatever matches comp_3_2 would also match comp_3_1.
+      comp_3_2: {values: {key: 'this is bad'}}
+      # This is marked as 'duplicate', so it won't be used for matching.
+      comp_3_3: {values: {key: 'this is okay'}, status: duplicate}
+
 rules: []

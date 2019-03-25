@@ -130,6 +130,45 @@ class ComponentsTest(unittest.TestCase):
         Components({'cls1': {'items': {'c1': {'values': {'a': 'b'}}},
                              'probeable': False}}).can_encode)
 
+    self.assertTrue(
+        Components({
+            'cls1': {
+                'items': {
+                    'c1': {
+                        'values': {'a': 'b'}
+                    },
+                    # 'c2' is a subset of 'c1', this is allowed, and 'c1' will
+                    # have higher priority when encoding.
+                    'c2': {
+                        'values': {'a': 'b', 'x': 'y'}
+                    },
+                }}}).can_encode)
+
+    self.assertFalse(
+        Components({
+            'cls1': {
+                'items': {
+                    'c1': {
+                        'values': {'a': 'b'}
+                    },
+                    'c2': {
+                        'values': {'a': 'b'}
+                    },
+                }}}).can_encode)
+    self.assertTrue(
+        Components({
+            'cls1': {
+                'items': {
+                    'c1': {
+                        'values': {'a': 'b'}
+                    },
+                    'c2': {
+                        'values': {'a': 'b'},
+                        'status': 'duplicate'
+                    },
+                }}}).can_encode)
+
+
   def testAddComponent(self):
     c = Components({})
     c.AddComponent('cls1', 'comp1', {'a': 'b', 'c': 'd'}, 'supported')

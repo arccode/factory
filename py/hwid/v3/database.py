@@ -326,7 +326,7 @@ class Database(object):
       A dict which maps a string of component name to a `ComponentInfo` object,
       which is a named tuple contains two attributes:
         values: A string-to-string dict of expected probed results.
-        status: One of "unsupported", "deprecated", "unqualified", "supported".
+        status: One of `common.COMPONENT_STATUS`.
     """
     comps = self._components.GetComponents(comp_cls)
     if not include_default:
@@ -843,10 +843,10 @@ class Components(object):
       items:
         <component_name>:
           value: <a_dict_of_expected_probed_result_values>|null
-          status: unsupported|deprecated|unqualified|supported
+          status: unsupported|deprecated|unqualified|supported|duplicate
         <component_name>:
           value: <a_dict_of_expected_probed_result_values>
-          status: unsupported|deprecated|unqualified|supported
+          status: unsupported|deprecated|unqualified|supported|duplicate
         ...
     ...
   ```
@@ -888,8 +888,8 @@ class Components(object):
   so we have to set a default component to mark that those device actually
   have the component.
 
-  Valid status are: supported, unqualified, deprecated and unsupported.  Each
-  value has its own meaning:
+  Valid status are: supported, unqualified, deprecated, unsupported and
+  duplicate.  Each value has its own meaning:
     * supported: This component is currently being used to build new units and
           allowed to be used in later build (PVT and later).
     * unqualified: The component is acceptable to be installed on the device in
@@ -898,6 +898,9 @@ class Components(object):
           but is supported in RMA process.
     * unsupported: This component is not allowed to be used to build new units,
           and is not supported in RMA process.
+    * duplicate: This component has been merged into another component.  This
+          component won't be used to encode new HWID, but can still be used to
+          decode.
   If not specified, status defaults to supported.
 
   After probing all kind of components, it results in a BOM list, which records
@@ -1037,7 +1040,7 @@ class Components(object):
       A dict which maps a string of component name to a `ComponentInfo` object,
       which is a named tuple contains two attributes:
         values: A string-to-string dict of expected probed results.
-        status: One of "unsupported", "deprecated", "unqualified", "supported".
+        status: One of `common.COMPONENT_STATUS`.
     """
     return self._components.get(comp_cls, {})
 
@@ -1053,6 +1056,7 @@ class Components(object):
     for comp_name, comp_info in self._components.get(comp_cls, {}).iteritems():
       if comp_info.values is None:
         return comp_name
+    return None
 
   def AddComponent(self, comp_cls, comp_name, values, status):
     """Adds a new component.
@@ -1061,8 +1065,7 @@ class Components(object):
       comp_cls: A string of the component class.
       comp_name: A string of the name of the component.
       values: A dict of the expected probed results.
-      status: The component status, one of "unsupported", "deprecated",
-          "unqualified", "supported".
+      status: One of `common.COMPONENT_STATUS`.
     """
     if comp_cls == 'region':
       raise common.HWIDException('Region component class is not modifiable.')
@@ -1075,8 +1078,7 @@ class Components(object):
     Args:
       comp_cls: The component class name.
       comp_name: The component name.
-      status: The component status, one of "unsupported", "deprecated",
-          "unqualified", "supported".
+      status: One of `common.COMPONENT_STATUS`.
     """
     if comp_cls == 'region':
       raise common.HWIDException('Region component class is not modifiable.')
@@ -1091,16 +1093,6 @@ class Components(object):
     self._components[comp_cls][comp_name].status = status
 
   def _AddComponent(self, comp_cls, comp_name, values, status):
-    def _IsSubDict(super_dict, sub_dict):
-      if super_dict is None or sub_dict is None:
-        return False
-      if set(sub_dict.keys()) - set(super_dict.keys()):
-        return False
-      for k, v in sub_dict.iteritems():
-        if super_dict[k] != v:
-          return False
-      return True
-
     self._SCHEMA.value_type.items[
         'items'].value_type.items['values'].Validate(values)
     self._SCHEMA.value_type.items[
@@ -1119,10 +1111,20 @@ class Components(object):
     for existed_comp_name, existed_comp_info in self.GetComponents(
         comp_cls).iteritems():
       existed_comp_values = existed_comp_info.values
+      # At here, we only complain if two components are exactly the same.  There
+      # is another case that is not caught here: at least one of the component
+      # is using regular expression, and the intersection of two components is
+      # not empty set.  Currently,
+      # `cros.factory.hwid.v3.probe.GenerateBOMFromProbedResults` will raise an
+      # exception when the probed result indeed matches two or more components.
       if values == existed_comp_values:
-        logging.warning('Probed values %r is ambiguous with %r',
-                        values, existed_comp_name)
-        self._can_encode = False
+        if (status != common.COMPONENT_STATUS.duplicate and
+            existed_comp_info.status != common.COMPONENT_STATUS.duplicate):
+          logging.warning('Probed values %r is ambiguous with %r',
+                          values, existed_comp_name)
+          logging.warning('Did you merge two components? You should set status '
+                          'of the duplicate one "duplicate".')
+          self._can_encode = False
 
     self._components.setdefault(comp_cls, yaml.Dict())
     self._components[comp_cls][comp_name] = ComponentInfo(values, status)

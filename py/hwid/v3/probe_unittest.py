@@ -104,6 +104,26 @@ class GenerateBOMFromProbedResultsTest(unittest.TestCase):
     self.assertEquals(mismatched_probed_results, {})
     self.assertEquals(bom.components, {'comp_cls_3': []})
 
+  def testDuplicateComponent(self):
+    bad_probed_results = {
+        'comp_cls_3': [
+            {'name': 'match_1_and_2', 'values': {'key': 'this is bad'}}
+        ]
+    }
+    self.assertRaises(common.HWIDException, probe.GenerateBOMFromProbedResults,
+                      self.database, bad_probed_results, {}, {},
+                      common.OPERATION_MODE.normal, False)
+    good_probed_results = {
+        'comp_cls_3': [
+            {'name': 'match_1_and_3', 'values': {'key': 'this is okay'}}
+        ]
+    }
+    bom, mismatched_probed_results = probe.GenerateBOMFromProbedResults(
+        self.database, good_probed_results, {}, {},
+        common.OPERATION_MODE.normal, True)
+    self.assertFalse(mismatched_probed_results)
+    self.assertEqual(bom.components['comp_cls_3'], ['comp_3_1'])
+
   def testIgnoreDefaultUnsupportedComponent(self):
     probed_results = {
         'comp_cls_1': [],

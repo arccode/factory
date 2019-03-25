@@ -682,3 +682,18 @@ item. The feature of the default component item is:
   supported in RMA process. The component cannot be matched. It is used for the
   wrong component or the equivalent component but with different probed result.
 
+- **duplicate**
+
+  The component is a subset of another comopnent, so it should not be matched
+  while encoding.  For example:
+
+```
+  comp_1:
+    values:
+      key: !re 'PART_NUMBER_1-.*'
+  comp_2:
+    status: duplicate  # this is necessary, otherwise 'PART_NUMBER_1-2' will
+                       # match comp_1 and comp_2, and cause an error.
+    values:
+      key: PART_NUMBER_1-2
+```

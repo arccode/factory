@@ -111,22 +111,34 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
       default_comp = _GetDefaultComponent(comp_cls)
 
       for probed_comp in probed_results.get(comp_cls, []):
-        matched_comp_name = None
+        matched_comp_name = []
         matched_comp_score = float('-inf')
         for comp_name, comp_info in database.GetComponents(
             comp_cls, include_default=False).iteritems():
+          if comp_info.status == common.COMPONENT_STATUS.duplicate:
+            # A component that is 'duplicate' is covered by another component.
+            # Therefore, the duplicate one should not be used for encoding.
+            continue
           is_matched, score = _IsValuesMatch(probed_comp['values'],
                                              comp_info.values)
-          if is_matched and score > matched_comp_score:
-            matched_comp_name = comp_name
-        if matched_comp_name is not None:
-          matched_components[comp_cls].append(matched_comp_name)
-        else:
+          if not is_matched:
+            continue
+          if score > matched_comp_score:
+            matched_comp_score = score
+            matched_comp_name = [comp_name]
+          elif score == matched_comp_score:
+            matched_comp_name.append(comp_name)
+        if len(matched_comp_name) == 1:
+          matched_components[comp_cls].append(matched_comp_name[0])
+        elif not matched_comp_name:
           if default_comp is not None:
             matched_components[comp_cls].append(default_comp)
           else:
             mismatched_components.setdefault(comp_cls, [])
             mismatched_components[comp_cls].append(probed_comp)
+        else:  # len(...) > 1
+          raise common.HWIDException('%r matches multiple components: %r' % (
+              probed_comp, matched_comp_name))
 
       # If no any probed result of this component class, try add the default
       # one.
