@@ -8,6 +8,8 @@
 import os
 import unittest
 
+import mock
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
@@ -194,6 +196,27 @@ class EnumerateHWIDTest(_HWIDTestCaseBase):
     results = hwid_utils.EnumerateHWID(self.database, image_id=0, status='all',
                                        comps={'firmware_keys': ['key_xxx']})
     self.assertEquals(len(results), 0)
+
+
+class GetProbeStatementPathTest(unittest.TestCase):
+  @mock.patch('os.path.exists')
+  def testUseDefaultProbeStatementPath(self, os_path_exists_mock):
+    project = 'PROJECT'
+    os_path_exists_mock.return_value = False
+    probe_statement_path = hwid_utils.GetProbeStatementPath(project)
+
+    self.assertTrue(
+        os.path.basename(probe_statement_path).startswith('default_'))
+
+  @mock.patch('os.path.exists')
+  def testUseProjectProbeStatementPath(self, os_path_exists_mock):
+    project = 'PROJECT'
+    os_path_exists_mock.return_value = True
+    probe_statement_path = hwid_utils.GetProbeStatementPath(project)
+
+    self.assertTrue(
+        os.path.basename(probe_statement_path).startswith(
+            project.lower() + '_'))
 
 
 if __name__ == '__main__':

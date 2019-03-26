@@ -146,7 +146,8 @@ def ObtainAllDeviceData(options):
 
   device_data = type_utils.Obj(
       probed_results=hwid_utils.GetProbedResults(
-          infile=options.probed_results_file),
+          infile=options.probed_results_file,
+          project=options.project),
       device_info=hwid_utils.GetDeviceInfo(infile=options.device_info_file),
       vpd=hwid_utils.GetVPDData(run_vpd=options.run_vpd,
                                 infile=options.vpd_data_file))
@@ -161,7 +162,9 @@ def ObtainAllDeviceData(options):
     CmdArg('--output-file', default='-',
            help='File name to store the probed results'))
 def ProbeCommand(options):
-  probed_results_data = json_utils.DumpStr(probe.ProbeDUT(), pretty=True)
+  probe_statement_path = hwid_utils.GetProbeStatementPath(options.project)
+  probed_results_data = json_utils.DumpStr(
+      probe.ProbeDUT(probe_statement_path), pretty=True)
   if options.output_file == '-':
     Output(probed_results_data)
   else:
@@ -395,7 +398,9 @@ def VerifyHWIDDatabase(options):
            help='File name to store the checksum of the converted results'))
 def ConverterCommand(options):
   """Convert the default probe statements to project specific statements."""
-  converted_results_obj = converter.ConvertToProbeStatement(options.database)
+  probe_statement_path = hwid_utils.GetProbeStatementPath(options.project)
+  converted_results_obj = converter.ConvertToProbeStatement(
+      options.database, probe_statement_path)
   converted_results_data = json_utils.DumpStr(
       converted_results_obj, pretty=True)
   if options.output_file == '-':

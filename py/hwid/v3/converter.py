@@ -14,7 +14,7 @@ DEFAULT_PROBE_STATEMENT_PATH = os.path.join(
     os.path.dirname(__file__), common.DEFAULT_PROBE_STATEMENT)
 
 
-def ConvertToProbeStatement(database):
+def ConvertToProbeStatement(database, probe_statement_path):
   """Gets the components of the specific component class.
 
   Args:
@@ -27,12 +27,11 @@ def ConvertToProbeStatement(database):
     if isinstance(v, Value):
       if v.is_re:
         return "!re {}".format(v.raw_value)
-      else:
-        return v.raw_value
+      return v.raw_value
     return v
 
   probe_statement = probe_utils.GenerateProbeStatement(
-      config_file=DEFAULT_PROBE_STATEMENT_PATH)
+      config_file=probe_statement_path)
   converted_probe_statement = {}
   for comp_cls, statements in probe_statement.items():
     converted_components = {}

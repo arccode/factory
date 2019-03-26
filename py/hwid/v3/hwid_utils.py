@@ -5,6 +5,7 @@
 """HWID v3 utility functions."""
 
 import collections
+import logging
 import os
 
 import factory_common  # pylint: disable=unused-import
@@ -270,7 +271,7 @@ def EnumerateHWID(database, image_id=None, status='supported', comps=None):
   return results
 
 
-def GetProbedResults(infile=None, raw_data=None):
+def GetProbedResults(infile=None, raw_data=None, project=None):
   """Get probed results from the given resources for the HWID framework.
 
   If `infile` is specified, the probe results will be obtained from that file.
@@ -296,7 +297,8 @@ def GetProbedResults(infile=None, raw_data=None):
       raise ValueError('Cannot probe components in chroot. Please specify '
                        'probed results with an input file. If you are running '
                        'with command-line, use --probed-results-file')
-    return probe.ProbeDUT()
+    probe_statement_path = GetProbeStatementPath(project)
+    return probe.ProbeDUT(probe_statement_path)
 
 
 def GetDeviceInfo(infile=None):
@@ -439,3 +441,20 @@ def GetHWIDBundleName(project=None):
 def GetBrandCode(brand_code=None):
   brand_code = brand_code or ProbeBrandCode()
   return brand_code.upper()
+
+
+def GetProbeStatementPath(project=None):
+  path = os.path.join(os.path.dirname(__file__), common.DEFAULT_PROBE_STATEMENT)
+
+  try:
+    project = project or ProbeProject()
+    # We assume that project name is not 'default'.
+    model_probe_statement_path = os.path.join(
+        os.path.dirname(__file__),
+        '%s_probe_statement.json' % (project.lower()))
+    if os.path.exists(model_probe_statement_path):
+      path = model_probe_statement_path
+  except Exception:
+    logging.warning('Error while looking for project specific probe statement',
+                    exc_info=True)
+  return path

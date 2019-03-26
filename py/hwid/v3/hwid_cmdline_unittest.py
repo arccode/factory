@@ -69,7 +69,8 @@ class ObtainAllDeviceDataTest(unittest.TestCase):
 
     # The function should call below functions to get the proper device data.
     get_probed_results_mock.assert_called_once_with(
-        infile=options.probed_results_file)
+        infile=options.probed_results_file,
+        project=options.project)
     get_vpd_data_mock.assert_called_once_with(
         run_vpd=options.run_vpd, infile=options.vpd_data_file)
     get_device_info_mock.assert_called_once_with(
