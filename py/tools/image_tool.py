@@ -3254,6 +3254,26 @@ class EditToolkitConfigCommand(SubCommand):
   def DeleteKey(self, key):
     self.config_wip.pop(key, None)
 
+  def _DoUpdate(self):
+    types = ['string', 'integer', 'boolean']
+    key = UserInput.GetString('Enter a key to add/update')
+    value_type = UserInput.Select('Type of value for key "%s"' % key, types)
+    if value_type == 0:
+      value = UserInput.GetString('Enter a string value for key "%s"' % key)
+    elif value_type == 1:
+      value = UserInput.GetNumber('Enter an integer value for key "%s"' % key)
+    else:
+      value = UserInput.YesNo('Select True(y) or False(n) for key "%s"' % key)
+    self.Update(key, value)
+
+  def _DoDeleteKey(self):
+    key = UserInput.GetString('Enter a key to delete')
+    self.DeleteKey(key)
+
+  def _DoString(self, title, key, optional=False):
+    value = UserInput.GetString(title, optional=optional) or ""
+    self.Update(key, value)
+
   def _DoURL(self, title, keys, default_port=8080, suffix=''):
     host = UserInput.GetString('%s host' % title, optional=True)
     if not host:
@@ -3282,6 +3302,39 @@ class EditToolkitConfigCommand(SubCommand):
     else:
       self.DeleteKey(key)
     return selected
+
+  def EditActiveTestList(self):
+    """Modify active test list."""
+    subconfig_key = 'active_test_list'
+    self.config_wip = self.toolkit_config.get(subconfig_key, {}).copy()
+    self._DoString('Enter active test list id (e.g. main)', 'id', optional=True)
+    self.toolkit_config[subconfig_key] = self.config_wip
+
+  def EditTestListConstants(self):
+    """Modify test list constants."""
+    subconfig_key = 'test_list_constants'
+    self.config_wip = self.toolkit_config.get(subconfig_key, {}).copy()
+    options_list = ['Add/edit key', 'Delete key']
+    options_dict = {'q': 'Return to menu without saving changes',
+                    'w': 'Save changes and return to menu'}
+    while True:
+      Shell(['clear'])
+      title = '\n'.join([
+          'Test list constants:',
+          SPLIT_LINE,
+          json.dumps(self.config_wip, indent=2),
+          SPLIT_LINE])
+      option = UserInput.Select(title, options_list, options_dict)
+      if option == 0:
+        self._DoUpdate()
+      elif option == 1:
+        self._DoDeleteKey()
+      elif option == 'q':
+        break
+      else:
+        # option == 'w'.
+        self.toolkit_config[subconfig_key] = self.config_wip
+        break
 
   def EditCutoff(self):
     """Modify cutoff config.
@@ -3397,7 +3450,11 @@ class EditToolkitConfigCommand(SubCommand):
           print('QUIT. No changes were applied.')
           return True
 
-        self.DoMenu(self.EditCutoff, w=Write, q=Quit)
+        self.DoMenu(self.EditActiveTestList,
+                    self.EditTestListConstants,
+                    self.EditCutoff,
+                    w=Write,
+                    q=Quit)
 
 
 def main():
