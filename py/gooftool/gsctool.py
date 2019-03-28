@@ -24,6 +24,10 @@ class ImageInfo(type_utils.Obj):
                                     rw_fw_version=rw_fw_version,
                                     board_id_flags=board_id_flags)
 
+class BoardID(type_utils.Obj):
+  def __init__(self, type_, flags):
+    super(BoardID, self).__init__(type=type_, flags=flags)
+
 
 UpdateResult = type_utils.Enum(['NOOP', 'ALL_UPDATED', 'RW_UPDATED'])
 
@@ -152,6 +156,49 @@ class GSCTool(object):
     # Capabilities are default.
     return bool(re.search('^Capabilities are modified.$', result.stdout,
                           re.MULTILINE))
+
+  def GetBoardID(self):
+    """Get the board ID of the Cr50 firmware.
+
+    Returns:
+      Instance of `BoardID`.
+
+    Raises:
+      `GSCToolError` if fails.
+    """
+    _BID_TYPE_MASK = 0xffffffff
+
+    result = self._GetAttrs(
+        [GSCTOOL_PATH, '-a', '-M', '-i'], type_utils.Obj,
+        {k: k for k in ('BID_TYPE', 'BID_TYPE_INV', 'BID_FLAGS', 'BID_RLZ')},
+        'board ID')
+    if result.BID_RLZ == '????':
+      rlz_num = 0xffffffff
+      result.BID_RLZ = None
+    elif re.match(r'[A-Z]{4}$', result.BID_RLZ):
+      rlz_num = int(result.BID_RLZ.encode('hex'), 16)
+    else:
+      raise GSCToolError('Unexpected RLZ format: %r.' % result.BID_RLZ)
+    try:
+      bid_type = int(result.BID_TYPE, 16)
+      bid_type_inv = int(result.BID_TYPE_INV, 16)
+      bid_flags = int(result.BID_FLAGS, 16)
+    except Exception as e:
+      raise GSCToolError(e)
+
+    # The output of the gsctool command contains 4 fields, check if they are
+    # not conflicted to each other.
+    is_bid_type_programmed = (bid_type != _BID_TYPE_MASK or
+                              bid_type_inv != _BID_TYPE_MASK)
+    is_bid_type_complement = ((bid_type & bid_type_inv) == 0 and
+                              (bid_type | bid_type_inv) == _BID_TYPE_MASK)
+    if is_bid_type_programmed and not is_bid_type_complement:
+      raise GSCToolError('BID_TYPE(%x) and BID_TYPE_INV(%x) are not complement '
+                         'to each other' % (bid_type, bid_type_inv))
+    if rlz_num != bid_type:
+      raise GSCToolError('BID_TYPE(%x) and RLZ_CODE(%s) mismatch.' %
+                         (bid_type, result.BID_RLZ))
+    return BoardID(bid_type, bid_flags)
 
   def _InvokeCommand(self, cmd, failure_msg, cmd_result_checker=None):
     cmd_result_checker = cmd_result_checker or (lambda result: result.success)

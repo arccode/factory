@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-03-27 16:18+CST\n"
+"PO-Revision-Date: 2019-05-15 17:20+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -124,6 +124,10 @@ msgstr "Chameleon"
 #: ../build/pytests_label_generated.json
 msgid "Charger"
 msgstr "充电器"
+
+#: ../build/pytests_label_generated.json
+msgid "Check CR50 Board ID"
+msgstr "检查 CR50 版号"
 
 #: ../build/pytests_label_generated.json
 msgid "Check Image Version"
@@ -3112,6 +3116,10 @@ msgstr "充放电电流测试"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Charger Type Detection"
 msgstr "充电器型号识别"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Check Cr50 Board ID Not Set"
+msgstr "检查 CR50 版号是否未设置"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Check Point"

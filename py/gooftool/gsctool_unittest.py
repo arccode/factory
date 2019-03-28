@@ -95,6 +95,48 @@ class GSCToolTest(unittest.TestCase):
     self._SetGSCToolUtilityResult(status=1)
     self.assertRaises(gsctool.GSCToolError, self.gsctool.IsFactoryMode)
 
+  def testGetBoardID(self):
+    fields = {
+        'BID_TYPE': '41424344',
+        'BID_TYPE_INV': 'bebdbcbb',
+        'BID_FLAGS': '0000ff00',
+        'BID_RLZ': 'ABCD'}
+    self._SetGSCToolUtilityResult(
+        stdout=(''.join('%s=%s\n' % (k, v) for k, v in fields.iteritems())))
+    board_id = self.gsctool.GetBoardID()
+    self._CheckCalledCommand(['/usr/sbin/gsctool', '-a', '-M', '-i'])
+    self.assertEquals(board_id.type, 0x41424344)
+    self.assertEquals(board_id.flags, 0x0000ff00)
+
+    # If Cr50 is never provisioned yet, both BID_TYPE and BID_TYPE_INV are
+    # 0xffffffff.
+    fields2 = {
+        'BID_TYPE': 'ffffffff',
+        'BID_TYPE_INV': 'ffffffff',
+        'BID_FLAGS': '0000ff00',
+        'BID_RLZ': '????'}
+    self._SetGSCToolUtilityResult(
+        stdout=(''.join('%s=%s\n' % (k, v) for k, v in fields2.iteritems())))
+    board_id = self.gsctool.GetBoardID()
+    self._CheckCalledCommand(['/usr/sbin/gsctool', '-a', '-M', '-i'])
+    self.assertEquals(board_id.type, 0xffffffff)
+    self.assertEquals(board_id.flags, 0x0000ff00)
+
+    # BID_TYPE_INV should be complement to BID_TYPE
+    bad_fields = dict(fields, BID_TYPE_INV='aabbccdd')
+    self._SetGSCToolUtilityResult(
+        stdout=(''.join('%s=%s\n' % (k, v) for k, v in bad_fields.iteritems())))
+    self.assertRaises(gsctool.GSCToolError, self.gsctool.GetBoardID)
+
+    # BID_TYPE should be the ascii codes of BID_RLZ
+    bad_fields = dict(fields, BID_RLZ='XXYY')
+    self._SetGSCToolUtilityResult(
+        stdout=(''.join('%s=%s\n' % (k, v) for k, v in bad_fields.iteritems())))
+    self.assertRaises(gsctool.GSCToolError, self.gsctool.GetBoardID)
+
+    self._SetGSCToolUtilityResult(status=1)
+    self.assertRaises(gsctool.GSCToolError, self.gsctool.GetBoardID)
+
   def _SetGSCToolUtilityResult(self, stdout='', status=0):
     self.shell.return_value = type_utils.Obj(
         success=status == 0, status=status, stdout=stdout, stderr='')
