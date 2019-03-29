@@ -14,7 +14,6 @@ import sys
 import tempfile
 import threading
 import time
-import traceback
 
 import yaml
 
@@ -28,11 +27,11 @@ from cros.factory.test import state
 from cros.factory.test.state import TestState
 from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_object
+from cros.factory.test.utils import pytest_utils
 from cros.factory.testlog import testlog
 from cros.factory.testlog import testlog_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils import type_utils
 from cros.factory.utils.service_utils import ServiceManager
 from cros.factory.utils.string_utils import DecodeUTF8
 from cros.factory.utils import time_utils
@@ -333,10 +332,6 @@ class TestInvocation(object):
     assert self.test.pytest_name
     assert self.resolved_dargs is not None
 
-    def _GenerateFailureResult(msg):
-      return TestState.FAILED, [(type_utils.Error(msg),
-                                 traceback.extract_stack()[1:])]
-
     files_to_delete = []
     try:
       def make_tmp(prefix):
@@ -362,8 +357,8 @@ class TestInvocation(object):
         env.update(self._env_additions)
         with self._lock:
           if self._aborted:
-            return _GenerateFailureResult(
-                'Before starting: %s' % self._AbortedMessage())
+            return (TestState.FAILED,
+                    'Before starting: %s' % self._AbortedMessage())
 
           self._process = self.goofy.pytest_prespawner.spawn(
               PytestInfo(test_list=self.goofy.test_list.test_list_id,
@@ -388,18 +383,22 @@ class TestInvocation(object):
           pass
         with self._lock:
           if self._aborted:
-            return _GenerateFailureResult(self._AbortedMessage())
+            return TestState.FAILED, self._AbortedMessage()
         if self._process.returncode:
-          return _GenerateFailureResult(
-              'Test returned code %d' % self._process.returncode)
+          return (TestState.FAILED,
+                  'Test returned code %d' % self._process.returncode)
 
       if not os.path.exists(results_path):
-        return _GenerateFailureResult('pytest did not complete')
+        return TestState.FAILED, 'pytest did not complete'
 
       with open(results_path) as f:
-        return pickle.load(f)
+        result = pickle.load(f)
+        assert isinstance(result, pytest_utils.PytestExecutionResult)
+        # TODO(yhong): Record the the detail failure reason for advanced
+        #     analysis.
+        return result.status, '; '.join(f.exc_repr for f in result.failures)
     except Exception as e:
-      return _GenerateFailureResult('Unable to retrieve pytest results: %r' % e)
+      return TestState.FAILED, 'Unable to retrieve pytest results: %r' % e
     finally:
       for f in files_to_delete:
         try:
@@ -436,10 +435,7 @@ class TestInvocation(object):
       # Run the pytest if everything was fine.
       if status is None:
         if self.test.pytest_name:
-          status, detail_fail_reasons = self._InvokePytest()
-          # TODO(yhong): Record the the detail failure reason for advanced
-          #     analysis.
-          error_msg = '; '.join(str(e) for e, unused_tb in detail_fail_reasons)
+          status, error_msg = self._InvokePytest()
         else:
           status = TestState.FAILED
           error_msg = 'No pytest_name'

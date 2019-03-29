@@ -2,9 +2,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import collections
 import logging
 import os
 import re
+import sys
 import traceback
 import unittest
 
@@ -103,17 +105,23 @@ class IndirectException(Exception):
     return self.args[0]
 
   @property
-  def traceback_list(self):
+  def traceback(self):
     return self.args[1]
 
 
 class TestResult(unittest.TestResult):
+  """Customized test result placeholder.
+
+  Properties:
+    failure_details: A list of pairs of the cought exceptions and their
+        corresponding traceback objects.
+  """
   def __init__(self):
     super(TestResult, self).__init__()
     self.failure_details = []
 
   def DumpStr(self):
-    return '\n=====\n'.join(''.join(traceback.format_list(tb)) + repr(exc)
+    return '\n=====\n'.join(''.join(traceback.format_tb(tb)) + repr(exc)
                             for exc, tb in self.failure_details)
 
   def addError(self, test, err):
@@ -127,11 +135,9 @@ class TestResult(unittest.TestResult):
   def _RecordFailureDetail(self, err):
     unused_exc_type, exc, tb = err
     if isinstance(exc, IndirectException):
-      tb_list = exc.traceback_list
+      tb = exc.traceback
       exc = exc.exception
-    else:
-      tb_list = traceback.extract_tb(tb)
-    self.failure_details.append((exc, tb_list))
+    self.failure_details.append((exc, tb))
 
 
 def RunTestCase(test_case):
@@ -150,3 +156,44 @@ def RunTestCase(test_case):
   result = TestResult()
   test_case.run(result)
   return result
+
+
+PytestExceptionInfo = collections.namedtuple('PytestExceptionInfo',
+                                             ['exc_repr', 'tb_list'])
+
+class PytestExecutionResult(object):
+  """A placeholder to record the execution result of a pytest.
+
+  The class is designed to be pickle-serializable.  Please note that this
+  class can't be defined in `py/test/pytest_runner.py` because that python
+  module is also a stand-alone executable program.  When that program runs
+  `pickle.dump`, the function will treat the this class as defined in the
+  global scope, which is not true for the receiver (i.e. invocation.py).
+
+  Properties:
+    status: The test status.  See `cros.factory.test.state.TestState` for
+        detail.
+    failure_details: A list of `ExceptionInfo` instance.
+  """
+
+  def __init__(self, status, failures=None):
+    """Constructor.
+
+    Args:
+      status: The test status.
+      failure_details: A list of failures.  Each list item is a pair of
+          the exception that causes the failure and the corresponding traceback.
+    """
+    self.status = status
+    self.failures = failures or []
+
+  @classmethod
+  def GenerateFromTestResultFailureDetails(cls, status, failure_details):
+    return cls(status, [PytestExceptionInfo(repr(e), traceback.extract_tb(t))
+                        for e, t in failure_details])
+
+  @classmethod
+  def GenerateFromException(cls, status):
+    unused_exc_type, exc, tb = sys.exc_info()
+    return cls(status,
+               [PytestExceptionInfo(repr(exc), traceback.extract_tb(tb))])

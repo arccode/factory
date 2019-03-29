@@ -12,13 +12,13 @@ import logging
 import os
 import signal
 import sys
-import traceback
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import session
 from cros.factory.test.state import TestState
 from cros.factory.test.utils import pytest_utils
+from cros.factory.test.utils.pytest_utils import PytestExecutionResult
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Args
 from cros.factory.utils import file_utils
@@ -62,29 +62,19 @@ def RunPytest(test_info):
     if arg_spec:
       test.args = Args(*arg_spec).Parse(test_info.args)
 
-    result = pytest_utils.RunTestCase(test)
+    test_case_result = pytest_utils.RunTestCase(test)
 
-    if result.failure_details:
-      logging.info('pytest failure:\n%s', result.DumpStr())
-      status = TestState.FAILED
-      failures = result.failure_details
+    if test_case_result.failure_details:
+      logging.info('pytest failure:\n%s', test_case_result.DumpStr())
+      result = PytestExecutionResult.GenerateFromTestResultFailureDetails(
+          TestState.FAILED, test_case_result.failure_details)
     else:
-      status = TestState.PASSED
-      failures = []
-  except Exception as e:
-    logging.exception('Unable to run pytest')
-    status = TestState.FAILED
-    failures = [(e, traceback.extract_tb(sys.exc_info()[2]))]
-
-  try:
-    pickled_result = pickle.dumps((status, failures))
+      result = PytestExecutionResult(TestState.PASSED)
   except Exception:
-    logging.warning('Some exception objects are not pickle-able.  Convert them '
-                    'to generic exceptions first.')
-    pickled_result = pickle.dumps(
-        (status, [(type_utils.Error(str(e)), tb) for e, tb in failures]))
+    logging.exception('Unable to run pytest')
+    result = PytestExecutionResult.GenerateFromException(TestState.FAILED)
 
-  file_utils.WriteFile(test_info.results_path, pickled_result)
+  file_utils.WriteFile(test_info.results_path, pickle.dumps(result))
 
 
 def main():

@@ -11,12 +11,14 @@
 from __future__ import print_function
 
 import cPickle as pickle
+import inspect
 import logging
 import math
 import os
 import subprocess
 import threading
 import time
+import traceback
 import unittest
 
 import mox
@@ -36,19 +38,19 @@ from cros.factory.test.event import Event
 from cros.factory.test import state
 from cros.factory.test.state import TestState
 from cros.factory.test.test_lists import manager
+from cros.factory.test.utils import pytest_utils
 from cros.factory.utils import log_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils import type_utils
 
 
-def MockPytest(name, test_state, error_msg, func=None):
+def MockPytest(name, test_state, exc_repr, func=None):
   """Adds a side effect that a mock pytest will be executed.
 
   Args:
     name: The name of the pytest to be mocked.
     test_state: The resulting test state.
-    error_msg: The error message.
+    exc_repr: The error message.
     func: Optional callable to run inside the side effect function.
   """
   def SideEffect(info, unused_env):
@@ -56,7 +58,11 @@ def MockPytest(name, test_state, error_msg, func=None):
     if func:
       func()
     with open(info.results_path, 'w') as out:
-      pickle.dump((test_state, [(type_utils.Error(error_msg), [])]), out)
+      tb_list = traceback.extract_stack(inspect.currentframe())
+      result = pytest_utils.PytestExecutionResult(
+          test_state, failures=[pytest_utils.PytestExceptionInfo(exc_repr,
+                                                                 tb_list)])
+      pickle.dump(result, out)
     return process_utils.Spawn(['true'], stdout=subprocess.PIPE)
 
   prespawner.Prespawner.spawn(

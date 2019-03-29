@@ -62,9 +62,9 @@ def _RunPytestGoofy(pytest, args, dut_options):
     info = invocation.PytestInfo(None, None, pytest, args, results,
                                  dut_options=dut_options)
     pytest_runner.RunPytest(info)
-    status, detail = pickle.load(open(results))
-    is_pass = status == state.TestState.PASSED
-    err_msg = None if is_pass else '\n'.join(str(e) for e, unused_tb in detail)
+    result = pickle.load(open(results))
+    is_pass = result.status == state.TestState.PASSED
+    err_msg = None if is_pass else '\n'.join(f[0] for f in result.failures)
     return (is_pass, err_msg)
 
 

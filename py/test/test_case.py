@@ -7,10 +7,8 @@
 from __future__ import print_function
 
 import collections
-import cPickle as pickle
 import sys
 import threading
-import traceback
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -47,6 +45,9 @@ class TestCase(unittest.TestCase):
     self.__task_end_event = threading.Event()
     self.__task_failed = False
     self.__tasks = []
+
+    self.__exceptions = []
+    self.__exceptions_lock = threading.Lock()
 
   def PassTask(self):
     """Pass current task.
@@ -134,12 +135,10 @@ class TestCase(unittest.TestCase):
     try:
       end_event = self.event_loop.Run()
       if end_event.status == state.TestState.FAILED:
-        exception_str = getattr(end_event, 'exception_str')
-        traceback_list = getattr(end_event, 'traceback_list')
-        if not exception_str:
+        exc_idx = getattr(end_event, 'exception_index', None)
+        if exc_idx is None:
           raise type_utils.TestFailure(getattr(end_event, 'error_msg', None))
-        raise pytest_utils.IndirectException(pickle.loads(exception_str),
-                                             traceback_list)
+        raise pytest_utils.IndirectException(*self.__exceptions[exc_idx])
     finally:
       # Ideally, the background would be the one calling FailTask / PassTask,
       # or would be waiting in WaitTaskEnd when an exception is thrown, so the
@@ -201,17 +200,14 @@ class TestCase(unittest.TestCase):
     assert exception is not None, 'Not handling an exception'
 
     if not isinstance(exception, TaskEndException):
-      try:
-        exception_str = pickle.dumps(exception)
-      except Exception:
-        exception_str = pickle.dumps(type_utils.Error(str(exception)))
-      traceback_list = traceback.extract_tb(tb)
+      with self.__exceptions_lock:
+        exc_idx = len(self.__exceptions)
+        self.__exceptions.append((exception, tb))
 
       self.event_loop.PostNewEvent(
           test_event.Event.Type.END_EVENT_LOOP,
           status=state.TestState.FAILED,
-          exception_str=exception_str,
-          traceback_list=traceback_list)
+          exception_index=exc_idx)
       self.__task_failed = True
     self.__task_end_event.set()
 
