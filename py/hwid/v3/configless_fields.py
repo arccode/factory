@@ -10,7 +10,7 @@ board / project specific database (e.g. HWID database).
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
-from cros.factory.test import device_data
+from cros.factory.test import device_data_constants
 
 
 class ConfiglessFields(object):
@@ -215,7 +215,7 @@ class _ConfiglessFieldGetter(object):
   @property
   def feature_list(self):
     """Get feature list encoded string."""
-    components = self._device_info.get(device_data.KEY_COMPONENT, {})
+    components = self._device_info.get(device_data_constants.KEY_COMPONENT, {})
     return self._feature_list.Encode(components)
 
 
