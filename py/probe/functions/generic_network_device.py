@@ -167,7 +167,7 @@ class NetworkDevices(object):
         ret = function.InterpretFunction({'usb': os.path.join(path, '..')})()
         if ret:
           return ret
-        ret = function.InterpretFunction({'sdio': os.path.join(path, '..')})()
+        ret = function.InterpretFunction({'sdio': path})()
       return ret
 
     ret = []
