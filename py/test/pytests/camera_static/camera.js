@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+const VIDEO_START_PLAY_TIMEOUT_MS = 5000;
 const imageDiv = document.getElementById('test-image');
 const promptDiv = document.getElementById('prompt');
 
@@ -45,13 +46,21 @@ class CameraTest {
     this.height = options.height;
     this.flipImage = options.flipImage;
     this.videoStream = null;
-    this.imageCapture = null;
     this.canvas = document.createElement('canvas');
+    this.videoElem = document.createElement('video');
+    this.videoElemReadyForStreamCallback = null;
+
+    this.videoElem.addEventListener('play', () => {
+      if (this.videoElemReadyForStreamCallback !== null) {
+        this.videoElemReadyForStreamCallback();
+        this.videoElemReadyForStreamCallback= null;
+      }
+    });
+    this.videoElem.autoplay = true;
   }
 
   async enable() {
     this.videoStream = await this.getVideoStreamTrack();
-    this.imageCapture = new ImageCapture(this.videoStream);
   }
 
   disable() {
@@ -59,7 +68,6 @@ class CameraTest {
       this.videoStream.stop();
       this.videoStream = null;
     }
-    this.imageCapture = null;
   }
 
   async getVideoStreamTrack() {
@@ -71,6 +79,27 @@ class CameraTest {
         facingMode: {exact: this.facingMode}
       }
     });
+    this.videoElem.srcObject = mediaStream;
+
+    // Try to wait until |videoElem| starts to play so that |grabFrame|
+    // can capture the data from it.
+    // We expect the pytest invokes the API properly, this method shouldn't
+    // be called before the previous call finishes.
+    console.assert(this.videoElemReadyForStreamCallback === null);
+    await new window.Promise((resolve, reject) => {
+      // Fails if the |play| event is not raised in time.
+      const timeoutId = window.setTimeout(() => {
+        if (this.videoElemReadyForStreamCallback !== null) {
+          this.videoElemReadyForStreamCallback = null;
+          reject('timeout from video element');
+        }
+      }, VIDEO_START_PLAY_TIMEOUT_MS);
+      this.videoElemReadyForStreamCallback = () => {
+        window.clearTimeout(timeoutId);
+        resolve();
+      };
+    });
+
     return mediaStream.getVideoTracks()[0];
   }
 
@@ -81,11 +110,9 @@ class CameraTest {
       this.disable();
       await this.enable();
     }
-    const frame = await this.imageCapture.grabFrame();
-    this.canvas.width = frame.width;
-    this.canvas.height = frame.height;
-    this.canvas.getContext('2d').drawImage(frame, 0, 0);
-    frame.close();
+    this.canvas.width = this.videoElem.videoWidth;
+    this.canvas.height = this.videoElem.videoHeight;
+    this.canvas.getContext('2d').drawImage(this.videoElem, 0, 0);
   }
 
   async grabFrameAndTransmitBack() {
