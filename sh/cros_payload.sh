@@ -302,6 +302,12 @@ cmd_help() {
       Get the payload file of COMPONENT in JSON_URL.
 
       Example: $0 get_file http://192.168.200.1:8080/static/test.json hwid
+
+  get_all_files JSON_URL
+
+      Get the payload file of every components in JSON_URL.
+
+      Example: $0 get_all_files http://192.168.200.1:8080/static/test.json
   "
 }
 
@@ -1075,25 +1081,44 @@ cmd_list() {
 }
 
 # Get payload file of a component.
-# Usage: cmd_get_file COMPONENT JSON_URL
-cmd_get_file() {
-  local json_url="$1"
+get_component_file() {
+  local json_str="$1"
   local component="$2"
-  json_url="$(get_canonical_url "${json_url}")"
 
   case "${component}" in
     release_image | test_image)
-      info "Getting JSON config from ${json_url}..."
-      fetch "${json_url}" 2>/dev/null | json_get_image_files "${component}" -
+      echo "${json_str}" | json_get_image_files "${component}" -
       ;;
     toolkit | hwid | firmware | complete | netboot_* | toolkit_config)
-      info "Getting JSON config from ${json_url}..."
-      fetch "${json_url}" 2>/dev/null | json_get_file "${component}" -
+      echo "${json_str}" | json_get_file "${component}" -
       ;;
     *)
       die "Unknown component: ${component}"
       ;;
   esac
+}
+
+# Command "get_file" to get payload file of a component.
+# Usage: cmd_get_file JSON_URL COMPONENT
+cmd_get_file() {
+  local json_url="$(get_canonical_url "$1")"
+  local component="$2"
+
+  local json_str="$(fetch "${json_url}" 2>/dev/null)"
+
+  get_component_file "${json_str}" "${component}"
+}
+
+# Get payload file of every components.
+# Usage: cmd_get_all_files JSON_URL
+cmd_get_all_files() {
+  local json_url="$(get_canonical_url "$1")"
+  local json_str="$(fetch "${json_url}" 2>/dev/null)"
+
+  local components="$(echo "${json_str}" | json_get_keys)"
+  for component in ${components}; do
+    get_component_file "${json_str}" "${component}"
+  done
 }
 
 # Main entry.
@@ -1167,6 +1192,10 @@ main() {
     get_file)
       shift
       cmd_get_file "$@"
+      ;;
+    get_all_files)
+      shift
+      cmd_get_all_files "$@"
       ;;
     *)
       cmd_help

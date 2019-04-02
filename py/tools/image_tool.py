@@ -278,6 +278,15 @@ class SysUtils(object):
       sys.stderr.write('\n')
 
   @staticmethod
+  def GetDiskUsage(path):
+    return int(SudoOutput(['du', '-sk', path]).split()[0]) * 1024
+
+  @staticmethod
+  def GetRemainingSize(path):
+    return int(
+        SudoOutput(['df', '-k', '--output=avail', path]).splitlines()[1]) * 1024
+
+  @staticmethod
   @contextlib.contextmanager
   def SetUmask(mask):
     old_umask = os.umask(mask)
@@ -366,6 +375,22 @@ class CrosPayloadUtils(object):
 
   @classmethod
   def GetComponentFiles(cls, json_path, component):
+    """Get a list of payload files for a component.
+
+    If a board metadata JSON file is as follows:
+
+    ```
+    {
+      "release_image": {
+        "part1": "release_image.part1.gz",
+        "part2": "release_image.part2.gz"
+      }
+    }
+    ```
+
+    GetComponentFiles(json_path, 'release_image') returns a list
+    ['release_image.part1.gz', 'release_image.part2.gz']
+    """
     if not os.path.exists(json_path):
       logging.warning('Cannot find %s', json_path)
       return []
@@ -374,11 +399,51 @@ class CrosPayloadUtils(object):
     return files
 
   @classmethod
+  def GetAllComponentFiles(cls, json_path):
+    """Get a list of payload files for all components.
+
+    If a board metadata JSON file is as follows:
+
+    ```
+    {
+      "release_image": {
+        "part1": "release_image.part1.gz",
+        "part2": "release_image.part2.gz"
+      },
+      "hwid": {
+        "file": "hwid.gz"
+      }
+    }
+    ```
+
+    GetAllComponentFiles(json_path) returns a list
+    ['release_image.part1.gz', 'release_image.part2.gz', 'hwid.gz']
+    """
+    if not os.path.exists(json_path):
+      logging.warning('Cannot find %s', json_path)
+      return []
+    files = Shell([cls.GetProgramPath(), 'get_all_files', json_path],
+                  output=True).strip().splitlines()
+    return files
+
+  @classmethod
   def ReplaceComponent(cls, json_path, component, resource):
     """Replace a component in a payload directory with a given file.
 
     Remove old payload files and add new files for a component. Doesn't check
-    if the removed file is used by other boards.
+    if the removed file is used by other boards. This function cannot directly
+    replace payload components in a mounted image due to permission issues. To
+    do so, we need to create a temporary directory, update the payloads in the
+    directory, then use `ReplaceComponentsInImage()` function to replace the
+    payload components in the image, e.g.
+
+    ```
+    with CrosPayloadUtils.TempPayloadsDir() as temp_dir:
+      CrosPayloadUtils.CopyComponentsInImage(image, board, component, temp_dir)
+      json_path = CrosPayloadUtils.GetJSONPath(temp_dir, board)
+      CrosPayloadUtils.ReplaceComponent(json_path, component, resource)
+      CrosPayloadUtils.ReplaceComponentsInImage(image, board, temp_dir)
+    ```
     """
     payloads_dir = os.path.dirname(json_path)
     old_files = cls.GetComponentFiles(json_path, component)
@@ -387,6 +452,110 @@ class CrosPayloadUtils(object):
       if os.path.exists(old_file_path):
         Sudo(['rm', '-f', old_file_path])
     cls.AddComponent(json_path, component, resource)
+
+  @classmethod
+  def CopyComponentsInImage(cls, image, board, components, dest_payloads_dir,
+                            create_metadata=False):
+    """Copy payload metadata json file and component files from an image..
+
+    Args:
+      image: path to RMA shim image.
+      board: board name.
+      components: a list of payload components to copy from the shim image.
+      dest_payloads_dir: directory to copy to.
+      create_metadata: True to create board metadata file if it doesn't exist
+                       in shim image.
+    """
+    dest_json_path = cls.GetJSONPath(dest_payloads_dir, board)
+
+    # Copy metadata and components to the temp directory.
+    with Partition(image, PART_CROS_STATEFUL).Mount() as stateful:
+      image_payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+      image_json_path = cls.GetJSONPath(image_payloads_dir, board)
+
+      if os.path.exists(image_json_path):
+        Shell(['cp', '-pf', image_json_path, dest_json_path])
+      elif create_metadata:
+        cls.InitMetaData(dest_payloads_dir, board)
+      else:
+        raise RuntimeError('Cannot find %s.' % image_json_path)
+
+      for component in components:
+        files = cls.GetComponentFiles(image_json_path, component)
+        for f in files:
+          f_path = os.path.join(image_payloads_dir, f)
+          Shell(['cp', '-pf', f_path, dest_payloads_dir])
+
+  @classmethod
+  def ReplaceComponentsInImage(cls, image, board, new_payloads_dir):
+    """Replace payload metada json file and component files in an image.
+
+    Args:
+      image: path to RMA shim image.
+      board: board name.
+      new_payloads_dir: directory containing the new payload files.
+    """
+    new_json_path = cls.GetJSONPath(new_payloads_dir, board)
+
+    with Partition(image, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
+      rma_metadata = _ReadRMAMetadata(stateful)
+      old_payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+      old_json_path = cls.GetJSONPath(old_payloads_dir, board)
+
+      # Remove unused and duplicate files.
+      old_files = set(cls.GetAllComponentFiles(old_json_path))
+      new_files = set(cls.GetAllComponentFiles(new_json_path))
+      other_files = set()
+      for info in rma_metadata:
+        if info.board != board:
+          board_component_files = cls.GetAllComponentFiles(
+              cls.GetJSONPath(old_payloads_dir, info.board))
+          other_files.update(board_component_files)
+
+      # Remove old files that are not used by any boards.
+      for f in old_files - new_files - other_files:
+        file_path = os.path.join(old_payloads_dir, f)
+        print('Remove old payload file %s.' % os.path.basename(f))
+        Sudo(['rm', '-f', file_path])
+
+      # Don't copy files that already exists.
+      for f in new_files & (old_files | other_files):
+        file_path = os.path.join(new_payloads_dir, f)
+        if os.path.exists(file_path):
+          Sudo(['rm', '-f', file_path])
+
+      remain_size = SysUtils.GetRemainingSize(stateful)
+      new_payloads_size = SysUtils.GetDiskUsage(new_payloads_dir)
+
+    # When expanding or shrinking a partition, leave an extra 10M margin. 10M
+    # is just a size larger than most small payloads, so that we don't need to
+    # change the partition size when updating the small payloads.
+    margin = 10 * MEGABYTE
+
+    # Expand stateful partition if needed.
+    if remain_size < new_payloads_size:
+      ExpandPartition(
+          image, PART_CROS_STATEFUL, new_payloads_size - remain_size + margin)
+
+    # Move the added payloads to stateful partition.
+    print('Moving payloads (%dM)...' % (new_payloads_size / MEGABYTE))
+    with Partition(image, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
+      Sudo(['chown', '-R', 'root:root', new_payloads_dir])
+      Sudo(['rsync', '-a', new_payloads_dir, stateful])
+
+    # Shrink stateful partition.
+    if remain_size > new_payloads_size + 2 * margin:
+      ShrinkPartition(
+          image, PART_CROS_STATEFUL, remain_size - new_payloads_size - margin)
+
+  @classmethod
+  @contextlib.contextmanager
+  def TempPayloadsDir(cls):
+    with SysUtils.TempDirectory() as temp_dir:
+      temp_payloads_dir = os.path.join(temp_dir, DIR_CROS_PAYLOADS)
+      with SysUtils.SetUmask(0o022):
+        os.mkdir(temp_payloads_dir, MODE_NEW_DIR)
+      yield temp_payloads_dir
 
 
 def Aligned(value, alignment):
@@ -651,6 +820,71 @@ def Partition(image, number):
     raise RuntimeError('Partition %s is unused.' % part)
   return part
 
+def ExpandPartition(image, number, size):
+  """Expands an image partition for at least `size` bytes.
+
+  By default, ext2/3/4 file system reserves 5% space for root, so we round
+  (`size` * 1.05) up to a multiple of block size, and expand that amount
+  of space. The partition should be the last partition of the image.
+
+  Args:
+    image: a path to an image file.
+    number: 1-based partition number.
+    size: Amount of space in bytes to expand.
+  """
+  gpt = GPT.LoadFromFile(image)
+  part = gpt.GetPartition(number)
+  # Check that the partition is the last partition.
+  if part.IsUnused() or gpt.GetMaxUsedLBA() > part.LastLBA:
+    raise RuntimeError('Cannot expand partition %d; '
+                       'must be the last one in LBA layout.' % number)
+
+  old_size = gpt.GetSize()
+  new_size = old_size + Aligned(int(size * 1.05), part.block_size)
+  print('Changing size: %d M => %d M' %
+        (old_size / MEGABYTE, new_size / MEGABYTE))
+
+  Shell(['truncate', '-s', str(new_size), image])
+  gpt.Resize(new_size)
+  gpt.ExpandPartition(number)
+  gpt.WriteToFile(image)
+  gpt.WriteProtectiveMBR(image, create=True)
+  part.ResizeFileSystem()
+
+def ShrinkPartition(image, number, size):
+  """Shrinks an image partition for at most `size` bytes.
+
+  Round `size` down to a multiple of block size, and reduce that amount of
+  space for a partition. The partition should be the last partition of the
+  image.
+
+  Args:
+    image: a path to an image file.
+    number: 1-based partition number.
+    size: Amount of space in bytes to reduce.
+  """
+  gpt = GPT.LoadFromFile(image)
+  part = gpt.GetPartition(number)
+  reduced_size = (size / part.block_size) * part.block_size
+  # Check that the partition is the last partition.
+  if part.IsUnused() or gpt.GetMaxUsedLBA() > part.LastLBA:
+    raise RuntimeError('Cannot expand partition %d; '
+                       'must be the last one in LBA layout.' % number)
+  # Check that the partition size is greater than shrink size.
+  if part.size <= reduced_size:
+    raise RuntimeError('Cannot shrink partition %d. Size too small.' % number)
+
+  old_size = gpt.GetSize()
+  new_size = old_size - reduced_size
+  print('Changing size: %d M => %d M' %
+        (old_size / MEGABYTE, new_size / MEGABYTE))
+
+  part.ResizeFileSystem(part.size - reduced_size)
+  Shell(['truncate', '-s', str(new_size), image])
+  gpt.Resize(new_size, check_overlap=False)
+  gpt.ExpandPartition(number)
+  gpt.WriteToFile(image)
+  gpt.WriteProtectiveMBR(image, create=True)
 
 class LSBFile(object):
   """Access /etc/lsb-release file (or files in same format).
@@ -796,7 +1030,10 @@ def _ReadRMAMetadata(stateful):
     stateful: path of stateful partition mount point.
 
   Returns:
-    RMA metadata, or None if file doesn't exist.
+    RMA metadata, which is a list of RMAImageBoardInfo.
+
+  Raises:
+    RuntimeError if the file doesn't exist and cannot auto-generate either.
   """
   if os.path.exists(os.path.join(stateful, PATH_CROS_RMA_METADATA)):
     with open(os.path.join(stateful, PATH_CROS_RMA_METADATA)) as f:
@@ -817,7 +1054,7 @@ def _ReadRMAMetadata(stateful):
       metadata = [RMAImageBoardInfo(board=board, kernel=2, rootfs=3)]
       return metadata
     else:
-      return None
+      raise RuntimeError('Cannot get metadata, is this a RMA shim?')
 
 
 class RMABoardResourceVersions(object):
@@ -1200,83 +1437,6 @@ class ChromeOSFactoryBundle(object):
       command = ' ; '.join(commands)
       Sudo("bash %s -c '%s'" % ('-x' if verbose else '', command))
 
-  @staticmethod
-  def GetDiskUsage(path):
-    return int(SudoOutput(['du', '-sk', path]).split()[0]) * 1024
-
-  @staticmethod
-  def GetRemainingSize(path):
-    return int(
-        SudoOutput(['df', '-k', '--output=avail', path]).splitlines()[1]) * 1024
-
-  @staticmethod
-  def ExpandPartition(image, number, size):
-    """Expands an image partition for at least `size` bytes.
-
-    By default, ext2/3/4 file system reserves 5% space for root, so we round
-    (`size` * 1.05) up to a multiple of block size, and expand that amount
-    of space. The partition should be the last partition of the image.
-
-    Args:
-      image: a path to an image file.
-      number: 1-based partition number.
-      size: Amount of space in bytes to expand.
-    """
-    gpt = GPT.LoadFromFile(image)
-    part = gpt.GetPartition(number)
-    # Check that the partition is the last partition.
-    if part.IsUnused() or gpt.GetMaxUsedLBA() > part.LastLBA:
-      raise RuntimeError('Cannot expand partition %d; '
-                         'must be the last one in LBA layout.' % number)
-
-    old_size = gpt.GetSize()
-    new_size = old_size + Aligned(int(size * 1.05), part.block_size)
-    print('Changing size: %d M => %d M' %
-          (old_size / MEGABYTE, new_size / MEGABYTE))
-
-    Shell(['truncate', '-s', str(new_size), image])
-    gpt.Resize(new_size)
-    gpt.ExpandPartition(number)
-    gpt.WriteToFile(image)
-    gpt.WriteProtectiveMBR(image, create=True)
-    part.ResizeFileSystem()
-
-  @staticmethod
-  def ShrinkPartition(image, number, size):
-    """Shrinks an image partition for at most `size` bytes.
-
-    Round `size` down to a multiple of block size, and reduce that amount of
-    space for a partition. The partition should be the last partition of the
-    image.
-
-    Args:
-      image: a path to an image file.
-      number: 1-based partition number.
-      size: Amount of space in bytes to reduce.
-    """
-    gpt = GPT.LoadFromFile(image)
-    part = gpt.GetPartition(number)
-    reduced_size = (size / part.block_size) * part.block_size
-    # Check that the partition is the last partition.
-    if part.IsUnused() or gpt.GetMaxUsedLBA() > part.LastLBA:
-      raise RuntimeError('Cannot expand partition %d; '
-                         'must be the last one in LBA layout.' % number)
-    # Check that the partition size is greater than shrink size.
-    if part.size <= reduced_size:
-      raise RuntimeError('Cannot shrink partition %d. Size too small.' % number)
-
-    old_size = gpt.GetSize()
-    new_size = old_size - reduced_size
-    print('Changing size: %d M => %d M' %
-          (old_size / MEGABYTE, new_size / MEGABYTE))
-
-    part.ResizeFileSystem(part.size - reduced_size)
-    Shell(['truncate', '-s', str(new_size), image])
-    gpt.Resize(new_size, check_overlap=False)
-    gpt.ExpandPartition(number)
-    gpt.WriteToFile(image)
-    gpt.WriteProtectiveMBR(image, create=True)
-
   def InitDiskImage(self, output, sectors, sector_size, verbose=False):
     """Initializes (resize and partition) a new disk image.
 
@@ -1382,12 +1542,11 @@ class ChromeOSFactoryBundle(object):
         CrosPayloadUtils.ReplaceComponent(
             json_path, PAYLOAD_TYPE_TOOLKIT_CONFIG, config_file.name)
 
-    payloads_size = ChromeOSFactoryBundle.GetDiskUsage(payloads_dir)
+    payloads_size = SysUtils.GetDiskUsage(payloads_dir)
     print('cros_payloads size: %s M' % (payloads_size / MEGABYTE))
 
     shutil.copyfile(self.factory_shim, output)
-    ChromeOSFactoryBundle.ExpandPartition(
-        output, PART_CROS_STATEFUL, payloads_size)
+    ExpandPartition(output, PART_CROS_STATEFUL, payloads_size)
 
     with Partition(output, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
       print('Moving payload files to disk image...')
@@ -1424,8 +1583,6 @@ class ChromeOSFactoryBundle(object):
                            DIR_CROS_PAYLOADS)
 
       metadata = _ReadRMAMetadata(stateful)
-      if not metadata:
-        raise RuntimeError('Cannot get metadata, is this a RMA shim?')
 
       print('This RMA shim contains boards: %s' % (
           ' '.join(board_info.board for board_info in metadata)))
@@ -1465,8 +1622,7 @@ class ChromeOSFactoryBundle(object):
         payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
         json_path = CrosPayloadUtils.GetJSONPath(payloads_dir, self.board)
         json_file = os.path.basename(json_path)
-        resources.append(
-            (json_file, ChromeOSFactoryBundle.GetDiskUsage(json_path)))
+        resources.append((json_file, SysUtils.GetDiskUsage(json_path)))
         with open(json_path) as f:
           metadata = json.load(f)
           for resource in metadata.values():
@@ -1474,8 +1630,7 @@ class ChromeOSFactoryBundle(object):
               if subtype == PAYLOAD_SUBTYPE_VERSION:
                 continue
               path = os.path.join(payloads_dir, payload)
-              resources.append(
-                  (payload, ChromeOSFactoryBundle.GetDiskUsage(path)))
+              resources.append((payload, SysUtils.GetDiskUsage(path)))
       return resources
 
   @staticmethod
@@ -1630,8 +1785,7 @@ class ChromeOSFactoryBundle(object):
     else:
       # Stateful partition needs to shrink
       logging.debug('Shrinking stateful file system...')
-      ChromeOSFactoryBundle.ShrinkPartition(
-          output, PART_CROS_STATEFUL, diff_payload_size)
+      ShrinkPartition(output, PART_CROS_STATEFUL, diff_payload_size)
 
     with new_state.Mount(rw=True) as stateful:
       board_list = []
@@ -1719,85 +1873,23 @@ class ChromeOSFactoryBundle(object):
       assert component in PAYLOAD_COMPONENTS, (
           'Unknown component "%s"', component)
 
-    with SysUtils.TempDirectory() as temp_dir:
-      new_payloads_dir = os.path.join(temp_dir, DIR_CROS_PAYLOADS)
-      ChromeOSFactoryBundle.CreateDirectory(new_payloads_dir)
-      with Partition(image, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
-        old_payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
-        if not os.path.exists(old_payloads_dir):
-          raise RuntimeError('Cannot find dir /%s, is this a RMA shim?' %
-                             DIR_CROS_PAYLOADS)
+    if board is None:
+      with Partition(image, PART_CROS_STATEFUL).Mount() as stateful:
+        rma_metadata = _ReadRMAMetadata(stateful)
+      if len(rma_metadata) == 1:
+        board = rma_metadata[0].board
+      else:
+        raise RuntimeError('Board not set.')
 
-        metadata = _ReadRMAMetadata(stateful)
-        if not metadata:
-          raise RuntimeError('Cannot get metadata, is this a RMA shim?')
+    with CrosPayloadUtils.TempPayloadsDir() as temp_dir:
+      CrosPayloadUtils.CopyComponentsInImage(image, board, [], temp_dir)
+      json_path = CrosPayloadUtils.GetJSONPath(temp_dir, board)
+      for component, payload in replaced_payloads.iteritems():
+        CrosPayloadUtils.ReplaceComponent(json_path, component, payload)
+      CrosPayloadUtils.ReplaceComponentsInImage(image, board, temp_dir)
 
-        if board is None:
-          if len(metadata) == 1:
-            board = metadata[0].board
-            print('Setting target board to %s.' % board)
-          else:
-            raise RuntimeError('Board not set.')
-
-        # Copy metadata json file.
-        old_json_path = CrosPayloadUtils.GetJSONPath(old_payloads_dir, board)
-        if not os.path.exists(old_json_path):
-          raise RuntimeError('Cannot find board config "%s".' % old_json_path)
-        new_json_path = CrosPayloadUtils.GetJSONPath(new_payloads_dir, board)
-        Shell(['cp', '-pf', old_json_path, new_json_path])
-
-        # Add new payload in temp_dir/cros_payloads.
-        for component, payload in replaced_payloads.iteritems():
-          CrosPayloadUtils.AddComponent(new_json_path, component, payload)
-
-        # Remove unused and duplicate files.
-        replaced_files = set()
-        added_files = set()
-        other_files = set()
-        for component in replaced_payloads:
-          replaced_files.update(
-              CrosPayloadUtils.GetComponentFiles(old_json_path, component))
-          added_files.update(
-              CrosPayloadUtils.GetComponentFiles(new_json_path, component))
-          for info in metadata:
-            if info.board != board:
-              board_component_files = CrosPayloadUtils.GetComponentFiles(
-                  CrosPayloadUtils.GetJSONPath(old_payloads_dir, info.board),
-                  component)
-              other_files.update(board_component_files)
-
-        # Remove replaced files that are not used by other boards.
-        for f in replaced_files - added_files - other_files:
-          file_path = os.path.join(old_payloads_dir, f)
-          print('Remove unused payload file %s.' % os.path.basename(f))
-          Sudo(['rm', '-f', file_path])
-
-        # Don't copy files that already exists.
-        for f in added_files & (replaced_files | other_files):
-          file_path = os.path.join(new_payloads_dir, f)
-          print('Remove duplicate payload file %s.' % os.path.basename(f))
-          Sudo(['rm', '-f', file_path])
-
-        remain_size = ChromeOSFactoryBundle.GetRemainingSize(stateful)
-        new_payloads_size = ChromeOSFactoryBundle.GetDiskUsage(new_payloads_dir)
-
-      # Expand stateful partition if needed.
-      if remain_size < new_payloads_size:
-        ChromeOSFactoryBundle.ExpandPartition(
-            image, PART_CROS_STATEFUL, new_payloads_size - remain_size)
-
-      # Move the added payloads to stateful partition
-      with Partition(image, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
-        Sudo(['chown', '-R', 'root:root', new_payloads_dir])
-        Sudo(['rsync', '-a', new_payloads_dir, stateful])
-
-      # Shrink stateful partition if used space decreases.
-      if remain_size > new_payloads_size:
-        ChromeOSFactoryBundle.ShrinkPartition(
-            image, PART_CROS_STATEFUL, remain_size - new_payloads_size)
-
-      with Partition(image, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
-        Sudo(['df', '-h', stateful])
+    with Partition(image, PART_CROS_STATEFUL).Mount() as stateful:
+      Sudo(['df', '-h', stateful])
 
   @staticmethod
   def GetKernelVersion(image_path):
