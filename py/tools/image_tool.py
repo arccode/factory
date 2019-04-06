@@ -487,30 +487,33 @@ class CrosPayloadUtils(object):
           Shell(['cp', '-pf', f_path, dest_payloads_dir])
 
   @classmethod
-  def ReplaceComponentsInImage(cls, image, board, new_payloads_dir):
+  def ReplaceComponentsInImage(cls, image, boards, new_payloads_dir):
     """Replace payload metada json file and component files in an image.
 
     Args:
       image: path to RMA shim image.
-      board: board name.
+      boards: board name, or a list of board names.
       new_payloads_dir: directory containing the new payload files.
     """
-    new_json_path = cls.GetJSONPath(new_payloads_dir, board)
+    if isinstance(boards, basestring):
+      boards = [boards]
 
     with Partition(image, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
       rma_metadata = _ReadRMAMetadata(stateful)
       old_payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
-      old_json_path = cls.GetJSONPath(old_payloads_dir, board)
 
-      # Remove unused and duplicate files.
-      old_files = set(cls.GetAllComponentFiles(old_json_path))
-      new_files = set(cls.GetAllComponentFiles(new_json_path))
+      old_files = set()
+      new_files = set()
       other_files = set()
       for info in rma_metadata:
-        if info.board != board:
-          board_component_files = cls.GetAllComponentFiles(
-              cls.GetJSONPath(old_payloads_dir, info.board))
-          other_files.update(board_component_files)
+        if info.board in boards:
+          old_json_path = cls.GetJSONPath(old_payloads_dir, info.board)
+          old_files.update(cls.GetAllComponentFiles(old_json_path))
+          new_json_path = cls.GetJSONPath(new_payloads_dir, info.board)
+          new_files.update(cls.GetAllComponentFiles(new_json_path))
+        else:
+          other_json_path = cls.GetJSONPath(old_payloads_dir, info.board)
+          other_files.update(cls.GetAllComponentFiles(other_json_path))
 
       # Remove old files that are not used by any boards.
       for f in old_files - new_files - other_files:
@@ -1661,19 +1664,10 @@ class ChromeOSFactoryBundle(object):
                    a reduced list with same or less elements. The remaining
                    board entries will be merged into a single RMA shim.
     """
-
-    def _GetPayloadSize(entries):
-      """Get the sum of payload size of all board entries."""
-      payloads = [entry.GetPayloadSizes() for entry in entries]
-      payloads_set = set().union(*payloads)
-      payloads_size = sum(p[1] for p in payloads_set)
-      return payloads_size
-
     # A list of entries in every images.
     entries = []
     # A dict that maps an image to a list of entries that belongs to the image.
     image_entries_map = {}
-    stateful_parts = []
     kern_rootfs_parts = []
     block_size = 0
     # Currently we only support merging images in same block size.
@@ -1684,7 +1678,6 @@ class ChromeOSFactoryBundle(object):
       assert gpt.block_size == block_size, (
           'Cannot merge image %s due to different block size (%s, %s)' %
           (image, block_size, gpt.block_size))
-      stateful_parts.append(gpt.GetPartition(PART_CROS_STATEFUL))
       # A list of entries in `image`.
       image_entries = []
       with gpt.GetPartition(PART_CROS_STATEFUL).Mount() as stateful:
@@ -1702,14 +1695,7 @@ class ChromeOSFactoryBundle(object):
       entries += image_entries
       image_entries_map[image] = image_entries
 
-    # Count the payload size of each images separately.
-    old_payload_size = sum([_GetPayloadSize(image_entries)
-                            for image_entries in image_entries_map.values()])
     entries = select_func(entries)
-    # Count the payload size in the merged image.
-    new_payload_size = _GetPayloadSize(entries)
-    diff_payload_size = old_payload_size - new_payload_size
-    assert diff_payload_size >= 0, 'Merged payload should not become larger.'
 
     for entry in entries:
       kern_rootfs_parts.append(entry.kernel)
@@ -1717,14 +1703,9 @@ class ChromeOSFactoryBundle(object):
 
     # Build a new image based on first image's layout.
     gpt = pygpt.GPT.LoadFromFile(images[0])
+    part_state = gpt.GetPartition(PART_CROS_STATEFUL)
     pad_blocks = gpt.header.FirstUsableLBA
-    # We can remove at least `diff_payload_size` space from stateful partition,
-    # but cannot make it smaller than the original size before copying the
-    # contents.
-    final_state_blocks = (
-        sum(p.blocks for p in stateful_parts) - diff_payload_size / block_size)
-    state_blocks = max(stateful_parts[0].blocks, final_state_blocks)
-    data_blocks = state_blocks + sum(p.blocks for p in kern_rootfs_parts)
+    data_blocks = part_state.blocks + sum(p.blocks for p in kern_rootfs_parts)
     # pad_blocks hold header and partition tables, in front and end of image.
     new_size = (data_blocks + pad_blocks * 2) * block_size
 
@@ -1740,8 +1721,8 @@ class ChromeOSFactoryBundle(object):
             data_blocks), 'Disk image is too small.'
 
     used_guids = []
-    def AddPartition(number, p, begin, blocks=None):
-      next_lba = begin + (blocks or p.blocks)
+    def AddPartition(number, p, begin):
+      next_lba = begin + p.blocks
       guid = p.UniqueGUID
       if guid in used_guids:
         # Ideally we don't need to change UniqueGUID, but if user specified same
@@ -1765,8 +1746,7 @@ class ChromeOSFactoryBundle(object):
     begin = gpt.header.FirstUsableLBA
     for i, p in enumerate(kern_rootfs_parts, 2):
       begin = AddPartition(i, p, begin)
-    stateful_begin = begin
-    AddPartition(1, stateful_parts[0], stateful_begin, state_blocks)
+    AddPartition(1, Partition(images[0], PART_CROS_STATEFUL), begin)
 
     gpt.WriteToFile(output)
     gpt.WriteProtectiveMBR(output, create=True)
@@ -1774,41 +1754,38 @@ class ChromeOSFactoryBundle(object):
     old_state = Partition(images[0], PART_CROS_STATEFUL)
     # TODO(chenghan): Find a way to copy stateful without cros_payloads/
     old_state.Copy(new_state, check_equal=False)
-    with new_state.Mount(rw=True) as stateful:
-      payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
-      Sudo('rm -rf "%s"/*' % payloads_dir)
 
-    if state_blocks == final_state_blocks:
-      # Stateful partition is expanded
-      logging.debug('Maximize stateful file system...')
-      new_state.ResizeFileSystem()
-    else:
-      # Stateful partition needs to shrink
-      logging.debug('Shrinking stateful file system...')
-      ShrinkPartition(output, PART_CROS_STATEFUL, diff_payload_size)
-
-    with new_state.Mount(rw=True) as stateful:
-      board_list = []
-      for index, entry in enumerate(entries):
-        with Partition(entry.image, PART_CROS_STATEFUL).Mount() as src_dir:
-          print('Copying %s board ...' % entry.board)
+    with CrosPayloadUtils.TempPayloadsDir() as temp_payloads_dir:
+      with Partition(output, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
+        payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+        Sudo('rm -rf "%s"/*' % payloads_dir)
+        board_info_list = []
+        for index, entry in enumerate(entries):
           # Copy payloads in stateful partition
-          src_payloads_dir = os.path.join(src_dir, DIR_CROS_PAYLOADS)
-          src_metadata_path = CrosPayloadUtils.GetJSONPath(
-              src_payloads_dir, entry.board)
-          target_payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
-          ChromeOSFactoryBundle.CopyPayloads(
-              src_payloads_dir, target_payloads_dir, src_metadata_path)
+          print('Copying %s board payload ...' % entry.board)
+          with Partition(entry.image, PART_CROS_STATEFUL).Mount() as src_dir:
+            src_payloads_dir = os.path.join(src_dir, DIR_CROS_PAYLOADS)
+            src_metadata_path = CrosPayloadUtils.GetJSONPath(
+                src_payloads_dir, entry.board)
+            ChromeOSFactoryBundle.CopyPayloads(
+                src_payloads_dir, temp_payloads_dir, src_metadata_path)
           # Copy kernel/rootfs partitions
+          print('Copying %s board kernel/rootfs ...' % entry.board)
           new_kernel = index * 2 + PART_CROS_KERNEL_A
           new_rootfs = index * 2 + PART_CROS_ROOTFS_A
           entry.kernel.Copy(Partition(output, new_kernel))
           entry.rootfs.Copy(Partition(output, new_rootfs))
-          board_list.append(
+          board_info_list.append(
               RMAImageBoardInfo(entry.board, new_kernel, new_rootfs))
 
-      _WriteRMAMetadata(stateful, board_list)
+        _WriteRMAMetadata(stateful, board_info_list)
+        for info in board_info_list:
+          CrosPayloadUtils.InitMetaData(payloads_dir, info.board, mounted=True)
 
+      CrosPayloadUtils.ReplaceComponentsInImage(
+          output, [entry.board for entry in entries], temp_payloads_dir)
+
+    with Partition(output, PART_CROS_STATEFUL).Mount() as stateful:
       Sudo(['df', '-h', stateful])
 
   @staticmethod
