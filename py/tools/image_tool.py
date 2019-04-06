@@ -62,6 +62,8 @@ PART_CROS_ROOTFS_B = 5
 FS_TYPE_CROS_ROOTFS = 'ext2'
 # Relative path of firmware updater on Chrome OS disk images.
 PATH_CROS_FIRMWARE_UPDATER = '/usr/sbin/chromeos-firmwareupdate'
+# Relative path of lsb-factory in factory installer.
+PATH_LSB_FACTORY = os.path.join('dev_image', 'etc', 'lsb-factory')
 # The name of folder must match /etc/init/cros-payloads.conf.
 DIR_CROS_PAYLOADS = 'cros_payloads'
 # Relative path of RMA image metadata.
@@ -87,12 +89,17 @@ DEFAULT_BLOCK_SIZE = pygpt.GPT.DEFAULT_BLOCK_SIZE
 # Components for cros_payload
 PAYLOAD_COMPONENTS = [
     'release_image', 'test_image',
-    'toolkit', 'firmware', 'hwid', 'complete', 'toolkit_config']
+    'toolkit', 'firmware', 'hwid', 'complete', 'toolkit_config', 'lsb_factory']
 # Payload types
 PAYLOAD_TYPE_TOOLKIT = 'toolkit'
 PAYLOAD_TYPE_TOOLKIT_CONFIG = 'toolkit_config'
+PAYLOAD_TYPE_LSB_FACTORY = 'lsb_factory'
 # Payload subtypes
 PAYLOAD_SUBTYPE_VERSION = 'version'
+# Warning message in lsb-factory file.
+LSB_FACTORY_WARNING_MESSAGE = (
+    '# Please use image_tool to set lsb-factory config.\n'
+    '# Manual modifications will be overwritten at runtime!\n')
 
 
 def MakePartition(block_dev, part):
@@ -288,6 +295,24 @@ class SysUtils(object):
         SudoOutput(['df', '-k', '--output=avail', path]).splitlines()[1]) * 1024
 
   @staticmethod
+  def WriteFile(f, content):
+    """Clears the original content and write new content to a file object."""
+    f.seek(0)
+    f.truncate()
+    f.write(content)
+    f.flush()
+
+  @staticmethod
+  def WriteFileToMountedDir(mounted_dir, file_name, content):
+    with tempfile.NamedTemporaryFile() as f:
+      f.write(content)
+      f.flush()
+      os.chmod(f.name, 0o644)
+      dest = os.path.join(mounted_dir, file_name)
+      Sudo(['cp', '-pf', f.name, dest])
+      Sudo(['chown', 'root:root', dest])
+
+  @staticmethod
   @contextlib.contextmanager
   def SetUmask(mask):
     old_umask = os.umask(mask)
@@ -334,7 +359,8 @@ class CrosPayloadUtils(object):
   def InitMetaData(cls, payloads_dir, board, mounted=False):
     json_path = cls.GetJSONPath(payloads_dir, board)
     if mounted:
-      cls.AddMountedPayloadFile(payloads_dir, os.path.basename(json_path), '{}')
+      SysUtils.WriteFileToMountedDir(
+          payloads_dir, os.path.basename(json_path), '{}')
     else:
       with open(json_path, 'w') as f:
         f.write('{}')
@@ -1031,8 +1057,7 @@ def _WriteRMAMetadata(stateful, board_list):
   """
   payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
   content = json.dumps([b.ToDict() for b in board_list])
-  CrosPayloadUtils.AddMountedPayloadFile(
-      payloads_dir, CROS_RMA_METADATA, content)
+  SysUtils.WriteFileToMountedDir(payloads_dir, CROS_RMA_METADATA, content)
 
 
 def _ReadRMAMetadata(stateful):
@@ -1181,6 +1206,8 @@ class ChromeOSFactoryBundle(object):
     self.complete = complete
     self.netboot = netboot
     self.toolkit_config = toolkit_config
+    # Always get lsb_factory from factory shim.
+    self._lsb_factory = None
     self.setup_dir = setup_dir
     self.server_url = server_url
 
@@ -1303,6 +1330,18 @@ class ChromeOSFactoryBundle(object):
     self._firmware = part.CopyFile(
         PATH_CROS_FIRMWARE_UPDATER, self._temp_dir, fs_type=FS_TYPE_CROS_ROOTFS)
     return self._firmware
+
+  @property
+  def lsb_factory(self):
+    if not self.factory_shim:
+      return None
+    elif self._lsb_factory is not None:
+      return self._lsb_factory
+
+    part = Partition(self.factory_shim, PART_CROS_STATEFUL)
+    logging.info('Loaded %s from %s.', PATH_LSB_FACTORY, part)
+    self._lsb_factory = part.CopyFile(PATH_LSB_FACTORY, self._temp_dir)
+    return self._lsb_factory
 
   @staticmethod
   def CreateDirectory(dir_name, mode=MODE_NEW_DIR):
@@ -1512,8 +1551,7 @@ class ChromeOSFactoryBundle(object):
 
     logging.debug('Add /etc/lsb-factory if not exists.')
     with part.Mount(rw=True) as stateful:
-      Sudo(['touch', os.path.join(stateful, 'dev_image', 'etc', 'lsb-factory')],
-           check=False)
+      Sudo(['touch', os.path.join(stateful, PATH_LSB_FACTORY)], check=False)
     return new_size
 
   def CreateRMAImage(self, output, active_test_list=None):
@@ -1547,12 +1585,28 @@ class ChromeOSFactoryBundle(object):
         except Exception:
           config = {}
         config.update({'active_test_list': {'id': active_test_list}})
-        config_file.seek(0)
-        config_file.truncate()
-        config_file.write(json.dumps(config, indent=2, separators=(',', ': ')))
-        config_file.flush()
+        SysUtils.WriteFile(config_file,
+                           json.dumps(config, indent=2, separators=(',', ': ')))
         CrosPayloadUtils.ReplaceComponent(
             json_path, PAYLOAD_TYPE_TOOLKIT_CONFIG, config_file.name)
+
+    # Clear lsb-factory file.
+    with Partition(
+        self.factory_shim, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
+      SysUtils.WriteFileToMountedDir(
+          stateful, PATH_LSB_FACTORY, LSB_FACTORY_WARNING_MESSAGE)
+
+    # Update lsb_factory payload.
+    with tempfile.NamedTemporaryFile() as lsb_file:
+      CrosPayloadUtils.InstallComponents(
+          json_path, lsb_file.name, PAYLOAD_TYPE_LSB_FACTORY, silent=True)
+
+      lsb = LSBFile(lsb_file.name)
+      lsb.AppendValue('FACTORY_INSTALL_FROM_USB', '1')
+      lsb.AppendValue('RMA_AUTORUN', 'true')
+      SysUtils.WriteFile(lsb_file, lsb.AsRawData())
+      CrosPayloadUtils.ReplaceComponent(
+          json_path, PAYLOAD_TYPE_LSB_FACTORY, lsb_file.name)
 
     payloads_size = SysUtils.GetDiskUsage(payloads_dir)
     print('cros_payloads size: %s M' % (payloads_size / MEGABYTE))
@@ -1568,14 +1622,6 @@ class ChromeOSFactoryBundle(object):
                            DIR_CROS_PAYLOADS)
       Sudo(['chown', '-R', 'root:root', payloads_dir])
       Sudo(['mv', '-f', payloads_dir, stateful])
-
-      # Update lsb-factory file.
-      lsb_path = os.path.join(stateful, 'dev_image', 'etc', 'lsb-factory')
-      lsb_file = LSBFile(lsb_path if os.path.exists(lsb_path) else None)
-      lsb_file.AppendValue('FACTORY_INSTALL_FROM_USB', '1')
-      lsb_file.AppendValue('USE_CROS_PAYLOAD', '1')
-      lsb_file.AppendValue('RMA_AUTORUN', 'true')
-      lsb_file.Install(lsb_path)
 
       _WriteRMAMetadata(stateful,
                         board_list=[RMAImageBoardInfo(board=self.board)])
@@ -1778,6 +1824,15 @@ class ChromeOSFactoryBundle(object):
                 src_payloads_dir, entry.board)
             ChromeOSFactoryBundle.CopyPayloads(
                 src_payloads_dir, temp_payloads_dir, src_metadata_path)
+            # Check if the board has lsb_factory payload.
+            temp_metadata_path = CrosPayloadUtils.GetJSONPath(
+                temp_payloads_dir, entry.board)
+            with open(temp_metadata_path) as f:
+              temp_metadata = json.load(f)
+            if PAYLOAD_TYPE_LSB_FACTORY not in temp_metadata:
+              lsb_path = os.path.join(src_dir, PATH_LSB_FACTORY)
+              CrosPayloadUtils.AddComponent(
+                  temp_metadata_path, PAYLOAD_TYPE_LSB_FACTORY, lsb_path)
           # Copy kernel/rootfs partitions
           print('Copying %s board kernel/rootfs ...' % entry.board)
           new_kernel = index * 2 + PART_CROS_KERNEL_A
@@ -1787,9 +1842,13 @@ class ChromeOSFactoryBundle(object):
           board_info_list.append(
               RMAImageBoardInfo(entry.board, new_kernel, new_rootfs))
 
+        # Write rma_metadata.json and initialize <board>.json.
         _WriteRMAMetadata(stateful, board_info_list)
         for info in board_info_list:
           CrosPayloadUtils.InitMetaData(payloads_dir, info.board, mounted=True)
+        # Clear lsb-factory in output image.
+        SysUtils.WriteFileToMountedDir(
+            stateful, PATH_LSB_FACTORY, LSB_FACTORY_WARNING_MESSAGE)
 
       CrosPayloadUtils.ReplaceComponentsInImage(
           output, [entry.board for entry in entries], temp_payloads_dir)
@@ -2095,7 +2154,7 @@ class ChromeOSFactoryBundle(object):
       shim_path = AddResource('factory_shim', self.factory_shim, do_copy=True)
       with Partition(shim_path, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
         logging.info('Patching factory_shim lsb-factory file...')
-        lsb = LSBFile(os.path.join(stateful, 'dev_image', 'etc', 'lsb-factory'))
+        lsb = LSBFile(os.path.join(stateful, PATH_LSB_FACTORY))
         lsb.SetValue('CHROMEOS_AUSERVER', self.server_url)
         lsb.SetValue('CHROMEOS_DEVSERVER', self.server_url)
         lsb.Install(lsb.GetPath())
@@ -2846,6 +2905,9 @@ class EditLSBCommand(SubCommand):
     self.subparser.add_argument(
         '-i', '--image', type=ArgTypes.ExistsPath, required=True,
         help='Path to the factory_install image.')
+    self.subparser.add_argument(
+        '--board', type=str, default=None,
+        help='Board to edit lsb file.')
 
   def _DoURL(self, title, keys, default_port=8080, suffix=''):
     host = raw_input('Enter %s host: ' % title).strip()
@@ -2958,6 +3020,7 @@ class EditLSBCommand(SubCommand):
 
     while True:
       if redo_options:
+        Shell(['clear'])
         print('=' * 72)
         print(self.lsb.AsRawData())
         print('-' * 72)
@@ -2985,36 +3048,87 @@ class EditLSBCommand(SubCommand):
         return
       redo_options = True
 
-  def Write(self):
-    """Apply changes and exit."""
-    if self.old_data == self.lsb.AsRawData():
-      print('QUIT. No modifications.')
-    else:
-      self.lsb.Install(self.lsb.GetPath(), backup=True)
-      print('DONE. All changes saved properly.')
-    return True
+  def FindBoard(self):
+    """Try to find the board name from a shim image."""
+    try:
+      with Partition(self.args.image, PART_CROS_STATEFUL).Mount() as stateful:
+        metadata = _ReadRMAMetadata(stateful)
+    except Exception:
+      # Just a reset shim. Read board from lsb-release.
+      with Partition(self.args.image, PART_CROS_ROOTFS_A).Mount() as rootfs:
+        lsb_path = os.path.join(rootfs, 'etc', 'lsb-release')
+        board = LSBFile(lsb_path).GetChromeOSBoard()
+        return board
 
-  def Quit(self):
-    """Quit without saving changes."""
-    print('QUIT. No changes were applied.')
-    return True
+    # Single-board RMA shim.
+    if len(metadata) == 1:
+      return metadata[0].board
+    # Multi-board shim.
+    raise RuntimeError('Please specify board in a multi-board shim.')
 
   def Run(self):
-    lsb_file = os.path.join('dev_image', 'etc', 'lsb-factory')
-    with Partition(self.args.image, PART_CROS_STATEFUL).Mount(rw=True) as state:
-      src_file = os.path.join(state, lsb_file)
-      if not os.path.exists(src_file):
-        raise RuntimeError(
-            'No %s file in disks image: %s. Please make sure you have '
-            'specified a factory_install image.' % (lsb_file, self.args.image))
-      self.lsb = LSBFile(src_file)
-      self.old_data = self.lsb.AsRawData()
-      self.DoMenu(self.EditServerAddress,
-                  self.EditBoardPrompt,
-                  self.EditCutOff,
-                  self.EditRMAAutorun,
-                  w=self.Write,
-                  q=self.Quit)
+    if self.args.board is None:
+      self.args.board = self.FindBoard()
+
+    with CrosPayloadUtils.TempPayloadsDir() as temp_dir:
+      CrosPayloadUtils.CopyComponentsInImage(
+          self.args.image, self.args.board, [PAYLOAD_TYPE_LSB_FACTORY],
+          temp_dir, create_metadata=True)
+      json_path = CrosPayloadUtils.GetJSONPath(temp_dir, self.args.board)
+
+      with tempfile.NamedTemporaryFile() as lsb_file:
+        # variables for legacy lsb-factory
+        legacy_lsb = False
+        stateful_part = Partition(self.args.image, PART_CROS_STATEFUL)
+
+        try:
+          CrosPayloadUtils.InstallComponents(
+              json_path, lsb_file.name, PAYLOAD_TYPE_LSB_FACTORY,
+              silent=True)
+        except Exception:
+          legacy_lsb = True
+          print('----------------------------------------------------------')
+          print('This is an old RMA shim image without lsb_factory payload.')
+          print('This command will modify %s file.' % PATH_LSB_FACTORY)
+          print('----------------------------------------------------------')
+          raw_input('Press ENTER to continue.')
+          with stateful_part.Mount() as stateful:
+            lsb_path = os.path.join(stateful, PATH_LSB_FACTORY)
+            Shell(['cp', '-pf', lsb_path, lsb_file.name])
+
+        self.lsb = LSBFile(lsb_file.name)
+        self.old_data = self.lsb.AsRawData()
+
+        def Write():
+          """Apply changes and exit."""
+          if self.old_data != self.lsb.AsRawData():
+            SysUtils.WriteFile(lsb_file, self.lsb.AsRawData())
+            if legacy_lsb:
+              with stateful_part.Mount(rw=True) as stateful:
+                lsb_path = os.path.join(stateful, PATH_LSB_FACTORY)
+                Sudo(['cp', '-pf', lsb_file.name, lsb_path])
+                Sudo(['chown', 'root:root', lsb_path])
+            else:
+              CrosPayloadUtils.AddComponent(
+                  json_path, PAYLOAD_TYPE_LSB_FACTORY, lsb_file.name)
+              CrosPayloadUtils.ReplaceComponentsInImage(
+                  self.args.image, self.args.board, temp_dir)
+            print('DONE. All changes saved properly.')
+          else:
+            print('QUIT. No modifications.')
+          return True
+
+        def Quit():
+          """Quit without saving changes."""
+          print('QUIT. No changes were applied.')
+          return True
+
+        self.DoMenu(self.EditServerAddress,
+                    self.EditBoardPrompt,
+                    self.EditCutOff,
+                    self.EditRMAAutorun,
+                    w=Write,
+                    q=Quit)
 
 
 def main():
