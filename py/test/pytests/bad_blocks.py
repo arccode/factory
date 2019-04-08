@@ -48,6 +48,13 @@ want to override ``max_bytes`` in your test list.  For example, to change it to
       }
     }
   }
+
+Troubleshooting
+---------------
+If the test image is installed by `chromeos-install` and pytest complains
+there's no unused space to be checked, re-install the image via factory shim
+or netboot.  You can find different ways to install images at here:
+https://chromium.googlesource.com/chromiumos/platform/factory/+/master#Imaging-methods
 """
 
 from collections import namedtuple
@@ -235,8 +242,11 @@ class BadBlocksTest(test_case.TestCase):
                      'last_block']]))
 
       fail_desc = 'There is no unused space after stateful partition.'
-      session.console.error(
-          fail_desc + '  Was the OS installed by `chromeos-install`?')
+      if sectors_to_test <= 0:
+        session.console.error(
+            fail_desc + ' Was the OS installed by `chromeos-install`?' +
+            ' You should image the device via factory install shim or netboot.'
+            + ' See "Troubleshooting" in pytest header for detail.')
       self.assertGreaterEqual(last_block, first_block, fail_desc)
     else:
       raise ValueError('Invalid mode selected, check test_list mode setting.')
