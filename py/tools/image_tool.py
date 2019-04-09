@@ -89,6 +89,7 @@ PAYLOAD_COMPONENTS = [
     'release_image', 'test_image',
     'toolkit', 'firmware', 'hwid', 'complete', 'toolkit_config']
 # Payload types
+PAYLOAD_TYPE_TOOLKIT = 'toolkit'
 PAYLOAD_TYPE_TOOLKIT_CONFIG = 'toolkit_config'
 # Payload subtypes
 PAYLOAD_SUBTYPE_VERSION = 'version'
@@ -356,6 +357,14 @@ class CrosPayloadUtils(object):
       components = [components]
     Sudo([cls.GetProgramPath(), 'install', json_path, dest] + components,
          **kargs)
+
+  @classmethod
+  def GetToolkit(cls, json_path, toolkit_path):
+    """Extract the toolkit in cros_payload and make it executable."""
+    Shell(['touch', toolkit_path])
+    cls.InstallComponents(
+        json_path, toolkit_path, PAYLOAD_TYPE_TOOLKIT, silent=True)
+    os.chmod(toolkit_path, 0o755)
 
   @classmethod
   def GetComponentVersions(cls, json_path):
@@ -2526,6 +2535,95 @@ class ReplaceRMAPayloadCommand(SubCommand):
         toolkit_config=self.args.toolkit_config)
     ChromeOSFactoryBundle.ShowRMAImage(self.args.image)
     print('OK: Replaced payloads successfully in image: %s' % self.args.image)
+
+
+class GetRMAToolkitCommand(SubCommand):
+  """Extract the factory toolkit in an RMA image."""
+  name = 'get_toolkit'
+
+  def Init(self):
+    self.subparser.add_argument(
+        '-i', '--image', required=True,
+        type=ArgTypes.ExistsPath,
+        help='Path to input RMA image.')
+    self.subparser.add_argument(
+        '--board', type=str, default=None,
+        help='Board to get toolkit.')
+    self.subparser.add_argument(
+        '-p', '--path', required=True,
+        help='Directory to extract the toolkit. '
+             'The directory should not exist when calling this command.')
+
+  def Run(self):
+    if os.path.exists(self.args.path):
+      raise RuntimeError('Extract path "%s" already exists.' % self.args.path)
+    with SysUtils.TempDirectory() as temp_dir:
+      toolkit_path = os.path.join(temp_dir, 'toolkit')
+      with Partition(self.args.image, PART_CROS_STATEFUL).Mount() as stateful:
+        if self.args.board is None:
+          rma_metadata = _ReadRMAMetadata(stateful)
+          if len(rma_metadata) == 1:
+            self.args.board = rma_metadata[0].board
+          else:
+            raise RuntimeError('Board not set.')
+        payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+        json_path = CrosPayloadUtils.GetJSONPath(payloads_dir, self.args.board)
+        CrosPayloadUtils.GetToolkit(json_path, toolkit_path)
+      # Extract toolkit.
+      Shell([toolkit_path, '--target', self.args.path, '--noexec'])
+    print('OK: Extracted %s toolkit to directory %s' %
+          (self.args.board, self.args.path))
+
+
+class RepackToolkitCommand(SubCommand):
+  """Repack the factory toolkit to an RMA shim."""
+  name = 'repack_toolkit'
+
+  def Init(self):
+    self.subparser.add_argument(
+        '-i', '--image', required=True,
+        type=ArgTypes.ExistsPath,
+        help='Path to input RMA image.')
+    self.subparser.add_argument(
+        '--board', type=str, default=None,
+        help='Board to get toolkit.')
+    self.subparser.add_argument(
+        '-p', '--path', required=True,
+        type=ArgTypes.ExistsPath,
+        help='Directory to extract the toolkit.')
+
+  def Run(self):
+    if not os.path.isdir(self.args.path):
+      raise RuntimeError('PATH should be a directory.')
+    with SysUtils.TempDirectory() as temp_dir:
+      old_toolkit_path = os.path.join(temp_dir, 'old_toolkit')
+      new_toolkit_path = os.path.join(temp_dir, 'new_toolkit')
+      # Extract old_toolkit.
+      with Partition(self.args.image, PART_CROS_STATEFUL).Mount() as stateful:
+        if self.args.board is None:
+          rma_metadata = _ReadRMAMetadata(stateful)
+          if len(rma_metadata) == 1:
+            self.args.board = rma_metadata[0].board
+          else:
+            raise RuntimeError('Board not set.')
+        old_payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+        old_json_path = CrosPayloadUtils.GetJSONPath(
+            old_payloads_dir, self.args.board)
+        CrosPayloadUtils.GetToolkit(old_json_path, old_toolkit_path)
+      # Repack to new_toolkit.
+      Shell([old_toolkit_path, '--', '--repack', self.args.path,
+             '--pack-into', new_toolkit_path])
+      # Replace old_toolkit in image with new_toolkit.
+      with CrosPayloadUtils.TempPayloadsDir() as new_payloads_dir:
+        CrosPayloadUtils.CopyComponentsInImage(
+            self.args.image, self.args.board, [], new_payloads_dir)
+        new_json_path = CrosPayloadUtils.GetJSONPath(
+            new_payloads_dir, self.args.board)
+        CrosPayloadUtils.ReplaceComponent(
+            new_json_path, PAYLOAD_TYPE_TOOLKIT, new_toolkit_path)
+        CrosPayloadUtils.ReplaceComponentsInImage(
+            self.args.image, self.args.board, new_payloads_dir)
+    print('OK: Repacked %s toolkit in RMA image' % self.args.board)
 
 
 class CreateBundleCommand(SubCommand):
