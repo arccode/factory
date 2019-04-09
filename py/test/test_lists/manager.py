@@ -17,6 +17,7 @@ from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
 # Directory for test lists.
@@ -37,8 +38,8 @@ ACTIVE_TEST_LIST_CONFIG_RELPATH = os.path.join(
 ACTIVE_TEST_LIST_CONFIG_PATH = os.path.join(
     paths.FACTORY_DIR, ACTIVE_TEST_LIST_CONFIG_RELPATH)
 
-# Override constants config
-OVERRIDE_CONSTANTS_CONFIG_NAME = 'override_test_list_constants'
+# Test list constants config
+CONSTANTS_CONFIG_NAME = 'test_list_constants'
 CONSTANTS_KEY = 'constants'
 
 # Default test list.
@@ -125,6 +126,17 @@ class Loader(object):
     # this path to check file state, so let's figure out the path by ourselves.
     self.config_dir = config_dir or TEST_LISTS_PATH
 
+  @type_utils.LazyProperty
+  def test_list_constants(self):
+    constants = {}
+    try:
+      constants = config_utils.LoadConfig(CONSTANTS_CONFIG_NAME)
+    except config_utils.ConfigNotFoundError:
+      logging.info('No test list constants config found')
+    except Exception as e:
+      logging.warn('Failed to load test list constants: %s', e)
+    return constants
+
   def Load(self, test_list_id, allow_inherit=True):
     """Loads test list config by test list ID.
 
@@ -145,12 +157,7 @@ class Loader(object):
       raise
 
     # Override constants from py/config if it exists
-    try:
-      constants = config_utils.LoadConfig(OVERRIDE_CONSTANTS_CONFIG_NAME)
-    except Exception:
-      logging.warn('Cannot load override constants')
-      constants = {}
-    loaded_config.get(CONSTANTS_KEY, {}).update(constants)
+    loaded_config.get(CONSTANTS_KEY, {}).update(self.test_list_constants)
 
     loaded_config = TestListConfig(
         resolved_config=loaded_config,

@@ -807,7 +807,7 @@ import os
 
 INSTALL_PATH_MAP = {
   'active_test_list': '/usr/local/factory/py/test/test_lists',
-  'override_test_list_constants': '/usr/local/factory/py/config'
+  'test_list_constants': '/usr/local/factory/py/config'
 }
 
 with open(sys.argv[1]) as f:
