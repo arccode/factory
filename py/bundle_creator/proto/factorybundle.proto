@@ -60,11 +60,23 @@ message GetBundleHistoriesRpcResponse {
   repeated BundleHistory histories = 1;
 }
 
+message DownloadBundleRpcRequest {
+  optional string path = 1;
+  optional string email = 2;
+}
+
+message DownloadBundleRpcResponse {
+  optional string download_link = 1;
+}
+
 service FactoryBundleService {
   rpc CreateBundleAsync(CreateBundleRpcRequest)
       returns (CreateBundleRpcResponse) {
   }
   rpc GetBundleHistories(GetBundleHistoriesRpcRequest)
       returns (GetBundleHistoriesRpcResponse) {
+  }
+  rpc DownloadBundle(DownloadBundleRpcRequest)
+      returns (DownloadBundleRpcResponse) {
   }
 }

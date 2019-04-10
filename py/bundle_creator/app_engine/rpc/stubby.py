@@ -6,6 +6,7 @@ import base64
 import json
 import os
 import time
+import urllib
 
 from protorpc import remote  # pylint: disable=import-error
 from protorpc import definition  # pylint: disable=import-error
@@ -114,6 +115,32 @@ class FactoryBundleService(remote.Service):
         for bundle in bundle_list:
           response.histories.append(bundle)
     response.histories.sort(key=lambda b: b.uploaded_timestamp_ms, reverse=True)
+    return response
+
+  @remote.method(
+      proto.DownloadBundleRpcRequest, proto.DownloadBundleRpcResponse)
+  def DownloadBundle(self, request):
+    scope = 'https://www.googleapis.com/auth/devstorage.full_control'
+    token = app_identity.get_access_token(scope)
+
+    entity = 'user-{}'.format(request.email)
+    request_body = {'role': 'READER'}
+    api_response = urlfetch.fetch(
+        'https://www.googleapis.com/storage/v1/b/{}/o/{}/acl/{}'.format(
+            _BUCKET,
+            urllib.quote_plus(request.path),
+            urllib.quote_plus(entity)),
+        method=urlfetch.PATCH,
+        payload=json.dumps(request_body),
+        headers={
+            'Authorization': 'OAuth {}'.format(token[0]),
+            'Content-Type': 'application/json'})
+    if api_response.status_code != 200:
+      raise Exception(json.loads(api_response.content)['error']['message'])
+
+    response = proto.DownloadBundleRpcResponse()
+    response.download_link = \
+        'https://storage.cloud.google.com/{}/{}'.format(_BUCKET, request.path)
     return response
 
   def GenerateSuccessBody(self, work_result):
