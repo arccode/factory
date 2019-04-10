@@ -24,7 +24,7 @@ import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test.test_lists import manager
+from cros.factory.test.test_lists import test_list_common
 from cros.factory.tools import install_symlinks
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
@@ -201,8 +201,10 @@ class FactoryToolkitInstaller(object):
     """Set the active test list for Goofy."""
     if self._active_test_list is not None:
       path = os.path.join(self._usr_local_dest, 'factory',
-                          manager.ACTIVE_TEST_LIST_CONFIG_RELPATH)
-      json_utils.DumpFile(path, {'id': self._active_test_list})
+                          test_list_common.ACTIVE_TEST_LIST_CONFIG_RELPATH)
+      json_utils.DumpFile(
+          path,
+          test_list_common.GenerateActiveTestListConfig(self._active_test_list))
 
   def _EnableApp(self, app, enabled):
     """Enable / disable @app.

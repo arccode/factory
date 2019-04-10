@@ -12,7 +12,7 @@ import mock
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
-from cros.factory.test.test_lists import manager
+from cros.factory.test.test_lists import test_list_common
 from cros.factory.test_list_editor.backend import rpc
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
@@ -42,7 +42,7 @@ class RPCTest(unittest.TestCase):
 
   def testSaveFiles(self):
     with file_utils.TempDirectory() as tmp_dir:
-      test_list_dir = os.path.join(tmp_dir, manager.TEST_LISTS_RELPATH)
+      test_list_dir = os.path.join(tmp_dir, test_list_common.TEST_LISTS_RELPATH)
       os.makedirs(test_list_dir)
       rpc_obj = rpc.RPC([('', tmp_dir)])
       content = 'hello, world'

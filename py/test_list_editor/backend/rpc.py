@@ -10,9 +10,8 @@ import os
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import i18n
-from cros.factory.test.test_lists import manager
+from cros.factory.test.test_lists import test_list_common
 from cros.factory.test.utils import pytest_utils
-from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
@@ -69,11 +68,11 @@ class RPC(object):
     dirs = []
     files = {}
     for dirname, dirpath in self.dirs:
-      test_list_dir = os.path.join(dirpath, manager.TEST_LISTS_RELPATH)
+      test_list_dir = os.path.join(dirpath, test_list_common.TEST_LISTS_RELPATH)
       filelist = []
       filepaths = glob.glob(os.path.join(
           test_list_dir,
-          '*' + manager.CONFIG_SUFFIX + config_utils.CONFIG_FILE_EXT))
+          test_list_common.GetTestListConfigFile('*')))
       for filepath in filepaths:
         basename = os.path.basename(filepath)
         if basename in files:
@@ -97,12 +96,12 @@ class RPC(object):
     """
 
     def IsForbidden(path):
-      if not path.endswith(
-          manager.CONFIG_SUFFIX + config_utils.CONFIG_FILE_EXT):
+      if not path.endswith(test_list_common.GetTestListConfigFile('')):
         return True
       path_dir = os.path.dirname(path)
       for unused_dirname, dirpath in self.dirs:
-        if path_dir == os.path.join(dirpath, manager.TEST_LISTS_RELPATH):
+        if path_dir == os.path.join(dirpath,
+                                    test_list_common.TEST_LISTS_RELPATH):
           return False
       return True
 

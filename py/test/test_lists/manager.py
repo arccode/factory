@@ -10,9 +10,9 @@ import os
 import zipimport
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.test.env import paths
 from cros.factory.test.test_lists import checker as checker_module
 from cros.factory.test.test_lists import test_list as test_list_module
+from cros.factory.test.test_lists import test_list_common
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
@@ -20,35 +20,8 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
 
 
-# Directory for test lists.
-TEST_LISTS_RELPATH = os.path.join('py', 'test', 'test_lists')
-TEST_LISTS_PATH = os.path.join(paths.FACTORY_DIR, TEST_LISTS_RELPATH)
-
-# File identifying the active test list.
-ACTIVE_TEST_LIST_CONFIG_NAME = 'active_test_list'
-ACTIVE_TEST_LIST_CONFIG_ID_KEY = 'id'
-
-# The active test list ID is the most important factory data that we
-# can't afford it to disappear unexpectedly.  Therefore, instead of
-# saving it as a runtime configuration, we would rather saving it as
-# a buildtime configuration manually.
-ACTIVE_TEST_LIST_CONFIG_RELPATH = os.path.join(
-    TEST_LISTS_RELPATH,
-    ACTIVE_TEST_LIST_CONFIG_NAME + config_utils.CONFIG_FILE_EXT)
-ACTIVE_TEST_LIST_CONFIG_PATH = os.path.join(
-    paths.FACTORY_DIR, ACTIVE_TEST_LIST_CONFIG_RELPATH)
-
-# Test list constants config
-CONSTANTS_CONFIG_NAME = 'test_list_constants'
-CONSTANTS_KEY = 'constants'
-
 # Default test list.
 DEFAULT_TEST_LIST_ID = 'main'
-
-# All test lists must have name: <id>.test_list.json
-CONFIG_SUFFIX = '.test_list'
-
-TEST_LIST_SCHEMA_NAME = 'test_list'
 
 
 class TestListConfig(object):
@@ -124,13 +97,14 @@ class Loader(object):
     # manager in factory par. The default_config_dirs config_utils.LoadConfig
     # will find should be the same one we compute here, however, we also need
     # this path to check file state, so let's figure out the path by ourselves.
-    self.config_dir = config_dir or TEST_LISTS_PATH
+    self.config_dir = config_dir or test_list_common.TEST_LISTS_PATH
 
   @type_utils.LazyProperty
   def test_list_constants(self):
     constants = {}
     try:
-      constants = config_utils.LoadConfig(CONSTANTS_CONFIG_NAME)
+      constants = config_utils.LoadConfig(
+          test_list_common.TEST_LIST_CONSTANTS_CONFIG_NAME)
     except config_utils.ConfigNotFoundError:
       logging.info('No test list constants config found')
     except Exception as e:
@@ -143,11 +117,11 @@ class Loader(object):
     Returns:
       :rtype: TestListConfig
     """
-    config_name = self._GetConfigName(test_list_id)
+    config_name = test_list_common.GetTestListConfigName(test_list_id)
     try:
       loaded_config = config_utils.LoadConfig(
           config_name=config_name,
-          schema_name=TEST_LIST_SCHEMA_NAME,
+          schema_name=test_list_common.TEST_LIST_SCHEMA_NAME,
           validate_schema=True,
           default_config_dirs=self.config_dir,
           allow_inherit=allow_inherit,
@@ -157,7 +131,8 @@ class Loader(object):
       raise
 
     # Override constants from py/config if it exists
-    loaded_config.get(CONSTANTS_KEY, {}).update(self.test_list_constants)
+    loaded_config.get(test_list_common.TEST_LIST_CONSTANTS_KEY, {}).update(
+        self.test_list_constants)
 
     loaded_config = TestListConfig(
         resolved_config=loaded_config,
@@ -166,15 +141,13 @@ class Loader(object):
 
     return loaded_config
 
-  def _GetConfigName(self, test_list_id):
-    """Returns the test list config file corresponding to `test_list_id`."""
-    return test_list_id + CONFIG_SUFFIX
-
   def FindTestLists(self):
     """Returns a dict which maps the id to the file path of each test list."""
     globbed_configs = config_utils.GlobConfig(
-        '*' + CONFIG_SUFFIX, default_config_dirs=self.config_dir)
-    return [name[:-len(CONFIG_SUFFIX)] for name in globbed_configs]
+        test_list_common.GetTestListConfigName('*'),
+        default_config_dirs=self.config_dir)
+    return [name[:-len(test_list_common.TEST_LIST_CONFIG_SUFFIX)]
+            for name in globbed_configs]
 
 
 class Manager(object):
@@ -267,9 +240,10 @@ class Manager(object):
     """
     try:
       config_data = config_utils.LoadConfig(
-          config_name=ACTIVE_TEST_LIST_CONFIG_NAME,
-          default_config_dirs=os.path.dirname(ACTIVE_TEST_LIST_CONFIG_PATH))
-      return config_data[ACTIVE_TEST_LIST_CONFIG_ID_KEY]
+          config_name=test_list_common.ACTIVE_TEST_LIST_CONFIG_NAME,
+          default_config_dirs=os.path.dirname(
+              test_list_common.ACTIVE_TEST_LIST_CONFIG_PATH))
+      return config_data[test_list_common.ACTIVE_TEST_LIST_CONFIG_ID_KEY]
 
     except config_utils.ConfigNotFoundError:
       logging.info('No active test list configuration is found, '
@@ -289,8 +263,8 @@ class Manager(object):
 
     for test_list_id in [model_main, 'main', 'generic_main']:
       if os.path.exists(os.path.join(
-          TEST_LISTS_PATH,
-          test_list_id + CONFIG_SUFFIX + config_utils.CONFIG_FILE_EXT)):
+          test_list_common.TEST_LISTS_PATH,
+          test_list_common.GetTestListConfigFile(test_list_id))):
         return test_list_id
     return DEFAULT_TEST_LIST_ID
 
@@ -301,10 +275,11 @@ class Manager(object):
     This writes the name of the new active test list to the build time config
     file.
     """
-    config_data = json_utils.DumpStr({ACTIVE_TEST_LIST_CONFIG_ID_KEY: new_id},
-                                     pretty=True)
+    config_data = json_utils.DumpStr(
+        test_list_common.GenerateActiveTestListConfig(new_id), pretty=True)
 
-    with file_utils.AtomicWrite(ACTIVE_TEST_LIST_CONFIG_PATH) as f:
+    with file_utils.AtomicWrite(
+        test_list_common.ACTIVE_TEST_LIST_CONFIG_PATH) as f:
       f.write(config_data)
 
 

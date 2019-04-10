@@ -17,6 +17,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
+from cros.factory.test.test_lists import test_list_common
 from cros.factory.utils import config_utils
 
 
@@ -273,7 +274,8 @@ class TestListLoaderTest(unittest.TestCase):
 
   def _GetTestListConfigPath(self, test_list_id):
     return os.path.join(
-        self.temp_dir, test_list_id + manager.CONFIG_SUFFIX + '.json')
+        self.temp_dir,
+        test_list_common.GetTestListConfigFile(test_list_id))
 
 
 if __name__ == '__main__':

@@ -15,7 +15,7 @@ from jsonrpclib import SimpleJSONRPCServer
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test.i18n import translation
-from cros.factory.test.test_lists import manager
+from cros.factory.test.test_lists import test_list_common
 from cros.factory.test_list_editor.backend import common
 from cros.factory.test_list_editor.backend import rpc
 from cros.factory.utils import sys_utils
@@ -78,7 +78,7 @@ def _AddPrivateOverlay(dirs, board):
     return
 
   base_dir = os.path.join(private_overlay_dir, common.PRIVATE_FACTORY_RELPATH)
-  test_list_dir = os.path.join(base_dir, manager.TEST_LISTS_RELPATH)
+  test_list_dir = os.path.join(base_dir, test_list_common.TEST_LISTS_RELPATH)
   if not os.path.isdir(test_list_dir):
     raise RuntimeError('Directory %r not found.' % test_list_dir)
   dirs.append((os.path.basename(private_overlay_dir).split('-')[1], base_dir))
