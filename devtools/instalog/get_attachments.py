@@ -92,6 +92,12 @@ def RunQuery(args):
   return result_json
 
 
+def Filter(args, results):
+  return [row
+          for row in results
+          if row['serial_number'] in args.serial_number]
+
+
 def Download(args, results):
   tmp_dir = os.path.join(args.target_dir, 'tmp')
   remote_list = []
@@ -161,9 +167,14 @@ def main():
       '--gsutil_path', '-g', default=DEFAULT_GSUTIL_PATH,
       help='The gsutil path.  Default: %s' % DEFAULT_GSUTIL_PATH)
   parser.add_argument(
-      '--serial_number_key', '-sn', default=DEFAULT_SERIAL_NUMBER_KEY,
+      '--serial_number_key', '-sn_key', default=DEFAULT_SERIAL_NUMBER_KEY,
       help='The key of the serial number to put in the file name.  '
            'Default: %s' % DEFAULT_SERIAL_NUMBER_KEY)
+  parser.add_argument(
+      '--serial_number', '-sn', type=str, action='append',
+      help='The value of the serial number to download.  This can be added '
+           'multiple times.  This feature is implemented by this script '
+           'instead of query.')
   args = parser.parse_args()
 
   CheckVersion(args)
@@ -171,6 +182,9 @@ def main():
   result_json = RunQuery(args).strip()
 
   results = json.loads(result_json)
+  if args.serial_number:
+    results = Filter(args, results)
+
   if not results:
     print('Query returned zero records.\n'
           'Done!')
