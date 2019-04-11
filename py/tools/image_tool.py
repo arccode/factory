@@ -425,6 +425,15 @@ class GPT(pygpt.GPT):
         if loop_dev:
           Sudo(['umount', '-R', loop_dev], check=False, silent=True)
           Sudo(['losetup', '-d', loop_dev], check=False, silent=True)
+          # `losetup -d` doesn't detach the loop device immediately, which might
+          # cause future mount failures. Make sure that the loop device is
+          # detached before returning.
+          while True:
+            output = SudoOutput(['losetup', '-j', image]).strip()
+            regex = r'^' + re.escape(loop_dev)
+            if not re.search(regex, output, re.MULTILINE):
+              break
+            time.sleep(0.1)
 
     def Map(self):
       """Maps given partition to loop block device."""
