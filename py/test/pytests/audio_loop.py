@@ -194,6 +194,10 @@ _DEFAULT_SOX_RMS_THRESHOLD = (0.08, None)
 _DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
 # Default duration in seconds to trim in the beginning of recorded file.
 _DEFAULT_TRIM_SECONDS = 0.5
+# Default sample format for player used by aplay, S16 = Signed 16 Bit.
+_DEFAULT_PLAYER_SAMPLE_FORMAT = 'S16'
+# Default sample format for recorder used by arecord, S16 = Signed 16 Bit.
+_DEFAULT_RECORDER_SAMPLE_FORMAT = 'S16'
 
 
 class AudioLoopTest(test_case.TestCase):
@@ -251,6 +255,10 @@ class AudioLoopTest(test_case.TestCase):
           '  - **volume_gain**: The volume gain set to audiofuntest for \n'
           '        controlling the volume of generated audio frames. The \n'
           '        range is from 0 to 100.'
+          '  - **recorder_sample_format**: The sample format for the input \n'
+          '        device. Use arecord to see all possible formats.'
+          '  - **player_sample_format**: The sample format for the output \n'
+          '        device. Use aplay to see all possible formats.'
           '\n'
           'If type is **sinewav**, the dict can optionally contain:\n'
           '  - **duration**: The test duration, in seconds.\n'
@@ -369,6 +377,7 @@ class AudioLoopTest(test_case.TestCase):
     # Run each tests to conduct under each output volume candidate.
     for self._output_volume_index, output_volume in enumerate(
         self._output_volumes):
+
       if output_volume is not None:
         if self.args.require_dongle:
           self._dut.audio.SetHeadphoneVolume(output_volume, self._out_card)
@@ -507,10 +516,15 @@ class AudioLoopTest(test_case.TestCase):
         'volume_gain', _DEFAULT_AUDIOFUN_TEST_VOLUME_GAIN)
     assert 0 <= volume_gain <= 100
 
-    player_cmd = 'aplay -D %s -r %d -f s16 -t raw -c 2 -B 0 -' % (
-        self._alsa_output_device, capture_rate)
-    recorder_cmd = 'arecord -D %s -r %d -f s16 -t raw -c %d -B 0 -' % (
-        self._alsa_input_device, capture_rate,
+    player_sample_format = self._current_test_args.get(
+        'player_sample_format', _DEFAULT_PLAYER_SAMPLE_FORMAT)
+    recorder_sample_format = self._current_test_args.get(
+        'recorder_sample_format', _DEFAULT_RECORDER_SAMPLE_FORMAT)
+
+    player_cmd = 'aplay -D %s -r %d -f %s -t raw -c 2 -B 0 -' % (
+        self._alsa_output_device, capture_rate, player_sample_format)
+    recorder_cmd = 'arecord -D %s -r %d -f %s -t raw -c %d -B 0 -' % (
+        self._alsa_input_device, capture_rate, recorder_sample_format,
         self.args.num_input_channels)
 
     process = self._dut.Popen(
