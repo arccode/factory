@@ -34,7 +34,9 @@
           "DP-2"
         ]
       }
-    }
+    },
+    "use_prepvt_cr50_firmware": false,
+    "__comment_use_prepvt_cr50_firmware": "Set this to true if the prepvt cr50 firmware in release image should be used."
   },
   "definitions": {
     "Accelerometers": {
@@ -672,7 +674,11 @@
       "label": "Update Cr50 Firmware",
       "subtests": [
         {
-          "pytest_name": "update_cr50_firmware"
+          "pytest_name": "update_cr50_firmware",
+          "args": {
+            "firmware_file": "eval! constants.use_prepvt_cr50_firmware and '/opt/google/cr50/firmware/cr50.bin.prepvt' or None",
+            "skip_prepvt_flag_check": "eval! constants.phase != 'PVT'"
+          }
         },
         "RebootStep",
         {
