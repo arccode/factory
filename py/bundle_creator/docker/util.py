@@ -36,16 +36,17 @@ def RandomString(length):
   return ''.join([random.choice(string.ascii_letters) for _ in xrange(length)])
 
 
-def SetMetadataByGsutil(key, value, gs_path):
+def SetMetadataByGsutil(gs_path, metadata):
   """Set metadata for specified gs_path by using `gsutil` command.
 
     Args:
-      key: the key name of metadata
-      value: the value for the key
       gs_path: the path of google storage object needs to be set metadata
+      metadata: a dictionary of metadata should be set
   """
-  subprocess.call(['gsutil', 'setmeta', '-h',
-                   'x-goog-meta-{}:{}'.format(key, value), gs_path])
+  parameters = []
+  for key, value in metadata.items():
+    parameters += ['-h'] + ['x-goog-meta-{}:{}'.format(key, value)]
+  subprocess.call(['gsutil', 'setmeta'] + parameters + [gs_path])
 
 
 def CreateBundle(req):
@@ -107,5 +108,13 @@ def CreateBundle(req):
     gs_path = u'gs://{}/{}'.format(config.BUNDLE_BUCKET, bundle_path)
     # Since there is no way to modify metadata in blob class, use gsutil command
     # to set metadata
-    SetMetadataByGsutil('Bundle-Creator', req.email, gs_path)
+    metadata = {
+        'Bundle-Creator': req.email,
+        'Tookit-Version': req.toolkit_version,
+        'Test-Image-Version': req.test_image_version,
+        'Release-Image-Version': req.release_image_version,
+    }
+    if req.HasField('firmware_source'):
+      metadata['Firmware-Source'] = req.firmware_source
+    SetMetadataByGsutil(gs_path, metadata)
     return gs_path
