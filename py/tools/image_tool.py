@@ -100,6 +100,8 @@ PAYLOAD_SUBTYPE_VERSION = 'version'
 LSB_FACTORY_WARNING_MESSAGE = (
     '# Please use image_tool to set lsb-factory config.\n'
     '# Manual modifications will be overwritten at runtime!\n')
+# Split line for separating outputs.
+SPLIT_LINE = '=' * 72
 
 
 def MakePartition(block_dev, part):
@@ -1140,44 +1142,154 @@ def _ReadBoardResourceVersions(rootfs, stateful, board_info):
   return RMABoardResourceVersions(**versions)
 
 
-def UserSelect(title, options):
-  """Ask user to select an option from the given options.
+class UserInput(object):
+  """A helper class to manage user inputs."""
 
-  Prints the options and their corresponding 1-based index, and let the user
-  enter a number to select an option. The return value is 0-based.
+  @staticmethod
+  def Select(title, options_list=None, options_dict=None,
+             single_line_option=True, split_line=False, optional=False):
+    """Ask user to select an option from the given options.
 
-  Args:
-    title: question description.
-    options: list of strings, each representing an option.
+    Prints the options in `options_list` with their corresponding 1-based index,
+    and key-value pairs in `options_dict`. Let the user enter a number or string
+    to select an option.
 
-  Returns:
-    The user selected number, between 0 and len(options)-1.
-  """
-  n = len(options)
-  if n == 0:
-    return None
-  split_line = '-' * 25
-  print(title)
-  print(split_line)
-  for i, option in enumerate(options, 1):
-    print('[%d]' % i)
-    print(option)
-    print(split_line)
+    Args:
+      title: question description.
+      options_list: list of strings, each representing an option.
+      options_dict: dict of (key, option), each representing an option.
+      single_line_option: True to print the index and option in the same line.
+      split_line: split line between options.
+      optional: True to allow the user to input empty string.
 
-  while True:
-    answer = raw_input(
-        'Please select an option [1-%d]: ' % n).strip()
-    try:
-      selected = int(answer)
-      if not 0 < selected <= n:
-        print('Out of range: %d' % selected)
+    Returns:
+      A user selected number in 0-based index, between 0 and
+      len(options_list) - 1, or a string that is a key of `options_dict`,
+      or None if the user inputs an empty string and `optional` set to True.
+    """
+
+    def print_with_split_line(s):
+      print(s)
+      if split_line:
+        print(SPLIT_LINE)
+
+    options_list = options_list or []
+    options_dict = options_dict or {}
+    list_n = len(options_list)
+    dict_n = len(options_dict)
+    if list_n + dict_n == 0:
+      return None
+    print_with_split_line('\n' + title)
+    for i, option in enumerate(options_list, 1):
+      print_with_split_line(
+          '(%d)%s%s' % (i, ' ' if single_line_option else '\n', option))
+    for key, option in options_dict.iteritems():
+      print_with_split_line(
+          '(%s)%s%s' % (key, ' ' if single_line_option else '\n', option))
+
+    while True:
+      keys = [] if list_n == 0 else ['1'] if list_n == 1 else ['1-%d' % list_n]
+      keys += options_dict.keys()
+      prompt = 'Please select an option [%s]%s: ' % (
+          ', '.join(keys), ' or empty to skip' if optional else '')
+      answer = raw_input(prompt).strip()
+      if optional and not answer:
+        return None
+      try:
+        selected = int(answer)
+        if not 0 < selected <= list_n:
+          print('Out of range: %d' % selected)
+          continue
+        # Convert to 0-based
+        selected -= 1
+      except ValueError:
+        if answer not in options_dict:
+          print('Invalid option: %s' % answer)
+          continue
+        selected = answer
+      break
+    return selected
+
+  @staticmethod
+  def YesNo(title):
+    """Ask user to input "y" or "n" for a question.
+
+    Args:
+      title: question description.
+
+    Returns:
+      True if the user inputs 'y', or False if the user inputs 'n'.
+    """
+    print('\n' + title)
+    while True:
+      prompt = 'Please input "y" or "n": '
+      answer = raw_input(prompt).strip().lower()
+      if answer == 'y':
+        return True
+      if answer == 'n':
+        return False
+
+  @staticmethod
+  def GetNumber(title, min_value=None, max_value=None, optional=False):
+    """Ask user to input a number in the given range.
+
+    Args:
+      title: question description.
+      min_value: lower bound of the input number.
+      max_value: upper bound of the input number.
+      optional: True to allow the user to input empty string.
+
+    Returns:
+      The user input number, or None if the user inputs an empty string.
+    """
+    if min_value is not None and max_value is not None:
+      assert min_value <= max_value, (
+          'min_value %d is greater than max_value %d' % (min_value, max_value))
+
+    print('\n' + title)
+    while True:
+      prompt = 'Enter a number in [%s, %s]%s: ' % (
+          str(min_value) if min_value is not None else '-INF',
+          str(max_value) if max_value is not None else 'INF',
+          ' or empty to skip' if optional else '')
+      answer = raw_input(prompt).strip()
+      if optional and not answer:
+        return None
+      try:
+        value = int(answer)
+        if min_value is not None and value < min_value:
+          raise ValueError('out of range')
+        if max_value is not None and value > max_value:
+          raise ValueError('out of range')
+      except ValueError:
+        print('Invalid option: %s' % answer)
         continue
-    except ValueError:
-      print('Invalid option: %s' % answer)
-      continue
-    break
-  # Convert to 0-based
-  return selected - 1
+      break
+    return value
+
+  @staticmethod
+  def GetString(title, optional=False):
+    """Ask user to input a string.
+
+    Args:
+      title: question description.
+      optional: True to allow the user to input empty string.
+
+    Returns:
+      The user input string, or None if the user inputs an empty string.
+    """
+    print('\n' + title)
+    while True:
+      prompt = 'Enter a string%s: ' % (' or empty to skip' if optional else '')
+      answer = raw_input(prompt).strip()
+      if answer:
+        break
+      elif optional:
+        return None
+      else:
+        print('Input string cannot be empty')
+
+    return answer
 
 
 class ChromeOSFactoryBundle(object):
@@ -1879,7 +1991,10 @@ class ChromeOSFactoryBundle(object):
           title = 'Board %s has more than one entry.' % board_name
           options = ['From %s\n%s' % (entry.image, entry.versions)
                      for entry in board_entries]
-          selected = UserSelect(title, options)
+          selected = UserInput.Select(title,
+                                      options,
+                                      single_line_option=False,
+                                      split_line=True)
         selected_entries.add(board_entries[selected])
 
       resolved_entries = [
@@ -1901,7 +2016,10 @@ class ChromeOSFactoryBundle(object):
       else:
         title = 'Please select a board to extract.'
         options = [str(entry.versions) for entry in entries]
-        selected = UserSelect(title, options)
+        selected = UserInput.Select(title,
+                                    options,
+                                    single_line_option=False,
+                                    split_line=True)
 
       return [entries[selected]]
 
@@ -2910,10 +3028,11 @@ class EditLSBCommand(SubCommand):
         help='Board to edit lsb file.')
 
   def _DoURL(self, title, keys, default_port=8080, suffix=''):
-    host = raw_input('Enter %s host: ' % title).strip()
+    host = UserInput.GetString('%s host' % title, optional=True)
     if not host:
       return
-    port = raw_input('Enter port (default=%s): ' % default_port).strip()
+    port = UserInput.GetString('Enter port (default=%s)' % default_port,
+                               optional=True)
     if not port:
       port = str(default_port)
     url = 'http://%s:%s%s' % (host, port, suffix)
@@ -2921,43 +3040,20 @@ class EditLSBCommand(SubCommand):
       self.lsb.SetValue(key, url)
 
   def _DoOptions(self, title, key, options):
-    print('%s (%s):' % (title, key))
-    for i, value in enumerate(options):
-      print('(%s) %s' % (i + 1, value))
-    while True:
-      answer = raw_input(
-          'Please select an option [1-%d]: ' % len(options)).strip().lower()
-      try:
-        selected = int(answer)
-        if not 0 < selected <= len(options):
-          raise ValueError('out of range')
-      except ValueError:
-        print('Invalid option: %s' % answer)
-        continue
-      break
-    new_value = options[selected - 1]
-    self.lsb.SetValue(key, new_value)
-    return new_value
+    selected = UserInput.Select('%s (%s)' % (title, key), options)
+    value = options[selected]
+    self.lsb.SetValue(key, value)
+    return value
 
   def _DoOptionalNumber(self, title, key, min_value, max_value):
-    print('%s (%s): ' % (title, key))
-    while True:
-      prompt = 'Enter a number%s or empty to remove this setting: ' % (
-          '' if min_value is None else (
-              ' in [%s, %s]' % (min_value, max_value)))
-      answer = raw_input(prompt).strip()
-      if not answer:
-        self.lsb.DeleteValue(key)
-        return None
-      try:
-        selected = int(answer)
-        if min_value is not None and not min_value <= selected <= max_value:
-          raise ValueError('out of range')
-      except ValueError:
-        print('Invalid option: %s' % answer)
-        continue
-      break
-    self.lsb.SetValue(key, str(selected))
+    selected = UserInput.GetNumber('%s (%s)' % (title, key),
+                                   min_value=min_value,
+                                   max_value=max_value,
+                                   optional=True)
+    if selected is not None:
+      self.lsb.SetValue(key, str(selected))
+    else:
+      self.lsb.DeleteValue(key)
     return selected
 
   def EditServerAddress(self):
@@ -2968,11 +3064,8 @@ class EditLSBCommand(SubCommand):
 
   def EditBoardPrompt(self):
     """Enable/disable board prompt on download."""
-    answer = raw_input(
-        'Enable (y) or disable (n) board prompt? ').strip().lower()
-    while not answer in ['y', 'n']:
-      answer = raw_input('Please input "y" or "n": ').strip().lower()
-    self.lsb.SetValue('USER_SELECT', 'true' if answer == 'y' else 'false')
+    answer = UserInput.YesNo('Enable (y) or disable (n) board prompt?')
+    self.lsb.SetValue('USER_SELECT', 'true' if answer else 'false')
 
   def EditCutOff(self):
     """Modify cutoff method after factory reset.
@@ -3009,44 +3102,30 @@ class EditLSBCommand(SubCommand):
     If RMA autorun is set, automatically do RSU (RMA Server Unlock) or install,
     depending on HWWP status.
     """
-    answer = raw_input(
-        'Enable (y) or disable (n) autorun in RMA? ').strip().lower()
-    while not answer in ['y', 'n']:
-      answer = raw_input('Please input "y" or "n": ').strip().lower()
-    self.lsb.SetValue('RMA_AUTORUN', 'true' if answer == 'y' else 'false')
+    answer = UserInput.YesNo('Enable (y) or disable (n) autorun in RMA?')
+    self.lsb.SetValue('RMA_AUTORUN', 'true' if answer else 'false')
 
   def DoMenu(self, *args, **kargs):
-    redo_options = True
-
     while True:
-      if redo_options:
-        Shell(['clear'])
-        print('=' * 72)
-        print(self.lsb.AsRawData())
-        print('-' * 72)
-        for i, arg in enumerate(args):
-          print('(%d) %s' % (i + 1, arg.__doc__.splitlines()[0]))
-        for k, v in kargs.iteritems():
-          print('(%s) %s' % (k, v.__doc__.splitlines()[0]))
-        print('=' * 72)
-        redo_options = False
+      Shell(['clear'])
+      title = 'Current LSB config%s:\n%s\n%s\n%s' % (
+          ' (modified)' if self.old_data != self.lsb.AsRawData() else '',
+          SPLIT_LINE,
+          self.lsb.AsRawData(),
+          SPLIT_LINE)
+      options_list = [arg.__doc__.splitlines()[0] for arg in args]
+      options_dict = {
+          k: v.__doc__.splitlines()[0] for k, v in kargs.iteritems()}
 
-      answer = raw_input('Please select an option: ').strip().lower()
-      if answer.isdigit():
-        answer = int(answer)
-        if not 1 <= answer <= len(args):
-          print('Invalid option [%s].' % answer)
-          continue
-        selected = args[answer - 1]
-      elif answer not in kargs:
-        print('Invalid option [%s].' % answer)
-        continue
+      selected = UserInput.Select(title, options_list, options_dict)
+
+      if isinstance(selected, int):
+        func = args[selected]
       else:
-        selected = kargs.get(answer)
+        func = kargs.get(selected)
 
-      if selected():
+      if func():
         return
-      redo_options = True
 
   def FindBoard(self):
     """Try to find the board name from a shim image."""
@@ -3086,12 +3165,16 @@ class EditLSBCommand(SubCommand):
               json_path, lsb_file.name, PAYLOAD_TYPE_LSB_FACTORY,
               silent=True)
         except Exception:
+          warning_message = [
+              SPLIT_LINE,
+              'This is an old RMA shim image without lsb_factory payload.',
+              'This command will modify %s file.' % PATH_LSB_FACTORY,
+              SPLIT_LINE,
+              'Continue?'
+          ]
+          if not UserInput.YesNo('\n'.join(warning_message)):
+            return
           legacy_lsb = True
-          print('----------------------------------------------------------')
-          print('This is an old RMA shim image without lsb_factory payload.')
-          print('This command will modify %s file.' % PATH_LSB_FACTORY)
-          print('----------------------------------------------------------')
-          raw_input('Press ENTER to continue.')
           with stateful_part.Mount() as stateful:
             lsb_path = os.path.join(stateful, PATH_LSB_FACTORY)
             Shell(['cp', '-pf', lsb_path, lsb_file.name])
