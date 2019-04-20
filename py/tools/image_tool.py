@@ -103,6 +103,8 @@ LSB_FACTORY_WARNING_MESSAGE = (
     '# Manual modifications will be overwritten at runtime!\n')
 # Split line for separating outputs.
 SPLIT_LINE = '=' * 72
+# Command line namespace for RMA subcommands.
+CMD_NAMESPACE_RMA = 'rma'
 
 
 def MakePartition(block_dev, part):
@@ -2344,6 +2346,7 @@ class SubCommand(object):
     subparsers: A collection of all subparsers.
     args: The parsed arguments.
   """
+  namespace = None # Overridden by subclass
   name = None  # Overridden by subclass
   aliases = []  # Overridden by subclass
 
@@ -2588,8 +2591,9 @@ class CreateRMAImageCommmand(SubCommand):
   centers can boot it from USB and install all factory software bits into
   a device.
   """
-  name = 'rma-create'
-  aliases = ['rma']
+  namespace = CMD_NAMESPACE_RMA
+  name = 'create'
+  aliases = ['create_rma', 'rma-create']
 
   def Init(self):
     ChromeOSFactoryBundle.DefineBundleArguments(
@@ -2631,8 +2635,9 @@ class CreateRMAImageCommmand(SubCommand):
 
 class MergeRMAImageCommand(SubCommand):
   """Merge multiple RMA images into one single large image."""
-  name = 'rma-merge'
-  aliases = ['merge_rma']
+  namespace = CMD_NAMESPACE_RMA
+  name = 'merge'
+  aliases = ['merge_rma', 'rma-merge']
 
   def Init(self):
     self.subparser.add_argument(
@@ -2671,8 +2676,9 @@ class MergeRMAImageCommand(SubCommand):
 
 class ExtractRMAImageCommand(SubCommand):
   """Extract an RMA image from a universal RMA image."""
-  name = 'rma-extract'
-  aliases = ['extract_rma']
+  namespace = CMD_NAMESPACE_RMA
+  name = 'extract'
+  aliases = ['extract_rma', 'rma-extract']
 
   def Init(self):
     self.subparser.add_argument(
@@ -2692,8 +2698,8 @@ class ExtractRMAImageCommand(SubCommand):
   def Run(self):
     """Extract RMA (USB installation) disk image from a universal RMA image.
 
-    The RMA image should be created by 'image_tool rma-create' or
-    'image_tool rma-merge' command.
+    The RMA image should be created by 'image_tool rma create' or
+    'image_tool rma merge' command.
     """
     output = self.args.output
     if os.path.exists(output) and not self.args.force:
@@ -2708,7 +2714,9 @@ class ExtractRMAImageCommand(SubCommand):
 
 class ShowRMAImageCommand(SubCommand):
   """Show the content of a RMA image."""
-  name = 'rma-show'
+  namespace = CMD_NAMESPACE_RMA
+  name = 'show'
+  aliases = ['show_rma', 'rma-show']
 
   def Init(self):
     self.subparser.add_argument(
@@ -2721,8 +2729,9 @@ class ShowRMAImageCommand(SubCommand):
 
 class ReplaceRMAPayloadCommand(SubCommand):
   """Replace payloads in an RMA shim."""
-  name = 'rma-replace'
-  aliases = ['replace_rma']
+  namespace = CMD_NAMESPACE_RMA
+  name = 'replace'
+  aliases = ['replace_rma', 'rma-replace']
 
   def Init(self):
     ChromeOSFactoryBundle.DefineBundleArguments(
@@ -3474,19 +3483,31 @@ def main():
   parser.add_argument('--verbose', '-v', action='count', default=0,
                       help='Verbose output')
   subparsers = parser.add_subparsers(title='subcommands')
+  # TODO(chenghan) Use a more general way to handle subcommand namespaces. The
+  # current implementation assumes there is only a CMD_NAMESPACE_RMA namespace.
+  rma_parser = subparsers.add_parser(
+      CMD_NAMESPACE_RMA,
+      help='Subcommands to create or modify RMA shim.',
+      description='Subcommands to create or modify RMA shim.')
+  rma_subparsers = rma_parser.add_subparsers(title='rma subcommands')
 
   verb = sys.argv[1] if (len(sys.argv) > 1) else None
 
-  selected_command = None
+  selected_command_args = None
   for unused_key, v in sorted(globals().items()):
     if v != SubCommand and inspect.isclass(v) and issubclass(v, SubCommand):
-      subcommand = v(parser, subparsers)
+      if v.namespace == CMD_NAMESPACE_RMA:
+        subcommand = v(rma_parser, rma_subparsers)
+        subcommand_args = [v.namespace, subcommand.name]
+      else:
+        subcommand = v(parser, subparsers)
+        subcommand_args = [subcommand.name]
       subcommand.Init()
       if verb in subcommand.aliases:
-        selected_command = subcommand.name
+        selected_command_args = subcommand_args
 
-  if selected_command:
-    args = parser.parse_args([selected_command] + sys.argv[2:])
+  if selected_command_args:
+    args = parser.parse_args(selected_command_args + sys.argv[2:])
   else:
     args = parser.parse_args()
   logging.basicConfig(level=logging.WARNING - args.verbose * 10)

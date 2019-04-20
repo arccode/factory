@@ -103,10 +103,10 @@ After getting all the bundle components ready, we can combine these components
 into a single RMA shim image.
 
 [image_tool](../py/tools/image_tool.py) is a useful tool to manage RMA shims. To
-create an RMA shim image from a factory bundle, use `image_tool rma-create`
+create an RMA shim image from a factory bundle, use `image_tool rma create`
 command:
 
-    $ ./setup/image_tool rma-create \
+    $ ./setup/image_tool rma create \
         --board=BOARD \
         --factory_shim=path/to/factory_install_shim.bin \
         --test_image=path/to/chromiumos_test_image.bin \
@@ -118,7 +118,7 @@ command:
 The command can be simplified if all the components are put in their respective
 bundle directories (`release_image/`, `test_image/`, etc.):
 
-    $ ./setup/image_tool rma-create \
+    $ ./setup/image_tool rma create \
         --board=BOARD \
         --output=rma_image.bin
 
@@ -166,7 +166,7 @@ command in chroot.
 The RMA shim has a menu that allows the user to select an action to perform,
 which is described in
 [Factory Installer README](https://chromium.googlesource.com/chromiumos/platform/factory_installer/#factory-shim-menu).
-Moreover, if the RMA shim is created using `image_tool rma-create` command, the
+Moreover, if the RMA shim is created using `image_tool rma create` command, the
 tool adds a flag `RMA_AUTORUN=1` in `lsb-factory` file, which sets the default
 action of the menu depending on the cr50 version and hardware write protect
 status, such that:
@@ -196,16 +196,16 @@ and enable the release image.
 
 ## Create a universal RMA shim
 
-We can use `image_tool rma-merge` to create a universal shim using multiple
+We can use `image_tool rma merge` to create a universal shim using multiple
 RMA shims.
 
-    $ ./setup/image_tool rma-merge \
+    $ ./setup/image_tool rma merge \
         -i soraka.bin scarlet.bin \
         -o universal.bin
 
 To delete a previously generated output image, specify the **-f** option:
 
-    $ ./setup/image_tool rma-merge \
+    $ ./setup/image_tool rma merge \
         -i soraka.bin scarlet.bin \
         -o universal.bin -f
 
@@ -222,9 +222,9 @@ shims easier.
 
 ### Print bundle components in an RMA shim
 
-`image_tool rma-show` command prints the component versions in an RMA shim.
+`image_tool rma show` command prints the component versions in an RMA shim.
 
-    $ ./setup/image_tool rma-show rma_image.bin
+    $ ./setup/image_tool rma show rma_image.bin
     This RMA shim contains boards: soraka
     -------------------------
     board        : soraka
@@ -239,7 +239,7 @@ shims easier.
 
 This command also applies to universal RMA shim.
 
-    $ ./setup/image_tool rma-show universal.bin
+    $ ./setup/image_tool rma show universal.bin
     This RMA shim contains boards: soraka scarlet
     -------------------------
     board        : soraka

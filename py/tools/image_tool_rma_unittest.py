@@ -58,8 +58,13 @@ class ImageToolRMATest(unittest.TestCase):
 
   def ImageTool(self, *args):
     command = args[0]
-    self.assertIn(command, self.cmd_map, 'Unknown command: %s' % command)
-    cmd = self.cmd_map[command](*self.cmd_parsers)
+    if command == image_tool.CMD_NAMESPACE_RMA:
+      command = args[1]
+      self.assertIn(command, self.rma_map, 'Unknown command: %s' % command)
+      cmd = self.rma_map[command](*self.rma_parsers)
+    else:
+      self.assertIn(command, self.cmd_map, 'Unknown command: %s' % command)
+      cmd = self.cmd_map[command](*self.cmd_parsers)
     cmd.Init()
     cmd_args = self.cmd_parsers[0].parse_args(args)
     cmd_args.verbose = 0
@@ -158,7 +163,15 @@ class ImageToolRMATest(unittest.TestCase):
     self.cmd_parsers = (parser, subparser)
     self.cmd_map = dict(
         (v.name, v) for v in image_tool.__dict__.values()
-        if inspect.isclass(v) and issubclass(v, image_tool.SubCommand))
+        if inspect.isclass(v) and issubclass(v, image_tool.SubCommand)
+        and v.namespace is None)
+    rma_parser = subparser.add_parser(image_tool.CMD_NAMESPACE_RMA)
+    rma_subparser = rma_parser.add_subparsers()
+    self.rma_parsers = (rma_parser, rma_subparser)
+    self.rma_map = dict(
+        (v.name, v) for v in image_tool.__dict__.values()
+        if inspect.isclass(v) and issubclass(v, image_tool.SubCommand)
+        and v.namespace == image_tool.CMD_NAMESPACE_RMA)
 
   def tearDown(self):
     if not DEBUG:
@@ -177,11 +190,12 @@ class ImageToolRMATest(unittest.TestCase):
     image_path2 = os.path.join(self.temp_dir, 'test2.bin')
     os.chdir(self.temp_dir)
 
-    # `rma-create` to create 2 RMA shims.
+    # `rma create` to create 2 RMA shims.
     self.SetupBundleEnvironment(image_path1)
-    self.ImageTool('rma-create', '-o', 'rma1.bin')
+    self.ImageTool('rma', 'create', '-o', 'rma1.bin')
     self.SetupBundleEnvironment(image_path2)
-    self.ImageTool('rma-create', '-o', 'rma2.bin', '--active_test_list', 'test')
+    self.ImageTool('rma', 'create', '-o', 'rma2.bin',
+                   '--active_test_list', 'test')
     self.RemoveBundleEnvironment()
 
     # Verify content of RMA shim.
@@ -200,9 +214,9 @@ class ImageToolRMATest(unittest.TestCase):
       data = json.load(f)
     self.assertEqual(data, [{'board': 'test1', 'kernel': 2, 'rootfs': 3}])
 
-    # `rma-merge` to merge 2 different shims.
+    # `rma merge` to merge 2 different shims.
     self.ImageTool(
-        'rma-merge', '-f', '-o', 'rma12.bin', '-i', 'rma1.bin', 'rma2.bin')
+        'rma', 'merge', '-f', '-o', 'rma12.bin', '-i', 'rma1.bin', 'rma2.bin')
     image_tool.Partition('rma12.bin', 1).CopyFile(
         image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
     with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
@@ -210,9 +224,9 @@ class ImageToolRMATest(unittest.TestCase):
     self.assertEqual(data, [{'board': 'test1', 'kernel': 2, 'rootfs': 3},
                             {'board': 'test2', 'kernel': 4, 'rootfs': 5}])
 
-    # `rma-merge` to merge a single-board shim with a universal shim.
+    # `rma merge` to merge a single-board shim with a universal shim.
     self.ImageTool(
-        'rma-merge', '-f', '-o', 'rma21.bin',
+        'rma', 'merge', '-f', '-o', 'rma21.bin',
         '-i', 'rma2.bin', 'rma12.bin', '--auto_select')
     image_tool.Partition('rma21.bin', 1).CopyFile(
         image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
@@ -221,22 +235,22 @@ class ImageToolRMATest(unittest.TestCase):
     self.assertEqual(data, [{'board': 'test2', 'kernel': 2, 'rootfs': 3},
                             {'board': 'test1', 'kernel': 4, 'rootfs': 5}])
 
-    # `rma-extract` to extract a board from a universal shim.
-    self.ImageTool(
-        'rma-extract', '-f', '-o', 'extract.bin', '-i', 'rma21.bin', '-s', '2')
+    # `rma extract` to extract a board from a universal shim.
+    self.ImageTool('rma', 'extract', '-f', '-o', 'extract.bin',
+                   '-i', 'rma21.bin', '-s', '2')
     image_tool.Partition('extract.bin', 1).CopyFile(
         image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
     with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
       data = json.load(f)
     self.assertEqual(data, [{'board': 'test1', 'kernel': 2, 'rootfs': 3}])
 
-    # `rma-replace` to replace the toolkit.
+    # `rma replace` to replace the toolkit.
     toolkit2_path = os.path.join(self.temp_dir, 'toolkit2.run')
     with open(toolkit2_path, 'w') as f:
       f.write('#!/bin/sh\necho Toolkit Version 2.0\n')
     os.chmod(toolkit2_path, 0o755)
     self.ImageTool(
-        'rma-replace', '-i', 'rma12.bin',
+        'rma', 'replace', '-i', 'rma12.bin',
         '--board', 'test2', '--toolkit', toolkit2_path)
     image_tool.Partition('rma12.bin', 1).CopyFile(
         'cros_payloads/test2.json', self.temp_dir)

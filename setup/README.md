@@ -24,9 +24,9 @@ disk images for different purposes, including:
 - `preflash`: Create a disk image for factory to pre-flash into internal storage.
 - `edit_lsb`: Edit contents of 'lsb-factory' file from a factory_install image.
 - `get_firmware`: Extracts firmware updater from a Chrome OS disk image.
-- `rma-create`: Create an RMA image for factory to boot from USB and repair device.
-- `rma-merge`: Merge multiple RMA images into one single large image.
-- `rma-show`: Show the content of an RMA image.
+- `rma create`: Create an RMA image for factory to boot from USB and repair device.
+- `rma merge`: Merge multiple RMA images into one single large image.
+- `rma show`: Show the content of an RMA image.
 - `mount`: Mounts a partition from Chromium OS disk image.
 - `netboot`: Access Chrome OS [netboot](NETBOOT.md) firmware (image.net.bin) settings.
 - `resize`: Changes file system size from a partition on a Chromium OS disk image.
