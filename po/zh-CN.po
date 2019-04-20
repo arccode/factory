@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-05-15 17:20+CST\n"
+"PO-Revision-Date: 2019-06-20 18:10+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -16,6 +16,10 @@ msgstr ""
 #: ../build/pytests_label_generated.json
 msgid "AC Power"
 msgstr "AC 电源"
+
+#: ../build/pytests_label_generated.json
+msgid "Accelerometers"
+msgstr "加速度计"
 
 #: ../build/pytests_label_generated.json
 msgid "Accelerometers Calibration"
@@ -1100,6 +1104,19 @@ msgstr "充电器型号识别中..."
 msgid "AC adapter type: {type}"
 msgstr "充电器型号: {type}"
 
+#: ../py/test/pytests/accelerometers.py ../py/test/pytests/probe/probe.py
+msgid "Press SPACE to continue"
+msgstr "按空白键继续"
+
+#: ../py/test/pytests/accelerometers.py ../py/test/pytests/gyroscope.py
+msgid ""
+"Test will be started within {secs} seconds. Please do not move the device."
+msgstr "测试程序即将于 {secs} 秒后开始，请勿移动待测物。"
+
+#: ../py/test/pytests/accelerometers.py
+msgid "Test is in progress, please do not move the device."
+msgstr "测试程序进行中，请勿移动待测物。"
+
 #: ../py/test/pytests/accelerometers_calibration.py
 msgid ""
 "Please put device on a horizontal plane then press space to start "
@@ -1857,11 +1874,6 @@ msgid ""
 "Please put device on a horizontal plane then press space to start testing."
 msgstr "请将待测物放置于水平面上，并按空白键开始测试。"
 
-#: ../py/test/pytests/gyroscope.py
-msgid ""
-"Test will be started within {secs} seconds.Please do not move the device."
-msgstr "测试程序即将于 {secs} 秒后开始，请勿移动待测物。"
-
 #: ../py/test/pytests/gyroscope.py ../py/test/pytests/gyroscope_calibration.py
 msgid "Please do not move the device."
 msgstr "请勿移动待测物。"
@@ -2194,10 +2206,6 @@ msgstr "电压: {voltage} mV"
 #: ../py/test/pytests/power_under_stress.py
 msgid "Current: {current} mA"
 msgstr "电流: {current} mA"
-
-#: ../py/test/pytests/probe/probe.py
-msgid "Press SPACE to continue"
-msgstr "按空白键继续"
 
 #: ../py/test/pytests/probe_sim.py
 msgid "Please insert the SIM card"

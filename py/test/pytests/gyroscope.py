@@ -59,7 +59,7 @@ class Gyroscope(test_case.TestCase):
 
     for i in xrange(self.args.setup_time_secs):
       self.ui.SetState(
-          _('Test will be started within {secs} seconds.'
+          _('Test will be started within {secs} seconds. '
             'Please do not move the device.',
             secs=self.args.setup_time_secs - i))
       self.Sleep(1)
