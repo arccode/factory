@@ -5,12 +5,22 @@
 import datetime
 import hashlib
 import time
+import urlparse
 
 # pylint: disable=import-error, no-name-in-module
+import certifi
+from dulwich.client import HttpGitClient
+from dulwich.refs import strip_peeled_refs
 from dulwich.repo import MemoryRepo as _MemoryRepo
+from urllib3 import PoolManager
 
 import factory_common  # pylint: disable=unused-import
 
+
+HEAD = 'HEAD'
+DEFAULT_REMOTE_NAME = 'origin'
+REF_HEADS_PREFIX = 'refs/heads/'
+REF_REMOTES_PREFIX = 'refs/remotes/'
 
 class MemoryRepo(_MemoryRepo):
   """Enhance MemoryRepo with push ability."""
@@ -30,7 +40,28 @@ class MemoryRepo(_MemoryRepo):
       client
     """
 
-    raise NotImplementedError
+    parsed = urlparse.urlparse(remote_location)
+
+    pool_manager = PoolManager(ca_certs=certifi.where())
+    pool_manager.headers['Cookie'] = self.auth_cookie
+
+    client = HttpGitClient.from_parsedurl(parsed,
+                                          config=self.get_config_stack(),
+                                          pool_manager=pool_manager)
+    fetch_result = client.fetch(
+        parsed.path, self,
+        determine_wants=lambda mapping: [mapping[REF_HEADS_PREFIX + branch]],
+        depth=1)
+    stripped_refs = strip_peeled_refs(fetch_result.refs)
+    branches = {
+        n[len(REF_HEADS_PREFIX):]: v for (n, v) in stripped_refs.items()
+        if n.startswith(REF_HEADS_PREFIX)}
+    self.refs.import_refs(
+        REF_REMOTES_PREFIX + DEFAULT_REMOTE_NAME, branches)
+    self[HEAD] = self[
+        REF_REMOTES_PREFIX + '{remote_name}/{branch}'.format(
+            remote_name=DEFAULT_REMOTE_NAME, branch=branch)]
+    return client
 
   def recursively_add_file(self, cur, path_splits, file_name, mode, blob):
     """Add files in object store.

@@ -45,10 +45,12 @@ handlers:
   upload: cros/factory/hwid/service/appengine/static/favicon.ico
 
 libraries:
-- name: pycrypto
-  version: 2.6
 - name: endpoints
   version: 1.0
+- name: pycrypto
+  version: 2.6
+- name: ssl
+  version: 2.7.11
 
 skip_files:
 # Default patterns skipped by App Engine, which must be repeated since
@@ -69,3 +71,6 @@ skip_files:
 - cros/factory/umpire/
 - cros/factory/dome/
 - cros/factory/doc/
+
+env_variables:
+  GAE_USE_SOCKETS_HTTPLIB : 'true'
