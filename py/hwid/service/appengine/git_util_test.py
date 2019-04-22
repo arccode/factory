@@ -9,6 +9,7 @@ import datetime
 import unittest
 
 # pylint: disable=import-error, no-name-in-module
+from dulwich.objects import Tree
 import mock
 
 import factory_common  # pylint: disable=unused-import
@@ -17,6 +18,32 @@ from cros.factory.hwid.service.appengine import git_util
 
 # pylint: disable=protected-access
 class GitUtilTest(unittest.TestCase):
+
+  def testAddFiles(self):
+    new_files = [
+        ('a/b/c', 0o100644, 'content of a/b/c'),
+        ('///a/b////d', 0o100644, 'content of a/b/d'),
+        ('a/b/e/./././f', 0o100644, 'content of a/b/e/f'),
+        ]
+    repo = git_util.MemoryRepo('')
+    tree = Tree()
+    try:
+      tree, unused_new_obj_ids = repo.add_files(new_files, tree)
+      tree.check()
+    except Exception as ex:
+      self.fail("testAddFiles raise Exception unexpectedly: %r" % ex)
+
+    mode1, sha1 = tree.lookup_path(repo.get_object, 'a/b/c')
+    self.assertEqual(mode1, 0o100644)
+    self.assertEqual(repo[sha1].data, 'content of a/b/c')
+
+    mode2, sha2 = tree.lookup_path(repo.get_object, 'a/b/d')
+    self.assertEqual(mode2, 0o100644)
+    self.assertEqual(repo[sha2].data, 'content of a/b/d')
+
+    mode3, sha3 = tree.lookup_path(repo.get_object, 'a/b/e/f')
+    self.assertEqual(mode3, 0o100644)
+    self.assertEqual(repo[sha3].data, 'content of a/b/e/f')
 
   @mock.patch('cros.factory.hwid.service.appengine.git_util.datetime')
   def testGetChangeId(self, datetime_mock):
@@ -34,6 +61,28 @@ class GitUtilTest(unittest.TestCase):
         tree_id, parent, author, committer,
         commit_msg)
     self.assertEqual(change_id, expected_change_id)
+
+  def testInvalidFileStructure1(self):
+    new_files = [
+        ('a/b/c', 0o100644, 'content of a/b/c'),
+        ('a/b/c/d', 0o100644, 'content of a/b/c/d'),
+        ]
+    repo = git_util.MemoryRepo('')
+    tree = Tree()
+    with self.assertRaises(git_util.GitUtilException) as ex:
+      repo.add_files(new_files, tree)
+    self.assertEqual(str(ex.exception), "Invalid filepath 'a/b/c/d'")
+
+  def testInvalidFileStructure2(self):
+    new_files = [
+        ('a/b/c/d', 0o100644, 'content of a/b/c/d'),
+        ('a/b/c', 0o100644, 'content of a/b/c'),
+        ]
+    repo = git_util.MemoryRepo('')
+    tree = Tree()
+    with self.assertRaises(git_util.GitUtilException) as ex:
+      repo.add_files(new_files, tree)
+    self.assertEqual(str(ex.exception), "Invalid filepath 'a/b/c'")
 
 
 if __name__ == '__main__':

@@ -4,12 +4,15 @@
 
 import datetime
 import hashlib
+import os
 import time
 import urlparse
 
 # pylint: disable=import-error, no-name-in-module
 import certifi
 from dulwich.client import HttpGitClient
+from dulwich.objects import Blob
+from dulwich.objects import Tree
 from dulwich.refs import strip_peeled_refs
 from dulwich.repo import MemoryRepo as _MemoryRepo
 from urllib3 import PoolManager
@@ -21,6 +24,11 @@ HEAD = 'HEAD'
 DEFAULT_REMOTE_NAME = 'origin'
 REF_HEADS_PREFIX = 'refs/heads/'
 REF_REMOTES_PREFIX = 'refs/remotes/'
+
+
+class GitUtilException(Exception):
+  pass
+
 
 class MemoryRepo(_MemoryRepo):
   """Enhance MemoryRepo with push ability."""
@@ -79,7 +87,35 @@ class MemoryRepo(_MemoryRepo):
       A list of new object ids
     """
 
-    raise NotImplementedError
+    if path_splits:
+      child_name = path_splits[0]
+      if child_name in cur:
+        unused_mode, sha = cur[child_name]
+        sub = self[sha]
+        if not isinstance(sub, Tree):  # if child_name exists but not a dir
+          raise GitUtilException()
+      else:
+        # not exists, create a new tree
+        sub = Tree()
+      new_ids = self.recursively_add_file(
+          sub, path_splits[1:], file_name, mode, blob)
+      # 0o040000 is the mode of directory in git object pool
+      cur.add(child_name, 0o040000, sub.id)
+    else:
+      # reach the directory of the target file
+      if file_name in cur:
+        unused_mod, sha = cur[file_name]
+        existed_obj = self[sha]
+        if not isinstance(existed_obj, Blob):
+          # if file_name exists but not a Blob(file)
+          raise GitUtilException()
+      self.object_store.add_object(blob)
+      new_ids = [blob.id]
+      cur.add(file_name, mode, blob.id)
+
+    self.object_store.add_object(cur)
+    new_ids.append(cur.id)
+    return new_ids
 
   def add_files(self, new_files, tree=None):
     """Add files to repository.
@@ -91,7 +127,23 @@ class MemoryRepo(_MemoryRepo):
       (updated tree, sha1 id strs of new objects)
     """
 
-    raise NotImplementedError
+    if tree is None:
+      head_commit = self[HEAD]
+      tree = self[head_commit.tree]
+    all_new_obj_ids = []
+    for (file_path, mode, content) in new_files:
+      path, filename = os.path.split(file_path)
+      # os.path.normpath('') returns '.' which is unexpected
+      paths = [x for x in os.path.normpath(path).split(os.sep)
+               if x and x != '.']
+      try:
+        new_obj_ids = self.recursively_add_file(tree, paths, filename, mode,
+                                                Blob.from_string(content))
+      except GitUtilException:
+        raise GitUtilException('Invalid filepath %r' % file_path)
+      all_new_obj_ids += new_obj_ids
+
+    return tree, all_new_obj_ids
 
 
 def _GetChangeId(tree_id, parent_commit, author, committer, commit_msg):
