@@ -13,6 +13,7 @@ RUN cd /usr/src && \
       --quiet && \
   rm google-cloud-sdk-182.0.0-linux-x86_64.tar.gz && \
   pip install \
+      dulwich==0.19.11 \
       mox==0.5.3 \
       mock==2.0.0 \
       protorpc-standalone==0.9.1 \
@@ -20,6 +21,7 @@ RUN cd /usr/src && \
       GoogleAppEngineCloudStorageClient==1.9.22.1 \
       google-endpoints==2.4.5 \
       protorpc-standalone==0.9.1 \
+      urllib3==1.24.2 \
       webapp2==3.0.0b1 \
       WebTest==2.0.29
 

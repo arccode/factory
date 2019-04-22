@@ -2,6 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import datetime
+import hashlib
+import time
+
 # pylint: disable=import-error, no-name-in-module
 from dulwich.repo import MemoryRepo as _MemoryRepo
 
@@ -78,7 +82,19 @@ def _GetChangeId(tree_id, parent_commit, author, committer, commit_msg):
     hash of information as change id
   """
 
-  raise NotImplementedError
+  now = int(time.mktime(datetime.datetime.now().timetuple()))
+  change_msg = ('tree {tree_id}\n'
+                'parent {parent_commit}\n'
+                'author {author} {now}\n'
+                'committer {committer} {now}\n'
+                '\n'
+                '{commit_msg}').format(
+                    tree_id=tree_id, parent_commit=parent_commit,
+                    author=author, committer=committer, now=now,
+                    commit_msg=commit_msg)
+  change_id_input = 'commit {size}\x00{change_msg}'.format(
+      size=len(change_msg), change_msg=change_msg)
+  return 'I{}'.format(hashlib.sha1(change_id_input).hexdigest())
 
 
 def CreateCL(git_url, auth_cookie, project, branch, new_files, author,
