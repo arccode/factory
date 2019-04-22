@@ -1702,12 +1702,6 @@ class ChromeOSFactoryBundle(object):
         CrosPayloadUtils.ReplaceComponent(
             json_path, PAYLOAD_TYPE_TOOLKIT_CONFIG, config_file.name)
 
-    # Clear lsb-factory file.
-    with Partition(
-        self.factory_shim, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
-      SysUtils.WriteFileToMountedDir(
-          stateful, PATH_LSB_FACTORY, LSB_FACTORY_WARNING_MESSAGE)
-
     # Update lsb_factory payload.
     with tempfile.NamedTemporaryFile() as lsb_file:
       CrosPayloadUtils.InstallComponents(
@@ -1725,6 +1719,11 @@ class ChromeOSFactoryBundle(object):
 
     shutil.copyfile(self.factory_shim, output)
     ExpandPartition(output, PART_CROS_STATEFUL, payloads_size)
+
+    # Clear lsb-factory file in output image.
+    with Partition(output, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
+      SysUtils.WriteFileToMountedDir(
+          stateful, PATH_LSB_FACTORY, LSB_FACTORY_WARNING_MESSAGE)
 
     with Partition(output, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
       print('Moving payload files to disk image...')
