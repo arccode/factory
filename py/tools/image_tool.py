@@ -1387,6 +1387,11 @@ class ChromeOSFactoryBundle(object):
           '--toolkit', default='-toolkit/*.run',
           type=ArgTypes.GlobPath,
           help='path to a Chromium OS factory toolkit. default: %(default)s')
+      parser.add_argument(
+          '--factory_shim', default='-factory_shim/*.bin',
+          type=ArgTypes.GlobPath,
+          help=('path to a factory shim (build_image factory_install), '
+                'default: %(default)s'))
     else:
       parser.add_argument(
           '--release_image', default='release_image/*.bin',
@@ -1508,9 +1513,6 @@ class ChromeOSFactoryBundle(object):
 
     Args:
       target_dir: a path to a folder for generating cros_payload contents.
-
-    Returns:
-      The JSON path in target_dir for cros_payload to use.
     """
     logging.debug('Generating cros_payload contents...')
     json_path = CrosPayloadUtils.InitMetaData(target_dir, self.board)
@@ -1522,7 +1524,6 @@ class ChromeOSFactoryBundle(object):
         CrosPayloadUtils.AddComponent(json_path, component, resource)
       else:
         print('Leaving %s component payload as empty.' % component)
-    return json_path
 
   @staticmethod
   def CopyPayloads(src_dir, target_dir, json_path):
@@ -1558,15 +1559,10 @@ class ChromeOSFactoryBundle(object):
     assert os.path.isfile(json_path), 'File does not exist: %s' % json_path
 
     Sudo('cp -p %s %s/' % (json_path, target_dir))
-    with open(json_path) as f:
-      metadata = json.load(f)
-      for resource in metadata.values():
-        for subtype, payload in resource.iteritems():
-          if subtype == PAYLOAD_SUBTYPE_VERSION:
-            continue
-          path = os.path.join(src_dir, payload)
-          assert os.path.isfile(path), 'Cannot find payload %s.' % path
-          Sudo('cp -p %s %s/' % (path, target_dir))
+    files = CrosPayloadUtils.GetAllComponentFiles(json_path)
+    for f in files:
+      path = os.path.join(src_dir, f)
+      Sudo('cp -p %s %s/' % (path, target_dir))
 
   def GetPMBR(self, image_path):
     """Creates a file containing PMBR contents from given image.
@@ -1685,7 +1681,8 @@ class ChromeOSFactoryBundle(object):
     new_size = self.InitDiskImage(output, sectors, sector_size, verbose)
     payloads_dir = os.path.join(self._temp_dir, DIR_CROS_PAYLOADS)
     self.CreateDirectory(payloads_dir)
-    json_path = self.CreatePayloads(payloads_dir)
+    self.CreatePayloads(payloads_dir)
+    json_path = CrosPayloadUtils.GetJSONPath(payloads_dir, self.board)
 
     with GPT.Partition.MapAll(output) as output_dev:
       CrosPayloadUtils.InstallComponents(
@@ -1707,7 +1704,8 @@ class ChromeOSFactoryBundle(object):
       Sudo(['touch', os.path.join(stateful, PATH_LSB_FACTORY)], check=False)
     return new_size
 
-  def CreateRMAImage(self, output, active_test_list=None):
+  def CreateRMAImage(self, output, src_payloads_dir=None,
+                     active_test_list=None):
     """Creates the RMA bootable installation disk image.
 
     This creates an RMA image that can boot and install all factory software
@@ -1725,7 +1723,17 @@ class ChromeOSFactoryBundle(object):
     # into disk image.
     payloads_dir = os.path.join(self._temp_dir, DIR_CROS_PAYLOADS)
     self.CreateDirectory(payloads_dir)
-    json_path = self.CreatePayloads(payloads_dir)
+    json_path = CrosPayloadUtils.GetJSONPath(payloads_dir, self.board)
+    if src_payloads_dir:
+      print('Copying payloads ...')
+      src_json_path = CrosPayloadUtils.GetJSONPath(src_payloads_dir, self.board)
+      self.CopyPayloads(src_payloads_dir, payloads_dir, src_json_path)
+      # Replace `lsb_factory` payload in `src_payloads_dir` (if exists) with
+      # `lsb-factory` file in factory_shim.
+      CrosPayloadUtils.ReplaceComponent(
+          json_path, PAYLOAD_TYPE_LSB_FACTORY, self.lsb_factory)
+    else:
+      self.CreatePayloads(payloads_dir)
 
     # Set active test_list
     if active_test_list:
@@ -2012,7 +2020,8 @@ class ChromeOSFactoryBundle(object):
     """Merges multiple RMA disk images into a single universal RMA image.
 
     When there are duplicate boards across different images, it asks user to
-    decide which one to use, or auto-select if `auto_select` is set.
+    decide which one to use, or auto-select the last one if `auto_select` is
+    set.
     """
 
     def _ResolveDuplicate(entries):
@@ -2025,7 +2034,7 @@ class ChromeOSFactoryBundle(object):
       selected_entries = set()
       for board_name, board_entries in board_map.iteritems():
         if len(board_entries) == 1 or auto_select:
-          selected = 0
+          selected = len(board_entries) - 1
         else:
           title = 'Board %s has more than one entry.' % board_name
           options = ['From %s\n%s' % (entry.image, entry.versions)
@@ -2631,7 +2640,8 @@ class CreateRMAImageCommmand(SubCommand):
           hwid=self.args.hwid,
           complete=self.args.complete,
           toolkit_config=self.args.toolkit_config)
-      bundle.CreateRMAImage(self.args.output, self.args.active_test_list)
+      bundle.CreateRMAImage(self.args.output,
+                            active_test_list=self.args.active_test_list)
       bundle.ShowRMAImage(output)
       print('OK: Generated %s RMA image at %s' %
             (bundle.board, self.args.output))
@@ -2656,7 +2666,7 @@ class MergeRMAImageCommand(SubCommand):
         help='Path to input RMA images')
     self.subparser.add_argument(
         '-a', '--auto_select', action='store_true',
-        help='Automatically resolve duplicate boards (use the first one).')
+        help='Automatically resolve duplicate boards (use the last one).')
 
 
   def Run(self):
@@ -2731,8 +2741,8 @@ class ShowRMAImageCommand(SubCommand):
     ChromeOSFactoryBundle.ShowRMAImage(self.args.image)
 
 
-class ReplaceRMAPayloadCommand(SubCommand):
-  """Replace payloads in an RMA shim."""
+class ReplaceRMAComponentCommand(SubCommand):
+  """Replace components in an RMA shim."""
   namespace = CMD_NAMESPACE_RMA
   name = 'replace'
   aliases = ['replace_rma', 'rma-replace']
@@ -2744,20 +2754,73 @@ class ReplaceRMAPayloadCommand(SubCommand):
         '-i', '--image', required=True,
         type=ArgTypes.ExistsPath,
         help='Path to input RMA image.')
+    self.subparser.add_argument(
+        '--firmware_from_release', action='store_true',
+        help='Replace firmware with the one in the provided release image.')
 
   def Run(self):
-    ChromeOSFactoryBundle.ReplaceRMAPayload(
-        self.args.image,
-        board=self.args.board,
-        release_image=self.args.release_image,
-        test_image=self.args.test_image,
-        toolkit=self.args.toolkit,
-        firmware=self.args.firmware,
-        hwid=self.args.hwid,
-        complete=self.args.complete,
-        toolkit_config=self.args.toolkit_config)
+    with SysUtils.TempDirectory(prefix='rma_') as temp_dir:
+      # Get firmware from release_image.
+      if self.args.release_image and self.args.firmware_from_release:
+        part = Partition(self.args.release_image, PART_CROS_ROOTFS_A)
+        self.args.firmware = part.CopyFile(
+            PATH_CROS_FIRMWARE_UPDATER, temp_dir, fs_type=FS_TYPE_CROS_ROOTFS)
+      # Replacing factory shim is different from replacing other payloads.
+      # Other payloads are stored as compressed files in stateful partition. We
+      # only need to replace files and adjust the size of stateful partition,
+      # which is easy because stateful partition is the last partition.
+      # Replacing factory shim actually replaces kernel and rootfs partition.
+      # These partitions are not the last partition and we cannot easily change
+      # their sizes, so we can only use the factory shim to create a new RMA
+      # shim and overwrite the original image.
+      single_board_image = None
+      if self.args.factory_shim:
+        if self.args.board is None:
+          self.args.board = _GetBoardName(self.args.image)
+        logging.warning('Replacing factory shim for board %s. '
+                        'lsb-factory configs will be cleared.', self.args.board)
+        single_board_image = os.path.join(temp_dir, 'single_board.bin')
+        bundle = ChromeOSFactoryBundle(
+            temp_dir=temp_dir,
+            board=self.args.board,
+            release_image=None,
+            test_image=None,
+            toolkit=None,
+            factory_shim=self.args.factory_shim)
+        with Partition(self.args.image, PART_CROS_STATEFUL).Mount() as stateful:
+          src_payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
+          bundle.CreateRMAImage(
+              single_board_image, src_payloads_dir=src_payloads_dir)
+          # Also get RMA metadata here.
+          rma_metadata = _ReadRMAMetadata(stateful)
+
+      target_image = (
+          single_board_image if single_board_image else self.args.image)
+      ChromeOSFactoryBundle.ReplaceRMAPayload(
+          target_image,
+          board=self.args.board,
+          release_image=self.args.release_image,
+          test_image=self.args.test_image,
+          toolkit=self.args.toolkit,
+          firmware=self.args.firmware,
+          hwid=self.args.hwid,
+          complete=self.args.complete,
+          toolkit_config=self.args.toolkit_config)
+
+      if self.args.factory_shim:
+        if len(rma_metadata) > 1:
+          # If the original shim is a multi-board shim, we need to replace the
+          # board in the multi-board shim with the new single-board shim.
+          multi_board_image = os.path.join(temp_dir, 'multi_board.bin')
+          ChromeOSFactoryBundle.MergeRMAImage(
+              multi_board_image, [self.args.image, single_board_image],
+              auto_select=True)
+          Shell(['mv', multi_board_image, self.args.image])
+        else:
+          Shell(['mv', single_board_image, self.args.image])
+
     ChromeOSFactoryBundle.ShowRMAImage(self.args.image)
-    print('OK: Replaced payloads successfully in image: %s' % self.args.image)
+    print('OK: Replaced components successfully in image: %s' % self.args.image)
 
 
 class GetRMAToolkitCommand(SubCommand):

@@ -186,14 +186,14 @@ class ImageToolRMATest(unittest.TestCase):
     """
     self.CreateDiskImage('test1.bin', self.LSB_CONTENT % 'test1')
     self.CreateDiskImage('test2.bin', self.LSB_CONTENT % 'test2')
-    image_path1 = os.path.join(self.temp_dir, 'test1.bin')
-    image_path2 = os.path.join(self.temp_dir, 'test2.bin')
+    image1_path = os.path.join(self.temp_dir, 'test1.bin')
+    image2_path = os.path.join(self.temp_dir, 'test2.bin')
     os.chdir(self.temp_dir)
 
     # `rma create` to create 2 RMA shims.
-    self.SetupBundleEnvironment(image_path1)
+    self.SetupBundleEnvironment(image1_path)
     self.ImageTool('rma', 'create', '-o', 'rma1.bin')
-    self.SetupBundleEnvironment(image_path2)
+    self.SetupBundleEnvironment(image2_path)
     self.ImageTool('rma', 'create', '-o', 'rma2.bin',
                    '--active_test_list', 'test')
     self.RemoveBundleEnvironment()
@@ -225,33 +225,39 @@ class ImageToolRMATest(unittest.TestCase):
                             {'board': 'test2', 'kernel': 4, 'rootfs': 5}])
 
     # `rma merge` to merge a single-board shim with a universal shim.
+    with image_tool.Partition('rma2.bin', 3).Mount(rw=True) as d:
+      self.CheckCall('echo "factory_shim_2" | sudo dd of="%s"' %
+                     os.path.join(d, 'tag'))
     self.ImageTool(
-        'rma', 'merge', '-f', '-o', 'rma21.bin',
-        '-i', 'rma2.bin', 'rma12.bin', '--auto_select')
-    image_tool.Partition('rma21.bin', 1).CopyFile(
-        image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
-    with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
-      data = json.load(f)
-    self.assertEqual(data, [{'board': 'test2', 'kernel': 2, 'rootfs': 3},
-                            {'board': 'test1', 'kernel': 4, 'rootfs': 5}])
+        'rma', 'merge', '-f', '-o', 'rma12_new.bin',
+        '-i', 'rma12.bin', 'rma2.bin', '--auto_select')
+    image_tool.Partition('rma12_new.bin', 5).CopyFile('tag', 'tag.5')
+    self.assertEqual(open('tag.5').read().strip(), 'factory_shim_2')
 
     # `rma extract` to extract a board from a universal shim.
     self.ImageTool('rma', 'extract', '-f', '-o', 'extract.bin',
-                   '-i', 'rma21.bin', '-s', '2')
+                   '-i', 'rma12.bin', '-s', '2')
     image_tool.Partition('extract.bin', 1).CopyFile(
         image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
     with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
       data = json.load(f)
-    self.assertEqual(data, [{'board': 'test1', 'kernel': 2, 'rootfs': 3}])
+    self.assertEqual(data, [{'board': 'test2', 'kernel': 2, 'rootfs': 3}])
 
-    # `rma replace` to replace the toolkit.
+    # `rma replace` to replace the factory shim and toolkit.
+    factory_shim2_path = os.path.join(self.temp_dir, 'factory_shim2.bin')
+    shutil.copy(image2_path, factory_shim2_path)
+    with image_tool.Partition(factory_shim2_path, 3).Mount(rw=True) as d:
+      self.CheckCall('echo "factory_shim_3" | sudo dd of="%s"' %
+                     os.path.join(d, 'tag'))
     toolkit2_path = os.path.join(self.temp_dir, 'toolkit2.run')
     with open(toolkit2_path, 'w') as f:
       f.write('#!/bin/sh\necho Toolkit Version 2.0\n')
     os.chmod(toolkit2_path, 0o755)
     self.ImageTool(
-        'rma', 'replace', '-i', 'rma12.bin',
-        '--board', 'test2', '--toolkit', toolkit2_path)
+        'rma', 'replace', '-i', 'rma12.bin', '--board', 'test2',
+        '--factory_shim', factory_shim2_path, '--toolkit', toolkit2_path)
+    image_tool.Partition('rma12.bin', 5).CopyFile('tag', 'tag.5')
+    self.assertEqual(open('tag.5').read().strip(), 'factory_shim_3')
     image_tool.Partition('rma12.bin', 1).CopyFile(
         'cros_payloads/test2.json', self.temp_dir)
     with open('test2.json') as f:

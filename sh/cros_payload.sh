@@ -405,8 +405,8 @@ json_get_image_files() {
   local json_file="$2"
 
   if [ -n "${JQ}" ]; then
-    local filter=".${component}.part1"
-    for i in $(seq 2 12); do
+    local filter=".${component}.crx_cache"
+    for i in $(seq 1 12); do
       filter="${filter},.${component}.part${i}"
     done
     "${JQ}" -r "${filter} | select(. != null)" "${json_file}"
