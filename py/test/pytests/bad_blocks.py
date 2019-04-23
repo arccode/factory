@@ -62,6 +62,7 @@ import logging
 import re
 from select import select
 import subprocess
+import tempfile
 import time
 
 import factory_common  # pylint: disable=unused-import
@@ -453,8 +454,13 @@ class BadBlocksTest(test_case.TestCase):
         testlog.LogParam('command_stdout', stdout_data)
         testlog.LogParam('command_stderr', stderr_data)
 
-    smartctl_output = self.dut.CheckOutput(
-        ['smartctl', '-a', self._filesystem])
+    cmd = ['smartctl', '-a', self._filesystem]
+    with tempfile.TemporaryFile() as stdout:
+      exit_code = self.dut.Call(cmd, stdout=stdout)
+      stdout.flush()
+      stdout.seek(0)
+      smartctl_output = stdout.read()
+
     logging.info('smartctl output: %s', smartctl_output)
     event_log.Log('smartctl', stdout=smartctl_output)
     testlog.LogParam('smartctl', smartctl_output)
@@ -463,6 +469,10 @@ class BadBlocksTest(test_case.TestCase):
         'SMART overall-health self-assessment test result: PASSED'
         in smartctl_output,
         'SMART says drive is not healthy')
+    # Ignore error other than first two bits, this should be aligned to
+    # hardware_Smartctl autotest.
+    self.assertTrue(
+        exit_code & 0x3 == 0, 'smartclt exit code = 0x%x' % exit_code)
 
   def _UpdateSATALinkSpeed(self):
     """Updates the current SATA link speed based on /var/log/messages."""
