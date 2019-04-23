@@ -665,8 +665,9 @@ class _HwidV2Data(_HwidData):
     self._Seed(hwid_file, raw_hwid_yaml, hwid_data)
 
   def _SeedFromRawYaml(self, raw_hwid_yaml):
-    # TODO(yllin): Use duplicatable yaml key rules for HWID v2
-    return self._SeedFromData(yaml.load(raw_hwid_yaml))
+    from cros.factory.hwid.v2 import yaml_datastore
+    return self._SeedFromData(yaml_datastore.YamlRead(
+        raw_hwid_yaml, yaml.SafeLoader))
 
   def _SeedFromData(self, hwid_data):
     for field in [
