@@ -17,6 +17,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import manager
+from cros.factory.test.test_lists import test_list_common
 from cros.factory.utils import cros_board_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
@@ -53,7 +54,7 @@ def TweakTestLists(args):
   Args:
     args: The arguments from argparse.
   """
-  for path in glob.glob(os.path.join(manager.TEST_LISTS_PATH, '*.py')):
+  for path in glob.glob(os.path.join(test_list_common.TEST_LISTS_PATH, '*.py')):
     with open(path) as f:
       data = f.read()
 
@@ -101,7 +102,7 @@ def TweakTestLists(args):
   if args.test_list:
     manager.Manager.SetActiveTestList(args.test_list)
   else:
-    file_utils.TryUnlink(manager.ACTIVE_TEST_LIST_CONFIG_PATH)
+    file_utils.TryUnlink(test_list_common.ACTIVE_TEST_LIST_CONFIG_PATH)
 
 
 def main():

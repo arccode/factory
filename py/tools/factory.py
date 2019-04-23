@@ -32,6 +32,7 @@ from cros.factory.test.rules import phase
 from cros.factory.test import state
 from cros.factory.test.state import TestState
 from cros.factory.test.test_lists import manager
+from cros.factory.test.test_lists import test_list_common
 from cros.factory.utils import debug_utils
 from cros.factory.utils import log_utils
 from cros.factory.utils.process_utils import Spawn
@@ -333,7 +334,8 @@ class TestListCommand(Subcommand):
                  'see available test lists' % self.args.id)
       mgr.SetActiveTestList(self.args.id)
       print 'Set active test list to %s (wrote %r to %s)' % (
-          self.args.id, self.args.id, manager.ACTIVE_TEST_LIST_CONFIG_PATH)
+          self.args.id, self.args.id,
+          test_list_common.ACTIVE_TEST_LIST_CONFIG_PATH)
       sys.stdout.flush()
     else:
       print mgr.GetActiveTestListId()
