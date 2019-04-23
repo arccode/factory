@@ -13,6 +13,7 @@ import certifi
 from dulwich.client import HttpGitClient
 from dulwich.objects import Blob
 from dulwich.objects import Tree
+from dulwich.pack import pack_objects_to_data
 from dulwich.refs import strip_peeled_refs
 from dulwich.repo import MemoryRepo as _MemoryRepo
 from urllib3 import PoolManager
@@ -93,7 +94,7 @@ class MemoryRepo(_MemoryRepo):
         unused_mode, sha = cur[child_name]
         sub = self[sha]
         if not isinstance(sub, Tree):  # if child_name exists but not a dir
-          raise GitUtilException()
+          raise GitUtilException
       else:
         # not exists, create a new tree
         sub = Tree()
@@ -108,7 +109,7 @@ class MemoryRepo(_MemoryRepo):
         existed_obj = self[sha]
         if not isinstance(existed_obj, Blob):
           # if file_name exists but not a Blob(file)
-          raise GitUtilException()
+          raise GitUtilException
       self.object_store.add_object(blob)
       new_ids = [blob.id]
       cur.add(file_name, mode, blob.id)
@@ -181,7 +182,7 @@ def _GetChangeId(tree_id, parent_commit, author, committer, commit_msg):
 
 
 def CreateCL(git_url, auth_cookie, project, branch, new_files, author,
-             committer, commit_msg):
+             committer, commit_msg, reviewers=None, cc=None):
   """Create a CL from adding files in specified location.
 
   Args:
@@ -193,8 +194,54 @@ def CreateCL(git_url, auth_cookie, project, branch, new_files, author,
     author: Author in form of "Name <email@domain>"
     committer: Committer in form of "Name <email@domain>"
     commit_msg: Commit message
+    reviewers: List of emails of reviewers
+    cc: List of emails of cc's
   Returns:
     change id
   """
 
-  raise NotImplementedError
+  def _generate_pack_data_wrapper(obj_store, new_obj_ids):
+    """Patched generate_pack_data.
+
+    In client.send_pack, we customize generate_pack_data instead of using
+    object_store.generate_pack_data since we know what objects are needed in new
+    commit instead of comparing commits between local and remote which is
+    currently not supported if shallow clone is applied
+    """
+
+    def wrapper(*unused_args, **unused_kwargs):
+      return pack_objects_to_data(obj_store.iter_shas(
+          (id, None) for id in new_obj_ids))
+    return wrapper
+
+  repo = MemoryRepo(auth_cookie=auth_cookie)
+  # only fetches last commit
+  client = repo.shallow_clone(git_url, branch=branch)
+  head_commit = repo[HEAD]
+  original_tree_id = head_commit.tree
+  updated_tree, new_obj_ids = repo.add_files(new_files)
+  if updated_tree.id == original_tree_id:
+    raise GitUtilException('No modification')
+
+  change_id = _GetChangeId(
+      updated_tree.id, repo.head(), author, committer, commit_msg)
+  new_commit = repo.do_commit(
+      commit_msg + '\n\nChange-Id: {change_id}'.format(change_id=change_id),
+      author=author, committer=committer, tree=updated_tree.id)
+  new_obj_ids.append(new_commit)
+
+  notification = []
+  if reviewers:
+    notification += ['r=' + email for email in reviewers]
+  if cc:
+    notification += ['cc=' + email for email in cc]
+  target_branch = 'refs/for/' + branch
+  if notification:
+    target_branch += '%' + ','.join(notification)
+
+  client.send_pack(
+      '/' + project,
+      # returns the only branch:hash mapping needed
+      lambda unused_refs: {target_branch: new_commit},
+      _generate_pack_data_wrapper(repo.object_store, new_obj_ids))
+  return change_id
