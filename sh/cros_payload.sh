@@ -466,7 +466,7 @@ update_json() {
   local new_config="$(mktemp)"
   register_tmp_object "${new_config}"
 
-  echo "${new_json}" | json_merge "${json_path}" - \
+  printf '%s' "${new_json}" | json_merge "${json_path}" - \
     | json_prettify - >"${new_config}"
   cp -f "${new_config}" "${json_path}"
   chmod a+r "${json_path}"
@@ -1093,11 +1093,11 @@ get_component_file() {
 
   case "${component}" in
     release_image | test_image)
-      echo "${json_str}" | json_get_image_files "${component}" -
+      printf '%s' "${json_str}" | json_get_image_files "${component}" -
       ;;
     toolkit | hwid | firmware | complete | netboot_* | toolkit_config | \
       lsb_factory)
-      echo "${json_str}" | json_get_file "${component}" -
+      printf '%s' "${json_str}" | json_get_file "${component}" -
       ;;
     *)
       die "Unknown component: ${component}"
