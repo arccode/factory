@@ -206,7 +206,7 @@ class GoofyRPC(object):
                  note['name'], note['timestamp'], note['level'],
                  note['text'])
     if note['level'] == 'CRITICAL':
-      self.goofy.RunEnqueue(self.goofy.stop)
+      self.goofy.RunEnqueue(self.goofy.Stop)
     self.goofy.state_instance.DataShelfAppendToList('factory_note', note)
     self.PostEvent(Event(Event.Type.UPDATE_NOTES))
 
@@ -299,7 +299,7 @@ class GoofyRPC(object):
   def StopTest(self, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Stops current tests."""
     self._InRunQueue(
-        lambda: self.goofy.stop(reason='RPC call to stop tests',
+        lambda: self.goofy.Stop(reason='RPC call to stop tests',
                                 fail=True),
         timeout_secs=timeout_secs)
 
