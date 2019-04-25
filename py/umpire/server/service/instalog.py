@@ -8,6 +8,7 @@ import hashlib
 import logging
 import os
 import pprint
+import socket
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server.service import umpire_service
@@ -49,7 +50,9 @@ class InstalogService(umpire_service.UmpireService):
 
     if update_info.get('forward', {}).get('enable', False):
       args = update_info.get('forward', {}).get('args', {}).copy()
-      # We only can use the port which is published by Umpire.
+      # Umpire is running in docker, and we always use IP of umpire and port
+      # published by docker.
+      args['hostname'] = socket.gethostbyname(socket.gethostname())
       args['port'] = env.umpire_instalog_pull_socket_port
       instalog_config['output']['forward'] = {
           'plugin': 'output_pull_socket',
