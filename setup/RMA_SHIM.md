@@ -52,6 +52,26 @@ Cons:
 * The size of a universal shim can be large. Each board in a shim takes about
   3 GB, so a universal shim containing 3 boards will have size 9~10 GB.
 
+## Get the tool
+
+[image_tool](../py/tools/image_tool.py) is a useful tool to manage RMA shims. We
+can get this tool by downloading the factory public repo.
+
+    $ git clone https://chromium.googlesource.com/chromiumos/platform/factory
+    $ cd factory/
+
+The tool is located at `setup/image_tool`. It's recommended to sync the git repo
+periodically to get the latest version.
+
+    (in factory/ repository)
+    $ git pull
+
+After downloading the factory repo, we can run the unit test for RMA commands
+to check if it runs normally on the machine. The tool should be able to run in
+a fresh Linux environment without chroot.
+
+    $ py/tools/image_tool_rma_unittest.py
+
 ## Create an RMA shim
 
 To create an RMA shim, you should first get a factory bundle and follow the
@@ -100,27 +120,32 @@ tests to `RMAFFT` group.
 ### Combine factory bundle components into an RMA shim image ###
 
 After getting all the bundle components ready, we can combine these components
-into a single RMA shim image.
+into a single RMA shim image. To create an RMA shim image from a factory bundle,
+use `image_tool rma create` command:
 
-[image_tool](../py/tools/image_tool.py) is a useful tool to manage RMA shims. To
-create an RMA shim image from a factory bundle, use `image_tool rma create`
-command:
-
-    $ ./setup/image_tool rma create \
-        --board=BOARD \
-        --factory_shim=path/to/factory_install_shim.bin \
-        --test_image=path/to/chromiumos_test_image.bin \
-        --toolkit=path/to/install_factory_toolkit.run \
-        --release_image=path/to/chromiumos_image.bin \
-        --hwid=path/to/hwid_bundle.sh \
-        --output=rma_image.bin
+    $ setup/image_tool rma create \
+        --board BOARD \
+        --factory_shim path/to/factory_install_shim.bin \
+        --test_image path/to/chromiumos_test_image.bin \
+        --toolkit path/to/install_factory_toolkit.run \
+        --release_image path/to/chromiumos_image.bin \
+        --hwid path/to/hwid_bundle.sh \
+        --output rma_image.bin
 
 The command can be simplified if all the components are put in their respective
-bundle directories (`release_image/`, `test_image/`, etc.):
+[bundle](./BUNDLE.md) directories (`release_image/`, `test_image/`, etc.):
 
-    $ ./setup/image_tool rma create \
-        --board=BOARD \
-        --output=rma_image.bin
+    $ setup/image_tool rma create \
+        --board BOARD \
+        --output rma_image.bin
+
+We can also specify the active test list when creating the RMA shim, so that we
+don't need to modify `active_test_list.json` in factory toolkit.
+
+    $ setup/image_tool rma create \
+        --board BOARD \
+        --output rma_image.bin \
+        --active_test_list rma_main
 
 ## Use an RMA shim
 
@@ -163,6 +188,8 @@ command in chroot.
    to enter recovery mode again (no need to wait for wiping)
 1. Insert and boot from USB stick with `rma_image.bin`
 
+### RMA shim menu
+
 The RMA shim has a menu that allows the user to select an action to perform,
 which is described in
 [Factory Installer README](https://chromium.googlesource.com/chromiumos/platform/factory_installer/#factory-shim-menu).
@@ -196,18 +223,59 @@ and enable the release image.
 
 ## Create a universal RMA shim
 
-We can use `image_tool rma merge` to create a universal shim using multiple
-RMA shims.
+We can use `image_tool rma merge` command to create a universal shim using
+multiple RMA shims.
 
-    $ ./setup/image_tool rma merge \
+    $ setup/image_tool rma merge \
         -i soraka.bin scarlet.bin \
         -o universal.bin
 
-To delete a previously generated output image, specify the **-f** option:
+To delete a previously generated output image, specify the `-f` option:
 
-    $ ./setup/image_tool rma merge \
+    $ setup/image_tool rma merge \
         -i soraka.bin scarlet.bin \
         -o universal.bin -f
+
+## Update a universal RMA shim
+
+`image_tool rma merge` supports merging universal shims. If there are duplicate
+boards, it will ask the user to select which one to use. It can be used to
+update a board in a universal shim using an updated single-board RMA shim.
+
+    $ setup/image_tool rma merge \
+        -i universal.bin soraka_new.bin \
+        -o universal_new.bin
+    Scanning 2 input image files...
+
+    Board soraka has more than one entry.
+    ========================================================================
+    (1)
+    From universal.bin
+    board         : soraka
+    install_shim  : 10323.39.28
+    release_image : 10575.37.0 (Official Build) dev-channel soraka
+    test_image    : 10323.39.24 (Official Build) dev-channel soraka test
+    toolkit       : soraka Factory Toolkit 10323.39.24
+    firmware      : Google_Soraka.10431.32.0;Google_Soraka.10431.48.0
+    hwid          : None
+    complete      : None
+    toolkit_config: None
+    lsb_factory   : lsb_factory
+    ========================================================================
+    (2)
+    From soraka_new.bin
+    board         : soraka
+    install_shim  : 10323.39.31
+    release_image : 10575.37.0 (Official Build) dev-channel soraka
+    test_image    : 10323.39.24 (Official Build) dev-channel soraka test
+    toolkit       : soraka Factory Toolkit 10323.39.24
+    firmware      : Google_Soraka.10431.32.0;Google_Soraka.10431.48.0
+    hwid          : None
+    complete      : None
+    toolkit_config: None
+    lsb_factory   : lsb_factory
+    ========================================================================
+    Please select an option [1-2]:
 
 ## Use a universal RMA shim
 
@@ -218,45 +286,194 @@ mentioned [above](#use-an-rma-shim).
 ## Other RMA commands
 
 There are other `image_tool` commands that makes verifying and modifying RMA
-shims easier.
+shims easier. For detailed description and usage, please use the `--help`
+argument of the commands. For instance:
+
+    $ setup/image_tool rma show --help
 
 ### Print bundle components in an RMA shim
 
-`image_tool rma show` command prints the component versions in an RMA shim.
+`image_tool rma show` command can print the component versions in an RMA shim.
 
-    $ ./setup/image_tool rma show rma_image.bin
+    $ setup/image_tool rma show -i soraka.bin
     This RMA shim contains boards: soraka
-    -------------------------
-    board        : soraka
-    install_shim : 10323.39.24
-    release_image: 10575.37.0 (Official Build) dev-channel soraka
-    test_image   : 10323.39.24 (Official Build) dev-channel soraka test
-    toolkit      : soraka Factory Toolkit 10323.39.24
-    firmware     : Google_Soraka.10431.32.0;Google_Soraka.10431.48.0
-    hwid         : None
-    complete     : None
-    -------------------------
+    ========================================================================
+    board         : soraka
+    install_shim  : 10323.39.31
+    release_image : 10575.37.0 (Official Build) dev-channel soraka
+    test_image    : 10323.39.24 (Official Build) dev-channel soraka test
+    toolkit       : soraka Factory Toolkit 10323.39.24
+    firmware      : Google_Soraka.10431.32.0;Google_Soraka.10431.48.0
+    hwid          : None
+    complete      : None
+    toolkit_config: cb5b52296cd4fcb0418b6879c0acc32b
+    lsb_factory   : d2c9d6a7d32ee3b1279c2b0b27244727
+    ========================================================================
 
 This command also applies to universal RMA shim.
 
-    $ ./setup/image_tool rma show universal.bin
+    $ setup/image_tool rma show -i universal.bin
     This RMA shim contains boards: soraka scarlet
-    -------------------------
-    board        : soraka
-    install_shim : 10323.39.24
-    release_image: 10575.37.0 (Official Build) dev-channel soraka
-    test_image   : 10323.39.24 (Official Build) dev-channel soraka test
-    toolkit      : soraka Factory Toolkit 10323.39.24
-    firmware     : Google_Soraka.10431.32.0;Google_Soraka.10431.48.0
-    hwid         : None
-    complete     : None
-    -------------------------
-    board        : scarlet
-    install_shim : 10211.54.0
-    release_image: 10575.67.0 (Official Build) stable-channel scarlet
-    test_image   : 10211.53.0 (Official Build) dev-channel scarlet test
-    toolkit      : scarlet Factory Toolkit 10211.53.0
-    firmware     : Google_Scarlet.10388.26.0
-    hwid         : None
-    complete     : None
-    -------------------------
+    ========================================================================
+    board         : soraka
+    install_shim  : 10323.39.31
+    release_image : 10575.37.0 (Official Build) dev-channel soraka
+    test_image    : 10323.39.24 (Official Build) dev-channel soraka test
+    toolkit       : soraka Factory Toolkit 10323.39.24
+    firmware      : Google_Soraka.10431.32.0;Google_Soraka.10431.48.0
+    hwid          : None
+    complete      : None
+    toolkit_config: cb5b52296cd4fcb0418b6879c0acc32b
+    lsb_factory   : d2c9d6a7d32ee3b1279c2b0b27244727
+    ========================================================================
+    board         : scarlet
+    install_shim  : 10211.68.0
+    release_image : 10575.67.0 (Official Build) stable-channel scarlet
+    test_image    : 10211.53.0 (Official Build) dev-channel scarlet test
+    toolkit       : scarlet Factory Toolkit 10211.53.0
+    firmware      : Google_Scarlet.10388.26.0
+    hwid          : None
+    complete      : None
+    toolkit_config: None
+    lsb_factory   : c82d4c1f831bf20d7cdc70138fe4ef72
+    ========================================================================
+
+### Replace bundle components in an RMA shim
+
+`image_tool rma replace` command can replace components in an RMA shim. For
+instance, to replace the HWID bundle in an RMA shim with a new one:
+
+    $ setup/image_tool rma replace -i rma_image.bin --hwid new_hwid_bundle.sh
+
+If the RMA shim is a universal shim, argument `--board` is needed.
+
+    $ setup/image_tool rma replace -i universal.bin \
+        --board soraka --hwid new_hwid_bundle.sh
+
+This command supports replacing `release_image`, `test_image`, `toolkit`,
+`factory_shim`, `firmware`, `hwid`, `complete_script` and `toolkit_config`.
+
+### Extract a single-board RMA shim from a universal shim
+
+`image_tool rma extract` command can extract a single-board RMA shim from a
+universal shim.
+
+    $ setup/image_tool rma extract -i universal.bin -o extract.bin
+    Scanning input image file...
+
+    Please select a board to extract.
+    ========================================================================
+    (1)
+    board         : soraka
+    install_shim  : 10323.39.31
+    release_image : 10575.37.0 (Official Build) dev-channel soraka
+    test_image    : 10323.39.24 (Official Build) dev-channel soraka test
+    toolkit       : soraka Factory Toolkit 10323.39.24
+    firmware      : Google_Soraka.10431.32.0;Google_Soraka.10431.48.0
+    hwid          : None
+    complete      : None
+    toolkit_config: cb5b52296cd4fcb0418b6879c0acc32b
+    lsb_factory   : d2c9d6a7d32ee3b1279c2b0b27244727
+    ========================================================================
+    (2)
+    board         : scarlet
+    install_shim  : 10211.68.0
+    release_image : 10575.67.0 (Official Build) stable-channel scarlet
+    test_image    : 10211.53.0 (Official Build) dev-channel scarlet test
+    toolkit       : scarlet Factory Toolkit 10211.53.0
+    firmware      : Google_Scarlet.10388.26.0
+    hwid          : None
+    complete      : None
+    toolkit_config: None
+    lsb_factory   : c82d4c1f831bf20d7cdc70138fe4ef72
+    ========================================================================
+    Please select an option [1-2]:
+
+### Edit lsb-factory config in an RMA shim
+
+`image_tool edit_lsb` command can modify `lsb-factory` config, such as
+`RMA_AUTORUN` flag.
+
+    $ setup/image_tool edit_lsb -i rma_image.bin
+
+    Current LSB config:
+    ========================================================================
+    CHROMEOS_AUSERVER=http://...
+    CHROMEOS_DEVSERVER=http://...
+    FACTORY_INSTALL=1
+    HTTP_SERVER_OVERRIDE=true
+    # Change the below value to true to enable board prompt
+    USER_SELECT=false
+    FACTORY_INSTALL_FROM_USB=1
+    RMA_AUTORUN=true
+    ========================================================================
+    (1) Modify Chrome OS Factory Server address.
+    (2) Enable/disable board prompt on download.
+    (3) Modify cutoff config in cros payload (only for old devices).
+    (4) Enable/disable autorun in RMA shim.
+    (q) Quit without saving changes.
+    (w) Apply changes and exit.
+    Please select an option [1-4, q, w]:
+
+or
+
+    $ setup/image_tool edit_lsb -i universal.bin --board soraka
+
+Note:
+
+* Please do not directly mount the stateful partition and modify `lsb-factory`
+  file. The actual config is stored in cros payload, so the modifications in
+  the file will be overwritten.
+* Starting from version 12162.0.0, cutoff config is not stored in `lsb-factory`.
+  Using this command to modify cutoff config is only effective for factory shim
+  older than this version. For factory shim later than this version, please use
+  `image_tool edit_toolkit_config` command to edit cutoff config.
+
+### Edit toolkit config in an RMA shim.
+
+`image_tool edit_toolkit_config` command can modify toolkit config, such as
+active test list and cutoff config (after version 12162.0.0).
+
+    $ setup/image_tool edit_toolkit_config -i rma_image.bin
+
+    Toolkit config:
+    ========================================================================
+    {
+      "cutoff": {
+        "CUTOFF_BATTERY_MAX_PERCENTAGE": 90,
+        "CUTOFF_BATTERY_MIN_PERCENTAGE": 60,
+        "CUTOFF_METHOD": "battery_cutoff",
+        "CUTOFF_AC_STATE": "remove_ac"
+      },
+      "active_test_list": {
+        "id": "main_rma"
+      }
+    }
+    ========================================================================
+    (1) Modify active test list.
+    (2) Modify test list constants.
+    (3) Modify cutoff config.
+    (q) Quit without saving changes.
+    (w) Apply changes and exit.
+    Please select an option [1-3, q, w]:
+
+or
+
+    $ setup/image_tool edit_toolkit_config -i universal.bin --board soraka
+
+### Extract and repack toolkit in an RMA shim.
+
+`image_tool get_toolkit` and `image_tool repack_toolkit` can extract and repack
+the factory toolkit in an RMA shim.
+
+    $ setup/image_tool get_toolkit -i rma_image.bin -p toolkit_path
+    (Edit some files in toolkit_path/ ...)
+    $ setup/image_tool repack_toolkit -i rma_image.bin -p toolkit_path
+
+or
+
+    $ setup/image_tool get_toolkit \
+        -i universal.bin --board soraka -p toolkit_path
+    (Edit some files in toolkit_path/ ...)
+    $ setup/image_tool repack_toolkit \
+        -i universal.bin --board soraka -p toolkit_path
