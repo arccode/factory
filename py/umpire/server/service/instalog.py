@@ -61,6 +61,20 @@ class InstalogService(umpire_service.UmpireService):
       for input_name in instalog_config['input']:
         instalog_config['input'][input_name]['targets'].append('forward')
 
+    if update_info.get('customized_output', {}).get('enable', False):
+      args = update_info.get('customized_output', {}).get('args', {}).copy()
+      # Umpire is running in docker, and we always use IP of umpire and port
+      # published by docker.
+      args['hostname'] = socket.gethostbyname(socket.gethostname())
+      args['port'] = env.umpire_instalog_customized_output_port
+      instalog_config['output']['customized_output'] = {
+          'plugin': 'output_pull_socket',
+          'args': args
+      }
+      for input_name in instalog_config['input']:
+        instalog_config['input'][input_name]['targets'].append(
+            'customized_output')
+
     if update_info.get('archive', {}).get('enable', False):
       instalog_config['output']['archive'] = {
           'plugin': 'output_archive',

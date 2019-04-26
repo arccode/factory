@@ -41,5 +41,17 @@
         }
       }
     }
+  },
+  "customized_output": {
+    "type": "object",
+    "properties": {
+      "enable": { "type": "boolean" },
+      "args": {
+        "type": "object",
+        "properties": {
+          "batch_size": { "type": "integer" }
+        }
+      }
+    }
   }
 }

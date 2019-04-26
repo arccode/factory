@@ -56,6 +56,7 @@ _RSYNC_PORT_OFFSET = 4
 _HTTP_POST_PORT_OFFSET = 5
 _INSTALOG_PULL_SOCKET_OFFSET = 6
 _INSTALOG_HTTP_PORT_OFFSET = 7
+_INSTALOG_CUSTOMIZED_OUTPUT_OFFSET = 8
 
 PROJECT_NAME_ENV_KEY = 'UMPIRE_PROJECT_NAME'
 
@@ -304,6 +305,10 @@ class UmpireEnv(object):
   @property
   def umpire_instalog_pull_socket_port(self):
     return self.umpire_base_port + _INSTALOG_PULL_SOCKET_OFFSET
+
+  @property
+  def umpire_instalog_customized_output_port(self):
+    return self.umpire_base_port + _INSTALOG_CUSTOMIZED_OUTPUT_OFFSET
 
   @property
   def parameter(self):
