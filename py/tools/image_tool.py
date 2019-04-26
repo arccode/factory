@@ -1364,104 +1364,121 @@ class ChromeOSFactoryBundle(object):
     self.setup_dir = setup_dir
     self.server_url = server_url
 
-  @staticmethod
-  def DefineBundleArguments(parser, build_type):
+  @classmethod
+  def DefineBundleArguments(cls, parser, build_type):
     """Define common argparse arguments to work with factory bundle.
 
     Args:
       parser: An argparse subparser to add argument definitions.
+      build_type: Build type to control arguments added to the parser.
     """
-    # Common arguments for all types. For ChromeOSFactoryBundle.REPLACEABLE,
-    # everything is optional.
-    if build_type in [ChromeOSFactoryBundle.REPLACEABLE]:
-      parser.add_argument(
-          '--release_image', default='-release_image/*.bin',
-          type=ArgTypes.GlobPath,
-          help=('path to a Chromium OS (release or recovery) image. '
-                'default: %(default)s'))
-      parser.add_argument(
-          '--test_image', default='-test_image/*.bin',
-          type=ArgTypes.GlobPath,
-          help='path to a Chromium OS test image. default: %(default)s')
-      parser.add_argument(
-          '--toolkit', default='-toolkit/*.run',
-          type=ArgTypes.GlobPath,
-          help='path to a Chromium OS factory toolkit. default: %(default)s')
-      parser.add_argument(
-          '--factory_shim', default='-factory_shim/*.bin',
-          type=ArgTypes.GlobPath,
-          help=('path to a factory shim (build_image factory_install), '
-                'default: %(default)s'))
-    else:
-      parser.add_argument(
-          '--release_image', default='release_image/*.bin',
-          type=ArgTypes.GlobPath,
-          help=('path to a Chromium OS (release or recovery) image. '
-                'default: %(default)s'))
-      parser.add_argument(
-          '--test_image', default='test_image/*.bin',
-          type=ArgTypes.GlobPath,
-          help='path to a Chromium OS test image. default: %(default)s')
-      parser.add_argument(
-          '--toolkit', default='toolkit/*.run',
-          type=ArgTypes.GlobPath,
-          help='path to a Chromium OS factory toolkit. default: %(default)s')
 
-    parser.add_argument(
-        '--hwid', default='-hwid/*.sh',
+    class ParserArgumentWrapper(object):
+      """Helper class for flexible parser arguments."""
+      def __init__(self, parser, build_type, remove_default):
+        self.parser = parser
+        self.build_type = build_type
+        self.remove_default = remove_default
+
+      def AddArgument(self, build_types, *args, **kargs):
+        if self.build_type in build_types:
+          if self.remove_default:
+            kargs.pop('default', None)
+          self.parser.add_argument(*args, **kargs)
+
+    # Add parser arguments.
+    parser = ParserArgumentWrapper(
+        parser, build_type, remove_default=(build_type == cls.REPLACEABLE))
+    parser.AddArgument(
+        (cls.PREFLASH, cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
+        '--release_image',
+        default='release_image/*.bin',
+        type=ArgTypes.GlobPath,
+        help=('path to a Chromium OS (release or recovery) image. '
+              'default: %(default)s'))
+    parser.AddArgument(
+        (cls.PREFLASH, cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
+        '--test_image',
+        default='test_image/*.bin',
+        type=ArgTypes.GlobPath,
+        help='path to a Chromium OS test image. default: %(default)s')
+    parser.AddArgument(
+        (cls.PREFLASH, cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
+        '--toolkit',
+        default='toolkit/*.run',
+        type=ArgTypes.GlobPath,
+        help='path to a Chromium OS factory toolkit. default: %(default)s')
+    parser.AddArgument(
+        (cls.PREFLASH, cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
+        '--factory_shim',
+        default='factory_shim/*.bin',
+        type=ArgTypes.GlobPath,
+        help=('path to a factory shim (build_image factory_install), '
+              'default: %(default)s'))
+    parser.AddArgument(
+        (cls.PREFLASH, cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
+        '--hwid',
+        default='-hwid/*.sh',
         type=ArgTypes.GlobPath,
         help='path to a HWID bundle if available. default: %(default)s')
-
-    # Additional arguments.
-    if build_type in [ChromeOSFactoryBundle.RMA, ChromeOSFactoryBundle.BUNDLE,
-                      ChromeOSFactoryBundle.REPLACEABLE]:
-      # firmware/ may be updater*.sh or chromeos-firmwareupdate.
-      parser.add_argument(
-          '--firmware', default='-firmware/*update*',
-          type=ArgTypes.GlobPath,
-          help=('optional path to a firmware update (chromeos-firmwareupdate); '
-                'if not specified, extract firmware from --release_image '
-                'unless if --no-firmware is specified'))
-      parser.add_argument(
-          '--complete', dest='complete', default='-complete/*.sh',
-          type=ArgTypes.GlobPath,
-          help='path to a script for last-step execution of factory install')
-      parser.add_argument(
-          '--toolkit_config', dest='toolkit_config',
-          default='-toolkit/*.json', type=ArgTypes.GlobPath,
-          help='path to a config file to override test list constants')
-      parser.add_argument(
-          '--board',
-          help='board name for dynamic installation')
-
-    if build_type in [ChromeOSFactoryBundle.RMA, ChromeOSFactoryBundle.BUNDLE]:
-      parser.add_argument(
-          '--no-firmware', dest='enable_firmware', action='store_false',
-          default=True,
-          help='skip running firmware updater')
-      parser.add_argument(
-          '--factory_shim', default='factory_shim/*.bin',
-          type=ArgTypes.GlobPath,
-          help=('path to a factory shim (build_image factory_install), '
-                'default: %(default)s'))
-
-    if build_type in [ChromeOSFactoryBundle.BUNDLE]:
-      parser.add_argument(
-          '--setup_dir', default='-setup',
-          type=ArgTypes.GlobPath,
-          help='path to scripts for setup and deployment from factory zip')
-      parser.add_argument(
-          '--netboot', default='-netboot|factory_shim/netboot',
-          type=ArgTypes.GlobPath,
-          help='path to netboot firmware (image.net.bin) and kernel (vmlinuz)')
-      # TODO(hungte) Support more flexible names like 'evt2'.
-      parser.add_argument(
-          '-p', '--phase', choices=['proto', 'evt', 'dvt', 'pvt', 'mp'],
-          default='proto',
-          help='build phase (evt, dvt, pvt or mp).')
-      parser.add_argument(
-          '-s', '--server_url',
-          help='URL to factory server. The host part may be used for TFTP.')
+    parser.AddArgument(
+        (cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
+        '--board',
+        help='board name for dynamic installation')
+    parser.AddArgument(
+        (cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
+        '--firmware',
+        default='-firmware/*update*',
+        type=ArgTypes.GlobPath,
+        help=('optional path to a firmware updater '
+              '(chromeos-firmwareupdate); if not specified, extract '
+              'firmware from --release_image unless --no-firmware is '
+              'specified'))
+    parser.AddArgument(
+        (cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
+        '--complete',
+        dest='complete',
+        default='-complete/*.sh',
+        type=ArgTypes.GlobPath,
+        help='path to a script for last-step execution of factory install')
+    parser.AddArgument(
+        (cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
+        '--toolkit_config',
+        dest='toolkit_config',
+        default='-toolkit/*.json',
+        type=ArgTypes.GlobPath,
+        help='path to a config file to override test list constants')
+    parser.AddArgument(
+        (cls.RMA, cls.BUNDLE),
+        '--no-firmware',
+        dest='enable_firmware',
+        action='store_false',
+        default=True,
+        help='skip running firmware updater')
+    parser.AddArgument(
+        (cls.BUNDLE,),
+        '--setup_dir',
+        default='-setup',
+        type=ArgTypes.GlobPath,
+        help='path to scripts for setup and deployment from factory zip')
+    parser.AddArgument(
+        (cls.BUNDLE,),
+        '--netboot',
+        default='-netboot|factory_shim/netboot',
+        type=ArgTypes.GlobPath,
+        help=('path to netboot firmware (image.net.bin) and kernel '
+              '(vmlinuz)'))
+    # TODO(hungte) Support more flexible names like 'evt2'.
+    parser.AddArgument(
+        (cls.BUNDLE,),
+        '-p', '--phase',
+        choices=['proto', 'evt', 'dvt', 'pvt', 'mp'],
+        default='proto',
+        help='build phase (evt, dvt, pvt or mp).')
+    parser.AddArgument(
+        (cls.BUNDLE,),
+        '-s', '--server_url',
+        help='URL to factory server. The host part may be used for TFTP.')
 
   @property
   def board(self):
