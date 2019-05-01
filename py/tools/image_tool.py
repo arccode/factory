@@ -1423,7 +1423,7 @@ class ChromeOSFactoryBundle(object):
                 'if not specified, extract firmware from --release_image '
                 'unless if --no-firmware is specified'))
       parser.add_argument(
-          '--complete_script', dest='complete', default='-complete/*.sh',
+          '--complete', dest='complete', default='-complete/*.sh',
           type=ArgTypes.GlobPath,
           help='path to a script for last-step execution of factory install')
       parser.add_argument(
@@ -2080,6 +2080,10 @@ class ChromeOSFactoryBundle(object):
     replaced_payloads = {
         component: payload for component, payload in kargs.iteritems()
         if payload is not None}
+    if len(replaced_payloads) == 0:
+      print('Nothing to replace.')
+      return
+
     for component in replaced_payloads:
       assert component in PAYLOAD_COMPONENTS, (
           'Unknown component "%s"', component)
@@ -2642,7 +2646,7 @@ class CreateRMAImageCommmand(SubCommand):
           toolkit_config=self.args.toolkit_config)
       bundle.CreateRMAImage(self.args.output,
                             active_test_list=self.args.active_test_list)
-      bundle.ShowRMAImage(output)
+      ChromeOSFactoryBundle.ShowRMAImage(output)
       print('OK: Generated %s RMA image at %s' %
             (bundle.board, self.args.output))
 
@@ -2734,7 +2738,8 @@ class ShowRMAImageCommand(SubCommand):
 
   def Init(self):
     self.subparser.add_argument(
-        'image', type=ArgTypes.ExistsPath,
+        '-i', '--image', required=True,
+        type=ArgTypes.ExistsPath,
         help='Path to input RMA image.')
 
   def Run(self):
