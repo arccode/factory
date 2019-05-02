@@ -64,15 +64,15 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
 
     # Create server, uploader, requester GPG instances. Export server's public
     # key to uploader and requester.
-    self.server_gpg = gnupg.GPG(homedir=self.server_gnupg_homedir)
+    self.server_gpg = gnupg.GPG(gnupghome=self.server_gnupg_homedir)
     exported_server_key = self.server_gpg.export_keys(
         self.server_key_fingerprint)
     self.server_key_file_path = os.path.join(self.temp_dir, 'server.pub')
     with open(self.server_key_file_path, 'w') as f:
       f.write(exported_server_key)
-    self.uploader_gpg = gnupg.GPG(homedir=uploader_gnupg_homedir)
+    self.uploader_gpg = gnupg.GPG(gnupghome=uploader_gnupg_homedir)
     self.uploader_gpg.import_keys(exported_server_key)
-    self.requester_gpg = gnupg.GPG(homedir=requester_gnupg_homedir)
+    self.requester_gpg = gnupg.GPG(gnupghome=requester_gnupg_homedir)
     self.requester_gpg.import_keys(exported_server_key)
 
     # Passphrase for uploader and requester private keys.

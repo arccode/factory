@@ -49,7 +49,7 @@ class BaseHelper(object):
                client_key_file_path, passphrase_file_path):
     # Create GnuPG object.
     self.temp_dir = tempfile.mkdtemp()  # should be removed in __del__
-    self.gpg = gnupg.GPG(homedir=os.path.join(self.temp_dir, 'gnupg'))
+    self.gpg = gnupg.GPG(gnupghome=os.path.join(self.temp_dir, 'gnupg'))
 
     # Get server and client keys' fingerprints.
     with open(server_key_file_path) as f:
@@ -86,7 +86,7 @@ class BaseHelper(object):
   def AvailableKeyCount(self):
     """Return the number of remaining keys from the DKPS."""
     signed_obj = self.gpg.sign(
-        uuid.uuid4().hex, default_key=self.client_key_fingerprint,
+        uuid.uuid4().hex, keyid=self.client_key_fingerprint,
         passphrase=self.passphrase)
     return self.dkps.AvailableKeyCount(signed_obj.data)
 
@@ -125,7 +125,7 @@ class RequesterHelper(BaseHelper):
     """
     encrypted_obj = self.gpg.encrypt(
         device_serial_number, self.server_key_fingerprint, always_trust=True,
-        default_key=self.client_key_fingerprint, passphrase=self.passphrase)
+        sign=self.client_key_fingerprint, passphrase=self.passphrase)
 
     encrypted_drm_key = self.dkps.Request(encrypted_obj.data)
 
@@ -152,7 +152,7 @@ class RequesterHelper(BaseHelper):
     """
     self.gpg.encrypt(
         device_serial_number, self.server_key_fingerprint, always_trust=True,
-        default_key=self.client_key_fingerprint, passphrase=self.passphrase)
+        sign=self.client_key_fingerprint, passphrase=self.passphrase)
 
     return RequesterHelper.MOCK_DRM_KEY
 
@@ -193,7 +193,7 @@ class UploaderHelper(BaseHelper):
 
     encrypted_obj = self.gpg.encrypt(
         serialized_drm_keys, self.server_key_fingerprint, always_trust=True,
-        default_key=self.client_key_fingerprint, passphrase=self.passphrase)
+        sign=self.client_key_fingerprint, passphrase=self.passphrase)
 
     self.dkps.Upload(encrypted_obj.data)
 
@@ -211,7 +211,7 @@ class UploaderHelper(BaseHelper):
 
     self.gpg.encrypt(
         serialized_drm_keys, self.server_key_fingerprint, always_trust=True,
-        default_key=self.client_key_fingerprint, passphrase=self.passphrase)
+        sign=self.client_key_fingerprint, passphrase=self.passphrase)
 
 
 def _ParseArguments():
