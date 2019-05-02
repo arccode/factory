@@ -101,6 +101,10 @@ PAYLOAD_SUBTYPE_VERSION = 'version'
 LSB_FACTORY_WARNING_MESSAGE = (
     '# Please use image_tool to set lsb-factory config.\n'
     '# Manual modifications will be overwritten at runtime!\n')
+# Subconfigs in toolkit_config payload.
+TOOLKIT_SUBCONFIG_ACTIVE_TEST_LIST = 'active_test_list'
+TOOLKIT_SUBCONFIG_TEST_LIST_CONSTANTS = 'test_list_constants'
+TOOLKIT_SUBCONFIG_CUTOFF = 'cutoff'
 # Split line for separating outputs.
 SPLIT_LINE = '=' * 72
 # Command line namespace for RMA subcommands.
@@ -3246,8 +3250,6 @@ class EditToolkitConfigCommand(SubCommand):
   toolkit_config = None
   old_toolkit_config = None
   config_wip = None
-  # cutoff config in /usr/share/cutoff/cutoff.json.
-  shim_cutoff_config = None
 
   def Init(self):
     self.subparser.add_argument(
@@ -3314,14 +3316,14 @@ class EditToolkitConfigCommand(SubCommand):
 
   def EditActiveTestList(self):
     """Modify active test list."""
-    subconfig_key = 'active_test_list'
+    subconfig_key = TOOLKIT_SUBCONFIG_ACTIVE_TEST_LIST
     self.config_wip = self.toolkit_config.get(subconfig_key, {}).copy()
     self._DoString('Enter active test list id (e.g. main)', 'id', optional=True)
     self.toolkit_config[subconfig_key] = self.config_wip
 
   def EditTestListConstants(self):
     """Modify test list constants."""
-    subconfig_key = 'test_list_constants'
+    subconfig_key = TOOLKIT_SUBCONFIG_TEST_LIST_CONSTANTS
     self.config_wip = self.toolkit_config.get(subconfig_key, {}).copy()
     options_list = ['Add/edit key', 'Delete key']
     options_dict = {'q': 'Return to menu without saving changes',
@@ -3350,7 +3352,7 @@ class EditToolkitConfigCommand(SubCommand):
 
     All options are defined in src/platform/factory/sh/cutoff/options.sh
     """
-    subconfig_key = 'cutoff'
+    subconfig_key = TOOLKIT_SUBCONFIG_CUTOFF
     self.config_wip = {}
     answer = self._DoOptions(
         'Select cutoff method', 'CUTOFF_METHOD',
@@ -3417,7 +3419,6 @@ class EditToolkitConfigCommand(SubCommand):
     if self.args.board is None:
       self.args.board = _GetBoardName(self.args.image)
 
-
     # Modify toolkit config in cros_payload.
     with CrosPayloadUtils.TempPayloadsDir() as temp_dir:
       CrosPayloadUtils.CopyComponentsInImage(
@@ -3430,12 +3431,16 @@ class EditToolkitConfigCommand(SubCommand):
               json_path, config_file.name, PAYLOAD_TYPE_TOOLKIT_CONFIG,
               silent=True)
           self.toolkit_config = json.load(config_file)
-          self.old_toolkit_config = copy.deepcopy(self.toolkit_config)
         except Exception:
           # It is possible that the RMA shim doesn't have this payload.
-          # In this case, copy the config from cutoff/cutoff.json.
-          self.toolkit_config = self.GetRootfsCutoffConfig()
-          self.old_toolkit_config = {}
+          self.toolkit_config = {}
+
+        self.old_toolkit_config = copy.deepcopy(self.toolkit_config)
+        # If toolkit config doesn't contain cutoff subconfig, copy from
+        # cutoff/cutoff.json.
+        if TOOLKIT_SUBCONFIG_CUTOFF not in self.toolkit_config:
+          cutoff_config = self.GetRootfsCutoffConfig()
+          self.toolkit_config[TOOLKIT_SUBCONFIG_CUTOFF] = cutoff_config
 
         def Write():
           """Apply changes and exit."""
