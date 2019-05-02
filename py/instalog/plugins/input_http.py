@@ -350,8 +350,8 @@ class InputHTTP(plugin_base.InputPlugin):
     if self.args.enable_gnupg:
       self.info('Enable GnuPG to decrypt and verify the data')
       http_common.CheckGnuPG()
-      gpg = gnupg.GPG(homedir=self.args.gnupg_home)
-      self.info('GnuPG home directory: %s', gpg.homedir)
+      gpg = gnupg.GPG(gnupghome=self.args.gnupg_home)
+      self.info('GnuPG home directory: %s', gpg.gnupghome)
       if len(gpg.list_keys(True)) < 1:
         raise Exception('Need at least one GnuPG secret key in gnupghome')
 

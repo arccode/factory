@@ -148,7 +148,7 @@ class TestHTTPAE(unittest.TestCase):
     self.gpg_output_homedir = os.path.join(self._tmp_dir, 'gpg_output')
 
     # Step 2. Import keys.
-    gpg_input = gnupg.GPG(homedir=self.gpg_input_homedir)
+    gpg_input = gnupg.GPG(gnupghome=self.gpg_input_homedir)
     with open(os.path.join(gpg_input_data, 'key.txt'), 'r') as f:
       gpg_input.import_keys(f.read())
     self.assertEqual(len(gpg_input.list_keys()), 1)
@@ -157,7 +157,7 @@ class TestHTTPAE(unittest.TestCase):
                      ['HTTP_Input (insecure!) <chuntsen@google.com>'])
     self.assertEqual(gpg_input.list_keys(True)[0]['uids'],
                      ['HTTP_Input (insecure!) <chuntsen@google.com>'])
-    gpg_output = gnupg.GPG(homedir=self.gpg_output_homedir)
+    gpg_output = gnupg.GPG(gnupghome=self.gpg_output_homedir)
     with open(os.path.join(gpg_output_data, 'key.txt'), 'r') as f:
       gpg_output.import_keys(f.read())
     self.assertEqual(len(gpg_output.list_keys()), 1)
@@ -185,11 +185,21 @@ class TestHTTPAE(unittest.TestCase):
     key_fpr_output = gpg_output.list_keys()[0]['fingerprint']
     key_output = gpg_output.export_keys(key_fpr_output)
 
+    sign_key_cmd = ('gpg --homedir {homedir} --yes --no-tty --batch '
+                    '--sign-key {fingerprint}')
     # Step 5. Import and sign the other's keys.
     gpg_input.import_keys(key_output)
-    gpg_input.sign_key(key_fpr_output)
+    subprocess.check_call(
+        sign_key_cmd.format(
+            homedir=self.gpg_input_homedir,
+            fingerprint=key_fpr_output),
+        shell=True)
     gpg_output.import_keys(key_input)
-    gpg_output.sign_key(key_fpr_input)
+    subprocess.check_call(
+        sign_key_cmd.format(
+            homedir=self.gpg_output_homedir,
+            fingerprint=key_fpr_input),
+        shell=True)
 
     # Step 6. Save input key's fingerprint as the argument.
     self._target_key = key_fpr_input

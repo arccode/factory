@@ -78,8 +78,8 @@ class OutputHTTP(plugin_base.OutputPlugin):
     if self.args.enable_gnupg:
       self.info('Enable GnuPG to encrypt and sign the data')
       http_common.CheckGnuPG()
-      self._gpg = gnupg.GPG(homedir=self.args.gnupg_home)
-      self.info('GnuPG home directory: %s', self._gpg.homedir)
+      self._gpg = gnupg.GPG(gnupghome=self.args.gnupg_home)
+      self.info('GnuPG home directory: %s', self._gpg.gnupghome)
       if not self.args.target_key:
         raise ValueError('Missing target GnuPG public key')
 
@@ -239,7 +239,7 @@ class OutputHTTP(plugin_base.OutputPlugin):
     encrypted_data = self._gpg.encrypt(
         data,
         self.args.target_key,
-        default_key=self._gpg.list_keys(True)[0]['fingerprint'],
+        sign=self._gpg.list_keys(True)[0]['fingerprint'],
         always_trust=False)
     if not encrypted_data.ok:
       raise Exception('Failed to encrypt data! Log: %s' % encrypted_data.stderr)
@@ -250,10 +250,10 @@ class OutputHTTP(plugin_base.OutputPlugin):
     encrypt_path = file_utils.CreateTemporaryFile(prefix='encrypt_',
                                                   dir=target_dir)
     with open(file_path, 'r') as plaintext_file:
-      encrypted_data = self._gpg.encrypt(
+      encrypted_data = self._gpg.encrypt_file(
           plaintext_file,
           self.args.target_key,
-          default_key=self._gpg.list_keys(True)[0]['fingerprint'],
+          sign=self._gpg.list_keys(True)[0]['fingerprint'],
           output=encrypt_path,
           always_trust=False)
       if not encrypted_data.ok:
