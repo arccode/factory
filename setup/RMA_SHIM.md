@@ -410,7 +410,8 @@ universal shim.
     (1) Modify Chrome OS Factory Server address.
     (2) Enable/disable board prompt on download.
     (3) Modify cutoff config in cros payload (only for old devices).
-    (4) Enable/disable autorun in RMA shim.
+    (4) Enable/disable complete prompt in RMA shim.
+    (5) Enable/disable autorun in RMA shim.
     (q) Quit without saving changes.
     (w) Apply changes and exit.
     Please select an option [1-4, q, w]:

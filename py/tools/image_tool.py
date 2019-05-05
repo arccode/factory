@@ -1775,6 +1775,7 @@ class ChromeOSFactoryBundle(object):
 
       lsb = LSBFile(lsb_file.name)
       lsb.AppendValue('FACTORY_INSTALL_FROM_USB', '1')
+      lsb.AppendValue('FACTORY_INSTALL_COMPLETE_PROMPT', 'true')
       lsb.AppendValue('RMA_AUTORUN', 'true')
       SysUtils.WriteFile(lsb_file, lsb.AsRawData())
       CrosPayloadUtils.ReplaceComponent(
@@ -3227,6 +3228,16 @@ class EditLSBCommand(SubCommand):
         'Chrome OS Factory Server or Shopfloor Service for OQC ReFinalize',
         ['SHOPFLOOR_URL'])
 
+  def EditCompletePrompt(self):
+    """Enable/disable complete prompt in RMA shim.
+
+    If complete prompt is set, wait for ENTER after installation is completed.
+    """
+    answer = UserInput.YesNo(
+        'Enable (y) or disable (n) complete prompt in RMA?')
+    self.lsb.SetValue('FACTORY_INSTALL_COMPLETE_PROMPT',
+                      'true' if answer else 'false')
+
   def EditRMAAutorun(self):
     """Enable/disable autorun in RMA shim.
 
@@ -3323,6 +3334,7 @@ class EditLSBCommand(SubCommand):
         self.DoMenu(self.EditServerAddress,
                     self.EditBoardPrompt,
                     self.EditCutoff,
+                    self.EditCompletePrompt,
                     self.EditRMAAutorun,
                     w=Write,
                     q=Quit)
