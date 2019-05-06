@@ -228,12 +228,12 @@ class SerialDevice(object):
       read_timeout: read timeout.
       write_timeout: write timeout.
     """
-    self._serial.setTimeout(read_timeout)
-    self._serial.setWriteTimeout(write_timeout)
+    self._serial.timeout = read_timeout
+    self._serial.write_timeout = write_timeout
 
   def GetTimeout(self):
     """Returns (read timeout, write timeout)."""
-    return (self._serial.getTimeout(), self._serial.getWriteTimeout())
+    return (self._serial.timeout, self._serial.write_timeout)
 
   def Send(self, command, flush=True):
     """Sends a command.
@@ -259,7 +259,7 @@ class SerialDevice(object):
                      duration)
     except serial.SerialTimeoutException:
       error_message = 'Send %r timeout after %.2f seconds' % (
-          command, self._serial.getWriteTimeout())
+          command, self._serial.write_timeout)
       if self.log:
         logging.warning(error_message)
       raise serial.SerialTimeoutException(error_message)
@@ -283,7 +283,7 @@ class SerialDevice(object):
     """
     start_time = time.time()
     if size == 0:
-      size = self._serial.inWaiting()
+      size = self._serial.in_waiting
     response = self._serial.read(size)
     if len(response) == size:
       if self.log:
@@ -293,15 +293,15 @@ class SerialDevice(object):
       return response
     else:
       error_message = 'Receive %d bytes timeout after %.2f seconds' % (
-          size, self._serial.getTimeout())
+          size, self._serial.timeout)
       if self.log:
         logging.warning(error_message)
       raise serial.SerialTimeoutException(error_message)
 
   def FlushBuffer(self):
     """Flushes input/output buffer."""
-    self._serial.flushInput()
-    self._serial.flushOutput()
+    self._serial.reset_input_buffer()
+    self._serial.reset_output_buffer()
 
   def SendReceive(self, command, size=1, retry=0, interval_secs=None,
                   suppress_log=False):

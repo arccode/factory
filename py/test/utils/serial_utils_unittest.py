@@ -242,7 +242,7 @@ class SerialDeviceSendAndReceiveTest(unittest.TestCase):
 
   def testSendTimeout(self):
     self.mock_serial.write(_COMMAND).AndRaise(serial.SerialTimeoutException)
-    self.mock_serial.getWriteTimeout().AndReturn(0.5)
+    self.mock_serial.write_timeout = 0.5
     self.mock_serial.close()
 
     self.mox.ReplayAll()
@@ -264,7 +264,7 @@ class SerialDeviceSendAndReceiveTest(unittest.TestCase):
 
   def testReceiveTimeout(self):
     self.mock_serial.read(1).AndReturn('')
-    self.mock_serial.getTimeout().AndReturn(0.5)
+    self.mock_serial.timeout = 0.5
     self.mock_serial.close()
 
     self.mox.ReplayAll()
@@ -273,7 +273,7 @@ class SerialDeviceSendAndReceiveTest(unittest.TestCase):
   def testReceiveShortageTimeout(self):
     # Requested 5 bytes, got only 4 bytes.
     self.mock_serial.read(5).AndReturn('None')
-    self.mock_serial.getTimeout().AndReturn(0.5)
+    self.mock_serial.timeout = 0.5
     self.mock_serial.close()
 
     self.mox.ReplayAll()
@@ -281,8 +281,8 @@ class SerialDeviceSendAndReceiveTest(unittest.TestCase):
 
   def testReceiveWhatsInBuffer(self):
     IN_BUFFER = 'InBuf'
-    self.mock_serial.inWaiting().AndReturn(len(IN_BUFFER))
-    self.mock_serial.read(5).AndReturn(IN_BUFFER)
+    self.mock_serial.in_waiting = len(IN_BUFFER)
+    self.mock_serial.read(len(IN_BUFFER)).AndReturn(IN_BUFFER)
     self.mock_serial.close()
 
     self.mox.ReplayAll()
