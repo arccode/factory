@@ -1,5 +1,10 @@
+# License: Apache License 2.0
 dulwich==0.19.11
+
+# License: Apache License 2.0
 GoogleAppEngineCloudStorageClient==1.9.22.1
+
+# License: MIT
 urllib3==1.24.2
 
 # 3-Clause BSD License
