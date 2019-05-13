@@ -31,7 +31,6 @@ from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test.rules import registration_codes
 from cros.factory.test.rules.registration_codes import RegistrationCode
 from cros.factory.utils import file_utils
-from cros.factory.utils import service_utils
 from cros.factory.utils.type_utils import Error
 
 # The mismatch result tuple.
@@ -792,8 +791,6 @@ class Gooftool(object):
     """
 
     script_path = '/usr/share/cros/cr50-set-board-id.sh'
-    disable_services = ['trunksd']
-
     if not os.path.exists(script_path):
       logging.warn('The Cr50 script is not found, there should be no '
                    'Cr50 on this device.')
@@ -804,13 +801,7 @@ class Gooftool(object):
     else:
       arg_phase = 'dev'
 
-    # TODO(hungte) Remove the service management once cr50-set-board-id.sh
-    # has been changed to use '-a' (any) method.
-    service_mgr = service_utils.ServiceManager()
-
     try:
-      service_mgr.SetupServices(disable_services=disable_services)
-
       result = self._util.shell([script_path, arg_phase])
       if result.status == 0:
         logging.info('Successfully set board ID on Cr50 with phase %s.',
@@ -830,10 +821,6 @@ class Gooftool(object):
     except Exception:
       logging.exception('Failed to set Cr50 Board ID.')
       raise
-
-    finally:
-      # Restart stopped service even if something went wrong.
-      service_mgr.RestoreServices()
 
   def Cr50SetSnBitsAndBoardId(self):
     """Set the serial number its, board id and flags on the Cr50 chip."""
