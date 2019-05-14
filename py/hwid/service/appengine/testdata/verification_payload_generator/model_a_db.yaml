@@ -1,0 +1,68 @@
+checksum: DUMMY
+
+board: MODEL_A
+
+encoding_patterns: {0: default}
+
+image_id: {0: EVT}
+
+pattern:
+  - image_ids: [0]
+    encoding_scheme: base8192
+    fields:
+    - battery: 2
+    - cpu: 1
+    - storage: 2
+
+encoded_fields:
+  battery:
+    0: {battery: battery_small_supported}
+    1: {battery: battery_medium_unqualified}
+    2: {battery: battery_large_deprecated}
+  cpu:
+    0: {cpu: cpu_0}
+  storage:
+    0: {storage: storage_0_unsupported}
+    1: {storage: storage_1_duplicate}
+
+components:
+  battery:
+    items:
+      battery_small_supported:
+        values:
+          manufacturer: Li-ion
+          model_name: S
+      battery_medium_unqualified:
+        status: unqualified
+        values:
+          manufacturer: Li-ion
+          model_name: M
+      battery_large_deprecated:
+        status: deprecated
+        values:
+          manufacturer: Li-ion
+          model_name: L
+  cpu:  # CPU is totally ignored by the generator.
+    items:
+      cpu_0:
+        values:
+          name: CPU @ 1.80GHz
+          cores: '4'
+  storage:
+    items:
+      storage_0_unsupported:
+        status: unsupported
+        values:
+          type: MMC
+          name: ABCxyz
+          manfid: '0x001122'
+          oemid: '0x4455'
+          prv: '0x8899aabb'
+          serial: 'this_is_serial_number'
+          sectors: '1000000'
+      storage_1_duplicate:  # Duplicated component should be ignored.
+        status: duplicate
+        values:
+          type: MMC
+
+rules: []

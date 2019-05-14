@@ -126,6 +126,45 @@ class Scalar(BaseType):
                             (data, sorted(self.choices)))
 
 
+class RegexpStr(Scalar):
+  """Schema class for a string which matches the specific regular expression.
+
+  Attributes:
+    label: A human-readable string to describe this Scalar.
+    regexp: A regular expression object to match.
+
+  Raises:
+    SchemaException if argument format is incorrect.
+  """
+
+  def __init__(self, label, regexp):
+    super(RegexpStr, self).__init__(label, str)
+    self.regexp = regexp
+
+  def __repr__(self):
+    return 'RegexpStr(%r, %s)' % (self.label, self.regexp.pattern)
+
+  def __deepcopy__(self, memo):
+    return RegexpStr(self.label, self.regexp)
+
+  def Validate(self, data):
+    """Validates the given data against the RegexpStr schema.
+
+    It first checks if the data's type is `str`.  Then, it checks if the
+    value matches the regular expression.
+
+    Args:
+      data: A Python data structure to be validated.
+
+    Raises:
+      SchemaException if validation fails.
+    """
+    super(RegexpStr, self).Validate(data)
+    if not self.regexp.match(data):
+      raise SchemaException("Value %r doesn't match regeular expression %s" %
+                            (data, self.regexp.pattern))
+
+
 class Dict(BaseType):
   """Dict schema class.
 
@@ -215,12 +254,16 @@ class FixedDict(BaseType):
     label: A human-readable string to describe this dict.
     items: A dict of required items that must be specified.
     optional_items: A dict of optional items.
+    allow_undefined_keys: A boolean that indicates whether additional items
+        that is not recorded in both `items` and `optional_items` are allowed
+        or not.
 
   Raises:
     SchemaException if argument format is incorrect.
   """
 
-  def __init__(self, label, items=None, optional_items=None):
+  def __init__(self, label, items=None, optional_items=None,
+               allow_undefined_keys=False):
     super(FixedDict, self).__init__(label)
     if items and not isinstance(items, dict):
       raise SchemaException('items of FixedDict %r should be a dict' %
@@ -231,6 +274,7 @@ class FixedDict(BaseType):
                             self.label)
     self.optional_items = (
         copy.deepcopy(optional_items) if optional_items is not None else {})
+    self.allow_undefined_keys = allow_undefined_keys
 
   def __repr__(self):
     return 'FixedDict(%r, items=%r, optional_items=%r)' % (self.label,
@@ -242,6 +286,9 @@ class FixedDict(BaseType):
     schema.
 
     If a key of Dict's type is required, then it must exist in the data's keys.
+    If `self.allow_undefined_keys` is `False` and some items in the given data
+    are not in either `self.items` or `self.optional_items`, the method will
+    raise `SchemaException`.
 
     Args:
       data: A Python data structure to be validated.
@@ -268,7 +315,7 @@ class FixedDict(BaseType):
         continue
       value_schema.Validate(data[key])
       data_key_list.remove(key)
-    if data_key_list:
+    if not self.allow_undefined_keys and data_key_list:
       raise SchemaException('Keys %r are undefined in FixedDict %r' %
                             (data_key_list, self.label))
 

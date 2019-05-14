@@ -1,0 +1,91 @@
+{
+  "runtime_probe/model_a/probe_config.json": {
+    "battery": {
+      "model_a_battery_small_supported": {
+        "eval": {"generic_battery": {}},
+        "expect": {
+          "manufacturer": [true, "str", "!eq Li-ion"],
+          "model_name": [true, "str", "!eq S"]
+        }
+      },
+      "model_a_battery_medium_unqualified": {
+        "eval": {"generic_battery": {}},
+        "expect": {
+          "manufacturer": [true, "str", "!eq Li-ion"],
+          "model_name": [true, "str", "!eq M"]
+        }
+      },
+      "model_a_battery_large_deprecated": {
+        "eval": {"generic_battery": {}},
+        "expect": {
+          "manufacturer": [true, "str", "!eq Li-ion"],
+          "model_name": [true, "str", "!eq L"]
+        }
+      }
+    },
+    "storage": {
+      "model_a_storage_0_unsupported": {
+        "eval": {"generic_storage": {}},
+        "expect": {
+          "name": [true, "str", "!eq ABCxyz"],
+          "manfid": [true, "hex", "!eq 0x001122"],
+          "oemid": [true, "hex", "!eq 0x4455"],
+          "prv": [true, "hex", "!eq 0x8899aabb"],
+          "sectors": [true, "int", "!eq 1000000"]
+        }
+      }
+    }
+  },
+  "runtime_probe/model_b/probe_config.json": {
+    "battery": {
+      "model_b_battery_small_supported": {
+        "eval": {"generic_battery": {}},
+        "expect": {
+          "manufacturer": [true, "str", "!eq Li-ion"],
+          "model_name": [true, "str", "!eq S"]
+        }
+      },
+      "model_b_battery_medium_supported": {
+        "eval": {"generic_battery": {}},
+        "expect": {
+          "manufacturer": [true, "str", "!eq Li-ion"],
+          "model_name": [true, "str", "!eq M"]
+        }
+      }
+    }
+  },
+  "hw_verification_spec.prototxt": {
+    "componentInfos": [
+      {
+        "componentCategory": "battery",
+        "componentUuid": "model_a_battery_small_supported",
+        "qualificationStatus": "QUALIFIED"
+      },
+      {
+        "componentCategory": "battery",
+        "componentUuid": "model_a_battery_medium_unqualified",
+        "qualificationStatus": "UNQUALIFIED"
+      },
+      {
+        "componentCategory": "battery",
+        "componentUuid": "model_a_battery_large_deprecated",
+        "qualificationStatus": "REJECTED"
+      },
+      {
+        "componentCategory": "storage",
+        "componentUuid": "model_a_storage_0_unsupported",
+        "qualificationStatus": "REJECTED"
+      },
+      {
+        "componentCategory": "battery",
+        "componentUuid": "model_b_battery_small_supported",
+        "qualificationStatus": "QUALIFIED"
+      },
+      {
+        "componentCategory": "battery",
+        "componentUuid": "model_b_battery_medium_supported",
+        "qualificationStatus": "QUALIFIED"
+      }
+    ]
+  }
+}

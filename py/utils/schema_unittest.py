@@ -3,6 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import re
 import unittest
 
 import factory_common  # pylint: disable=unused-import
@@ -11,6 +12,7 @@ from cros.factory.utils.schema import Dict
 from cros.factory.utils.schema import FixedDict
 from cros.factory.utils.schema import List
 from cros.factory.utils.schema import Optional
+from cros.factory.utils.schema import RegexpStr
 from cros.factory.utils.schema import Scalar
 from cros.factory.utils.schema import SchemaException
 from cros.factory.utils.schema import Tuple
@@ -39,6 +41,13 @@ class SchemaTest(unittest.TestCase):
     self.assertRaisesRegexp(
         SchemaException, r'Value mismatch on 3: expected one of \[1, 2\]',
         schema.Validate, 3)
+
+  def testRegexpStr(self):
+    schema = RegexpStr('foo', re.compile(r'ab*a$'))
+    schema.Validate('aa')
+    schema.Validate('abbbba')
+    self.assertRaises(SchemaException, schema.Validate, 123)
+    self.assertRaises(SchemaException, schema.Validate, 'abbx')
 
   def testDict(self):
     self.assertRaisesRegexp(
@@ -105,6 +114,16 @@ class SchemaTest(unittest.TestCase):
         schema.Validate, {'required_item': 0, 'optional_item': 0})
     self.assertEquals(None, schema.Validate(
         {'required_item': 0, 'optional_item': 'foo'}))
+
+    schema = FixedDict('foo', items={'required_item': Scalar('bar', int)},
+                       optional_items={'optional_item': Scalar('buz', str)},
+                       allow_undefined_keys=True)
+    self.assertEquals(None, schema.Validate(
+        {'required_item': 0, 'optional_item': 'foo', 'extra_key': 'extra_val'}))
+    self.assertEquals(None, schema.Validate(
+        {'required_item': 0, 'extra_key': 'extra_val'}))
+    self.assertRaises(SchemaException, schema.Validate,
+                      {'optional_item': 'foo', 'extra_key': 'extra_val'})
 
   def testList(self):
     self.assertRaisesRegexp(
