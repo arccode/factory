@@ -6,6 +6,8 @@
 DEPLOY_DIR="$(dirname "$(readlink -f "$0")")"
 FACTORY_DIR="$(readlink -f "${DEPLOY_DIR}/..")"
 APPENGINE_DIR="${FACTORY_DIR}/py/hwid/service/appengine"
+HW_VERIFIER_DIR="${FACTORY_DIR}/../../platform2/hardware_verifier"
+RT_PROBE_DIR="${FACTORY_DIR}/../../platform2/system_api/dbus/runtime_probe"
 TEST_DIR="${APPENGINE_DIR}/test"
 PLATFORM_DIR="$(dirname ${FACTORY_DIR})"
 REGIONS_DIR="$(readlink -f "${FACTORY_DIR}/../../platform2/regions")"
@@ -81,6 +83,17 @@ prepare_cros_regions() {
   add_temp "${cros_regions}"
 }
 
+prepare_protobuf() {
+  local protobuf_out="${TEMP_DIR}/protobuf_out"
+  mkdir -p "${protobuf_out}"
+  protoc \
+    -I="${RT_PROBE_DIR}" \
+    -I="${HW_VERIFIER_DIR}" \
+    --python_out="${protobuf_out}" \
+    "${HW_VERIFIER_DIR}/hardware_verifier.proto" \
+    "${RT_PROBE_DIR}/runtime_probe.proto"
+}
+
 do_deploy() {
   gcp_project="$1"
   shift
@@ -99,6 +112,7 @@ do_deploy() {
   ln -fs "${FACTORY_DIR}/py_pkg/cros" "${TEMP_DIR}"
   ln -fs "${FACTORY_DIR}/py_pkg/cros/factory/factory_common.py" "${TEMP_DIR}"
 
+  prepare_protobuf
   prepare_cros_regions
   run_in_temp virtualenv env
   source "${TEMP_DIR}/env/bin/activate"
@@ -126,9 +140,11 @@ do_build() {
   ignore_list+="!factory\n"
   ignore_list+="!chromeos-hwid\n"
   ignore_list+="factory/build/*\n"
+  ignore_list+="!factory/build/hwid/protobuf_out\n"
   local dockerignore="${PLATFORM_DIR}"/.dockerignore
   add_temp "${dockerignore}"
   echo -e "${ignore_list}" > "${dockerignore}"
+  prepare_protobuf
 
   ${DOCKER} build \
     --file "${dockerfile}" \

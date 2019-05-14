@@ -4,6 +4,8 @@
 
 FROM python:2.7
 
+ARG workdir="/usr/src/"
+
 RUN cd /usr/src && \
   wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-182.0.0-linux-x86_64.tar.gz && \
   tar xvf google-cloud-sdk-182.0.0-linux-x86_64.tar.gz && \
@@ -13,6 +15,7 @@ RUN cd /usr/src && \
       --quiet && \
   rm google-cloud-sdk-182.0.0-linux-x86_64.tar.gz && \
   pip install \
+      -t "${workdir}"/lib \
       dulwich==0.19.11 \
       mox==0.5.3 \
       mock==2.0.0 \
@@ -20,17 +23,19 @@ RUN cd /usr/src && \
       PyYaml==3.11 \
       GoogleAppEngineCloudStorageClient==1.9.22.1 \
       google-endpoints==2.4.5 \
+      protobuf==3.7.0 \
       protorpc-standalone==0.9.1 \
       urllib3==1.24.2 \
       webapp2==3.0.0b1 \
       WebTest==2.0.29
 
-ARG workdir="/usr/src/"
-
 ADD factory/py "${workdir}/cros/factory/py"
 ADD factory/py_pkg "${workdir}/cros/factory/py_pkg"
 ADD chromeos-hwid/py "${workdir}/cros/chromeos-hwid/py"
+ADD factory/build/hwid/protobuf_out "${workdir}/protobuf_out"
 
-ENV PYTHONPATH=/usr/src/google-cloud-sdk/platform/google_appengine
+ENV PYTHONPATH="${workdir}/lib:"\
+"${workdir}/google-cloud-sdk/platform/google_appengine:"\
+"${workdir}/protobuf_out"
 
 CMD bash

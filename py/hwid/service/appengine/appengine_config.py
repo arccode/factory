@@ -27,4 +27,9 @@ try:
 except ValueError:
   logging.info('Cannot find lib/')
 
+try:
+  vendor.add('protobuf_out')
+except ValueError:
+  logging.info('Cannot find protobuf_out/')
+
 _SetEnviron()
