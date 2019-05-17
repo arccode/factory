@@ -4,8 +4,10 @@
 
 import datetime
 import hashlib
+import httplib
 import os
 import time
+import urllib
 import urlparse
 
 # pylint: disable=import-error, no-name-in-module
@@ -16,9 +18,11 @@ from dulwich.objects import Tree
 from dulwich.pack import pack_objects_to_data
 from dulwich.refs import strip_peeled_refs
 from dulwich.repo import MemoryRepo as _MemoryRepo
+import urllib3.exceptions
 from urllib3 import PoolManager
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.utils import json_utils
 
 
 HEAD = 'HEAD'
@@ -245,3 +249,46 @@ def CreateCL(git_url, auth_cookie, project, branch, new_files, author,
       lambda unused_refs: {target_branch: new_commit},
       _generate_pack_data_wrapper(repo.object_store, new_obj_ids))
   return change_id
+
+
+def GetCommitId(git_url_prefix, project, branch, auth_cookie):
+  '''Get branch commit.
+
+  Use the gerrit API to get the commit id.  Note that the response starts with a
+  magic prefix line )]}' which should be stripped.
+
+  Args:
+    git_url: HTTPS repo url
+    project: Project name
+    branch: Branch name
+    auth_cookie: Auth cookie
+  '''
+
+  git_url = '{git_url_prefix}/projects/{project}/branches/{branch}'.format(
+      git_url_prefix=git_url_prefix,
+      project=urllib.quote(project, safe=''),
+      branch=urllib.quote(branch, safe=''))
+  pool_manager = PoolManager(ca_certs=certifi.where())
+  pool_manager.headers['Cookie'] = auth_cookie
+  pool_manager.headers['Content-Type'] = 'application/json'
+  try:
+    r = pool_manager.urlopen('GET', git_url)
+  except urllib3.exceptions.HTTPError:
+    raise GitUtilException('Invalid url %r' % (git_url,))
+
+  if r.status != httplib.OK:
+    raise GitUtilException('Request unsuccessfully with code %s' %
+                           (r.status,))
+
+  try:
+    stripped_json = r.data.split('\n', 1)[1]
+    branch_info = json_utils.LoadStr(stripped_json)
+  except Exception:
+    raise GitUtilException('Response format Error: %r' % (r.data,))
+
+  try:
+    commit_hash = branch_info['revision']
+  except KeyError as ex:
+    raise GitUtilException('KeyError: %r' % ex.message)
+
+  return commit_hash

@@ -6,6 +6,7 @@
 """Tests for cros.factory.hwid.service.appengine.git_util"""
 
 import datetime
+import httplib
 import unittest
 
 # pylint: disable=import-error, no-name-in-module
@@ -83,6 +84,52 @@ class GitUtilTest(unittest.TestCase):
     with self.assertRaises(git_util.GitUtilException) as ex:
       repo.add_files(new_files, tree)
     self.assertEqual(str(ex.exception), "Invalid filepath 'a/b/c'")
+
+  def testGetCommitId(self):
+    git_url_prefix = 'https://chromium-review.googlesource.com'
+    project = 'chromiumos/platform/factory'
+    branch = 'master'
+
+    auth_cookie = ''  # auth_cookie is not needed in chromium repo
+    commit = git_util.GetCommitId(git_url_prefix, project, branch, auth_cookie)
+    self.assertRegexpMatches(commit, '^[0-9a-f]{40}$')
+
+  @mock.patch('cros.factory.hwid.service.appengine.git_util.PoolManager')
+  def testGetCommitIdFormatError(self, mocked_poolmanager):
+    """Mock response and status to test if exceptions are raised."""
+    git_url_prefix = 'dummy'
+    project = 'dummy'
+    branch = 'dummy'
+    auth_cookie = 'dummy'
+
+    instance = mocked_poolmanager.return_value  # pool_manager instance
+    error_responses = [
+        # 400 error
+        mock.MagicMock(status=httplib.BAD_REQUEST, data=''),
+        # invalid json
+        mock.MagicMock(status=httplib.OK, data=(
+            ")]}'\n"
+            '\n'
+            '  "revision": "0123456789abcdef0123456789abcdef01234567"\n'
+            '}\n')),
+        # no magic line
+        mock.MagicMock(status=httplib.OK, data=(
+            '{\n'
+            '  "revision": "0123456789abcdef0123456789abcdef01234567"\n'
+            '}\n')),
+        # no "revision" field
+        mock.MagicMock(status=httplib.OK, data=(
+            ")]}'\n"
+            '{\n'
+            '  "no_revision": "0123456789abcdef0123456789abcdef01234567"\n'
+            '}\n')),
+        ]
+
+    for resp in error_responses:
+      instance.urlopen.return_value = resp
+      self.assertRaises(
+          git_util.GitUtilException, git_util.GetCommitId, git_url_prefix,
+          project, branch, auth_cookie)
 
 
 if __name__ == '__main__':
