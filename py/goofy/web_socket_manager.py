@@ -154,6 +154,8 @@ class WebSocketManager(object):
     finally:
       with self.lock:
         self.web_sockets.discard(web_socket)
+        if not self.web_sockets:
+          self.has_confirmed_socket.clear()
 
   def wait(self):
     """Waits for one socket to connect successfully."""

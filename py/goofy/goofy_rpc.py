@@ -384,6 +384,10 @@ class GoofyRPC(object):
     """
     return self.goofy.ready_for_ui_connection
 
+  def WaitForWebSocketUp(self):
+    """Checks whether the Goofy web socket is ready for UI connection."""
+    self.goofy.web_socket_manager.wait()
+
   def GetTests(self, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Returns a list of all tests and their states.
 

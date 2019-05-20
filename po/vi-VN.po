@@ -450,6 +450,10 @@ msgid "Suspend Resume"
 msgstr "Dừng/ Khôi phục"
 
 #: ../build/pytests_label_generated.json
+msgid "Suspend Stress"
+msgstr "Đình chỉ căng thẳng"
+
+#: ../build/pytests_label_generated.json
 msgid "Sync Factory Server"
 msgstr "Máy chủ đồng bộ"
 

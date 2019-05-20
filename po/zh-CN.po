@@ -450,6 +450,10 @@ msgid "Suspend Resume"
 msgstr "暂停/恢复"
 
 #: ../build/pytests_label_generated.json
+msgid "Suspend Stress"
+msgstr "暂停/恢复压力测试"
+
+#: ../build/pytests_label_generated.json
 msgid "Sync Factory Server"
 msgstr "同步工厂伺服器"
 
