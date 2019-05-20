@@ -215,7 +215,7 @@ class VerifyConfiglessTest(unittest.TestCase):
         }
     }
     verifier.VerifyConfigless(self.database, decoded_configless,
-                              self.probed_bom, self.device_info)
+                              self.probed_bom, self.device_info, False)
 
   def testLacksVersionField(self):
     decoded_configless = {
@@ -234,7 +234,7 @@ class VerifyConfiglessTest(unittest.TestCase):
     }
     self.assertRaises(common.HWIDException, verifier.VerifyConfigless,
                       self.database, decoded_configless, self.probed_bom,
-                      self.device_info)
+                      self.device_info, False)
 
   def testHasExtraComponents(self):
     decoded_configless = {
@@ -255,7 +255,7 @@ class VerifyConfiglessTest(unittest.TestCase):
     }
     self.assertRaises(common.HWIDException, verifier.VerifyConfigless,
                       self.database, decoded_configless, self.probed_bom,
-                      self.device_info)
+                      self.device_info, False)
 
   def testIsMissingComponents(self):
     decoded_configless = {
@@ -274,7 +274,7 @@ class VerifyConfiglessTest(unittest.TestCase):
     }
     self.assertRaises(common.HWIDException, verifier.VerifyConfigless,
                       self.database, decoded_configless, self.probed_bom,
-                      self.device_info)
+                      self.device_info, False)
 
   def testMisMatch(self):
     decoded_configless = {
@@ -294,7 +294,7 @@ class VerifyConfiglessTest(unittest.TestCase):
     }
     self.assertRaises(common.HWIDException, verifier.VerifyConfigless,
                       self.database, decoded_configless, self.probed_bom,
-                      self.device_info)
+                      self.device_info, False)
 
 
 if __name__ == '__main__':

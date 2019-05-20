@@ -93,7 +93,7 @@ class ConfiglessFields(object):
 
 
   @classmethod
-  def Encode(cls, db, bom, device_info, version):
+  def Encode(cls, db, bom, device_info, version, is_rma_device):
     """Return a encoded string according to version.
 
     Args:
@@ -113,7 +113,8 @@ class ConfiglessFields(object):
     Returns:
       A string of encoded configless fields.
     """
-    getter = _ConfiglessFieldGetter(db, bom, device_info, version)
+    getter = _ConfiglessFieldGetter(
+        db, bom, device_info, version, is_rma_device)
     return '-'.join(
         hex(getter(field)).upper().replace('0X', '') for field in cls.FIELDS)
 
@@ -184,11 +185,12 @@ class FeatureList(object):
 
 class _ConfiglessFieldGetter(object):
   """Extract value of from BOM / device_info for configless fields."""
-  def __init__(self, db, bom, device_info, version):
+  def __init__(self, db, bom, device_info, version, is_rma_device):
     self._db = db
     self._bom = bom
     self._device_info = device_info or {}
     self._version = version
+    self._is_rma_device = is_rma_device
     self._feature_list = FeatureList(version)
 
   def __call__(self, field_name):
@@ -197,12 +199,22 @@ class _ConfiglessFieldGetter(object):
 
   @property
   def memory(self):
+    if self.is_rma_device and 'dram' not in self._bom.components:
+      # We might be generating HWID for RMA spare boards, real DRAM info might
+      # not be available until the spare board is mounted on device.  So it's
+      # okay to omit this field.
+      return 0
     size_mb = sum(int(self._db.GetComponents('dram')[comp].values['size'])
                   for comp in self._bom.components['dram'])
     return size_mb / 1024
 
   @property
   def storage(self):
+    if self.is_rma_device and 'storage' not in self._bom.components:
+      # We might be generating HWID for RMA spare boards, real storage info
+      # might not be available until the spare board is mounted on device.  So
+      # it's okay to omit this field.
+      return 0
     sectors = sum(int(self._db.GetComponents('storage')[comp].values['sectors'])
                   for comp in self._bom.components['storage'])
     # Assume sector size is 512 bytes
@@ -213,9 +225,15 @@ class _ConfiglessFieldGetter(object):
     return self._version
 
   @property
+  def is_rma_device(self):
+    return self._is_rma_device
+
+  @property
   def feature_list(self):
     """Get feature list encoded string."""
     components = self._device_info.get(device_data_constants.KEY_COMPONENT, {})
+    # Set is_rma_device.
+    components['is_rma_device'] = self._is_rma_device
     return self._feature_list.Encode(components)
 
 

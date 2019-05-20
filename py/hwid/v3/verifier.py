@@ -176,7 +176,7 @@ def VerifyBOM(database, decoded_bom, probed_bom):
           '.  Expected components are: %r' % probed_bom.components[comp_cls])
 
 
-def VerifyConfigless(database, decoded_configless, bom, device_info):
+def VerifyConfigless(database, decoded_configless, bom, device_info, rma_mode):
   """Verifies that the configless dict decoded from the HWID identity matches
   the one obtained by probing the device.
 
@@ -196,7 +196,8 @@ def VerifyConfigless(database, decoded_configless, bom, device_info):
     raise common.HWIDException('Configless dict lacks version field.')
 
   encoded_configless = ConfiglessFields.Encode(database, bom, device_info,
-                                               decoded_configless['version'])
+                                               decoded_configless['version'],
+                                               rma_mode)
   configless_fields = ConfiglessFields.Decode(encoded_configless)
 
   err_msgs = []

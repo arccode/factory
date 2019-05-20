@@ -48,8 +48,11 @@ class ConfiglessFieldsTest(unittest.TestCase):
         False)[0]
     # 0-8-3A-180's feature list field will be different if we extend new feature
     # to the end of version 0, see configless_fields.py for details
-    self.assertEqual(_CF.Encode(self.database, bom, device_info, 0),
+    self.assertEqual(_CF.Encode(self.database, bom, device_info, 0, False),
                      '0-8-3A-180')
+    # Same as above, but with RMA mode.
+    self.assertEqual(_CF.Encode(self.database, bom, device_info, 0, True),
+                     '0-8-3A-181')
 
   def testDecode(self):
     # If we extend version 0, the decoded dict should be same.

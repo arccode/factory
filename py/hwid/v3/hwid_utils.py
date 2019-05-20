@@ -68,7 +68,8 @@ def GenerateHWID(database, probed_results, device_info, vpd, rma_mode,
 
   encoded_configless = None
   if with_configless_fields:
-    encoded_configless = ConfiglessFields.Encode(database, bom, device_info, 0)
+    encoded_configless = ConfiglessFields.Encode(
+        database, bom, device_info, 0, rma_mode)
 
   identity = transformer.BOMToIdentity(database, bom, brand_code,
                                        encoded_configless)
@@ -152,7 +153,7 @@ def VerifyHWID(database, encoded_string,
   verifier.VerifyPhase(database, decoded_bom, current_phase)
   if decoded_configless:
     verifier.VerifyConfigless(
-        database, decoded_configless, probed_bom, device_info)
+        database, decoded_configless, probed_bom, device_info, rma_mode)
 
   context = Context(
       database=database, bom=decoded_bom, mode=hwid_mode, vpd=vpd)
