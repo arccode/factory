@@ -7,7 +7,7 @@
 # factory.
 
 readonly commit_desc="$(git log --format=%s%n%n%b "${PRESUBMIT_COMMIT}^!")"
-readonly sensitive_build_stages=("PVT" "DVT" "EVT" "PROTO")
+readonly sensitive_build_stages=("MP" "PVT" "DVT" "EVT" "PROTO")
 
 # Data source: https://www.chromium.org/chromium-os/developer-information-for-chrome-os-devices
 readonly sensitive_oems=("ACER" "AOPEN" "ASUS" "CTL" "DELL" "HP" "LENOVO" "LG"
