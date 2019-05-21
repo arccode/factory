@@ -5,6 +5,7 @@
 import base64
 import json
 import os
+import re
 import time
 import urllib
 
@@ -153,8 +154,13 @@ class FactoryBundleService(remote.Service):
     Returns:
       a string of email body.
     """
-    download_link = work_result.gs_path.replace(
-        'gs://', 'https://storage.cloud.google.com/')
+    path_match = re.match(
+        r'^gs://{}/(.*)$'.format(_BUCKET), work_result.gs_path)
+    download_link = (
+        'https://chromeos.google.com/partner/console/DownloadBundle?path={}' \
+            .format(urllib.quote_plus(path_match.group(1)))
+        if path_match
+        else '-')
     req = work_result.original_request
     body = 'Board: %s\n' % req.board
     body += 'Device: %s\n' % req.project
