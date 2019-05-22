@@ -43,6 +43,13 @@ class Gyroscope(test_case.TestCase):
       Arg('capture_count', int,
           'Number of records to read to compute the average.',
           default=100),
+      Arg('gyro_id', int,
+          'Gyroscope ID.  Will read a default ID via ectool if not set.',
+          default=None),
+      Arg('freq', int,
+          'Gyroscope sampling frequency in mHz.  Will apply the minimal '
+          'frequency from ectool info if not set.',
+          default=None),
       Arg('sample_rate', int,
           'Sample rate in Hz to read data from the gyroscope sensor.',
           default=20),
@@ -51,16 +58,23 @@ class Gyroscope(test_case.TestCase):
           default=2),
       Arg('autostart', bool, 'Auto start this test.',
           default=True),
+      Arg('setup_sensor', bool, 'Setup gyro sensor via ectool',
+          default=True),
       Arg('location', str, 'Gyro is located in "base" or "lid".',
           default='base')]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
     self.gyroscope = self.dut.gyroscope.GetController(
-        location=self.args.location)
+        location=self.args.location,
+        gyro_id=self.args.gyro_id,
+        freq=self.args.freq)
     self.ui.ToggleTemplateClass('font-large', True)
 
   def runTest(self):
+    if self.args.setup_sensor:
+      self.gyroscope.SetupMotionSensor()
+
     if not self.args.autostart:
       self.ui.SetState(
           _('Please put device on a static plane then press space to '

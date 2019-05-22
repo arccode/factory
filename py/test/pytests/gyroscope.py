@@ -4,15 +4,40 @@
 
 """A factory test for gyroscopes.
 
-Usage examples::
+Description
+-----------
+There are steps required to run a complete gyroscope test::
+  - Motion sensor setup via `ectool motionsense odr ${gyro_id} ${freq}`
+  - (optional) Calibration for tri-axis (x, y, and z) gyroscopes.
+  - The main gyroscope test.
 
-    {
-      "pytest_name": "gyroscope",
-      "args": {
-        "rotation_threshold": 1.0,
-        "stop_threshold": 0.1
-      }
+This pytest executes the motion sensor setup and main gyro test in sequence.
+
+Test Procedure
+--------------
+This test supports and enables auto start by default.  In this case::
+1. Put the device (base/lid) on a static plane then press space.
+2. Wait for completion.
+
+Otherwise operators will be asked to place DUT on a horizontal plane and
+press space.
+
+Dependency
+----------
+- Device API (``cros.factory.device.gyroscope``).
+
+Examples
+--------
+To run a test on base gyroscope::
+
+  {
+    "pytest_name": "gyroscope",
+    "args": {
+      "rotation_threshold": 1.0,
+      "stop_threshold": 0.1,
+      "location": "base"
     }
+  }
 """
 
 import collections
@@ -33,6 +58,13 @@ class Gyroscope(test_case.TestCase):
           'The expected value (rad/s) to read when dut start rotating.'),
       Arg('stop_threshold', float,
           'The expected value to read when dut stop moving.'),
+      Arg('gyro_id', int,
+          'Gyroscope ID.  Will read a default ID via ectool if not set.',
+          default=None),
+      Arg('freq', int,
+          'Gyroscope sampling frequency in mHz.  Will apply the minimal '
+          'frequency from ectool info if not set.',
+          default=None),
       Arg('timeout_secs', int,
           'Timeout in seconds for gyro to return expected value.',
           default=30),
@@ -41,16 +73,23 @@ class Gyroscope(test_case.TestCase):
           default=2),
       Arg('autostart', bool, 'Auto start this test.',
           default=False),
+      Arg('setup_sensor', bool, 'Setup gyro sensor via ectool',
+          default=True),
       Arg('location', str, 'Gyro is located in "base" or "lid".',
           default='base')]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
     self.gyroscope = self.dut.gyroscope.GetController(
-        location=self.args.location)
+        location=self.args.location,
+        gyro_id=self.args.gyro_id,
+        freq=self.args.freq)
     self.ui.ToggleTemplateClass('font-large', True)
 
   def runTest(self):
+    if self.args.setup_sensor:
+      self.gyroscope.SetupMotionSensor()
+
     if not self.args.autostart:
       self.ui.SetState(
           _('Please put device on a horizontal plane then press space to '

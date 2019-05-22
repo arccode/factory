@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-07-11 14:18+CST\n"
+"PO-Revision-Date: 2019-07-17 10:58+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -211,10 +211,12 @@ msgid "GPS"
 msgstr "GPS"
 
 #: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Gyroscope"
 msgstr "陀螺仪"
 
 #: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Gyroscope Calibration"
 msgstr "陀螺仪校正"
 

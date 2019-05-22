@@ -280,15 +280,16 @@
       }
     },
     "Gyroscope": {
-      "pytest_name": "gyroscope"
+      "pytest_name": "gyroscope",
+      "label": "Gyroscope",
+      "args": {
+        "rotation_threshold": 1.0,
+        "stop_threshold": 0.1
+      }
     },
     "GyroscopeCalibration": {
-      "subtests": [
-        {
-          "pytest_name": "gyroscope_calibration"
-        },
-        "Gyroscope"
-      ]
+      "pytest_name": "gyroscope_calibration",
+      "label": "Gyroscope Calibration"
     },
     "HWButton": {
       "inherit": "TestGroup",
