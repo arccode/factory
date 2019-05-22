@@ -775,6 +775,7 @@ class ScrollableLogUI(StandardUI):
       width: 80%;
       display: flex;
       border: 1px solid gray;
+      min-height: 0;
     }
     #ui-log {
       flex: 1;
