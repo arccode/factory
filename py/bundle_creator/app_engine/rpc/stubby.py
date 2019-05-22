@@ -70,7 +70,7 @@ class FactoryBundleService(remote.Service):
       subject = 'Bundle creation failed'
       body = request.error_message
     mail.send_mail(
-        sender='noreply@google.com',
+        sender='factory-bundle-noreply@google.com',
         to=request.original_request.email,
         subject=subject,
         body=body)
