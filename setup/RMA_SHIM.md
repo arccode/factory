@@ -462,19 +462,19 @@ or
 
     $ setup/image_tool edit_toolkit_config -i universal.bin --board soraka
 
-### Extract and repack toolkit in an RMA shim.
+### Unpack and repack toolkit in an RMA shim.
 
-`image_tool get_toolkit` and `image_tool repack_toolkit` can extract and repack
-the factory toolkit in an RMA shim.
+`image_tool payload toolkit` command can unpack and repack the factory toolkit
+in an RMA shim.
 
-    $ setup/image_tool get_toolkit -i rma_image.bin -p toolkit_path
+    $ setup/image_tool payload toolkit -i rma_image.bin --unpack toolkit_path
     (Edit some files in toolkit_path/ ...)
-    $ setup/image_tool repack_toolkit -i rma_image.bin -p toolkit_path
+    $ setup/image_tool payload toolkit -i rma_image.bin --repack toolkit_path
 
 or
 
-    $ setup/image_tool get_toolkit \
-        -i universal.bin --board soraka -p toolkit_path
+    $ setup/image_tool payload toolkit \
+        -i universal.bin --board soraka --unpack toolkit_path
     (Edit some files in toolkit_path/ ...)
-    $ setup/image_tool repack_toolkit \
-        -i universal.bin --board soraka -p toolkit_path
+    $ setup/image_tool payload toolkit \
+        -i universal.bin --board soraka --repack toolkit_path

@@ -107,7 +107,8 @@ TOOLKIT_SUBCONFIG_TEST_LIST_CONSTANTS = 'test_list_constants'
 TOOLKIT_SUBCONFIG_CUTOFF = 'cutoff'
 # Split line for separating outputs.
 SPLIT_LINE = '=' * 72
-# Command line namespace for RMA subcommands.
+# Command line namespaces.
+CMD_NAMESPACE_PAYLOAD = 'payload'
 CMD_NAMESPACE_RMA = 'rma'
 
 
@@ -2369,6 +2370,18 @@ class ChromeOSFactoryBundle(object):
     return output_path
 
 
+def GetSubparsers(parser):
+  """Helper function to get the subparsers of a parser.
+
+  This function assumes that the parser has at most one subparsers.
+  """
+  # pylint: disable=protected-access
+  actions = [action for action in parser._actions
+             if isinstance(action, argparse._SubParsersAction)]
+  assert len(actions) <= 1, 'The parser has multiple subparsers.'
+  return actions[0] if actions else None
+
+
 # TODO(hungte) Generalize this (copied from py/tools/factory.py) for all
 # commands to utilize easily.
 class SubCommand(object):
@@ -2416,21 +2429,46 @@ class SubCommand(object):
     raise NotImplementedError
 
 
+class SubCommandNamespace(SubCommand):
+  """A command namespace."""
+  def __init__(self, parser, subparsers):
+    super(SubCommandNamespace, self).__init__(parser, subparsers)
+    title = '%s subcommands' % self.name
+    self.subparser.add_subparsers(title=title)
+
+  def Run(self):
+    raise RuntimeError(
+        'Run() function of subcommand namespace should never be called.')
+
+
+class PayloadNamespace(SubCommandNamespace):
+  """Subcommands to manipulate cros_payload components."""
+  name = CMD_NAMESPACE_PAYLOAD
+
+
+class RMANamespace(SubCommandNamespace):
+  """Subcommands to create or modify RMA shim."""
+  name = CMD_NAMESPACE_RMA
+
+
 class HelpCommand(SubCommand):
   """Get help on COMMAND"""
   name = 'help'
 
   def Init(self):
-    self.subparser.add_argument('command', metavar='COMMAND', nargs='?')
+    self.subparser.add_argument('command', metavar='COMMAND', nargs='*')
 
   def Run(self):
-    if self.args.command:
-      choice = self.subparsers.choices.get(self.args.command)
-      if not choice:
-        sys.exit('Unknown subcommand %r' % self.args.command)
-      choice.print_help()
-    else:
-      self.parser.print_help()
+    parser = self.parser
+    # When called by "image_tool help rma create", `self.args.command` will be
+    # ['rma', 'create'], where 'rma' is a subparser of top layer parser, and
+    # 'create' is a subparser of 'rma' parser.
+    for v in self.args.command:
+      try:
+        parser = GetSubparsers(parser).choices[v]
+      except Exception:
+        sys.exit('Unknown subcommand %r' % ' '.join(self.args.command))
+    parser.print_help()
 
 
 class MountPartitionCommand(SubCommand):
@@ -2846,9 +2884,10 @@ class ReplaceRMAComponentCommand(SubCommand):
     print('OK: Replaced components successfully in image: %s' % self.args.image)
 
 
-class GetRMAToolkitCommand(SubCommand):
-  """Extract the factory toolkit in an RMA image."""
-  name = 'get_toolkit'
+class ToolkitCommand(SubCommand):
+  """Unpack/repack the factory toolkit in an RMA shim."""
+  namespace = CMD_NAMESPACE_PAYLOAD
+  name = 'toolkit'
 
   def Init(self):
     self.subparser.add_argument(
@@ -2859,51 +2898,26 @@ class GetRMAToolkitCommand(SubCommand):
         '--board', type=str, default=None,
         help='Board to get toolkit.')
     self.subparser.add_argument(
-        '-p', '--path', required=True,
-        help='Directory to extract the toolkit. '
-             'The directory should not exist when calling this command.')
+        '--unpack', type=str, default=None,
+        help='Path to unpack the toolkit.')
+    self.subparser.add_argument(
+        '--repack', type=str, default=None,
+        help='Path to repack the toolkit.')
 
   def Run(self):
-    if os.path.exists(self.args.path):
-      raise RuntimeError('Extract path "%s" already exists.' % self.args.path)
-    with SysUtils.TempDirectory() as temp_dir:
-      toolkit_path = os.path.join(temp_dir, 'toolkit')
-      with Partition(self.args.image, PART_CROS_STATEFUL).Mount() as stateful:
-        if self.args.board is None:
-          rma_metadata = _ReadRMAMetadata(stateful)
-          if len(rma_metadata) == 1:
-            self.args.board = rma_metadata[0].board
-          else:
-            raise RuntimeError('Board not set.')
-        payloads_dir = os.path.join(stateful, DIR_CROS_PAYLOADS)
-        json_path = CrosPayloadUtils.GetJSONPath(payloads_dir, self.args.board)
-        CrosPayloadUtils.GetToolkit(json_path, toolkit_path)
-      # Extract toolkit.
-      Shell([toolkit_path, '--target', self.args.path, '--noexec'])
-    print('OK: Extracted %s toolkit to directory %s' %
-          (self.args.board, self.args.path))
+    # Check that exactly one of --unpack and --repack is specified.
+    # When unpacking, check that the unpack directory doesn't exist yet.
+    # When repacking, check that the repack directory exists.
+    if not bool(self.args.unpack) ^ bool(self.args.repack):
+      raise RuntimeError('Please specify exactly one of --unpack and --repack.')
+    target_path = self.args.unpack or self.args.repack
+    if self.args.unpack:
+      if os.path.exists(target_path):
+        raise RuntimeError('Extract path "%s" already exists.' % target_path)
+    if self.args.repack:
+      if not os.path.isdir(target_path):
+        raise RuntimeError('PATH should be a directory.')
 
-
-class RepackToolkitCommand(SubCommand):
-  """Repack the factory toolkit to an RMA shim."""
-  name = 'repack_toolkit'
-
-  def Init(self):
-    self.subparser.add_argument(
-        '-i', '--image', required=True,
-        type=ArgTypes.ExistsPath,
-        help='Path to input RMA image.')
-    self.subparser.add_argument(
-        '--board', type=str, default=None,
-        help='Board to get toolkit.')
-    self.subparser.add_argument(
-        '-p', '--path', required=True,
-        type=ArgTypes.ExistsPath,
-        help='Directory to extract the toolkit.')
-
-  def Run(self):
-    if not os.path.isdir(self.args.path):
-      raise RuntimeError('PATH should be a directory.')
     with SysUtils.TempDirectory() as temp_dir:
       old_toolkit_path = os.path.join(temp_dir, 'old_toolkit')
       new_toolkit_path = os.path.join(temp_dir, 'new_toolkit')
@@ -2919,20 +2933,27 @@ class RepackToolkitCommand(SubCommand):
         old_json_path = CrosPayloadUtils.GetJSONPath(
             old_payloads_dir, self.args.board)
         CrosPayloadUtils.GetToolkit(old_json_path, old_toolkit_path)
-      # Repack to new_toolkit.
-      Shell([old_toolkit_path, '--', '--repack', self.args.path,
-             '--pack-into', new_toolkit_path])
-      # Replace old_toolkit in image with new_toolkit.
-      with CrosPayloadUtils.TempPayloadsDir() as new_payloads_dir:
-        CrosPayloadUtils.CopyComponentsInImage(
-            self.args.image, self.args.board, [], new_payloads_dir)
-        new_json_path = CrosPayloadUtils.GetJSONPath(
-            new_payloads_dir, self.args.board)
-        CrosPayloadUtils.ReplaceComponent(
-            new_json_path, PAYLOAD_TYPE_TOOLKIT, new_toolkit_path)
-        CrosPayloadUtils.ReplaceComponentsInImage(
-            self.args.image, self.args.board, new_payloads_dir)
-    print('OK: Repacked %s toolkit in RMA image' % self.args.board)
+      # Unpack toolkit
+      if self.args.unpack:
+        Shell([old_toolkit_path, '--target', target_path, '--noexec'])
+        print('OK: Unpacked %s toolkit to directory "%s".' %
+              (self.args.board, target_path))
+      # Repack toolkit.
+      if self.args.repack:
+        Shell([old_toolkit_path, '--', '--repack', target_path,
+               '--pack-into', new_toolkit_path])
+        # Replace old_toolkit in image with new_toolkit.
+        with CrosPayloadUtils.TempPayloadsDir() as new_payloads_dir:
+          CrosPayloadUtils.CopyComponentsInImage(
+              self.args.image, self.args.board, [], new_payloads_dir)
+          new_json_path = CrosPayloadUtils.GetJSONPath(
+              new_payloads_dir, self.args.board)
+          CrosPayloadUtils.ReplaceComponent(
+              new_json_path, PAYLOAD_TYPE_TOOLKIT, new_toolkit_path)
+          CrosPayloadUtils.ReplaceComponentsInImage(
+              self.args.image, self.args.board, new_payloads_dir)
+        print('OK: Repacked %s toolkit from directory "%s".' %
+              (self.args.board, target_path))
 
 
 class CreateBundleCommand(SubCommand):
@@ -3585,21 +3606,23 @@ def main():
   parser.add_argument('--verbose', '-v', action='count', default=0,
                       help='Verbose output')
   subparsers = parser.add_subparsers(title='subcommands')
-  # TODO(chenghan) Use a more general way to handle subcommand namespaces. The
-  # current implementation assumes there is only a CMD_NAMESPACE_RMA namespace.
-  rma_parser = subparsers.add_parser(
-      CMD_NAMESPACE_RMA,
-      help='Subcommands to create or modify RMA shim.',
-      description='Subcommands to create or modify RMA shim.')
-  rma_subparsers = rma_parser.add_subparsers(title='rma subcommands')
 
   verb = sys.argv[1] if (len(sys.argv) > 1) else None
-
   selected_command_args = None
-  for unused_key, v in sorted(globals().items()):
-    if v != SubCommand and inspect.isclass(v) and issubclass(v, SubCommand):
-      if v.namespace == CMD_NAMESPACE_RMA:
-        subcommand = v(rma_parser, rma_subparsers)
+
+  subcommands = [
+      v for unused_key, v in sorted(globals().items()) if inspect.isclass(v) and
+      v not in [SubCommand, SubCommandNamespace] and issubclass(v, SubCommand)]
+  # Add namespace.
+  for v in subcommands:
+    if issubclass(v, SubCommandNamespace):
+      v(parser, subparsers).Init()
+  # Add commands.
+  for v in subcommands:
+    if not issubclass(v, SubCommandNamespace):
+      if v.namespace:
+        p = subparsers.choices.get(v.namespace)
+        subcommand = v(p, GetSubparsers(p))
         subcommand_args = [v.namespace, subcommand.name]
       else:
         subcommand = v(parser, subparsers)
