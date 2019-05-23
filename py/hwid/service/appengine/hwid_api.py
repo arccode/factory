@@ -125,14 +125,14 @@ class HwidApi(remote.Service):
       http_method='GET',
       name='boards')
   def GetBoards(self, request):
-    """Return all of the supported boards."""
+    """Return all of the supported boards in sorted order."""
 
     versions = set(request.versions)
     boards = self._hwid_manager.GetBoards(versions)
 
     logging.debug('Found boards: %r', boards)
 
-    return hwid_api_messages.BoardsResponse(boards=list(boards))
+    return hwid_api_messages.BoardsResponse(boards=sorted(boards))
 
   def _GetBomAndConfigless(self, raw_hwid):
     try:
