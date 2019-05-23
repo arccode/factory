@@ -12,9 +12,10 @@ image_id:
   1: EVT
   2: PVT_DOGFOOD
   3: PVT
+  15: RMA
 
 pattern:
-  - image_ids: [0, 1, 2, 3]
+  - image_ids: [0, 1, 2, 3, 15]
     encoding_scheme: base8192
     fields:
     - cpu_field: 2

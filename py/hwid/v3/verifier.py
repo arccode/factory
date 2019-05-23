@@ -14,6 +14,7 @@ is valid.  We have to make sure many things such as:
 """
 
 import collections
+import logging
 import re
 
 import factory_common  # pylint: disable=unused-import
@@ -79,7 +80,7 @@ def _IsMPKeyName(name):
   return (_MP_KEY_NAME_PATTERN.search(name) and
           not _PRE_MP_KEY_NAME_PATTERN.search(name))
 
-def VerifyPhase(database, bom, current_phase=None):
+def VerifyPhase(database, bom, current_phase=None, rma_mode=False):
   """Enforces phase checks.
 
   - Starting in PVT_DOGFOOD, only an MP key (not a pre-MP key) may be used.
@@ -107,7 +108,10 @@ def VerifyPhase(database, bom, current_phase=None):
   expected_image_name_prefix = ('PVT' if current_phase == phase.PVT_DOGFOOD
                                 else current_phase.name)
   image_name = database.GetImageName(bom.image_id)
-  if not image_name.startswith(expected_image_name_prefix):
+  if image_name.startswith('RMA') and rma_mode:
+    logging.info('In RMA mode, image name beginning with RMA is allowed. '
+                 '(rma_mod=%r, image_name=%r)', rma_mode, image_name)
+  elif not image_name.startswith(expected_image_name_prefix):
     raise common.HWIDException(
         'In %s phase, expected an image name beginning with '
         '%r (but got image ID %r)' %

@@ -9,6 +9,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import verifier
 from cros.factory.test.rules import phase
@@ -117,6 +118,25 @@ class VerifyPhaseTest(unittest.TestCase):
         self.assertRaises(common.HWIDException, verifier.VerifyPhase,
                           self.database, bom,
                           current_phase=self.database.GetImageName(3))
+
+  def testRMABuild(self):
+    # Encode with RMA_IMAGE_ID
+    bom = self._CreateBOM(image_id=database.ImageId.RMA_IMAGE_ID,
+                          firmware_key_name='firmware_keys_A_mp')
+    # In RMA mode, if RMA image ID is used, we don't care about current phase
+    verifier.VerifyPhase(
+        self.database, bom, current_phase=phase.PVT, rma_mode=True)
+    verifier.VerifyPhase(
+        self.database, bom, current_phase=phase.DVT, rma_mode=True)
+
+    # If factory choose to not use RMA image ID, the image ID must match current
+    # phase.
+    bom = self._CreateBOM(image_id=3, firmware_key_name='firmware_keys_A_mp')
+    verifier.VerifyPhase(
+        self.database, bom, current_phase=phase.PVT, rma_mode=True)
+    with self.assertRaises(common.HWIDException):
+      verifier.VerifyPhase(
+          self.database, bom, current_phase=phase.DVT, rma_mode=True)
 
   def testImageNameMisMatch(self):
     for image_id, ph in enumerate(['DVT', 'PVT']):

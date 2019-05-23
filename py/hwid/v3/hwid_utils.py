@@ -150,7 +150,7 @@ def VerifyHWID(database, encoded_string,
   verifier.VerifyBOM(database, decoded_bom, probed_bom)
   verifier.VerifyComponentStatus(
       database, decoded_bom, hwid_mode, current_phase=current_phase)
-  verifier.VerifyPhase(database, decoded_bom, current_phase)
+  verifier.VerifyPhase(database, decoded_bom, current_phase, rma_mode)
   if decoded_configless:
     verifier.VerifyConfigless(
         database, decoded_configless, probed_bom, device_info, rma_mode)
