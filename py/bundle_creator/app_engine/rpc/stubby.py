@@ -76,9 +76,15 @@ class FactoryBundleService(remote.Service):
         body=body)
     return proto.CreateBundleRpcResponse()
 
+  # TODO(b/133123216): remove this after modifying the code on CPCon side
   @remote.method(
-      proto.GetBundleHistoriesRpcRequest, proto.GetBundleHistoriesRpcResponse)
+      proto.GetBundleHistoryRpcRequest, proto.GetBundleHistoryRpcResponse)
   def GetBundleHistories(self, request):
+    return self.GetBundleHistory(request)
+
+  @remote.method(
+      proto.GetBundleHistoryRpcRequest, proto.GetBundleHistoryRpcResponse)
+  def GetBundleHistory(self, request):
     scope = 'https://www.googleapis.com/auth/devstorage.read_only'
     token = app_identity.get_access_token(scope)
 
@@ -91,7 +97,7 @@ class FactoryBundleService(remote.Service):
       raise Exception(result['error']['message'])
     board_set = {}
     for blob in result['items']:
-      bundle = proto.BundleHistory()
+      bundle = proto.Bundle()
       bundle.path = blob['name']
       bundle.board, bundle.project, bundle.filename = blob['name'].split('/')
       # 'generation' from cloud storage is file created timestamp in
@@ -106,15 +112,15 @@ class FactoryBundleService(remote.Service):
       bundle.firmware_source = blob['metadata'].get('Firmware-Source', '-')
       project_set = board_set.setdefault(bundle.board, {})
       project_set.setdefault(bundle.project, []).append(bundle)
-    response = proto.GetBundleHistoriesRpcResponse()
+    response = proto.GetBundleHistoryRpcResponse()
     for board_projects in request.board_projects:
       for project in board_projects.projects:
         bundle_list = board_set \
             .get(board_projects.board_name, {}) \
             .get(project.name, [])
         for bundle in bundle_list:
-          response.histories.append(bundle)
-    response.histories.sort(key=lambda b: b.uploaded_timestamp_ms, reverse=True)
+          response.bundles.append(bundle)
+    response.bundles.sort(key=lambda b: b.uploaded_timestamp_ms, reverse=True)
     return response
 
   @remote.method(
