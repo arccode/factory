@@ -45,7 +45,8 @@ ACCESS_LEVEL_RE = re.compile('^access_level = [0-9]', re.MULTILINE)
 class ModemSecurity(test_case.TestCase):
 
   def setUp(self):
-    self._serial_dev = serial_utils.SerialDevice(log=True)
+    self._serial_dev = serial_utils.SerialDevice(
+        send_receive_interval_secs=1, log=True)
     self._serial_dev.Connect(port=MODEM_SERIAL_PORT, timeout=1, writeTimeout=1)
 
   def tearDown(self):
