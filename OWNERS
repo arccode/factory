@@ -1,2 +1,5 @@
+set noparent
+
+# The factory repo is owned by Chrome OS factory team.
+itspeter@chromium.org
 stimim@chromium.org
-hungte@chromium.org
