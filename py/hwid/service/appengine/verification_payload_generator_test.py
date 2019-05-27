@@ -6,6 +6,7 @@
 import os
 import unittest
 
+# pylint: disable=import-error, no-name-in-module
 from google.protobuf import json_format
 from google.protobuf import text_format
 import hardware_verifier_pb2

@@ -21,6 +21,9 @@
           "manufacturer": [true, "str", "!eq Li-ion"],
           "model_name": [true, "str", "!eq L"]
         }
+      },
+      "generic": {
+        "eval": {"generic_battery": {}}
       }
     },
     "storage": {
@@ -32,6 +35,16 @@
           "oemid": [true, "hex", "!eq 0x4455"],
           "prv": [true, "hex", "!eq 0x8899aabb"],
           "sectors": [true, "int", "!eq 1000000"]
+        }
+      },
+      "generic": {
+        "eval": {"generic_storage": {}},
+        "expect": {
+          "sectors": [false, "int"],
+          "manfid": [false, "hex"],
+          "pci_vendor": [false, "hex"],
+          "pci_device": [false, "hex"],
+          "pci_class": [false, "hex"]
         }
       }
     }
@@ -50,6 +63,21 @@
         "expect": {
           "manufacturer": [true, "str", "!eq Li-ion"],
           "model_name": [true, "str", "!eq M"]
+        }
+      },
+      "generic": {
+        "eval": {"generic_battery": {}}
+      }
+    },
+    "storage": {
+      "generic": {
+        "eval": {"generic_storage": {}},
+        "expect": {
+          "sectors": [false, "int"],
+          "manfid": [false, "hex"],
+          "pci_vendor": [false, "hex"],
+          "pci_device": [false, "hex"],
+          "pci_class": [false, "hex"]
         }
       }
     }
@@ -85,6 +113,17 @@
         "componentCategory": "battery",
         "componentUuid": "model_b_battery_medium_supported",
         "qualificationStatus": "QUALIFIED"
+      }
+    ],
+    "genericComponentValueWhitelists": [
+      {
+        "componentCategory": "battery",
+        "fieldNames": ["manufacturer", "model_name", "technology"]
+      },
+      {
+        "componentCategory": "storage",
+        "fieldNames": ["type", "sectors", "manfid", "name", "pci_class",
+                       "pci_vendor", "pci_device", "ata_vendor", "ata_model"]
       }
     ]
   }

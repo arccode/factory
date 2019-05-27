@@ -8,6 +8,7 @@ import collections
 import copy
 import re
 
+# pylint: disable=import-error, no-name-in-module
 from google.protobuf import text_format
 import hardware_verifier_pb2
 import runtime_probe_pb2
@@ -26,6 +27,31 @@ class GenerateVerificationPayloadError(Exception):
 
 class ProbeStatementGeneratorNotSuitableError(Exception):
   """The given component values cannot be converted by this generator."""
+
+
+GenericProbeStatementInfo = collections.namedtuple(
+    'GenericProbeStatementInfo', ['probe_statement', 'whitelist_fields'])
+
+
+# TODO(yhong): Remove the expect field when runtime_probe converts the output
+#              format automatically (b/133641904).
+GENERIC_PROBE_STATEMENTS = {
+    runtime_probe_pb2.ProbeRequest.battery: GenericProbeStatementInfo(
+        {'eval': {'generic_battery': {}}},
+        ['manufacturer', 'model_name', 'technology']),
+    runtime_probe_pb2.ProbeRequest.storage: GenericProbeStatementInfo(
+        {'eval': {'generic_storage': {}},
+         'expect': {'sectors': [False, 'int'],
+                    'manfid': [False, 'hex'],
+                    'pci_vendor': [False, 'hex'],
+                    'pci_device': [False, 'hex'],
+                    'pci_class': [False, 'hex']}},
+        ['type', 'sectors', 'manfid', 'name', 'pci_vendor', 'pci_device',
+         'pci_class', 'ata_vendor', 'ata_model']),
+}
+
+
+GENERIC_COMPONENT_NAME = 'generic'
 
 
 class ProbeStatementGenerator(object):
@@ -231,8 +257,18 @@ def GenerateVerificationPayload(dbs):
       hwid_common.COMPONENT_STATUS.unsupported: hardware_verifier_pb2.REJECTED,
   }
 
-  def _GetRuntimeProbeCompCategoryName(comp_category):
-    return runtime_probe_pb2.ProbeRequest.SupportCategory.Name(comp_category)
+  def _AddProbeStatement(probe_config_data, comp_category, probe_statement):
+    comp_category_name = runtime_probe_pb2.ProbeRequest.SupportCategory.Name(
+        comp_category)
+    probe_config_data.setdefault(comp_category_name, {}).update(
+        probe_statement)
+
+  def _AppendProbeStatement(
+      probe_config_data, comp_category, comp_name, probe_statement):
+    comp_category_name = runtime_probe_pb2.ProbeRequest.SupportCategory.Name(
+        comp_category)
+    probe_config_data.setdefault(comp_category_name, {})[
+        comp_name] = probe_statement
 
   ps_generators = collections.defaultdict(list)
   for ps_gen in GetAllProbeStatementGenerators():
@@ -265,9 +301,8 @@ def GenerateVerificationPayload(dbs):
                            'only one generator can handle the given component '
                            'by design.')
           comp_category = ps_gen.SUPPORTED_CATEGORIES[hwid_comp_category]
-          probe_statement_placeholder = probe_config_data.setdefault(
-              _GetRuntimeProbeCompCategoryName(comp_category), {})
-          probe_statement_placeholder[unique_comp_name] = probe_statement
+          _AppendProbeStatement(probe_config_data, comp_category,
+                                unique_comp_name, probe_statement)
           hw_verification_spec.component_infos.add(
               component_category=comp_category, component_uuid=unique_comp_name,
               qualification_status=_STATUS_MAP[comp_info.status])
@@ -276,9 +311,18 @@ def GenerateVerificationPayload(dbs):
           raise GenerateVerificationPayloadError(
               'no probe statement generator supports %r typed component %r' %
               (hwid_comp_category, comp_info))
+
+      # Append the generic probe statements.
+      for comp_category, ps_info in GENERIC_PROBE_STATEMENTS.iteritems():
+        _AppendProbeStatement(probe_config_data, comp_category,
+                              GENERIC_COMPONENT_NAME, ps_info.probe_statement)
     probe_config_pathname = 'runtime_probe/%s/probe_config.json' % model_prefix
     ret_files[probe_config_pathname] = json_utils.DumpStr(probe_config_data,
                                                           pretty=True)
+  # Append the whitelists in the verification spec.
+  for comp_category, ps_info in GENERIC_PROBE_STATEMENTS.iteritems():
+    hw_verification_spec.generic_component_value_whitelists.add(
+        component_category=comp_category, field_names=ps_info.whitelist_fields)
   ret_files['hw_verification_spec.prototxt'] = text_format.MessageToString(
       hw_verification_spec)
 
