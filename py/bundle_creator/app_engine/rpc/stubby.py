@@ -76,12 +76,6 @@ class FactoryBundleService(remote.Service):
         body=body)
     return proto.CreateBundleRpcResponse()
 
-  # TODO(b/133123216): remove this after modifying the code on CPCon side
-  @remote.method(
-      proto.GetBundleHistoryRpcRequest, proto.GetBundleHistoryRpcResponse)
-  def GetBundleHistories(self, request):
-    return self.GetBundleHistory(request)
-
   @remote.method(
       proto.GetBundleHistoryRpcRequest, proto.GetBundleHistoryRpcResponse)
   def GetBundleHistory(self, request):

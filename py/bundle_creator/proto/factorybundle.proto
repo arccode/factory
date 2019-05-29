@@ -73,10 +73,6 @@ service FactoryBundleService {
   rpc CreateBundleAsync(CreateBundleRpcRequest)
       returns (CreateBundleRpcResponse) {
   }
-  // TODO(b/133123216): remove this after modifying the code on CPCon side
-  rpc GetBundleHistories(GetBundleHistoryRpcRequest)
-      returns (GetBundleHistoryRpcResponse) {
-  }
   rpc GetBundleHistory(GetBundleHistoryRpcRequest)
       returns (GetBundleHistoryRpcResponse) {
   }
