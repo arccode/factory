@@ -816,8 +816,9 @@ class FinalizeBundle(object):
              '--timestamp', self.bundle_name.split('_')[0],
              '--phase', self.bundle_name.split('_')[1]],
             log=True, check_call=True, cwd=self.bundle_dir)
-      Spawn(['mv', image_tool_output_file, output_file],
-            log=True, check_call=True)
+      if image_tool_output_file != output_file:
+        Spawn(['mv', image_tool_output_file, output_file],
+              log=True, check_call=True)
       logging.info(
           'Created %s (%.1f GiB).',
           output_file, os.path.getsize(output_file) / (1024. * 1024. * 1024.))
