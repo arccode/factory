@@ -50,7 +50,6 @@ KNOWN_RO_DATA_RE = {
     # Recommended values.
     r'(ethernet|wifi|bluetooth|zigbee)_mac[0-9]+': r'[0-9a-fA-F:]+',
     r'(ethernet|wifi|bluetooth|zigbee)_calibration[0-9]*': ANY,
-    r'wifi_sar[0-9]*': ANY,
     r'in_(accel|anglvel)_(x|y|z)_(base|lid)_calib(bias|scale)': r'-*[0-9]+',
     r'als_cal_(slope|intercept)': ANY,
 }
@@ -89,4 +88,7 @@ DEPRECATED_RO_DATA = {
     'customization_id': r'[A-Z0-9]+(-[A-Z0-9]+)?',
     'battery_cto_disabled': ANY,
     'panel_backlight_max_nits': r'[0-9]+',  # See b/110185527.
+    # This is moved to CBFS, please check with RF eng if this really needs to be
+    # added to your project.
+    r'wifi_sar[0-9]*': ANY,
 }
