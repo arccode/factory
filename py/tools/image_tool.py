@@ -1775,9 +1775,9 @@ class ChromeOSFactoryBundle(object):
           json_path, lsb_file.name, PAYLOAD_TYPE_LSB_FACTORY, silent=True)
 
       lsb = LSBFile(lsb_file.name)
-      lsb.AppendValue('FACTORY_INSTALL_FROM_USB', '1')
-      lsb.AppendValue('FACTORY_INSTALL_COMPLETE_PROMPT', 'true')
-      lsb.AppendValue('RMA_AUTORUN', 'true')
+      lsb.SetValue('FACTORY_INSTALL_FROM_USB', '1')
+      lsb.SetValue('FACTORY_INSTALL_COMPLETE_PROMPT', 'true')
+      lsb.SetValue('RMA_AUTORUN', 'true')
       SysUtils.WriteFile(lsb_file, lsb.AsRawData())
       CrosPayloadUtils.ReplaceComponent(
           json_path, PAYLOAD_TYPE_LSB_FACTORY, lsb_file.name)
@@ -3313,7 +3313,8 @@ class EditLSBCommand(SubCommand):
         except Exception:
           warning_message = [
               SPLIT_LINE,
-              'This is an old RMA shim image without lsb_factory payload.',
+              'This is a reset shim, or an old RMA shim without lsb_factory '
+              'payload.',
               'This command will modify %s file.' % PATH_LSB_FACTORY,
               SPLIT_LINE,
               'Continue?'
