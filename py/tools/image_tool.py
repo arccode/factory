@@ -1411,17 +1411,17 @@ class ChromeOSFactoryBundle(object):
         help='path to a Chromium OS factory toolkit. default: %(default)s')
     parser.AddArgument(
         (cls.PREFLASH, cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
+        '--hwid',
+        default='-hwid/*.sh',
+        type=ArgTypes.GlobPath,
+        help='path to a HWID bundle if available. default: %(default)s')
+    parser.AddArgument(
+        (cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
         '--factory_shim',
         default='factory_shim/*.bin',
         type=ArgTypes.GlobPath,
         help=('path to a factory shim (build_image factory_install), '
               'default: %(default)s'))
-    parser.AddArgument(
-        (cls.PREFLASH, cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
-        '--hwid',
-        default='-hwid/*.sh',
-        type=ArgTypes.GlobPath,
-        help='path to a HWID bundle if available. default: %(default)s')
     parser.AddArgument(
         (cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
         '--board',
