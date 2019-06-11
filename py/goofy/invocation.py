@@ -701,7 +701,7 @@ class _TestInvocationEventLogHelper(object):
     self._event_log_args = {
         'path': metadata['path'],
         'dargs': metadata['dargs'],
-        'serial_nubmers': metadata['serial_numbers'],
+        'serial_numbers': metadata['serial_numbers'],
         'invocation': metadata['invocation']}
     self._UpdateArgsIfKeyExists(metadata, 'pytest_name')
     self._UpdateArgsIfKeyExists(metadata, 'tag')
