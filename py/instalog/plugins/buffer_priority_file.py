@@ -192,19 +192,22 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     Returns:
       The path of temporary metadata.
     """
-    tmp_path = file_utils.CreateTemporaryFile()
-    tmp_metadata_path = os.path.join(self.metadata_tmp_dir,
-                                     os.path.basename(tmp_path))
-    all_metadata = {}
-    for pri_level in xrange(_PRIORITY_LEVEL):
-      metadata_path = self.buffer_file[pri_level][file_num].metadata_path
-      if os.path.isfile(metadata_path):
-        all_metadata[metadata_path] = file_utils.ReadFile(metadata_path)
-      else:
-        all_metadata[metadata_path] = None
-    with open(tmp_path, 'w') as f:
-      f.write(json_utils.encoder.encode(all_metadata))
-    file_utils.AtomicCopy(tmp_path, tmp_metadata_path)
+    # We didn't use file_utils.AtomicWrite since it create another file on
+    # self.metadata_tmp_dir.
+    with file_utils.UnopenedTemporaryFile() as tmp_path:
+      tmp_metadata_path = os.path.join(self.metadata_tmp_dir,
+                                       os.path.basename(tmp_path))
+      all_metadata = {}
+      for pri_level in xrange(_PRIORITY_LEVEL):
+        metadata_path = self.buffer_file[pri_level][file_num].metadata_path
+        if os.path.isfile(metadata_path):
+          all_metadata[metadata_path] = file_utils.ReadFile(metadata_path)
+        else:
+          all_metadata[metadata_path] = None
+      with open(tmp_path, 'w') as f:
+        f.write(json_utils.encoder.encode(all_metadata))
+      file_utils.AtomicCopy(tmp_path, tmp_metadata_path)
+      file_utils.SyncDirectory(self.metadata_tmp_dir)
     return tmp_metadata_path
 
   def RecoverTemporaryMetadata(self, tmp_metadata_path):
