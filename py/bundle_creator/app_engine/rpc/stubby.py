@@ -4,7 +4,6 @@
 
 import base64
 import json
-import os
 import re
 import time
 import urllib
@@ -21,11 +20,10 @@ from googleapiclient.discovery import build  # pylint: disable=import-error
 definition.import_file_set('rpc/factorybundle.proto.def')
 from cros.factory import proto  # pylint: disable=import-error
 
+import config  # pylint: disable=import-error
+
 
 _SERVICE_PATH = '/_ah/stubby/FactoryBundleService'
-_PROJECT_ID = os.environ['APPLICATION_ID'][2:]  # format should be google.com:x
-_PUBSUB_TOPIC = os.environ['PUBSUB_TOPIC']
-_BUCKET = os.environ['BUCKET']
 
 
 class TimeoutError(Exception):
@@ -50,8 +48,8 @@ class FactoryBundleService(remote.Service):
   def CreateBundleAsync(self, request):
     pubsub_service = build('pubsub', 'v1')
     topic_path = 'projects/{project_id}/topics/{topic}'.format(
-        project_id=_PROJECT_ID,
-        topic=_PUBSUB_TOPIC)
+        project_id=config.PROJECT,
+        topic=config.PUBSUB_TOPIC)
     pubsub_service.projects().topics().publish(
         topic=topic_path,
         body={
@@ -84,7 +82,8 @@ class FactoryBundleService(remote.Service):
     token = app_identity.get_access_token(scope)
 
     api_response = urlfetch.fetch(
-        'https://www.googleapis.com/storage/v1/b/{}/o'.format(_BUCKET),
+        'https://www.googleapis.com/storage/v1/b/{}/o'.format(
+            config.BUNDLE_BUCKET),
         method=urlfetch.GET,
         headers={'Authorization': 'OAuth {}'.format(token[0])})
     result = json.loads(api_response.content)
@@ -128,7 +127,7 @@ class FactoryBundleService(remote.Service):
     request_body = {'role': 'READER'}
     api_response = urlfetch.fetch(
         'https://www.googleapis.com/storage/v1/b/{}/o/{}/acl/{}'.format(
-            _BUCKET,
+            config.BUNDLE_BUCKET,
             urllib.quote_plus(request.path),
             urllib.quote_plus(entity)),
         method=urlfetch.PATCH,
@@ -141,7 +140,8 @@ class FactoryBundleService(remote.Service):
 
     response = proto.DownloadBundleRpcResponse()
     response.download_link = \
-        'https://storage.cloud.google.com/{}/{}'.format(_BUCKET, request.path)
+        'https://storage.cloud.google.com/{}/{}'.format(
+            config.BUNDLE_BUCKET, request.path)
     return response
 
   def GenerateSuccessBody(self, work_result):
@@ -155,7 +155,7 @@ class FactoryBundleService(remote.Service):
       a string of email body.
     """
     path_match = re.match(
-        r'^gs://{}/(.*)$'.format(_BUCKET), work_result.gs_path)
+        r'^gs://{}/(.*)$'.format(config.BUNDLE_BUCKET), work_result.gs_path)
     download_link = (
         'https://chromeos.google.com/partner/console/DownloadBundle?path={}' \
             .format(urllib.quote_plus(path_match.group(1)))
