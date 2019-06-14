@@ -319,6 +319,8 @@ def GenerateVerificationPayload(dbs):
     probe_config_pathname = 'runtime_probe/%s/probe_config.json' % model_prefix
     ret_files[probe_config_pathname] = json_utils.DumpStr(probe_config_data,
                                                           pretty=True)
+  hw_verification_spec.component_infos.sort(
+      key=lambda ci: (ci.component_category, ci.component_uuid))
   # Append the whitelists in the verification spec.
   for comp_category, ps_info in GENERIC_PROBE_STATEMENTS.iteritems():
     hw_verification_spec.generic_component_value_whitelists.add(
