@@ -4,8 +4,8 @@
 
 import base64
 import json
+import os
 import re
-import time
 import urllib
 
 from protorpc import remote  # pylint: disable=import-error
@@ -26,18 +26,14 @@ import config  # pylint: disable=import-error
 _SERVICE_PATH = '/_ah/stubby/FactoryBundleService'
 
 
-class TimeoutError(Exception):
-  pass
-
-
-def WaitFor(predicate, timeout, interval):
-  start_time = time.time()
-  while time.time() - start_time < timeout:
-    result = predicate()
-    if result:
-      return result
-    time.sleep(interval)
-  raise TimeoutError
+def whitelist(function):
+  def function_wrapper(*args, **kwargs):
+    loas_peer_username = os.getenv('LOAS_PEER_USERNAME')
+    if loas_peer_username != config.ALLOWED_LOAS_PEER_USERNAME:
+      raise Exception(
+          'LOAS_PEER_USERNAME {} is not allowed'.format(loas_peer_username))
+    return function(*args, **kwargs)
+  return function_wrapper
 
 
 class FactoryBundleService(remote.Service):
@@ -45,6 +41,7 @@ class FactoryBundleService(remote.Service):
   # pylint warns no-init because it can't found the definition of parent class.
 
   @remote.method(proto.CreateBundleRpcRequest, proto.CreateBundleRpcResponse)
+  @whitelist
   def CreateBundleAsync(self, request):
     pubsub_service = build('pubsub', 'v1')
     topic_path = 'projects/{project_id}/topics/{topic}'.format(
@@ -77,6 +74,7 @@ class FactoryBundleService(remote.Service):
 
   @remote.method(
       proto.GetBundleHistoryRpcRequest, proto.GetBundleHistoryRpcResponse)
+  @whitelist
   def GetBundleHistory(self, request):
     scope = 'https://www.googleapis.com/auth/devstorage.read_only'
     token = app_identity.get_access_token(scope)
@@ -119,6 +117,7 @@ class FactoryBundleService(remote.Service):
 
   @remote.method(
       proto.DownloadBundleRpcRequest, proto.DownloadBundleRpcResponse)
+  @whitelist
   def DownloadBundle(self, request):
     scope = 'https://www.googleapis.com/auth/devstorage.full_control'
     token = app_identity.get_access_token(scope)
