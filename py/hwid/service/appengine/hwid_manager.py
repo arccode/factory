@@ -68,6 +68,25 @@ class HwidMetadata(db.Model):  # pylint: disable=no-init
   version = db.StringProperty()
 
 
+class CLNotification(db.Model):  # pylint: disable=no-init
+  """Emails of CL notification recipients."""
+
+  notification_type = db.StringProperty()
+  email = db.StringProperty()
+
+
+class LatestHWIDMasterCommit(db.Model):  # pylint: disable=no-init
+  """Latest master commit of private overlay repo with generated payloads."""
+
+  commit = db.StringProperty()
+
+
+class LatestPayloadHash(db.Model):  # pylint: disable=no-init
+  """Latest hash of payload generated from verification_payload_generator."""
+
+  payload_hash = db.StringProperty()
+
+
 class Component(collections.namedtuple('Component', ['cls', 'name'])):
   """A single BOM component.
 
@@ -340,6 +359,38 @@ class HwidManager(object):
     hwid_data = self._LoadHwidData(board)
 
     return hwid_data.GetComponents(board, with_classes)
+
+  def GetCLReviewers(self):
+    q = CLNotification.all()
+    q.filter('notification_type =', 'reviewer')
+    reviewers = []
+    for notification in q.run():
+      reviewers.append(notification.email.encode('utf-8'))
+    return reviewers
+
+  def GetCLCCs(self):
+    q = CLNotification.all()
+    q.filter('notification_type =', 'cc')
+    ccs = []
+    for notification in q.run():
+      ccs.append(notification.email.encode('utf-8'))
+    return ccs
+
+  def GetLatestHWIDMasterCommit(self):
+    return LatestHWIDMasterCommit.get_by_key_name('commit').commit
+
+  def SetLatestHWIDMasterCommit(self, commit):
+    latest_commit = LatestHWIDMasterCommit.get_by_key_name('commit')
+    latest_commit.commit = commit
+    latest_commit.put()
+
+  def GetLatestPayloadHash(self):
+    return LatestPayloadHash.get_by_key_name('hash').payload_hash
+
+  def SetLatestPayloadHash(self, payload_hash):
+    latest_hash = LatestPayloadHash.get_by_key_name('hash')
+    latest_hash.payload_hash = payload_hash
+    latest_hash.put()
 
   def _LoadHwidData(self, board):
     """Retrieves the HWID data for a given board, caching as necessary.
