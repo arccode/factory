@@ -131,6 +131,27 @@ class GitUtilTest(unittest.TestCase):
           git_util.GitUtilException, git_util.GetCommitId, git_url_prefix,
           project, branch, auth_cookie)
 
+  def testNoModification(self):
+    file_name = 'README.md'
+    repo = git_util.MemoryRepo(auth_cookie='')
+    repo.shallow_clone(
+        'https://chromium.googlesource.com/chromiumos/platform/factory',
+        branch='master')
+    tree = repo[repo['HEAD'].tree]
+    unused_size, object_id = tree[file_name]
+    new_files = [(file_name, 0o100644, repo[object_id].data)]
+    self.assertRaises(
+        git_util.GitUtilNoModificationException,
+        git_util.CreateCL,
+        'https://chromium.googlesource.com/chromiumos/platform/factory',
+        '',
+        'chromiumos/platform/factory',
+        'master',
+        new_files,
+        'John Doe <no-reply@google.com>',
+        'John Doe <no-reply@google.com>',
+        '')
+
 
 if __name__ == '__main__':
   unittest.main()

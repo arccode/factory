@@ -35,6 +35,10 @@ class GitUtilException(Exception):
   pass
 
 
+class GitUtilNoModificationException(GitUtilException):
+  """Raised if no modification is made for commit."""
+
+
 class MemoryRepo(_MemoryRepo):
   """Enhance MemoryRepo with push ability."""
 
@@ -225,7 +229,7 @@ def CreateCL(git_url, auth_cookie, project, branch, new_files, author,
   original_tree_id = head_commit.tree
   updated_tree, new_obj_ids = repo.add_files(new_files)
   if updated_tree.id == original_tree_id:
-    raise GitUtilException('No modification')
+    raise GitUtilNoModificationException
 
   change_id = _GetChangeId(
       updated_tree.id, repo.head(), author, committer, commit_msg)
