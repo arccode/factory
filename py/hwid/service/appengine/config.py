@@ -5,6 +5,7 @@
 
 import os
 
+# pylint: disable=import-error
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine import filesystem_adapter
 from cros.factory.hwid.service.appengine import hwid_manager
@@ -15,11 +16,19 @@ _CONFIGURATIONS = {
         'env': 'prod',
         'bucket': 'chromeoshwid',
         'ge_bucket': 'chromeos-build-release-console',
+        'board_mapping': {
+            'ARCADA': 'sarien',
+            'SARIEN': 'sarien',
+        },
     },
     's~google.com:chromeoshwid-staging': {
         'env': 'staging',
         'bucket': 'chromeoshwid-staging',
         'ge_bucket': 'chromeos-build-release-console-staging',
+        'board_mapping': {
+            'ARCADA': 'sarien',
+            'SARIEN': 'sarien',
+        },
     },
     'default': {
         'env': 'dev',
@@ -28,6 +37,10 @@ _CONFIGURATIONS = {
         # during tests.
         'skip_auth_check': True,
         'ge_bucket': 'chromeos-build-release-console-staging',
+        'board_mapping': {
+            'ARCADA': 'sarien',
+            'SARIEN': 'sarien',
+        },
     }
 }
 
@@ -61,6 +74,7 @@ class _Config(object):
     self.hwid_filesystem = filesystem_adapter.CloudStorageAdapter(
         conf['bucket'])
     self.hwid_manager = hwid_manager.HwidManager(self.hwid_filesystem)
+    self.board_mapping = conf.get('board_mapping', {})
 
 
 CONFIG = _Config()

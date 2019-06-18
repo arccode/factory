@@ -1,0 +1,36 @@
+board: SARIEN
+
+checksum: 3da2c25677f11bb6583f904525653440ae666aa5
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: TEST
+
+pattern:
+  - image_ids: [0]
+    encoding_scheme: base8192
+    fields:
+    - cpu_field: 1
+
+encoded_fields:
+  cpu_field:
+    0: { test_component: cpu_0 }
+    1: { test_component: cpu_1 }
+
+components:
+  test_component:
+    items:
+      cpu_0:
+        values:
+          cores: '1'
+          model: 'x'
+      cpu_1:
+        values:
+          cores: '4'
+          model: 'abc'
+
+rules:
+- name: device_info.set_image_id
+  evaluate: SetImageId('TEST');

@@ -6,7 +6,11 @@
 
 import logging
 
+# pylint: disable=import-error
 import factory_common  # pylint: disable=unused-import
+from cros.factory.hwid.service.appengine.config import CONFIG
+from cros.factory.hwid.service.appengine import \
+    verification_payload_generator as vpg_module
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import verify_db_pattern
@@ -69,3 +73,9 @@ class HwidValidator(object):
           prev_db, db)
     except HWIDException as e:
       raise ValidationError(e.message)
+
+    if db.project in CONFIG.board_mapping:
+      try:
+        vpg_module.GenerateVerificationPayload([db])
+      except vpg_module.GenerateVerificationPayloadError as e:
+        raise ValidationError(e.message)
