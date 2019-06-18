@@ -7,10 +7,12 @@
 
 import os
 import unittest
+
 import mock
 import webapp2  # pylint: disable=import-error
 import webtest  # pylint: disable=import-error
 
+# pylint: disable=import-error
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import filesystem_adapter
@@ -21,6 +23,8 @@ SERVER_BOARDS_YAML = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 SERVER_BOARDS_DATA = open(SERVER_BOARDS_YAML, 'r').read()
 
 
+@mock.patch.object(
+    ingestion.RefreshHandler, 'UpdatePayloadsAndSync', mock.Mock())
 class IngestionTest(unittest.TestCase):
 
   def setUp(self):

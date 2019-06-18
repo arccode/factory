@@ -5,6 +5,7 @@
 import datetime
 import hashlib
 import httplib
+import logging
 import os
 import time
 import urllib
@@ -296,3 +297,24 @@ def GetCommitId(git_url_prefix, project, branch, auth_cookie):
     raise GitUtilException('KeyError: %r' % ex.message)
 
   return commit_hash
+
+
+def AbandonCL(review_host, auth_cookie, change_id):
+  """Abandon a CL
+
+  Args:
+    review_host: Review host of repo
+    auth_cookie: Auth cookie
+    change_id: Change ID
+  """
+
+  git_url = '{review_host}/a/changes/{change_id}/abandon'.format(
+      review_host=review_host,
+      change_id=change_id)
+
+  pool_manager = PoolManager(ca_certs=certifi.where())
+  pool_manager.headers['Cookie'] = auth_cookie
+  fp = pool_manager.urlopen(method='POST', url=git_url)
+  if fp.status != httplib.OK:
+    logging.error('HTTP Status: %d', fp.status)
+    raise GitUtilException('Abandon failed for change id: %r' % (change_id,))

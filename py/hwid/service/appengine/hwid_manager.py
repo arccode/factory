@@ -254,6 +254,28 @@ class HwidManager(object):
     self._memcache_adaptor = memcache_adaptor.MemcacheAdaptor(
         namespace='HWIDObject')
 
+  @staticmethod
+  def GetVerificationPayloadSettings(board):
+    """Get repo settings for specific board.
+
+    Args:
+      board: The board name
+
+    Returns:
+      A dictionary with corresponding settings
+    """
+    return {
+        'review_host': 'https://chrome-internal-review.googlesource.com',
+        'repo_host': 'https://chrome-internal.googlesource.com',
+        'repo_path': '/chromeos/overlays/overlay-{board}-private'.format(
+            board=board),
+        'project': ('chromeos/overlays/'
+                    'overlay-{board}-private').format(board=board),
+        'prefix': ('chromeos-base/'
+                   'chromeos-bsp-{board}-private/files/').format(board=board),
+        'branch': 'master'
+        }
+
   def GetBoards(self, versions=None):
     """Get a list of supported boards.
 
@@ -384,11 +406,14 @@ class HwidManager(object):
     latest_commit.commit = commit
     latest_commit.put()
 
-  def GetLatestPayloadHash(self):
-    return LatestPayloadHash.get_by_key_name('hash').payload_hash
+  def GetLatestPayloadHash(self, board):
+    entity = LatestPayloadHash.get_by_key_name(board)
+    if entity:
+      return entity.payload_hash
+    return None
 
-  def SetLatestPayloadHash(self, payload_hash):
-    latest_hash = LatestPayloadHash.get_by_key_name('hash')
+  def SetLatestPayloadHash(self, board, payload_hash):
+    latest_hash = LatestPayloadHash.get_or_insert(board)
     latest_hash.payload_hash = payload_hash
     latest_hash.put()
 

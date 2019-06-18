@@ -20,6 +20,7 @@ _CONFIGURATIONS = {
             'ARCADA': 'sarien',
             'SARIEN': 'sarien',
         },
+        'hw_checker_mail': 'chromeos-hw-checker@google.com',
     },
     's~google.com:chromeoshwid-staging': {
         'env': 'staging',
@@ -29,6 +30,8 @@ _CONFIGURATIONS = {
             'ARCADA': 'sarien',
             'SARIEN': 'sarien',
         },
+        'dryrun_upload': True,
+        'hw_checker_mail': 'noreply@google.com',
     },
     'default': {
         'env': 'dev',
@@ -41,6 +44,8 @@ _CONFIGURATIONS = {
             'ARCADA': 'sarien',
             'SARIEN': 'sarien',
         },
+        'dryrun_upload': True,
+        'hw_checker_mail': 'noreply@google.com',
     }
 }
 
@@ -74,7 +79,9 @@ class _Config(object):
     self.hwid_filesystem = filesystem_adapter.CloudStorageAdapter(
         conf['bucket'])
     self.hwid_manager = hwid_manager.HwidManager(self.hwid_filesystem)
+    self.hw_checker_mail = conf.get('hw_checker_mail', '')
     self.board_mapping = conf.get('board_mapping', {})
+    self.dryrun_upload = conf.get('dryrun_upload', False)
 
 
 CONFIG = _Config()
