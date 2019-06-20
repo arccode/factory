@@ -42,9 +42,11 @@ You can also change the limits of each axis to loose the criteria::
   {
     "pytest_name": "accelerometers"
     "args": {
-      "x": [-1.0, 1.0],
-      "y": [-1.0, 1.0],
-      "z": [8.0, 11.0]
+      "limits": {
+        "x": [-1.0, 1.0],
+        "y": [-1.0, 1.0],
+        "z": [8.0, 11.0]
+      }
     }
   }
 

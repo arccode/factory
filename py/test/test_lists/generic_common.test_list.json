@@ -37,6 +37,9 @@
     }
   },
   "definitions": {
+    "Accelerometers": {
+      "pytest_name": "accelerometers"
+    },
     "AccelerometersCalibration": {
       "pytest_name": "accelerometers_calibration",
       "args": {
