@@ -277,6 +277,12 @@ cmd_help() {
 
       Example: $0 install http://a/b.json test.json /dev/mmcblk0 test_image
 
+  install_optional JSON_URL DEST COMPONENTs...
+
+      Same as install, but doesn't fail when COMPONENT payloads don't exist.
+
+      Example: $0 install_optional http://a/b.json test.json /dev/mmcblk0 hwid
+
   download JSON_URL DEST COMPONENTs...
 
       Fetch COMPONENT payloads to DEST and keep in compressed form.
@@ -906,7 +912,12 @@ install_payload() {
   local mount_point
 
   if [ "${remote_file}" = "null" ]; then
-    die "Missing payload [${payload}] from ${json_url}."
+    if [ -n "${OPTIONAL}" ]; then
+      echo "Missing payload [${payload}] from ${json_url}, ignored."
+      return 0
+    else
+      die "Missing payload [${payload}] from ${json_url}."
+    fi
   fi
 
   if [ "${mode}" = "partition" ]; then
@@ -1067,13 +1078,20 @@ install_components() {
 # Command "download", to download components to target.
 # Usage: cmd_download JSON_URL DEST_DEV COMPONENTS...
 cmd_download() {
-  DO_INSTALL="" install_components "file" "$@"
+  DO_INSTALL="" OPTIONAL="" install_components "file" "$@"
 }
 
 # Command "install", to install components to target.
 # Usage: cmd_install JSON_URL DEST COMPONENTS...
 cmd_install() {
-  DO_INSTALL=1 install_components "" "$@"
+  DO_INSTALL=1 OPTIONAL="" install_components "" "$@"
+}
+
+# Command "install_optional", to install components to target if the components
+# exist.
+# Usage: cmd_install_optional JSON_URL DEST COMPONENTS...
+cmd_install_optional() {
+  DO_INSTALL=1 OPTIONAL=1 install_components "" "$@"
 }
 
 # Lists available components on JSON URL.
@@ -1187,6 +1205,10 @@ main() {
     install)
       shift
       cmd_install "$@"
+      ;;
+    install_optional)
+      shift
+      cmd_install_optional "$@"
       ;;
     download)
       shift
