@@ -12,7 +12,10 @@ from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import type_utils
 from cros.factory.utils import process_utils
+from cros.factory.probe.functions import sysfs
 
+
+MTD_PATH = '/sys/kernel/debug/mtd/mtd0/'
 
 class FlashChipFunction(cached_probe_function.LazyCachedProbeFunction):
   """Get information of flash chips.
@@ -90,4 +93,14 @@ class FlashChipFunction(cached_probe_function.LazyCachedProbeFunction):
 
     # An example of output: vendor="Google" name="Chip1"
     match_list = re.findall(r'\b(\w+)="([^"]*)"', output)
+    # In the arm platform, we use the linux MTD driver for the spi
+    # nor flash. On the other hand, the flashrom doesn't support
+    # the flashinfo query because the linux MTD driver doesn't
+    # support it. As a result, we added a debugfs under the MTD_PATH
+    # for querying the partid and partname
+    if match_list and ('name', 'Opaque flash chip') in match_list:
+      result = sysfs.ReadSysfs(MTD_PATH, ['partid', 'partname'])
+      if result is not None:
+        return result
+
     return dict(match_list) if match_list else function.NOTHING
