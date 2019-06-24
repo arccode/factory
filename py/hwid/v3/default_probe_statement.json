@@ -132,7 +132,20 @@
   },
   "storage": {
     "generic": {
-      "eval": "generic_storage"
+      "eval": "generic_storage",
+      "keys":[
+        "vendor",
+        "model",
+        "type",
+        "name",
+        "hwrev",
+        "oemid",
+        "manfid",
+        "prv",
+        "device",
+        "class",
+        "sectors"
+      ]
     }
   },
   "stylus": {
