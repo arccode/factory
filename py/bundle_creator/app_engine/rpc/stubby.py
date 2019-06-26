@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 import base64
+import datetime
 import json
 import os
 import re
@@ -63,11 +64,12 @@ class FactoryBundleService(remote.Service):
       subject = 'Bundle creation success'
       body = self.GenerateSuccessBody(request)
     else:
-      subject = 'Bundle creation failed'
+      subject = 'Bundle creation failed - {:%Y-%m-%d %H:%M:%S}'.format(
+          datetime.datetime.now())
       body = request.error_message
     mail.send_mail(
-        sender='factory-bundle-noreply@google.com',
-        to=request.original_request.email,
+        sender=config.NOREPLY_EMAIL,
+        to=[request.original_request.email, config.FAILURE_EMAIL],
         subject=subject,
         body=body)
     return proto.CreateBundleRpcResponse()
