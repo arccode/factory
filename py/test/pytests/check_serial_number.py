@@ -2,11 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
+"""Checks if serial number is set correctly on a device.
+
 Description
 -----------
-Checks if serial number is set correctly on a device.
-
 Some tests, for example, RF graphyte, assume DUTs have MLB serial number
 available (in VPD and device data).  And the test will fail if a DUT
 doesn't have MLB SN (e.g. it skipped previous station).
@@ -38,8 +37,10 @@ in `generic_common.test_list.json` and "StationCheckSerialNumber" in
 based test list. You can disable it by setting `constants.check_serial_number`
 to `false`::
 
-  "constants": {
-    "check_serial_number": false
+  {
+    "constants": {
+      "check_serial_number": false
+    }
   }
 
 By default, this pytest checks mlb_serial_number. If you want to check serial

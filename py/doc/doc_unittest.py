@@ -37,7 +37,7 @@ class DocTest(unittest.TestCase):
     files_with_errors = set()
 
     for l in stderr_lines:
-      match = re.match(r'^([^:]+):(\d+): (ERROR|WARNING): (.+)',
+      match = re.match(r'^(([^:]+):)*(\d+): (ERROR|WARNING|SEVERE): (.+)',
                        l.strip())
 
       if match:

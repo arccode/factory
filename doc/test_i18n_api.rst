@@ -46,14 +46,16 @@ A typical workflow to add or modify text in test:
 
     .. code-block:: json
 
-       "definitions": {
-         "SomeTest": {
-           "pytest_name": "some_test",
-           "args": {
-             "html": "i18n! Some displayed text and show be translated."
-           }
-         }
-       }
+      {
+        "definitions": {
+          "SomeTest": {
+            "pytest_name": "some_test",
+            "args": {
+              "html": "i18n! Some displayed text and show be translated."
+            }
+          }
+        }
+      }
 
 2. In chroot under ``~/trunk/src/platform/factory/po``, run:
 
