@@ -57,6 +57,27 @@
 }
 
 .test-item {
+  padding: 3px;
+}
+
+.test-item > span {
+  color: black;
   text-decoration: underline;
   cursor: pointer;
+}
+
+.test-state-active {
+  color: orange;
+}
+
+.test-state-passed {
+  color: green;
+}
+
+.test-state-failed {
+  color: red;
+}
+
+.test-state-untested {
+  color: black;
 }

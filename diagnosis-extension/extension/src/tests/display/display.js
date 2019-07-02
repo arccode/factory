@@ -35,6 +35,8 @@ export class DisplayTest extends TestCase {
 
   async setUp() {
     this.inTest = true;
+    this.fail = false;
+    this.failmessage = '';
     this.testScreenState = 'HIDE';
     this.runningTestIndex = 0;
 
@@ -49,6 +51,9 @@ export class DisplayTest extends TestCase {
   async runTest() {
     // The test requires human interaction, so we just wait for the test to end.
     await this.waitTestFinish();
+    if (this.fail) {
+      this.failTest(this.failMessage);
+    }
   }
 
   /** Returns a promise that resolves when the test ends. */
@@ -93,9 +98,10 @@ export class DisplayTest extends TestCase {
     this.testScreenState = 'HIDE';
     this.setColor();
     document.removeEventListener('keydown', this.keyDown);
-    const fullMessage = `${this.name} ${success ? 'succeeded' : 'failed'}` +
-                         `${message ? ': ' + message : '.'}`;
-    LoggingUtils.log(fullMessage);
+    if (!success) {
+      this.fail = true;
+      this.failMessage = message;
+    }
     this.inTest = false;
   }
 }

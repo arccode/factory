@@ -2,8 +2,9 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
-import {LoggingUtils} from '/src/utils/logging_utils.js';
+import {TestState} from '/src/tests/test_state.js';
 import {TEST_COMPONENTS} from '/src/test_list_resource.js';
+import {LoggingUtils} from '/src/utils/logging_utils.js';
 
 class DiagnosisTool {
   constructor() {
@@ -55,13 +56,17 @@ class DiagnosisTool {
 
   /** Create a button for a test. */
   createTestItem(test) {
+    const testName = document.createElement('span');
+    testName.innerText = test.getTestName();
+    const testItem = document.createElement('li');
+    testItem.appendChild(testName);
+    testItem.classList.add('test-item');
     const onclick_func = () => {
       this.startTest(test);
     };
-    const testItem = document.createElement('li');
-    testItem.classList.add('test-item');
-    testItem.innerText = test.getTestName();
     testItem.onclick = onclick_func;
+    test.setTestItem(testItem);
+    test.setTestState(TestState.UNTESTED);
     return testItem;
   }
 
@@ -75,14 +80,17 @@ class DiagnosisTool {
     console.log(`Starting ${this.activeTest} test.`);
     try {
       try {
+        test.setTestState(TestState.ACTIVE);
         await test.setUp();
         await test.runTest();
+        test.setTestState(TestState.PASSED);
+        LoggingUtils.log(`${test.getTestName()} succeeded.`);
       } finally {
         test.tearDown();
       }
     } catch(error) {
-      const message = `${test.getTestName()} failed: ${error}`;
-      LoggingUtils.log(message);
+      test.setTestState(TestState.FAILED);
+      LoggingUtils.log(`${test.getTestName()} failed: ${error}`);
     }
     console.log(`Ending ${this.activeTest} test.`);
     this.activeTest = '';
