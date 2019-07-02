@@ -8,11 +8,14 @@
 from __future__ import print_function
 
 import logging
+import re
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 from cros.factory.utils.type_utils import Enum
 
+_PATTERN = re.compile(r'\t([a-z]+)\t: (0x[0-9A-Fa-f]+)\n')
+"""The pattern of entries of output of 'ectool led <name> query'"""
 
 class LED(types.DeviceComponent):
   """LED control using Chrome OS ectool."""
@@ -39,6 +42,19 @@ class LED(types.DeviceComponent):
   Index = Enum([CrOSIndexes.BATTERY])
   """List of LEDs available on DUT. Usually a subset from CrOSIndexes."""
 
+  def __init__(self, device):
+    """Probe all maximum brightnesses in advance."""
+    super(LED, self).__init__(device)
+    self.max_brightnesses = {}
+    for name in self.Index:
+      output = self._device.CallOutput(
+          ['ectool', 'led', name.lower(), 'query']) or ''
+      max_brightness = dict((color.lower(), 255) for color in self.Color)
+      max_brightness.update((color, int(brightness, 0))
+                            for color, brightness in _PATTERN.findall(output))
+      self.max_brightnesses.update({name.lower(): max_brightness})
+
+
   def SetColor(self, color, led_name=None, brightness=None):
     """Sets LED color.
 
@@ -62,30 +78,30 @@ class LED(types.DeviceComponent):
       # pylint: disable=superfluous-parens
       if not (0 <= brightness <= 100):
         raise ValueError('brightness (%d) out-of-range [0, 100]' % brightness)
+    else:
+      brightness = 100
 
-    try:
-      if color in [self.Color.AUTO, self.Color.OFF]:
-        color_brightness = color.lower()
-      elif brightness is not None:
-        scaled_brightness = int(round(brightness / 100.0 * 255))
-        color_brightness = '%s=%d' % (color.lower(), scaled_brightness)
-      else:
-        color_brightness = color.lower()
-      names = [led_name] if led_name else self.Index
-    except Exception:
-      logging.exception('Failed deciding LED command for %r (%r,%r)', led_name,
-                        color, brightness)
-      raise
+    # self.Index using Enum will be a frozenset so the for-loop below may be
+    # in arbitrary order.
+    for name in [led_name] if led_name else self.Index:
+      try:
+        if color in [self.Color.AUTO, self.Color.OFF]:
+          color_brightness = color.lower()
+        else:
+          max_brightness = self.max_brightnesses[name.lower()][color.lower()]
+          scaled_brightness = int(round(brightness / 100.0 * max_brightness))
+          color_brightness = '%s=%d' % (color.lower(), scaled_brightness)
+      except Exception:
+        logging.exception('Failed deciding LED command for %r (%r,%r)',
+                          name, color, brightness)
+        raise
 
-    try:
-      # self.Index using Enum will be a frozenset so the for-loop below may be
-      # in arbitrary order.
-      for name in names:
+      try:
         self._device.CheckCall(
             ['ectool', 'led', name.lower(), color_brightness])
-    except Exception:
-      logging.exception('Unable to set LED %r to %r', names, color_brightness)
-      raise
+      except Exception:
+        logging.exception('Unable to set LED %r to %r', name, color_brightness)
+        raise
 
 
 class BatteryLED(LED):
