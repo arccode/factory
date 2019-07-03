@@ -1,0 +1,34 @@
+<html>
+  <head>
+    <title>Audio Test</title>
+    <!-- For audio icons -->
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet">
+  </head>
+  <body>
+    <div style="text-align: center;">
+      <p>
+        Channel 0
+        <input type=checkbox id="enable_l_mic" value=0 checked>mic
+        <input type=checkbox id="enable_l_spk" value=0 checked>speaker
+      </p>
+      <canvas id="channel_l" style="width: 80%; height: 20%"></canvas>
+      <br />
+      <p>
+        Channel 1
+        <input type=checkbox id="enable_r_mic" value=1 checked>mic
+        <input type=checkbox id="enable_r_spk" value=1 checked>speaker
+      </p>
+      <canvas id="channel_r" style="width: 80%; height: 20%"></canvas>
+      <br>
+    </div>
+    <div id="control" style="text-align: center;">
+      <button id="record" class="material-icons">mic</button>
+      <button id="play" class="material-icons">play_arrow</button>
+      <button id="save" class="material-icons">save</button>
+    </div>
+    <a id="recorded_audio" style="display: none;" target="_blank" download></a>
+    <script src="./main.js"></script>
+  </body>
+</html>
