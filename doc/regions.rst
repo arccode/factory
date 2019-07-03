@@ -226,10 +226,10 @@ overlay-{board}/py/l10/regions_unittest.py`, where :samp:`{board}` is
 either the name of your board or the string ``private``.
 
 To check the OOBE user experience, you can use the
-``py/experimental/run_region_oobe.py`` script. This script ssh'es into
-a CrOS device, sets its VPD fields according to a region specified on
-the command line, and runs the OOBE flow. The device should be running
-a test image, and the factory toolkit should not be enabled.
+``py/experimental/oobe/region/run_region_oobe.py`` script. This script ssh'es
+into a CrOS device, sets its VPD fields according to a region specified on the
+command line, and runs the OOBE flow. The device should be running a test
+image, and the factory toolkit should not be enabled.
 
 Note that region configurations from your local client are used.
 
@@ -237,13 +237,13 @@ For example, to ssh into a device called ``crosdev`` and test a new
 region named ``xx`` that you have added to the public overlay::
 
   cd ~/trunk/src/platform/factory
-  py/experimental/run_regions_oobe.py crosdev xx
+  py/experimental/oobe/region/run_region_oobe.py crosdev xx
 
 Or if the region is in the private overlay::
 
   cd ~/trunk/src/platform/factory
   make overlay-private
-  overlay-private/py/experimental/run_regions_oobe.py crosdev xx
+  overlay-private/py/experimental/oobe/region/run_region_oobe.py crosdev xx
 
 How regions are set in the factory flow
 ---------------------------------------
