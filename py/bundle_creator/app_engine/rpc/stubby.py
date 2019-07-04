@@ -60,6 +60,7 @@ class FactoryBundleService(remote.Service):
 
   @remote.method(proto.WorkerResult, proto.CreateBundleRpcResponse)
   def ResponseCallback(self, request):
+    mail_list = [request.original_request.email]
     if request.status == proto.WorkerResult.Status.NO_ERROR:
       subject = 'Bundle creation success'
       body = self.GenerateSuccessBody(request)
@@ -67,9 +68,10 @@ class FactoryBundleService(remote.Service):
       subject = 'Bundle creation failed - {:%Y-%m-%d %H:%M:%S}'.format(
           datetime.datetime.now())
       body = request.error_message
+      mail_list.append(config.FAILURE_EMAIL)
     mail.send_mail(
         sender=config.NOREPLY_EMAIL,
-        to=[request.original_request.email, config.FAILURE_EMAIL],
+        to=mail_list,
         subject=subject,
         body=body)
     return proto.CreateBundleRpcResponse()
