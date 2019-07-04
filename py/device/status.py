@@ -119,7 +119,7 @@ class SystemStatus(types.DeviceComponent):
 
   def _GetDefaultRouteInterface(self):
     """Returns the interface for default route."""
-    routes = self._device.CallOutput('ip route | grep default')
+    routes = self._device.CallOutput('ip route show table 0 | grep default')
     if routes is None:
       return None
     # The output looks like 'default via 123.12.0.1 dev eth0 metric 1', and we
