@@ -19,8 +19,9 @@ class VPDTool(object):
   """
   _KEY_PATTERN = re.compile(r'^[a-zA-Z0-9_.]+$')
 
-  def __init__(self, shell=None):
+  def __init__(self, shell=None, raw_file=None):
     self._shell = shell or gooftool_common.Shell
+    self._raw_file = raw_file
 
   def GetValue(self, key, default_value=None, partition=None, filename=None):
     """Gets a VPD value with the specific key.
@@ -89,13 +90,14 @@ class VPDTool(object):
       raise subprocess.CalledProcessError(proc_result.status, cmd)
     return proc_result.stdout
 
-  @classmethod
-  def _BuildBasicCmd(cls, partition, filename):
+  def _BuildBasicCmd(self, partition, filename):
     cmd = ['vpd']
     if partition:
       cmd += ['-i', partition]
     if filename:
       cmd += ['-f', filename]
+    elif self._raw_file:
+      cmd += ['--raw', '-f', self._raw_file]
     return cmd
 
   @classmethod

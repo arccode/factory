@@ -58,16 +58,17 @@ class CommandVPDPartition(Partition):
   internally calls flashrom to read and set VPD data in firmware SPI flash.
   """
 
-  def __init__(self, dut, name):
+  def __init__(self, dut, name, raw_file=None):
     """Constructor.
 
     Args:
       name: The name of the partition (e.g., 'RO_VPD').
+      raw_file: A raw format image to access.
     """
     super(CommandVPDPartition, self).__init__(dut)
     self.name = name
     shell_func = functools.partial(gooftool_common.Shell, sys_interface=dut)
-    self._vpd_tool = vpd.VPDTool(shell_func)
+    self._vpd_tool = vpd.VPDTool(shell_func, raw_file=raw_file)
 
   def get(self, key, default=None):
     """See Partition.get."""
@@ -242,6 +243,28 @@ class SysFSVPDSource(VPDSource):
         self._device.path.join(self._path, 'rw'))
 
 
+class SysRawVPDSource(VPDSource):
+  """A source to read VPD from sysfs cached raw blob."""
+
+  def __init__(self, dut, path=None):
+    super(SysRawVPDSource, self).__init__(dut)
+    if path is None:
+      path = '/sys/firmware/vpd'
+    self._path = path
+
+  @types.DeviceProperty
+  def ro(self):
+    return CommandVPDPartition(
+        self._device, vpd.VPD_READONLY_PARTITION_NAME,
+        self._device.path.join(self._path, 'ro_raw'))
+
+  @types.DeviceProperty
+  def rw(self):
+    return CommandVPDPartition(
+        self._device, vpd.VPD_READWRITE_PARTITION_NAME,
+        self._device.path.join(self._path, 'rw_raw'))
+
+
 class VitalProductData(types.DeviceComponent):
   """System module for Vital Product Data (VPD)."""
 
@@ -285,7 +308,7 @@ class ChromeOSVitalProductData(VitalProductData):
 
   @types.DeviceProperty
   def boot(self):
-    return SysFSVPDSource(self._device, self._sysfs_path)
+    return SysRawVPDSource(self._device, self._sysfs_path)
 
 
 class AndroidVitalProductData(VitalProductData):
