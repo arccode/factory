@@ -91,7 +91,7 @@ class CameraTest {
       const timeoutId = window.setTimeout(() => {
         if (this.videoElemReadyForStreamCallback !== null) {
           this.videoElemReadyForStreamCallback = null;
-          reject('timeout from video element');
+          reject(new Error('timeout from video element'));
         }
       }, VIDEO_START_PLAY_TIMEOUT_MS);
       this.videoElemReadyForStreamCallback = () => {
