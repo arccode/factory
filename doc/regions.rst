@@ -314,5 +314,5 @@ overlays, in the ``chromeos-partner-overlay`` repository.
 .. rubric:: Footnotes
 
 .. [#l10n] "l10n" is a common abbreviation for "localization": "l",
-   plus 10 letters "ocalization", plus "n".)
+   plus 10 letters "ocalizatio", plus "n".)
 
