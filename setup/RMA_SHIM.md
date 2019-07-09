@@ -402,16 +402,13 @@ universal shim.
     CHROMEOS_DEVSERVER=http://...
     FACTORY_INSTALL=1
     HTTP_SERVER_OVERRIDE=true
-    # Change the below value to true to enable board prompt
-    USER_SELECT=false
     FACTORY_INSTALL_FROM_USB=1
     RMA_AUTORUN=true
     ========================================================================
     (1) Modify Chrome OS Factory Server address.
-    (2) Enable/disable board prompt on download.
-    (3) Modify cutoff config in cros payload (only for old devices).
-    (4) Enable/disable complete prompt in RMA shim.
-    (5) Enable/disable autorun in RMA shim.
+    (2) Modify cutoff config in cros payload (only for old devices).
+    (3) Enable/disable complete prompt in RMA shim.
+    (4) Enable/disable autorun in RMA shim.
     (q) Quit without saving changes.
     (w) Apply changes and exit.
     Please select an option [1-4, q, w]:

@@ -3215,11 +3215,6 @@ class EditLSBCommand(SubCommand):
         'Chrome OS Factory Server', ['CHROMEOS_AUSERVER', 'CHROMEOS_DEVSERVER'],
         suffix='/update')
 
-  def EditBoardPrompt(self):
-    """Enable/disable board prompt on download."""
-    answer = UserInput.YesNo('Enable (y) or disable (n) board prompt?')
-    self.lsb.SetValue('USER_SELECT', 'true' if answer else 'false')
-
   def EditCutoff(self):
     """Modify cutoff config in cros payload (only for old devices).
 
@@ -3354,7 +3349,6 @@ class EditLSBCommand(SubCommand):
           return True
 
         self.DoMenu(self.EditServerAddress,
-                    self.EditBoardPrompt,
                     self.EditCutoff,
                     self.EditCompletePrompt,
                     self.EditRMAAutorun,
