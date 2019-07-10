@@ -696,6 +696,12 @@ cros.factory.Goofy = class {
     this.engineeringModeDialog = null;
 
     /**
+     * Force shutdown prompt dialog.
+     * @type {?goog.ui.Dialog}
+     */
+    this.forceShutdownDialog = null;
+
+    /**
      * Shutdown prompt dialog.
      * @type {?goog.ui.Dialog}
      */
@@ -1550,6 +1556,33 @@ cros.factory.Goofy = class {
     this.engineeringMode = enabled;
     this.updateCSSClasses();
     this.sendRpc('DataShelfSetValue', 'engineering_mode', enabled);
+  }
+
+  /**
+   * Force DUT to shutdown
+   */
+  forceShutdown() {
+    if (this.forceShutdownDialog) {
+      this.forceShutdownDialog.setVisible(false);
+      this.forceShutdownDialog.dispose();
+      this.forceShutdownDialog = null;
+    }
+    this.forceShutdownDialog = new goog.ui.Dialog();
+    this.registerDialog(this.forceShutdownDialog);
+    cros.factory.Goofy.setDialogContent(
+      this.forceShutdownDialog,
+      cros.factory.i18n.i18nLabel('Press OK to shutdown'));
+
+    goog.events.listen(
+      this.forceShutdownDialog, goog.ui.Dialog.EventType.SELECT,
+      (/** !goog.ui.Dialog.Event */ e) => {
+        if (e.key === goog.ui.Dialog.DefaultButtonKeys.OK) {
+          this.sendRpc('Shutdown', 'force_halt');
+        }
+      });
+
+    this.forceShutdownDialog.setVisible(true);
+    this.forceShutdownDialog.reposition();
   }
 
   /**
@@ -2647,6 +2680,7 @@ cros.factory.Goofy = class {
         }
         this.showUploadFactoryLogsDialog();
       });
+      addExtraItem(_('DUT Shutdown'), this.forceShutdown);
       addExtraItem(_('Reload Test List'), () => {
         this.reloadTestList();
       });

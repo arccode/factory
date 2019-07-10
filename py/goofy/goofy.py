@@ -355,8 +355,21 @@ class Goofy(object):
       if test_state.status == TestState.ACTIVE:
         active_tests.append(test)
 
-    if not (len(active_tests) == 1 and
-            isinstance(active_tests[0], test_object.ShutdownStep)):
+    if operation == 'force_halt':
+      # force_halt is a special halt request that shuts DUT down without going
+      # through shutdown.py.
+      # The use case can be like: if operators need to temporarily shutdown all
+      # DUTs (e.g. charging or leaving production line) but don't want to press
+      # power button for 10s on each, they can now use 'DUT Shutdown' in CrOS
+      # Factory Menu to perform force shutdown.
+      if active_tests:
+        message = ('Can not force halt while tests are running.  '
+                   'Stop all the tests and try again.')
+        session.console.error(message)
+        return
+      operation = 'halt'
+    elif not (len(active_tests) == 1 and
+              isinstance(active_tests[0], test_object.ShutdownStep)):
       logging.error(
           'Calling Goofy shutdown outside of the shutdown factory test')
       return

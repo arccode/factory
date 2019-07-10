@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-06-20 18:10+CST\n"
+"PO-Revision-Date: 2019-07-11 14:18+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -654,6 +654,10 @@ msgid "Language"
 msgstr "语言"
 
 #: ../py/goofy/js/goofy.js
+msgid "Press OK to shutdown"
+msgstr "按 OK 后将关机"
+
+#: ../py/goofy/js/goofy.js
 msgid "Rebooting"
 msgstr "重开机"
 
@@ -845,6 +849,10 @@ msgstr "保存工厂记录到 U盘"
 #: ../py/goofy/js/goofy.js
 msgid "Upload factory logs..."
 msgstr "上载工厂记录"
+
+#: ../py/goofy/js/goofy.js
+msgid "DUT Shutdown"
+msgstr "关机"
 
 #: ../py/goofy/js/goofy.js
 msgid "Reload Test List"
