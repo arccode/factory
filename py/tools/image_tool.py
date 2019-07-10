@@ -1310,22 +1310,27 @@ class UserInput(object):
     return value
 
   @staticmethod
-  def GetString(title, optional=False):
+  def GetString(title, max_length=None, optional=False):
     """Ask user to input a string.
 
     Args:
       title: question description.
+      max_length: Maximum string length allowed.
       optional: True to allow the user to input empty string.
 
     Returns:
       The user input string, or None if the user inputs an empty string.
     """
+    assert max_length is None or max_length > 0, (
+        'max_length should be greater than 0')
     print('\n' + title)
     while True:
       prompt = 'Enter a string%s: ' % (' or empty to skip' if optional else '')
       answer = raw_input(prompt).strip()
       if answer:
-        break
+        if max_length is None or len(answer) <= max_length:
+          break
+        print('Input string too long, max length is %d' % max_length)
       elif optional:
         return None
       else:
@@ -3209,11 +3214,46 @@ class EditLSBCommand(SubCommand):
       self.lsb.DeleteValue(key)
     return selected
 
+  def EditBoard(self):
+    """Modify board to install."""
+    board = UserInput.GetString('Enter board name', optional=True)
+    if board:
+      self.lsb.SetValue('CHROMEOS_RELEASE_BOARD', board)
+
   def EditServerAddress(self):
     """Modify Chrome OS Factory Server address."""
     self._DoURL(
         'Chrome OS Factory Server', ['CHROMEOS_AUSERVER', 'CHROMEOS_DEVSERVER'],
         suffix='/update')
+
+  def EditDefaultAction(self):
+    """Modify default action (will be overridden by RMA autorun)."""
+    action = UserInput.GetString(
+        'Enter default action', max_length=1, optional=True)
+    key = 'FACTORY_INSTALL_DEFAULT_ACTION'
+    if action:
+      self.lsb.SetValue(key, action)
+    else:
+      self.lsb.DeleteValue(key)
+
+  def EditCompletePrompt(self):
+    """Enable/disable complete prompt in RMA shim.
+
+    If complete prompt is set, wait for ENTER after installation is completed.
+    """
+    answer = UserInput.YesNo(
+        'Enable (y) or disable (n) complete prompt in RMA?')
+    self.lsb.SetValue('FACTORY_INSTALL_COMPLETE_PROMPT',
+                      'true' if answer else 'false')
+
+  def EditRMAAutorun(self):
+    """Enable/disable autorun in RMA shim.
+
+    If RMA autorun is set, automatically do RSU (RMA Server Unlock) or install,
+    depending on HWWP status.
+    """
+    answer = UserInput.YesNo('Enable (y) or disable (n) autorun in RMA?')
+    self.lsb.SetValue('RMA_AUTORUN', 'true' if answer else 'false')
 
   def EditCutoff(self):
     """Modify cutoff config in cros payload (only for old devices).
@@ -3243,25 +3283,6 @@ class EditLSBCommand(SubCommand):
     self._DoURL(
         'Chrome OS Factory Server or Shopfloor Service for OQC ReFinalize',
         ['SHOPFLOOR_URL'])
-
-  def EditCompletePrompt(self):
-    """Enable/disable complete prompt in RMA shim.
-
-    If complete prompt is set, wait for ENTER after installation is completed.
-    """
-    answer = UserInput.YesNo(
-        'Enable (y) or disable (n) complete prompt in RMA?')
-    self.lsb.SetValue('FACTORY_INSTALL_COMPLETE_PROMPT',
-                      'true' if answer else 'false')
-
-  def EditRMAAutorun(self):
-    """Enable/disable autorun in RMA shim.
-
-    If RMA autorun is set, automatically do RSU (RMA Server Unlock) or install,
-    depending on HWWP status.
-    """
-    answer = UserInput.YesNo('Enable (y) or disable (n) autorun in RMA?')
-    self.lsb.SetValue('RMA_AUTORUN', 'true' if answer else 'false')
 
   def DoMenu(self, *args, **kargs):
     while True:
@@ -3348,10 +3369,12 @@ class EditLSBCommand(SubCommand):
           print('QUIT. No changes were applied.')
           return True
 
-        self.DoMenu(self.EditServerAddress,
-                    self.EditCutoff,
+        self.DoMenu(self.EditBoard,
+                    self.EditServerAddress,
+                    self.EditDefaultAction,
                     self.EditCompletePrompt,
                     self.EditRMAAutorun,
+                    self.EditCutoff,
                     w=Write,
                     q=Quit)
 
