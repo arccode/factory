@@ -117,6 +117,48 @@ class TestHistoryRule(unittest.TestCase):
     self.assertFalse(rule.MatchEvent(_SAMPLE_EVENT))
 
 
+class TestTestlogRule(unittest.TestCase):
+
+  def testMatchEvent(self):
+    rule = flow_policy.TestlogRule(type='station.test_run')
+
+    self.assertFalse(rule.MatchEvent(
+        datatypes.Event({'type': 'station.message'})))
+    self.assertFalse(rule.MatchEvent(
+        datatypes.Event({})))
+
+    self.assertTrue(rule.MatchEvent(
+        datatypes.Event({'type': 'station.test_run'})))
+
+  def testFlowPolicyAllow(self):
+    policy = flow_policy.FlowPolicy(
+        allow=[{'rule': 'testlog', 'type': 'station.test_run'}])
+
+    self.assertFalse(policy.MatchEvent(
+        datatypes.Event({'type': 'station.message'})))
+    self.assertFalse(policy.MatchEvent(
+        datatypes.Event({})))
+
+    self.assertTrue(policy.MatchEvent(
+        datatypes.Event({'type': 'station.test_run'})))
+
+  def testFlowPolicyDeny(self):
+    policy = flow_policy.FlowPolicy(
+        allow=[{'rule': 'all'}],
+        deny=[{'rule': 'testlog', 'type': 'station.message'},
+              {'rule': 'testlog', 'type': 'station.status'}])
+
+    self.assertFalse(policy.MatchEvent(
+        datatypes.Event({'type': 'station.message'})))
+    self.assertFalse(policy.MatchEvent(
+        datatypes.Event({'type': 'station.status'})))
+
+    self.assertTrue(policy.MatchEvent(
+        datatypes.Event({})))
+    self.assertTrue(policy.MatchEvent(
+        datatypes.Event({'type': 'station.test_run'})))
+
+
 if __name__ == '__main__':
   log_utils.InitLogging(log_utils.GetStreamHandler(logging.INFO))
   unittest.main()

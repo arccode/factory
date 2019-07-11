@@ -165,6 +165,30 @@ class HistoryRule(Rule):
     return False
 
 
+class TestlogRule(Rule):
+  """Checks for a particular entry in the Testlog Event."""
+  # TODO(chuntsen): After we add the control feature of buffer plugin, we can
+  #                 remove this TestlogRule.
+
+  NAME = 'testlog'
+  KEYS = ['type']
+
+  def MatchEvent(self, event):
+    """Checks whether the provided event matches this rule."""
+    for key, operation in self.args.iteritems():
+      lhs = event.get(key, None)
+      if not lhs:
+        logging.debug('The %s is not in the event', key)
+        return False
+
+      # Apply the operation to check the lhs.
+      logging.debug('Checking %s %s...', lhs, operation)
+      if not operation.Apply(lhs):
+        return False
+
+    return True
+
+
 class RHSOperation(object):
   """Represents an operator and a right-hand operand.
 
