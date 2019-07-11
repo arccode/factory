@@ -1931,7 +1931,7 @@ cros.factory.Goofy = class {
 
     if (this.engineeringMode && !test.subtests.length) {
       addSeparator();
-      menu.addChild(this.createViewLogMenu(path), true);
+      menu.addChild(this.createDebugMenu(path), true);
     }
 
     if (extraItems && extraItems.length) {
@@ -1996,12 +1996,12 @@ cros.factory.Goofy = class {
   }
 
   /**
-   * Returns a "View logs" submenu for a given test path.
+   * Returns a "Debug" submenu for a given test path.
    * @param {string} path
    * @return {!goog.ui.SubMenu}
    */
-  createViewLogMenu(path) {
-    const subMenu = this.createScrollableSubMenu('View logs');
+  createDebugMenu(path) {
+    const subMenu = this.createScrollableSubMenu('Debug');
     const loadingItem = new goog.ui.MenuItem('Loading...');
     loadingItem.setEnabled(false);
     subMenu.addItem(loadingItem);
@@ -2058,7 +2058,7 @@ cros.factory.Goofy = class {
         title += ')…';
 
         const item = new goog.ui.MenuItem(goog.dom.createDom(
-            'span', `goofy-view-logs-status-${status}`, title));
+            'span', `goofy-debug-status-${status}`, title));
         goog.events.listen(item, goog.ui.Component.EventType.ACTION, () => {
           this.showHistoryEntry(entry.path, entry.invocation);
         });
@@ -2558,7 +2558,7 @@ cros.factory.Goofy = class {
       }
       if (invocation) {
         html.push(goog.html.SafeHtml.create(
-            'div', {class: 'goofy-test-failure-view-log-link'}, 'View log...'));
+            'div', {class: 'goofy-test-failure-debug-link'}, 'Debug...'));
       }
 
       tooltip.setSafeHtml(goog.html.SafeHtml.concat(html));
@@ -2575,7 +2575,7 @@ cros.factory.Goofy = class {
       if (invocation) {
         const link =
             goog.asserts.assertElement(tooltipElement.getElementsByClassName(
-                'goofy-test-failure-view-log-link')[0]);
+                'goofy-test-failure-debug-link')[0]);
         goog.events.listen(link, goog.events.EventType.CLICK, () => {
           tooltip.setVisible(false);
           this.showHistoryEntry(test.path, /** @type {string} */ (invocation));

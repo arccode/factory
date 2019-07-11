@@ -222,7 +222,7 @@ body {
 .goofy-test-failure-expanded .goofy-test-failure-detail {
   display: block;
 }
-.goofy-test-failure-detail-link, .goofy-test-failure-view-log-link {
+.goofy-test-failure-detail-link, .goofy-test-failure-debug-link {
   text-decoration: underline;
   cursor: pointer;
   color: blue;
@@ -230,7 +230,7 @@ body {
   font-size: 0.75em;
   padding-top: 1em;
 }
-.goofy-test-failure-detail + .goofy-test-failure-view-log-link {
+.goofy-test-failure-detail + .goofy-test-failure-debug-link {
   padding-top: 0;
 }
 .goofy-test-failure-detail {
@@ -332,10 +332,10 @@ table + .goofy-history-header {
   color: darkgray;
   font-style: italic;
 }
-.goofy-view-logs-status-passed {
+.goofy-debug-status-passed {
   color: #0A0;
 }
-.goofy-view-logs-status-failed {
+.goofy-debug-status-failed {
   color: #D00;
 }
 
