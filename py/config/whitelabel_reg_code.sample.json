@@ -1,0 +1,9 @@
+{
+  "phaser360": {
+    "laser": false,
+    "dopefish": false
+  },
+  "bobba360": {
+    "gik360": false
+  }
+}

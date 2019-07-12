@@ -31,6 +31,7 @@ from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test.rules import registration_codes
 from cros.factory.test.rules.registration_codes import RegistrationCode
+from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils.type_utils import Error
 
@@ -384,6 +385,26 @@ class Gooftool(object):
         raise Error('Missing required %s VPD values: %s' %
                     (section, ','.join(missing_keys)))
 
+    def GetDeviceNameForRegistrationCode(project,
+                                         config='whitelabel_reg_code'):
+      # Load config json file
+      try:
+        reg_code_config = config_utils.LoadConfig(config, validate_schema=False)
+      except Exception:
+        return project
+      if project not in reg_code_config:
+        return project
+      # Get the customization from mosys as device name for whitelabel device
+      customization = self._util.shell(
+          ['mosys', 'platform', 'customization']).stdout.strip()
+      if not customization:
+        raise Error("No customization code found while checking VPD Reg code")
+      if customization not in reg_code_config[project]:
+        return project
+      if reg_code_config[project][customization]:
+        return customization
+      return project
+
     # Check required data
     ro_vpd = self._vpd.GetAllData(partition=vpd.VPD_READONLY_PARTITION_NAME)
     rw_vpd = self._vpd.GetAllData(partition=vpd.VPD_READWRITE_PARTITION_NAME)
@@ -400,13 +421,15 @@ class Gooftool(object):
     if region not in regions.REGIONS:
       raise ValueError('Unknown region: "%s".' % region)
 
+    device_name = GetDeviceNameForRegistrationCode(self._project)
+
     for type_prefix in ['UNIQUE', 'GROUP']:
       vpd_field_name = type_prefix[0].lower() + 'bind_attribute'
       type_name = getattr(RegistrationCode.Type, type_prefix + '_CODE')
       try:
         # RegCode should be ready since PVT
         registration_codes.CheckRegistrationCode(
-            rw_vpd[vpd_field_name], type=type_name, device=self._project,
+            rw_vpd[vpd_field_name], type=type_name, device=device_name,
             allow_dummy=(phase.GetPhase() < phase.PVT_DOGFOOD))
       except registration_codes.RegistrationCodeException as e:
         raise ValueError('%s is invalid: %r' % (vpd_field_name, e))
