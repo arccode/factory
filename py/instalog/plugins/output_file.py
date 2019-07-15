@@ -126,7 +126,7 @@ class OutputFile(plugin_base.OutputPlugin):
       return False
 
     with file_utils.TempDirectory(prefix='output_file_') as base_dir:
-      self.info('Creating temporary directory: %s', base_dir)
+      self.debug('Creating temporary directory: %s', base_dir)
       # Create the attachments directory.
       att_dir = os.path.join(base_dir, ATT_DIR_NAME)
       os.mkdir(att_dir)
@@ -163,7 +163,11 @@ class OutputFile(plugin_base.OutputPlugin):
         event_stream.Abort()
         return False
 
-      if num_events == 0 or self.ProcessEvents(base_dir):
+      if num_events == 0:
+        self.debug('Commit 0 events')
+        event_stream.Commit()
+        return True
+      elif self.ProcessEvents(base_dir):
         self.info('Commit %d events', num_events)
         event_stream.Commit()
         return True

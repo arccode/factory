@@ -130,6 +130,14 @@ class Instalog(plugin.Plugin):
                     'port': self._uplink_port,
                     'url_path': 'instalog'
                 },
+            },
+            'output_local': {
+                'plugin': 'output_file',
+                'args': {
+                    'interval': 10,
+                    'target_dir': paths.DATA_TESTLOG_DIR
+                },
+                'allow': [{'rule': 'testlog', 'type': 'station.test_run'}]
             }
         },
     }

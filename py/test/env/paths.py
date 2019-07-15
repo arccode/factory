@@ -30,6 +30,8 @@ DATA_DIR = os.environ.get(
     if sys_utils.InChroot() else '/var/factory')
 # The directory for logs.
 DATA_LOG_DIR = os.path.join(DATA_DIR, 'log')
+# The directory for testlog data (pytest-related data only).
+DATA_TESTLOG_DIR = os.path.join(DATA_DIR, 'testlog')
 # The directory for all factory state.
 DATA_STATE_DIR = os.path.join(DATA_DIR, 'state')
 # The directory for all test logs/state.
