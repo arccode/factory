@@ -86,12 +86,12 @@ class Instalog(plugin.Plugin):
       except Exception:
         pass
       if url:
-        uplink_hostname = urlparse.urlparse(url).hostname
-        uplink_port = urlparse.urlparse(url).port
-      elif uplink_hostname and uplink_port:
+        self._uplink_hostname = urlparse.urlparse(url).hostname
+        self._uplink_port = urlparse.urlparse(url).port
+      elif self._uplink_hostname and self._uplink_port:
         logging.error('Instalog: Could not retrieve factory server IP and port;'
                       ' falling back to provided uplink "%s:%d"',
-                      uplink_hostname, uplink_port)
+                      self._uplink_hostname, self._uplink_port)
       else:
         logging.error('Instalog: Could not retrieve factory server IP and port;'
                       ' no fallback provided; disabling uplink functionality')
@@ -126,8 +126,8 @@ class Instalog(plugin.Plugin):
             'output_uplink': {
                 'plugin': 'output_http',
                 'args': {
-                    'hostname': uplink_hostname,
-                    'port': uplink_port,
+                    'hostname': self._uplink_hostname,
+                    'port': self._uplink_port,
                     'url_path': 'instalog'
                 },
             }
