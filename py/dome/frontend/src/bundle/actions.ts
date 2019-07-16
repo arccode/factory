@@ -227,3 +227,27 @@ export const setBundleAsNetboot = (name: string, projectName: string) => (
     {netbootBundle: name},
     `Set netboot bundle to ${name} for project "${projectName}"`)
 );
+
+export const downloadResource = (projectName: string,
+                                 bundleName: string,
+                                 resourceType: string) =>
+  async (dispatch: Dispatch, getState: () => RootState) => {
+    await authorizedAxios().get(
+        `projects/${projectName}/bundles/${bundleName}/${resourceType}`, {
+      responseType: 'blob',
+    }).then((response) => {
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(response.data);
+      link.download = resourceType;
+      link.click();
+      window.URL.revokeObjectURL(link.href);
+    }, (axiosError) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const message = JSON.parse(reader.result as string);
+        dispatch(error.actions.setAndShowErrorDialog(
+            `error downloading resource\n\n${message.detail}`));
+      };
+      reader.readAsText(axiosError.response.data);
+    });
+  };

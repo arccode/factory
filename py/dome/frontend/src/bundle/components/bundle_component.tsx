@@ -161,7 +161,7 @@ class BundleComponent extends React.Component<BundleComponentProps> {
         <Collapse in={expanded}>
           <CardContent>
             <Typography variant="subheading" gutterBottom>RESOURCES</Typography>
-            <ResourceTable bundle={bundle} />
+            <ResourceTable bundle={bundle} projectName={projectName} />
           </CardContent>
         </Collapse>
       </Card>

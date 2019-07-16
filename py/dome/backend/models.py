@@ -570,6 +570,21 @@ class Resource(object):
     umpire_server = GetUmpireServer(project_name)
     return umpire_server.ResourceGarbageCollection()
 
+  @staticmethod
+  def Download(project_name, bundle_name, resource_type):
+    umpire_server = GetUmpireServer(project_name)
+    with file_utils.TempDirectory(dir=SHARED_TMP_DIR) as temporary_directory:
+      resource_filepath = os.path.join(temporary_directory, resource_type)
+      try:
+        umpire_server.ExportPayload(
+            bundle_name, resource_type, resource_filepath)
+        resource_file = open(resource_filepath, 'r')
+        return resource_file
+      except xmlrpclib.Fault as e:
+        logger.error(
+            'Downloading failed. Error message from Umpire: %r', e.faultString)
+        raise DomeServerException(detail=e.faultString)
+
 
 class Bundle(object):
   """Represent a bundle in umpire."""

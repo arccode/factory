@@ -30,6 +30,7 @@ from backend import views
 # TODO(littlecvr): move to common config with umpire.
 PROJECT_URL_ARG = r'(?P<project_name>%s)' % common.PROJECT_NAME_RE
 BUNDLE_URL_ARG = r'(?P<bundle_name>[^/]+)'  # anything but slash
+RESOURCE_URL_ARG = r'(?P<resource_type>[^/]+)'
 
 
 urlpatterns = [
@@ -37,10 +38,10 @@ urlpatterns = [
         TemplateView.as_view(template_name='index.html')),
     url(r'^auth$',
         drf_views.obtain_auth_token, name='auth'),
-    url(r'^files/$',
-        views.FileCollectionView.as_view()),
     url(r'^config/(?P<id>\d+)/$',
         views.ConfigView.as_view()),
+    url(r'^files/$',
+        views.FileCollectionView.as_view()),
     url(r'^info$',
         views.InfoView.as_view()),
     url(r'^projects/$',
@@ -51,6 +52,13 @@ urlpatterns = [
         views.BundleCollectionView.as_view()),
     url(r'^projects/%s/bundles/%s/$' % (PROJECT_URL_ARG, BUNDLE_URL_ARG),
         views.BundleElementView.as_view()),
+    url(r'^projects/%s/bundles/%s/%s$' %
+        (PROJECT_URL_ARG, BUNDLE_URL_ARG, RESOURCE_URL_ARG),
+        views.ResourceDownloadView.as_view()),
+    url(r'^projects/%s/parameters/dirs/$' % PROJECT_URL_ARG,
+        views.ParameterDirectoriesView.as_view()),
+    url(r'^projects/%s/parameters/files/$' % PROJECT_URL_ARG,
+        views.ParameterComponentsView.as_view()),
     url(r'^projects/%s/resources/$' % PROJECT_URL_ARG,
         views.ResourceCollectionView.as_view()),
     url(r'^projects/%s/resources/gc$' % PROJECT_URL_ARG,
@@ -58,10 +66,6 @@ urlpatterns = [
     url(r'^projects/%s/services/$' % PROJECT_URL_ARG,
         views.ServiceCollectionView.as_view()),
     url(r'^projects/%s/services/schema$' % PROJECT_URL_ARG,
-        views.ServiceSchemaView.as_view()),
-    url(r'^projects/%s/parameters/files/$' % PROJECT_URL_ARG,
-        views.ParameterComponentsView.as_view()),
-    url(r'^projects/%s/parameters/dirs/$' % PROJECT_URL_ARG,
-        views.ParameterDirectoriesView.as_view())]
+        views.ServiceSchemaView.as_view())]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

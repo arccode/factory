@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import Button from '@material-ui/core/Button';
 import grey from '@material-ui/core/colors/grey';
+import IconButton from '@material-ui/core/IconButton';
 import {
   createStyles,
   Theme,
@@ -11,6 +11,8 @@ import {
   WithStyles,
 } from '@material-ui/core/styles';
 import Typography from '@material-ui/core/Typography';
+import Download from '@material-ui/icons/GetApp';
+import Update from '@material-ui/icons/Publish';
 import classNames from 'classnames';
 import React from 'react';
 import {connect} from 'react-redux';
@@ -20,6 +22,7 @@ import formDialog from '@app/form_dialog';
 import {thinScrollBarX} from '@common/styles';
 import {DispatchProps} from '@common/types';
 
+import {downloadResource} from '../actions';
 import {UPDATE_RESOURCE_FORM} from '../constants';
 import {Bundle} from '../types';
 
@@ -44,6 +47,7 @@ const styles = (theme: Theme) => createStyles({
 
 interface ResourceTableOwnProps {
   bundle: Bundle;
+  projectName: string;
 }
 
 type ResourceTableProps =
@@ -55,9 +59,12 @@ class ResourceTable extends React.Component<ResourceTableProps> {
   render() {
     const {
       bundle: {name, resources},
+      projectName,
       openUpdateResourceForm,
       classes,
     } = this.props;
+
+    const downloadableResources = ['toolkit', 'hwid', 'firmware'];
 
     return (
       <div className={classes.root}>
@@ -90,14 +97,24 @@ class ResourceTable extends React.Component<ResourceTableProps> {
                 {resource.version}
               </div>
               <div className={classes.cell}>
-                <Button
-                  variant="outlined"
+                <IconButton
                   onClick={
                     () => openUpdateResourceForm(name, key, resource.type)
                   }
                 >
-                  update
-                </Button>
+                  <Update />
+                </IconButton>
+
+                {(!downloadableResources.includes(resource.type) ||
+                  resource.version === 'N/A') ?
+                  <span /> :
+                  <IconButton
+                    onClick={
+                        () => this.props.downloadResource(
+                        projectName, name, resource.type)}
+                  >
+                    <Download />
+                  </IconButton>}
               </div>
             </React.Fragment>
           );
@@ -108,6 +125,7 @@ class ResourceTable extends React.Component<ResourceTableProps> {
 }
 
 const mapDispatchToProps = {
+  downloadResource,
   openUpdateResourceForm:
     (bundleName: string, resourceKey: string, resourceType: string) => (
       formDialog.actions.openForm(

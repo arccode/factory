@@ -7,6 +7,7 @@
 
 import os
 
+from django.http import StreamingHttpResponse
 from rest_framework import generics
 from rest_framework import mixins
 from rest_framework import permissions
@@ -205,3 +206,14 @@ class ParameterDirectoriesView(generics.ListCreateAPIView):
 
   def perform_create(self, serializer):
     serializer.save(project_name=self.kwargs['project_name'])
+
+
+class ResourceDownloadView(views.APIView):
+
+  def get(self, request, *args, **kwargs):
+    del request, args
+    resource_file = Resource.Download(kwargs['project_name'],
+                                      kwargs['bundle_name'],
+                                      kwargs['resource_type'])
+    return StreamingHttpResponse(resource_file,
+                                 content_type='application/octet-stream')
