@@ -1,0 +1,74 @@
+#block-test {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed;
+  border-color: #09c;
+  background-color: #fff;
+}
+
+.succeed {
+  background-color: #99ff99;
+}
+
+.failed {
+  background-color: #ff8888;
+}
+
+.arrow {
+  width: 14px;
+  height: 14px;
+  border-top: 10px solid #09c;
+  border-right: 10px solid #09c;
+  margin: 0px auto;
+}
+
+.arrow:after {
+  content: "";
+  width: 10px;
+  height: 24px;
+  background-color: #09c;
+  transform: rotate(45deg);
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  margin: auto;
+}
+
+.arrowTop {
+  transform: rotate(-45deg);
+}
+
+.arrowRight {
+  transform: rotate(45deg);
+}
+
+.arrowDown {
+  transform: rotate(135deg);
+}
+
+.arrowLeft {
+  transform: rotate(-135deg);
+}
+
+.goal::before {
+  content: "GOAL";
+  text-align: center;
+  font-size: 3em;
+  color: #09c;
+}
