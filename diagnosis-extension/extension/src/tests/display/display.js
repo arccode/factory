@@ -3,8 +3,7 @@
  * found in the LICENSE file.
  */
 import {TestCase} from '/src/tests/test_case.js';
-import {LoggingUtils} from '/src/utils/logging_utils.js'
-import {TimeUtils} from '/src/utils/time_utils.js'
+import {UiUtils} from '/src/utils/ui_utils.js';
 
 /**
  * Display test.
@@ -58,13 +57,14 @@ export class DisplayTest extends TestCase {
   keyDown(e) {
     if (e.code === 'Space') {
       this.testScreenState = 'SHOW';
+      UiUtils.requestFullscreen();
     } else if (e.code === 'Enter') {
       if (this.runningTestIndex + 1 < this.colors.length) {
         this.runningTestIndex += 1;
       } else {
         this.endTest(true, '');
       }
-    } else if (e.code === 'Escape') {
+    } else if (e.code === 'KeyQ') {
       if (this.testScreenState === 'SHOW') {
         this.endTest(
           false, `Failed on ${this.colors[this.runningTestIndex]} test.`);
@@ -89,5 +89,10 @@ export class DisplayTest extends TestCase {
     this.setColor();
     document.removeEventListener('keydown', this.keyDown);
     this.sendEndTestResult(success, message);
+  }
+
+  tearDown() {
+    UiUtils.exitFullscreen();
+    this.clearHTML();
   }
 }
