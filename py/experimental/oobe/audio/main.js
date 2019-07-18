@@ -159,7 +159,7 @@ class Recorder {
       const audioUrl = URL.createObjectURL(blob);
       console.log(audioUrl);
 
-      const recordedAudio = document.getElementById('recordedAudio');
+      const recordedAudio = document.getElementById('recorded_audio');
       recordedAudio.href = audioUrl;
     });
     this.mediaRecorder = mediaRecorder;
@@ -288,7 +288,7 @@ async function init() {
     const buttonSave = document.getElementById('save');
     buttonSave.addEventListener(
       'click', (e) => {
-        const recordedAudio = document.getElementById('recordedAudio');
+        const recordedAudio = document.getElementById('recorded_audio');
         if (recordedAudio.href) {
           recordedAudio.click();
         }
