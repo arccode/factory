@@ -56,7 +56,33 @@ class TestOutputFile(unittest.TestCase):
     with open(os.path.join(self.target_dir, EVENT_FILE_NAME)) as f:
       lines = f.readlines()
       self.assertEqual(1, len(lines))
-      self.assertEqual(event, datatypes.Event.Deserialize(lines[0]))
+      deserialized_event = datatypes.Event.Deserialize(lines[0])
+      self.assertEqual(event, deserialized_event)
+      self.assertEqual(1, len(deserialized_event.history))
+
+  def testExcludeHistory(self):
+    config = {
+        'exclude_history': True,
+        'interval': 1,
+        'target_dir': self.target_dir}
+    sandbox = plugin_sandbox.PluginSandbox(
+        'output_file', config=config,
+        data_dir=self.tmp_dir, core_api=self.core)
+    sandbox.Start(True)
+    # pylint: disable=protected-access
+    plugin = sandbox._plugin
+    event = datatypes.Event(payload={'key': 'data w/o history'})
+    self.stream.Queue([event])
+    plugin.PrepareAndProcess()
+    sandbox.Flush(2, True)
+    sandbox.Stop()
+
+    with open(os.path.join(self.target_dir, EVENT_FILE_NAME)) as f:
+      lines = f.readlines()
+      self.assertEqual(1, len(lines))
+      deserialized_event = datatypes.Event.Deserialize(lines[0])
+      self.assertEqual(event, deserialized_event)
+      self.assertEqual([], deserialized_event.history)
 
   def ChangeRelativePath(self, event, base_dir):
     for att_id, relative_path in event.attachments.iteritems():

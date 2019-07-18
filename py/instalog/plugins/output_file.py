@@ -70,6 +70,10 @@ class OutputFile(plugin_base.OutputPlugin):
           'The directory in which to store files.  Uses the plugin\'s data '
           'directory by default.',
           default=None),
+      Arg('exclude_history', bool,
+          'To save the events without any ProcessStage.  Uses this argument if '
+          'ProcessStage uses too much space.',
+          default=False)
   ]
 
   def __init__(self, *args, **kwargs):
@@ -134,6 +138,8 @@ class OutputFile(plugin_base.OutputPlugin):
         time_last = time_utils.MonotonicTime()
         for event in event_stream.iter(timeout=self.args.interval,
                                        count=self.args.batch_size):
+          if self.args.exclude_history:
+            event.history = []
           serialized_event = self.PrepareEvent(event, base_dir)
           attachment_size = self.GetEventAttachmentSize(event)
           events_f.write(serialized_event + '\n')
