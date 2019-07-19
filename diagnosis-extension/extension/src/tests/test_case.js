@@ -15,6 +15,8 @@ export class TestCase {
     this.name = 'Default Test Name';
     this.state = TestState.UNTESTED;
     this.testItem = null;
+    this.endTestPromise = null;
+    this.resolveEndTest = null;
   }
 
   /** Returns the name of the test case. */
@@ -27,7 +29,7 @@ export class TestCase {
     this.testItem = testItem;
   }
 
-  /** Set the test state */
+  /** Set the test state. */
   setTestState(testState) {
     this.state = testState;
     if (this.testItem !== null) {
@@ -47,6 +49,34 @@ export class TestCase {
   /** Called after runTest (no matter passed or not). */
   tearDown() {
     this.clearHTML();
+  }
+
+  /** Setup a promise for end test. */
+  setEndTestPromise() {
+    this.endTestPromise = new Promise((resolve) => {
+      if (this.resolveEndTest !== null) {
+        throw 'Callback function is already set.';
+      }
+      this.resolveEndTest = resolve;
+    });
+  }
+
+  /** Returns a promise that resolves with a test result when the test ends. */
+  waitEndTestResult() {
+    return this.endTestPromise;
+  }
+
+  /** Send out the result of the test when the test ends. */
+  sendEndTestResult(success, message) {
+    if (this.resolveEndTest === null) {
+      throw 'No callback function to return the test result.';
+    }
+    const result = {
+      success: success,
+      message: message
+    };
+    this.resolveEndTest(result);
+    this.resolveEndTest = null;
   }
 
   async setHTML() {

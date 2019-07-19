@@ -34,9 +34,6 @@ export class DisplayTest extends TestCase {
   }
 
   async setUp() {
-    this.inTest = true;
-    this.fail = false;
-    this.failmessage = '';
     this.testScreenState = 'HIDE';
     this.runningTestIndex = 0;
 
@@ -46,22 +43,15 @@ export class DisplayTest extends TestCase {
 
     this.keyDown = this.keyDown.bind(this);
     document.addEventListener('keydown', this.keyDown);
+
+    this.setEndTestPromise();
   }
 
   async runTest() {
     // The test requires human interaction, so we just wait for the test to end.
-    await this.waitTestFinish();
-    if (this.fail) {
-      this.failTest(this.failMessage);
-    }
-  }
-
-  /** Returns a promise that resolves when the test ends. */
-  async waitTestFinish() {
-    // Polling every 0.5 seconds.
-    const timeout = 500;
-    while (this.inTest) {
-      await TimeUtils.delay(timeout);
+    const result = await this.waitEndTestResult();
+    if (!result.success) {
+      this.failTest(result.message);
     }
   }
 
@@ -98,10 +88,6 @@ export class DisplayTest extends TestCase {
     this.testScreenState = 'HIDE';
     this.setColor();
     document.removeEventListener('keydown', this.keyDown);
-    if (!success) {
-      this.fail = true;
-      this.failMessage = message;
-    }
-    this.inTest = false;
+    this.sendEndTestResult(success, message);
   }
 }
