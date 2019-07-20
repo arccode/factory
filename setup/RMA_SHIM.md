@@ -153,6 +153,10 @@ Flash the `rma_image.bin` to a USB drive, boot it with developer switch
 enabled in recovery mode (see following steps), and then the device will boot
 from the RMA shim.
 
+Note: The following instructions only work for a Google signed RMA shim. If you
+are using a developer signed RMA shim, the boot process is the same as
+[booting from a test image](https://chromium.googlesource.com/chromiumos/docs/+/master/developer_guide.md#boot-from-your-usb-disk).
+
 ### Flash an image to USB drive
 
 Use `dd` command to flash a shim image to a USB drive or SD card, replacing
@@ -170,23 +174,23 @@ command in chroot.
 
 ### Boot from RMA shim (clamshells / convertibles)
 
-1. Press `ESC + F3(REFRESH) + POWER` to enter recovery mode
-1. Press `CTRL + D` to turn on developer switch
-1. Press `ENTER` to confirm
+1. Press `ESC + F3(REFRESH) + POWER` to enter recovery mode.
+1. Press `CTRL + D` to turn on developer switch.
+1. Press `ENTER` to confirm.
 1. Press `ESC + F3(REFRESH) + POWER` to enter recovery mode again (no need to
-   wait for wiping)
-1. Insert and boot from USB stick with `rma_image.bin`
+   wait for wiping).
+1. Insert and boot from USB stick with `rma_image.bin`.
 
 ### Boot from RMA shim (tablets / detachables)
 
 1. Press `POWER + VOL_UP + VOL_DOWN` for at least 10 seconds, and release them
-   to enter recovery mode
-1. Press `VOL_UP + VOL_DOWN` to show recovery menu
+   to enter recovery mode.
+1. Press `VOL_UP + VOL_DOWN` to show recovery menu.
 1. Press `VOL_UP` or `VOL_DOWN` to move the cursor to "Confirm Disabling OS
-   Verification", and press `POWER` to select it
+   Verification", and press `POWER` to select it.
 1. Press `POWER + VOL_UP + VOL_DOWN` for at least 10 seconds, and release them
-   to enter recovery mode again (no need to wait for wiping)
-1. Insert and boot from USB stick with `rma_image.bin`
+   to enter recovery mode again (no need to wait for wiping).
+1. Insert and boot from USB stick with `rma_image.bin`.
 
 ### RMA shim menu
 
