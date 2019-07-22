@@ -134,7 +134,6 @@ check_battery_value() {
     echo ""
   fi
 
-  charge_control "idle"
   if [ -n "$stressapptest_pid" ]; then
     kill -9 "$stressapptest_pid"
   fi
@@ -178,7 +177,12 @@ main() {
   fi
 
   # Ask operator to plug or unplug AC before doing cut off.
+  # The operator might not do this immediately, so we set the charge status to
+  # idle to keep the charge percentage stable, and set back to normal just
+  # before doing cutting off.
+  charge_control "idle"
   check_ac_state "$CUTOFF_AC_STATE"
+  charge_control "normal"
 
   $DISPLAY_MESSAGE "cutting_off"
 
