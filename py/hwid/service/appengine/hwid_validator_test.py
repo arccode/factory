@@ -21,6 +21,8 @@ TESTDATA_PATH = os.path.join(
 
 GOLDEN_HWIDV3_DATA_BEFORE = file_utils.ReadFile(
     os.path.join(TESTDATA_PATH, 'v3-golden-before.yaml')).decode('utf-8')
+GOLDEN_HWIDV3_DATA_AFTER_BAD = file_utils.ReadFile(
+    os.path.join(TESTDATA_PATH, 'v3-golden-after-bad.yaml')).decode('utf-8')
 GOLDEN_HWIDV3_DATA_AFTER_GOOD = file_utils.ReadFile(
     os.path.join(TESTDATA_PATH, 'v3-golden-after-good.yaml')).decode('utf-8')
 SARIEN_DATA_GOOD = file_utils.ReadFile(
@@ -29,6 +31,15 @@ SARIEN_DATA_GOOD = file_utils.ReadFile(
 
 class HwidValidatorTest(unittest.TestCase):
   """Test for HwidValidator."""
+
+  def testValidateChange_withValidChange(self):
+    hwid_validator.HwidValidator().ValidateChange(GOLDEN_HWIDV3_DATA_AFTER_GOOD,
+                                                  GOLDEN_HWIDV3_DATA_BEFORE)
+
+  def testValidateChange_withInvalidChange(self):
+    with self.assertRaises(hwid_validator.ValidationError):
+      hwid_validator.HwidValidator().ValidateChange(
+          GOLDEN_HWIDV3_DATA_AFTER_BAD, GOLDEN_HWIDV3_DATA_BEFORE)
 
   def testValidateSarien_withValidChange(self):
     hwid_validator.HwidValidator().ValidateChange(SARIEN_DATA_GOOD,
