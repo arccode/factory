@@ -5,15 +5,16 @@
 FROM python:2.7
 
 ARG workdir="/usr/src/"
+ARG gcloud_archive_name="google-cloud-sdk-245.0.0-linux-x86_64.tar.gz"
 
 RUN cd /usr/src && \
-  wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-182.0.0-linux-x86_64.tar.gz && \
-  tar xvf google-cloud-sdk-182.0.0-linux-x86_64.tar.gz && \
+  wget "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/${gcloud_archive_name}" && \
+  tar xvf "${gcloud_archive_name}" && \
   google-cloud-sdk/install.sh \
       --rc-path /root/.bashrc \
       --additional-components app-engine-python app-engine-python-extras \
       --quiet && \
-  rm google-cloud-sdk-182.0.0-linux-x86_64.tar.gz && \
+  rm "${gcloud_archive_name}" && \
   pip install \
       -t "${workdir}"/lib \
       dulwich==0.19.11 \
