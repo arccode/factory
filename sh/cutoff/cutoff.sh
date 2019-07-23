@@ -70,7 +70,7 @@ charge_control() {
 }
 
 run_stressapptest() {
-  local VERY_LONG_TIME="1000000"
+  local VERY_LONG_TIME=1000000
   # It may crash the system if it use too much memory on Factory Shim.
   stressapptest -M 128 -s "${VERY_LONG_TIME}" >/dev/null &
   echo "$!"
@@ -85,23 +85,23 @@ check_battery_value() {
 
   battery_value="$(${get_value_cmd})"
 
-  if [ -n "$min_battery_value" ] &&
-     [ "$battery_value" -lt "$min_battery_value" ]; then
+  if [ -n "${min_battery_value}" ] &&
+     [ "${battery_value}" -lt "${min_battery_value}" ]; then
     require_ac
     charge_control "normal"
-    ${DISPLAY_MESSAGE} "charging"
+    "${DISPLAY_MESSAGE}" "charging"
 
     # Wait for battery to charge to min_battery_value
     prev_battery_value="-1"
     # Print a new line before and after showing battery info.
     echo ""
-    while [ "$battery_value" -lt "$min_battery_value" ]; do
+    while [ "${battery_value}" -lt "${min_battery_value}" ]; do
       # Only print battery info when it changes.
-      if [ "$battery_value" -ne "$prev_battery_value" ]; then
+      if [ "${battery_value}" -ne "${prev_battery_value}" ]; then
         # Keep printing battery information in the same line.
         printf '\rcurrent: %s, target: %s' \
-            "$battery_value" "$min_battery_value" >"${TTY}"
-        prev_battery_value="$battery_value"
+            "${battery_value}" "${min_battery_value}" >"${TTY}"
+        prev_battery_value="${battery_value}"
       fi
       sleep 1
       battery_value="$(${get_value_cmd})"
@@ -109,24 +109,24 @@ check_battery_value() {
     echo ""
   fi
 
-  if [ -n "$max_battery_value" ] &&
-     [ "$battery_value" -gt "$max_battery_value" ]; then
+  if [ -n "${max_battery_value}" ] &&
+     [ "${battery_value}" -gt "${max_battery_value}" ]; then
     # Use stressapptest to discharge battery faster
     stressapptest_pid="$(run_stressapptest)"
     charge_control "discharge"
-    ${DISPLAY_MESSAGE} "discharging"
+    "${DISPLAY_MESSAGE}" "discharging"
 
     # Wait for battery to discharge to max_battery_value
     prev_battery_value="-1"
     # Print a new line before and after showing battery info.
     echo ""
-    while [ "$battery_value" -gt "$max_battery_value" ]; do
+    while [ "${battery_value}" -gt "${max_battery_value}" ]; do
       # Only print battery info when it changes.
-      if [ "$battery_value" -ne "$prev_battery_value" ]; then
+      if [ "${battery_value}" -ne "${prev_battery_value}" ]; then
         # Keep printing battery information in the same line.
         printf '\rcurrent: %s, target: %s' \
-            "$battery_value" "$max_battery_value" >"${TTY}"
-        prev_battery_value="$battery_value"
+            "${battery_value}" "${max_battery_value}" >"${TTY}"
+        prev_battery_value="${battery_value}"
       fi
       sleep 1
       battery_value="$(${get_value_cmd})"
@@ -134,16 +134,16 @@ check_battery_value() {
     echo ""
   fi
 
-  if [ -n "$stressapptest_pid" ]; then
-    kill -9 "$stressapptest_pid"
+  if [ -n "${stressapptest_pid}" ]; then
+    kill -9 "${stressapptest_pid}"
   fi
 }
 
 check_ac_state() {
   local ac_state="$1"
-  if [ "$ac_state" = "connect_ac" ]; then
+  if [ "${ac_state}" = "connect_ac" ]; then
     require_ac
-  elif [ "$ac_state" = "remove_ac" ]; then
+  elif [ "${ac_state}" = "remove_ac" ]; then
     require_remove_ac
   fi
 }
@@ -162,16 +162,16 @@ main() {
     # Needed by 'ectool battery'.
     mkdir -p /var/lib/power_manager
     modprobe i2c_dev || true
-    if [ -n "$CUTOFF_BATTERY_MIN_PERCENTAGE" ] || \
-       [ -n "$CUTOFF_BATTERY_MAX_PERCENTAGE" ]; then
+    if [ -n "${CUTOFF_BATTERY_MIN_PERCENTAGE}" ] ||
+       [ -n "${CUTOFF_BATTERY_MAX_PERCENTAGE}" ]; then
       check_battery_value \
-        "$CUTOFF_BATTERY_MIN_PERCENTAGE" "$CUTOFF_BATTERY_MAX_PERCENTAGE" \
+        "${CUTOFF_BATTERY_MIN_PERCENTAGE}" "${CUTOFF_BATTERY_MAX_PERCENTAGE}" \
         "get_battery_percentage"
     fi
-    if [ -n "$CUTOFF_BATTERY_MIN_VOLTAGE" ] || \
-       [ -n "$CUTOFF_BATTERY_MAX_VOLTAGE" ]; then
+    if [ -n "${CUTOFF_BATTERY_MIN_VOLTAGE}" ] ||
+       [ -n "${CUTOFF_BATTERY_MAX_VOLTAGE}" ]; then
       check_battery_value \
-        "$CUTOFF_BATTERY_MIN_VOLTAGE" "$CUTOFF_BATTERY_MAX_VOLTAGE" \
+        "${CUTOFF_BATTERY_MIN_VOLTAGE}" "${CUTOFF_BATTERY_MAX_VOLTAGE}" \
         "get_battery_voltage"
     fi
   fi
@@ -181,7 +181,7 @@ main() {
   # idle to keep the charge percentage stable, and set back to normal just
   # before doing cutting off.
   charge_control "idle"
-  check_ac_state "$CUTOFF_AC_STATE"
+  check_ac_state "${CUTOFF_AC_STATE}"
   charge_control "normal"
 
   $DISPLAY_MESSAGE "cutting_off"
@@ -193,7 +193,7 @@ main() {
   # solving this problem. Remove the retry when finding the root cause.
   for i in $(seq 5)
   do
-    case "$CUTOFF_METHOD" in
+    case "${CUTOFF_METHOD}" in
       reboot)
         reboot
       ;;
@@ -213,7 +213,7 @@ main() {
     sleep 15
   done
 
-  $DISPLAY_MESSAGE "cutoff_failed"
+  "${DISPLAY_MESSAGE}" "cutoff_failed"
   sleep 1d
   exit 1
 }
