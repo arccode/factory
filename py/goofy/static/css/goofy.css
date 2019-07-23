@@ -239,9 +239,35 @@ body {
   font-size: 0.75em;
   padding-top: 1em;
 }
-.goofy-history-header {
+.goofy-debug-tabbar {
+  overflow: hidden;
+  border: 1px solid #cccccc;
+  background-color: #f1f1f1;
+}
+.goofy-debug-tab {
+  background-color: inherit;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 15px 15px;
+  transition: 0.3s;
   font-weight: bold;
-  font-size: 1.25em;
+  font-size: 1.1em;
+}
+.goofy-debug-tab-clicked {
+  background-color: #cccccc;
+}
+.goofy-debug-tab:hover {
+  background-color: #dddddd;
+}
+.goofy-debug-div {
+  padding-top: 0.7em;
+}
+.goofy-debug-div-invisible {
+  display: none;
+}
+.goofy-history {
+  min-height: 500px;
 }
 .goofy-history table {
   border-spacing: 0;

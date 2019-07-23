@@ -2503,17 +2503,50 @@ cros.factory.Goofy = class {
 
     const title =
         `${entry.metadata.path} (invocation ${entry.metadata.invocation})`;
+
     const content = goog.html.SafeHtml.concat(
         goog.html.SafeHtml.create('div', {class: 'goofy-history'}, [
+          goog.html.SafeHtml.create('div', {class: 'goofy-debug-tabbar'}, [
+            goog.html.SafeHtml.create(
+                'button', {class: 'goofy-debug-tab'}, 'Test Info'),
+            goog.html.SafeHtml.create(
+                'button', {class: 'goofy-debug-tab'}, 'Log')
+          ]),
           goog.html.SafeHtml.create(
-              'div', {class: 'goofy-history-header'}, 'Test Info'),
-          metadataTable,
+              'div', {class: 'goofy-debug-div'}, metadataTable),
           goog.html.SafeHtml.create(
-              'div', {class: 'goofy-history-header'}, 'Log'),
-          goog.html.SafeHtml.create(
-              'div', {class: 'goofy-history-log'}, entry.log)
+              'div', {class: 'goofy-debug-div'},
+              goog.html.SafeHtml.create(
+                  'div', {class: 'goofy-history-log'}, entry.log))
         ]));
-    this.createSimpleDialog(title, content).setVisible(true);
+
+    const debugDialog = this.createSimpleDialog(title, content);
+
+    const debugDialogContentElement = debugDialog.getContentElement();
+
+    const tabButton =
+        debugDialogContentElement.getElementsByClassName('goofy-debug-tab');
+
+    const debugPart =
+        debugDialogContentElement.getElementsByClassName('goofy-debug-div');
+
+    const setVisibility = function(i) {
+      for (let j = 0; j < debugPart.length; j++) {
+        debugPart[j].classList.add('goofy-debug-div-invisible');
+        tabButton[j].classList.remove('goofy-debug-tab-clicked');
+      }
+      debugPart[i].classList.remove('goofy-debug-div-invisible');
+      tabButton[i].classList.add('goofy-debug-tab-clicked');
+    };
+
+    for (let i = 0; i < tabButton.length; i++) {
+      goog.events.listen(tabButton[i], goog.events.EventType.CLICK, () => {
+        setVisibility(i);
+      });
+    }
+
+    setVisibility(0);
+    debugDialog.setVisible(true);
   }
 
   /**
