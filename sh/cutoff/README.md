@@ -30,9 +30,8 @@ any dependency with other files outside this folder.
 Invocation
 ----------
 Scripts here will be installed to `/usr/local/factory/sh/cutoff`. Factory
-Toolkit will execute the scripts via Gooftool by reading arguments from Finalize
-pytest. Reset shim (`build_image factory_install`) will invoke this by
-`factory_installer.sh` using arguments from `lsb-factory`.
+Toolkit will execute the scripts via Gooftool, and Reset shim
+(`build_image factory_install`) will invoke this by `factory_installer.sh`.
 
 Setting cut-off options
 -----------------------

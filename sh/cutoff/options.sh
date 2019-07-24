@@ -25,20 +25,6 @@ die() {
   exit 1
 }
 
-# Usage: lsbval path-to-lsb-file key default
-# Returns the value for the given lsb-release file variable.
-lsbval() {
-  local lsbfile="$1"
-  local key="$2"
-  local default="$3"
-  local value="$(sed -n "s/^\s*${key}\s*=\s*\(.*\)\s*$/=\1/p" "${lsbfile}")"
-  if [ -n "${value}" ]; then
-    echo "${value#=}"
-  else
-    echo "${default}"
-  fi
-}
-
 # Try to find a real working TTY.
 options_find_tty() {
   local tty
@@ -53,10 +39,9 @@ options_find_tty() {
   export TTY
 }
 
-# Try to read from config file. This file should be using same format that
-# /etc/lsb-release is using and friendly for sh to process, or a JSON file.
+# Try to read from config file. This file should be a JSON file.
 # Usage: options_load_file <FILE>
-# Returns 0 if the file exists, otherwise returns 1.
+# Returns 0 if the file is an existing JSON file, otherwise returns 1.
 options_load_file() {
   local file="$1"
   local key value
@@ -64,8 +49,11 @@ options_load_file() {
     echo "File ${file} doesn't exist."
     return 1
   fi
-  if [ "${file%.json}" != "${file}" ] &&
-       python -c "import jsonschema" >/dev/null 2>&1; then
+  if [ "${file%.json}" = "${file}" ]; then
+    echo "Cannot load cutoff config ${file}. Only JSON format is supported."
+    return 1
+  fi
+  if python -c "import jsonschema" >/dev/null 2>&1; then
     echo "Checking JSON schema for file ${file}..."
     python -c "import jsonschema; import json; jsonschema.validate(
       json.load(open('${file}')),
@@ -76,15 +64,11 @@ options_load_file() {
       CUTOFF_BATTERY_MIN_PERCENTAGE CUTOFF_BATTERY_MAX_PERCENTAGE \
       CUTOFF_BATTERY_MIN_VOLTAGE CUTOFF_BATTERY_MAX_VOLTAGE \
       SHOPFLOOR_URL TTY; do
-    if [ "${file%.json}" != "${file}" ]; then
-      # "jq -n -f" allows more flexible JSON, for example keys without quotes
-      # or comments started with #.
-      value="$(jq -n -f "${file}" | jq -r ".${key}")"
-      if [ "${value}" = "null" ]; then
-        value="$(eval echo "\${${key}}")"
-      fi
-    else
-      value="$(lsbval "${file}" ${key} "$(eval echo "\${${key}}")")"
+    # "jq -n -f" allows more flexible JSON, for example keys without quotes or
+    # comments started with #.
+    value="$(jq -n -f "${file}" | jq -r ".${key}")"
+    if [ "${value}" = "null" ]; then
+      value="$(eval echo "\${${key}}")"
     fi
     eval ${key}='${value}'
   done
