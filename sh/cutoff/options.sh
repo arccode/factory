@@ -55,36 +55,39 @@ options_find_tty() {
 
 # Try to read from config file. This file should be using same format that
 # /etc/lsb-release is using and friendly for sh to process, or a JSON file.
-# Usage: load_options_file <FILE>
+# Usage: options_load_file <FILE>
+# Returns 0 if the file exists, otherwise returns 1.
 options_load_file() {
   local file="$1"
   local key value
-  if [ -f "${file}" ]; then
-    if [ "${file%.json}" != "${file}" ] &&
-         python -c "import jsonschema" >/dev/null 2>&1; then
-      echo "Checking JSON schema for file ${file}..."
-      python -c "import jsonschema; import json; jsonschema.validate(
-        json.load(open('${file}')),
-        json.load(open('$(dirname "$(readlink -f "$0")")/cutoff.schema.json')))"
-    fi
-    echo "Loading options from file ${file}..."
-    for key in CUTOFF_METHOD CUTOFF_AC_STATE \
-        CUTOFF_BATTERY_MIN_PERCENTAGE CUTOFF_BATTERY_MAX_PERCENTAGE \
-        CUTOFF_BATTERY_MIN_VOLTAGE CUTOFF_BATTERY_MAX_VOLTAGE \
-        SHOPFLOOR_URL TTY; do
-      if [ "${file%.json}" != "${file}" ]; then
-        # "jq -n -f" allows more flexible JSON, for example keys without quotes
-        # or comments started with #.
-        value="$(jq -n -f "${file}" | jq -r ".${key}")"
-        if [ "${value}" = "null" ]; then
-          value="$(eval echo "\${${key}}")"
-        fi
-      else
-        value="$(lsbval "${file}" ${key} "$(eval echo "\${${key}}")")"
-      fi
-      eval ${key}='${value}'
-    done
+  if [ ! -f "${file}" ]; then
+    echo "File ${file} doesn't exist."
+    return 1
   fi
+  if [ "${file%.json}" != "${file}" ] &&
+       python -c "import jsonschema" >/dev/null 2>&1; then
+    echo "Checking JSON schema for file ${file}..."
+    python -c "import jsonschema; import json; jsonschema.validate(
+      json.load(open('${file}')),
+      json.load(open('$(dirname "$(readlink -f "$0")")/cutoff.schema.json')))"
+  fi
+  echo "Loading options from file ${file}..."
+  for key in CUTOFF_METHOD CUTOFF_AC_STATE \
+      CUTOFF_BATTERY_MIN_PERCENTAGE CUTOFF_BATTERY_MAX_PERCENTAGE \
+      CUTOFF_BATTERY_MIN_VOLTAGE CUTOFF_BATTERY_MAX_VOLTAGE \
+      SHOPFLOOR_URL TTY; do
+    if [ "${file%.json}" != "${file}" ]; then
+      # "jq -n -f" allows more flexible JSON, for example keys without quotes
+      # or comments started with #.
+      value="$(jq -n -f "${file}" | jq -r ".${key}")"
+      if [ "${value}" = "null" ]; then
+        value="$(eval echo "\${${key}}")"
+      fi
+    else
+      value="$(lsbval "${file}" ${key} "$(eval echo "\${${key}}")")"
+    fi
+    eval ${key}='${value}'
+  done
 }
 
 # Check if an option in number type.
