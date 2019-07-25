@@ -102,8 +102,20 @@ factory_install() {
   exec "${INIT_BASE}/startup" init
 }
 
+factory_preinit() {
+  log "Starting ChromeOS factory preinit..."
+
+  execute_rules preinit.d
+
+  log "Finish all preinit programs."
+}
+
 factory_init() {
   log "Starting ChromeOS factory initialization..."
+
+  # the upstart "factory-init" job will wait other jobs finished, so we can
+  # reload configuration without losting the event.
+  initctl reload-configuration
 
   local frecon_vt0="/run/frecon/vt0"
   local text_splash="/usr/local/factory/misc/boot_splash.txt"
@@ -115,7 +127,7 @@ factory_init() {
   # Probe the install request file to see if we need to install toolkit first.
   factory_install
 
-  execute_rules common.d
+  execute_rules init.d
   execute_rules iptables.d
 
   # See factory_main for the path of tag that may disable Goofy.
@@ -152,14 +164,21 @@ main() {
   fi
 
   case "${mode}" in
+    preinit )
+      # Preinit should be invoked only one time so we want to re-create the
+      # logs.
+      # This should be called after chromeos_startup finished, that is, before
+      # starting boot-services.
+      factory_preinit 2>&1 | tee "${log_file}"
+      ;;
+    init )
+      # Init will be invoked after preinit finished, so we append the logs
+      factory_init 2>&1 | tee -a "${log_file}"
+      ;;
     main )
       # Developers may try to start factory main several times so we want to
       # append the logs.
       factory_main 2>&1 | tee -a "${log_file}"
-      ;;
-    init )
-      # Init should be invoked only one time so we want to re-create the logs.
-      factory_init 2>&1 | tee "${log_file}"
       ;;
     * )
       log "Unknown mode: ${mode}." | tee "${log_file}"

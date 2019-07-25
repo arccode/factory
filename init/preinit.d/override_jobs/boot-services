@@ -1,0 +1,13 @@
+# This file should be synced with /etc/init/boot-services.conf but remove all
+# dependancies of "start on", except "startup" job.
+
+# This job is override for b/137918214. Because we currently utilize "initctl
+# reload-configuration" to reload the configs of init to inhibit jobs. For the
+# current upstart version used in chromeos (v1.2), it will also accedently clear
+# the "stopped" events of finished jobs. That is, all jobs finished before
+# executing reloading will be considered as still running. This result the
+# boot-services jobs will not be started and wait forever. As the workaround, we
+# remove all dependancies of boot-services job.
+
+start on stopped startup
+stop on stopping pre-shutdown
