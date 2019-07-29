@@ -142,7 +142,7 @@ class GoofyRPC(object):
     """
     self.goofy.log_watcher.FlushEventLogs()
 
-  def FlushTestlog(self, timeout=None):
+  def FlushTestlog(self, *args, **kwargs):
     """Flushes Testlog logs.
 
     Returns:
@@ -151,7 +151,7 @@ class GoofyRPC(object):
     Raises:
       FlushException if flush was not successful.
     """
-    return self.goofy.testlog.Flush(timeout)
+    return self.goofy.testlog.Flush(*args, **kwargs)
 
   def UpdateFactory(self):
     """Performs a factory update.

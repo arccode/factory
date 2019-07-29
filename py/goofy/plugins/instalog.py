@@ -48,6 +48,7 @@ class Instalog(plugin.Plugin):
     self._config_path = os.path.join(paths.RUNTIME_VARIABLE_DATA_DIR,
                                      'instalog.yaml')
 
+    self._uplink_enable = False
     self._uplink_hostname = uplink_hostname
     self._uplink_port = uplink_port
     self._uplink_use_factory_server = uplink_use_factory_server
@@ -77,7 +78,7 @@ class Instalog(plugin.Plugin):
     cli_hostname = _CLI_HOSTNAME
     cli_port = _CLI_PORT
     testlog_json_path = self.goofy.testlog.primary_json.path
-    uplink_enabled = self._uplink_use_factory_server or (
+    self._uplink_enable = self._uplink_use_factory_server or (
         self._uplink_hostname and self._uplink_port)
     if self._uplink_use_factory_server:
       url = None
@@ -95,7 +96,7 @@ class Instalog(plugin.Plugin):
       else:
         logging.error('Instalog: Could not retrieve factory server IP and port;'
                       ' no fallback provided; disabling uplink functionality')
-        uplink_enabled = False
+        self._uplink_enable = False
 
     config = {
         'instalog': {
@@ -141,7 +142,7 @@ class Instalog(plugin.Plugin):
             }
         },
     }
-    if not uplink_enabled:
+    if not self._uplink_enable:
       del config['output']['output_uplink']
 
     logging.info('Instalog: Saving config YAML to: %s', self._config_path)
@@ -196,21 +197,32 @@ class Instalog(plugin.Plugin):
     return (last_seq_processed >= last_seq_output,
             '(%d / %d events)' % (last_seq_processed, last_seq_output))
 
-  def FlushOutput(self, timeout=None):
-    """Flushes Instalog's upstream output plugin.
+  def FlushOutput(self, uplink=True, local=True, timeout=None):
+    """Flushes Instalog's output plugin(s).
 
     Args:
+      uplink: Flush the uplink (output_http) plugin.
+      local: Flush the local (output_file) plugin.
       timeout: Time to wait before returning with failure.
 
     Returns:
-      A tuple of (success, result_string).
+      A tuple of (result, output) of the first failed plugin.
     """
     if timeout is None:
       timeout = _DEFAULT_FLUSH_TIMEOUT
-    p = self._RunCommand(
-        ['flush', 'output_uplink', '--timeout', str(timeout)],
-        read_stdout=True)
-    return p.returncode == 0, p.stdout_data.rstrip()
+    if uplink and self._uplink_enable:
+      p = self._RunCommand(
+          ['flush', 'output_uplink', '--timeout', str(timeout)],
+          read_stdout=True)
+      if p.returncode != 0:
+        return False, 'output_uplink: ' + p.stdout_data.rstrip()
+    if local:
+      p = self._RunCommand(
+          ['flush', 'output_local', '--timeout', str(timeout)],
+          read_stdout=True)
+      if p.returncode != 0:
+        return False, 'output_local: ' + p.stdout_data.rstrip()
+    return True, 'Success'
 
   def _RunCommand(self, args, verbose=False, **kwargs):
     """Runs an Instalog command using its CLI."""

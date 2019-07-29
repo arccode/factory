@@ -283,8 +283,13 @@ class Testlog(object):
     """Sets a reference to the Goofy Instalog plugin."""
     self.instalog_plugin = instalog_plugin
 
-  def Flush(self, timeout=None):
+  def Flush(self, uplink=True, local=True, timeout=None):
     """Flushes testlog logs through Instalog.
+
+    Args:
+      uplink: Flush the uplink (output_http) plugin.
+      local: Flush the local (output_file) plugin.
+      timeout: Time to wait before returning with failure.
 
     Returns:
       If successful, returns True and a string describing the flushing result.
@@ -300,7 +305,8 @@ class Testlog(object):
         last_seq_output, timeout)
     if not input_success:
       return False, 'Flushing input plugin: %s' % input_msg
-    output_success, output_msg = self.instalog_plugin.FlushOutput(timeout)
+    output_success, output_msg = self.instalog_plugin.FlushOutput(
+        uplink, local, timeout)
     output_msg = _PROGRESS_RE.search(output_msg).group()
     if not output_success:
       return False, 'Flushing output plugin: %s' % output_msg
