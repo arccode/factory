@@ -93,8 +93,12 @@ class SensorSource(types.DeviceComponent):
     Returns:
       A processed value from sensor.
     """
-    return self._ConvertRawValue(
-        self._device.ReadFile(self.GetSensors()[sensor]))
+    sensor_path = self.GetSensors()[sensor]
+    try:
+      return self._ConvertRawValue(self._device.ReadFile(sensor_path))
+    except IOError:
+      logging.warning("Failed to get temperature from %s", sensor_path)
+      return -1
 
   def GetAllValues(self):
     """Gets all available sensor values.
