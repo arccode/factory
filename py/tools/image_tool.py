@@ -1781,6 +1781,7 @@ class ChromeOSFactoryBundle(object):
 
       lsb = LSBFile(lsb_file.name)
       lsb.SetValue('FACTORY_INSTALL_FROM_USB', '1')
+      lsb.SetValue('FACTORY_INSTALL_ACTION_COUNTDOWN', 'true')
       lsb.SetValue('FACTORY_INSTALL_COMPLETE_PROMPT', 'true')
       lsb.SetValue('RMA_AUTORUN', 'true')
       SysUtils.WriteFile(lsb_file, lsb.AsRawData())
@@ -3229,12 +3230,19 @@ class EditLSBCommand(SubCommand):
   def EditDefaultAction(self):
     """Modify default action (will be overridden by RMA autorun)."""
     action = UserInput.GetString(
-        'Enter default action', max_length=1, optional=True)
+        'Enter default action (empty to remove)', max_length=1, optional=True)
     key = 'FACTORY_INSTALL_DEFAULT_ACTION'
     if action:
       self.lsb.SetValue(key, action)
     else:
       self.lsb.DeleteValue(key)
+
+  def EditActionCountdown(self):
+    """Enable/disable countdown before default action."""
+    answer = UserInput.YesNo(
+        'Enable (y) or disable (n) default action countdown?')
+    self.lsb.SetValue('FACTORY_INSTALL_ACTION_COUNTDOWN',
+                      'true' if answer else 'false')
 
   def EditCompletePrompt(self):
     """Enable/disable complete prompt in RMA shim.
@@ -3372,6 +3380,7 @@ class EditLSBCommand(SubCommand):
         self.DoMenu(self.EditBoard,
                     self.EditServerAddress,
                     self.EditDefaultAction,
+                    self.EditActionCountdown,
                     self.EditCompletePrompt,
                     self.EditRMAAutorun,
                     self.EditCutoff,
