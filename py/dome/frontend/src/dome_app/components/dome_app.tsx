@@ -20,6 +20,7 @@ import BundlesApp from '@app/bundle/components/bundles_app';
 import ConfigApp from '@app/config/components/config_app';
 import DashboardApp from '@app/dashboard/components/dashboard_app';
 import ErrorDialog from '@app/error/components/error_dialog';
+import LogApp from '@app/log/components/log_app';
 import ParameterApp from '@app/parameters/components/parameter_app';
 import ProjectsApp from '@app/project/components/projects_app';
 import TaskList from '@app/task/components/task_list';
@@ -133,6 +134,8 @@ To visit Dome, please use Chrome/Chromium to avoid unnecessary issues.`);
       app = <BundlesApp overlay={this.overlayRef.current} />;
     } else if (appName === 'PARAMETER_APP') {
       app = <ParameterApp />;
+    } else if (appName === 'LOG_APP') {
+      app = <LogApp />;
     } else {
       assertNotReachable(appName);
     }

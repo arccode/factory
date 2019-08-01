@@ -65,7 +65,7 @@ class ResourceTable extends React.Component<ResourceTableProps> {
     } = this.props;
 
     const downloadableResources =
-        /^toolkit(_config)?|hwid|firmware|complete|netboot_.*|lsb_factory$/
+        /^toolkit(_config)?|hwid|firmware|complete|netboot_.*|lsb_factory$/;
 
     return (
       <div className={classes.root}>
