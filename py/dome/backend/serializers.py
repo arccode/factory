@@ -166,3 +166,18 @@ class ParameterDirectorySerializer(serializers.Serializer):
             'parent_id': validated_data.pop('parent_id', None),
             'name': validated_data.pop('name')}
     return ParameterDirectory.CreateOne(project_name, **data)
+
+
+class LogSerializer(serializers.Serializer):
+
+  log_type = serializers.CharField()
+  size = serializers.IntegerField()
+  size_unit = serializers.RegexField(regex='^(M|G)B$')
+  start_date = serializers.DateField(format='%Y%m%d')
+  end_date = serializers.DateField(format='%Y%m%d')
+
+
+class LogDownloadSerializer(serializers.Serializer):
+
+  log_file = serializers.CharField()
+  tmp_dir = serializers.CharField()

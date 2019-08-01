@@ -18,6 +18,7 @@ from rest_framework import views
 from backend import common
 from backend.models import Bundle
 from backend.models import DomeConfig
+from backend.models import Log
 from backend.models import ParameterComponent
 from backend.models import ParameterDirectory
 from backend.models import Project
@@ -26,6 +27,8 @@ from backend.models import Service
 from backend.models import TemporaryUploadedFile
 from backend.serializers import BundleSerializer
 from backend.serializers import ConfigSerializer
+from backend.serializers import LogDownloadSerializer
+from backend.serializers import LogSerializer
 from backend.serializers import ParameterComponentSerializer
 from backend.serializers import ParameterDirectorySerializer
 from backend.serializers import ProjectSerializer
@@ -170,6 +173,29 @@ class BundleElementView(generics.GenericAPIView):
     serializer.save(project_name=project_name)
 
     return Response(serializer.data)
+
+
+class LogDownloadView(views.APIView):
+
+  def get(self, request, *args, **kwargs):
+    del args, kwargs
+    serializer = LogDownloadSerializer(data=request.query_params)
+    serializer.is_valid(raise_exception=True)
+    download_params = serializer.data
+    log_file = Log.Download(download_params)
+    return StreamingHttpResponse(log_file,
+                                 content_type='application/octet-stream')
+
+
+class LogExportView(views.APIView):
+
+  def get(self, request, *args, **kwargs):
+    del args
+    serializer = LogSerializer(data=request.query_params)
+    serializer.is_valid(raise_exception=True)
+    compress_params = serializer.data
+    response = Log.Export(kwargs['project_name'], compress_params)
+    return Response(response)
 
 
 class ResourceCollectionView(generics.CreateAPIView):

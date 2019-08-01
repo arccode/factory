@@ -909,3 +909,40 @@ class ParameterComponent(object):
     umpire_server = GetUmpireServer(project_name)
     parameters = umpire_server.GetParameterInfo()
     return [ParameterComponent(**p) for p in parameters['files']]
+
+
+class Log(object):
+
+  @staticmethod
+  def Export(project_name, compress_params):
+    umpire_server = GetUmpireServer(project_name)
+    split_size = {
+        'size': compress_params['size'],
+        'unit': compress_params['size_unit']
+    }
+    try:
+      tmp_dir = tempfile.mkdtemp(dir=SHARED_TMP_DIR)
+      response = {'tmp_dir': tmp_dir}
+      response.update(umpire_server.ExportLog(tmp_dir,
+                                              compress_params['log_type'],
+                                              split_size,
+                                              compress_params['start_date'],
+                                              compress_params['end_date']))
+      return response
+    except xmlrpclib.Fault as e:
+      logger.error(
+          'Downloading failed. Error message from Umpire: %r', e.faultString)
+      raise DomeServerException(detail=e.faultString)
+
+  @staticmethod
+  def Download(download_params):
+    try:
+      log_path = os.path.join(SHARED_TMP_DIR,
+                              download_params['tmp_dir'],
+                              download_params['log_file'])
+      log_file = open(log_path, 'r')
+      return log_file
+    except Exception as e:
+      logger.error(
+          'Downloading failed. Error message: %r', e)
+      raise DomeServerException(detail=e)

@@ -55,6 +55,10 @@ urlpatterns = [
     url(r'^projects/%s/bundles/%s/%s$' %
         (PROJECT_URL_ARG, BUNDLE_URL_ARG, RESOURCE_URL_ARG),
         views.ResourceDownloadView.as_view()),
+    url(r'^projects/%s/log/compress/$' % PROJECT_URL_ARG,
+        views.LogExportView.as_view()),
+    url(r'^projects/%s/log/download/$' % PROJECT_URL_ARG,
+        views.LogDownloadView.as_view()),
     url(r'^projects/%s/parameters/dirs/$' % PROJECT_URL_ARG,
         views.ParameterDirectoriesView.as_view()),
     url(r'^projects/%s/parameters/files/$' % PROJECT_URL_ARG,

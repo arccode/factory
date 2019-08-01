@@ -15,7 +15,7 @@ UMPIRE_DUT_RPC_VERSION = 3
 # needs Dome to restart umpire instance, for example, incompatible docker
 # command line arguments change.)
 # Remember to uprev the MOCK_UMPIRE_VERSION in py/dome/backend/tests.py too.
-UMPIRE_VERSION = 4
+UMPIRE_VERSION = 5
 
 # Valid keys in DUT info.
 # TODO(pihsun): Most of these fields are probably not necessary after the match

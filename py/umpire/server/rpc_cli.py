@@ -7,6 +7,7 @@
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server.commands import deploy
+from cros.factory.umpire.server.commands import export_log
 from cros.factory.umpire.server.commands import export_payload
 from cros.factory.umpire.server.commands import import_bundle
 from cros.factory.umpire.server.commands import update
@@ -33,6 +34,29 @@ class CLICommand(umpire_rpc.UmpireRPC):
   def GetVersion(self):
     """Get the umpire image version."""
     return common.UMPIRE_VERSION
+
+  @umpire_rpc.RPCCall
+  def ExportLog(self, dst_dir, log_type, split_size, start_date, end_date):
+    """Compress and export a specific log, such as factory log, DUT report,
+    or ECHO codes.
+
+    Args:
+      dst_dir: the destination directory to export the specific log.
+      log_type: download type of the log, e.g. log, report, echo_code.
+      split_size: maximum size of the archives.
+                  (format: {'size': xxx, 'unit': 'MB'/'GB'})
+      start_date: start date (format: yyyymmdd)
+      end_date: end date (format: yyyymmdd)
+
+    Returns:
+      {
+        'messages': array (messages of ExportLog)
+        'log_paths': array (files paths of compressed files)
+      }
+    """
+    exporter = export_log.LogExporter(self.env)
+    return exporter.ExportLog(
+        dst_dir, log_type, split_size, start_date, end_date)
 
   @umpire_rpc.RPCCall
   def ExportPayload(self, bundle_id, payload_type, file_path):
