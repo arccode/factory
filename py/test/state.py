@@ -159,8 +159,8 @@ class FactoryState(object):
 
     self._lock = threading.RLock()
 
-    if TestState not in jsonclass.supported_types:
-      jsonclass.supported_types.append(TestState)
+    if TestState not in jsonclass.SUPPORTED_TYPES:
+      jsonclass.SUPPORTED_TYPES = jsonclass.SUPPORTED_TYPES + (TestState, )
 
   @sync_utils.Synchronized
   def Close(self):

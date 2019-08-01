@@ -4,13 +4,15 @@
 
 import logging
 import os
-from xmlrpclib import ProtocolError
+
+from jsonrpclib import ProtocolError
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test.env import paths
 from cros.factory.utils import config_utils
+from cros.factory.utils import type_utils
 
 
 # PRC URL prefix used by plugin.
@@ -43,8 +45,9 @@ def GetPluginRPCProxy(plugin_name, address=None, port=None):
     # Try listing methods to check if the path exists.
     proxy.system.listMethods()
     return proxy
-  except ProtocolError as error:
-    if error.errcode == 404:
+  except ProtocolError as err:
+    # ProtocolError has many different cases, and it may has a nested tuple.
+    if 404 in type_utils.FlattenTuple(err.args):
       # The requested plugin is not running
       logging.debug('The requested plugin %s is not running', plugin_name)
       return None

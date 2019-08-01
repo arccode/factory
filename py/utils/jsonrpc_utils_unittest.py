@@ -13,7 +13,6 @@ import SocketServer
 import threading
 import time
 import unittest
-import xmlrpclib
 
 import jsonrpclib
 from jsonrpclib import jsonrpc
@@ -23,6 +22,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils
+from cros.factory.utils import type_utils
 
 
 class JSONRPCTest(unittest.TestCase):
@@ -106,10 +106,11 @@ class MultiPathJSONRPCServerTest(unittest.TestCase):
           'http://%s:%d/' % (net_utils.LOCALHOST, self.port))
       try:
         p.Try()
-      except xmlrpclib.ProtocolError as err:
+      except jsonrpclib.ProtocolError as err:
         # We see 404 when the server is running instead of 111 (connection
         # refused)
-        if err.errcode == 404:
+        # ProtocolError has many different cases, and it may has a nested tuple.
+        if 404 in type_utils.FlattenTuple(err.args):
           return True
       return False
 
@@ -175,11 +176,8 @@ class MultiPathJSONRPCServerTest(unittest.TestCase):
   def testURLNotFound(self):
     proxy = jsonrpc.ServerProxy(
         'http://%s:%d/not_exists' % (net_utils.LOCALHOST, self.port))
-
-    # There is a bug in jsonrpc that the error here is xmlrpclib.ProtocolError
-    # instead of jsonrpclib.ProtocolError
     self.assertRaisesRegexp(
-        xmlrpclib.ProtocolError, '404 Not Found', proxy.Func)
+        jsonrpclib.ProtocolError, 'Not Found', proxy.Func)
 
   def testRPCException(self):
     self._SetInstance('/', self.RPCInstance())

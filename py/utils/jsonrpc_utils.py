@@ -149,7 +149,7 @@ class MultiPathJSONRPCServer(SimpleJSONRPCServer.SimpleJSONRPCServer):
   def is_rpc_path_valid(self, path):
     return path in self.dispatchers
 
-  def _marshaled_dispatch(self, data, dispatch_method=None):
+  def _marshaled_dispatch(self, data, dispatch_method=None, path=None):
     """Dispatch request
 
     This function is called by SimpleJSONRPCRequestHandler to dispatch request.
@@ -159,4 +159,4 @@ class MultiPathJSONRPCServer(SimpleJSONRPCServer.SimpleJSONRPCServer):
     path = handler.path
     # pylint: disable=protected-access
     return self.dispatchers[path]._marshaled_dispatch(
-        data, dispatch_method)
+        data, dispatch_method, path)
