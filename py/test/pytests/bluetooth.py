@@ -196,7 +196,7 @@ class BluetoothTest(test_case.TestCase):
           default=3),
       Arg('scan_timeout_secs', int,
           'Timeout to do one scan.',
-          default=5),
+          default=10),
       Arg('input_device_mac', str,
           'The mac address of bluetooth input device.',
           default=None),
