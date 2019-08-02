@@ -64,7 +64,8 @@ class ResourceTable extends React.Component<ResourceTableProps> {
       classes,
     } = this.props;
 
-    const downloadableResources = ['toolkit', 'hwid', 'firmware'];
+    const downloadableResources =
+        /^toolkit(_config)?|hwid|firmware|complete|netboot_.*|lsb_factory$/
 
     return (
       <div className={classes.root}>
@@ -105,7 +106,7 @@ class ResourceTable extends React.Component<ResourceTableProps> {
                   <Update />
                 </IconButton>
 
-                {(!downloadableResources.includes(resource.type) ||
+                {(!downloadableResources.test(resource.type) ||
                   resource.version === 'N/A') ?
                   <span /> :
                   <IconButton
