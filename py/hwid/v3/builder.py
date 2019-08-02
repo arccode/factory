@@ -21,16 +21,15 @@ from cros.factory.hwid.v3 import yaml_wrapper as yaml
 ESSENTIAL_COMPS = [
     'mainboard',
     'region',
-    'chassis',
+    'dram',
     'cpu',
-    'storage',
-    'dram']
+    'storage']
 
 # The components that are added in order if they exist in the probe results.
 PRIORITY_COMPS = OrderedDict([
+    ('ro_main_firmware', 5),
     ('firmware_keys', 3),
-    ('ro_main_firmware', 3),
-    ('ro_ec_firmware', 2)])
+    ('ro_ec_firmware', 5)])
 
 
 def FilterSpecialCharacter(string):
