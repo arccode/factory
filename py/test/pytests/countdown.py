@@ -101,7 +101,12 @@ class CountDownTest(test_case.TestCase):
           'rule format: (relation, first_sensor, second_sensor, max_diff). '
           'relation is a text output with warning messages to describe the two '
           'temp sensors in the rule', default=[]),
-      Arg('fan_min_expected_rpm', int, 'Minimum fan rpm expected', default=None)
+      Arg('fan_min_expected_rpm', int, 'Minimum fan rpm expected',
+          default=None),
+      Arg('allow_invalid_temp', bool,
+          'Allow invalid temperature e.g. values less then or equal to zero, '
+          'which may mean thermal nodes are not ready in early builds.',
+          default=False)
   ]
 
   def FormatSeconds(self, secs):
@@ -220,17 +225,22 @@ class CountDownTest(test_case.TestCase):
             'Cannot measure temperature difference between %s: '
             'temperature %s unavailable' %
             (relation, ', '.join(unavailable_sensor)))
-      else:
-        if abs(first_temp - second_temp) > max_diff:
-          warnings.append('Temperature difference between %s over %d '
-                          '(first: %d, second: %d)' %
-                          (relation, max_diff, first_temp, second_temp))
+      elif abs(first_temp - second_temp) > max_diff:
+        warnings.append('Temperature difference between %s over %d '
+                        '(first: %d, second: %d)' %
+                        (relation, max_diff, first_temp, second_temp))
 
     if self.args.fan_min_expected_rpm:
-      for i, ith_fan_rpm in enumerate(status.fan_rpm):
-        if ith_fan_rpm < self.args.fan_min_expected_rpm:
+      for i, fan_rpm in enumerate(status.fan_rpm):
+        if fan_rpm < self.args.fan_min_expected_rpm:
           warnings.append('Fan %d rpm %d less than min expected %d' %
-                          (i, ith_fan_rpm, self.args.fan_min_expected_rpm))
+                          (i, fan_rpm, self.args.fan_min_expected_rpm))
+
+    if not self.args.allow_invalid_temp:
+      for i, temp in enumerate(status.temperatures):
+        if temp <= 0:
+          warnings.append('Thermal zone %d reports abnormal temperature %d'
+                          % (i, temp))
 
     in_grace_period = self._elapsed_secs < self.args.grace_secs
     if warnings:
