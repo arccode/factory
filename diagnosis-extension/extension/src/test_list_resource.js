@@ -3,9 +3,11 @@
  * found in the LICENSE file.
  */
 import {DisplayTest} from '/src/tests/display/display.js';
-import {TouchscreenTest} from '/src/tests/touchscreen/touchscreen.js'
+import {TouchpadTest} from '/src/tests/touchpad/touchpad.js';
+import {TouchscreenTest} from '/src/tests/touchscreen/touchscreen.js';
 
 export const TEST_COMPONENTS = [
   DisplayTest,
+  TouchpadTest,
   TouchscreenTest
 ];

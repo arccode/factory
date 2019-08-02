@@ -1,0 +1,30 @@
+#container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-content: flex-end;
+  padding: 5%;
+}
+
+#scroll {
+  height: 100px;
+  width: 100px;
+  border: 3px solid grey;
+  text-align: center;
+  align-self: flex-end;
+}
+
+#click, #dblclick {
+  text-align: center;
+}
+
+.click-button {
+  border: 3px solid gray;
+  width: 100px;
+  height: 100px;
+  margin-top: .5em;
+}
+
+.success {
+  background-color: #99ff99;
+}
