@@ -91,11 +91,6 @@ class RefreshHandler(webapp2.RequestHandler):
   def post(self):
     """Refreshes the ingestion from staging files to live."""
 
-    # Skip if env is local (dev)
-    if CONFIG.env == 'dev':
-      self.response.write('Skip for local env')
-      return
-
     # TODO(yllin): Reduce memory footprint.
     # Get board.yaml
     try:
@@ -111,6 +106,12 @@ class RefreshHandler(webapp2.RequestHandler):
       self.abort(500, 'Missing file during refresh.')
 
     self.hwid_manager.ReloadMemcacheCacheFromFiles()
+
+    # Skip if env is local (dev)
+    if CONFIG.env == 'dev':
+      self.response.write('Skip for local env')
+      return
+
     self.UpdatePayloadsAndSync()
     self.response.write('Ingestion complete.')
 
