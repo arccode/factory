@@ -26,6 +26,17 @@ class FlattenListTest(unittest.TestCase):
                       type_utils.FlattenList([1, 2, [3, 4, []], 5, 6]))
 
 
+class FlattenTupleTest(unittest.TestCase):
+
+  def runTest(self):
+    self.assertEquals((), type_utils.FlattenTuple(()))
+    self.assertEquals((), type_utils.FlattenTuple((())))
+    self.assertEquals((1, ), type_utils.FlattenTuple((1, )))
+    self.assertEquals((1, ), type_utils.FlattenTuple((1, ())))
+    self.assertEquals((1, 2, 3, 4, 5, 6),
+                      type_utils.FlattenTuple((1, 2, (3, 4, ()), 5, 6)))
+
+
 class MakeListTest(unittest.TestCase):
 
   def runTest(self):

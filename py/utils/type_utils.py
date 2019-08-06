@@ -99,6 +99,17 @@ def FlattenList(lst):
              [])
 
 
+def FlattenTuple(tupl):
+  """Flattens a tuple, recursively including all items in contained tuples.
+
+  For example:
+
+    FlattenList((1,2,(3,4,()),5,6)) == (1,2,3,4,5,6)
+  """
+  return sum((FlattenTuple(x) if isinstance(x, tuple) else (x, ) for x in tupl),
+             ())
+
+
 def MakeList(value):
   """Converts the given value to a list.
 
