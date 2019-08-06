@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-07-12 15:24+CST\n"
+"PO-Revision-Date: 2019-08-06 16:14+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -13,156 +13,629 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: pygettext.py 1.5\n"
 
-msgid "Generate QR code of Service Tag"
-msgstr "Tạo mã QR của thẻ dịch vụ"
-
-msgid "Clear Result"
-msgstr "Xóa kết quả"
-
-msgid "Please select blinking times of keyboard backlight."
-msgstr "Vui lòng chọn số lượng đèn nền bàn phím nhấp nháy"
-
-msgid "Clear VPD"
-msgstr "Xóa VPD"
-
-msgid "Choose OBE Display"
-msgstr "Chọn màn hình OBE"
-
-msgid "Check VPD Serial Number"
-msgstr "kiểm tra số serial VPD serial number"
-
-msgid "Please put the device in face-up position and press SPACE"
-msgstr "Hãy chuyển màn hình sang màn hình nền và nhấn nút trống"
-
-msgid "Please put the device in normal position and press SPACE"
-msgstr "Đặt máy trên màn hình và nhấn nút trống"
-
-msgid "Please open the lid to 180 degrees and press ENTER."
-msgstr "Enter Mở rộng màn hình 180 độ và nhấn Enter"
-
-msgid "Disable Bluetooth"
-msgstr "Tắt bluetooth"
-
-msgid "Station Start Wifi"
-msgstr "Wifi trong nước"
-
-msgid "Connect Wifi"
-msgstr "kết nối wifi"
-
-msgid "Disconnect Wifi"
-msgstr "Tắt thiêt bị WiFi"
-
-msgid "Stylus Pen"
-msgstr "Phát hiện bút stylus"
-
-msgid "Please disconnect AC and reconnect battery to restart test"
-msgstr "Vui lòng tháo nguồn AC và kết nối pin để khởi động lại thử nghiệm"
-
-msgid ""
-"Value from 'mosys platform sku' does not match device data<br>"
-"Please remove battery, and then press SPACE to rewrite correct skuid"
-msgstr ""
-"Giá trị burn-in của EEPROM không khớp với giá trị skuid của máy.<br>"
-"Xin vui lòng tháo pin và nhấn nút trống để ghi lại skuid chính xác"
-
-msgid "Please remove battery and restart test"
-msgstr "Vui lòng tháo pin và khởi động lại thử nghiệm"
-
-msgid "New skuid has been written into this DUT<br>"
-      "Please press SPACE to power off and reconnect battery"
-msgstr "Các skuid mới đã được ghi vào máy thử nghiệm.<br>"
-       "Vui lòng nhấn nút trống để tắt và kết nối lại pin."
-
-msgid "(ESC to keep current value)"
-msgstr "(ESC giữ nguyên giá trị ban đầu)"
-
-msgid "(no update)"
-msgstr "(không có cập nhật)"
-
-msgid "(unchanged)"
-msgstr "(không đổi)"
-
-msgid "({index}/{total}) Uploading images {name}"
-msgstr "({index}/{total}) Tải lên hình ảnh {name}"
-
-msgid "20V Charging"
-msgstr "20V Sạc pin"
-
-msgid "15V Charging"
-msgstr "15V Sạc pin"
-
-msgid "5V Charging"
-msgstr "5V Sạc pin"
-
-msgid "Manual Test USB TypeC Charging"
-msgstr "Tự kiểm tra sạc USB TypeC"
-
-msgid "15V Charging Left"
-msgstr "Sạc 15V bên trái"
-
-msgid "5V Charging Left"
-msgstr "Sạc 5V bên trái"
-
-msgid "15V Charging Right"
-msgstr "sạc 15V bên phải"
-
-msgid "5V Charging Right"
-msgstr "sạc 5v bên phải"
-
-msgid ""
-"<div>Press <strong>Enter</strong> to continue, or <strong>ESC</strong> if "
-"things are not going right.</div>"
-msgstr ""
-"<div>Nhấn<strong>Enter</strong>để tiếp tục, nếu không, nhấn <strong>ESC</strong></div>"
-
-msgid "<div>Press <strong>Enter</strong> to continue.</div>"
-msgstr "<div>Nhấn<strong>Enter</strong>để tiếp tục</div>"
-
-msgid "A software update is available. Press SPACE to update."
-msgstr "Có sẵn các bản cập nhật. Bấm phím trống để cập nhật"
-
+#: ../build/pytests_label_generated.json
 msgid "AC Power"
 msgstr "nguồn điện AC"
 
-msgid "AC adapter type: {type}"
-msgstr "Mô hình bộ sạc: {type}"
-
-msgid "ALS Sensor Calibration"
-msgstr "Hiệu chỉnh cảm biến ánh sáng"
-
-msgid "Abort active test \"{test}\" and continue testing"
-msgstr "Hủy thử nghiệm đang chạy{test}」và tiếp tục"
-
-msgid "Abort {count} active tests in \"{test}\" and continue testing"
-msgstr "Hủy {count}kiểm tra trong thực thi trong「{test}」và tiếp tục"
-
-msgid "Accelerometer"
+#: ../build/pytests_label_generated.json
+msgid "Accelerometers"
 msgstr "Gia tốc kế"
 
+#: ../build/pytests_label_generated.json
 msgid "Accelerometers Calibration"
 msgstr "Điều chỉnh gia tốc kế"
 
+#: ../build/pytests_label_generated.json
 msgid "Accelerometers Lid Angle"
 msgstr "Góc gia tốc kế"
 
-msgid "Lid Accelerometers Auto Calibration"
-msgstr "Hiệu chỉnh tự động gia tốc trên bìa"
+#: ../build/pytests_label_generated.json
+msgid "Audio"
+msgstr "âm thanh"
 
-msgid "Base Accelerometers Auto Calibration"
-msgstr "Tự động hiệu chỉnh bảng gia tốc chính"
+#: ../build/pytests_label_generated.json
+msgid "Audio Basic"
+msgstr "Nguồn âm thanh cơ bản"
 
-msgid "Activate Registration Code"
-msgstr "Kích hoạt mã đăng ký(ECHO Code)"
+#: ../build/pytests_label_generated.json
+msgid "Audio Diagnostic"
+msgstr "Chẩn đoán âm thanh"
 
-msgid "Check Firmware Version"
-msgstr "Xác nhận phiên bản firmware"
+#: ../build/pytests_label_generated.json
+msgid "Audio Loop"
+msgstr "Phát lại nguồn âm thanh"
 
-msgid "Add Note"
-msgstr "Thêm ghi chú mới "
+#: ../build/pytests_label_generated.json
+msgid "Audio Quality"
+msgstr "Chất lượng âm thanh"
 
-msgid "All images uploaded."
-msgstr "Tất cả hình ảnh được tải lên"
+#: ../build/pytests_label_generated.json
+msgid "Backlight"
+msgstr "Độ sáng đèn nền"
 
+#: ../build/pytests_label_generated.json
+msgid "Bad Blocks"
+msgstr "khu bị hư hại"
+
+#: ../build/pytests_label_generated.json
+msgid "Battery"
+msgstr "Pin"
+
+#: ../build/pytests_label_generated.json
+msgid "Battery Basic"
+msgstr "Kiểm tra pin đơn giản"
+
+#: ../build/pytests_label_generated.json
+msgid "Battery Current"
+msgstr "phí và xả hiện tại"
+
+#: ../build/pytests_label_generated.json
+msgid "Battery Cycle"
+msgstr "Sạc và xả pin"
+
+#: ../build/pytests_label_generated.json
+msgid "Battery Sysfs"
+msgstr "pin  Sysfs"
+
+#: ../build/pytests_label_generated.json
+msgid "BFT Fixture"
+msgstr "BFT lịch thi đấu"
+
+#: ../build/pytests_label_generated.json
+msgid "Blocking Charge"
+msgstr "sạc"
+
+#: ../build/pytests_label_generated.json
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
+#: ../build/pytests_label_generated.json
+msgid "Bluetooth Host"
+msgstr "Bluetooth"
+
+#: ../build/pytests_label_generated.json
+msgid "Brightness"
+msgstr "Độ sáng"
+
+#: ../build/pytests_label_generated.json
+msgid "Brightness LCD Backlight"
+msgstr "Độ sáng đèn nền màn hình"
+
+#: ../build/pytests_label_generated.json
+msgid "Brightness LED"
+msgstr "Độ sáng LED"
+
+#: ../build/pytests_label_generated.json
+msgid "Button"
+msgstr "Nút"
+
+#: ../build/pytests_label_generated.json
+msgid "Buzzer"
+msgstr "Buzzer"
+
+#: ../build/pytests_label_generated.json
+msgid "Camera"
+msgstr "Máy ảnh"
+
+#: ../build/pytests_label_generated.json
+msgid "Cellular Switch Firmware"
+msgstr "Chuyển đổi phần mềm xử lý dữ liệu"
+
+#: ../build/pytests_label_generated.json
+msgid "Chameleon"
+msgstr "Chameleon"
+
+#: ../build/pytests_label_generated.json
+msgid "Charger"
+msgstr "Bộ sạc"
+
+#: ../build/pytests_label_generated.json
+msgid "Check CR50 Board ID"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "Check Image Version"
+msgstr "Kiểm tra phiên bản hình ảnh"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Check Serial Number"
+msgstr "kiểm tra số serial VPD serial number"
+
+#: ../build/pytests_label_generated.json
+msgid "Compass"
+msgstr "La bàn"
+
+#: ../build/pytests_label_generated.json
+msgid "Countdown"
+msgstr "Đếm ngược"
+
+#: ../build/pytests_label_generated.json
+msgid "Display"
+msgstr "Hiển thị"
+
+#: ../build/pytests_label_generated.json
+msgid "Display Images"
+msgstr "Hiển thị hình ảnh"
+
+#: ../build/pytests_label_generated.json
+msgid "Display Point"
+msgstr "Các điểm hiển thị"
+
+#: ../build/pytests_label_generated.json
+msgid "DSM Calibration"
+msgstr "DSM Hiệu chỉnh"
+
+#: ../build/pytests_label_generated.json
+msgid "Ethernet"
+msgstr "Mạng"
+
+#: ../build/pytests_label_generated.json
+msgid "Exec Python"
+msgstr "Thi hành Python"
+
+#: ../build/pytests_label_generated.json
+msgid "Exec Shell"
+msgstr "Thi hành các hướng dẫn"
+
+#: ../build/pytests_label_generated.json
+msgid "External Display"
+msgstr "Màn hình ngoài"
+
+#: ../build/pytests_label_generated.json
+msgid "Factory State"
+msgstr "Tình trạng kiểm tra nhà máy"
+
+#: ../build/pytests_label_generated.json
+msgid "Fan Speed"
+msgstr "Tốc độ quạt"
+
+#: ../build/pytests_label_generated.json
+msgid "Fastboot Flash"
+msgstr " Đốt Fastboot"
+
+#: ../build/pytests_label_generated.json
+msgid "Finalize"
+msgstr "Trình tự cuối cùng"
+
+#: ../build/pytests_label_generated.json
+msgid "Fingerprint Mcu"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "Flash Netboot"
+msgstr "Đốt firmware netboot"
+
+#: ../build/pytests_label_generated.json
+msgid "GPS"
+msgstr "GPS"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Gyroscope"
+msgstr "Con quay hồi chuyển"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Gyroscope Calibration"
+msgstr "Hiệu chuẩn con quay hồi chuyển"
+
+#: ../build/pytests_label_generated.json
+msgid "HWID"
+msgstr "HWID"
+
+#: ../build/pytests_label_generated.json
+msgid "Interrupt"
+msgstr "Gián đoạn"
+
+#: ../build/pytests_label_generated.json
+msgid "Keyboard"
+msgstr "Bàn phím"
+
+#: ../build/pytests_label_generated.json
+msgid "Keyboard Backlight"
+msgstr "Đèn nền bàn phím"
+
+#: ../build/pytests_label_generated.json
+msgid "Keyboard SMT"
+msgstr "SMT Bàn phím"
+
+#: ../build/pytests_label_generated.json ../py/test/pytests/led.py
+msgid "LED"
+msgstr "LED"
+
+#: ../build/pytests_label_generated.json
+msgid "Lid Switch"
+msgstr "Công tắc nắp trên"
+
+#: ../build/pytests_label_generated.json
+msgid "Light Sensor"
+msgstr "Cảm biến ánh sáng"
+
+#: ../build/pytests_label_generated.json
+msgid "Light Sensor Calibration"
+msgstr "Hiệu chỉnh cảm biến ánh sáng"
+
+#: ../build/pytests_label_generated.json
+msgid "Lightbar"
+msgstr "Thanh ánh sáng"
+
+#: ../build/pytests_label_generated.json
+msgid "Line Check Item"
+msgstr "Xác minh dự án"
+
+#: ../build/pytests_label_generated.json
+msgid "LTE Verify Config"
+msgstr "Cài đặt xác thực LTE"
+
+#: ../build/pytests_label_generated.json
+msgid "Memory Size"
+msgstr "Kích thước bộ nhớ"
+
+#: ../build/pytests_label_generated.json
+msgid "Message"
+msgstr "Thư"
+
+#: ../build/pytests_label_generated.json
+msgid "Model Sku"
+msgstr "Cấu hình và kiểu (SKU)"
+
+#: ../build/pytests_label_generated.json
+msgid "Modem Security"
+msgstr "Cấu hình và kiểu (SKU)"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "MRC Cache"
+msgstr "MRC Cache"
+
+#: ../build/pytests_label_generated.json
+msgid "Network Setup"
+msgstr "Cài đặt mạng"
+
+#: ../build/pytests_label_generated.json
+msgid "Nop"
+msgstr "Không có hành động"
+
+#: ../build/pytests_label_generated.json
+msgid "Offline Test"
+msgstr "Kiểm tra ngoại tuyến"
+
+#: ../build/pytests_label_generated.json
+msgid "Offline Test Shell Deploy"
+msgstr "Kiểm tra ngoại tuyến"
+
+#: ../build/pytests_label_generated.json
+msgid "Offline Test Shell Fetch Log"
+msgstr "Kiểm tra ngoại tuyến"
+
+#: ../build/pytests_label_generated.json
+msgid "Partition Table"
+msgstr "Bảng phân vùng"
+
+#: ../build/pytests_label_generated.json
+msgid "PD FW Min Version"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "Ping Test"
+msgstr "Kiểm tra kết nối"
+
+#: ../build/pytests_label_generated.json
+msgid "Plankton CC2 Pull Test"
+msgstr "Kiểm tra điện áp sinh vật phù du CC2"
+
+#: ../build/pytests_label_generated.json
+msgid "Plankton CC Flip Check"
+msgstr "Kiểm tra sinh vật phù du CC Flip"
+
+#: ../build/pytests_label_generated.json
+msgid "Plankton Charge"
+msgstr "Sạc Plankton"
+
+#: ../build/pytests_label_generated.json
+msgid "Plankton Display"
+msgstr "hiển thị Plankton"
+
+#: ../build/pytests_label_generated.json
+msgid "Power Under Stress"
+msgstr "Kiểm tra công suất áp suất"
+
+#: ../build/pytests_label_generated.json
+msgid "Probe"
+msgstr "Phát hiện"
+
+#: ../build/pytests_label_generated.json
+msgid "Probe Cellular Info"
+msgstr "Thông tin máy dữ liệu"
+
+#: ../build/pytests_label_generated.json
+msgid "Probe SIM"
+msgstr "Thử thẻ SIM"
+
+#: ../build/pytests_label_generated.json
+msgid "Probe SIM Card Tray"
+msgstr "Tra thử đầu dò thẻ SIM"
+
+#: ../build/pytests_label_generated.json
+msgid "Read Device Data From VPD"
+msgstr "Đọc dữ liệu máy từ VPD"
+
+#: ../build/pytests_label_generated.json
+msgid "Removable Storage"
+msgstr "Thiết bị lưu trữ di động"
+
+#: ../build/pytests_label_generated.json
+msgid "Retrieve Config"
+msgstr "Tải cài đặt"
+
+#: ../build/pytests_label_generated.json
+msgid "Retrieve Parameter"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "RF Graphyte"
+msgstr "RF Graphyte"
+
+#: ../build/pytests_label_generated.json
+msgid "Robot Movement"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "Sample Customized Test"
+msgstr "Kiểm tra tùy chỉnh mẫu"
+
+#: ../build/pytests_label_generated.json
+msgid "Sar Proximity Sensor"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "Scan"
+msgstr "Số máy quét"
+
+#: ../build/pytests_label_generated.json
+msgid "Select For Sampling"
+msgstr "Tùy chọn lấy mẫu"
+
+#: ../build/pytests_label_generated.json
+msgid "Serial Echo"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "Shopfloor Service"
+msgstr "Shopfloor"
+
+#: ../build/pytests_label_generated.json
+msgid "Shutdown"
+msgstr "Tắt máy"
+
+#: ../build/pytests_label_generated.json
+msgid "Spatial Sensor Calibration"
+msgstr "Hiệu chuẩn cảm biến"
+
+#: ../build/pytests_label_generated.json
+msgid "Start"
+msgstr "bắt đầu"
+
+#: ../build/pytests_label_generated.json
+msgid "Station Entry"
+msgstr "Trạm thử bắt đầu"
+
+#: ../build/pytests_label_generated.json
+msgid "Station Setup"
+msgstr "Tên trạm"
+
+#: ../build/pytests_label_generated.json
+msgid "Storage Simple Stress"
+msgstr "Thử áp lực cài đặt lưu trữ "
+
+#: ../build/pytests_label_generated.json
+msgid "Stressapptest"
+msgstr "Thử áp lực"
+
+#: ../build/pytests_label_generated.json
+msgid "Stylus"
+msgstr "đường vẽ khống chế "
+
+#: ../build/pytests_label_generated.json
+msgid "Summary"
+msgstr "Tổng kết"
+
+#: ../build/pytests_label_generated.json
+msgid "Suspend Resume"
+msgstr "Dừng/ Khôi phục"
+
+#: ../build/pytests_label_generated.json
+msgid "Sync Factory Server"
+msgstr "Máy chủ đồng bộ"
+
+#: ../build/pytests_label_generated.json
+msgid "Sync Time"
+msgstr "Thời gian đồng bộ hóa"
+
+#: ../build/pytests_label_generated.json
+msgid "Tablet Mode"
+msgstr "Chế độ máy tính bảng"
+
+#: ../build/pytests_label_generated.json
+msgid "Tablet Rotation"
+msgstr "Xoay vòng phẳng"
+
+#: ../build/pytests_label_generated.json
+msgid "Thermal Load"
+msgstr "Áp suất nhiệt độ"
+
+#: ../build/pytests_label_generated.json
+msgid "Thermal Sensors"
+msgstr "Cảm biến nhiệt độ"
+
+#: ../build/pytests_label_generated.json
+msgid "Thermal Slope"
+msgstr "Tốc độ tăng và giảm nhiệt độ"
+
+#: ../build/pytests_label_generated.json
+msgid "Touch Device FW Update"
+msgstr "Chạm vào cập nhật  thay đổi"
+
+#: ../build/pytests_label_generated.json
+msgid "Touch Uniformity"
+msgstr "chạm đồng nhất"
+
+#: ../build/pytests_label_generated.json
+msgid "Touchpad"
+msgstr "bàn di chuột"
+
+#: ../build/pytests_label_generated.json
+msgid "Touchpad Hover"
+msgstr "Tạm dừng bàn di chuột"
+
+#: ../build/pytests_label_generated.json
+msgid "Touchscreen"
+msgstr "Bảng cảm ứng"
+
+#: ../build/pytests_label_generated.json
+msgid "Touchscreen Calibration"
+msgstr "Hiệu chỉnh bảng cảm ứng"
+
+#: ../build/pytests_label_generated.json
+msgid "TPM Clear Owner"
+msgstr "TPMXóa TPM"
+
+#: ../build/pytests_label_generated.json
+msgid "TPM Diagnosis"
+msgstr "Chẩn đoán TPM"
+
+#: ../build/pytests_label_generated.json
+msgid "TPM Verify EK"
+msgstr "Chứng chỉ TPM"
+
+#: ../build/pytests_label_generated.json
+msgid "Update CR50 Firmware"
+msgstr "Cập nhật firmware CR50"
+
+#: ../build/pytests_label_generated.json
+msgid "Update Device Data"
+msgstr "Cập nhật thông tin máy"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_common.test_list.json
+#: ../py/test/test_lists/generic_smt.test_list.json
+msgid "Update Firmware"
+msgstr "Cập nhật firmware"
+
+#: ../build/pytests_label_generated.json
+msgid "Update Kernel"
+msgstr "KernelCập nhật Kernel"
+
+#: ../build/pytests_label_generated.json
+msgid "Update Sku"
+msgstr "Cập nhật thủ tục kiểm tra"
+
+#: ../build/pytests_label_generated.json
+msgid "Urandom"
+msgstr "Số ngẫu nhiên"
+
+#: ../build/pytests_label_generated.json
+msgid "USB"
+msgstr "USB"
+
+#: ../build/pytests_label_generated.json
+msgid "Verify Component"
+msgstr "Xác minh bộ nhớ cache"
+
+#: ../build/pytests_label_generated.json
+msgid "Verify Root Partition"
+msgstr "Xác minh vùng gốc"
+
+#: ../build/pytests_label_generated.json
+msgid "Video Playback"
+msgstr "Phát lại nguồn"
+
+#: ../build/pytests_label_generated.json
+msgid "VSWR"
+msgstr "VSWR"
+
+#: ../build/pytests_label_generated.json
+msgid "Vsync"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "Wait External Test"
+msgstr "Đang đợi thử nghiệm bên ngoài"
+
+#: ../build/pytests_label_generated.json
+msgid "Wait Fixture Ready"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "Webgl Aquarium"
+msgstr "WebGL"
+
+#: ../build/pytests_label_generated.json
+msgid "Whale Check Voltage"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "Whale Cover"
+msgstr ""
+
+#: ../build/pytests_label_generated.json
+msgid "Wifi Check Calibration"
+msgstr "Kiểm tra chỉnh sửa không dây"
+
+#: ../build/pytests_label_generated.json
+msgid "Wifi Throughput"
+msgstr "Băng thông không dây"
+
+#: ../build/pytests_label_generated.json
+msgid "Wireless Antenna"
+msgstr "Ăng ten không dây"
+
+#: ../build/pytests_label_generated.json
+msgid "Wireless Radiotap"
+msgstr "Quét không dây"
+
+#: ../build/pytests_label_generated.json
+msgid "Write Device Data To VPD"
+msgstr "Dữ liệu máy được ghi vào VPD"
+
+#: ../build/pytests_label_generated.json
+msgid "Write Protect Switch"
+msgstr "Viết công tắc bảo vệ"
+
+#: ../py/goofy/js/diagnosis_tool.js
+msgid "State:"
+msgstr "Trạng thái :"
+
+#: ../py/goofy/js/diagnosis_tool.js
+msgid "Description:"
+msgstr "giải thích  / Mô tả::"
+
+#: ../py/goofy/js/diagnosis_tool.js
+msgid "Input:"
+msgstr "Nhập:"
+
+#: ../py/goofy/js/diagnosis_tool.js
+msgid "Time remaining: "
+msgstr "Thời gian còn lại: "
+
+#: ../py/goofy/js/goofy.js
+msgid "Enter"
+msgstr "ENTER"
+
+#: ../py/goofy/js/goofy.js
+msgid "ESC"
+msgstr "ESC"
+
+#: ../py/goofy/js/goofy.js
+msgid "Space"
+msgstr "trống"
+
+#: ../py/goofy/js/goofy.js
+msgid "Factory tests stopped"
+msgstr "Kiểm tra nhà máy đã ngừng"
+
+#: ../py/goofy/js/goofy.js
 msgid ""
 "An error occurred while starting the factory test system\n"
 "Factory testing cannot proceed."
@@ -170,860 +643,656 @@ msgstr ""
 "Đã xảy ra lỗi khi mở hệ thống kiểm tra nhà máy..\n"
 "Không có cách nào để tiếp tục thử nghiệm.."
 
-msgid "And press Enter key to continue..."
-msgstr "Nhấn Enter để tiếp tục..."
-
-msgid "Enter Password"
-msgstr "Nhập mật khẩu của bạn"
-
-msgid "Architecture"
-msgstr "kiến trúc "
-
-msgid "Audio"
-msgstr "âm thanh"
-
-msgid "Audio Basic"
-msgstr "Nguồn âm thanh cơ bản"
-
-msgid "Audio Diagnostic"
-msgstr "Chẩn đoán âm thanh"
-
-msgid "Audio Jack"
-msgstr "Lỗ nguồn âm thanh"
-
-msgid "Audio Loop"
-msgstr "Phát lại nguồn âm thanh"
-
-msgid "Audio Quality"
-msgstr "Chất lượng âm thanh"
-
-msgid "Audio loopback"
-msgstr "Phát lại âm thanh"
-
-msgid "Audio looping"
-msgstr "Phát lại nguồn âm thanh"
-
-msgid "Authentication failed, retrying..."
-msgstr "Xác minh không thành công, thử lại"
-
-msgid "Automated testing on {dut_port} to {chameleon_port} in progress..."
-msgstr "{dut_port} Đang tiến hành kiểm tra tự động  {chameleon_port} ..."
-
-msgid "Autotest Group"
-msgstr "Nhóm thử nghiệm tự động"
-
-msgid "BB IP"
-msgstr "Trang web BB"
-
-msgid "BFT Fixture"
-msgstr "BFT lịch thi đấu"
-
-msgid "BFT display {device} is connected. Sending image..."
-msgstr "Màn hình BFT được kết nối: {device}, màn hình truyền"
-
-msgid "Backlight"
-msgstr "Độ sáng đèn nền"
-
-msgid "Bad Blocks"
-msgstr "khu bị hư hại"
-
-msgid "Barrier"
-msgstr "Kiểm tra mức độ"
-
-msgid "Base Accelerometers Calibration"
-msgstr "Hiệu chuẩn gia tốc bo mạch chủ"
-
-msgid "Battery"
-msgstr "Pin"
-
-msgid "Battery Basic"
-msgstr "Kiểm tra pin đơn giản"
-
-msgid "Battery Current"
-msgstr "phí và xả hiện tại"
-
-msgid "Battery Cycle"
-msgstr "Sạc và xả pin"
-
-msgid "Battery Sysfs"
-msgstr "pin  Sysfs"
-
-msgid "Blocking Charge"
-msgstr "sạc"
-
-msgid "Bluetooth"
-msgstr "Bluetooth"
-
-msgid "Brightness"
-msgstr "Độ sáng"
-
-msgid "Brightness LCD Backlight"
-msgstr "Độ sáng đèn nền màn hình"
-
-msgid "Brightness LED"
-msgstr "Độ sáng LED"
-
-msgid "Bug Description"
-msgstr "Mô tả lỗi"
-
-msgid "Build Phase"
-msgstr "Giai đoạn sản xuất"
-
-msgid "Button"
-msgstr "Nút"
-
-msgid "Buzzer"
-msgstr "Buzzer"
-
-msgid "Calculating calibration coefficients"
-msgstr "Tính toán các thông số hiệu chuẩn"
-
-msgid "Calibrating Touch device"
-msgstr "Hiệu chỉnh thiết bị cảm ứng"
-
-msgid "Calibrating touchpad..."
-msgstr "Chỉnh sửa màn hình cảm ứng ..."
-
-msgid "Calibrating {sensor_name}..."
-msgstr "Hiệu chỉnh {sensor_name}..."
-
-msgid "Calibration is in progress, please do not move device."
-msgstr "Không di chuyển đối tượng đang được kiểm tra trong khi đang thực hiện quy trình hiệu chuẩn."
-
+#: ../py/goofy/js/goofy.js
 msgid ""
-"Calibration will be started within {secs} seconds.Please do not move device."
-msgstr "Chương trình thử nghiệm sẽ bắt đầu sau {secs} giây.Không di chuyển đối tượng đang được kiểm tra."
-
-msgid ""
-"Calibration will be started within {time} seconds.Please do not move device."
-msgstr "Quy trình hiệu chuẩn sẽ bắt đầu sau {time} giây, không được di chuyển đối tượng đang thử."
-
-msgid "Camera"
-msgstr "Máy ảnh"
-
-msgid "Cancel"
-msgstr "Hủy"
-
-msgid "Captured images mismatch"
-msgstr "Các hình ảnh được chụp không khớp"
-
-msgid "Caution: monitor may turn black for a short time."
-msgstr "Lưu ý: Màn hình có thể có màn hình đen ngắn."
-
-msgid "Cellular Switch Firmware"
-msgstr "Chuyển đổi phần mềm xử lý dữ liệu"
-
-msgid "Chameleon"
-msgstr "Chameleon"
-
-msgid "Change URL"
-msgstr "Thay đổi URL"
-
-msgid "Change server URL: "
-msgstr " Thay đổi URL máy chủ: "
-
-msgid "Charge Discharge Current"
-msgstr "phí và xả hiện tại kiểm tra"
-
-msgid "Charger"
-msgstr "Bộ sạc"
-
-msgid "Charger Type Detection"
-msgstr "Nhận dạng mô hình bộ sạc"
-
-msgid "Charging"
-msgstr "Sạc"
-
-msgid ""
-"Charging to {target}% (Start: {start}%. Current: {current}%.)<br>Time "
-"elapsed: {elapsed} Time remaining: {remaining}"
+"Switch to\n"
+"{target_locale}"
 msgstr ""
-"Tính phí {target}% (phí bắt đầu: {start}%. Khoản phí hiện tại: {current}%.)<br>Thời gian đã trôi qua: "
-"{elapsed} Thời gian còn lại: {remaining}"
+"Đổi cắt đến \n"
+"{target_locale}"
 
-msgid "Check OEM ID"
-msgstr "Kiểm traOEM ID"
-
-msgid "Check Bluetooth"
-msgstr "Kiểm tra Bluetooth"
-
-msgid "Check Image Version"
-msgstr "Kiểm tra phiên bản hình ảnh"
-
-msgid "Check Point"
-msgstr "Mức xác nhận"
-
-msgid "Check Point for All Tests"
-msgstr "Xác nhận cuối cùng của cấp"
-
-msgid "Check Release Image"
-msgstr "Kiểm tra hệ thống nhà máy"
-
-msgid "Check WLAN"
-msgstr "Kiểm tra mạng không dây"
-
-msgid "Check if the battery has charged to a higher percentage"
-msgstr "Kiểm tra xem phí có tăng sau khi sạc không"
-
-msgid "Checking ALS ordering"
-msgstr "Xác nhận trình tự  ALS"
-
-msgid "Checking Plankton INA current for protection..."
-msgstr "Kiểm tra bảo vệ hiện tại..."
-
-msgid "Checking SIM card is present or not..."
-msgstr "Kiểm tra xem thẻ SIM có tồn tại không"
-
-msgid "Checking angle..."
-msgstr "Góc được xác nhận"
-
-msgid "Checking for false positive..."
-msgstr "Thực hiện kiểm tra dương tính giả..."
-
-msgid "Checking frequencies..."
-msgstr "Kiểm tra tần số..."
-
-msgid "Checking its calibration status..."
-msgstr "Xác minh tình trạng hiệu chỉnh thiết bị..."
-
-msgid "Checking memory info..."
-msgstr "Kiểm tra dung lượng bộ nhớ..."
-
-msgid "Cleaning up calibration values"
-msgstr "Xóa giá trị hiệu chỉnh"
-
-msgid "Clear factory VPD entries"
-msgstr "Xóa thông tin VPD nhà máy"
-
-msgid "Clear notes"
-msgstr "Xóa ghi chú"
-
-msgid "Clear status of test \"{test}\""
-msgstr "Xóa trạng thái của thử nghiệm {test}"
-
-msgid "Clear status of {count} tests in \"{test}\""
-msgstr "Xóa trạng thái của {count} kiểm tra trong「{test}」"
-
-msgid "Click or press SPACE to continue"
-msgstr "Nhấp hoặc nhấn nút trống để tiếp tục"
-
-msgid "Close then open the lid"
-msgstr "Đóng và sau đó mở nắp trên"
-
-msgid "Cold Reset"
-msgstr "Khởi động nguội"
-
-msgid "Collecting report data..."
-msgstr "Thu thập tài liệu báo cáo..."
-
-msgid "Compass"
-msgstr "La bàn"
-
-msgid "Computing..."
-msgstr "Sửa chữa..."
-
-msgid "Confirm tablet mode"
-msgstr "Xác nhận chế độ máy tính bảng"
-
-msgid "Connect Device"
-msgstr "Gắn thiết bị"
-
-msgid "Connect external display: {display} and wait until it becomes primary."
-msgstr "Vui lòng kết nối màn hình ngoài: {display} và đợi cho nó trở thành màn hình chính."
-
-msgid "Connected"
-msgstr "Đã kết nối"
-
-msgid "Connecting BFT display: {device}"
-msgstr "Kết nối với màn hình BFT: {device}"
-
-msgid "Connecting to ShopFloor..."
-msgstr "Kết nối với ShopFloor..."
-
-msgid "Connecting to input device now..."
-msgstr "Kết nối với thiết bị đầu vào Bluetoot..."
-
-msgid "Connecting with the ENA..."
-msgstr " Kết nối với ENA (E5071C) ..."
-
-msgid "Controller status"
-msgstr "Liên kết khuôn"
-
-msgid "Copy Factory State From DUT"
-msgstr "Sao chép trạng thái thử nghiệm từ thiết bị"
-
-msgid "Copy Factory State To DUT"
-msgstr "Sao chép trạng thái kiểm tra sang thiết bị"
-
-msgid "Countdown"
-msgstr "Đếm ngược"
-
-msgid "Cover light sensor with finger"
-msgstr "Bao gồm cảm biến ánh sáng"
-
-msgid "Create Cache"
-msgstr "Tạo bộ nhớ cache"
-
-msgid "Create Report"
-msgstr "Sản xuất báo cáo"
-
-msgid "Critical factory note; cannot run tests"
-msgstr "Thử nghiệm nhà máy đã ngừng"
-
-msgid "Current calibration has not completed yet"
-msgstr "Hiệu chuẩn hiện tại vẫn chưa kết thúc"
-
-msgid "Current networks: {networks}"
-msgstr "Mạng hiện tại: {networks}"
-
-msgid "Current: {current} mA"
-msgstr "Hiện tại: {current} mA"
-
-msgid "DSM Calibration"
-msgstr "DSM Hiệu chỉnh"
-
-msgid "Demagnetizing lid sensor"
-msgstr "Cảm biến cảm biến"
-
-msgid "Description:"
-msgstr "giải thích  / Mô tả::"
-
-msgid "Detect RSSI (count {count}/{total})"
-msgstr "Phát hiện RSSI (số {count}/{total} lần)"
-
-msgid "Detect Server URL"
-msgstr "Phát hiện URL máy chủ "
-
-msgid "Detect bluetooth adapter"
-msgstr "Phát hiện bộ điều hợp Bluetooth"
-
-msgid ""
-"Detected power {watt} W, required power range ({min_watt} W, {max_watt} W)"
-msgstr "Nguồn điện được phát hiện {watt}watt，phạm vi cung cấp điện yêu cầu ({min_watt}watt, {max_watt}watt)"
-
-msgid "Detected! Please remove the SIM card"
-msgstr "Thẻ SIM đã được phát hiện, vui lòng tháo thẻ SIM"
-
-msgid "Detected! Please remove the SIM card tray"
-msgstr "Hộp mực SIM đã được phát hiện Vui lòng tháo hộp đựng thẻ SIM"
-
-msgid "Detecting faces..."
-msgstr "Phát hiện khuôn mặt ..."
-
-msgid "Device ID"
-msgstr "Mã nhận dạng thiết bị"
-
-msgid "Device Serial Number"
-msgstr "Số máy"
-
-msgid "Device manager"
-msgstr "Xem phần cứng"
-
-msgid "Device not in position"
-msgstr "Vị trí thiết bị không chính xác"
-
-msgid "Diagnosis Tool"
-msgstr "Công cụ chẩn đoán"
-
-msgid "Disabled"
-msgstr "Hủy kích hoạt"
-
-msgid "Discharging"
-msgstr "Xả"
-
-msgid "Disconnect Device"
-msgstr "Loại bỏ thiết bị"
-
-msgid "Disconnect external display: {display}"
-msgstr "Tháo màn hình ngoài: {display}"
-
-msgid "Disconnected from controller"
-msgstr "Mất liên lạc với vật cố"
-
-msgid "Disconnecting BFT display: {device}"
-msgstr "Loại bỏ màn hình BFT: {device}"
-
-msgid "Display"
-msgstr "Hiển thị"
-
-msgid "Display Images"
-msgstr "Hiển thị hình ảnh"
-
-msgid "Display Point"
-msgstr "Các điểm hiển thị"
-
-msgid "Display Test"
-msgstr "Kiểm tra hiển thị"
-
-msgid "Do you see video on {display}?"
-msgstr "Màn hình bên ngoài {display} Có ảnh không?"
-
-msgid "Done scanning on device {device} frequency {freq}..."
-msgstr "Tần suất quét {freq} {device} trên thiết bị {freq} đã hoàn tất"
-
-msgid "Downloading parameters"
-msgstr "Tải xuống thông số thử nghiệm"
-
-msgid "Downloading parameters from shopfloor..."
-msgstr "Tải về các thông số thử nghiệm từ Shopfloor..."
-
-msgid "Dozing Stress"
-msgstr "Kiểm tra căng thẳng bộ nhớ ngủ"
-
-msgid "Draw blocks from upper-left corner in sequence; Esc to fail."
-msgstr "Vẽ lưới theo thứ tự từ góc trên cùng bên trái, nhấn Esc để đánh dấu sự thất bại"
-
-msgid "Draw blocks in any order; Esc to fail."
-msgstr "Vẽ tất cả các lưới theo thứ tự bất kỳ, nhấn Esc để đánh dấu sự thất bại"
-
-msgid "EC"
-msgstr "EC"
-
-msgid "EC Cold Reset"
-msgstr "EC Khởi động lại lạnh"
-
-msgid "ERROR: Touch device not found"
-msgstr "Không tìm thấy thiết bị cảm ứng"
-
-msgid "ESC"
-msgstr "ESC"
-
-msgid "Elapsed Time"
-msgstr "Thời gian trải qua"
-
-msgid "Elapsed time:"
-msgstr "Thời gian trải qua："
-
-msgid "Enable Gyroscope"
-msgstr "Bật con quay hồi chuyển"
-
-msgid "Enable the connection ability of bluetooth device and press Enter"
-msgstr "Bật chức năng kết nối của thiết bị Bluetooth và bấm phím enter"
-
-msgid "Enabled"
-msgstr "Bật"
-
-msgid "End Station Test"
-msgstr "Kết thúc bài kiểm tra"
-
-msgid "Engineering mode"
-msgstr "Chế độ kỹ thuật"
-
-msgid "Enter"
-msgstr "ENTER"
-
-msgid "Enter an optional identifier for the archive (or press Enter for none):"
-msgstr "Vui lòng nhập số nhận dạng cho tệp hồ sơ nhà máy hoặc nhấn phím Enter để không chọn:"
-
-msgid "Enter passkey {key} then press enter on the base."
-msgstr "Nhấn phím {key} và nhấn Enter"
-
-msgid "Enter valid serial number:<br>"
-msgstr "Vui lòng nhập số sê-ri hợp lệ:<br>"
-
-msgid "Enter {label}: "
-msgstr "Nhập{label}: "
-
-msgid "Ethernet"
-msgstr "Mạng"
-
-msgid "Exec Python"
-msgstr "Thi hành Python"
-
-msgid "Exec Shell"
-msgstr "Thi hành các hướng dẫn"
-
-msgid "Executing Graphyte"
-msgstr "Thi hành Graphyte"
-
-msgid "Expected keycode sequence:"
-msgstr "Trình tự khóa đích:"
-
-msgid "Expected network: {networks}"
-msgstr "Mạng dự kiến: {networks}"
-
-msgid "External Display"
-msgstr "Màn hình ngoài"
-
-msgid "FAIL"
-msgstr "Thất bại"
-
-msgid "FAT (Final Assembly Test)"
-msgstr "FAT (Final Assembly Test)"
-
-msgid "FFT (Final Functional Test)"
-msgstr "FFT (Kiểm tra chức năng cuối cùng)"
-
-msgid "Factory Server"
-msgstr "Máy chủ nhà máy"
-
-msgid "Factory State"
-msgstr "Tình trạng kiểm tra nhà máy"
-
-msgid "Factory Toolkit Version"
-msgstr "Phiên bản Công cụ Kiểm tra"
-
-msgid ""
-"Factory install process did not complete. Auto-testing stopped."
-"<br><br>Please install the factory test image using factory server<br>rather "
-"than booting from a USB drive.<br>"
-msgstr ""
-"Thất bại trong quá trình cài đặt, dừng kiểm tra tự động<br><br>Vui lòng sử dụng máy chủ nhà máy đầy đủ để cài đặt chương trình thử nghiệm,"
-"<br>không khởi động trực tiếp từ đĩa USB.。<br>"
-
-msgid "Factory tests stopped"
-msgstr "Kiểm tra nhà máy đã ngừng"
-
-msgid "Fail"
-msgstr "Thất bại"
-
-msgid "Fail to assign DIRECT_SENSORS_IP in ryu.conf"
-msgstr "Cầnchỉđịnh DIRECT_SENSORS_IP trongryu.conf"
-
-msgid ""
-"Fail to detect the touchscreen.\n"
-"Insert the traveler board, and restart the test."
-msgstr ""
-"Không thể phát hiện bảng điều khiển\n"
-"Vui lòng tháo bảng nhỏ và lắp lại bảng nhỏ và chạy lại thử nghiệm"
-
-msgid ""
-"Fail to detect the touchscreen.\n"
-"Remove and re-insert the traveler board. And restart the test."
-msgstr ""
-"Không thể phát hiện bảng điều khiển \n"
-"Vui lòng tháo bảng nhỏ và lắp lại bảng nhỏ và chạy lại thử nghiệm"
-
-msgid "Failed"
-msgstr "Thất bại"
-
-msgid "Fails to draw blocks in sequence. Please try again."
-msgstr "Không vẽ lưới theo thứ tự! Vui lòng quay lại"
-
-msgid "Failure"
-msgstr "Thất bại"
-
-msgid "Fan Speed"
-msgstr "Tốc độ quạt"
-
-msgid "Fan speed (RPM):"
-msgstr "Tốc độ quạt(RPM):"
-
-msgid "Fastboot Flash"
-msgstr " Đốt Fastboot"
-
-msgid "Fetching config files from factory server"
-msgstr "Tải xuống thông số thử nghiệm từ máy chủ gốc"
-
-msgid "Finalize"
-msgstr "Trình tự cuối cùng"
-
-msgid ""
-"Finalizing, please wait.<br>Do not restart the device or terminate this test,"
-"<br>or the device may become unusable."
-msgstr ""
-"Bắt đầu trình tự cuối cùng, vui lòng đợi.<br>Không khởi động lại máy hoặc ngừng thử nghiệm.<br>Nếu không, máy sẽ không khởi động"
-
-msgid "Finger leaving too early. Please try again."
-msgstr "Ngón tay rời quá sớm! Vui lòng quay lại"
-
-msgid "Finish"
-msgstr "Kết thúc"
-
-msgid "Fixture Connected"
-msgstr "Lịch thi đấu đã được kết nối"
-
-msgid "Fixture Disconnected"
-msgstr "Ngắt kết nối cố định"
-
-msgid "Fixture is checking if video is displayed on {display}?"
-msgstr "Lịch thi đấu đang kiểm tra màn hình ngoài {display} Có ảnh không?"
-
-msgid "FixtureState"
-msgstr "Điều tra trạng thái Jig"
-
-msgid "Flash Netboot"
-msgstr "Đốt firmware netboot"
-
-msgid "Flashing {component}..."
-msgstr ".Đốt  {component}..."
-
-msgid "Flashing {file} to {partition}."
-msgstr "Cài đặt  {file} thành {partition}."
-
-msgid "Flip USB type-C cable and plug in again..."
-msgstr "Đảo ngược đầu cắm USB loại C và cắmlại vào máy..."
-
-msgid "Flip the lid into tablet mode"
-msgstr "Mở nắp trên cho đến khi nó vừa với nắp dướ"
-
-msgid "Flush Event Logs"
-msgstr "Ghi nhật ký sự kiện đồng bộ hóa"
-
-msgid "Flush Test Log"
-msgstr "Bảng hi thử nghiệm đồng bộ(TestLog)"
-
-msgid "Scan TravelCard Number"
-msgstr "Số thứ tự công việc quét"
-
-
-msgid "Receive Run-in PortID"
-msgstr "Nhận PortID Run-in"
-
-
-msgid "Scan Run-in PortID"
-msgstr "Quét trong Run-in PortID"
-
-
-msgid "Update PortID mapping table"
-msgstr "Cập nhật Bảng so sánhPortID"
-
-msgid "Flush Test Log: Progress = <br>{progress}"
-msgstr "Bảng hi thử nghiệm đồng bộ hóa (TestLog): Progress = <br>{progress}"
-
-msgid ""
-"For debugging or development, enter engineering mode to start individual "
-"tests."
-msgstr "Nếu bạn muốn gỡ lỗi hoặc thực hiện một số kiểm tra, vui lòng nhập chế độ kỹ thuật."
-
-msgid "Front Camera"
-msgstr "Camera trước"
-
-msgid "Full Reboot"
-msgstr "Khởi động lại sâu"
-
-msgid "GPS"
-msgstr "GPS"
-
-msgid "GRT (Google Required Tests)"
-msgstr "GRT (Dự án thử nghiệm bắt buộc của Google)"
-
-msgid "Generating HWID (v3)..."
-msgstr "Tạo HWID HWID (v3)..."
-
-msgid "Generic Chromebook"
-msgstr "Kiểm tra Chromebook chung"
-
-msgid "Generic RF Station"
-msgstr "Trạm kiểm tra chung RF"
-
-msgid "Generic Rolling Reliability"
-msgstr "Kiểm tra ổn định chung (RRT)"
-
-msgid "Getting serial number..."
-msgstr "Đọc số sê-ri ..."
-
-msgid ""
-"Ghost finger detected!!\n"
-"Please treat this touch panel as a problematic one!!"
-msgstr ""
-"Một ngón tay ma được phát hiện!\n"
-"Vui lòng sử dụng bảng cả mứng này như một sự cố! !"
-
-msgid "Group Registration Code"
-msgstr "Mã đăng ký nhóm(Group ECHO)"
-
-msgid "Gyroscope"
-msgstr "Con quay hồi chuyển"
-
-msgid "Gyroscope Calibration"
-msgstr "Hiệu chuẩn con quay hồi chuyển"
-
-msgid "HWID"
-msgstr "HWID"
-
-msgid "HWID Database Version"
-msgstr "Phiên bản cơ sở dữ liệu HWID"
-
-msgid "Halt"
-msgstr "Tắt máy"
-
-msgid "Hardware Button"
-msgstr "Kiểm tra nút"
-
-msgid "Has Cellular"
-msgstr "Có một máy dữ liệu"
-
-msgid "Has LTE"
-msgstr "Với LTE"
-
-msgid "Has Touchscreen"
-msgstr "Với bảng điều khiển cảm ứng"
-
-msgid "Headset"
-msgstr "Tai nghe bên ngoài"
-
-msgid "Hit \"space\" to begin..."
-msgstr "Nhấn phím trống để bắt đầu kiểm tra..."
-
-msgid "Hit SPACE to start testing..."
-msgstr "Nhấn nút trống để bắt đầu kiểm tra..."
-
-msgid "to start loopback test"
-msgstr "Bắt đầu kiểm tra phát lại nguồn âm thanh"
-
-msgid "Host IP"
-msgstr "URL gốc"
-
-msgid "How many beeps do you hear? <br>Press space to start."
-msgstr "Bạn nghe thấy bao nhiêu tiếng ngáy? Nhấn nút trống để bắt đầu thử nghiệm"
-
-msgid ""
-"How many beeps do you hear? <br>Press the number you hear to pass the test."
-"<br>Press 'r' to play again."
-msgstr "Bạn nghe thấy bao nhiêu tiếng ngáy? <br>Vui lòng nhấn số để cho biết bạn nghe thấy một vài <br>tiếng  bíp và bấm 'r' để phát lại"
-
-msgid "IP Address"
-msgstr "Địa chỉ IP"
-
-msgid "Identifying AC adapter..."
-msgstr "Nhận dạng mô hình sạc ..."
-
-msgid "Idle"
-msgstr "Chờ đợi nhàn rỗi"
-
-msgid "If the <strong>{name}</strong> is <strong>off</strong>, press ENTER."
-msgstr ""
-"Vui lòng kiểm tra xem <strong>{name}</strong> có bị tắt hay không <strong>nhấn</strong> nhấn "
-"ENTER。"
-
-msgid ""
-"If the <strong>{name}</strong> lights up in <strong>{color}</strong>, press "
-"ENTER."
-msgstr ""
-"Vui lòng kiểm tra xem <strong>{name}</strong> có được sáng <strong>{color}</strong> không, vui lòng nhấn "
-"ENTER。"
-
-msgid "If the keyboard backlight is off, press ENTER. "
-msgstr "Kiểm tra xem đèn nền bàn phím có tắt hay  không Nhấn ENTER."
-
-msgid "If the keyboard backlight lights up, press ENTER. "
-msgstr "Kiểm tra xem đèn nền bàn phím có sáng không, nhấn ENTER"
-
-msgid "Image version is incorrect. Press space to re-image."
-msgstr "Phiên bản hình ảnh không đúng. Vui lòng nhấn nút trống để cài đặt lại."
-
-msgid "Initialize some shared data..."
-msgstr "Đặt lại dữ liệu được chia sẻ cũ..."
-
-msgid "Initializing Robot..."
-msgstr "Khởi tạo cánh tay robot..."
-
-msgid "Input Nodes"
-msgstr "Thiết bị đầu vào"
-
-msgid "Input:"
-msgstr "Nhập:"
-
-msgid "Insert power to {prompt}({voltage}mV)"
-msgstr "Vui lòng cắm dây nguồn vào{prompt}({voltage}mV)"
-
-msgid ""
-"Insert {media} drive for read/write test... {extra}<br>WARNING: DATA ON "
-"INSERTED MEDIA WILL BE LOST!"
-msgstr ""
-"Chèn {media} bộ nhớ cho các bài kiểm tra đọc và viết... {extra}<br>ưu ý: Dữ liệu được chèn vào thiết bị sẽ bị xóa!"
-"!"
-
-msgid "Interface {interface} not found"
-msgstr "Không tìm thấy giao diện mạng {interface}"
-
-msgid "Interface {interface} not initialized"
-msgstr "Giao diện mạng {interface} không được khởi tạo thành công"
-
-msgid "Internal Speaker"
-msgstr "Loa tích hợp"
-
-msgid "Interrupt"
-msgstr "Gián đoạn"
-
-msgid "Invalid value for {label}."
-msgstr "đã nhập không chính xác{label}"
-
-msgid "Invocation ID"
-msgstr "ID thử nghiệm Thi hành dịch vụ Shop floor"
-
-msgid "Invoking shopfloor service"
-msgstr "Thực hiện dịch vụ Shopfloor"
-
-msgid "Is the lightbar {color}?<br>Press SPACE if yes, \"F\" if no."
-msgstr "Thanh ánh sáng có phải là {color} không?<br>Có, vui lòng nhấn  phím trống, không nhấn F 。"
-
-msgid "Kernel"
-msgstr "Phiên bản hạt nhân"
-
-msgid "Keyboard"
-msgstr "Bàn phím"
-
-msgid "Keyboard Backlight"
-msgstr "Đèn nền bàn phím"
-
-msgid "Keyboard SMT"
-msgstr "SMT Bàn phím"
-
-msgid "LCD Dmic on"
-msgstr "Micrô LCD đang bật"
-
-msgid "LED"
-msgstr "LED"
-
-msgid "Config Check"
-msgstr "Kiểm tra cấu hình"
-
-msgid "LTE Verify Config"
-msgstr "Cài đặt xác thực LTE"
-
+#: ../py/goofy/js/goofy.js
 msgid "Language"
 msgstr "Ngôn ngữ"
 
+#: ../py/goofy/js/goofy.js
+msgid "Press OK to shutdown"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid "Rebooting"
+msgstr "Khởi động lại"
+
+#: ../py/goofy/js/goofy.js
+msgid "Shutting down"
+msgstr "Tắt máy"
+
+#: ../py/goofy/js/goofy.js
+msgid "once"
+msgstr "1 lần"
+
+#: ../py/goofy/js/goofy.js
+msgid "{count} of {total} times"
+msgstr "{count} lần trong {total} lần kiểm tra"
+
+#: ../py/goofy/js/goofy.js
+msgid ""
+"{action} in {seconds_left} seconds ({times_text}).\n"
+"To cancel, press the Escape key."
+msgstr ""
+"Sẽ là {action} ({times_text}) sau {seconds_left} giây.\n"
+"Nhấn ESC để hủy."
+
+#: ../py/goofy/js/goofy.js
+msgid "Shutting down..."
+msgstr "Đang tắt máy..."
+
+#: ../py/goofy/js/goofy.js ../py/test/pytests/sync_factory_server.py
+msgid "Cancel"
+msgstr "Hủy"
+
+#: ../py/goofy/js/goofy.js
+msgid "Critical factory note; cannot run tests"
+msgstr "Thử nghiệm nhà máy đã ngừng"
+
+#: ../py/goofy/js/goofy.js
+msgid "Not in engineering mode; cannot skip tests"
+msgstr "Chế độ kỹ thuật có thể bỏ qua thử nghiệm"
+
+#: ../py/goofy/js/goofy.js
+msgid "Run all {count} tests in \"{test}\""
+msgstr "Thực thi tất cả {count} kiểm tra trong {test}"
+
+#: ../py/goofy/js/goofy.js
+msgid "Run test \"{test}\""
+msgstr "Thực hiện kiểm tra「{test}」"
+
+#: ../py/goofy/js/goofy.js
+msgid "Restart all {count} tests in \"{test}\""
+msgstr "Chạy lại tất cả {count} kiểm tra trong {test}"
+
+#: ../py/goofy/js/goofy.js
+msgid "Restart test \"{test}\""
+msgstr "Chạy lại kiểm tra 「{test}」"
+
+#: ../py/goofy/js/goofy.js
+msgid "Restart {count} tests in \"{test}\" that have not passed"
+msgstr "Chạy lại {count} các thử nghiệm không thành công trong {test}"
+
+#: ../py/goofy/js/goofy.js
+msgid "Clear status of {count} tests in \"{test}\""
+msgstr "Xóa trạng thái của {count} kiểm tra trong「{test}」"
+
+#: ../py/goofy/js/goofy.js
+msgid "Clear status of test \"{test}\""
+msgstr "Xóa trạng thái của thử nghiệm {test}"
+
+#: ../py/goofy/js/goofy.js
+msgid "Run {count} untested tests in \"{test}\""
+msgstr "Thực thi {count} kiểm tra chưa được kiểm tra trong {test}"
+
+#: ../py/goofy/js/goofy.js
+msgid "Stop all tests"
+msgstr "Dừng tất cả các bài kiểm tra"
+
+#: ../py/goofy/js/goofy.js
+msgid "Abort {count} active tests in \"{test}\" and continue testing"
+msgstr "Hủy {count}kiểm tra trong thực thi trong「{test}」và tiếp tục"
+
+#: ../py/goofy/js/goofy.js
+msgid "Abort active test \"{test}\" and continue testing"
+msgstr "Hủy thử nghiệm đang chạy{test}」và tiếp tục"
+
+#: ../py/goofy/js/goofy.js
+msgid "Show test UI"
+msgstr "Màn hình kiểm tra hiển thị"
+
+#: ../py/goofy/js/goofy.js
+msgid "System time: "
+msgstr "Thời gian hệ thống:"
+
+#: ../py/goofy/js/goofy.js
+msgid "Your Name"
+msgstr "tên của bạn"
+
+#: ../py/goofy/js/goofy.js
+msgid "Note Content"
+msgstr "Ghi chú"
+
+#: ../py/goofy/js/goofy.js
+msgid "Severity"
+msgstr "Mức độ nghiêm trọng"
+
+#: ../py/goofy/js/goofy.js
+msgid "Add Note"
+msgstr "Thêm ghi chú mới "
+
+#: ../py/goofy/js/goofy.js
+msgid "Uploading factory logs..."
+msgstr "Tải lên hồ sơ nhà máy ..."
+
+#: ../py/goofy/js/goofy.js
+msgid "Uploading factory logs.  Please wait..."
+msgstr "Bản ghi nhà máy đang được tải lên. Vui lòng chờ một lát ..."
+
+#: ../py/goofy/js/goofy.js
+msgid "Serial Number"
+msgstr "số thứ tự"
+
+#: ../py/goofy/js/goofy.js
+msgid "Bug Description"
+msgstr "Mô tả lỗi"
+
+#: ../py/goofy/js/goofy.js
+msgid "Upload Factory Logs"
+msgstr "Tải lên bản ghi nhà máy"
+
+#: ../py/goofy/js/goofy.js
+msgid "Save Factory Logs to USB"
+msgstr "Lưu bản ghi nhà máy vào ổ flash USB"
+
+#: ../py/goofy/js/goofy.js
+msgid "Saving factory logs to USB drive..."
+msgstr "Lưu hồ sơ nhà máy vào đĩa U ..."
+
+#: ../py/goofy/js/goofy.js
+msgid ""
+"Success! Saved factory logs ({size}) bytes) to {dev} as\n"
+"{filename}. The drive has been unmounted."
+msgstr ""
+"Hồ sơ Lưu Factory ({size} bytes) vào đĩa U {dev} đã thành công, các tập tin "
+"có tên là \n"
+"{filename}. U đĩa đã được gỡ bỏ."
+
+#: ../py/goofy/js/goofy.js
+msgid ""
+"Success! Saved factory logs ({size}) bytes) to {dev} as\n"
+"{filename}."
+msgstr ""
+"Hồ sơ Lưu Factory  ({size} bytes) vào đĩa U {dev} đã thành công, các tập "
+"tin \n"
+"{filename}。"
+
+#: ../py/goofy/js/goofy.js
+msgid "Enter an optional identifier for the archive (or press Enter for none):"
+msgstr ""
+"Vui lòng nhập số nhận dạng cho tệp hồ sơ nhà máy hoặc nhấn phím Enter để "
+"không chọn:"
+
+#: ../py/goofy/js/goofy.js
+msgid "Include probe result (takes longer time)"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
+msgid ""
+"Please insert a formatted USB stick and wait a moment for it to be mounted."
+msgstr "Vui lòng lắp ổ flash USB và đợi gắn"
+
+#: ../py/goofy/js/goofy.js
+msgid "Update factory software"
+msgstr "Cập nhật phần mềm nhà máy"
+
+#: ../py/goofy/js/goofy.js
+msgid "Save note on device"
+msgstr "Ghi chú"
+
+#: ../py/goofy/js/goofy.js
+msgid "View notes"
+msgstr "Xem ghi chú"
+
+#: ../py/goofy/js/goofy.js
+msgid "Clear notes"
+msgstr "Xóa ghi chú"
+
+#: ../py/goofy/js/goofy.js
+msgid "Diagnosis Tool"
+msgstr "Công cụ chẩn đoán"
+
+#: ../py/goofy/js/goofy.js
+msgid "Save factory logs to USB drive..."
+msgstr "Lưu bản ghi nhà máy vào ổ flash USB"
+
+#: ../py/goofy/js/goofy.js
+msgid "Upload factory logs..."
+msgstr "Tải lên hồ sơ nhà máy"
+
+#: ../py/goofy/js/goofy.js
+msgid "DUT Shutdown"
+msgstr "Tắt máy"
+
+#: ../py/goofy/js/goofy.js
+msgid "Reload Test List"
+msgstr "Danh sách kiểm tra quá tải"
+
+#: ../py/goofy/js/goofy.js
+msgid "Toggle engineering mode"
+msgstr "Chuyển chế độ kỹ thuật"
+
+#: ../py/goofy/js/goofy.js
+msgid "Switch test list"
+msgstr "Chuyển danh sách kiểm tra"
+
+#: ../py/goofy/js/goofy.js
+msgid "Switch Test List: {test_list}"
+msgstr "Chuyển danh sách kiểm tra：{test_list}"
+
+#: ../py/goofy/js/goofy.js
+msgid ""
+"Warning: Switching to test list \"{test_list}\" will clear all test state.\n"
+"Are you sure you want to proceed?"
+msgstr ""
+"Thận trọng: Việc chuyển sang danh sách kiểm tra {test_list} sẽ xóa tất cả "
+"trạng. \n"
+"thái kiểm tra. Bạn có chắc chắn muốn tiếp tục không?"
+
+#: ../py/goofy/js/goofy.js
+msgid "Yes, clear state and restart"
+msgstr "Xác định, trạng thái kiểm tra rõ ràng và khởi động lại"
+
+#: ../py/goofy/js/goofy.js
+msgid "Switching test list. Please wait..."
+msgstr "danh sách kiểm tra, xin vui lòng chờ ..."
+
+#: ../py/goofy/js/goofy.js
+msgid "Software update"
+msgstr "Cập nhật phần mềm nhà máy"
+
+#: ../py/goofy/js/goofy.js
+msgid "Updating factory software. Please wait..."
+msgstr "Đang cập nhật phần mềm của nhà máy, vui lòng chờ ..."
+
+#: ../py/goofy/js/goofy.js
+msgid "Update succeeded. Restarting."
+msgstr "Bản cập nhật đã thành công và sẽ khởi động lại sau vài giây."
+
+#: ../py/goofy/js/goofy.js
+msgid "No update is currently necessary."
+msgstr "Hiện tại không cần cập nhật phần mềm của nhà máy"
+
+#: ../py/goofy/js/goofy.js
+msgid "Update failed:"
+msgstr "Cập nhật không thành công:"
+
+#: ../py/goofy/js/i18n.js
+msgid "currentLocaleName#en-US#English"
+msgstr "currentLocaleName#vi-VN#Tiếng việt"
+
+#: ../py/goofy/plugins/device_manager.py
+msgid "View /var/log/messages"
+msgstr "Xem /var/log/messages"
+
+#: ../py/goofy/plugins/device_manager.py
+msgid "View /var/log/messages before last reboot"
+msgstr "/var/log/messages trước khi khởi động lại lần cuối"
+
+#: ../py/goofy/plugins/device_manager.py
+msgid "View dmesg"
+msgstr "dmesg"
+
+#: ../py/goofy/plugins/device_manager.py
+msgid "Device manager"
+msgstr "Xem phần cứng"
+
+#: ../py/goofy/plugins/station_setup/static/station_setup.js
+#: ../py/goofy/plugins/station_setup/station_setup.py
+msgid "Update Station Properties"
+msgstr "Cập nhật thông tin trạm"
+
+#: ../py/goofy/plugins/station_setup/station_setup.py
+msgid "Station Name"
+msgstr "Tên trạm"
+
+#: ../py/goofy/plugins/station_setup/station_setup.py
+msgid "Manufacture Line Number"
+msgstr "Số dây chuyền sản xuất"
+
+#: ../py/goofy/plugins/station_setup/station_setup.py
+msgid "Station Number"
+msgstr "Mã số trạm"
+
+#: ../py/goofy/plugins/station_setup/station_setup.py
+msgid "{key} can't be empty!"
+msgstr "{key} không được để trống!"
+
+#: ../py/goofy/plugins/station_setup/station_setup.py
+msgid "Station with same {keys!r} found."
+msgstr "Trạm {keys!r}  đã tồn tại. "
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "MLB S/N"
+msgstr "Số sêri bo mạch chủ"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "S/N"
+msgstr "Số sê-ri"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Stage"
+msgstr "Giai đoạn"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "IP Address"
+msgstr "Địa chỉ IP"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Test Image"
+msgstr "Hệ thống kiểm tra"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Release Image"
+msgstr "Hệ thống nhà máy"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Main Firmware"
+msgstr "Thân chính"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Kernel"
+msgstr "Phiên bản hạt nhân"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Architecture"
+msgstr "kiến trúc "
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "EC"
+msgstr "EC"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "PD"
+msgstr "PD"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Root Device"
+msgstr "Thiết bị gốc"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Device ID"
+msgstr "Mã nhận dạng thiết bị"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Factory Toolkit Version"
+msgstr "Phiên bản Công cụ Kiểm tra"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "(no update)"
+msgstr "(không có cập nhật)"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "HWID Database Version"
+msgstr "Phiên bản cơ sở dữ liệu HWID"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "Unknown"
+msgstr "Không xác định"
+
+#: ../py/goofy/plugins/status_monitor/static/status_monitor.js
+msgid "System time"
+msgstr "Thời gian hệ thống"
+
+#: ../py/goofy/static/default_test_ui.html
+msgid "Test Path"
+msgstr "Đo đường dẫn"
+
+#: ../py/goofy/static/default_test_ui.html
+msgid "Test Label"
+msgstr "Nhãn thử nghiệm"
+
+#: ../py/goofy/static/default_test_ui.html
+msgid "Invocation ID"
+msgstr "ID thử nghiệm Thi hành dịch vụ Shop floor"
+
+#: ../py/goofy/static/default_test_ui.html
+msgid "Elapsed Time"
+msgstr "Thời gian trải qua"
+
+#: ../py/goofy/static/default_test_ui.html
+msgid "Test Name"
+msgstr "Tên thử nghiệm"
+
+#: ../py/goofy/static/default_test_ui.html
+msgid "Test Arguments"
+msgstr "Thông số đo"
+
+#: ../py/goofy/static/default_test_ui.html
+msgid "Show Original"
+msgstr "Hiển thị bản gốc"
+
+#: ../py/goofy/static/index.html
+msgid "Engineering mode"
+msgstr "Chế độ kỹ thuật"
+
+#: ../py/goofy/static/js/default_test_ui.js
+msgid "{seconds} seconds"
+msgstr "{seconds}giây"
+
+#: ../py/goofy/static/templates.html
+msgid "Time remaining:"
+msgstr "Thời gian còn lại: "
+
+#: ../py/goofy/static/templates.html
+msgid "Test Progress:"
+msgstr "Tiến độ kiểm tra:"
+
+#: ../py/goofy/static/templates.html
+msgid "Mark Failed"
+msgstr "Không đánh dấu được"
+
+#: ../py/test/fixture/touchscreen_calibration/fixture.py
+msgid "Pull the lever down."
+msgstr "Kéo tay cầm xuống"
+
+#: ../py/test/fixture/touchscreen_calibration/fixture.py
+msgid "Pull the lever up."
+msgstr "Kéo tay cầm lên"
+
+#: ../py/test/pytests/ac_power.py
+msgid "Unplug the charger."
+msgstr "Vui lòng tháo bộ sạc"
+
+#: ../py/test/pytests/ac_power.py
+msgid "Plug in the charger ({type})"
+msgstr "Vui lòng kết nối bộ sạc ({type})"
+
+#: ../py/test/pytests/ac_power.py
+msgid "Plug in the charger"
+msgstr "Vui lòng kết nối bộ sạc"
+
+#: ../py/test/pytests/ac_power.py
+msgid ""
+"Detected power {watt} W, required power range ({min_watt} W, {max_watt} W)"
+msgstr ""
+"Nguồn điện được phát hiện {watt}watt，phạm vi cung cấp điện yêu cầu "
+"({min_watt}watt, {max_watt}watt)"
+
+#: ../py/test/pytests/ac_power.py
+msgid "Probed {times} / {total}"
+msgstr "Số lần phát hiện {times} / {total}"
+
+#: ../py/test/pytests/ac_power.py
+msgid "No AC adapter"
+msgstr "Không sạc"
+
+#: ../py/test/pytests/ac_power.py
+msgid "Identifying AC adapter..."
+msgstr "Nhận dạng mô hình sạc ..."
+
+#: ../py/test/pytests/ac_power.py
+msgid "AC adapter type: {type}"
+msgstr "Mô hình bộ sạc: {type}"
+
+#: ../py/test/pytests/accelerometers.py ../py/test/pytests/probe/probe.py
+msgid "Press SPACE to continue"
+msgstr "Nhấn nút trống để tiếp tục"
+
+#: ../py/test/pytests/accelerometers.py ../py/test/pytests/gyroscope.py
+msgid ""
+"Test will be started within {secs} seconds. Please do not move the device."
+msgstr ""
+"Chương trình thử nghiệm sẽ bắt đầu sau {secs} giây.Không di chuyển đối tượng "
+"đang được kiểm tra."
+
+#: ../py/test/pytests/accelerometers.py
+msgid "Test is in progress, please do not move the device."
+msgstr ""
+"Không di chuyển đối tượng đang được kiểm tra trong khi đang thực hiện quy "
+"trình hiệu chuẩn."
+
+#: ../py/test/pytests/accelerometers_calibration.py
+msgid ""
+"Please put device on a horizontal plane then press space to start "
+"calibration."
+msgstr ""
+"Đặt đối tượng cần thử nghiệm trên bề mặt nằm ngang và nhấn nút trắng để bắt "
+"đầu hiệu chuẩn"
+
+#: ../py/test/pytests/accelerometers_calibration.py
+msgid ""
+"Calibration will be started within {time} seconds.Please do not move device."
+msgstr ""
+"Quy trình hiệu chuẩn sẽ bắt đầu sau {time} giây, không được di chuyển đối "
+"tượng đang thử."
+
+#: ../py/test/pytests/accelerometers_calibration.py
+msgid "Calibration is in progress, please do not move device."
+msgstr ""
+"Không di chuyển đối tượng đang được kiểm tra trong khi đang thực hiện quy "
+"trình hiệu chuẩn."
+
+#: ../py/test/pytests/accelerometers_lid_angle.py
+msgid "Please open the lid to {angle} degrees and press SPACE."
+msgstr "Vui lòng mở nắp trên lên  {angle} và nhấn nút trống."
+
+#: ../py/test/pytests/accelerometers_lid_angle.py
+msgid "Checking angle..."
+msgstr "Góc được xác nhận"
+
+#: ../py/test/pytests/audio.py
 msgid "Left Channel"
 msgstr "Kênh bên trái"
 
-msgid "Left USB TypeA"
-msgstr "Cổng USB loại trái"
+#: ../py/test/pytests/audio.py
+msgid "Right Channel"
+msgstr "Kênh phải"
 
-msgid "Left USB TypeC"
-msgstr "Cổng USB TypeC bên trái"
+#: ../py/test/pytests/audio.py
+msgid "Please wait for the {device} playback to finish."
+msgstr "{device} Phát giọng nói ···"
 
-msgid "Lid Accelerometers Calibration"
-msgstr "Hiệu chuẩn gia tốc bao trên"
+#: ../py/test/pytests/audio.py
+msgid ""
+"Press the number you hear from {device} to pass the test.<br>Press \"R\" to "
+"replay."
+msgstr ""
+"Nhấn R để phát lại giọng nói theo số bạn nghe từ đầu ra {device} <br> R "
 
-msgid "Lid Switch"
-msgstr "Công tắc nắp trên"
+#: ../py/test/pytests/audio.py
+msgid "Internal Speaker"
+msgstr "Loa tích hợp"
 
-msgid "Light Sensor"
-msgstr "Cảm biến ánh sáng"
+#: ../py/test/pytests/audio.py
+msgid "Please plug headphone in."
+msgstr "Vui lòng kết nối tai nghe"
 
-msgid "Light Sensor Calibration"
-msgstr "Hiệu chỉnh cảm biến ánh sáng"
+#: ../py/test/pytests/audio.py
+msgid "Please unplug headphone."
+msgstr "Vui lòng rút phích cắm tai nghe"
 
-msgid "Light Sensor SMT"
-msgstr "Cảm biến ánh sáng SMT"
+#: ../py/test/pytests/audio_basic.py
+msgid "Headset"
+msgstr "Tai nghe bên ngoài"
 
-msgid "Lightbar"
-msgstr "Thanh ánh sáng"
+#: ../py/test/pytests/audio_basic.py
+msgid "Start recording"
+msgstr "Bắt đầu ghi âm"
 
-msgid "Line Check Item"
-msgstr "Xác minh dự án"
+#: ../py/test/pytests/audio_basic.py
+msgid "Playback sound (Mic channel {channel})"
+msgstr "Phát lại âm thanh đã ghi(kênh micrô{channel})"
 
-msgid "Load:"
-msgstr "Tải hệ thống:"
+#: ../py/test/pytests/audio_basic.py
+msgid "Playback sound to channel {channel}"
+msgstr "Phát mẫu tới kênh{channel}"
 
-msgid "Loading parameters from local disk..."
-msgstr "Tải các thông số kiểm tra từ ổ cứng cục bộ..."
+#: ../py/test/pytests/audio_basic.py
+msgid ""
+"Press 'P' to first play a sample for each channel to ensure audio output "
+"works.<br>Press 'R' to record {record_sec} seconds, Playback will follow."
+"<br>Press space to mark pass."
+msgstr ""
+"Bấm 'P' chìa khóa chơi dụ bấm<br> chìa khóa để bắt đầu ghi 'R' {record_sec}"
+"chìa khóa để bắt đầu ghi<br>record_sec giây, sau đó tái hiện lại ghi âm "
+"thanh để chỉ giảm thành công trống"
 
-msgid "Logging serial numbers"
-msgstr "Số sê-ri đăng nhập"
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Tone generator"
+msgstr "Bộ tạo tín hiệu âm thanh"
 
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Tone off"
+msgstr "Tắt âm thanh"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Tone On"
+msgstr "Phát âm thanh"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Manual record"
+msgstr "Ghi thủ công"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Stop record"
+msgstr "Dừng ghi âm"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Start record"
+msgstr "Bắt đầu ghi âm"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Stop playback"
+msgstr "Dừng phát"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Start playback"
+msgstr "Bắt đầu phát âm"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Audio loopback"
+msgstr "Phát lại âm thanh"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
 msgid "Loopback off"
 msgstr "Dừng phát lại"
 
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
 msgid "Loopback on"
 msgstr "Bắt đầu phát lại"
 
-msgid "Loopback testing..."
-msgstr "Trong thử nghiệm phát lại nguồn âm thanh ..."
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Output Nodes"
+msgstr "Thiết bị đầu ra"
 
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Input Nodes"
+msgstr "Thiết bị đầu vào"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Pass"
+msgstr "thông qua"
+
+#: ../py/test/pytests/audio_diagnostic_static/audio_diagnostic.html
+msgid "Fail"
+msgstr "Thất bại"
+
+#: ../py/test/pytests/audio_loop_static/audio_loop.html
+msgid "Plug in audio jack dongle"
+msgstr "Vui lòng đặt vật cố định lỗ nguồn âm thanh"
+
+#: ../py/test/pytests/audio_loop_static/audio_loop.html
+msgid "Hit s to start loopback test"
+msgstr "Bắt đầu kiểm tra phát lại nguồn âm thanh"
+
+#: ../py/test/pytests/audio_loop_static/audio_loop.js
 msgid ""
 "Loopback testing...\n"
 "Success Rate: {successRate}"
@@ -1031,235 +1300,1439 @@ msgstr ""
 "Kiểm tra phát lại nguồn...\n"
 "Tỷ lệ thành công:: {successRate}"
 
+#: ../py/test/pytests/audio_loop_static/audio_loop.js
+msgid "Loopback testing..."
+msgstr "Trong thử nghiệm phát lại nguồn âm thanh ..."
+
+#: ../py/test/pytests/audio_loop_static/audio_loop.js
+msgid ""
+"Testing Result: Fail\n"
+"Success Rate: {successRate}"
+msgstr ""
+"Kiểm tra phát lại nguồn...\n"
+"Tỷ lệ thành công:: {successRate}"
+
+#: ../py/test/pytests/audio_loop_static/audio_loop.js
+msgid "Testing Result: Success!"
+msgstr "Kết quả kiểm tra: Thành công!"
+
+#: ../py/test/pytests/audio_quality.py
+msgid "Press 'Space' to start test"
+msgstr "Nhấn nút trống để bắt đầu kiểm tra"
+
+#: ../py/test/pytests/audio_quality.py
+msgid "Connected"
+msgstr "Đã kết nối"
+
+#: ../py/test/pytests/audio_quality.py
+msgid "Waiting for command"
+msgstr "Đang chờ hướng dẫn"
+
+#: ../py/test/pytests/audio_quality.py
+msgid "Audio looping"
+msgstr "Phát lại nguồn âm thanh"
+
+#: ../py/test/pytests/audio_quality.py
+msgid "Speaker on"
+msgstr "Bật loa"
+
+#: ../py/test/pytests/audio_quality.py
+msgid "LCD Dmic on"
+msgstr "Micrô LCD đang bật"
+
+#: ../py/test/pytests/audio_quality.py
 msgid "MLB Dmic on"
 msgstr "MLB mic mở"
 
-msgid "MLB S/N"
-msgstr "Số sêri bo mạch chủ"
-
-msgid "MLB Serial Number"
-msgstr "Số sêri bo mạch chủ"
-
-msgid "MRC Cache"
-msgstr "MRC Cache"
-
-msgid "Magnetizing lid sensor"
-msgstr "Cảm biến nắp trên từ hóa"
-
-msgid "Main Firmware"
-msgstr "Thân chính"
-
-msgid "Mainboard Serial Number"
-msgstr "Số sêri bo mạch chủ(MLB)"
-
-msgid ""
-"Make sure the main WWAN antennta is connected to Port 1<br> Make sure the "
-"main WLAN antennta is connected to Port 2<br> Then press key \"A\" to next "
-"stage."
-msgstr ""
-"Kết nối anten WWAN chính với Cổng 1 Kết nối anten WLAN chính với Cổng 2 Nhấn A khi hoàn tất"
-
-msgid "Make sure the {name} antennta is connected to port {port}<br>"
-msgstr "Kết nối ăng-ten {name} với cổng {port}<br>"
-
-msgid "Manual Test Left USB TypeA"
-msgstr "Kiểm tra USB TypeA bên trái"
-
-msgid "Manual Test Left USB TypeC"
-msgstr "Kiểm tra USB TypeC bằng tay trái"
-
-msgid "Manual Test Right USB TypeC"
-msgstr "Kiểm tra USB TypeC thủ công ngay"
-
-msgid "Manual record"
-msgstr "Ghi thủ công"
-
-msgid "Manufacture Line Number"
-msgstr "Số dây chuyền sản xuất"
-
-msgid "Mark Failed"
-msgstr "Không đánh dấu được"
-
-msgid "Memory Size"
-msgstr "Kích thước bộ nhớ"
-
-msgid "Merge Factory State On DUT"
-msgstr "Tình trạng kiểm tra nhà máy hợp nhất"
-
-msgid "Message"
-msgstr "Thư"
-
-msgid "Model Sku"
-msgstr "Cấu hình và kiểu (SKU)"
-
-msgid "Model and SKU"
-msgstr "Cấu hình và kiểu (SKU)"
-
-msgid "Moving to LOAD / UNLOAD position..."
-msgstr "Di chuyển đến vị trí gỡ cài đặt"
-
-msgid "Moving to start position..."
-msgstr "Di chuyển đến vị trí bắt đầu."
-
-msgid "Nami Test List"
-msgstr "Danh sách kiểm tra Nami"
-
-msgid "Network Setup"
-msgstr "Cài đặt mạng"
-
-msgid "No AC adapter"
-msgstr "Không sạc"
-
-msgid "No factor server URL configured."
-msgstr "URL máy chủ của máy chủ gốc không được chỉ định."
-
-msgid "No physical link on {interface}"
-msgstr "{interface} Không có cáp mạng nào được kết nối"
-
-msgid "No update is currently necessary."
-msgstr "Hiện tại không cần cập nhật phần mềm của nhà máy"
-
-msgid "No valid data on machine for {label}."
-msgstr "Thiếu dữ liệu thiết bị: {label}"
-
-msgid "Nop"
-msgstr "Không có hành động"
-
-msgid "Not in engineering mode; cannot skip tests"
-msgstr "Chế độ kỹ thuật có thể bỏ qua thử nghiệm"
-
-msgid "Note Content"
-msgstr "Ghi chú"
-
-msgid "Notebook Mode"
-msgstr "Chế độ sổ ghi chép"
-
-msgid "OK! Meet {target}"
-msgstr "OK! Đã đạt đến {target}"
-
-msgid "Offline Test"
-msgstr "Kiểm tra ngoại tuyến"
-
-msgid "Open the lid"
-msgstr "Vui lòng mở nắp trên"
-
-msgid "Open the lid back to notebook mode"
-msgstr "Mở nắp cho đến khi chế độ máy tính xách tay bình thường"
-
-msgid "Operator ID"
-msgstr "ID người vận hành"
-
-msgid "Output Nodes"
-msgstr "Thiết bị đầu ra"
-
-msgid "PASS"
-msgstr "Thành công"
-
-msgid "PD"
-msgstr "PD"
-
-msgid "Pairing to input device now..."
-msgstr "Ghép nối với thiết bị đầu vào Bluetooth..."
-
-msgid "Parallel Test"
-msgstr "Nhóm thử nghiệm song song"
-
-msgid "Partition Table"
-msgstr "Bảng phân vùng"
-
-msgid "Pass"
-msgstr "thông qua"
-
-msgid "Passed"
-msgstr "thông qua"
-
-msgid "Performing r/w test on {count} {bsize}-byte random blocks..."
-msgstr "Thực thi {count}  {bsize} khối byte liên tục đọc và viết thử nghiệm..."
-
-msgid "Performing sequential r/w test of {bsize} bytes..."
-msgstr "Thực thi {bsize} khối byte liên tục đọc và viết thử nghiệm..."
-
-msgid "Phase {current_phase}/{total_phases}: "
-msgstr "Giai đoạn {current_phase}/{total_phases}: "
-
-msgid "Ping"
-msgstr "Kiểm tra kết nối"
-
-msgid "Ping Test"
-msgstr "Kiểm tra kết nối"
-
-msgid ""
-"Place the base into the fixture, and press the space key on the test host."
-msgstr "Vui lòng đặt bàn phím thử nghiệm vào công cụ kiểm tra và nhấn phím cách của máy tính"
-
-msgid "Placeholder"
-msgstr "Kiểm tra không xác định"
-
-msgid "Placeholder: AfterDisconnection"
-msgstr "Kiểm tra ngoại tuyến (không xác định)"
-
-msgid "Placeholder: BeforeConnection"
-msgstr "Kiểm tra trước khi kết nối (không xác định)"
-
-msgid "Placeholder: Main"
-msgstr "Mục kiểm tra chính (không xác định)"
-
-msgid "Plankton CC Flip Check"
-msgstr "Kiểm tra sinh vật phù du CC Flip"
-
-msgid "Plankton CC2 Pull Test"
-msgstr "Kiểm tra điện áp sinh vật phù du CC2"
-
-msgid "Plankton Charge"
-msgstr "Sạc Plankton"
-
-msgid "Plankton Display"
-msgstr "hiển thị Plankton"
-
-msgid "Playback sound (Mic channel {channel})"
-msgstr "Phát lại âm thanh đã ghi(kênh micrô{channel})"
-
-msgid "Playback sound to channel {channel}"
-msgstr "Phát mẫu tới kênh{channel}"
-
+#: ../py/test/pytests/audio_quality.py
 msgid "Playing tone to left channel"
 msgstr "Phát sóng sang kênh bên trái"
 
+#: ../py/test/pytests/audio_quality.py
 msgid "Playing tone to right channel"
 msgstr "Phát sóng đến đúng kênh bên phải"
 
-msgid "Please attach DUT."
-msgstr "INSERT Vui lòng lắp thiết bị kiểm tra。"
+#: ../py/test/pytests/audio_quality.py
+msgid "Waiting for IP address"
+msgstr "Đang đợi cài đặt IP"
 
-msgid "Please attach USB type-C cable in {secs:.1f} seconds"
-msgstr "Vui lòng kết nối cáp USB loại C trong vòng {secs:.1f} giây"
+#: ../py/test/pytests/audio_quality.py
+msgid "Ready for connection"
+msgstr "Sẵn sàng hoàn thành, chờ liên kết"
 
+#: ../py/test/pytests/backlight.py
+msgid ""
+"Press Space to change backlight brightness;<br>Press Esc to reset backlight "
+"brightness to original;<br>After checking, Enter H if pressing Space changes "
+"the backlight to be brighter;<br>Enter L if pressing Space changes the "
+"backlight to be dimmer.<br>This test will be executed twice."
+msgstr ""
+"Ấn nút trắng để điều chỉnh độ sáng;<br>ấn Esc phục hồi độ sáng;<br>au khi "
+"kiểm tra nếu nhấn H để tăng độ sáng,; ếu giảm độ sáng nhập LL<br>hãy nhập "
+"kiểm tra hai lần"
+
+#: ../py/test/pytests/bad_blocks.py
+msgid "Testing {test_size_mb} region of storage"
+msgstr "Kiểm tra bộ nhớ cho {test_size_mb}"
+
+#: ../py/test/pytests/bad_blocks.py
+msgid "Phase {current_phase}/{total_phases}: "
+msgstr "Giai đoạn {current_phase}/{total_phases}: "
+
+#: ../py/test/pytests/battery_basic.py
+msgid "Plug AC to proceed"
+msgstr "Cắm nguồn điện AC "
+
+#: ../py/test/pytests/battery_basic.py
+msgid "Testing battery charge..."
+msgstr "Thử sạc pin ..."
+
+#: ../py/test/pytests/battery_basic.py
+msgid "Unplug AC to proceed"
+msgstr "Rút phích cắm nguồn AC"
+
+#: ../py/test/pytests/battery_basic.py
+msgid "Testing battery discharge..."
+msgstr "Kiểm tra xả pin ..."
+
+#: ../py/test/pytests/battery_current.py
+msgid ""
+"Waiting for {target_status} current to meet {target_current} mA. (Currently "
+"{status} at {current} mA)"
+msgstr ""
+"Chờ {target_status} hiện tại lớn hơn {target_current} mA. (Hiện tại "
+"{status}: {current} mA)"
+
+#: ../py/test/pytests/battery_current.py
+msgid "charging"
+msgstr "nạp điện"
+
+#: ../py/test/pytests/battery_current.py
+msgid "discharging"
+msgstr "phát điện"
+
+#: ../py/test/pytests/battery_current.py
+msgid "Insert power to {prompt}({voltage}mV)"
+msgstr "Vui lòng cắm dây nguồn vào{prompt}({voltage}mV)"
+
+#: ../py/test/pytests/blocking_charge.py
+msgid ""
+"Charging to {target}% (Start: {start}%. Current: {current}%.)<br>Time "
+"elapsed: {elapsed} Time remaining: {remaining}"
+msgstr ""
+"Tính phí {target}% (phí bắt đầu: {start}%. Khoản phí hiện tại: "
+"{current}%.)<br>Thời gian đã trôi qua: {elapsed} Thời gian còn lại: "
+"{remaining}"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Enable the connection ability of bluetooth device and press Enter"
+msgstr "Bật chức năng kết nối của thiết bị Bluetooth và bấm phím enter"
+
+#: ../py/test/pytests/bluetooth.py
+msgid ""
+"Place the base into the fixture, and press the space key on the test host."
+msgstr ""
+"Vui lòng đặt bàn phím thử nghiệm vào công cụ kiểm tra và nhấn phím cách của "
+"máy tính"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Please re-attach the magnet, and press the space key on the test host."
+msgstr "Vui lòng kết nối lại nam châm và nhấn phím cách của máy tính"
+
+#: ../py/test/pytests/bluetooth.py
+msgid ""
+"Turn on charging by pressing the green button, take the keyboard out and put "
+"it back, and press the space key on the test host."
+msgstr ""
+"Nhấn nút màu xanh lá cây để bắt đầu sạc, sau đó lấy nó ra và đặt nó trở lại "
+"trên bàn phím, sau đó nhấn nút không gian trên máy tính."
+
+#: ../py/test/pytests/bluetooth.py
+msgid ""
+"Press the green button again to stop charging, and press the space key on "
+"the test host."
+msgstr "Nhấn nút màu xanh lá cây để ngừng sạc, sau đó nhấn nút space"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Read firmware revision string."
+msgstr "Đọc phiên bản phần mềm bàn phím"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Check if the battery has charged to a higher percentage"
+msgstr "Kiểm tra xem phí có tăng sau khi sạc không"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Read battery level for the 1st time."
+msgstr "Đọc pin lần đầu tiên"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Read battery level for the 2nd time."
+msgstr "Đọc pin lần thứ hai"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Detect bluetooth adapter"
+msgstr "Phát hiện bộ điều hợp Bluetooth"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Unpairing"
+msgstr "Hủy ghép nối"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Scanning..."
+msgstr "Đang quét ..."
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Press shift-p-a-i-r simultaneously on the base."
+msgstr "shift-p-a-i-rTrong khi giữ phím shift-p-a-i-r trên bàn phím thử nghiệm"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Detect RSSI (count {count}/{total})"
+msgstr "Phát hiện RSSI (số {count}/{total} lần)"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Enter passkey {key} then press enter on the base."
+msgstr "Nhấn phím {key} và nhấn Enter"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Authentication failed, retrying..."
+msgstr "Xác minh không thành công, thử lại"
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Pairing to input device now..."
+msgstr "Ghép nối với thiết bị đầu vào Bluetooth..."
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Connecting to input device now..."
+msgstr "Kết nối với thiết bị đầu vào Bluetoot..."
+
+#: ../py/test/pytests/bluetooth.py
+msgid "Please test input. Press Escape to fail and Enter to pass"
+msgstr ""
+"Vui lòng kiểm tra đầu vào.Nếu không thành công, nhấn phím Esc, nếu thành "
+"công, nhấn phím Enter."
+
+#: ../py/test/pytests/brightness/lcd_backlight.py
 msgid "Please check if backlight brightness is changing from dark to bright."
 msgstr "Vui lòng kiểm tra độ sáng của màn hình có tối không"
 
-msgid ""
-"Please check if the USB cable has been connected between the test fixture "
-"and the control host.\n"
-"Click \"RefreshFixture\" button on screen after connecting the USB cable."
+#: ../py/test/pytests/button.py
+msgid "Press the {name} button"
+msgstr "Nhấn nút{name}"
+
+#: ../py/test/pytests/button.py
+msgid "Press the {name} button ({count}/{total})"
+msgstr "Nhấn nút {name} ({count}/{total})"
+
+#: ../py/test/pytests/button.py
+msgid "Release the button"
+msgstr "Nhả nút"
+
+#: ../py/test/pytests/buzzer.py
+msgid "How many beeps do you hear? <br>Press space to start."
 msgstr ""
-"Vui lòng xác nhận xem cáp USB có được kết nối với máy tính cố định và điều khiển hay không.\n"
-"Vui lòng kết nối cáp USB và nhấp vào nút làm mới trên màn hình."
+"Bạn nghe thấy bao nhiêu tiếng ngáy? Nhấn nút trống để bắt đầu thử nghiệm"
 
-msgid "Please confirm following values"
-msgstr "Vui lòng xác nhận các kết quả sau"
+#: ../py/test/pytests/buzzer.py
+msgid ""
+"How many beeps do you hear? <br>Press the number you hear to pass the test."
+"<br>Press 'r' to play again."
+msgstr ""
+"Bạn nghe thấy bao nhiêu tiếng ngáy? <br>Vui lòng nhấn số để cho biết bạn "
+"nghe thấy một vài <br>tiếng  bíp và bấm 'r' để phát lại"
 
+#: ../py/test/pytests/camera.py
+msgid ""
+"Press 0 if LED is constantly lit, 1 if LED is flickering,\n"
+"or ESC to fail."
+msgstr ""
+"LED đã được thắp sáng, nhấn 0, nhấp nháy bấm 1, nhấn ESC trước khi bình minh"
+
+#: ../py/test/pytests/camera.py
+msgid "Scanned QR code: \"{text}\""
+msgstr "Đã phát hiện mã QR:  \"{text}\""
+
+#: ../py/test/pytests/camera.py
+msgid "Press ENTER to pass or ESC to fail."
+msgstr ""
+"Nếu máy ảnh hoạt động bình thường, vui lòng nhấn ENTER.Nếu không bình "
+"thường, vui lòng nhấn ESC"
+
+#: ../py/test/pytests/camera.py
+msgid "Running the camera until timeout."
+msgstr "Chạy máy ảnh cho đến khi hết thời gian chờ"
+
+#: ../py/test/pytests/camera.py
+msgid "Running the camera until expected number of frames captured."
+msgstr "Chạy máy ảnh cho đến khi số lượng được đặt"
+
+#: ../py/test/pytests/camera.py
+msgid "Scanning QR code..."
+msgstr "Phát hiện mã QR ..."
+
+#: ../py/test/pytests/camera.py
+msgid "Detecting faces..."
+msgstr "Phát hiện khuôn mặt ..."
+
+#: ../py/test/pytests/cellular_switch_firmware.py
+msgid "Switching firmware to {target!r}"
+msgstr "máy cưa số lần đổi cắt đến {target!r}"
+
+#: ../py/test/pytests/chameleon.py
+msgid "Please plug in the display to test"
+msgstr "Vui lòng rút phích cắm tai nghe"
+
+#: ../py/test/pytests/chameleon.py
+msgid ""
+"Testing DUT {dut_port} port on Chameleon {chameleon_port} port using mode "
+"{mode}..."
+msgstr ""
+"Kiểm tra DUT {dut_port} cho Chameleon {chameleon_port} Chế độ hiển thị bên "
+"ngoài: {mode} ..."
+
+#: ../py/test/pytests/chameleon.py
+msgid "Automated testing on {dut_port} to {chameleon_port} in progress..."
+msgstr "{dut_port} Đang tiến hành kiểm tra tự động  {chameleon_port} ..."
+
+#: ../py/test/pytests/chameleon.py
+msgid "Captured images mismatch"
+msgstr "Các hình ảnh được chụp không khớp"
+
+#: ../py/test/pytests/charger.py
+msgid "Discharging"
+msgstr "Xả"
+
+#: ../py/test/pytests/charger.py
+msgid "Charging"
+msgstr "Sạc"
+
+#: ../py/test/pytests/charger.py
+msgid ""
+"{action} to {target} (Current charge: {charge}, battery current: "
+"{battery_current} mA) under load {load}."
+msgstr ""
+"{load}.{action} đến {target} (khoản phí hiện tại là {charge}, tải "
+"{battery_current} mA) hiệntại {load}."
+
+#: ../py/test/pytests/charger.py
+msgid "Time remaining: {timeout:.0f} sec."
+msgstr "Thời gian còn lại: {timeout: .0f} giây.."
+
+#: ../py/test/pytests/charger.py
+msgid "Testing discharge"
+msgstr "Kiểm tra xả"
+
+#: ../py/test/pytests/charger.py
+msgid "Testing charger"
+msgstr "Thử sạc"
+
+#: ../py/test/pytests/charger.py
+msgid "OK! Meet {target}"
+msgstr "OK! Đã đạt đến {target}"
+
+#: ../py/test/pytests/check_image_version.py
 msgid "Please connect to ethernet."
 msgstr "Vui lòng kết nối với Ethernet."
 
-msgid "Please connect to network..."
-msgstr "Vui lòng kết nối với mạng..."
+#: ../py/test/pytests/check_image_version.py
+msgid "Image version is incorrect. Press space to re-image."
+msgstr "Phiên bản hình ảnh không đúng. Vui lòng nhấn nút trống để cài đặt lại."
 
-msgid "Please disconnect the panel and press ENTER to write log."
-msgstr "Vui lòng tháo Bảng AB và nhấn ENTER để hoàn tất kiểm tra"
+#: ../py/test/pytests/check_image_version.py
+msgid "Flashing {component}..."
+msgstr ".Đốt  {component}..."
 
+#: ../py/test/pytests/check_image_version.py
+msgid "Updating {component}...."
+msgstr "Đang cập nhật {component} ..."
+
+#: ../py/test/pytests/check_serial_number.py
+msgid "Checking Device State"
+msgstr ""
+
+#: ../py/test/pytests/compass.py
+msgid "north"
+msgstr "bắc"
+
+#: ../py/test/pytests/compass.py
+msgid "south"
+msgstr "nam"
+
+#: ../py/test/pytests/compass.py
+msgid "Put the DUT towards {direction}"
+msgstr "Hướng máy về phía{direction}"
+
+#: ../py/test/pytests/compass_static/compass.html
+#: ../py/test/pytests/tablet_mode.py
+#: ../py/test/pytests/tablet_rotation_static/tablet_rotation.html
+msgid "Success!"
+msgstr "Thành công"
+
+#: ../py/test/pytests/countdown_static/countdown.html
+msgid "Elapsed time:"
+msgstr "Thời gian trải qua："
+
+#: ../py/test/pytests/countdown_static/countdown.html
+msgid "Remaining time:"
+msgstr "Thời gian còn lại:"
+
+#: ../py/test/pytests/countdown_static/countdown.html
+msgid "Load:"
+msgstr "Tải hệ thống:"
+
+#: ../py/test/pytests/display.py
+msgid "solid-gray-170"
+msgstr "màu xám 170"
+
+#: ../py/test/pytests/display.py
+msgid "solid-gray-127"
+msgstr "màu xám 127"
+
+#: ../py/test/pytests/display.py
+msgid "solid-gray-63"
+msgstr "màu xám 63"
+
+#: ../py/test/pytests/display.py
+msgid "solid-red"
+msgstr "màu hồng"
+
+#: ../py/test/pytests/display.py
+msgid "solid-green"
+msgstr "xanh lục"
+
+#: ../py/test/pytests/display.py
+msgid "solid-blue"
+msgstr "xanh lam"
+
+#: ../py/test/pytests/display.py
+msgid "solid-white"
+msgstr "màu trắng"
+
+#: ../py/test/pytests/display.py
+msgid "solid-gray"
+msgstr "xám"
+
+#: ../py/test/pytests/display.py
+msgid "solid-black"
+msgstr "màu đen"
+
+#: ../py/test/pytests/display.py
+msgid "grid"
+msgstr "Khung"
+
+#: ../py/test/pytests/display.py
+msgid "rectangle"
+msgstr "Hình chữ nhật"
+
+#: ../py/test/pytests/display.py
+msgid "gradient-red"
+msgstr "hồng nhạt"
+
+#: ../py/test/pytests/display.py
+msgid "gradient-green"
+msgstr "xanh lục nhạt"
+
+#: ../py/test/pytests/display.py
+msgid "gradient-blue"
+msgstr "Màu xanh lam nhạt"
+
+#: ../py/test/pytests/display.py
+msgid "gradient-white"
+msgstr "trắng nhạt"
+
+#: ../py/test/pytests/display.py
+msgid "image-complex"
+msgstr "Hình ảnh –phức tạp"
+
+#: ../py/test/pytests/display.py
+msgid "image-black"
+msgstr "Hình ảnh - Đen"
+
+#: ../py/test/pytests/display.py
+msgid "image-white"
+msgstr "Hình ảnh –trắng"
+
+#: ../py/test/pytests/display.py
+msgid "image-crosstalk-black"
+msgstr "Hình ảnh - Hình vuông - Đen"
+
+#: ../py/test/pytests/display.py
+msgid "image-crosstalk-white"
+msgstr "Hình ảnh - Hình vuông - Trắng"
+
+#: ../py/test/pytests/display.py
+msgid "image-gray-63"
+msgstr "Hình ảnh - Màu xám 63"
+
+#: ../py/test/pytests/display.py
+msgid "image-gray-127"
+msgstr "Hình ảnh - Xám 127"
+
+#: ../py/test/pytests/display.py
+msgid "image-gray-170"
+msgstr "Hình ảnh - Xám 170"
+
+#: ../py/test/pytests/display.py
+msgid "image-horizontal-rgbw"
+msgstr "hình ảnh- bình quân"
+
+#: ../py/test/pytests/display.py
+msgid "image-vertical-rgbw"
+msgstr "Hình ảnh - Dọc"
+
+#: ../py/test/pytests/display_images.py
+msgid "Display Test"
+msgstr "Kiểm tra hiển thị"
+
+#: ../py/test/pytests/display_images.py
+msgid "({index}/{total}) Uploading images {name}"
+msgstr "({index}/{total}) Tải lên hình ảnh {name}"
+
+#: ../py/test/pytests/display_images.py
+msgid "All images uploaded."
+msgstr "Tất cả hình ảnh được tải lên"
+
+#: ../py/test/pytests/display_images_static/display_images.html
+msgid "Press space to show each image on display."
+msgstr "Nhấn nút trống để phát hình ảnh trên màn hình"
+
+#: ../py/test/pytests/display_images_static/display_images.html
+msgid "Press Enter to PASS after showing all images."
+msgstr ""
+"Sau khi tất cả các hình ảnh đã được phát, nhấn Enter để cho biết thành công"
+
+#: ../py/test/pytests/display_point_static/display_point.html
+msgid ""
+"Press Space to display;<br>After checking, Enter number of points to pass."
+msgstr ""
+"ấm phím  để hiển thị, sau khi kiểm tra, bấm số phím chính xác để chuyển."
+
+#: ../py/test/pytests/display_static/display.html
+msgid "Press Space to display;<br>After checking, Enter to pass; Esc to fail."
+msgstr ""
+"Nhấn phím trống để hiển thị,;<br>检nhấn Enter sau khi kiểm tra để chuyển, "
+"nhấn Esc thất bại"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "Untested"
+msgstr "Không được kiểm tra"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "Passed"
+msgstr "thông qua"
+
+#: ../py/test/pytests/display_static/display.js
+msgid "Failed"
+msgstr "Thất bại"
+
+#: ../py/test/pytests/ethernet.py
+msgid ""
+"Please plug ethernet cable into built-in ethernet port<br>Press space to "
+"start."
+msgstr ""
+"Vui lòng chèn tuyến mạng vào mạng tích hợp và nhấn nút trống để bắt đầu kiểm "
+"tra"
+
+#: ../py/test/pytests/exec_shell.py
+msgid "Running shell commands..."
+msgstr "Thực hiện các hướng dẫn hệ thống ..."
+
+#: ../py/test/pytests/external_display.py
+msgid "{display_label} Audio"
+msgstr " Âm thanh {display_label}"
+
+#: ../py/test/pytests/external_display.py
+msgid "Do you see video on {display}?"
+msgstr "Màn hình bên ngoài {display} Có ảnh không?"
+
+#: ../py/test/pytests/external_display.py
+msgid "Press {key} to pass the test."
+msgstr "thông qua vui lòng nhấn phím {key} "
+
+#: ../py/test/pytests/external_display.py
+msgid "Fixture is checking if video is displayed on {display}?"
+msgstr "Lịch thi đấu đang kiểm tra màn hình ngoài {display} Có ảnh không?"
+
+#: ../py/test/pytests/external_display.py
+msgid "Connect external display: {display} and wait until it becomes primary."
+msgstr ""
+"Vui lòng kết nối màn hình ngoài: {display} và đợi cho nó trở thành màn hình "
+"chính."
+
+#: ../py/test/pytests/external_display.py
+msgid "Disconnect external display: {display}"
+msgstr "Tháo màn hình ngoài: {display}"
+
+#: ../py/test/pytests/fan_speed.py
+msgid "{fan_spin_direction}: {observed_rpm} -> {target_rpm} RPM."
+msgstr "{fan_spin_direction}: {observed_rpm} -> {target_rpm} RPM."
+
+#: ../py/test/pytests/fan_speed.py
+msgid "Spin up fan"
+msgstr "Tăng tốc quạt"
+
+#: ../py/test/pytests/fan_speed.py
+msgid "Spin down fan"
+msgstr "Giảm tốc quạt"
+
+#: ../py/test/pytests/fan_speed_static/fan_speed.html
+msgid "Fan speed (RPM):"
+msgstr "Tốc độ quạt(RPM):"
+
+#: ../py/test/pytests/fastboot_flash.py
+msgid "Switching device into fastboot."
+msgstr "fastbootchất phân tích vào fastboot chờ đợi"
+
+#: ../py/test/pytests/fastboot_flash.py
+msgid "Switching device back to normal mode."
+msgstr "Chờ chất phân tích khởi động bình thường"
+
+#: ../py/test/pytests/fastboot_flash.py
+msgid "Flashing {file} to {partition}."
+msgstr "Cài đặt  {file} thành {partition}."
+
+#: ../py/test/pytests/finalize.py
+msgid "Build Phase"
+msgstr "Giai đoạn sản xuất"
+
+#: ../py/test/pytests/finalize.py
+msgid "Write Protection"
+msgstr "Viết bảo vệ"
+
+#: ../py/test/pytests/finalize.py
+msgid "Factory Server"
+msgstr "Máy chủ nhà máy"
+
+#: ../py/test/pytests/finalize.py
+msgid "Enabled"
+msgstr "Bật"
+
+#: ../py/test/pytests/finalize.py
+msgid "Disabled"
+msgstr "Hủy kích hoạt"
+
+#: ../py/test/pytests/finalize.py
+msgid "Running preflight tasks to prepare for finalization, please wait..."
+msgstr "Hệ thống đang được chuẩn bị để thực hiện thủ tục cuối cùng ..."
+
+#: ../py/test/pytests/finalize.py
+msgid ""
+"Finalizing, please wait.<br>Do not restart the device or terminate this test,"
+"<br>or the device may become unusable."
+msgstr ""
+"Bắt đầu trình tự cuối cùng, vui lòng đợi.<br>Không khởi động lại máy hoặc "
+"ngừng thử nghiệm.<br>Nếu không, máy sẽ không khởi động"
+
+#: ../py/test/pytests/gyroscope.py
+msgid ""
+"Please put device on a horizontal plane then press space to start testing."
+msgstr ""
+"Đặt đối tượng cần thử nghiệm trên bề mặt nằm ngang và nhấn nút trắng để bắt "
+"đầu hiệu chuẩn"
+
+#: ../py/test/pytests/gyroscope.py ../py/test/pytests/gyroscope_calibration.py
 msgid "Please do not move the device."
 msgstr "Không di chuyển đối tượng đang thử."
 
+#: ../py/test/pytests/gyroscope.py
+msgid "Please rotate the device."
+msgstr "Vui lòng biến đối tượng cần kiểm tra"
+
+#: ../py/test/pytests/gyroscope_calibration.py
+msgid ""
+"Please put device on a static plane then press space to start calibration."
+msgstr ""
+"Đặt đối tượng cần thử nghiệm trên bề mặt nằm ngang và nhấn nút trắng để bắt "
+"đầu hiệu chuẩn"
+
+#: ../py/test/pytests/gyroscope_calibration.py
+msgid ""
+"Calibration will be started within {secs} seconds.Please do not move the "
+"device."
+msgstr ""
+"Chương trình thử nghiệm sẽ bắt đầu sau {secs} giây.Không di chuyển đối tượng "
+"đang được kiểm tra."
+
+#: ../py/test/pytests/hwid.py
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Probing components..."
+msgstr "Khám phá các bộ phận..."
+
+#: ../py/test/pytests/hwid.py
+msgid "Generating HWID (v3)..."
+msgstr "Tạo HWID HWID (v3)..."
+
+#: ../py/test/pytests/hwid.py
+msgid "Verifying HWID (v3): {encoded_string}..."
+msgstr "Đang xác minh HWID (v3): {encoded_string} ..."
+
+#: ../py/test/pytests/hwid.py
+msgid "(unchanged)"
+msgstr "(không đổi)"
+
+#: ../py/test/pytests/hwid.py
+msgid "Setting HWID (v3): {encoded_string}..."
+msgstr "Ghi vào HWID (v3): {encoded_string}..."
+
+#: ../py/test/pytests/keyboard_backlight.py
+msgid "If the keyboard backlight lights up, press ENTER. "
+msgstr "Kiểm tra xem đèn nền bàn phím có sáng không, nhấn ENTER"
+
+#: ../py/test/pytests/keyboard_backlight.py
+msgid "If the keyboard backlight is off, press ENTER. "
+msgstr "Kiểm tra xem đèn nền bàn phím có tắt hay  không Nhấn ENTER."
+
+#: ../py/test/pytests/keyboard_smt_static/keyboard_smt.html
+msgid "Expected keycode sequence:"
+msgstr "Trình tự khóa đích:"
+
+#: ../py/test/pytests/keyboard_static/keyboard.html
+msgid "Press keys sequentially from top-left to bottom-right."
+msgstr "Nhấn nút từ trên trái sang phải dưới cùng"
+
+#: ../py/test/pytests/keyboard_static/keyboard.html
+msgid "Press one key at a time."
+msgstr "Mỗi lần chỉ được ấn nút một lần"
+
+#: ../py/test/pytests/led.py
+msgid "yellow"
+msgstr "màu vàng"
+
+#: ../py/test/pytests/led.py ../py/test/pytests/lightbar.py
+msgid "green"
+msgstr "xanh lục"
+
+#: ../py/test/pytests/led.py ../py/test/pytests/lightbar.py
+msgid "red"
+msgstr "màu hồng"
+
+#: ../py/test/pytests/led.py ../py/test/pytests/lightbar.py
+msgid "white"
+msgstr "màu trắng"
+
+#: ../py/test/pytests/led.py ../py/test/pytests/lightbar.py
+msgid "blue"
+msgstr "màu xanh"
+
+#: ../py/test/pytests/led.py
+msgid "amber"
+msgstr "Amber"
+
+#: ../py/test/pytests/led.py
+msgid "off"
+msgstr "đóng"
+
+#: ../py/test/pytests/led.py
+msgid "power LED"
+msgstr "nguồn điện LED"
+
+#: ../py/test/pytests/led.py
+msgid "battery LED"
+msgstr "nguồn điện LED"
+
+#: ../py/test/pytests/led.py
+msgid "adapter LED"
+msgstr "LEDĐèn LED bộ nguồn"
+
+#: ../py/test/pytests/led.py
+msgid "left LED"
+msgstr ""
+
+#: ../py/test/pytests/led.py
+msgid "right LED"
+msgstr "Độ sáng LED"
+
+#: ../py/test/pytests/led.py
+msgid "recovery hwreinit LED"
+msgstr ""
+
+#: ../py/test/pytests/led.py
+msgid "sysrq debug LED"
+msgstr ""
+
+#: ../py/test/pytests/led.py
+msgid "If the <strong>{name}</strong> is <strong>off</strong>, press ENTER."
+msgstr ""
+"Vui lòng kiểm tra xem <strong>{name}</strong> có bị tắt hay không "
+"<strong>nhấn</strong> nhấn ENTER。"
+
+#: ../py/test/pytests/led.py
+msgid ""
+"If the <strong>{name}</strong> lights up in <strong>{color}</strong>, press "
+"ENTER."
+msgstr ""
+"Vui lòng kiểm tra xem <strong>{name}</strong> có được sáng <strong>{color}</"
+"strong> không, vui lòng nhấn ENTER。"
+
+#: ../py/test/pytests/led.py
+msgid "Test {test_id}"
+msgstr "Kiểm tra {test_id}"
+
+#: ../py/test/pytests/led.py
+msgid "Please press number key according to the <strong>{name}</strong> color"
+msgstr "Nhấn phím số theo màu của <strong>{name}</strong> "
+
+#: ../py/test/pytests/led.py
+msgid "Result: "
+msgstr "Kết quả kiểm tra:"
+
+#: ../py/test/pytests/lid_switch.py
+msgid "Demagnetizing lid sensor"
+msgstr "Cảm biến cảm biến"
+
+#: ../py/test/pytests/lid_switch.py
+msgid "Open the lid"
+msgstr "Vui lòng mở nắp trên"
+
+#: ../py/test/pytests/lid_switch.py
+msgid "Magnetizing lid sensor"
+msgstr "Cảm biến nắp trên từ hóa"
+
+#: ../py/test/pytests/lid_switch.py
+msgid "Close then open the lid"
+msgstr "Đóng và sau đó mở nắp trên"
+
+#: ../py/test/pytests/light_sensor.py
+msgid "Cover light sensor with finger"
+msgstr "Bao gồm cảm biến ánh sáng"
+
+#: ../py/test/pytests/light_sensor.py
+msgid "Remove finger from light sensor"
+msgstr "Xóa bóng"
+
+#: ../py/test/pytests/light_sensor.py
+msgid "Shine light sensor with flashlight"
+msgstr "Chiếu sáng cảm biến ánh sáng với ánh sáng mạnh"
+
+#: ../py/test/pytests/light_sensor_calibration.py
+msgid "ALS Sensor Calibration"
+msgstr "Hiệu chỉnh cảm biến ánh sáng"
+
+#: ../py/test/pytests/light_sensor_calibration.py
+msgid "Cleaning up calibration values"
+msgstr "Xóa giá trị hiệu chỉnh"
+
+#: ../py/test/pytests/light_sensor_calibration.py
+msgid "Sampling {name}"
+msgstr "Đọc {name}"
+
+#: ../py/test/pytests/light_sensor_calibration.py
+msgid "Checking ALS ordering"
+msgstr "Xác nhận trình tự  ALS"
+
+#: ../py/test/pytests/light_sensor_calibration.py
+msgid "Calculating calibration coefficients"
+msgstr "Tính toán các thông số hiệu chuẩn"
+
+#: ../py/test/pytests/light_sensor_calibration.py
+msgid "Saving calibration coefficients to VPD"
+msgstr "Viết các tham số hiệu chuẩn vào VPD"
+
+#: ../py/test/pytests/light_sensor_calibration.py
+msgid "Validating ALS"
+msgstr "Xác minh ALS"
+
+#: ../py/test/pytests/light_sensor_calibration.py
+msgid "Fixture Connected"
+msgstr "Lịch thi đấu đã được kết nối"
+
+#: ../py/test/pytests/light_sensor_calibration.py
+msgid "Fixture Disconnected"
+msgstr "Ngắt kết nối cố định"
+
+#: ../py/test/pytests/light_sensor_calibration.py
+msgid "Switching to lighting {name}"
+msgstr "Chuyển sang {name}"
+
+#: ../py/test/pytests/light_sensor_static/light_sensor.html
+msgid "Use indicated light source to pass each subtest."
+msgstr "Vui lòng chuyển từng subtest theo chỉ dẫn"
+
+#: ../py/test/pytests/light_sensor_static/light_sensor.html
+msgid "Hit \"space\" to begin..."
+msgstr "Nhấn phím trống để bắt đầu kiểm tra..."
+
+#: ../py/test/pytests/lightbar.py
+msgid "dark"
+msgstr "toàn âm"
+
+#: ../py/test/pytests/lightbar.py
+msgid "Is the lightbar {color}?<br>Press SPACE if yes, \"F\" if no."
+msgstr ""
+"Thanh ánh sáng có phải là {color} không?<br>Có, vui lòng nhấn  phím trống, "
+"không nhấn F 。"
+
+#: ../py/test/pytests/memory_size.py
+msgid "Checking memory info..."
+msgstr "Kiểm tra dung lượng bộ nhớ..."
+
+#: ../py/test/pytests/message.py
+msgid ""
+"<div>Press <strong>Enter</strong> to continue, or <strong>ESC</strong> if "
+"things are not going right.</div>"
+msgstr ""
+"<div>Nhấn<strong>Enter</strong>để tiếp tục, nếu không, nhấn <strong>ESC</"
+"strong></div>"
+
+#: ../py/test/pytests/message.py
+msgid "<div>Press <strong>Enter</strong> to continue.</div>"
+msgstr "<div>Nhấn<strong>Enter</strong>để tiếp tục</div>"
+
+#: ../py/test/pytests/model_sku.py
+msgid "Please confirm following values"
+msgstr "Vui lòng xác nhận các kết quả sau"
+
+#: ../py/test/pytests/network_setup/network_setup.py
+msgid "No physical link on {interface}"
+msgstr "{interface} Không có cáp mạng nào được kết nối"
+
+#: ../py/test/pytests/network_setup/network_setup.py
+msgid "Interface {interface} not found"
+msgstr "Không tìm thấy giao diện mạng {interface}"
+
+#: ../py/test/pytests/network_setup/network_setup.py
+msgid "Interface {interface} not initialized"
+msgstr "Giao diện mạng {interface} không được khởi tạo thành công"
+
+#: ../py/test/pytests/network_setup/network_setup.py
+msgid "Unknown Error on {interface}"
+msgstr "Giao diện mạng {interface} có lỗi không xác định"
+
+#: ../py/test/pytests/network_setup/network_setup.py
+msgid "Setting up interface {interface}"
+msgstr "Thiết lập giao diện web {interface}"
+
+#: ../py/test/pytests/network_setup/network_setup.py
+msgid "Press space to continue"
+msgstr "Vui lòng bấm phím trống để tiếp tục"
+
+#: ../py/test/pytests/plankton_cc2_pull_test.py
+msgid "Please remove USB type-C cable in {secs:.1f} seconds"
+msgstr "Vui lòng tháo cáp USB loại C trong vòng {secs:.1f} giây"
+
+#: ../py/test/pytests/plankton_cc2_pull_test.py
+msgid "USB type-C port is disconnected in {secs:.1f} seconds"
+msgstr "Cổng USB loại C mất kết nối {secs: .1f} giây"
+
+#: ../py/test/pytests/plankton_cc2_pull_test.py
+msgid "Please attach USB type-C cable in {secs:.1f} seconds"
+msgstr "Vui lòng kết nối cáp USB loại C trong vòng {secs:.1f} giây"
+
+#: ../py/test/pytests/plankton_cc_flip_check.py
+msgid "Wait DUT to reconnect"
+msgstr "Chờ cho DUT kết nối lại"
+
+#: ../py/test/pytests/plankton_cc_flip_check.py
+msgid "Flip USB type-C cable and plug in again..."
+msgstr "Đảo ngược đầu cắm USB loại C và cắmlại vào máy..."
+
+#: ../py/test/pytests/plankton_cc_flip_check.py
+msgid "And press Enter key to continue..."
+msgstr "Nhấn Enter để tiếp tục..."
+
+#: ../py/test/pytests/plankton_charge.py
+msgid "Waiting for ADB device connection..."
+msgstr "Đang đợi máy kết nối ..."
+
+#: ../py/test/pytests/plankton_charge.py
+msgid "Checking Plankton INA current for protection..."
+msgstr "Kiểm tra bảo vệ hiện tại..."
+
+#: ../py/test/pytests/plankton_charge.py
+msgid "Testing battery {voltage}V charging..."
+msgstr "Kiểm tra pin {voltage} V sạc ..."
+
+#: ../py/test/pytests/plankton_charge.py
+msgid "Testing battery discharging..."
+msgstr "Kiểm tra xả pin ..."
+
+#: ../py/test/pytests/plankton_display.py
+msgid "Connecting BFT display: {device}"
+msgstr "Kết nối với màn hình BFT: {device}"
+
+#: ../py/test/pytests/plankton_display.py
+msgid "Disconnecting BFT display: {device}"
+msgstr "Loại bỏ màn hình BFT: {device}"
+
+#: ../py/test/pytests/plankton_display.py
+msgid "BFT display {device} is connected. Sending image..."
+msgstr "Màn hình BFT được kết nối: {device}, màn hình truyền"
+
+#: ../py/test/pytests/plankton_display_static/plankton_display.html
+msgid "Caution: monitor may turn black for a short time."
+msgstr "Lưu ý: Màn hình có thể có màn hình đen ngắn."
+
+#: ../py/test/pytests/power_under_stress.py
+msgid "Voltage: {voltage} mV"
+msgstr "mVĐiện áp: {voltage} mV"
+
+#: ../py/test/pytests/power_under_stress.py
+msgid "Current: {current} mA"
+msgstr "Hiện tại: {current} mA"
+
+#: ../py/test/pytests/probe_sim.py
+msgid "Please insert the SIM card"
+msgstr "Vui lòng lắp thẻ SIM"
+
+#: ../py/test/pytests/probe_sim.py
+msgid "Detected! Please remove the SIM card"
+msgstr "Thẻ SIM đã được phát hiện, vui lòng tháo thẻ SIM"
+
+#: ../py/test/pytests/probe_sim.py
+msgid "Checking SIM card is present or not..."
+msgstr "Kiểm tra xem thẻ SIM có tồn tại không"
+
+#: ../py/test/pytests/probe_sim_card_tray.py
+msgid "Please insert the SIM card tray"
+msgstr "Vui lòng lắp ngăn chứa thẻ SIM"
+
+#: ../py/test/pytests/probe_sim_card_tray.py
+msgid "Detected! Please remove the SIM card tray"
+msgstr "Hộp mực SIM đã được phát hiện Vui lòng tháo hộp đựng thẻ SIM"
+
+#: ../py/test/pytests/read_device_data_from_vpd.py
+msgid "Reading device data from {vpd_section} VPD..."
+msgstr "Đọc dữ liệu máy từ VPD {vpd_section} ..."
+
+#: ../py/test/pytests/removable_storage.py
+msgid "Testing {device}..."
+msgstr "{device} Đang kiểm tra ..."
+
+#: ../py/test/pytests/removable_storage.py
+msgid "Performing r/w test on {count} {bsize}-byte random blocks..."
+msgstr "Thực thi {count}  {bsize} khối byte liên tục đọc và viết thử nghiệm..."
+
+#: ../py/test/pytests/removable_storage.py
+msgid "Performing sequential r/w test of {bsize} bytes..."
+msgstr "Thực thi {bsize} khối byte liên tục đọc và viết thử nghiệm..."
+
+#: ../py/test/pytests/removable_storage.py
+msgid ""
+"Insert {media} drive for read/write test... {extra}<br>WARNING: DATA ON "
+"INSERTED MEDIA WILL BE LOST!"
+msgstr ""
+"Chèn {media} bộ nhớ cho các bài kiểm tra đọc và viết... {extra}<br>ưu ý: Dữ "
+"liệu được chèn vào thiết bị sẽ bị xóa!!"
+
+#: ../py/test/pytests/removable_storage.py
+msgid "Wrong USB side, please flip over {media}."
+msgstr "Định hướng USB sai, vui lòng đảo ngược hướng của {media} ..."
+
+#: ../py/test/pytests/removable_storage.py
+msgid "Remove {media} drive..."
+msgstr " Trích xuất {media} lưu trữ ..."
+
+#: ../py/test/pytests/removable_storage.py
+msgid "Toggle lock switch and insert {media} drive again..."
+msgstr "Chuyển khóa bảo vệ ghi và chèn lại {media} lần nữa ..."
+
+#: ../py/test/pytests/removable_storage.py
+msgid "Remove {media} drive and toggle lock switch..."
+msgstr "Giải nén {media} lưu trữ và tắt công tắc chống ghi ..."
+
+#: ../py/test/pytests/rf_graphyte/rf_graphyte.py
+msgid "Executing Graphyte"
+msgstr "Thi hành Graphyte"
+
+#: ../py/test/pytests/robot_movement.py
+msgid "Initializing Robot..."
+msgstr "Khởi tạo cánh tay robot..."
+
+#: ../py/test/pytests/robot_movement.py
+msgid ""
+"Please load DUT onto the robot, connect all cables, and press <b>SPACE</b> "
+"to continue."
+msgstr ""
+"Đặt DUT trên cánh tay robot và kết nối đường dây và nhấn nút trống để bắt đầu"
+
+#: ../py/test/pytests/robot_movement.py
+msgid "Prepare for movement."
+msgstr "Sẵn sàng bắt đầu di chuyển."
+
+#: ../py/test/pytests/robot_movement.py
+msgid "Moving to start position..."
+msgstr "Di chuyển đến vị trí bắt đầu."
+
+#: ../py/test/pytests/robot_movement.py
+msgid "Moving to LOAD / UNLOAD position..."
+msgstr "Di chuyển đến vị trí gỡ cài đặt"
+
+#: ../py/test/pytests/robot_movement.py
+msgid "Computing..."
+msgstr "Sửa chữa..."
+
+#: ../py/test/pytests/robot_movement.py
+msgid "Pushing the result..."
+msgstr ".Lưu kết quả..."
+
+#: ../py/test/pytests/sar_proximity_sensor.py
+msgid "Please cover the sensor by hand"
+msgstr ""
+
+#: ../py/test/pytests/sar_proximity_sensor.py
+msgid "Please un-cover the sensor"
+msgstr "Vui lòng lắp thẻ SIM"
+
+#: ../py/test/pytests/scan.py
+msgid "The scanned value is empty."
+msgstr "Số quét là trống."
+
+#: ../py/test/pytests/scan.py
+msgid "The scanned value \"{value}\" does not match the expected format."
+msgstr "Số quét「{value}」không đúng định dạng."
+
+#: ../py/test/pytests/scan.py
+msgid ""
+"The scanned value \"{value}\" does not match the expected value <span "
+"class=test-engineering-mode-only>\"{expected_value}\"</span>."
+msgstr ""
+"Số được quét「{value}」không khớp với số được mong đợi <span class=test-"
+"engineering-mode-only>「{expected_value}」</span>。"
+
+#: ../py/test/pytests/scan.py
+msgid "Writing to VPD. Please wait..."
+msgstr "Viết cho VPD, vui lòng chờ ..."
+
+#: ../py/test/pytests/scan.py
+msgid "Scan {label}"
+msgstr "Đang quét{label}"
+
+#: ../py/test/pytests/scan.py
+msgid "Please scan the {label} and press ENTER."
+msgstr "Vui lòng quét{label}và nhấn ENTER.。"
+
+#: ../py/test/pytests/shopfloor_service.py
+msgid "Retry"
+msgstr "Thử lại"
+
+#: ../py/test/pytests/shopfloor_service.py
+msgid "Invoking shopfloor service"
+msgstr "Thực hiện dịch vụ Shopfloor"
+
+#: ../py/test/pytests/shopfloor_service.py
+msgid "Shopfloor exception:"
+msgstr "Lỗi cửa hàng:"
+
+#: ../py/test/pytests/shutdown.py
+msgid "reboot"
+msgstr "khởi động lại"
+
+#: ../py/test/pytests/shutdown.py
+msgid "full reboot"
+msgstr "Khởi động lại sâu"
+
+#: ../py/test/pytests/shutdown.py
+msgid "halt"
+msgstr "tắt máy"
+
+#: ../py/test/pytests/shutdown.py
+msgid "Shutdown Test ({operation})"
+msgstr "thử Tắt máy ({operation})"
+
+#: ../py/test/pytests/shutdown.py
+msgid "Remote DUT is performing {operation}, timeout in {delay} seconds."
+msgstr "Đơn vị kiểm tra từ xa sẽ là {operation} trong vòng {delay} giây."
+
+#: ../py/test/pytests/shutdown.py
+msgid "Verifying system state after {operation}"
+msgstr "Xác minh trạng thái hệ thống sau {operation}"
+
+#: ../py/test/pytests/shutdown.py
+msgid "System is going to {operation} in {delay} seconds."
+msgstr "Hệ thống sẽ là {operation} sau {delay} giây.."
+
+#: ../py/test/pytests/spatial_sensor_calibration.py
+msgid "Accelerometer"
+msgstr "Gia tốc kế"
+
+#: ../py/test/pytests/spatial_sensor_calibration.py
+msgid "Calibrating {sensor_name}..."
+msgstr "Hiệu chỉnh {sensor_name}..."
+
+#: ../py/test/pytests/spatial_sensor_calibration.py
+msgid "Device not in position"
+msgstr "Vị trí thiết bị không chính xác"
+
+#: ../py/test/pytests/spatial_sensor_calibration.py
+msgid "Please put the device in face-up position (press Enter to continue)"
+msgstr "Hãy đối mặt với thiết bị (nhấn Enter để tiếp tục)"
+
+#: ../py/test/pytests/spatial_sensor_calibration.py ../py/test/pytests/vsync.py
+msgid "Waiting for device..."
+msgstr "Đang chờ thiết bị ..."
+
+#: ../py/test/pytests/spatial_sensor_calibration.py
+msgid "Writing calibration data..."
+msgstr "Viết kết quả chỉnh sửa..."
+
+#: ../py/test/pytests/start.py
+msgid "Enter valid serial number:<br>"
+msgstr "Vui lòng nhập số sê-ri hợp lệ:<br>"
+
+#: ../py/test/pytests/start.py
+msgid "Hit SPACE to start testing..."
+msgstr "Nhấn nút trống để bắt đầu kiểm tra..."
+
+#: ../py/test/pytests/start.py
+msgid "Plug in external power to continue."
+msgstr "Vui lòng cắm nguồn cấp điện bên ngoài để tiếp tục"
+
+#: ../py/test/pytests/start.py
+msgid ""
+"Factory install process did not complete. Auto-testing stopped."
+"<br><br>Please install the factory test image using factory server<br>rather "
+"than booting from a USB drive.<br>"
+msgstr ""
+"Thất bại trong quá trình cài đặt, dừng kiểm tra tự động<br><br>Vui lòng sử "
+"dụng máy chủ nhà máy đầy đủ để cài đặt chương trình thử nghiệm,<br>không "
+"khởi động trực tiếp từ đĩa USB.。<br>"
+
+#: ../py/test/pytests/start.py
+msgid "Initialize some shared data..."
+msgstr "Đặt lại dữ liệu được chia sẻ cũ..."
+
+#: ../py/test/pytests/station_entry.py
+msgid "Start Station Test"
+msgstr "Bắt đầu thử nghiệm"
+
+#: ../py/test/pytests/station_entry.py
+msgid "End Station Test"
+msgstr "Kết thúc bài kiểm tra"
+
+#: ../py/test/pytests/station_entry.py
+msgid "Please attach DUT."
+msgstr "INSERT Vui lòng lắp thiết bị kiểm tra。"
+
+#: ../py/test/pytests/station_entry.py
+msgid "Press SPACE to start the test."
+msgstr "Đề nghị ấnphím trống để thử mở"
+
+#: ../py/test/pytests/station_entry.py
+msgid "Sending test results to shopfloor..."
+msgstr "SENDING truyền kết quả kiểm tra đến máy chủ ..."
+
+#: ../py/test/pytests/station_entry.py
+msgid "Please remove DUT."
+msgstr "XÓA Hãy tháo bộ kiểm tra ra。"
+
+#: ../py/test/pytests/station_entry.py
+msgid "Press SPACE to end the test."
+msgstr "Đề nghị ấn phím trống thử kết thúc"
+
+#: ../py/test/pytests/stylus.py
+msgid ""
+"Please extend the green line with stylus to the other end.<br>Stay between "
+"the two red lines.<br>Press SPACE to start; Esc to fail."
+msgstr ""
+"Sử dụng bút stylus để mở rộng đoạn đường màu xanh lá cây đến đầu kia,"
+"<br>không vượt quá vùng vạch đỏ. <br>Nhấn phím trống để bắt đầu kiểm tra, "
+"phím Esc không thành công"
+
+#: ../py/test/pytests/summary.py
+msgid "Click or press SPACE to continue"
+msgstr "Nhấp hoặc nhấn nút trống để tiếp tục"
+
+#: ../py/test/pytests/summary.py
+msgid "Unable to proceed, since some previous tests have not passed."
+msgstr "Tất cả các bài kiểm tra trước đó phải vượt qua để vượt qua dự án này"
+
+#: ../py/test/pytests/summary_static/summary.html
+msgid "Click or press any key to continue..."
+msgstr "Nhấp hoặc nhấn nút trống để tiếp tục"
+
+#: ../py/test/pytests/summary_static/summary.js
+msgid "passed"
+msgstr "tốt"
+
+#: ../py/test/pytests/summary_static/summary.js
+msgid "failed"
+msgstr "không đạt"
+
+#: ../py/test/pytests/summary_static/summary.js
+msgid "active"
+msgstr "đang thử"
+
+#: ../py/test/pytests/summary_static/summary.js
+msgid "untested"
+msgstr "Không được kiểm tra"
+
+#: ../py/test/pytests/summary_static/summary.js
+msgid "Test Status for {testName}:"
+msgstr "{testName} Danh sách kết quả kiểm tra:"
+
+#: ../py/test/pytests/suspend_resume.py
+msgid "Suspend/Resume: {run} of {cycle}"
+msgstr "Dừng/ Khôi phục: {run} / {cycle}"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Change URL"
+msgstr "Thay đổi URL"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Please wait few seconds to edit..."
+msgstr "Vui lòng đợi vài giây để chỉnh sửa..."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "No factor server URL configured."
+msgstr "URL máy chủ của máy chủ gốc không được chỉ định."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid ""
+"For debugging or development, enter engineering mode to start individual "
+"tests."
+msgstr ""
+"Nếu bạn muốn gỡ lỗi hoặc thực hiện một số kiểm tra, vui lòng nhập chế độ kỹ "
+"thuật."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Change server URL: "
+msgstr " Thay đổi URL máy chủ: "
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Set"
+msgstr "Cài đặt"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Please connect to network..."
+msgstr "Vui lòng kết nối với mạng..."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Expected network: {networks}"
+msgstr "Mạng dự kiến: {networks}"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Current networks: {networks}"
+msgstr "Mạng hiện tại: {networks}"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Trying to reach server..."
+msgstr "Cố gắng liên lạc với máy chủ của nhà máy"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Trying to check server protocol..."
+msgstr "Kiểm tra máy chủ của nhà máy ..."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Server URL: {server_url}"
+msgstr "URL máy chủ: {server_url}"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Flush Test Log: Progress = <br>{progress}"
+msgstr "Bảng hi thử nghiệm đồng bộ hóa (TestLog): Progress = <br>{progress}"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Collecting report data..."
+msgstr "Thu thập tài liệu báo cáo..."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Getting serial number..."
+msgstr "Đọc số sê-ri ..."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "A software update is available. Press SPACE to update."
+msgstr "Có sẵn các bản cập nhật. Bấm phím trống để cập nhật"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Preparing..."
+msgstr "Đang chuẩn bị..."
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Ping"
+msgstr "Kiểm tra kết nối"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Detect Server URL"
+msgstr "Phát hiện URL máy chủ "
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Sync time"
+msgstr "Thời gian đồng bộ hóa"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Flush Event Logs"
+msgstr "Ghi nhật ký sự kiện đồng bộ hóa"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Flush Test Log"
+msgstr "Bảng hi thử nghiệm đồng bộ(TestLog)"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Create Report"
+msgstr "Sản xuất báo cáo"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Upload report"
+msgstr "Tải lên báo cáo sản xuất"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Upload Reg Codes"
+msgstr "Tải lên"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Update Toolkit"
+msgstr "Cập nhật thủ tục kiểm tra"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Running task: {label}"
+msgstr "Thực hiện tác vụ: {label}"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Server Task Finished: {label}"
+msgstr "Hoàn thành tác vụ: {label}"
+
+#: ../py/test/pytests/sync_factory_server.py
+msgid "Task <b>{label}</b> failed, retry in {time_left} seconds..."
+msgstr ""
+"<b>Tác vụ{label}</b>không thành công và sẽ thử lại sau {time_left} giây ..."
+
+#: ../py/test/pytests/tablet_mode.py
+msgid "Flip the lid into tablet mode"
+msgstr "Mở nắp trên cho đến khi nó vừa với nắp dướ"
+
+#: ../py/test/pytests/tablet_mode.py
+msgid "Confirm tablet mode"
+msgstr "Xác nhận chế độ máy tính bảng"
+
+#: ../py/test/pytests/tablet_mode.py
+msgid "Open the lid back to notebook mode"
+msgstr "Mở nắp cho đến khi chế độ máy tính xách tay bình thường"
+
+#: ../py/test/pytests/tablet_mode.py
+msgid "Press SPACE to confirm notebook mode"
+msgstr "Vui lòng bấm phím trống để xác nhận chế độ sổ ghi chép."
+
+#: ../py/test/pytests/tablet_mode.py
+msgid "Failure"
+msgstr "Thất bại"
+
+#: ../py/test/pytests/tablet_rotation.py
+msgid ""
+"Rotate the tablet to correctly align the picture, holding it at an upright "
+"90-degree angle."
+msgstr ""
+"Lắp máy tính bảng sao cho nó vuông góc với màn hình nền và bắt đầu xoay để "
+"căn chỉnh hình ảnh."
+
+#: ../py/test/pytests/touch_uniformity.py
+msgid "PASS"
+msgstr "Thành công"
+
+#: ../py/test/pytests/touch_uniformity.py
+msgid "FAIL"
+msgstr "Thất bại"
+
+#: ../py/test/pytests/touch_uniformity.py
+msgid "ERROR: Touch device not found"
+msgstr "Không tìm thấy thiết bị cảm ứng"
+
+#: ../py/test/pytests/touch_uniformity.py
+msgid "Calibrating Touch device"
+msgstr "Hiệu chỉnh thiết bị cảm ứng"
+
+#: ../py/test/pytests/touch_uniformity.py
+msgid "Testing {item}..."
+msgstr "Thử nghiệm trong {item} ... "
+
+#: ../py/test/pytests/touchpad.py
 msgid ""
 "Please don't put your third finger on the touchpad.\n"
 "If you didn't do that,\n"
@@ -1269,888 +2742,131 @@ msgstr ""
 "Nếu bạn không làm điều đó,\n"
 "hãy sử dụng trackpad này như một vấn đề! "
 
-msgid "Please enter SN"
-msgstr "Vui lòng nhập số sê-ri"
-
-msgid "Please enter SN first"
-msgstr "Vui lòng nhập số sê-ri trước."
-
+#: ../py/test/pytests/touchpad.py
 msgid ""
-"Please extend the green line with stylus to the other end.<br>Stay between "
-"the two red lines.<br>Press SPACE to start; Esc to fail."
+"Ghost finger detected!!\n"
+"Please treat this touch panel as a problematic one!!"
 msgstr ""
-"Sử dụng bút stylus để mở rộng đoạn đường màu xanh lá cây đến đầu kia,<br>không vượt quá vùng vạch đỏ. <br>Nhấn phím trống để bắt đầu kiểm tra, phím Esc không thành công"
-""
+"Một ngón tay ma được phát hiện!\n"
+"Vui lòng sử dụng bảng cả mứng này như một sự cố! !"
 
-msgid ""
-"Please fully disconnect all the cable.<br> Then press ENTER to continue."
-msgstr "Sau khi tháo ăng-ten hoàn toàn, nhấn ENTER để tiếp tục"
+#: ../py/test/pytests/touchpad_hover.py
+msgid "Calibrating touchpad..."
+msgstr "Chỉnh sửa màn hình cảm ứng ..."
 
-msgid ""
-"Please insert a formatted USB stick and wait a moment for it to be mounted."
-msgstr "Vui lòng lắp ổ flash USB và đợi gắn"
-
-msgid "Please insert the SIM card"
-msgstr "Vui lòng lắp thẻ SIM"
-
-msgid "Please insert the SIM card tray"
-msgstr "Vui lòng lắp ngăn chứa thẻ SIM"
-
-msgid "Please leave your finger and restart from upper-left block."
-msgstr "Vui lòng tháo ngón tay của bạn và bắt đầu vẽ lại từ góc trên bên trái"
-
-msgid ""
-"Please load DUT onto the robot, connect all cables, and press <b>SPACE</b> "
-"to continue."
-msgstr "Đặt DUT trên cánh tay robot và kết nối đường dây và nhấn nút trống để bắt đầu"
-
-msgid "Please open the lid to {angle} degrees and press SPACE."
-msgstr "Vui lòng mở nắp trên lên  {angle} và nhấn nút trống."
-
-msgid "Please place the LCD panel into the fixture and then press ENTER."
-msgstr "Vui lòng đặt thân máy LCD trên vật cố định và nhấn ENTER"
-
-msgid ""
-"Please plug ethernet cable into built-in ethernet port<br>Press space to "
-"start."
-msgstr "Vui lòng chèn tuyến mạng vào mạng tích hợp và nhấn nút trống để bắt đầu kiểm tra"
-
-msgid "Please plug headphone in."
-msgstr "Vui lòng kết nối tai nghe"
-
-msgid "Please plug in the display to test"
-msgstr "Vui lòng rút phích cắm tai nghe"
-
-msgid "Please press number key according to the <strong>{name}</strong> color"
-msgstr "Nhấn phím số theo màu của <strong>{name}</strong> "
-
-msgid "Please pull out the hover-tool from the holder."
-msgstr "Vui lòng tháo công cụ kiểm tra di chuột ra khỏi giá đỡ"
-
-msgid ""
-"Please put device on a horizontal plane then press space to start "
-"calibration."
-msgstr "Đặt đối tượng cần thử nghiệm trên bề mặt nằm ngang và nhấn nút trắng để bắt đầu hiệu chuẩn"
-
-msgid "Please put the device in face-up position (press Enter to continue)"
-msgstr "Hãy đối mặt với thiết bị (nhấn Enter để tiếp tục)"
-
+#: ../py/test/pytests/touchpad_hover.py
 msgid "Please put the hover-tool into the holder."
 msgstr "Đặt bộ kiểm tra di chuột vào ngăn chứa"
 
-msgid "Please re-attach the magnet, and press the space key on the test host."
-msgstr "Vui lòng kết nối lại nam châm và nhấn phím cách của máy tính"
+#: ../py/test/pytests/touchpad_hover.py
+msgid "Please pull out the hover-tool from the holder."
+msgstr "Vui lòng tháo công cụ kiểm tra di chuột ra khỏi giá đỡ"
 
-msgid "Please remove DUT."
-msgstr "XÓA Hãy tháo bộ kiểm tra ra。"
+#: ../py/test/pytests/touchpad_hover.py
+msgid "Checking for false positive..."
+msgstr "Thực hiện kiểm tra dương tính giả..."
 
-msgid "Please remove USB type-C cable in {secs:.1f} seconds"
-msgstr "Vui lòng tháo cáp USB loại C trong vòng {secs:.1f} giây"
-
-msgid "Please rotate the device."
-msgstr "Vui lòng biến đối tượng cần kiểm tra"
-
-msgid "Please run external test: {name}"
-msgstr "Vui lòng thực hiện kiểm tra bên ngoài: {name}"
-
-msgid "Please scan the {label} and press ENTER."
-msgstr "Vui lòng quét{label}và nhấn ENTER.。"
-
-msgid "Please start drawing from upper-left corner."
-msgstr "Vui lòng bắt đầu vẽ lưới từ góc trên bên trái"
-
+#: ../py/test/pytests/touchpad_static/touchpad.html
 msgid "Please take off your fingers and then press SPACE to start testing..."
-msgstr "Vui lòng giữ ngón tay tránh xa màn hình cảm ứng và nhấn nút trống để bắt đầu kiểm tra ..."
-
-msgid "Please test input. Press Escape to fail and Enter to pass"
-msgstr "Vui lòng kiểm tra đầu vào.Nếu không thành công, nhấn phím Esc, nếu thành công, nhấn phím Enter."
-
-msgid "Please unplug headphone."
-msgstr "Vui lòng rút phích cắm tai nghe"
-
-msgid "Please wait few seconds to edit..."
-msgstr "Vui lòng đợi vài giây để chỉnh sửa..."
-
-msgid ""
-"Please wait for other DUTs to finish WiFiThroughput test, and press spacebar "
-"to continue."
-msgstr "Vui lòng chờ cho các thiết bị khác hoàn tất kiểm tra và nhấn nút trống để tiếp tục"
-
-msgid "Please wait for the {device} playback to finish."
-msgstr "{device} Phát giọng nói ···"
-
-msgid "Plug AC to proceed"
-msgstr "Cắm nguồn điện AC "
-
-msgid "Plug device into each USB port, {num_usb_ports} to go..."
-msgstr "Lắp thiết bị vào mỗi cổng USB và có {num_usb_ports}  để được kiểm tra..."
-
-msgid "Plug in audio jack dongle"
-msgstr "Vui lòng đặt vật cố định lỗ nguồn âm thanh"
-
-msgid "Plug in external power to continue."
-msgstr "Vui lòng cắm nguồn cấp điện bên ngoài để tiếp tục"
-
-msgid "Plug in the charger"
-msgstr "Vui lòng kết nối bộ sạc"
-
-msgid "Plug in the charger ({type})"
-msgstr "Vui lòng kết nối bộ sạc ({type})"
-
-msgid "Pop Factory State On Station"
-msgstr "Xóa trạng thái thử nghiệm dàn dựng"
-
-msgid "Power Button"
-msgstr "Nút nguồn"
-
-msgid "Power Under Stress"
-msgstr "Kiểm tra công suất áp suất"
-
-msgid "Prepare"
-msgstr "Thủ tục chuẩn bị"
-
-msgid "Prepare for movement."
-msgstr "Sẵn sàng bắt đầu di chuyển."
-
-msgid "Preparing..."
-msgstr "Đang chuẩn bị..."
-
-msgid ""
-"Press 'P' to first play a sample for each channel to ensure audio output "
-"works.<br>Press 'R' to record {record_sec} seconds, Playback will follow."
-"<br>Press space to mark pass."
 msgstr ""
-"Bấm 'P' chìa khóa chơi dụ bấm<br> chìa khóa để bắt đầu ghi 'R' {record_sec}chìa khóa để bắt đầu ghi"
-"<br>record_sec giây, sau đó tái hiện lại ghi âm thanh để chỉ giảm thành công trống"
+"Vui lòng giữ ngón tay tránh xa màn hình cảm ứng và nhấn nút trống để bắt đầu "
+"kiểm tra ..."
 
-msgid "Press 'Space' to start test"
-msgstr "Nhấn nút trống để bắt đầu kiểm tra"
-
-msgid ""
-"Press 0 if LED is constantly lit, 1 if LED is flickering,\n"
-"or ESC to fail."
-msgstr "LED đã được thắp sáng, nhấn 0, nhấp nháy bấm 1, nhấn ESC trước khi bình minh"
-
-msgid "Press ENTER to pass or ESC to fail."
-msgstr "Nếu máy ảnh hoạt động bình thường, vui lòng nhấn ENTER.Nếu không bình thường, vui lòng nhấn ESC"
-
-msgid "Press ESC to fail."
-msgstr "Nếu bạn thất bại, nhấn phím ESC"
-
-msgid "Press Enter to PASS after showing all images."
-msgstr "Sau khi tất cả các hình ảnh đã được phát, nhấn Enter để cho biết thành công"
-
-msgid "Press Enter to pass."
-msgstr "Nhấn ENTER "
-
-msgid "Press SPACE to confirm notebook mode"
-msgstr "Vui lòng bấm phím trống để xác nhận chế độ sổ ghi chép."
-
-msgid "Press SPACE to continue"
-msgstr "Nhấn nút trống để tiếp tục"
-
-msgid "Press SPACE to end the test."
-msgstr "Đề nghị ấn phím trống thử kết thúc"
-
-msgid "Press SPACE to start the test."
-msgstr "Đề nghị ấnphím trống để thử mở"
-
-msgid ""
-"Press Space to change backlight brightness;<br>Press Esc to reset backlight "
-"brightness to original;<br>After checking, Enter H if pressing Space changes "
-"the backlight to be brighter;<br>Enter L if pressing Space changes the "
-"backlight to be dimmer.<br>This test will be executed twice."
-msgstr ""
-"Ấn nút trắng để điều chỉnh độ sáng;<br>ấn Esc phục hồi độ sáng;<br>au khi kiểm tra nếu nhấn H để tăng độ sáng,; ếu giảm độ sáng nhập L"
-"L<br>hãy nhập kiểm tra hai lần"
-
-msgid ""
-"Press Space to display;<br>After checking, Enter number of points to pass."
-msgstr "ấm phím  để hiển thị, sau khi kiểm tra, bấm số phím chính xác để chuyển."
-
-msgid "Press Space to display;<br>After checking, Enter to pass; Esc to fail."
-msgstr "Nhấn phím trống để hiển thị,;<br>检nhấn Enter sau khi kiểm tra để chuyển, nhấn Esc thất bại"
-
-msgid "Press keys sequentially from top-left to bottom-right."
-msgstr "Nhấn nút từ trên trái sang phải dưới cùng"
-
-msgid "Press one key at a time."
-msgstr "Mỗi lần chỉ được ấn nút một lần"
-
-msgid "Press shift-p-a-i-r simultaneously on the base."
-msgstr "shift-p-a-i-rTrong khi giữ phím shift-p-a-i-r trên bàn phím thử nghiệm"
-
-msgid "Press space to continue"
-msgstr "Vui lòng bấm phím trống để tiếp tục"
-
-msgid "Press space to show each image on display."
-msgstr "Nhấn nút trống để phát hình ảnh trên màn hình"
-
-msgid "Press space to start scanning."
-msgstr "Bấm phím trống để bắt đầu quét"
-
-msgid ""
-"Press the green button again to stop charging, and press the space key on "
-"the test host."
-msgstr "Nhấn nút màu xanh lá cây để ngừng sạc, sau đó nhấn nút space"
-
-msgid ""
-"Press the number you hear from {device} to pass the test.<br>Press \"R\" to "
-"replay."
-msgstr "Nhấn R để phát lại giọng nói theo số bạn nghe từ đầu ra {device} <br> R "
-
-msgid "Press the {name} button"
-msgstr "Nhấn nút{name}"
-
-msgid "Press the {name} button ({count}/{total})"
-msgstr "Nhấn nút {name} ({count}/{total})"
-
-msgid "Press {key} to pass the test."
-msgstr "thông qua vui lòng nhấn phím {key} "
-
-msgid "Probe"
-msgstr "Phát hiện"
-
-msgid "Probe Cellular Info"
-msgstr "Thông tin máy dữ liệu"
-
-msgid "Probe Hardware"
-msgstr "Thăm dò ổ cứng"
-
-msgid "Probe SIM"
-msgstr "Thử thẻ SIM"
-
-msgid "Probe SIM Card Tray"
-msgstr "Tra thử đầu dò thẻ SIM"
-
-msgid "Probe goes down"
-msgstr "Vị trí thấp hơn của vật trước khi tắt"
-
-msgid "Probe goes up"
-msgstr "Trước khi thử chuẩn bị vị trí trên"
-
-msgid "Probe not in initial position, aborted"
-msgstr "JIG không về vị trí cũ, hủy"
-
-msgid "Probe not in the DOWN position, aborted"
-msgstr "JIG không ở vị trí dưới, hủy"
-
-msgid "Probe not in the UP position, aborted"
-msgstr "JIG không ở vị trí trên, hủy"
-
-msgid "Probe self test"
-msgstr "JIG thủ công , tự mình thử"
-
-msgid "Probe state"
-msgstr "trạng thái nội bộ JIG"
-
-msgid "Probed {times} / {total}"
-msgstr "Số lần phát hiện {times} / {total}"
-
-msgid "Probe EMR"
-msgstr "Phát hiện EMR"
-
-msgid "Probe FAN"
-msgstr "Phát hiện quạt"
-
-msgid "Probe TouchPad"
-msgstr "Phát hiện bàn di chuột"
-
-msgid "Probe Base G Sensor"
-msgstr "Phát hiện cảm biến G bo mạch chủ"
-
-msgid "Probe Lid G Sensor"
-msgstr "Bộ cảm biến phát hiện G Sensor"
-
-msgid "Probing components..."
-msgstr "Khám phá các bộ phận..."
-
-msgid "Pull the lever down."
-msgstr "Kéo tay cầm xuống"
-
-msgid "Pull the lever up."
-msgstr "Kéo tay cầm lên"
-
-msgid "Pushing the result..."
-msgstr ".Lưu kết quả..."
-
-msgid "Put the DUT towards {direction}"
-msgstr "Hướng máy về phía{direction}"
-
-msgid "QR Scan"
-msgstr "quét mã QR"
-
-msgid "RF Graphyte"
-msgstr "RF Graphyte"
-
-msgid "RRT"
-msgstr "RRT"
-
-msgid "Random Number Generation"
-msgstr "Tạo ngẫu nhiên"
-
-msgid "Read Device Data From VPD"
-msgstr "Đọc dữ liệu máy từ VPD"
-
-msgid "Read battery level for the 1st time."
-msgstr "Đọc pin lần đầu tiên"
-
-msgid "Read battery level for the 2nd time."
-msgstr "Đọc pin lần thứ hai"
-
-msgid "Read firmware revision string."
-msgstr "Đọc phiên bản phần mềm bàn phím"
-
-msgid "Read sensor data"
-msgstr "Đọc dữ liệu theo cách thủ công"
-
-msgid "Reading device data from {vpd_section} VPD..."
-msgstr "Đọc dữ liệu máy từ VPD {vpd_section} ..."
-
-msgid "Ready for connection"
-msgstr "Sẵn sàng hoàn thành, chờ liên kết"
-
-msgid "Rear Camera"
-msgstr "Camera sau"
-
-msgid "Reboot"
-msgstr "Khởi động lại"
-
-msgid "Rebooting"
-msgstr "Khởi động lại"
-
-msgid "Refresh"
-msgstr "Làm mới"
-
-msgid "Release Image"
-msgstr "Hệ thống nhà máy"
-
-msgid "Release the button"
-msgstr "Nhả nút"
-
-msgid "Reload Test List"
-msgstr "Danh sách kiểm tra quá tải"
-
-msgid "Remaining time:"
-msgstr "Thời gian còn lại:"
-
-msgid "Remote DUT is performing {operation}, timeout in {delay} seconds."
-msgstr "Đơn vị kiểm tra từ xa sẽ là {operation} trong vòng {delay} giây."
-
-msgid "Removable Storage"
-msgstr "Thiết bị lưu trữ di động"
-
-msgid "Remove Ethernet connectivity"
-msgstr "Tháo card giao diện mạng"
-
-msgid "Remove finger from light sensor"
-msgstr "Xóa bóng"
-
-msgid "Remove {media} drive and toggle lock switch..."
-msgstr "Giải nén {media} lưu trữ và tắt công tắc chống ghi ..."
-
-msgid "Remove {media} drive..."
-msgstr " Trích xuất {media} lưu trữ ..."
-
-msgid "Restart all {count} tests in \"{test}\""
-msgstr "Chạy lại tất cả {count} kiểm tra trong {test}"
-
-msgid "Restart test \"{test}\""
-msgstr "Chạy lại kiểm tra 「{test}」"
-
-msgid "Restart {count} tests in \"{test}\" that have not passed"
-msgstr "Chạy lại {count} các thử nghiệm không thành công trong {test}"
-
-msgid "Result: "
-msgstr "Kết quả kiểm tra:"
-
-msgid "Results are listed below:"
-msgstr "Kết quả kiểm tra được trình bày dưới đây:"
-
-msgid "Retrieve Config"
-msgstr "Tải cài đặt"
-
-msgid "Retry"
-msgstr "Thử lại"
-
-msgid "Right Channel"
-msgstr "Kênh phải"
-
-msgid "Right USB TypeC"
-msgstr "PortCổng USB trái TypeC phù hợp"
-
-msgid "Root Device"
-msgstr "Thiết bị gốc"
-
-msgid ""
-"Rotate the tablet to correctly align the picture, holding it at an upright "
-"90-degree angle."
-msgstr "Lắp máy tính bảng sao cho nó vuông góc với màn hình nền và bắt đầu xoay để căn chỉnh hình ảnh."
-
-msgid "Run all {count} tests in \"{test}\""
-msgstr "Thực thi tất cả {count} kiểm tra trong {test}"
-
-msgid "Run test \"{test}\""
-msgstr "Thực hiện kiểm tra「{test}」"
-
-msgid "Run {count} untested tests in \"{test}\""
-msgstr "Thực thi {count} kiểm tra chưa được kiểm tra trong {test}"
-
-msgid "Run-In Test"
-msgstr "Chạy thử"
-
-msgid "Running preflight tasks to prepare for finalization, please wait..."
-msgstr "Hệ thống đang được chuẩn bị để thực hiện thủ tục cuối cùng ..."
-
-msgid "Running shell commands..."
-msgstr "Thực hiện các hướng dẫn hệ thống ..."
-
-msgid "Running task: {label}"
-msgstr "Thực hiện tác vụ: {label}"
-
-msgid "Running the camera until expected number of frames captured."
-msgstr "Chạy máy ảnh cho đến khi số lượng được đặt"
-
-msgid "Running the camera until timeout."
-msgstr "Chạy máy ảnh cho đến khi hết thời gian chờ"
-
-msgid "Running, please wait..."
-msgstr "Vui lòng kiểm tra sau."
-
-msgid "S/N"
-msgstr "Số sê-ri"
-
-msgid "SD Performance"
-msgstr "Hiệu suất SD"
-
-msgid "SMT (SA Test)"
-msgstr "SMT (SA Test)"
-
-msgid "Sample Customized Test"
-msgstr "Kiểm tra tùy chỉnh mẫu"
-
-msgid "Sampling {name}"
-msgstr "Đọc {name}"
-
-msgid "Save Factory Logs to USB"
-msgstr "Lưu bản ghi nhà máy vào ổ flash USB"
-
-msgid "Save factory logs to USB drive..."
-msgstr "Lưu bản ghi nhà máy vào ổ flash USB"
-
-msgid "Save note on device"
-msgstr "Ghi chú"
-
-msgid "Saving calibration coefficients to VPD"
-msgstr "Viết các tham số hiệu chuẩn vào VPD"
-
-msgid "Saving factory logs to USB drive..."
-msgstr "Lưu hồ sơ nhà máy vào đĩa U ..."
-
-msgid "Scan"
-msgstr "Số máy quét"
-
-msgid "Scan MLB"
-msgstr "Quét số sêri bo mạch chủ"
-
-msgid "Scan Operator ID"
-msgstr "ID người vận hành quét"
-
-msgid "Scan {label}"
-msgstr "Đang quét{label}"
-
-msgid "ScanStationID"
-msgstr "IDID trạm quét"
-
-msgid "Scanned QR code: \"{text}\""
-msgstr "Đã phát hiện mã QR:  \"{text}\""
-
-msgid "Scanning QR code..."
-msgstr "Phát hiện mã QR ..."
-
-msgid "Scanning on device {device} frequency {freq}..."
-msgstr "Tần suất quét {freq} trên thiết bị {device} ..."
-
-msgid "Scanning..."
-msgstr "Đang quét ..."
-
-msgid "Screen Rotation"
-msgstr "Xoay màn hình"
-
-msgid "Select For Sampling"
-msgstr "Tùy chọn lấy mẫu"
-
-msgid "Select with ENTER"
-msgstr "Nhấn ENTER để chọn"
-
-msgid "Select {label}:"
-msgstr "Chọn {label}:"
-
-msgid "Sending test results to shopfloor..."
-msgstr "SENDING truyền kết quả kiểm tra đến máy chủ ..."
-
-msgid "Serial Number"
-msgstr "số thứ tự"
-
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Serial number"
 msgstr "Hoàn thành tác vụ"
 
-msgid "Server Task Finished: {label}"
-msgstr "Hoàn thành tác vụ: {label}"
-
-msgid "Server URL: {server_url}"
-msgstr "URL máy chủ: {server_url}"
-
-msgid "Set"
-msgstr "Cài đặt"
-
-msgid "Set DeviceInfo"
-msgstr "Cài đặt thông tin máy"
-
-msgid "Setting HWID (v3): {encoded_string}..."
-msgstr "Ghi vào HWID (v3): {encoded_string}..."
-
-msgid "Setting up interface {interface}"
-msgstr "Thiết lập giao diện web {interface}"
-
-msgid "Setting up network..."
-msgstr "Thiết lập môi trường mạng ..."
-
-msgid "Severity"
-msgstr "Mức độ nghiêm trọng"
-
-msgid "Shine light sensor with flashlight"
-msgstr "Chiếu sáng cảm biến ánh sáng với ánh sáng mạnh"
-
-msgid "Shopfloor IP"
-msgstr "Trang web Shopfloor"
-
-msgid "Shopfloor Service"
-msgstr "Shopfloor"
-
-msgid "Shopfloor Service (NotifyEnd)"
-msgstr "Dịch vụ Shopfloor (NotifyEnd)"
-
-msgid "Shopfloor Service (NotifyStart)"
-msgstr "Dịch vụ Shopfloor (NotifyStart)"
-
-msgid "Shopfloor exception:"
-msgstr "Lỗi cửa hàng:"
-
-msgid "Show Original"
-msgstr "Hiển thị bản gốc"
-
-msgid "Show test UI"
-msgstr "Màn hình kiểm tra hiển thị"
-
-msgid "Shutdown"
-msgstr "Tắt máy"
-
-msgid "Shutdown Test ({operation})"
-msgstr "thử Tắt máy ({operation})"
-
-msgid "Shutdown the host"
-msgstr "Tắt máy"
-
-msgid "Shutting down"
-msgstr "Tắt máy"
-
-msgid "Shutting down..."
-msgstr "Đang tắt máy..."
-
-msgid "Software update"
-msgstr "Cập nhật phần mềm nhà máy"
-
-msgid "Space"
-msgstr "trống"
-
-msgid "Spatial Sensor Calibration"
-msgstr "Hiệu chuẩn cảm biến"
-
-msgid "Speaker on"
-msgstr "Bật loa"
-
-msgid "Speaker/Microphone"
-msgstr "Loa / micrô"
-
-msgid "Spin down fan"
-msgstr "Giảm tốc quạt"
-
-msgid "Spin up fan"
-msgstr "Tăng tốc quạt"
-
-msgid "Stage"
-msgstr "Giai đoạn"
-
-msgid "Start"
-msgstr "bắt đầu"
-
-msgid "Start Station Test"
-msgstr "Bắt đầu thử nghiệm"
-
-msgid "Start playback"
-msgstr "Bắt đầu phát âm"
-
-msgid "Start record"
-msgstr "Bắt đầu ghi âm"
-
-msgid "Start recording"
-msgstr "Bắt đầu ghi âm"
-
-msgid "State:"
-msgstr "Trạng thái :"
-
-msgid "Station Entry"
-msgstr "Trạm thử bắt đầu"
-
-msgid "Station ID"
-msgstr "TRạm thử ID"
-
-msgid "Station Name"
-msgstr "Tên trạm"
-
-msgid "Station Number"
-msgstr "Mã số trạm"
-
-msgid "Station Setup"
-msgstr "Tên trạm"
-
-msgid "Station with same {keys!r} found."
-msgstr "Trạm {keys!r}  đã tồn tại. "
-
-msgid "Station-Based Test Template"
-msgstr "Các thử nghiệm trạm mẫu"
-
-msgid "Stop all tests"
-msgstr "Dừng tất cả các bài kiểm tra"
-
-msgid "Stop playback"
-msgstr "Dừng phát"
-
-msgid "Stop record"
-msgstr "Dừng ghi âm"
-
-msgid "Storage Simple Stress"
-msgstr "Thử áp lực cài đặt lưu trữ "
-
-msgid "Stress App Test"
-msgstr "Thử áp lực"
-
-msgid "Stress Group"
-msgstr "Thử áp lực tập trung"
-
-msgid "Stress Test"
-msgstr "Thử áp lực"
-
-msgid "Stressapptest"
-msgstr "Thử áp lực"
-
-msgid "Stylus"
-msgstr "đường vẽ khống chế "
-
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
 msgid "Submit"
 msgstr "gửi"
 
-msgid "Success!"
-msgstr "Thành công"
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
+msgid "Probe goes down"
+msgstr "Vị trí thấp hơn của vật trước khi tắt"
 
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
+msgid "Probe goes up"
+msgstr "Trước khi thử chuẩn bị vị trí trên"
+
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
+msgid "Read sensor data"
+msgstr "Đọc dữ liệu theo cách thủ công"
+
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
+msgid "Probe self test"
+msgstr "JIG thủ công , tự mình thử"
+
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
+msgid "Controller status"
+msgstr "Liên kết khuôn"
+
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
+msgid "Refresh"
+msgstr "Làm mới"
+
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
+msgid "Touchscreen status"
+msgstr "Liên kết đến đối tượng thử nghiệm"
+
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
+msgid "Probe state"
+msgstr "trạng thái nội bộ JIG"
+
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
+msgid "FixtureState"
+msgstr "Điều tra trạng thái Jig"
+
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
+msgid "Host IP"
+msgstr "URL gốc"
+
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
+msgid "BB IP"
+msgstr "Trang web BB"
+
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
+msgid "Shopfloor IP"
+msgstr "Trang web Shopfloor"
+
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.html
+msgid "Shutdown the host"
+msgstr "Tắt máy"
+
+#: ../py/test/pytests/touchscreen_calibration/static/touchscreen_calibration.js
+msgid "Please enter SN"
+msgstr "Vui lòng nhập số sê-ri"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
 msgid ""
-"Success! Saved factory logs ({size}) bytes) to {dev} as\n"
-"{filename}."
+"Fail to detect the touchscreen.\n"
+"Insert the traveler board, and restart the test."
 msgstr ""
-"Hồ sơ Lưu Factory  ({size} bytes) vào đĩa U {dev} đã thành công, các tập tin \n"
-"{filename}。"
+"Không thể phát hiện bảng điều khiển\n"
+"Vui lòng tháo bảng nhỏ và lắp lại bảng nhỏ và chạy lại thử nghiệm"
 
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Fail to assign DIRECT_SENSORS_IP in ryu.conf"
+msgstr "Cầnchỉđịnh DIRECT_SENSORS_IP trongryu.conf"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Disconnected from controller"
+msgstr "Mất liên lạc với vật cố"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Probe not in initial position, aborted"
+msgstr "JIG không về vị trí cũ, hủy"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
 msgid ""
-"Success! Saved factory logs ({size}) bytes) to {dev} as\n"
-"{filename}. The drive has been unmounted."
+"Please check if the USB cable has been connected between the test fixture "
+"and the control host.\n"
+"Click \"RefreshFixture\" button on screen after connecting the USB cable."
 msgstr ""
-"Hồ sơ Lưu Factory ({size} bytes) vào đĩa U {dev} đã thành công, các tập tin có tên là \n"
-"{filename}. U đĩa đã được gỡ bỏ."
+"Vui lòng xác nhận xem cáp USB có được kết nối với máy tính cố định và điều "
+"khiển hay không.\n"
+"Vui lòng kết nối cáp USB và nhấp vào nút làm mới trên màn hình."
 
-msgid "Summary"
-msgstr "Tổng kết"
-
-msgid "Suspend Resume"
-msgstr "Dừng/ Khôi phục"
-
-msgid "Suspend/Resume: {run} of {cycle}"
-msgstr "Dừng/ Khôi phục: {run} / {cycle}"
-
-msgid "Switch Test List: {test_list}"
-msgstr "Chuyển danh sách kiểm tra：{test_list}"
-
-msgid "Switch test list"
-msgstr "Chuyển danh sách kiểm tra"
-
-msgid ""
-"Switch to\n"
-"{target_locale}"
-msgstr ""
-"Đổi cắt đến \n"
-"{target_locale}"
-
-msgid "Switching device back to normal mode."
-msgstr "Chờ chất phân tích khởi động bình thường"
-
-msgid "Switching device into fastboot."
-msgstr "fastbootchất phân tích vào fastboot chờ đợi"
-
-msgid "Switching firmware to {target!r}"
-msgstr "máy cưa số lần đổi cắt đến {target!r}"
-
-msgid "Switching test list. Please wait..."
-msgstr "danh sách kiểm tra, xin vui lòng chờ ..."
-
-msgid "Switching to AP {ap}: "
-msgstr "đổi cắt đến {ap}..."
-
-msgid "Switching to antenna {antenna}: "
-msgstr "Chuyển sang ăng-ten {antenna} ..."
-
-msgid "Switching to lighting {name}"
-msgstr "Chuyển sang {name}"
-
-msgid "Sync Factory Server"
-msgstr "Máy chủ đồng bộ"
-
-msgid "Sync Time"
-msgstr "Thời gian đồng bộ hóa"
-
-msgid "Sync time"
-msgstr "Thời gian đồng bộ hóa"
-
-msgid "System is going to {operation} in {delay} seconds."
-msgstr "Hệ thống sẽ là {operation} sau {delay} giây.."
-
-msgid "System time"
-msgstr "Thời gian hệ thống"
-
-msgid "System time: "
-msgstr "Thời gian hệ thống:"
-
-msgid "Clear TPM"
-msgstr "TPMXóa TPM"
-
-msgid "Multiple Clear TPM"
-msgstr "TPMXóa TPM nhiều lần"
-
-msgid "TPM Clear Owner"
-msgstr "TPMXóa TPM"
-
-msgid "TPM Diagnosis"
-msgstr "Chẩn đoán TPM"
-
-msgid "TPM Verify EK"
-msgstr "Chứng chỉ TPM"
-
-msgid "Tablet Mode"
-msgstr "Chế độ máy tính bảng"
-
-msgid "Tablet Rotation"
-msgstr "Xoay vòng phẳng"
-
-msgid "Tablet Rotation Base-Accel"
-msgstr "Xoay vòng in litô - bo mạch chủ gia tốc kế"
-
-msgid "Tablet Rotation Lid-Accel"
-msgstr "Xoay vòng phẳng - gia tốc kế trên cùng"
-
-msgid "Task <b>{label}</b> failed, retry in {time_left} seconds..."
-msgstr "<b>Tác vụ{label}</b>không thành công và sẽ thử lại sau {time_left} giây ..."
-
-msgid "Test Arguments"
-msgstr "Thông số đo"
-
-msgid "Test Group"
-msgstr "Nhóm thử nghiệm"
-
-msgid "Test Image"
-msgstr "Hệ thống kiểm tra"
-
-msgid "Test Label"
-msgstr "Nhãn thử nghiệm"
-
-msgid "Test Name"
-msgstr "Tên thử nghiệm"
-
-msgid "Test Path"
-msgstr "Đo đường dẫn"
-
-msgid "Test Progress:"
-msgstr "Tiến độ kiểm tra:"
-
-msgid "Test Status for {test}:"
-msgstr "{test} Danh sách kết quả kiểm tra:"
-
-msgid "Test failed! Please test this panel carefully with Gods Touch test."
-msgstr "Kiểm tra bảng điều khiển cảm ứng không thành công. Vui lòng xác minh nó bằng phần mềm kiểm tra Gods Touch."
-
-msgid "Test {test_id}"
-msgstr "Kiểm tra {test_id}"
-
-msgid ""
-"Testing DUT {dut_port} port on Chameleon {chameleon_port} port using mode "
-"{mode}..."
-msgstr ""
-"Kiểm tra DUT {dut_port} cho Chameleon {chameleon_port} Chế độ hiển thị bên ngoài: {mode} ..."
-
-msgid ""
-"Testing Result: Fail\n"
-"Success Rate: {successRate}"
-msgstr ""
-"Kết quả kiểm tra: thất bại\n"
-"Tỷ lệ thành công: {successRate}"
-
-msgid "Testing Result: Success!"
-msgstr "Kết quả kiểm tra: Thành công!"
-
-msgid "Testing battery charge..."
-msgstr "Thử sạc pin ..."
-
-msgid "Testing battery discharge..."
-msgstr "Kiểm tra xả pin ..."
-
-msgid "Testing battery discharging..."
-msgstr "Kiểm tra xả pin ..."
-
-msgid "Testing battery {voltage}V charging..."
-msgstr "Kiểm tra pin {voltage} V sạc ..."
-
-msgid "Testing charger"
-msgstr "Thử sạc"
-
-msgid "Testing discharge"
-msgstr "Kiểm tra xả"
-
-msgid "Testing {device}..."
-msgstr "{device} Đang kiểm tra ..."
-
-msgid "Testing {item}..."
-msgstr "Thử nghiệm trong {item} ... "
-
-msgid "Testing {test_size_mb} region of storage"
-msgstr "Kiểm tra bộ nhớ cho {test_size_mb}"
-
-msgid "Testing..."
-msgstr "Thử nghiệm ..."
-
-msgid "The ENA needs to be calibrated.<br> Please press ENTER to continue."
-msgstr "Sửa ENA và nhấn ENTER để khởi động lại thử nghiệm."
-
-msgid "The scanned value \"{value}\" does not match the expected format."
-msgstr "Số quét「{value}」không đúng định dạng."
-
-msgid ""
-"The scanned value \"{value}\" does not match the expected value <span "
-"class=test-engineering-mode-only>\"{expected_value}\"</span>."
-msgstr ""
-"Số được quét「{value}」không khớp với số được mong đợi <span class=test-engineering-mode-"
-"only>「{expected_value}」</span>。"
-
-msgid "The scanned value is empty."
-msgstr "Số quét là trống."
-
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
 msgid ""
 "The test fixture is not ready.\n"
 "(1) It is possible that the test fixure is not powered on yet.\n"
@@ -2161,554 +2877,677 @@ msgid ""
 "button on screen."
 msgstr ""
 "Không cố định trong vị trí, lý do sau đây: \n"
-"(1) nguồn điện không được mở. Vui lòng bật nguồn và nhấp vào nút làm mới trên màn hình. \n"
-"(2) Nguồn điện được bật, nhưng nó đang ở trạng thái dừng khẩn cấp. Vui lòng nhấn nút gỡ lỗi ở phía bên trái của vật cố một lần. "
-
-msgid "Then press key \"{key}\" to next stage."
-msgstr "Nhấn phím {key} khi hoàn tất."
-
-msgid "Thermal Load"
-msgstr "Áp suất nhiệt độ"
-
-msgid "Thermal Sensors"
-msgstr "Cảm biến nhiệt độ"
-
-msgid "Thermal Slope"
-msgstr "Tốc độ tăng và giảm nhiệt độ"
-
-msgid "Time remaining:"
-msgstr "Thời gian còn lại: "
-
-msgid "Time remaining: "
-msgstr "Thời gian còn lại: "
-
-msgid "Time remaining: {timeout:.0f} sec."
-msgstr "Thời gian còn lại: {timeout: .0f} giây.."
-
-msgid "Toggle engineering mode"
-msgstr "Chuyển chế độ kỹ thuật"
-
-msgid "Toggle lock switch and insert {media} drive again..."
-msgstr "Chuyển khóa bảo vệ ghi và chèn lại {media} lần nữa ..."
-
-msgid "Tone On"
-msgstr "Phát âm thanh"
-
-msgid "Tone generator"
-msgstr "Bộ tạo tín hiệu âm thanh"
-
-msgid "Tone off"
-msgstr "Tắt âm thanh"
-
-msgid "Touch Device FW Update"
-msgstr "Chạm vào cập nhật  thay đổi"
-
-msgid "Touch Uniformity"
-msgstr "chạm đồng nhất"
-
-msgid "Touchpad"
-msgstr "bàn di chuột"
-
-msgid "Touchpad Hover"
-msgstr "Tạm dừng bàn di chuột"
-
-msgid "Touchscreen"
-msgstr "Bảng cảm ứng"
-
-msgid "Touchscreen Calibration"
-msgstr "Hiệu chỉnh bảng cảm ứng"
-
-msgid "Touchscreen Uniformity"
-msgstr "Kiểm tra tính đồng nhất trên màn hình cảm ứng"
-
-msgid "Touchscreen status"
-msgstr "Liên kết đến đối tượng thử nghiệm"
-
-msgid "Trying to check server protocol..."
-msgstr "Kiểm tra máy chủ của nhà máy ..."
-
-msgid "Trying to reach server..."
-msgstr "Cố gắng liên lạc với máy chủ của nhà máy"
-
-msgid ""
-"Turn on charging by pressing the green button, take the keyboard out and put "
-"it back, and press the space key on the test host."
-msgstr "Nhấn nút màu xanh lá cây để bắt đầu sạc, sau đó lấy nó ra và đặt nó trở lại trên bàn phím, sau đó nhấn nút không gian trên máy tính."
-
-msgid "USB"
-msgstr "USB"
-
-msgid "USB Performance"
-msgstr "Hiệu suất USB"
-
-msgid "USB type-C port is disconnected in {secs:.1f} seconds"
-msgstr "Cổng USB loại C mất kết nối {secs: .1f} giây"
-
-msgid "Manual Test USB TypeC 3.0"
-msgstr "Kiểm tra thủ công hiệu suất USB TypeC 3.0Kiểm tra hiệu năng USB2"
-
-msgid "USB2 Performance"
-msgstr "Kiểm tra hiệu năng USB2"
-
-msgid "TypeC USB3 CC1 Performance Left"
-msgstr "CC1Kiểm tra hiệu suất USBC TypeC trái CC1"
-
-msgid "TypeC USB3 CC2 Performance Left"
-msgstr "Kiểm tra hiệu năng USBC TypeC trái CC2"
-
-msgid "TypeC USB3 CC1 Performance Right"
-msgstr "CC1Kiểm tra hiệu năng USB 3.0 đúng loại CC1"
-
-msgid "TypeC USB3 CC2 Performance Right"
-msgstr "CC2Kiểm tra hiệu năng USB 3.0 đúng loại CC2"
-
-msgid "USB3 CC1 Performance"
-msgstr "Kiểm tra hiệu năng USB3.0 CC1"
-
-msgid "USB3 CC2 Performance"
-msgstr "Kiểm tra hiệu năng USB3.0 CC2"
-
-msgid "Manual Test USB 2.0"
-msgstr "Kiểm tra hiệu suất USB 2.0 theo cách thủ công"
-
-msgid "TypeC USB 2.0 Performance Left"
-msgstr "Hiệu suất USB TypeC trái 2.0"
-
-msgid "TypeC USB 2.0 Performance Right"
-msgstr "Hiệu suất USB 2.0 đúng loại 2.0"
-
-msgid "TypeA USB 2.0 Performance"
-msgstr "Hiệu suất USB 2.0 TypeA"
-
-msgid "TypeA USB 3.0 Performance"
-msgstr "Hiệu suất TypeA USB 3.0"
-
-msgid "TypeC HDMI External Display Test"
-msgstr "Màn hình ngoài HDMI TypeC"
-
-msgid "Manual Test USB TypeC HDMI"
-msgstr "Màn hình ngoài HDMI TypeC"
-
-msgid "TypeC HDMI External Display Left"
-msgstr "Màn hình bên ngoài TypeC HDMI bên trái"
-
-msgid "TypeC HDMI External Display Right"
-msgstr "Màn hình bên ngoài HDMI TypeC bên phải"
-
-msgid "USB3 Performance"
-msgstr "Kiểm tra hiệu năng USB3"
-
-msgid "Unable to proceed, since some previous tests have not passed."
-msgstr "Tất cả các bài kiểm tra trước đó phải vượt qua để vượt qua dự án này"
-
-msgid "Unknown"
-msgstr "Không xác định"
-
-msgid "Unknown Error on {interface}"
-msgstr "Giao diện mạng {interface} có lỗi không xác định"
-
-msgid "Unpairing"
-msgstr "Hủy ghép nối"
-
-msgid "Unplug AC to proceed"
-msgstr "Rút phích cắm nguồn AC"
-
-msgid "Unplug the charger."
-msgstr "Vui lòng tháo bộ sạc"
-
-msgid "Untested"
-msgstr "Không được kiểm tra"
-
-msgid "Untitled"
-msgstr "Không tên"
-
-msgid "Update CR50 Firmware"
-msgstr "Cập nhật firmware CR50"
-
-msgid "Update Device Data"
-msgstr "Cập nhật thông tin máy"
-
-msgid "Update Firmware"
-msgstr "Cập nhật firmware"
-
-msgid "Update Kernel"
-msgstr "KernelCập nhật Kernel"
-
-msgid "Update Station Properties"
-msgstr "Cập nhật thông tin trạm"
-
-msgid "Update Toolkit"
-msgstr "Cập nhật thủ tục kiểm tra"
-
-msgid "Update factory software"
-msgstr "Cập nhật phần mềm nhà máy"
-
-msgid "Update failed:"
-msgstr "Cập nhật không thành công:"
-
-msgid "Wait For Update"
-msgstr "Đang chờ cập nhật"
-
-msgid "Update succeeded. Restarting."
-msgstr "Bản cập nhật đã thành công và sẽ khởi động lại sau vài giây."
-
-msgid "Updating factory software. Please wait..."
-msgstr "Đang cập nhật phần mềm của nhà máy, vui lòng chờ ..."
-
-msgid "Updating {component}...."
-msgstr "Đang cập nhật {component} ..."
-
-msgid "Upload Factory Logs"
-msgstr "Tải lên bản ghi nhà máy"
-
-msgid "Upload Reg (ECHO) Codes to activate"
-msgstr "Tải lên mã đăng ký (ECHO) để kích hoạt"
-
-msgid "Upload Reg Codes"
-msgstr "Tải lên"
-
-msgid "Upload factory logs..."
-msgstr "Tải lên hồ sơ nhà máy"
-
-msgid "Upload report"
-msgstr "Tải lên báo cáo sản xuất"
-
-msgid "Uploading factory logs.  Please wait..."
-msgstr "Bản ghi nhà máy đang được tải lên. Vui lòng chờ một lát ..."
-
-msgid "Uploading factory logs..."
-msgstr "Tải lên hồ sơ nhà máy ..."
-
-msgid "Urandom"
-msgstr "Số ngẫu nhiên"
-
-msgid "Use indicated light source to pass each subtest."
-msgstr "Vui lòng chuyển từng subtest theo chỉ dẫn"
-
-msgid "User Registration Code"
-msgstr "Mã đăng ký người dùng (Người dùng ECHO)"
-
-msgid "VPD Region Code"
-msgstr "Mã vùng VPD (Vùng)"
-
-msgid "VSWR"
-msgstr "VSWR"
-
-msgid "Validating ALS"
-msgstr "Xác minh ALS"
-
-msgid "Verify Cache"
-msgstr "Xác minh bộ nhớ cache"
-
-msgid "Verify Root Partition"
-msgstr "Xác minh vùng gốc"
-
-msgid "Verifying HWID (v3): {encoded_string}..."
-msgstr "Đang xác minh HWID (v3): {encoded_string} ..."
-
-msgid "Verifying system state after {operation}"
-msgstr "Xác minh trạng thái hệ thống sau {operation}"
-
-msgid "Video Playback"
-msgstr "Phát lại nguồn"
-
-msgid "View /var/log/messages"
-msgstr "Xem /var/log/messages"
-
-msgid "View /var/log/messages before last reboot"
-msgstr "/var/log/messages trước khi khởi động lại lần cuối"
-
-msgid "View dmesg"
-msgstr "dmesg"
-
-msgid "View notes"
-msgstr "Xem ghi chú"
-
-msgid "Voltage: {voltage} mV"
-msgstr "mVĐiện áp: {voltage} mV"
-
-msgid "Volume Down"
-msgstr "Giảm âm lượng"
-
-msgid "Volume Up"
-msgstr "tăng âm lượng"
-
-msgid "Wait DUT to reconnect"
-msgstr "Chờ cho DUT kết nối lại"
-
-msgid "Write DUT Info"
-msgstr "Viết thông tin DUT"
-
-msgid "Wait External Test"
-msgstr "Đang đợi thử nghiệm bên ngoài"
-
-msgid "Waiting for ADB device connection..."
-msgstr "Đang đợi máy kết nối ..."
-
-msgid "Waiting for Ethernet connectivity to audio fixture"
-msgstr "Đợi thẻ giao tiếp mạng để kết nối với thiết bị âm thanh"
-
-msgid "Waiting for IP address"
-msgstr "Đang đợi cài đặt IP"
-
-msgid "Waiting for command"
-msgstr "Đang chờ hướng dẫn"
-
-msgid "Waiting for device..."
-msgstr "Đang chờ thiết bị ..."
-
-msgid ""
-"Waiting for {target_status} current to meet {target_current} mA. (Currently "
-"{status} at {current} mA)"
-msgstr ""
-"Chờ {target_status} hiện tại lớn hơn {target_current} mA. (Hiện tại {status}: {current} "
-"mA)"
-
-msgid "Warm Cold Reboot"
-msgstr "Khởi động lại nóng và lạnh"
-
-msgid ""
-"Warning: Switching to test list \"{test_list}\" will clear all test state.\n"
-"Are you sure you want to proceed?"
-msgstr ""
-"Thận trọng: Việc chuyển sang danh sách kiểm tra {test_list} sẽ xóa tất cả trạng. \n"
-"thái kiểm tra. Bạn có chắc chắn muốn tiếp tục không?"
-
-msgid "Webgl Aquarium"
-msgstr "WebGL"
-
-msgid "Wifi"
-msgstr "Mạng không dây"
-
-msgid "Connect WiFi"
-msgstr "Kết nối với mạng không dây"
-
-msgid "Disconnect WiFi"
-msgstr "Ngắt kết nối khỏi mạng không dây"
-
-msgid "Wifi Check Calibration"
-msgstr "Kiểm tra chỉnh sửa không dây"
-
-msgid "Wifi Throughput"
-msgstr "Băng thông không dây"
-
-msgid "Wireless Antenna"
-msgstr "Ăng ten không dây"
-
-msgid "Wireless Radiotap"
-msgstr "Quét không dây"
-
-msgid "Write Device Data To VPD"
-msgstr "Dữ liệu máy được ghi vào VPD"
-
-msgid "Write HWID"
-msgstr "Mã phần cứng"
-
-msgid "Write Protect Switch"
-msgstr "Viết công tắc bảo vệ"
-
-msgid "Write Protection"
-msgstr "Viết bảo vệ"
-
-msgid "Writing calibration data..."
-msgstr "Viết kết quả chỉnh sửa..."
-
-msgid "Writing device data to {vpd_section} VPD..."
-msgstr "Dữ liệu máy đang được ghi vào VPD {vpd_section} ..."
-
-msgid "Writing log...."
-msgstr "Đang ghi ..."
-
-msgid "Writing to VPD. Please wait..."
-msgstr "Viết cho VPD, vui lòng chờ ..."
-
-msgid "Wrong USB side, please flip over {media}."
-msgstr "Định hướng USB sai, vui lòng đảo ngược hướng của {media} ..."
-
+"(1) nguồn điện không được mở. Vui lòng bật nguồn và nhấp vào nút làm mới "
+"trên màn hình. \n"
+"(2) Nguồn điện được bật, nhưng nó đang ở trạng thái dừng khẩn cấp. Vui lòng "
+"nhấn nút gỡ lỗi ở phía bên trái của vật cố một lần. "
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Probe not in the DOWN position, aborted"
+msgstr "JIG không ở vị trí dưới, hủy"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Probe not in the UP position, aborted"
+msgstr "JIG không ở vị trí trên, hủy"
+
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
 msgid "Wrong serial number!"
 msgstr "Số thứ tự sai"
 
-msgid "Yes, clear state and restart"
-msgstr "Xác định, trạng thái kiểm tra rõ ràng và khởi động lại"
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid ""
+"Fail to detect the touchscreen.\n"
+"Remove and re-insert the traveler board. And restart the test."
+msgstr ""
+"Không thể phát hiện bảng điều khiển \n"
+"Vui lòng tháo bảng nhỏ và lắp lại bảng nhỏ và chạy lại thử nghiệm"
 
-msgid "Your Name"
-msgstr "tên của bạn"
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Current calibration has not completed yet"
+msgstr "Hiệu chuẩn hiện tại vẫn chưa kết thúc"
 
-msgid "active"
-msgstr "đang thử"
+#: ../py/test/pytests/touchscreen_calibration/touchscreen_calibration.py
+msgid "Please enter SN first"
+msgstr "Vui lòng nhập số sê-ri trước."
 
-msgid "adapter LED"
-msgstr "LEDĐèn LED bộ nguồn"
+#: ../py/test/pytests/touchscreen_static/touchscreen.js
+msgid "Please start drawing from upper-left corner."
+msgstr "Vui lòng bắt đầu vẽ lưới từ góc trên bên trái"
 
-msgid "amber"
-msgstr "Amber"
+#: ../py/test/pytests/touchscreen_static/touchscreen.js
+msgid "Please leave your finger and restart from upper-left block."
+msgstr "Vui lòng tháo ngón tay của bạn và bắt đầu vẽ lại từ góc trên bên trái"
 
-msgid "battery LED"
-msgstr "nguồn điện LED"
+#: ../py/test/pytests/touchscreen_static/touchscreen.js
+msgid "Fails to draw blocks in sequence. Please try again."
+msgstr "Không vẽ lưới theo thứ tự! Vui lòng quay lại"
 
-msgid "blue"
-msgstr "màu xanh"
+#: ../py/test/pytests/touchscreen_static/touchscreen.js
+msgid "Test failed! Please test this panel carefully with Gods Touch test."
+msgstr ""
+"Kiểm tra bảng điều khiển cảm ứng không thành công. Vui lòng xác minh nó bằng "
+"phần mềm kiểm tra Gods Touch."
 
-msgid "charging"
-msgstr "nạp điện"
+#: ../py/test/pytests/touchscreen_static/touchscreen.js
+msgid "Finger leaving too early. Please try again."
+msgstr "Ngón tay rời quá sớm! Vui lòng quay lại"
 
-msgid "currentLocaleName#en-US#English"
-msgstr "currentLocaleName#vi-VN#Tiếng việt"
+#: ../py/test/pytests/touchscreen_static/touchscreen.js
+msgid "Draw blocks from upper-left corner in sequence; Esc to fail."
+msgstr ""
+"Vẽ lưới theo thứ tự từ góc trên cùng bên trái, nhấn Esc để đánh dấu sự thất "
+"bại"
 
-msgid "dark"
-msgstr "toàn âm"
+#: ../py/test/pytests/touchscreen_static/touchscreen.js
+msgid "Draw blocks in any order; Esc to fail."
+msgstr ""
+"Vẽ tất cả các lưới theo thứ tự bất kỳ, nhấn Esc để đánh dấu sự thất bại"
 
-msgid "discharging"
-msgstr "phát điện"
+#: ../py/test/pytests/update_device_data.py
+msgid "Device Serial Number"
+msgstr "Số máy"
 
-msgid "failed"
-msgstr "không đạt"
+#: ../py/test/pytests/update_device_data.py
+msgid "Mainboard Serial Number"
+msgstr "Số sêri bo mạch chủ(MLB)"
 
-msgid "full reboot"
+#: ../py/test/pytests/update_device_data.py
+msgid "VPD Region Code"
+msgstr "Mã vùng VPD (Vùng)"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "User Registration Code"
+msgstr "Mã đăng ký người dùng (Người dùng ECHO)"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "Group Registration Code"
+msgstr "Mã đăng ký nhóm(Group ECHO)"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "No valid data on machine for {label}."
+msgstr "Thiếu dữ liệu thiết bị: {label}"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "Invalid value for {label}."
+msgstr "đã nhập không chính xác{label}"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "Select {label}:"
+msgstr "Chọn {label}:"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "Select with ENTER"
+msgstr "Nhấn ENTER để chọn"
+
+#: ../py/test/pytests/update_device_data.py
+msgid "Enter {label}: "
+msgstr "Nhập{label}: "
+
+#: ../py/test/pytests/update_device_data.py
+msgid "(ESC to keep current value)"
+msgstr "(ESC giữ nguyên giá trị ban đầu)"
+
+#: ../py/test/pytests/usb.py
+msgid "Plug device into each USB port, {num_usb_ports} to go..."
+msgstr ""
+"Lắp thiết bị vào mỗi cổng USB và có {num_usb_ports}  để được kiểm tra..."
+
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Unable to pass verify component test."
+msgstr ""
+
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Number mismatch component classes"
+msgstr ""
+
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Not supported components"
+msgstr ""
+
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Component"
+msgstr ""
+
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Name"
+msgstr "Tên thử nghiệm"
+
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Status"
+msgstr "Trạng thái :"
+
+#: ../py/test/pytests/vswr/static/vswr.html
+msgid "Loading parameters from local disk..."
+msgstr "Tải các thông số kiểm tra từ ổ cứng cục bộ..."
+
+#: ../py/test/pytests/vswr/static/vswr.html
+msgid "Setting up network..."
+msgstr "Thiết lập môi trường mạng ..."
+
+#: ../py/test/pytests/vswr/static/vswr.html
+msgid "Connecting with the ENA..."
+msgstr " Kết nối với ENA (E5071C) ..."
+
+#: ../py/test/pytests/vswr/static/vswr.html
+msgid ""
+"Please fully disconnect all the cable.<br> Then press ENTER to continue."
+msgstr "Sau khi tháo ăng-ten hoàn toàn, nhấn ENTER để tiếp tục"
+
+#: ../py/test/pytests/vswr/static/vswr.html
+msgid "Checking its calibration status..."
+msgstr "Xác minh tình trạng hiệu chỉnh thiết bị..."
+
+#: ../py/test/pytests/vswr/static/vswr.html
+msgid "The ENA needs to be calibrated.<br> Please press ENTER to continue."
+msgstr "Sửa ENA và nhấn ENTER để khởi động lại thử nghiệm."
+
+#: ../py/test/pytests/vswr/static/vswr.html
+msgid "Please place the LCD panel into the fixture and then press ENTER."
+msgstr "Vui lòng đặt thân máy LCD trên vật cố định và nhấn ENTER"
+
+#: ../py/test/pytests/vswr/static/vswr.html
+msgid ""
+"Make sure the main WWAN antennta is connected to Port 1<br> Make sure the "
+"main WLAN antennta is connected to Port 2<br> Then press key \"A\" to next "
+"stage."
+msgstr ""
+"Kết nối anten WWAN chính với Cổng 1 Kết nối anten WLAN chính với Cổng 2 Nhấn "
+"A khi hoàn tất"
+
+#: ../py/test/pytests/vswr/static/vswr.html
+msgid "Testing..."
+msgstr "Thử nghiệm ..."
+
+#: ../py/test/pytests/vswr/static/vswr.html
+msgid "Writing log...."
+msgstr "Đang ghi ..."
+
+#: ../py/test/pytests/vswr/static/vswr.html
+msgid "Results are listed below:"
+msgstr "Kết quả kiểm tra được trình bày dưới đây:"
+
+#: ../py/test/pytests/vswr/static/vswr.html
+msgid "Please disconnect the panel and press ENTER to write log."
+msgstr "Vui lòng tháo Bảng AB và nhấn ENTER để hoàn tất kiểm tra"
+
+#: ../py/test/pytests/vswr/vswr.py
+msgid "Make sure the {name} antennta is connected to port {port}<br>"
+msgstr "Kết nối ăng-ten {name} với cổng {port}<br>"
+
+#: ../py/test/pytests/vswr/vswr.py
+msgid "Then press key \"{key}\" to next stage."
+msgstr "Nhấn phím {key} khi hoàn tất."
+
+#: ../py/test/pytests/vsync.py
+msgid "Verifying VSync pin... ({count}/{total})"
+msgstr ""
+
+#: ../py/test/pytests/wait_external_test.py
+msgid "Please run external test: {name}"
+msgstr "Vui lòng thực hiện kiểm tra bên ngoài: {name}"
+
+#: ../py/test/pytests/whale_check_voltage.py
+msgid "Power rail"
+msgstr ""
+
+#: ../py/test/pytests/whale_check_voltage.py
+msgid "voltage (mV)"
+msgstr "mVĐiện áp: voltage mV"
+
+#: ../py/test/pytests/whale_check_voltage.py
+msgid "expected"
+msgstr ""
+
+#: ../py/test/pytests/whale_check_voltage.py
+msgid "status"
+msgstr ""
+
+#: ../py/test/pytests/whale_cover.py
+msgid "Please open the cover!"
+msgstr "Vui lòng biến đối tượng cần kiểm tra"
+
+#: ../py/test/pytests/whale_cover.py
+msgid "Please close the cover!"
+msgstr "Vui lòng biến đối tượng cần kiểm tra"
+
+#: ../py/test/pytests/whale_cover.py
+msgid "Checking The Cover"
+msgstr "Xác nhận trình tự  ALS"
+
+#: ../py/test/pytests/wifi_throughput.py
+msgid "Running, please wait..."
+msgstr "Vui lòng kiểm tra sau."
+
+#: ../py/test/pytests/wifi_throughput.py
+msgid ""
+"Please wait for other DUTs to finish WiFiThroughput test, and press spacebar "
+"to continue."
+msgstr ""
+"Vui lòng chờ cho các thiết bị khác hoàn tất kiểm tra và nhấn nút trống để "
+"tiếp tục"
+
+#: ../py/test/pytests/wireless_antenna.py
+#: ../py/test/pytests/wireless_radiotap.py
+msgid "Scanning on device {device} frequency {freq}..."
+msgstr "Tần suất quét {freq} trên thiết bị {device} ..."
+
+#: ../py/test/pytests/wireless_antenna.py
+#: ../py/test/pytests/wireless_radiotap.py
+msgid "Done scanning on device {device} frequency {freq}..."
+msgstr "Tần suất quét {freq} {device} trên thiết bị {freq} đã hoàn tất"
+
+#: ../py/test/pytests/wireless_antenna.py
+msgid "Switching to antenna {antenna}: "
+msgstr "Chuyển sang ăng-ten {antenna} ..."
+
+#: ../py/test/pytests/wireless_antenna.py
+#: ../py/test/pytests/wireless_radiotap.py
+msgid "Press space to start scanning."
+msgstr "Bấm phím trống để bắt đầu quét"
+
+#: ../py/test/pytests/wireless_radiotap.py
+msgid "Switching to AP {ap}..."
+msgstr "đổi cắt đến {ap}..."
+
+#: ../py/test/pytests/wireless_radiotap.py
+msgid "Checking frequencies..."
+msgstr "Kiểm tra tần số..."
+
+#: ../py/test/pytests/write_device_data_to_vpd.py
+msgid "Writing device data to {vpd_section} VPD..."
+msgstr "Dữ liệu máy đang được ghi vào VPD {vpd_section} ..."
+
+#: ../py/test/test_lists/base.test_list.json
+msgid "Full Reboot"
 msgstr "Khởi động lại sâu"
 
-msgid "gradient-blue"
-msgstr "Màu xanh lam nhạt"
+#: ../py/test/test_lists/base.test_list.json
+msgid "Halt"
+msgstr "Tắt máy"
 
-msgid "gradient-green"
-msgstr "xanh lục nhạt"
+#: ../py/test/test_lists/base.test_list.json
+msgid "Reboot"
+msgstr "Khởi động lại"
 
-msgid "gradient-red"
-msgstr "hồng nhạt"
+#: ../py/test/test_lists/disable_factory_server.test_list.json
+msgid "Has Cellular"
+msgstr "Có một máy dữ liệu"
 
-msgid "gradient-white"
-msgstr "trắng nhạt"
+#: ../py/test/test_lists/disable_factory_server.test_list.json
+msgid "Has LTE"
+msgstr "Với LTE"
 
-msgid "green"
-msgstr "xanh lục"
+#: ../py/test/test_lists/disable_factory_server.test_list.json
+msgid "Has Touchscreen"
+msgstr "Với bảng điều khiển cảm ứng"
 
-msgid "grid"
-msgstr "Khung"
+#: ../py/test/test_lists/disable_factory_server.test_list.json
+msgid "Set DeviceInfo"
+msgstr "Cài đặt thông tin máy"
 
-msgid "halt"
-msgstr "tắt máy"
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Activate Registration Code"
+msgstr "Kích hoạt mã đăng ký(ECHO Code)"
 
-msgid "image-black"
-msgstr "Hình ảnh - Đen"
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Check Point for All Tests"
+msgstr "Xác nhận cuối cùng của cấp"
 
-msgid "image-complex"
-msgstr "Hình ảnh –phức tạp"
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Audio Jack"
+msgstr "Lỗ nguồn âm thanh"
 
-msgid "image-crosstalk-black"
-msgstr "Hình ảnh - Hình vuông - Đen"
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Barrier"
+msgstr "Kiểm tra mức độ"
 
-msgid "image-crosstalk-white"
-msgstr "Hình ảnh - Hình vuông - Trắng"
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Charge Discharge Current"
+msgstr "phí và xả hiện tại kiểm tra"
 
-msgid "image-gray-127"
-msgstr "Hình ảnh - Xám 127"
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Charger Type Detection"
+msgstr "Nhận dạng mô hình bộ sạc"
 
-msgid "image-gray-170"
-msgstr "Hình ảnh - Xám 170"
-
-msgid "image-gray-63"
-msgstr "Hình ảnh - Màu xám 63"
-
-msgid "image-horizontal-rgbw"
-msgstr "hình ảnh- bình quân"
-
-msgid "image-vertical-rgbw"
-msgstr "Hình ảnh - Dọc"
-
-msgid "image-white"
-msgstr "Hình ảnh –trắng"
-
-msgid "north"
-msgstr "bắc"
-
-msgid "off"
-msgstr "đóng"
-
-msgid "once"
-msgstr "1 lần"
-
-msgid "passed"
-msgstr "tốt"
-
-msgid "power LED"
-msgstr "nguồn điện LED"
-
-msgid "reboot"
-msgstr "khởi động lại"
-
-msgid "rectangle"
-msgstr "Hình chữ nhật"
-
-msgid "red"
-msgstr "màu hồng"
-
-msgid "solid-black"
-msgstr "màu đen"
-
-msgid "solid-blue"
-msgstr "xanh lam"
-
-msgid "solid-gray"
-msgstr "xám"
-
-msgid "solid-gray-127"
-msgstr "màu xám 127"
-
-msgid "solid-gray-170"
-msgstr "màu xám 170"
-
-msgid "solid-gray-63"
-msgstr "màu xám 63"
-
-msgid "solid-green"
-msgstr "xanh lục"
-
-msgid "solid-red"
-msgstr "màu hồng"
-
-msgid "solid-white"
-msgstr "màu trắng"
-
-msgid "south"
-msgstr "nam"
-
-msgid "untested"
-msgstr "Không được kiểm tra"
-
-msgid "white"
-msgstr "màu trắng"
-
-msgid "yellow"
-msgstr "màu vàng"
-
-msgid ""
-"{action} in {seconds_left} seconds ({times_text}).\n"
-"To cancel, press the Escape key."
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Check Cr50 Board ID Not Set"
 msgstr ""
-"Sẽ là {action} ({times_text}) sau {seconds_left} giây.\n"
-"Nhấn ESC để hủy."
 
-msgid ""
-"{action} to {target} (Current charge: {charge}, battery current: "
-"{battery_current} mA) under load {load}."
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Check Point"
+msgstr "Mức xác nhận"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Check Release Image"
+msgstr "Kiểm tra hệ thống nhà máy"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Clear factory VPD entries"
+msgstr "Xóa thông tin VPD nhà máy"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "EC Cold Reset"
+msgstr "EC Khởi động lại lạnh"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Cold Reset"
+msgstr "Khởi động nguội"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+#: ../py/test/test_lists/generic_fat.test_list.json
+#: ../py/test/test_lists/generic_fft.test_list.json
+#: ../py/test/test_lists/generic_grt.test_list.json
+#: ../py/test/test_lists/generic_rma.test_list.json
+#: ../py/test/test_lists/generic_run_in.test_list.json
+#: ../py/test/test_lists/generic_smt.test_list.json
+#: ../py/test/test_lists/generic_unprovisioned.test_list.json
+msgid "Finish"
+msgstr "Kết thúc"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Volume Down"
+msgstr "Giảm âm lượng"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Volume Up"
+msgstr "tăng âm lượng"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Power Button"
+msgstr "Nút nguồn"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Hardware Button"
+msgstr "Kiểm tra nút"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Idle"
+msgstr "Chờ đợi nhàn rỗi"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Create Cache"
+msgstr "Tạo bộ nhớ cache"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Verify Cache"
+msgstr "Xác minh bộ nhớ cache"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Model and SKU"
+msgstr "Cấu hình và kiểu (SKU)"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Placeholder"
+msgstr "Kiểm tra không xác định"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Probe Hardware"
+msgstr "Thăm dò ổ cứng"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "QR Scan"
+msgstr "quét mã QR"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "SD Performance"
+msgstr "Hiệu suất SD"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Shopfloor Service (NotifyEnd)"
+msgstr "Dịch vụ Shopfloor (NotifyEnd)"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Shopfloor Service (NotifyStart)"
+msgstr "Dịch vụ Shopfloor (NotifyStart)"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Speaker/Microphone"
+msgstr "Loa / micrô"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Stress App Test"
+msgstr "Thử áp lực"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Touchscreen Uniformity"
+msgstr "Kiểm tra tính đồng nhất trên màn hình cảm ứng"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Random Number Generation"
+msgstr "Tạo ngẫu nhiên"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "USB Performance"
+msgstr "Hiệu suất USB"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "USB3 CC1 Performance"
+msgstr "Kiểm tra hiệu năng USB3.0 CC1"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "USB3 CC2 Performance"
+msgstr "Kiểm tra hiệu năng USB3.0 CC2"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "USB2 Performance"
+msgstr "Kiểm tra hiệu năng USB2"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "USB3 External Display Test"
+msgstr "Màn hình ngoài"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "20V Charging"
+msgstr "20V Sạc pin"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "5V Charging"
+msgstr "5V Sạc pin"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Left USB TypeC"
+msgstr "Cổng USB TypeC bên trái"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Manual Test Left USB TypeC"
+msgstr "Kiểm tra USB TypeC bằng tay trái"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Right USB TypeC"
+msgstr "PortCổng USB trái TypeC phù hợp"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Manual Test Right USB TypeC"
+msgstr "Kiểm tra USB TypeC thủ công ngay"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Check Cr50 Firmware Version"
+msgstr "Xác nhận phiên bản firmware"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Update Cr50 Firmware"
+msgstr "Cập nhật firmware CR50"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Upload Reg (ECHO) Codes to activate"
+msgstr "Tải lên mã đăng ký (ECHO) để kích hoạt"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Wifi"
+msgstr "Mạng không dây"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Write HWID"
+msgstr "Mã phần cứng"
+
+#: ../py/test/test_lists/generic_fat.test_list.json
+msgid "FAT (Final Assembly Test)"
+msgstr "FAT (Final Assembly Test)"
+
+#: ../py/test/test_lists/generic_fat.test_list.json
+#: ../py/test/test_lists/generic_fft.test_list.json
+#: ../py/test/test_lists/generic_grt.test_list.json
+#: ../py/test/test_lists/generic_run_in.test_list.json
+#: ../py/test/test_lists/generic_smt.test_list.json
+#: ../py/test/test_lists/generic_unprovisioned.test_list.json
+msgid "Prepare"
+msgstr "Thủ tục chuẩn bị"
+
+#: ../py/test/test_lists/generic_fft.test_list.json
+msgid "FFT (Final Functional Test)"
+msgstr "FFT (Kiểm tra chức năng cuối cùng)"
+
+#: ../py/test/test_lists/generic_grt.test_list.json
+#: ../py/test/test_lists/generic_rma.test_list.json
+msgid "GRT (Google Required Tests)"
+msgstr "GRT (Dự án thử nghiệm bắt buộc của Google)"
+
+#: ../py/test/test_lists/generic_main.test_list.json
+msgid "Generic Chromebook"
+msgstr "Kiểm tra Chromebook chung"
+
+#: ../py/test/test_lists/generic_rf_station.test_list.json
+msgid "Generic RF Station"
+msgstr "Trạm kiểm tra chung RF"
+
+#: ../py/test/test_lists/generic_rma.test_list.json
+msgid "FFT"
 msgstr ""
-"{load}.{action} đến {target} (khoản phí hiện tại là {charge}, tải {battery_current} mA) hiện"
-"tại {load}."
 
-msgid "{count} of {total} times"
-msgstr "{count} lần trong {total} lần kiểm tra"
+#: ../py/test/test_lists/generic_rma.test_list.json
+msgid "Generic RMA"
+msgstr "Trạm kiểm tra chung RF"
 
-msgid "{display_label} Audio"
-msgstr " Âm thanh {display_label}"
+#: ../py/test/test_lists/generic_rrt.test_list.json
+#: ../py/test/test_lists/generic_run_in.test_list.json
+msgid "Dozing Stress"
+msgstr "Kiểm tra căng thẳng bộ nhớ ngủ"
 
-msgid "{fan_spin_direction}: {observed_rpm} -> {target_rpm} RPM."
-msgstr "{fan_spin_direction}: {observed_rpm} -> {target_rpm} RPM."
+#: ../py/test/test_lists/generic_rrt.test_list.json
+msgid "Check WLAN"
+msgstr "Kiểm tra mạng không dây"
 
-msgid "{key} can't be empty!"
-msgstr "{key} không được để trống!"
+#: ../py/test/test_lists/generic_rrt.test_list.json
+msgid "Check Bluetooth"
+msgstr "Kiểm tra Bluetooth"
 
+#: ../py/test/test_lists/generic_rrt.test_list.json
+#: ../py/test/test_lists/generic_run_in.test_list.json
+msgid "Stress Group"
+msgstr "Thử áp lực tập trung"
+
+#: ../py/test/test_lists/generic_rrt.test_list.json
+msgid "Warm Cold Reboot"
+msgstr "Khởi động lại nóng và lạnh"
+
+#: ../py/test/test_lists/generic_rrt.test_list.json
+msgid "RRT"
+msgstr "RRT"
+
+#: ../py/test/test_lists/generic_rrt.test_list.json
+msgid "Generic Rolling Reliability"
+msgstr "Kiểm tra ổn định chung (RRT)"
+
+#: ../py/test/test_lists/generic_run_in.test_list.json
+msgid "Run-In Test"
+msgstr "Chạy thử"
+
+#: ../py/test/test_lists/generic_smt.test_list.json
+msgid "SMT (SA Test)"
+msgstr "SMT (SA Test)"
+
+#: ../py/test/test_lists/generic_smt.test_list.json
+msgid "Parallel Test"
+msgstr "Nhóm thử nghiệm song song"
+
+#: ../py/test/test_lists/generic_smt.test_list.json
+msgid "MLB Serial Number"
+msgstr "Số sêri bo mạch chủ"
+
+#: ../py/test/test_lists/generic_smt.test_list.json
+msgid "Scan MLB"
+msgstr "Quét số sêri bo mạch chủ"
+
+#: ../py/test/test_lists/generic_smt.test_list.json
+msgid "Operator ID"
+msgstr "ID người vận hành"
+
+#: ../py/test/test_lists/generic_smt.test_list.json
+msgid "Scan Operator ID"
+msgstr "ID người vận hành quét"
+
+#: ../py/test/test_lists/generic_smt.test_list.json
+msgid "Station ID"
+msgstr "TRạm thử ID"
+
+#: ../py/test/test_lists/generic_smt.test_list.json
+msgid "ScanStationID"
+msgstr "IDID trạm quét"
+
+#: ../py/test/test_lists/generic_smt.test_list.json
+msgid "Stress Test"
+msgstr "Thử áp lực"
+
+#: ../py/test/test_lists/generic_unprovisioned.test_list.json
+msgid "Update SKU ID"
+msgstr "KernelCập nhật Kernel"
+
+#: ../py/test/test_lists/generic_unprovisioned.test_list.json
+msgid "Provision Chromebook with SKU ID"
+msgstr ""
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Connect Device"
+msgstr "Gắn thiết bị"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Disconnect Device"
+msgstr "Loại bỏ thiết bị"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Copy Factory State From DUT"
+msgstr "Sao chép trạng thái thử nghiệm từ thiết bị"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Copy Factory State To DUT"
+msgstr "Sao chép trạng thái kiểm tra sang thiết bị"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Merge Factory State On DUT"
+msgstr "Tình trạng kiểm tra nhà máy hợp nhất"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Pop Factory State On Station"
+msgstr "Xóa trạng thái thử nghiệm dàn dựng"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Placeholder: AfterDisconnection"
+msgstr "Kiểm tra ngoại tuyến (không xác định)"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Placeholder: BeforeConnection"
+msgstr "Kiểm tra trước khi kết nối (không xác định)"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Placeholder: Main"
+msgstr "Mục kiểm tra chính (không xác định)"
+
+#: ../py/test/test_lists/station_based.test_list.json
+msgid "Station-Based Test Template"
+msgstr "Các thử nghiệm trạm mẫu"
+
+#: ../py/test/test_lists/test_object.py
+msgid "Test Group"
+msgstr "Nhóm thử nghiệm"
+
+#: ../py/test/test_lists/test_object.py
 msgid "{label} ({iterations} times)"
 msgstr "{label} ({iterations} lần)"
 
-msgid "{seconds} seconds"
-msgstr "{seconds}giây"
+#: ../py/test/test_ui.py
+msgid "Press Enter to pass."
+msgstr "Nhấn ENTER "
+
+#: ../py/test/test_ui.py
+msgid "Press ESC to fail."
+msgstr "Nếu bạn thất bại, nhấn phím ESC"
