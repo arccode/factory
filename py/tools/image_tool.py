@@ -385,13 +385,15 @@ class CrosPayloadUtils(object):
           **kargs)
 
   @classmethod
-  def InstallComponents(cls, json_path, dest, components, **kargs):
+  def InstallComponents(cls, json_path, dest, components, optional=False,
+                        **kargs):
     if not os.path.exists(json_path):
       logging.warning('Cannot find %s', json_path)
       return
     if isinstance(components, basestring):
       components = [components]
-    Sudo([cls.GetProgramPath(), 'install', json_path, dest] + components,
+    Sudo([cls.GetProgramPath(), 'install_optional' if optional else 'install',
+          json_path, dest] + components,
          **kargs)
 
   @classmethod
@@ -1725,12 +1727,9 @@ class ChromeOSFactoryBundle(object):
     part.ResizeFileSystem(
         part.GetFileSystemSize() + stateful_free_space * MEGABYTE)
     with GPT.Partition.MapAll(output) as output_dev:
-      targets = ['release_image.crx_cache']
-      if self.hwid:
-        targets += ['hwid']
-      if self.toolkit:
-        targets += ['toolkit']
-      CrosPayloadUtils.InstallComponents(json_path, output_dev, targets)
+      targets = ['release_image.crx_cache', 'hwid', 'toolkit']
+      CrosPayloadUtils.InstallComponents(
+          json_path, output_dev, targets, optional=True)
 
     logging.debug('Add /etc/lsb-factory if not exists.')
     with part.Mount(rw=True) as stateful:
