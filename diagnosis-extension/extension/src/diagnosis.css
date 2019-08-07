@@ -23,6 +23,7 @@
 .top-right {
   height: 80%;
   border: 1px solid black;
+  overflow: auto;
 }
 
 .bottom-right {
