@@ -350,8 +350,14 @@ def PackFactoryToolkit(src_root, output_path, initial_version):
     help_header.flush()
     cmd = [os.path.join(src_root, 'makeself.sh'), '--bzip2', '--nox11',
            '--help-header', help_header.name,
-           src_root, output_path, initial_version + modified_msg,
-           INSTALLER_PATH, '--in-exe']
+           src_root, # archive_dir
+           output_path, # file_name
+           initial_version + modified_msg, # label
+           # startup script and args
+           # We have to explicitly execute python instead of directly execute
+           # INSTALLER_PATH because files under INSTALLER_PATH may not be
+           # executable.
+           'env', 'python', INSTALLER_PATH, '--in-exe']
     Spawn(cmd, check_call=True, log=True)
   with file_utils.TempDirectory() as tmp_dir:
     version_path = os.path.join(tmp_dir, VERSION_PATH)
