@@ -895,6 +895,17 @@ class Gooftool(object):
 
     try:
       try:
+        board_id = gsctool.GetBoardID()
+      except gsctool_module.GSCToolError as e:
+        raise Error('Failed to get boardID with gsctool command: %r', e)
+
+      RLZ = self._util.shell(['mosys', 'platform', 'brand']).stdout.strip()
+      if RLZ == '':
+        raise Error('RLZ code is empty.')
+      if board_id.type != int(RLZ.encode('hex'), 16):
+        raise Error('RLZ does not match Board ID.')
+
+      try:
         gsctool.SetFactoryMode(False)
         factory_mode_disabled = True
       except gsctool_module.GSCToolError:
