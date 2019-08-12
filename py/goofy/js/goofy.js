@@ -2521,6 +2521,7 @@ cros.factory.Goofy = class {
         ]));
 
     const debugDialog = this.createSimpleDialog(title, content);
+    debugDialog.getElement().classList.add('goofy-debug-dialog');
 
     const debugDialogContentElement = debugDialog.getContentElement();
 

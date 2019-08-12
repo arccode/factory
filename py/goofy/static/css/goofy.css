@@ -241,8 +241,10 @@ body {
 }
 .goofy-debug-tabbar {
   overflow: hidden;
+  width: 980px;
   border: 1px solid #cccccc;
   background-color: #f1f1f1;
+  position: fixed;
 }
 .goofy-debug-tab {
   background-color: inherit;
@@ -261,13 +263,13 @@ body {
   background-color: #dddddd;
 }
 .goofy-debug-div {
-  padding-top: 0.7em;
+  padding-top: 3em;
 }
 .goofy-debug-div-invisible {
   display: none;
 }
 .goofy-history {
-  min-height: 500px;
+  height: 500px;
 }
 .goofy-history table {
   border-spacing: 0;
@@ -480,6 +482,14 @@ table + .goofy-history-header {
   flex-flow: column;
   overflow: auto;
   flex: 1;
+}
+.goofy-debug-dialog {
+  width: 1000px;
+}
+.goofy-debug-dialog .modal-dialog-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 /* Overrides for Closure components. */
