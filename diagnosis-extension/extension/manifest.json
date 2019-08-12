@@ -8,5 +8,8 @@
   },
   "background": {
     "scripts": ["src/background.js"]
-  }
+  },
+  "web_accessible_resources": [
+    "src/tests/video/project-fi.mp4"
+  ]
 }
