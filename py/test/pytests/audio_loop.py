@@ -198,6 +198,10 @@ _DEFAULT_TRIM_SECONDS = 0.5
 _DEFAULT_PLAYER_SAMPLE_FORMAT = 'S16'
 # Default sample format for recorder used by arecord, S16 = Signed 16 Bit.
 _DEFAULT_RECORDER_SAMPLE_FORMAT = 'S16'
+# Default minimum frequency.
+_DEFAULT_MIN_FREQUENCY = 4000
+# Default maximum frequency.
+_DEFAULT_MAX_FREQUENCY = 10000
 
 
 class AudioLoopTest(test_case.TestCase):
@@ -217,7 +221,7 @@ class AudioLoopTest(test_case.TestCase):
       Arg('num_input_channels', int,
           'Number of input channels.', default=2),
       Arg('output_dev', list,
-          'Onput ALSA device. [card_name, sub_device].'
+          'Output ALSA device. [card_name, sub_device].'
           'For example: ["audio_card", "0"].', ['0', '0']),
       Arg('output_volume', (int, list),
           'An int of output volume or a list of output volume candidates',
@@ -259,6 +263,8 @@ class AudioLoopTest(test_case.TestCase):
           '        device. Use arecord to see all possible formats.'
           '  - **player_sample_format**: The sample format for the output \n'
           '        device. Use aplay to see all possible formats.'
+          '  - **min_frequency**: The minimum frequency set to audiofuntest.\n'
+          '  - **max_frequency**: The maximum frequency set to audiofuntest.\n'
           '\n'
           'If type is **sinewav**, the dict can optionally contain:\n'
           '  - **duration**: The test duration, in seconds.\n'
@@ -514,12 +520,19 @@ class AudioLoopTest(test_case.TestCase):
 
     volume_gain = self._current_test_args.get(
         'volume_gain', _DEFAULT_AUDIOFUN_TEST_VOLUME_GAIN)
-    assert 0 <= volume_gain <= 100
+    self.assertTrue(0 <= volume_gain <= 100)
 
     player_sample_format = self._current_test_args.get(
         'player_sample_format', _DEFAULT_PLAYER_SAMPLE_FORMAT)
     recorder_sample_format = self._current_test_args.get(
         'recorder_sample_format', _DEFAULT_RECORDER_SAMPLE_FORMAT)
+
+    min_frequency = self._current_test_args.get(
+        'min_frequency', _DEFAULT_MIN_FREQUENCY)
+    self.assertGreaterEqual(min_frequency, 0)
+    max_frequency = self._current_test_args.get(
+        'max_frequency', _DEFAULT_MAX_FREQUENCY)
+    self.assertLessEqual(min_frequency, max_frequency)
 
     player_cmd = 'aplay -D %s -r %d -f %s -t raw -c 2 -B 0 -' % (
         self._alsa_output_device, capture_rate, player_sample_format)
@@ -536,7 +549,9 @@ class AudioLoopTest(test_case.TestCase):
          '-a', '%d' % output_channel,
          '-m', ','.join(map(str, input_channels)),
          '-c', '%d' % self.args.num_input_channels,
-         '-g', '%d' % volume_gain],
+         '-g', '%d' % volume_gain,
+         '-i', '%d' % min_frequency,
+         '-x', '%d' % max_frequency],
         stdout=process_utils.PIPE, stderr=process_utils.PIPE)
 
     last_success_rate = None
