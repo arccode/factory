@@ -881,6 +881,11 @@ install_add_stub() {
   mkdir -m 0755 -p "${output_dir}"
   local stub="${output_dir}/${stub_prefix}${component}.sh"
   echo '#!/bin/sh' >"${stub}"
+  # Set default TMPDIR to /usr/local/tmp because +exec of /tmp is disabled in
+  # crbug/936818. It will break some executable scripts which is unpacked in
+  # temp directory. This variable will affect at least "makeself of toolkit
+  # installer" and "mktemp".
+  echo 'export TMPDIR="${TMPDIR:=/usr/local/tmp}"' >> "${stub}"
   # shellcheck disable=SC2016
   echo 'cd "$(dirname "$(readlink -f "$0")")"/..' >>"${stub}"
   echo "${cmd}" >>"${stub}"
