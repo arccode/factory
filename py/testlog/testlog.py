@@ -117,7 +117,7 @@ class Testlog:
     session_json: A temporary JSON file to keep the test_run information.
     attachments_folder: The folder for copying / moving binary files.
     uuid: A unique ID for related to the process that using the testlog.
-    seq_generator: A sequence file that expected to increase monotonically.
+    seq_generator: A sequence file that expected to increase monotonically
         during test.
   """
 
@@ -180,15 +180,19 @@ class Testlog:
     self._CreateFolders()
 
     self.hooks = None
+
+    # To avoid deadlock when logging enable debug level.
+    thread_data = threading.local()
     # Reload the JSON paths into JSONLogFile for future writing.
     if self.session_json:
       self.session_json = JSONLogFile(
           uuid=self.uuid, seq_generator=self.seq_generator,
-          path=self.session_json, mode='w')
+          path=self.session_json, thread_data=thread_data, mode='w')
     if self.primary_json:
       self.primary_json = JSONLogFile(
           uuid=self.uuid, seq_generator=self.seq_generator,
-          path=self.primary_json, mode='a', check_event=True)
+          path=self.primary_json, thread_data=thread_data, mode='a',
+          check_event=True)
     # Initialize testlog._pylogger
     self.CaptureLogging(stationDeviceId, stationInstallationId)
 
@@ -546,9 +550,23 @@ def AddFailure(*args, **kwargs):
 class JSONLogFile(file_utils.FileLockContextManager):
   """Represents a JSON log file on disk."""
 
-  def __init__(self, uuid, seq_generator, path, mode='a', check_event=False):
+  def __init__(self, uuid, seq_generator, path, thread_data,
+               mode='a', check_event=False):
+    """Constructor.
+
+    Args:
+      uuid: A unique ID for the Testlog process.
+      seq_generator: A sequence file that expected to increase monotonically
+          during test.
+      path: Path of the JSON log file.
+      thread_data: A threading.local() object to prevent deadlock.
+          See http://b/62893425.
+      mode: A string indicating how the file is to be opened.
+      check_event: Boolean to indicate if we should check the validation of
+          each event.
+    """
     super(JSONLogFile, self).__init__(path=path, mode=mode)
-    self._thread_data = threading.local()
+    self._thread_data = thread_data
     self.test_run_id = uuid
     self.seq_generator = seq_generator
     self.check_event = check_event

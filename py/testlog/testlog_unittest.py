@@ -562,50 +562,56 @@ class TestlogEventTest(TestlogTestBase):
       _unused_invalid_event = testlog.EventBase.FromDict(example_dict)
 
 
-def SimulatedTestInAnotherProcess():
-  # Only executed when we have environment variable TESTLOG
-  if testlog.TESTLOG_ENV_VARIABLE_NAME not in os.environ:
-    return
-
-  # Initialize Testlog -- only needed because we don't have a harness
-  # doing it for us.
-  testlog.Testlog()
-
-  logging.info('SUBPROCESS')
-  # Snippet for attachment
-  tmp_dir = tempfile.mkdtemp()
-  def CreateTextFile():
-    TEST_STR = 'I\'m just a little bit caught in the middle'
-    TEST_FILENAME = 'TextFile.txt'
-    path = os.path.join(tmp_dir, TEST_FILENAME)
-    with open(path, 'w') as fd:
-      fd.write(TEST_STR)
-    return path
-
-  # Additional steps that because multiprocessing.Process doesn't provide
-  # an argument to set the env like subprocess.Popen.
-  testlog.LogParam(name='NAME', value=1)
-
-  # Wait the thread update the session json file.
-  time.sleep(0.5)
-  testlog.FlushEvent()
-
-  testlog.UpdateParam('NAME', description='DESCRIPTION')
-
-  # Move a file normally.
-  file_to_attach = CreateTextFile()
-  testlog.AttachFile(
-      path=os.path.realpath(file_to_attach),
-      name='FILE',
-      mime_type='text/plain')
-
-  # Clean up the tmp directory
-  shutil.rmtree(tmp_dir)
-  if testlog.TESTLOG_ENV_VARIABLE_NAME in os.environ:
-    testlog.GetGlobalTestlog().Close()
-
-
 class TestlogE2ETest(TestlogTestBase):
+
+  def SimulatedTestInAnotherProcess(self):
+    # Only executed when we have environment variable TESTLOG
+    if testlog.TESTLOG_ENV_VARIABLE_NAME not in os.environ:
+      return
+
+    # Initialize Testlog -- only needed because we don't have a harness
+    # doing it for us.
+    testlog.Testlog()
+
+    logging.info('SUBPROCESS')
+    # Snippet for attachment
+    tmp_dir = tempfile.mkdtemp()
+    def CreateTextFile():
+      TEST_STR = 'I\'m just a little bit caught in the middle'
+      TEST_FILENAME = 'TextFile.txt'
+      path = os.path.join(tmp_dir, TEST_FILENAME)
+      with open(path, 'w') as fd:
+        fd.write(TEST_STR)
+      return path
+
+    # Additional steps that because multiprocessing.Process doesn't provide
+    # an argument to set the env like subprocess.Popen.
+    testlog.LogParam(name='NAME', value=1)
+
+    # Wait the thread update the session json file.
+    time.sleep(0.5)
+    testlog.FlushEvent()
+
+    testlog.UpdateParam('NAME', description='DESCRIPTION')
+
+    # Move a file normally.
+    file_to_attach = CreateTextFile()
+    testlog.AttachFile(
+        path=os.path.realpath(file_to_attach),
+        name='FILE',
+        mime_type='text/plain')
+
+    # Clean up the tmp directory
+    shutil.rmtree(tmp_dir)
+    if testlog.TESTLOG_ENV_VARIABLE_NAME in os.environ:
+      testlog.GetGlobalTestlog().Close()
+
+  def SimulatedTestWithDebugInAnotherProcess(self):
+    # FileLock records a DEBUG message after getting the file lock.
+    logging.getLogger().setLevel(logging.DEBUG)
+    self.SimulatedTestInAnotherProcess()
+    logging.getLogger().setLevel(logging.INFO)
+    return 0
 
   def testE2E(self):
     IN_TAG = '$IN$'
@@ -625,7 +631,7 @@ class TestlogE2ETest(TestlogTestBase):
     logging.info(IN_TAG)
     p = subprocess.Popen(
         ['python3', os.path.abspath(__file__),
-         'SimulatedTestInAnotherProcess'],
+         'TestlogE2ETest.SimulatedTestInAnotherProcess'],
         env=env_additions)
     p.wait()
     logging.info(OUT_TAG)
@@ -685,7 +691,17 @@ class TestlogE2ETest(TestlogTestBase):
     my_uuid = time_utils.TimedUUID()
     testlog.Testlog(log_root=self.state_dir, uuid=my_uuid)
     testlog.Log(testlog.StationInit({'count': 1, 'success': True}))
+    # Prepare for another test session.
+    self._SimulateSubSession()
+    env_additions = copy.deepcopy(os.environ)
+    # Go with env_additions['TESTLOG']
+    p = subprocess.Popen(
+        ['python', os.path.abspath(__file__),
+         'TestlogE2ETest.SimulatedTestWithDebugInAnotherProcess'],
+        env=env_additions)
+    p.wait()
     logging.getLogger().setLevel(logging.INFO)
+    self.assertEqual(p.returncode, 0)
 
 
 if __name__ == '__main__':
