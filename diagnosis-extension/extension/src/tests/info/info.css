@@ -1,0 +1,20 @@
+li {
+  font-weight: normal;
+}
+
+#hard-disk {
+  counter-reset: item -1;
+}
+
+#hard-disk div {
+  margin-bottom: .5em;
+}
+
+#hard-disk div::before {
+  counter-increment: item;
+  content: "Hard Disk " counter(item) ": ";
+}
+
+button{
+  margin: .5em;
+}

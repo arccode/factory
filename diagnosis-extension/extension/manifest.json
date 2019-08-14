@@ -11,5 +11,10 @@
   },
   "web_accessible_resources": [
     "src/tests/video/project-fi.mp4"
+  ],
+  "permissions": [
+    "system.cpu",
+    "system.memory",
+    "system.storage"
   ]
 }
