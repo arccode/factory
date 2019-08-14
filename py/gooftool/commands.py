@@ -650,7 +650,7 @@ def UploadReport(options):
   if device_sn is None:
     logging.warning('RO_VPD missing device serial number')
     device_sn = 'MISSING_SN_' + time_utils.TimedUUID()
-  target_path = CreateReportArchive(device_sn)
+  target_path = CreateReportArchive(device_sn, options.add_file)
 
   if options.upload_method is None or options.upload_method == 'none':
     logging.warning('REPORT UPLOAD SKIPPED (report left at %s)', target_path)
