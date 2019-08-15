@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-07-17 10:58+CST\n"
+"PO-Revision-Date: 2019-08-15 16:43+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -2471,6 +2471,22 @@ msgid ""
 msgstr ""
 "请使用触控笔将绿色线段延伸至另一头，<br>不要超出红线区域。<br>按空白键开始测"
 "试; Esc 键标记失败"
+
+#: ../py/test/pytests/stylus.py
+msgid "clockwise"
+msgstr "顺时针"
+
+#: ../py/test/pytests/stylus.py
+msgid "upside down"
+msgstr "倒置"
+
+#: ../py/test/pytests/stylus.py
+msgid "counterclockwise"
+msgstr "逆时针"
+
+#: ../py/test/pytests/stylus.py
+msgid "Please rotate the device: {msg}"
+msgstr "请转动待测物: {msg}"
 
 #: ../py/test/pytests/summary.py
 msgid "Click or press SPACE to continue"

@@ -197,6 +197,14 @@ const setupStylusTest =
     };
 
 /**
+ * Hide stylus test canvas.
+ */
+const hideStylusTest = () => {
+  document.getElementById('canvas').classList.add('hidden');
+  window.test.setFullScreen(false);
+};
+
+/**
  * Pass input events.
  * @param {Array<Array<number>>} xy_ratios
  */
@@ -208,6 +216,7 @@ const handler = xy_ratios => {
 
 const exports = {
   setupStylusTest,
+  hideStylusTest,
   handler
 };
 for (const key of Object.keys(exports)) {

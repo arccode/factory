@@ -54,11 +54,13 @@ import threading
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test.i18n import _
+from cros.factory.test import state
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.test.utils import touch_monitor
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 
@@ -128,6 +130,8 @@ class StylusTest(test_case.TestCase):
                                           evdev_utils.IsStylusDevice)
     self._monitor = None
     self._dispatcher = None
+    self._daemon = None
+    self._state = state.GetInstance()
 
     assert self.args.error_margin >= 0
     assert 0 < self.args.begin_ratio < self.args.end_ratio < 1
@@ -157,10 +161,7 @@ class StylusTest(test_case.TestCase):
           id='msg')
       self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
-    self.ui.CallJSFunction('setupStylusTest',
-                           self.args.error_margin, self.args.begin_ratio,
-                           self.args.end_ratio, self.args.step_ratio,
-                           self.args.endpoints_ratio)
+    self._daemon = process_utils.StartDaemonThread(target=self.CheckRotation)
     self._device = evdev_utils.DeviceReopen(self._device)
     self._device.grab()
     self._monitor = StylusMonitor(self._device, self.ui)
@@ -170,3 +171,31 @@ class StylusTest(test_case.TestCase):
     while True:
       self._monitor.Flush()
       self.Sleep(self.args.flush_interval)
+
+  def CheckRotation(self):
+    last_rotation = None
+    rotate_msg = {
+        90: _('clockwise'),
+        180: _('upside down'),
+        270: _('counterclockwise')
+    }
+
+    while True:
+      rotation = self._state.DeviceGetDisplayInfo()[0]['rotation']
+
+      if last_rotation == rotation:
+        pass
+      elif rotation in [90, 180, 270]:
+        # Wrong rotation
+        self.ui.CallJSFunction('hideStylusTest')
+        self.ui.SetHTML(
+            _('Please rotate the device: {msg}', msg=rotate_msg[rotation]),
+            id='msg')
+      else:
+        self.ui.CallJSFunction('setupStylusTest',
+                               self.args.error_margin, self.args.begin_ratio,
+                               self.args.end_ratio, self.args.step_ratio,
+                               self.args.endpoints_ratio)
+
+      last_rotation = rotation
+      self.Sleep(0.5)

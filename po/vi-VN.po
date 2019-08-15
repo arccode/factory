@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-08-06 16:14+CST\n"
+"PO-Revision-Date: 2019-08-15 16:43+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -2526,6 +2526,22 @@ msgstr ""
 "Sử dụng bút stylus để mở rộng đoạn đường màu xanh lá cây đến đầu kia,"
 "<br>không vượt quá vùng vạch đỏ. <br>Nhấn phím trống để bắt đầu kiểm tra, "
 "phím Esc không thành công"
+
+#: ../py/test/pytests/stylus.py
+msgid "clockwise"
+msgstr "chiều kim đồng hồ"
+
+#: ../py/test/pytests/stylus.py
+msgid "upside down"
+msgstr "lộn ngược"
+
+#: ../py/test/pytests/stylus.py
+msgid "counterclockwise"
+msgstr "ngược chiều kim đồng hồ"
+
+#: ../py/test/pytests/stylus.py
+msgid "Please rotate the device: {msg}"
+msgstr "Vui lòng biến đối tượng cần kiểm tra: {msg}"
 
 #: ../py/test/pytests/summary.py
 msgid "Click or press SPACE to continue"
