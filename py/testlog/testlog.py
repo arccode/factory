@@ -371,18 +371,24 @@ def LogTestRun(session_json_path, station_test_run=None):
   """
   # TODO(itspeter): Check the file is already closed properly. (i.e.
   #                 no lock exists or other process using it)
-  with file_utils.FileLockContextManager(session_json_path, 'r') as fd:
+  with file_utils.FileLockContextManager(session_json_path, 'r+') as fd:
     content = fd.read()
     try:
       session_json = json.loads(content)
-      session_json.pop(
-          Testlog.FIELDS._METADATA)  # pylint: disable=protected-access
       test_run = StationTestRun()
       test_run.Populate(session_json)
       # Merge the station_test_run information.
       if station_test_run:
         test_run.Populate(station_test_run.ToDict())
       Log(test_run)
+      # pylint: disable=protected-access
+      test_run[Testlog.FIELDS._METADATA] = (
+          session_json[Testlog.FIELDS._METADATA])
+      fd.seek(0)
+      fd.truncate()
+      fd.write(test_run.ToJSON())
+      fd.flush()
+      os.fsync(fd.fileno())
     except Exception:
       # Not much we can do here.
       logging.exception('Not able to collect %s. Last read: %s',

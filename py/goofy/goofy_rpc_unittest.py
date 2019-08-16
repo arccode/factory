@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 
 from contextlib import contextmanager
+import json
 import os
 import unittest
 
@@ -81,6 +82,7 @@ class GoofyRPCTest(unittest.TestCase):
     file_utils.TryMakeDirs(test_dir)
     log_file = os.path.join(test_dir, 'log')
     metadata_file = os.path.join(test_dir, 'metadata')
+    testlog_file = os.path.join(test_dir, 'testlog.json')
 
     with open(log_file, 'w') as f:
       f.write(log)
@@ -88,8 +90,12 @@ class GoofyRPCTest(unittest.TestCase):
     with open(metadata_file, 'w') as f:
       yaml.dump(data, f)
 
+    with open(testlog_file, 'w') as f:
+      json.dump(data, f)
+
     self.assertEqual(
         {'metadata': data,
+         'testlog': data,
          'log': log},
         self.goofy_rpc.GetTestHistoryEntry(path, invocation))
 

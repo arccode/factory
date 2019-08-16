@@ -499,6 +499,12 @@ class TestInvocation(object):
       logging.exception('Unable to log %s event by event_log', event_name)
     try:
       testlog_helper.InitSubSession(self.dut, self._metadata)
+      # Since the reboot pytest will kill the process and re-run a new process,
+      # the testlog file may exist.
+      if os.path.exists(os.path.join(self.output_dir, 'testlog.json')):
+        os.unlink(os.path.join(self.output_dir, 'testlog.json'))
+      os.link(testlog_helper.session_json_path,
+              os.path.join(self.output_dir, 'testlog.json'))
       self._env_additions[
           testlog.TESTLOG_ENV_VARIABLE_NAME] = testlog_helper.session_json_path
       testlog_helper.LogStartEvent()

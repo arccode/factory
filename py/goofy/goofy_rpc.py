@@ -10,6 +10,7 @@ from __future__ import print_function
 import argparse
 import glob
 import inspect
+import json
 import logging
 import os
 import Queue
@@ -766,6 +767,8 @@ class GoofyRPC(object):
       log = None
 
     return {'metadata': yaml.load(open(os.path.join(test_dir, 'metadata'))),
+            'testlog': json.load(open(os.path.join(test_dir,
+                                                   'testlog.json'))),
             'log': log}
 
   def GetInvocationResolvedArgs(self, invocation):

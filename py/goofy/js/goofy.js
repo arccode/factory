@@ -156,7 +156,8 @@ cros.factory.HistoryMetadata;
 
 /**
  * Entry in test history.
- * @typedef {{metadata: !cros.factory.HistoryMetadata, log: string}}
+ * @typedef {{metadata: !cros.factory.HistoryMetadata, log: string,
+ *     testlog: !Object}}
  */
 cros.factory.HistoryEntry;
 
@@ -2464,42 +2465,25 @@ cros.factory.Goofy = class {
   async showHistoryEntry(path, invocation) {
     const /** !cros.factory.HistoryEntry */ entry =
         await this.sendRpc('GetTestHistoryEntry', path, invocation);
-    const metadataRows = [];
-    for (const [name, title] of /** @type {!Array<!Array<string>>} */ ([
-           ['status', 'Status'], ['init_time', 'Creation time'],
-           ['start_time', 'Start time'], ['end_time', 'End time']
-         ])) {
-      if (entry.metadata[name]) {
-        let /** string|number */ value = entry.metadata[name];
-        delete entry.metadata[name];
-        if (name.endsWith('_time')) {
+
+    let testlogObj = {};
+    for (const name of ['status', 'startTime', 'time', 'endTime']) {
+      if (entry.testlog[name]) {
+        let /** string|number */ value = entry.testlog[name];
+        delete entry.testlog[name];
+        if (name.endsWith('ime')) {
           value = cros.factory.Goofy.FULL_TIME_FORMAT.format(
               new Date(value * 1000));
         }
-        metadataRows.push(goog.html.SafeHtml.create('tr', {}, [
-          goog.html.SafeHtml.create('th', {}, title),
-          goog.html.SafeHtml.create('td', {}, value)
-        ]));
+        testlogObj[name] = value;
       }
     }
 
-    const keys = Object.keys(entry.metadata).sort();
-    for (const key of keys) {
-      if (key === 'log_tail') {
-        // Skip log_tail, since we already have the entire log.
-        continue;
-      }
-      const /** string|number|!Object */ value = entry.metadata[key];
-      const /** string|number */ valueRepr =
-          goog.isObject(value) ? JSON.stringify(value) : value;
-      metadataRows.push(goog.html.SafeHtml.create('tr', {}, [
-        goog.html.SafeHtml.create('th', {}, key),
-        goog.html.SafeHtml.create('td', {}, valueRepr)
-      ]));
-    }
+    testlogObj = Object.assign(testlogObj, entry.testlog);
 
-    const metadataTable = goog.html.SafeHtml.create(
-        'table', {class: 'goofy-history-metadata'}, metadataRows);
+    const testlogData = goog.html.SafeHtml.create(
+        'div', {class: 'goofy-history-metadata'},
+        JSON.stringify(testlogObj, null, 4));
 
     const title =
         `${entry.metadata.path} (invocation ${entry.metadata.invocation})`;
@@ -2513,7 +2497,7 @@ cros.factory.Goofy = class {
                 'button', {class: 'goofy-debug-tab'}, 'Log')
           ]),
           goog.html.SafeHtml.create(
-              'div', {class: 'goofy-debug-div'}, metadataTable),
+              'div', {class: 'goofy-debug-div'}, testlogData),
           goog.html.SafeHtml.create(
               'div', {class: 'goofy-debug-div'},
               goog.html.SafeHtml.create(
