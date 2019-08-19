@@ -127,6 +127,9 @@ class HWIDV3Test(test_case.TestCase):
       Arg('enable_configless_fields', bool,
           'Include the configless fields',
           default=False),
+      Arg('include_brand_code', bool,
+          'Include RLZ brand code',
+          default=True),
   ]
 
   def setUp(self):
@@ -204,6 +207,8 @@ class HWIDV3Test(test_case.TestCase):
         generate_cmd += ['--no-verify-checksum']
       if self.args.enable_configless_fields:
         generate_cmd += ['--with-configless-fields']
+      if not self.args.include_brand_code:
+        generate_cmd += ['--no-brand-code']
 
       output = self.factory_tools.CallOutput(generate_cmd)
       self.assertIsNotNone(output, 'HWID generate failed.')
