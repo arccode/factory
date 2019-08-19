@@ -54,17 +54,30 @@ class _Sample(dict):
     super(_Sample, self).__init__({attr_name: args[idx]
                                    for idx, attr_name in enumerate(self._ARGS)})
 
-
+# Encoding and decoding both work on following samples.
 _SAMPLES = [
-    _Sample('PROJ ERVY-5O', 'PROJ', 0, 4, '100011010111', _BASE32, None, None),
-    _Sample('PROJ GR3L-QK4', 'PROJ', 0, 6, '1000111011010111', _BASE32, None,
-            None),
-    _Sample('PROJ E6N-O42', 'PROJ', 0, 4, '100011010111', _BASE8192, None,
-            None),
-    _Sample('PROJ G6O-29A-A8M', 'PROJ', 0, 6, '1000111011010111', _BASE8192,
+    _Sample('PROJ-ZZCR ERVY-KD', 'PROJ', 0, 4, '100011010111', _BASE32,
+            'ZZCR', None),
+    _Sample('PROJ-ZZCR GR3L-QJH', 'PROJ', 0, 6, '1000111011010111', _BASE32,
+            'ZZCR', None),
+    _Sample('PROJ-ZZCR E6N-O7X', 'PROJ', 0, 4, '100011010111', _BASE8192,
+            'ZZCR', None),
+    _Sample('PROJ-ZZCR G6O-29A-A4S', 'PROJ', 0, 6, '1000111011010111',
+            _BASE8192, 'ZZCR', None),
+    _Sample('PROJ-ZZCR 0-8-3A-80 G6O-29A-A8L', 'PROJ', 0, 6,
+            '1000111011010111', _BASE8192, 'ZZCR', '0-8-3A-80')]
+
+# The following samples can only be decoded.
+_LEGACY_SAMPLES = [
+    _Sample('PROJ ERVY-5O', 'PROJ', 0, 4, '100011010111', _BASE32,
             None, None),
-    _Sample('PROJ-BRAND 0-8-3A-80 G6O-29A-A7O', 'PROJ', 0, 6,
-            '1000111011010111', _BASE8192, 'BRAND', '0-8-3A-80')]
+    _Sample('PROJ GR3L-QK4', 'PROJ', 0, 6, '1000111011010111', _BASE32,
+            None, None),
+    _Sample('PROJ E6N-O42', 'PROJ', 0, 4, '100011010111', _BASE8192,
+            None, None),
+    _Sample('PROJ G6O-29A-A8M', 'PROJ', 0, 6, '1000111011010111',
+            _BASE8192, None, None),
+]
 
 class _IdentityGeneratorTestBase(object):
   NEEDED_ARGS = []
@@ -136,22 +149,26 @@ class IdentityGenerateFromEncodedStringTest(unittest.TestCase,
   def GenerateIdentity(self, **kwargs):
     return Identity.GenerateFromEncodedString(**kwargs)
 
+  def testDecodeLegacyEncodedString(self):
+    for sample in _LEGACY_SAMPLES:
+      self.CheckMatch(sample)
+
   def testBadEncodingScheme(self):
     # Either base32 or base8192.
     self.doTestInvalid(_SAMPLES[0], encoding_scheme='xxx')
 
   def testBadEncodedString(self):
     # Bad project name.
-    self.doTestInvalid(_SAMPLES[0], encoded_string='PROj ERVY-AL')
+    self.doTestInvalid(_SAMPLES[0], encoded_string='PROj-ZZCR ERVY-AL')
 
     # No project name.
     self.doTestInvalid(_SAMPLES[0], encoded_string='ERVY-5O')
 
     # Bad checksum.
-    self.doTestInvalid(_SAMPLES[0], encoded_string='PROJ ERVY-XX')
+    self.doTestInvalid(_SAMPLES[0], encoded_string='PROJ-ZZCR ERVY-XX')
 
     # components_bitset not ends with 1.
-    self.doTestInvalid(_SAMPLES[0], encoded_string='PROJ XACO')
+    self.doTestInvalid(_SAMPLES[0], encoded_string='PROJ-ZZCR XACO')
 
 
 if __name__ == '__main__':

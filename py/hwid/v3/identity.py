@@ -117,65 +117,52 @@ class _IdentityConverter(object):
     }
 
   def GenerateEncodedString(self, project, encoding_pattern_index, image_id,
-                            components_bitset):
+                            components_bitset, brand_code,
+                            encoded_configless=None):
     """Encode components fields and calculate checksum."""
     encoded_components = self.EncodeComponentsBitset(encoding_pattern_index,
                                                      image_id,
                                                      components_bitset)
-    checksum = self._base.Checksum(' '.join([project, encoded_components]))
-    return ' '.join([project,
-                     self.FormatComponentsField(encoded_components + checksum)])
+    if brand_code:
+      project_and_brand_code = project + '-' + brand_code
+    else:
+      project_and_brand_code = project
+
+    parts = [project_and_brand_code]
+    if encoded_configless:
+      parts.append(encoded_configless)
+    parts.append(encoded_components)
+    checksum = self._base.Checksum(' '.join(parts))
+    parts[-1] = self.FormatComponentsField(encoded_components + checksum)
+    return ' '.join(parts)
 
   def DecodeEncodedString(self, encoded_string):
     """Decode components fields and verify checksum."""
-    (project, unused_separator,
-     encoded_body_and_checksum) = encoded_string.partition(' ')
-    encoded_body_and_checksum = encoded_body_and_checksum.replace('-', '')
+    parts = encoded_string.split()
+    if len(parts) == 2:
+      project_and_brand_code, encoded_components_and_checksum = parts
+      encoded_configless = None
+    elif len(parts) == 3:
+      (project_and_brand_code, encoded_configless,
+       encoded_components_and_checksum) = parts
+    else:
+      raise common.HWIDException('Invalid HWID string: %r' % encoded_string)
 
-    checksum_size = self._base.ENCODED_CHECKSUM_SIZE
-    _VerifyPart(lambda val: len(val) > checksum_size,
-                'encoded_body+checksum', encoded_body_and_checksum)
-
-    encoded_body = encoded_body_and_checksum[:-checksum_size]
-    checksum = encoded_body_and_checksum[-checksum_size:]
-    _VerifyPart(
-        lambda val: val == self._base.Checksum(project + ' ' + encoded_body),
-        'checksum', checksum)
-
-    result_dict = self.DecodeComponentsFields(encoded_body)
-    result_dict['project'] = project
-    return result_dict
-
-class _IdentityConverterWithConfiglessFields(_IdentityConverter):
-  def GenerateEncodedString(self, project, encoding_pattern_index, image_id,
-                            components_bitset, brand_code, encoded_configless):
-    """"Generate encoded string with configless fields"""
-    encoded_components = self.EncodeComponentsBitset(encoding_pattern_index,
-                                                     image_id,
-                                                     components_bitset)
-    checksum = self._base.Checksum(' '.join([project + '-' + brand_code,
-                                             encoded_configless,
-                                             encoded_components]))
-    return ' '.join([project + '-' + brand_code, encoded_configless,
-                     self.FormatComponentsField(encoded_components + checksum)])
-
-  def DecodeEncodedString(self, encoded_string):
-    """Decode components fields and verify checksum."""
-    (project_and_brand_code, encoded_configless,
-     encoded_components_and_checksum) = encoded_string.split()
     project, _, brand_code = project_and_brand_code.partition('-')
+    # An old HWID string might not have brand code.
+    brand_code = brand_code or None
     encoded_components_and_checksum = encoded_components_and_checksum.replace(
         '-', '')
 
     checksum_size = self._base.ENCODED_CHECKSUM_SIZE
-    _VerifyPart(lambda val: len(val) > checksum_size, 'encoded_body+checksum',
-                encoded_components_and_checksum)
+    _VerifyPart(lambda val: len(val) > checksum_size,
+                'encoded_body+checksum', encoded_components_and_checksum)
 
-    checksum = encoded_components_and_checksum[-checksum_size:]
     encoded_components = encoded_components_and_checksum[:-checksum_size]
+    checksum = encoded_components_and_checksum[-checksum_size:]
+    parts[-1] = encoded_components
     _VerifyPart(
-        lambda val: val == self._base.Checksum(' '.join(
-            [project_and_brand_code, encoded_configless, encoded_components])),
+        lambda val: val == self._base.Checksum(' '.join(parts)),
         'checksum', checksum)
 
     result_dict = self.DecodeComponentsFields(encoded_components)
@@ -183,6 +170,7 @@ class _IdentityConverterWithConfiglessFields(_IdentityConverter):
     result_dict['brand_code'] = brand_code
     result_dict['encoded_configless'] = encoded_configless
     return result_dict
+
 
 def _VerifyPart(condition, part, value):
   if not condition(value):
@@ -336,15 +324,13 @@ class Identity(object):
     converter = _IdentityConverter(_ENCODING_SCHEME_MAP[encoding_scheme])
     kwargs = {
         'project': project,
+        'brand_code': brand_code,
         'encoding_pattern_index': encoding_pattern_index,
         'image_id': image_id,
         'components_bitset': components_bitset,
     }
 
     if encoded_configless:
-      converter = _IdentityConverterWithConfiglessFields(
-          _ENCODING_SCHEME_MAP[encoding_scheme])
-      kwargs['brand_code'] = brand_code
       kwargs['encoded_configless'] = encoded_configless
 
     encoded_string = converter.GenerateEncodedString(**kwargs)
@@ -366,11 +352,7 @@ class Identity(object):
       An instance of Identity.
     """
     _VerifyEncodingSchemePart(encoding_scheme)
-    if len(encoded_string.split()) > 2:
-      converter = _IdentityConverterWithConfiglessFields(
-          _ENCODING_SCHEME_MAP[encoding_scheme])
-    else:
-      converter = _IdentityConverter(_ENCODING_SCHEME_MAP[encoding_scheme])
+    converter = _IdentityConverter(_ENCODING_SCHEME_MAP[encoding_scheme])
 
     return Identity(encoded_string=encoded_string,
                     **converter.DecodeEncodedString(encoded_string))

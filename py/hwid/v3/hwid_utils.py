@@ -188,7 +188,8 @@ def ListComponents(database, comp_class=None):
   return dict(output_components)
 
 
-def EnumerateHWID(database, image_id=None, status='supported', comps=None):
+def EnumerateHWID(database, image_id=None, status='supported', comps=None,
+                  brand_code=None):
   """Enumerates all the possible HWIDs.
 
   Args:
@@ -235,7 +236,7 @@ def EnumerateHWID(database, image_id=None, status='supported', comps=None):
   results = {}
   def _RecordResult(components):
     bom = BOM(0, image_id, components)
-    identity = transformer.BOMToIdentity(database, bom)
+    identity = transformer.BOMToIdentity(database, bom, brand_code=brand_code)
     results[identity.encoded_string] = bom
 
   def _RecursivelyEnumerateCombinations(combinations, i,

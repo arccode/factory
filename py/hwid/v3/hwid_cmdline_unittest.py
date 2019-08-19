@@ -244,7 +244,8 @@ class EnumerateHWIDWrapperTest(TestCaseBaseWithFakeOutput):
         options.database,
         image_id=options.database.GetImageIdByName.return_value,
         status=options.status,
-        comps={'aaa': ['bbb'], 'ccc': ['ddd', 'eee']})
+        comps={'aaa': ['bbb'], 'ccc': ['ddd', 'eee']},
+        brand_code=options.brand_code)
 
   @mock.patch('cros.factory.hwid.v3.hwid_utils.EnumerateHWID',
               return_value={'HWID1': 'bbb', 'HWID2': 'aaa'})

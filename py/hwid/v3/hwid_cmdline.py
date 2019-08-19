@@ -242,7 +242,9 @@ def UpdateDatabaseWrapper(options):
     CmdArg('--with-configless-fields', action='store_true',
            help='Include the configless field.'),
     CmdArg('--brand-code', default=None,
-           help='Device brand code for configless format.'),
+           help='Device brand code (mosys platform brand).'),
+    CmdArg('--no-brand-code', action='store_true',
+           help='Do not add brand code to HWID'),
     *(_OUTPUT_FORMAT_COMMON_ARGS + _DEVICE_DATA_COMMON_ARGS + _RMA_COMMON_ARGS))
 def GenerateHWIDWrapper(options):
   """Generates HWID."""
@@ -349,7 +351,8 @@ def ListComponentsWrapper(options):
                  'The format of COMP is '
                  '"<comp_cls>=<comp_name>[,<comp_name>[,<comp_name>...]]"')),
     CmdArg('--no-bom', action='store_true',
-           help='Print the encoded string only.'))
+           help='Print the encoded string only.'),
+    CmdArg('--brand-code', default=None, help='The brand code.'))
 def EnumerateHWIDWrapper(options):
   """Enumerates possible HWIDs."""
   comps = {}
@@ -368,7 +371,7 @@ def EnumerateHWIDWrapper(options):
     image_id = None
   hwids = hwid_utils.EnumerateHWID(
       options.database, image_id=image_id, status=options.status,
-      comps=comps)
+      comps=comps, brand_code=options.brand_code)
 
   logging.debug('Printing %d sorted HWIDs...', len(hwids))
   if options.no_bom:
@@ -440,9 +443,12 @@ def InitializeDefaultOptions(options):
 
   phase.OverridePhase(options.phase)
 
-  # Get brand code if generate hwid with configless fields.
-  if options.command_name == 'generate' and options.with_configless_fields:
-    options.brand_code = hwid_utils.GetBrandCode(options.brand_code)
+  if options.command_name == 'generate':
+    if options.no_brand_code:
+      if options.brand_code:
+        sys.exit('--no-brand-code and --brand-code are mutually exclusive')
+    else:
+      options.brand_code = hwid_utils.GetBrandCode(options.brand_code)
 
 
 def Main():
