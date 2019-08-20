@@ -10,6 +10,8 @@ The origin HWID Server [Arch Overview](http://go/hwid-server-arch) and
 ## Important Files
 - `app.yaml`: Config file for deploying service on AppEngine.
 - `cron.yaml`: Config file for deploying cronjob on AppEngine.
+- `env.yaml`: Auto-generated config file for setting environment of deployment
+  and endpoint service versions.
 - `${factory_dir}/deploy/cros_hwid_service.sh`: The main script to deploy and
   test HWID Service. Run `cros_hwid_service.sh` for more usage.
 - `appengine_config.py`: The very first loading file on AppEngine.
@@ -21,32 +23,35 @@ The origin HWID Server [Arch Overview](http://go/hwid-server-arch) and
 ### Environments
 There are three environments to deploy to:
 1. prod
-   - AppEngine APP ID: s~google.com:chromeoshwid
-   - AppEngine URL: https://chromeoshwid.googleplex.com
+   - GCP project name: chromeos-hwid
+   - AppEngine APP ID: s~chromeos-hwid
+   - AppEngine URL: https://chromeos-hwid.appspot.com
    - AppEngine Management Page:
-     https://appengine.google.com/?&app_id=s~google.com:chromeoshwid
+     https://appengine.google.com/?&app_id=s~chromeos-hwid
    - Cloud Storage Bucket:
      https://console.developers.google.com/storage/chromeoshwid/
    - Borgcron Job Sigma: http://sigma/jobs/chromeoshwid
-   - APIary Endpoint URL: https://www.googleapis.com/chromeoshwid/v1/
+   - Endpoint URL: https://chromeos-hwid.appspot.com/api/chromeoshwid/v1/
 2. staging
-   - AppEngine APP ID: s~google.com:chromeoshwid-staging
-   - AppEngine URL: https://chromeoshwid-staging.googleplex.com/
+   - GCP project name: chromeos-hwid-staging
+   - AppEngine APP ID: s~chromeos-hwid-staging
+   - AppEngine URL: https://chromeos-hwid-staging.appspot.com/
    - AppEngine Management Page:
-     https://appengine.google.com/?app_id=s~google.com:chromeoshwid-staging
+     https://appengine.google.com/?app_id=s~chromeos-hwid-staging
    - Cloud Storage Bucket:
      https://console.developers.google.com/storage/chromeoshwid-staging/
    - Borgcron Job Sigma: N/A (Job only exists for prod).
-   - APIary Endpoint URL:
-     https://www-googleapis-staging.sandbox.google.com/chromeoshwid/v1/
+   - Endpoint URL:
+     https://chromeos-hwid-staging.appspot.com/api/chromeoshwid/v1/
 3. local
+   - GCP project name: N/A
    - AppEngine APP ID: N/A
    - AppEngine URL: N/A
    - Cloud Storage Bucket:
      https://console.developers.google.com/storage/chromeoshwid-dev/
      (Note: Just the server is local, the bucket is not)
    - Borgcron Job Sigma: N/A
-   - APIary Endpoint URL: N/A
+   - Endpoint URL: http://localhost:8080/api/chromeoshwid/v1/
 
 ### AppEngine Deployment Flow
 
@@ -57,7 +62,22 @@ There are three environments to deploy to:
 
   Normally, we would use ToT: Run `repo sync .` in each repo.
 
-2. Before deploying to `prod`, you have to deploy to `staging`:
+2. Make sure endpoint config is up-to-date. If the interface is not changed,
+   you can skip this step and the deployment script will find the latest
+   version of config.
+```bash
+# As endpoint interface changes, you may need to generate the json config of
+# Open API settings. Note that ${endpoint_service_name} here is the AppEngine
+# URL mentioned above without `https://` schema prefix.
+cd ${appengine_dir}
+PYTHONPATH=../../../../build/hwid/protobuf_out \
+  python ../../../../build/hwid/lib/endpoints/endpointscfg.py \
+  get_openapi_spec hwid_api.HwidApi --hostname "${endpoint_service_name}"
+# You can then deploy the generated config file `chromeoshwidv1openapi.json`.
+gcloud endpoints services deploy chromeoshwidv1openapi.json
+```
+
+3. Before deploying to `prod`, you have to deploy to `staging`:
 ```bash
 # If you use Google Cloud Platform for the first time, you may have to
 # install gcloud sdk (https://cloud.google.com/sdk/install).  gcloud may ask you
@@ -68,23 +88,23 @@ There are three environments to deploy to:
 deploy/cros_hwid_service.sh deploy staging
 ```
 
-3. Make sure all tests are passed:
+4. Make sure all tests are passed:
 ```bash
 # In chroot: unittest
 make test
 # Out of chroot: integration test and e2e test
 # - Integration test creates a docker image, which may take a long time for the
 #   first time running this script.
-# - e2e test list is placed at go/factory-private-git
+# - e2e test list is placed at http://go/factory-private-git
 deploy/cros_hwid_service.sh test
 ```
 
-4. If all tests are passed, now we can deploy the HWID Service to `prod`:
+5. If all tests are passed, now we can deploy the HWID Service to `prod`:
 ```bash
 deploy/cros_hwid_service.sh deploy prod
 ```
 
-5. Open the AppEngine management page, and watch the traffics are not blocked.
+6. Open the AppEngine management page, and watch the traffics are not blocked.
 
 ### Invoking API
 Example request for local environment:
@@ -92,9 +112,9 @@ Example request for local environment:
 # Before invoking local API, you have to deploy local env
 deploy/cros_hwid_service.sh deploy local
 # Now you can test HWID Service locally.
-curl http://localhost:8080/_ah/api/chromeoshwid/v1/boards
+curl http://localhost:8080/api/chromeoshwid/v1/boards
 curl --data '{ "hwidConfigContents": "\n\nchecksum: test\n\n" }' \
---dump-header - http://localhost:8080/_ah/api/chromeoshwid/v1/validateConfig
+--dump-header - http://localhost:8080/api/chromeoshwid/v1/validateConfig
 ```
 
 Example request for staging/prod environment, using HWID `CHROMEBOOK B2A-M5N`:
@@ -121,7 +141,7 @@ The ingestion pipeline helps AppEngine get access to the HWID Database on
 Gerrit, there are two stages of the pipeline.
 1. Borgcron Job Ingestion
    - Uploads HWID Databse from gerrit to BigStore bucket `[bucket]/staging`
-     every day. (code: https://go/chromeos-hwid-ingestion)
+     every day. (code: http://go/chromeos-hwid-ingestion)
 2. AppEngine Cronjob Ingestion
    - Validates the HWID Databse files in BigStore bucket `[bucket]/staging`. If
      the file is validated, move the file from `[bucket]/staging` to
@@ -133,10 +153,3 @@ from git(via git/gerrit-on-borg) to the cloud buckets. Since it is a borgcron
 job, we don't port this part to the factory repository. To modify the code and
 deploy, please refers to http://go/hwid-server-arch -> **Run & deploy** ->
 **Deploying the borgcron job**.
-
-## Changing the APIary Endpoint Configuration
-APIary publishes chromeoshwid API from AppEngine to google domain.
-The APIary configuration file is stored in the google3. To change the config,
-please refers to https://go/hwid-server-arch -> **Run & deploy** ->
-**Changing the Apiary Configuration**.
-
