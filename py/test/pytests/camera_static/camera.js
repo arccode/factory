@@ -46,14 +46,15 @@ class CameraTest {
     this.height = options.height;
     this.flipImage = options.flipImage;
     this.videoStream = null;
-    this.canvas = document.createElement('canvas');
+    // The width/height would be set to the true width/height in grabFrame.
+    this.canvas = new OffscreenCanvas(this.width, this.height);
     this.videoElem = document.createElement('video');
     this.videoElemReadyForStreamCallback = null;
 
     this.videoElem.addEventListener('play', () => {
       if (this.videoElemReadyForStreamCallback !== null) {
         this.videoElemReadyForStreamCallback();
-        this.videoElemReadyForStreamCallback= null;
+        this.videoElemReadyForStreamCallback = null;
       }
     });
     this.videoElem.autoplay = true;
