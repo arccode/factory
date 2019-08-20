@@ -23,7 +23,7 @@ RUN cd /usr/src && \
       protorpc-standalone==0.9.1 \
       PyYaml==3.11 \
       GoogleAppEngineCloudStorageClient==1.9.22.1 \
-      google-endpoints==2.4.5 \
+      google-endpoints==4.8.0 \
       protobuf==3.7.0 \
       protorpc-standalone==0.9.1 \
       urllib3==1.24.2 \

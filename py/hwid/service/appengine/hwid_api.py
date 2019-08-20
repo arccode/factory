@@ -14,7 +14,6 @@ import urllib
 
 # pylint: disable=import-error, no-name-in-module
 import endpoints
-from google.appengine.api import users
 from protorpc import message_types
 from protorpc import messages
 from protorpc import remote
@@ -29,44 +28,10 @@ from cros.factory.hwid.service.appengine import hwid_validator
 from cros.factory.hwid.service.appengine import memcache_adaptor
 
 
-APIARY_USER_LIST = ['apiserving@google.com', 'apiserving@prod.google.com']
 KNOWN_BAD_HWIDS = ['DUMMY_HWID', 'dummy_hwid']
 KNOWN_BAD_SUBSTR = [
     '.*TEST.*', '.*CHEETS.*', '^SAMS .*', '.* DEV$', '.*DOGFOOD.*'
 ]
-
-
-def _AuthCheck():
-  """Ensures that the user is able to access the API.
-
-  This is should be called to ensure that our app can only be accessed via
-  www.googleapis.com/..., and not chromeoshwid.googleplex.com/_ah/api/...
-  The latter does not enforce any frontend quota and will therefore allow
-  unregistered users (even external ones!) to access the app. We need to stop
-  them.
-
-  In app.yaml we have disabled the /_ah/api endpoint using a hack. If this
-  hack ever stops working in the future, this code is the second line of
-  defense. Note that discovery information would be exposed in that case, this
-  method only covers access to the API methods.
-
-  Full discussion: https://goo.gl/PgEhUz
-  """
-
-  # Be extra paranoid and only allow skip auth if skip_auth_check is set to
-  # True (as opposed to truthy).
-  if CONFIG.skip_auth_check:
-    logging.info('Skipping auth check (this should only happen in dev mode).')
-    return
-
-  # Users that access our API via www.googleapis.com will show up here as
-  # 'apiserving@google.com', so this is what we use to distinguish legitimate
-  # and not legitimate access.
-  current_user = users.get_current_user()
-  logging.debug('Current user: %r', current_user)
-  if ((current_user is None) or
-      (current_user.email() not in APIARY_USER_LIST)):
-    raise endpoints.UnauthorizedException('Not authorized')
 
 
 def HWIDAPI(*args, **kwargs):
@@ -81,7 +46,6 @@ def HWIDAPI(*args, **kwargs):
         logging.info(request)
 
       _log_request()
-      _AuthCheck()
       response = method(*inner_args, **inner_kwargs)
       logging.info(response)
       return response
@@ -93,15 +57,11 @@ def HWIDAPI(*args, **kwargs):
     name='chromeoshwid',
     version='v1',
     description='Chrome OS Hardware ID API',
-    hostname='localhost:8080',  # To make the API explorer work
+    api_key_required=True,
+    base_path='/api/',
     audiences=[endpoints.API_EXPLORER_CLIENT_ID])
 class HwidApi(remote.Service):
-  """Class that has all the exposed HWID API methods.
-
-  IMPORTANT NOTE: Every method in this class that is exposed as part of the API
-  should do _AuthCheck() before doing anything else to ensure that the
-  API user is in fact allowed to access the API.
-  """
+  """Class that has all the exposed HWID API methods."""
 
   def __init__(self):
     self._hwid_manager = CONFIG.hwid_manager

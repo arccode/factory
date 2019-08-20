@@ -24,7 +24,7 @@ class ConfigTest(unittest.TestCase):
 
   def testConfigSwitchingProd(self):
     # Have to patch os.enviorn before importing config module
-    os.environ['APPLICATION_ID'] = 's~google.com:chromeoshwid'
+    os.environ['APPLICATION_ID'] = 's~chromeos-hwid'
     from cros.factory.hwid.service.appengine import config
     self.assertEqual('prod', config._Config().env)
 

@@ -9,7 +9,6 @@ import unittest
 
 # pylint: disable=import-error, no-name-in-module
 import endpoints
-from google.appengine.api import users
 import mock
 
 import factory_common  # pylint: disable=unused-import
@@ -30,38 +29,6 @@ class HwidApiTest(unittest.TestCase):
   def setUp(self):
     CONFIG.hwid_manager = mock.Mock()
     self.api = hwid_api.HwidApi()
-
-  @mock.patch.object(
-      users, 'get_current_user', return_value=mock.MagicMock(autospec=True))
-  def testAuthCheck(self, mock_get_current_user):
-    mock_get_current_user.return_value.email.return_value = (
-        'apiserving@google.com')
-    hwid_api._AuthCheck()
-
-  @mock.patch.object(
-      users, 'get_current_user', return_value=mock.MagicMock(autospec=True))
-  def testAuthCheckProd(self, mock_get_current_user):
-    mock_get_current_user.return_value.email.return_value = (
-        'apiserving@prod.google.com')
-    hwid_api._AuthCheck()
-
-  @mock.patch.object(
-      users, 'get_current_user', return_value=mock.MagicMock(autospec=True))
-  @mock.patch.object(CONFIG, 'skip_auth_check', new=False)
-  def testAuthCheckNotAuth(self, mock_get_current_user):
-    # make sure we correctly mock CONFIG.skip_auth_check
-    assert not CONFIG.skip_auth_check, repr(CONFIG.skip_auth_check)
-    mock_get_current_user.return_value.email.return_value = 'noone@example.com'
-    self.assertRaises(endpoints.UnauthorizedException, hwid_api._AuthCheck)
-
-  @mock.patch.object(
-      users, 'get_current_user', return_value=mock.MagicMock(autospec=True))
-  @mock.patch.object(CONFIG, 'skip_auth_check', new=False)
-  def testAuthCheckUnknown(self, mock_get_current_user):
-    # make sure we correctly mock CONFIG.skip_auth_check
-    assert not CONFIG.skip_auth_check, repr(CONFIG.skip_auth_check)
-    mock_get_current_user.return_value = None
-    self.assertRaises(endpoints.UnauthorizedException, hwid_api._AuthCheck)
 
   def testGetBoards(self):
     request = hwid_api_messages.BoardsRequest()

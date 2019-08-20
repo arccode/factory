@@ -12,7 +12,7 @@ from cros.factory.hwid.service.appengine import hwid_manager
 
 
 _CONFIGURATIONS = {
-    's~google.com:chromeoshwid': {
+    's~chromeos-hwid': {
         'env': 'prod',
         'bucket': 'chromeoshwid',
         'ge_bucket': 'chromeos-build-release-console',
@@ -22,7 +22,7 @@ _CONFIGURATIONS = {
         },
         'hw_checker_mail': 'chromeos-hw-checker@google.com',
     },
-    's~google.com:chromeoshwid-staging': {
+    's~chromeos-hwid-staging': {
         'env': 'staging',
         'bucket': 'chromeoshwid-staging',
         'ge_bucket': 'chromeos-build-release-console-staging',
@@ -38,7 +38,6 @@ _CONFIGURATIONS = {
         'bucket': 'chromeoshwid-dev',
         # Allow unauthenticated access when running a local dev server and
         # during tests.
-        'skip_auth_check': True,
         'ge_bucket': 'chromeos-build-release-console-staging',
         'board_mapping': {
             'ARCADA': 'sarien',
@@ -55,7 +54,6 @@ class _Config(object):
 
   Attributes:
     env: A string for the environment.
-    skip_auth_check: A bool for skipping authentic check.
     goldeneye_filesystem: A FileSystemAdapter object, the GoldenEye filesystem
         on CloudStorage.
     hwid_filesystem: A FileSystemAdapter object, the HWID filesystem on
@@ -73,7 +71,6 @@ class _Config(object):
       conf = _CONFIGURATIONS['default']
 
     self.env = conf['env']
-    self.skip_auth_check = conf.get('skip_auth_check', False)
     self.goldeneye_filesystem = filesystem_adapter.CloudStorageAdapter(
         conf['ge_bucket'])
     self.hwid_filesystem = filesystem_adapter.CloudStorageAdapter(

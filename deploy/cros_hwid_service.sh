@@ -12,9 +12,10 @@ TEST_DIR="${APPENGINE_DIR}/test"
 PLATFORM_DIR="$(dirname ${FACTORY_DIR})"
 REGIONS_DIR="$(readlink -f "${FACTORY_DIR}/../../platform2/regions")"
 TEMP_DIR="${FACTORY_DIR}/build/hwid"
-ENV_PROD="google.com:chromeoshwid"
-ENV_STAGING="google.com:chromeoshwid-staging"
+ENV_PROD="chromeos-hwid"
+ENV_STAGING="chromeos-hwid-staging"
 ENV_LOCAL="LOCAL"
+ENDPOINTS_SUFFIX=".appspot.com"
 
 . "${FACTORY_DIR}/devtools/mk/common.sh" || exit 1
 
@@ -94,6 +95,12 @@ prepare_protobuf() {
     "${RT_PROBE_DIR}/runtime_probe.proto"
 }
 
+get_latest_endpoint_config_version() {
+  local service_name="$1${ENDPOINTS_SUFFIX}"
+  gcloud endpoints configs list --service="${service_name}" --limit=1 \
+    | tail -n1 | cut -f1 -d' '
+}
+
 do_deploy() {
   gcp_project="$1"
   shift
@@ -121,14 +128,17 @@ do_deploy() {
     pip install -t lib -r requirements.txt
   deactivate
   if [ "${gcp_project}" != "${ENV_LOCAL}" ]; then
+    endpoints_version="$(get_latest_endpoint_config_version "${gcp_project}")"
+    run_in_temp cat << __EOF__ > "${TEMP_DIR}/env.yaml"
+env_variables:
+  ENDPOINTS_SERVICE_VERSION: ${endpoints_version}
+  ENDPOINTS_SERVICE_NAME: ${gcp_project}${ENDPOINTS_SUFFIX}
+__EOF__
     run_in_temp gcloud --project="${gcp_project}" app deploy app.yaml cron.yaml
   else
-    # Hack for local environment. Renames the URL handle from /_ah/sp[i]/ to
-    # /_ah/spi/, so that one can access the local service through
-    # http://localhost:<port>/_ah/api/
-    run_in_temp sed 's/\/_ah\/sp\[i\]/\/_ah\/spi/g' app.yaml \
-        >"${TEMP_DIR}/app.local.yaml"
-    run_in_temp dev_appserver.py "${@}" app.local.yaml
+    # Create an empty env.yaml
+    run_in_temp echo -n > "${TEMP_DIR}/env.yaml"
+    run_in_temp dev_appserver.py "${@}" app.yaml
   fi
 }
 

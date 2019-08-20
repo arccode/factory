@@ -2,6 +2,12 @@
 dulwich==0.19.11
 
 # License: Apache License 2.0
+google-endpoints==4.8.0
+
+# License: Apache License 2.0
+google-endpoints-api-management==1.11.0
+
+# License: Apache License 2.0
 GoogleAppEngineCloudStorageClient==1.9.22.1
 
 # License: MIT
