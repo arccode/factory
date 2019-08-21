@@ -17,6 +17,7 @@ import unittest
 
 import requests
 
+# pylint: disable=import-error
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
@@ -63,13 +64,13 @@ class E2ETest(unittest.TestCase):
         headers = test.get('headers', None)
         response = requests.post(url, data=data, headers=headers, params=params)
       else:
-        raise ValueError('Does not support http_method %s.', http_method)
+        raise ValueError('Does not support http_method %s.' % http_method)
 
       try:
         r = type_utils.UnicodeToString(response.json())
         # Pops non-related keys.
         for k in ['kind', 'etag']:
-          r.pop(k)
+          r.pop(k, None)
         expecting_output = test['expecting_output']
         if expecting_output != r:
           with open(file_utils.CreateTemporaryFile(), 'w') as f:
@@ -87,7 +88,7 @@ class E2ETest(unittest.TestCase):
     for t in failed_tests:
       logging.error('FAILED: %r', t)
 
-    assert len(failed_tests) == 0
+    assert not failed_tests
 
 
 if __name__ == '__main__':
