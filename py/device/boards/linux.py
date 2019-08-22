@@ -119,10 +119,6 @@ class LinuxBoard(types.DeviceBoard):
     return partitions.Partitions(self)
 
   @DeviceProperty
-  def wifi(self):
-    return wifi.WiFi(self)
-
-  @DeviceProperty
   def path(self):
     """Returns a module to handle path operations.
 
@@ -184,6 +180,10 @@ class LinuxBoard(types.DeviceBoard):
   @DeviceProperty
   def vpd(self):
     raise NotImplementedError
+
+  @DeviceProperty
+  def wifi(self):
+    return wifi.WiFi(self)
 
   @type_utils.Overrides
   def ReadFile(self, path, count=None, skip=None):

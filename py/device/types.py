@@ -197,6 +197,11 @@ class DeviceInterface(sys_interface.SystemInterface):
     raise NotImplementedError
 
   @DeviceProperty
+  def ambient_light_sensor(self):
+    """Ambient light sensors."""
+    raise NotImplementedError
+
+  @DeviceProperty
   def audio(self):
     """Audio input and output, including headset, mic, and speakers."""
     raise NotImplementedError
@@ -272,11 +277,6 @@ class DeviceInterface(sys_interface.SystemInterface):
     raise NotImplementedError
 
   @DeviceProperty
-  def wifi(self):
-    """Interface for controlling WiFi devices."""
-    raise NotImplementedError
-
-  @DeviceProperty
   def path(self):
     """Provides operations on path names, similar to os.path."""
     raise NotImplementedError
@@ -307,13 +307,13 @@ class DeviceInterface(sys_interface.SystemInterface):
     raise NotImplementedError
 
   @DeviceProperty
-  def toybox(self):
-    """A python wrapper for http://www.landley.net/toybox/."""
+  def touch(self):
+    """Module for touch."""
     raise NotImplementedError
 
   @DeviceProperty
-  def touch(self):
-    """Module for touch."""
+  def toybox(self):
+    """A python wrapper for http://www.landley.net/toybox/."""
     raise NotImplementedError
 
   @DeviceProperty
@@ -329,6 +329,11 @@ class DeviceInterface(sys_interface.SystemInterface):
   @DeviceProperty
   def vpd(self):
     """Interface for read / write Vital Product Data (VPD)."""
+    raise NotImplementedError
+
+  @DeviceProperty
+  def wifi(self):
+    """Interface for controlling WiFi devices."""
     raise NotImplementedError
 
   def GetStartupMessages(self):
