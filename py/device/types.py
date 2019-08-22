@@ -332,6 +332,11 @@ class DeviceInterface(sys_interface.SystemInterface):
     raise NotImplementedError
 
   @DeviceProperty
+  def vsync_sensor(self):
+    """Camera vertical sync sensors."""
+    return NotImplementedError
+
+  @DeviceProperty
   def wifi(self):
     """Interface for controlling WiFi devices."""
     raise NotImplementedError

@@ -35,6 +35,7 @@ from cros.factory.device import toybox
 from cros.factory.device import types
 from cros.factory.device import udev
 from cros.factory.device import usb_c
+from cros.factory.device import vsync_sensor
 from cros.factory.device import wifi
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
@@ -180,6 +181,10 @@ class LinuxBoard(types.DeviceBoard):
   @DeviceProperty
   def vpd(self):
     raise NotImplementedError
+
+  @DeviceProperty
+  def vsync_sensor(self):
+    return vsync_sensor.VSyncSensor(self)
 
   @DeviceProperty
   def wifi(self):
