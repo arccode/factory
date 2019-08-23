@@ -2280,7 +2280,7 @@ class ChromeOSFactoryBundle(object):
       return dest_path
 
     if timestamp is None:
-      timestamp = time.strftime('%Y%m%d%H%M')
+      timestamp = time.strftime('%Y%m%d')
     bundle_name = '%s_%s_%s' % (self.board, timestamp, phase)
     output_name = 'factory_bundle_%s.tar.bz2' % bundle_name
     bundle_dir = os.path.join(self._temp_dir, 'bundle')
