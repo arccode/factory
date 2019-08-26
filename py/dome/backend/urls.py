@@ -57,6 +57,8 @@ urlpatterns = [
         views.ResourceDownloadView.as_view()),
     url(r'^projects/%s/log/compress/$' % PROJECT_URL_ARG,
         views.LogExportView.as_view()),
+    url(r'^projects/%s/log/delete/$' % PROJECT_URL_ARG,
+        views.LogDeleteView.as_view()),
     url(r'^projects/%s/log/download/$' % PROJECT_URL_ARG,
         views.LogDownloadView.as_view()),
     url(r'^projects/%s/parameters/dirs/$' % PROJECT_URL_ARG,

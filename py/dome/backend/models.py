@@ -18,6 +18,7 @@ import copy
 import errno
 import logging
 import os
+import shutil
 import socket
 import subprocess
 import tempfile
@@ -945,4 +946,16 @@ class Log(object):
     except Exception as e:
       logger.error(
           'Downloading failed. Error message: %r', e)
+      raise DomeServerException(detail=e)
+
+  @staticmethod
+  def Delete(tmp_dir):
+    assert tmp_dir.startswith(SHARED_TMP_DIR + '/'), \
+        'tmp_dir should be under /tmp/shared'
+    if not os.path.isdir(tmp_dir):
+      return 'No directory: {}'.format(tmp_dir)
+    try:
+      shutil.rmtree(tmp_dir)
+      return 'Deleted directory: {}'.format(tmp_dir)
+    except OSError as e:
       raise DomeServerException(detail=e)

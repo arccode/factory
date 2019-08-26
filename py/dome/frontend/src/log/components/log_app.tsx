@@ -4,15 +4,18 @@
 
 import React from 'react';
 import {connect} from 'react-redux';
+import {createSelector} from 'reselect';
 
 import project from '@app/project';
 import {RootState} from '@app/types';
 import {DispatchProps} from '@common/types';
 
 import {exportLog} from '../actions';
+import {getPiles} from '../selectors';
 import {LogFormData} from '../types';
 
 import LogForm from './log_form';
+import LogPile from './log_pile';
 
 type LogAppProps =
   ReturnType<typeof mapStateToProps> &
@@ -23,6 +26,7 @@ class LogApp extends React.Component<LogAppProps> {
     const {
       projectName,
       exportLog,
+      pileKeys,
     } = this.props;
 
     const startExportLog = (archive: LogFormData) => {
@@ -35,13 +39,31 @@ class LogApp extends React.Component<LogAppProps> {
     };
 
     return (
-      <LogForm onSubmit={startExportLog} />
+      <>
+        <LogForm onSubmit={startExportLog} />
+        {pileKeys.map((key) => {
+            return (
+              <LogPile
+                key={key}
+                pileKey={key}
+                projectName={projectName}
+              />
+            );
+          })
+        }
+      </>
     );
   }
 }
 
+const getPileKeys = createSelector(
+  getPiles,
+  (piles): string[] => Object.keys(piles),
+);
+
 const mapStateToProps = (state: RootState) => ({
   projectName: project.selectors.getCurrentProject(state),
+  pileKeys: getPileKeys(state),
 });
 
 const mapDispatchToProps = {

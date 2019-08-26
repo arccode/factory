@@ -181,3 +181,8 @@ class LogDownloadSerializer(serializers.Serializer):
 
   log_file = serializers.CharField()
   tmp_dir = serializers.CharField()
+
+
+class LogDeleteSerializer(serializers.Serializer):
+
+  tmp_dir = serializers.CharField()

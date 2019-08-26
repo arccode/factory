@@ -10,6 +10,12 @@ import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
 import ListSubheader from '@material-ui/core/ListSubheader';
 import MenuItem from '@material-ui/core/MenuItem';
+import {
+  createStyles,
+  Theme,
+  withStyles,
+  WithStyles,
+} from '@material-ui/core/styles';
 import React from 'react';
 import {connect} from 'react-redux';
 import {
@@ -40,7 +46,14 @@ interface LogFormOwnProps {
   logType: string;
 }
 
+const styles = (theme: Theme) => createStyles({
+  root: {
+    marginBottom: theme.spacing.unit * 4,
+  },
+});
+
 type LogFormProps =
+  WithStyles<typeof styles> &
   LogFormOwnProps &
   ReturnType<typeof mapStateToProps>;
 
@@ -73,11 +86,12 @@ class LogForm extends React.Component<
     const {
       handleSubmit,
       logType,
+      classes,
     } = this.props;
 
     return (
       <form onSubmit={handleSubmit}>
-        <Card>
+        <Card className={classes.root}>
           <CardContent>
             <ReduxFormTabsField
               name="logType"
@@ -145,9 +159,9 @@ const mapStateToProps = (state: RootState) => ({
   },
 });
 
-export default connect(mapStateToProps)(
+export default withStyles(styles)(connect(mapStateToProps)(
   reduxForm<LogFormData, LogFormProps>({
     form: 'logForm',
     validate,
     enableReinitialize: true,
-})(LogForm));
+})(LogForm)));

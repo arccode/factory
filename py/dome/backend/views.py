@@ -27,6 +27,7 @@ from backend.models import Service
 from backend.models import TemporaryUploadedFile
 from backend.serializers import BundleSerializer
 from backend.serializers import ConfigSerializer
+from backend.serializers import LogDeleteSerializer
 from backend.serializers import LogDownloadSerializer
 from backend.serializers import LogSerializer
 from backend.serializers import ParameterComponentSerializer
@@ -195,6 +196,17 @@ class LogExportView(views.APIView):
     serializer.is_valid(raise_exception=True)
     compress_params = serializer.data
     response = Log.Export(kwargs['project_name'], compress_params)
+    return Response(response)
+
+
+class LogDeleteView(views.APIView):
+
+  def delete(self, request, *args, **kwargs):
+    del args, kwargs
+    serializer = LogDeleteSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    discard_params = serializer.data
+    response = Log.Delete(discard_params['tmp_dir'])
     return Response(response)
 
 
