@@ -15,8 +15,6 @@ import tempfile
 import threading
 import time
 
-import yaml
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
@@ -105,79 +103,6 @@ class PytestInfo(object):
     return manager.Manager().GetTestListByID(self.test_list)
 
 
-class Metadata(dict):
-  """Placeholder for the metadata of a pytest execution.
-
-  It also provides methods to save/load the data to/from the storage.
-
-  Properties:
-    is_new: `True` if the instance is create from scratch; `False` if it
-        is loaded from a file.
-  """
-  REQUIRED_FIELDS = ['path', 'dargs', 'invocation', 'label', 'init_time',
-                     'start_time']
-
-  def __init__(self, is_new, file_path):
-    super(Metadata, self).__init__()
-    self.is_new = is_new
-    self._file_path = file_path
-
-  @classmethod
-  def LoadFile(cls, pytest_name, file_path):
-    """Create an instance by loading the metadata from the file.
-
-    Args:
-      pytest_name: Name of the target pytest.
-      file_path: Path to the metadata file.
-
-    Returns:
-      An instance of `Metadata`.
-
-    Raises:
-      `Exception` if the file content is invalid.
-    """
-    def _Validate(metadata):
-      for field in cls.REQUIRED_FIELDS:
-        if field not in metadata:
-          raise Exception('metadata missing field %s' % field)
-      if pytest_name and 'pytest_name' not in metadata:
-        raise Exception('metadata missing field pytest_name')
-
-    with open(file_path, 'r') as f:
-      metadata = yaml.load(f)
-    _Validate(metadata)
-
-    inst = cls(False, file_path)
-    inst.Update(**metadata)
-    return inst
-
-  @classmethod
-  def CreateNew(cls, file_path, fields):
-    """Create an instance with some initial fields.
-
-    Args:
-      file_path: Path to the metadata file.
-      fields: A dict of initial values.
-
-    Returns:
-      An instance of `Metadata`.
-    """
-    inst = cls(True, file_path)
-    inst.UpdateAndFlush(**fields)
-    return inst
-
-  def Update(self, **kwargs):
-    self.update(kwargs)
-
-  def Flush(self):
-    with file_utils.AtomicWrite(self._file_path) as f:
-      yaml.dump(dict(self), f, default_flow_style=False)
-
-  def UpdateAndFlush(self, **kwargs):
-    self.Update(**kwargs)
-    self.Flush()
-
-
 class TestInvocation(object):
   """State for an active test.
 
@@ -220,7 +145,9 @@ class TestInvocation(object):
                            session.ENV_TEST_PATH: self.test.path}
 
     self.output_dir = self._SetupOutputDir()
-    self._metadata = self._ResolveMetadata()
+    self._testlog_path = os.path.join(self.output_dir, 'testlog.json')
+    self._dargs = None
+    self._tag = None
     self._log_path = os.path.join(self.output_dir, 'log')
 
     self._dut_options = self._ResolveDUTOptions()
@@ -235,7 +162,7 @@ class TestInvocation(object):
 
   @property
   def resolved_dargs(self):
-    return self._metadata.get('dargs')
+    return self._dargs
 
   def __repr__(self):
     return 'TestInvocation(_aborted=%s, _completed=%s)' % (
@@ -292,22 +219,6 @@ class TestInvocation(object):
     except OSError:
       logging.exception('Unable to create symlink %s', latest_symlink)
     return output_dir
-
-  def _ResolveMetadata(self):
-    if self._is_post_shutdown:
-      # Resuming from an active shutdown test, try to restore its metadata file.
-      try:
-        return Metadata.LoadFile(self.test.pytest_name,
-                                 os.path.join(self.output_dir, 'metadata'))
-      except Exception:
-        logging.exception('Failed to load metadata from active shutdown test; '
-                          'will continue, but logs will be inaccurate')
-
-    return Metadata.CreateNew(os.path.join(self.output_dir, 'metadata'),
-                              {'path': self.test.path,
-                               'init_time': time.time(),
-                               'invocation': self.uuid,
-                               'label': self.test.label})
 
   def _ResolveDUTOptions(self):
     """Resolve dut_options.
@@ -447,8 +358,7 @@ class TestInvocation(object):
 
     log_func = (session.console.error if status == TestState.FAILED
                 else logging.info)
-    tag_decorator = (' (%s)' % self._metadata['tag']
-                     if 'tag' in self._metadata else '')
+    tag_decorator = (' (%s)' % self._tag if self._tag else '')
     log_func(u'Test %s%s%s %s: %s', self.test.path, iteration_string,
              tag_decorator, status, error_msg)
 
@@ -466,50 +376,55 @@ class TestInvocation(object):
 
     status, error_msg = None, None
 
-    # Resolve the start_time and the test arguments in metadata.
-    if self._metadata.is_new:
-      # Resolve the data and save to metadata.
-      self._metadata.Update(start_time=time.time(),
-                            serial_numbers=device_data.GetAllSerialNumbers())
-      try:
-        logging.debug('Resolving self.test.dargs from test list [%s]...',
-                      self.goofy.test_list.test_list_id)
-        self._metadata.Update(dargs=ResolveTestArgs(
-            self.goofy,
-            self.test,
-            test_list_id=self.goofy.test_list.test_list_id,
-            dut_options=self._dut_options))
-      except Exception as e:
-        logging.exception('Unable to resolve test arguments')
-        # Although the test is considered failed already,
-        # let's still follow the normal path, so everything is logged properly.
-        status = TestState.FAILED
-        error_msg = 'Unable to resolve test arguments: %s' % e
-        self._metadata.Update(dargs=None)
-      if self.test.pytest_name:
-        self._metadata.Update(pytest_name=self.test.pytest_name)
-      if isinstance(self.test, test_object.ShutdownStep):
-        self._metadata.Update(tag=tag_name)
-      self._metadata.Flush()
+    start_time = time.time()
+    serial_numbers = device_data.GetAllSerialNumbers()
+    if isinstance(self.test, test_object.ShutdownStep):
+      self._tag = tag_name
+    try:
+      logging.debug('Resolving self.test.dargs from test list [%s]...',
+                    self.goofy.test_list.test_list_id)
+      self._dargs = ResolveTestArgs(
+          self.goofy,
+          self.test,
+          test_list_id=self.goofy.test_list.test_list_id,
+          dut_options=self._dut_options)
+    except Exception as e:
+      logging.exception('Unable to resolve test arguments')
+      # Although the test is considered failed already,
+      # let's still follow the normal path, so everything is logged properly.
+      status = TestState.FAILED
+      error_msg = 'Unable to resolve test arguments: %s' % e
+
+    init_data = {
+        'testRunId': self.uuid,
+        'testName': self.test.path,
+        'testType': self.test.pytest_name,
+        'startTime': start_time,
+        'dargs': self._dargs,
+        'serialNumbers': serial_numbers,
+        'tag': self._tag
+    }
+    try:
+      testlog_helper.InitSubSession(self.dut, init_data)
+    except Exception:
+      logging.exception('Unable to log %s event by testlog', event_name)
+
+    # Since the reboot pytest will kill the process and re-run a new process,
+    # the testlog file may exist.
+    if os.path.exists(self._testlog_path):
+      os.unlink(self._testlog_path)
+    os.link(testlog_helper.session_json_path, self._testlog_path)
+
+    self._env_additions[
+        testlog.TESTLOG_ENV_VARIABLE_NAME] = testlog_helper.session_json_path
+    testlog_helper.LogStartEvent()
 
     # Log the starting event, continue even if fails.
     try:
-      event_log_helper.LogStartEvent(event_name, self._metadata)
+      event_log_helper.LogStartEvent(event_name, init_data)
     except Exception:
       logging.exception('Unable to log %s event by event_log', event_name)
-    try:
-      testlog_helper.InitSubSession(self.dut, self._metadata)
-      # Since the reboot pytest will kill the process and re-run a new process,
-      # the testlog file may exist.
-      if os.path.exists(os.path.join(self.output_dir, 'testlog.json')):
-        os.unlink(os.path.join(self.output_dir, 'testlog.json'))
-      os.link(testlog_helper.session_json_path,
-              os.path.join(self.output_dir, 'testlog.json'))
-      self._env_additions[
-          testlog.TESTLOG_ENV_VARIABLE_NAME] = testlog_helper.session_json_path
-      testlog_helper.LogStartEvent()
-    except Exception:
-      logging.exception('Unable to log %s event by testlog', event_name)
+
     syslog.syslog('Test %s (%s) %s' %
                   (self.test.path, self.uuid, progressing_verb))
 
@@ -517,16 +432,18 @@ class TestInvocation(object):
 
   def _TearDownAfterPytest(self, testlog_helper, event_log_helper, status,
                            error_msg):
-    def _SafelyAddLogTailToMetadata():
+    def _SafelyCreateLogTail():
+      log_tail = 'Unable to read log tail'
       if self._log_path and os.path.exists(self._log_path):
         try:
           log_size = os.path.getsize(self._log_path)
           offset = max(0, log_size - ERROR_LOG_TAIL_LENGTH)
           with open(self._log_path) as f:
             f.seek(offset)
-            self._metadata.Update(log_tail=DecodeUTF8(f.read()))
+            log_tail = DecodeUTF8(f.read())
         except Exception:
           logging.exception('Unable to read log tail')
+      return log_tail
 
     def _HandleLogEndTestEventFail(orig_status, logger_name):
       session.console.exception('Unable to log end_test event by %s. '
@@ -534,7 +451,6 @@ class TestInvocation(object):
                                 orig_status, logger_name)
       status = TestState.FAILED
       error_msg = 'Unable to log end_test event'
-      self._metadata.Update(status=status, error_msg=error_msg)
       return status, error_msg
 
     # Shutdown the test.
@@ -552,29 +468,27 @@ class TestInvocation(object):
         self.test.path, self.uuid, status,
         (' (%s)' % error_msg if error_msg else '')))
 
-    # Update the metadata but flush it to the storage after logging
-    # because the log might fail.
     end_time = time.time()
-    self._metadata.Update(status=status, end_time=end_time,
-                          duration=end_time - self._metadata['start_time'])
+    finish_data = {
+        'status': status,
+        'endTime': end_time
+    }
     if error_msg:
-      self._metadata.Update(error_msg=error_msg)
+      finish_data['error_msg'] = error_msg
     if status != TestState.PASSED:
-      _SafelyAddLogTailToMetadata()
+      finish_data['log_tail'] = _SafelyCreateLogTail()
 
     # Log the end test event.
     try:
-      testlog_helper.LogFinishEvent(self._metadata)
+      testlog_helper.LogFinishEvent(finish_data)
       del self._env_additions[testlog.TESTLOG_ENV_VARIABLE_NAME]
     except Exception:
       status, error_msg = _HandleLogEndTestEventFail(status, 'testlog')
     finally:
       try:
-        event_log_helper.LogEndEvent(self._metadata)
+        event_log_helper.LogEndEvent(finish_data)
       except Exception:
         status, error_msg = _HandleLogEndTestEventFail(status, 'event_log')
-      finally:
-        self._metadata.Flush()
 
     return status, error_msg
 
@@ -624,7 +538,7 @@ class _TestInvocationTestLogHelper(object):
   def __init__(self):
     self.session_json_path = None
 
-  def InitSubSession(self, dut, metadata):
+  def InitSubSession(self, dut, init_data):
     def _GetDUTDeviceID(dut):
       if not dut.link.IsReady():
         return 'device-offline'
@@ -642,25 +556,25 @@ class _TestInvocationTestLogHelper(object):
         'dutDeviceId': _GetDUTDeviceID(dut),
         'stationDeviceId': session.GetDeviceID(),
         'stationInstallationId': session.GetInstallationID(),
-        'testRunId': metadata['invocation'],
-        'testName': metadata['path'],
-        'testType': metadata.get('pytest_name', None),
+        'testRunId': init_data['testRunId'],
+        'testName': init_data['testName'],
+        'testType': init_data['testType'],
         'status': testlog.StationTestRun.STATUS.RUNNING,
-        'startTime': metadata['start_time']
+        'startTime': init_data['startTime']
     }
     testlog_event.Populate(kwargs)
 
-    dargs = metadata['dargs']
+    dargs = init_data['dargs']
     if dargs:
       # Only allow types that can be natively expressed in JSON.
       flattened_dargs = testlog_utils.FlattenAttrs(
           dargs, allow_types=(int, long, float, basestring, type(None)))
       for k, v in flattened_dargs:
         testlog_event.AddArgument(k, v)
-    for k, v in metadata['serial_numbers'].iteritems():
+    for k, v in init_data['serialNumbers'].iteritems():
       testlog_event.AddSerialNumber(k, v)
 
-    tag = metadata.get('tag')
+    tag = init_data['tag']
     if tag:
       testlog_event.LogParam(name='tag', value=tag)
       testlog_event.UpdateParam(name='tag',
@@ -668,30 +582,30 @@ class _TestInvocationTestLogHelper(object):
 
     self.session_json_path = testlog.InitSubSession(
         log_root=paths.DATA_LOG_DIR, station_test_run=testlog_event,
-        uuid=metadata['invocation'])
+        uuid=init_data['testRunId'])
 
   def LogStartEvent(self):
     testlog_event = testlog.StationTestRun()
     testlog_event.Populate({'status': testlog.StationTestRun.STATUS.STARTING})
     testlog.LogTestRun(self.session_json_path, station_test_run=testlog_event)
 
-  def LogFinishEvent(self, metadata):
-    status = self._STATUS_CONVERSION.get(metadata['status'], metadata['status'])
+  def LogFinishEvent(self, finish_data):
+    status = self._STATUS_CONVERSION.get(finish_data['status'],
+                                         finish_data['status'])
 
     testlog_event = testlog.StationTestRun()
 
     kwargs = {
-        'endTime': metadata['end_time'],
-        'duration': metadata['duration'],
-        'status': status,
+        'endTime': finish_data['endTime'],
+        'status': status
     }
     testlog_event.Populate(kwargs)
 
     if status == testlog.StationTestRun.STATUS.FAIL:
       for err_field, failure_code in [('error_msg', 'GoofyErrorMsg'),
                                       ('log_tail', 'GoofyLogTail')]:
-        if err_field in metadata:
-          testlog_event.AddFailure(failure_code, metadata[err_field])
+        if err_field in finish_data:
+          testlog_event.AddFailure(failure_code, finish_data[err_field])
 
     testlog.LogFinalTestRun(self.session_json_path,
                             station_test_run=testlog_event)
@@ -703,27 +617,30 @@ class _TestInvocationEventLogHelper(object):
     self._event_log = event_log
     self._event_log_args = {}
 
-  def LogStartEvent(self, event_name, metadata):
+  def LogStartEvent(self, event_name, start_data):
     self._event_log_args = {
-        'path': metadata['path'],
-        'dargs': metadata['dargs'],
-        'serial_numbers': metadata['serial_numbers'],
-        'invocation': metadata['invocation']}
-    self._UpdateArgsIfKeyExists(metadata, 'pytest_name')
-    self._UpdateArgsIfKeyExists(metadata, 'tag')
+        'path': start_data['testName'],
+        'dargs': start_data['dargs'],
+        'serial_numbers': start_data['serialNumbers'],
+        'invocation': start_data['testRunId'],
+        'start_time': start_data['startTime']
+    }
+    self._UpdateArgsIfKeyExists(start_data, 'testType')
+    self._UpdateArgsIfKeyExists(start_data, 'tag')
 
     self._event_log.Log(event_name, **self._event_log_args)
 
     self._event_log_args.pop('dargs', None)
-    self._event_log_args.pop('serial_numbers', None)
+    self._event_log_args.pop('serialNumbers', None)
     self._event_log_args.pop('tag', None)
 
-  def LogEndEvent(self, metadata):
-    self._event_log_args.update({'status': metadata['status'],
-                                 'duration': metadata['duration']})
-    self._UpdateArgsIfKeyExists(metadata, 'error_msg')
+  def LogEndEvent(self, end_data):
+    duration = end_data['endTime'] - self._event_log_args['start_time']
+    self._event_log_args.update({'status': end_data['status'],
+                                 'duration': duration})
+    self._UpdateArgsIfKeyExists(end_data, 'error_msg')
     self._event_log.Log('end_test', **self._event_log_args)
 
-  def _UpdateArgsIfKeyExists(self, metadata, key):
-    if key in metadata:
-      self._event_log_args[key] = metadata[key]
+  def _UpdateArgsIfKeyExists(self, data, key):
+    if key in data:
+      self._event_log_args[key] = data[key]

@@ -9,7 +9,6 @@ import os
 import unittest
 
 import mox
-import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import goofy
@@ -60,11 +59,11 @@ class GoofyRPCTest(unittest.TestCase):
     for invocation in invocations:
       path = os.path.join(paths.DATA_TESTS_DIR,
                           test_path + '-%s' % invocation,
-                          'metadata')
+                          'testlog.json')
       file_utils.TryMakeDirs(os.path.dirname(path))
       with open(path, 'w') as f:
-        data['init_time'] = invocation
-        yaml.dump(data, f, default_flow_style=False)
+        data['startTime'] = invocation
+        json.dump(data, f)
       expected.append(data.copy())
 
     self.assertEqual(expected, self.goofy_rpc.GetTestHistory(test_path))
@@ -81,21 +80,16 @@ class GoofyRPCTest(unittest.TestCase):
 
     file_utils.TryMakeDirs(test_dir)
     log_file = os.path.join(test_dir, 'log')
-    metadata_file = os.path.join(test_dir, 'metadata')
     testlog_file = os.path.join(test_dir, 'testlog.json')
 
     with open(log_file, 'w') as f:
       f.write(log)
 
-    with open(metadata_file, 'w') as f:
-      yaml.dump(data, f)
-
     with open(testlog_file, 'w') as f:
       json.dump(data, f)
 
     self.assertEqual(
-        {'metadata': data,
-         'testlog': data,
+        {'testlog': data,
          'log': log},
         self.goofy_rpc.GetTestHistoryEntry(path, invocation))
 

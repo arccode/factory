@@ -360,10 +360,10 @@ table + .goofy-history-header {
   color: darkgray;
   font-style: italic;
 }
-.goofy-debug-status-passed {
+.goofy-debug-status-pass {
   color: #0A0;
 }
-.goofy-debug-status-failed {
+.goofy-debug-status-fail {
   color: #D00;
 }
 

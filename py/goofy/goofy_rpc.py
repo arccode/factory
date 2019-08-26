@@ -744,13 +744,13 @@ class GoofyRPC(object):
     for path in test_paths:
       for f in glob.glob(os.path.join(paths.DATA_TESTS_DIR,
                                       path + '-*',
-                                      'metadata')):
+                                      'testlog.json')):
         try:
           ret.append(yaml.load(open(f)))
         except Exception:
           logging.exception('Unable to load test metadata %s', f)
 
-    ret.sort(key=lambda item: item.get('init_time', None))
+    ret.sort(key=lambda item: item.get('startTime', None))
     return ret
 
   def GetTestHistoryEntry(self, path, invocation):
@@ -766,8 +766,7 @@ class GoofyRPC(object):
       logging.exception('Unable to read log file %s', log_file)
       log = None
 
-    return {'metadata': yaml.load(open(os.path.join(test_dir, 'metadata'))),
-            'testlog': json.load(open(os.path.join(test_dir,
+    return {'testlog': json.load(open(os.path.join(test_dir,
                                                    'testlog.json'))),
             'log': log}
 

@@ -149,15 +149,14 @@ cros.factory.PendingShutdownEvent;
 
 /**
  * Entry in test history returned by GetTestHistory.
- * @typedef {{init_time: number, start_time: number, end_time: number,
- *     status: string, path: string, invocation: string}}
+ * @typedef {{startTime: number, endTime: number, status: string,
+ *     testName: string, testRunId: string}}
  */
 cros.factory.HistoryMetadata;
 
 /**
  * Entry in test history.
- * @typedef {{metadata: !cros.factory.HistoryMetadata, log: string,
- *     testlog: !Object}}
+ * @typedef {{testlog: !cros.factory.HistoryMetadata, log: string}}
  */
 cros.factory.HistoryEntry;
 
@@ -2028,17 +2027,17 @@ cros.factory.Goofy = class {
         let title = `${count}.`;
         count--;
 
-        if (entry.init_time) {
+        if (entry.startTime) {
           // TODO(jsalz): Localize (but not that important since this is not
           // for operators)
 
           title += ` Run at ${
               cros.factory.Goofy.HMS_TIME_FORMAT.format(
-                  new Date(entry.init_time * 1000))}`;
+                  new Date(entry.startTime * 1000))}`;
         }
         title += ` (${status}`;
 
-        const time = entry.end_time || entry.init_time;
+        const time = entry.endTime || entry.startTime;
         if (time) {
           let secondsAgo = +new Date() / 1000 - time;
 
@@ -2061,7 +2060,7 @@ cros.factory.Goofy = class {
         const item = new goog.ui.MenuItem(goog.dom.createDom(
             'span', `goofy-debug-status-${status}`, title));
         goog.events.listen(item, goog.ui.Component.EventType.ACTION, () => {
-          this.showHistoryEntry(entry.path, entry.invocation);
+          this.showHistoryEntry(entry.testName, entry.testRunId);
         });
 
         subMenu.addItem(item);
@@ -2486,7 +2485,7 @@ cros.factory.Goofy = class {
         JSON.stringify(testlogObj, null, 4));
 
     const title =
-        `${entry.metadata.path} (invocation ${entry.metadata.invocation})`;
+        `${entry.testlog.testName} (invocation ${entry.testlog.testRunId})`;
 
     const content = goog.html.SafeHtml.concat(
         goog.html.SafeHtml.create('div', {class: 'goofy-history'}, [

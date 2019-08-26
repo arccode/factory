@@ -386,6 +386,8 @@ def LogTestRun(session_json_path, station_test_run=None):
       # Merge the station_test_run information.
       if station_test_run:
         test_run.Populate(station_test_run.ToDict())
+      if 'startTime' in test_run and 'endTime' in test_run:
+        test_run['duration'] = test_run['endTime'] - test_run['startTime']
       Log(test_run)
       # pylint: disable=protected-access
       test_run[Testlog.FIELDS._METADATA] = (
