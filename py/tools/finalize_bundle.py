@@ -275,7 +275,8 @@ class FinalizeBundle(object):
     otherwise."""
     logging.info('Checking whether the version of image %r is %r',
                  image_path, requested_version)
-    image_version = self._GetImageVersion(image_path)
+    # Get the image version and remove the milestone prefix, if any.
+    image_version = re.sub(r'^R\d+-', '', self._GetImageVersion(image_path))
     logging.info('Version of image %r is %r', image_path, image_version)
     return image_version == requested_version
 
