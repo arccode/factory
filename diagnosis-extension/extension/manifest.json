@@ -10,7 +10,9 @@
     "scripts": ["src/background.js"]
   },
   "web_accessible_resources": [
-    "src/tests/video/project-fi.mp4"
+    "src/tests/video/project-fi.mp4",
+    "src/tests/keyboard/*.json",
+    "src/tests/keyboard/*.png"
   ],
   "permissions": [
     "system.cpu",

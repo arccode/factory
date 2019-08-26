@@ -21,13 +21,13 @@
 }
 
 .top-right {
-  height: 80%;
+  flex: 4;
   border: 1px solid black;
   overflow: auto;
 }
 
 .bottom-right {
-  height: 20%;
+  flex: 1;
   border: 1px solid black;
 }
 

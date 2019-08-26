@@ -1,0 +1,66 @@
+#setup {
+  display: flex;
+  flex-direction: column;
+}
+
+#keyboard-test p {
+  display: inline;
+  color: red;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.layout-style {
+  margin: 1em;
+}
+
+.layout-style:hover {
+  position: relative;
+  top: 1.5px;
+  left: 1.5px;
+  cursor: pointer;
+}
+
+#keyboard-test-image {
+  position: relative;
+}
+
+#keyboard-keys {
+  position: absolute;
+}
+
+.keyboard-test-key {
+  z-index: 2;
+  opacity: 0.5;
+  position: absolute;
+  text-align: center;
+  font-size: xx-small;
+}
+
+.keyboard-test-key:before {
+  content: "";
+  display: inline-block;
+  height: 100%;
+  vertical-align: middle;
+}
+
+.keyboard-test-key.state-tested {
+  background-color: green;
+}
+
+.keyboard-test-key.state-down {
+  background-color: red;
+}
+
+.keyboard-test-key.state-skipped {
+  background-color: gray;
+}
+
+.keyboard-test-key .iso-enter {
+  left: 815px;
+  top: 107px;
+  width: 15px;
+  height: 60px;
+}
