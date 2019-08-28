@@ -156,7 +156,8 @@ cros.factory.HistoryMetadata;
 
 /**
  * Entry in test history.
- * @typedef {{testlog: !cros.factory.HistoryMetadata, log: string}}
+ * @typedef {{testlog: !cros.factory.HistoryMetadata, log: string,
+ *     source_code: string}}
  */
 cros.factory.HistoryEntry;
 
@@ -2493,14 +2494,20 @@ cros.factory.Goofy = class {
             goog.html.SafeHtml.create(
                 'button', {class: 'goofy-debug-tab'}, 'Test Info'),
             goog.html.SafeHtml.create(
-                'button', {class: 'goofy-debug-tab'}, 'Log')
+                'button', {class: 'goofy-debug-tab'}, 'Log'),
+            goog.html.SafeHtml.create(
+                'button', {class: 'goofy-debug-tab'}, 'Source Code')
           ]),
           goog.html.SafeHtml.create(
               'div', {class: 'goofy-debug-div'}, testlogData),
           goog.html.SafeHtml.create(
               'div', {class: 'goofy-debug-div'},
               goog.html.SafeHtml.create(
-                  'div', {class: 'goofy-history-log'}, entry.log))
+                  'div', {class: 'goofy-history-log'}, entry.log)),
+          goog.html.SafeHtml.create(
+              'div', {class: 'goofy-debug-div'},
+              goog.html.SafeHtml.create(
+                  'div', {class: 'goofy-history-code'}, entry.source_code))
         ]));
 
     const debugDialog = this.createSimpleDialog(title, content);

@@ -149,6 +149,7 @@ class TestInvocation(object):
     self._dargs = None
     self._tag = None
     self._log_path = os.path.join(self.output_dir, 'log')
+    self._source_code_path = os.path.join(self.output_dir, 'source_code')
 
     self._dut_options = self._ResolveDUTOptions()
     self.dut = device_utils.CreateDUTInterface(**self._dut_options)
@@ -341,6 +342,20 @@ class TestInvocation(object):
     event_log_helper = _TestInvocationEventLogHelper(self.goofy.event_log)
 
     status, error_msg = self._PrepareRunPytest(testlog_helper, event_log_helper)
+
+    try:
+      if not os.path.exists(self._source_code_path):
+        source_code_file = os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR,
+                                        'test', 'pytests',
+                                        self.test.pytest_name + '.py')
+        if not os.path.exists(source_code_file):
+          source_code_file = os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR,
+                                          'test', 'pytests',
+                                          self.test.pytest_name,
+                                          self.test.pytest_name + '.py')
+        os.symlink(source_code_file, self._source_code_path)
+    except Exception:
+      logging.exception('Unable to link source code file')
 
     try:
       # Run the pytest if everything was fine.

@@ -758,6 +758,8 @@ class GoofyRPC(object):
     test_dir = os.path.join(paths.DATA_TESTS_DIR,
                             '%s-%s' % (path, invocation))
 
+    testlog = json.load(open(os.path.join(test_dir, 'testlog.json')))
+
     log_file = os.path.join(test_dir, 'log')
     try:
       log = string_utils.CleanUTF8(file_utils.ReadFile(log_file))
@@ -766,9 +768,18 @@ class GoofyRPC(object):
       logging.exception('Unable to read log file %s', log_file)
       log = None
 
-    return {'testlog': json.load(open(os.path.join(test_dir,
-                                                   'testlog.json'))),
-            'log': log}
+    source_code_file = os.path.join(test_dir, 'source_code')
+    try:
+      source_code = string_utils.CleanUTF8(
+          file_utils.ReadFile(source_code_file))
+    except Exception:
+      # Oh well
+      logging.exception('Unable to read source code %s', source_code_file)
+      source_code = None
+
+    return {'testlog': testlog,
+            'log': log,
+            'source_code': source_code}
 
   def GetInvocationResolvedArgs(self, invocation):
     return self.goofy.invocations[invocation].resolved_dargs

@@ -74,6 +74,7 @@ class GoofyRPCTest(unittest.TestCase):
 
     log = 'This is the test log'
     data = {'A': 1, 'b': 'abc'}
+    source_code = 'This is source code.'
 
     test_dir = os.path.join(paths.DATA_TESTS_DIR,
                             '%s-%s' % (path, invocation))
@@ -81,6 +82,7 @@ class GoofyRPCTest(unittest.TestCase):
     file_utils.TryMakeDirs(test_dir)
     log_file = os.path.join(test_dir, 'log')
     testlog_file = os.path.join(test_dir, 'testlog.json')
+    source_code_file = os.path.join(test_dir, 'source_code')
 
     with open(log_file, 'w') as f:
       f.write(log)
@@ -88,9 +90,13 @@ class GoofyRPCTest(unittest.TestCase):
     with open(testlog_file, 'w') as f:
       json.dump(data, f)
 
+    with open(source_code_file, 'w') as f:
+      f.write(source_code)
+
     self.assertEqual(
         {'testlog': data,
-         'log': log},
+         'log': log,
+         'source_code': source_code},
         self.goofy_rpc.GetTestHistoryEntry(path, invocation))
 
 

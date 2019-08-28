@@ -284,6 +284,10 @@ table + .goofy-history-header {
 .goofy-history th {
   padding-right: 1em;
 }
+.goofy-history-code {
+  font-family: monospace;
+  white-space: pre;
+}
 .goofy-history-metadata, .goofy-history-log, .goofy-log-data,
 .goofy-device-manager {
   white-space: pre;
