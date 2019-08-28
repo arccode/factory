@@ -2332,10 +2332,17 @@ class ChromeOSFactoryBundle(object):
             ('FSI AP firmware', FormatFirmwareVersion(fsi_fw_ver.get('main'))),
             ('FSI EC firmware', FormatFirmwareVersion(fsi_fw_ver.get('ec')))]
       if self.netboot:
-        info += [
-            ('Netboot firmware', FormatFirmwareVersion(self.GetFirmwareVersion(
-                os.path.join(self.netboot, 'image.net.bin')))),
-            ('Netboot kernel', self.GetKernelVersion(netboot_vmlinuz))]
+        for netboot_firmware_image in glob.glob(os.path.join(
+            self.netboot, 'image*.net.bin')):
+          key_name = 'Netboot firmware'
+          match = re.match(r'^image-(.*)\.net\.bin$',
+                           os.path.basename(netboot_firmware_image))
+          if match:
+            key_name += ' (%s)' % match.group(1)
+          info += [(key_name,
+                    FormatFirmwareVersion(
+                        self.GetFirmwareVersion(netboot_firmware_image)))]
+        info += [('Netboot kernel', self.GetKernelVersion(netboot_vmlinuz))]
       info += [('Factory server URL', self.server_url or 'N/A')]
       key_len = max(len(k) for (k, v) in info)
 
@@ -2372,9 +2379,12 @@ class ChromeOSFactoryBundle(object):
       AddResource('setup', os.path.join(self.setup_dir, '*'))
     if self.netboot:
       self.CreateDirectory(os.path.join(bundle_dir, 'netboot'))
-      self.CreateNetbootFirmware(
-          os.path.join(self.netboot, 'image.net.bin'),
-          os.path.join(bundle_dir, 'netboot', 'image.net.bin'))
+      for netboot_firmware_image in glob.glob(
+          os.path.join(self.netboot, 'image*.net.bin')):
+        self.CreateNetbootFirmware(
+            netboot_firmware_image,
+            os.path.join(bundle_dir, 'netboot',
+                         os.path.basename(netboot_firmware_image)))
       if has_tftp:
         AddResource('netboot', os.path.join(self.netboot, 'tftp'))
       else:
