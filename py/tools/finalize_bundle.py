@@ -547,8 +547,8 @@ class FinalizeBundle(object):
     tftp_server_ip = (urlparse.urlparse(server_url).hostname if server_url else
                       '')
 
-    netboot_firmware_image = os.path.join(netboot_dir, 'image.net.bin')
-    if os.path.exists(netboot_firmware_image):
+    for netboot_firmware_image in glob.glob(
+        os.path.join(netboot_dir, 'image*.net.bin')):
       new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
       args = ['--argsfile', target_argsfile,
               '--bootfile', target_bootfile,
@@ -767,7 +767,8 @@ class FinalizeBundle(object):
         relpath = os.path.relpath(path, self.bundle_dir)
         if f == FIRMWARE_UPDATER_NAME:
           vitals.extend(_ExtractFirmwareVersions(path, relpath))
-        elif f in ['ec.bin', 'bios.bin', 'image.bin', 'image.net.bin']:
+        elif f in ['ec.bin', 'bios.bin', 'image.bin'] or re.match(
+            r'^image.*\.net\.bin$', f):
           version = get_version.GetFirmwareBinaryVersion(path)
           if not version:
             raise FinalizeBundleException(
