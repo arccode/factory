@@ -321,7 +321,7 @@ class CameraTest(test_case.TestCase):
   def ShowImage(self, cv_image):
     resize_ratio = self.args.resize_ratio
     if self.e2e_mode and not self.need_transmit_to_ui:
-      self.RunJSBlocking('cameraTest.showImage(%s)' % resize_ratio)
+      self.RunJSPromiseBlocking('cameraTest.showImage(%s)' % resize_ratio)
     else:
       cv_image = cv2.resize(cv_image, None, fx=resize_ratio, fy=resize_ratio,
                             interpolation=cv2.INTER_AREA)

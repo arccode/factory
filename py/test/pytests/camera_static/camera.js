@@ -39,6 +39,15 @@ const showInstruction = (instruction) => {
       promptDiv, cros.factory.i18n.i18nLabel(instruction));
 };
 
+const canvasToDataURL = async (canvas) => {
+  const blob = await canvas.convertToBlob({type: 'image/jpeg'});
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.readAsDataURL(blob);
+  });
+};
+
 class CameraTest {
   constructor(options) {
     this.facingMode = options.facingMode;
@@ -118,10 +127,10 @@ class CameraTest {
 
   async grabFrameAndTransmitBack() {
     await this.grabFrame();
-    const blob = this.canvas.toDataURL('image/jpeg')
-                     .replace(/^data:image\/jpeg;base64,/, '');
+    const blobBase64 = (await canvasToDataURL(this.canvas))
+                           .replace(/^data:image\/jpeg;base64,/, '');
     const goofy = test.invocation.goofy;
-    const path = await goofy.sendRpc('UploadTemporaryFile', blob);
+    const path = await goofy.sendRpc('UploadTemporaryFile', blobBase64);
     return path;
   }
 
@@ -150,13 +159,11 @@ class CameraTest {
     return codes[0].rawValue;
   }
 
-  showImage(ratio) {
-    const tempCanvas = document.createElement('canvas');
+  async showImage(ratio) {
     const {width, height} = this.canvas;
     const newWidth = Math.round(width * ratio);
     const newHeight = Math.round(height * ratio);
-    tempCanvas.width = newWidth;
-    tempCanvas.height = newHeight;
+    const tempCanvas = new OffscreenCanvas(newWidth, newHeight);
     const ctx = tempCanvas.getContext('2d');
     if (this.flipImage) {
       // We flip the image horizontally so the image looks like a mirror.
@@ -167,7 +174,7 @@ class CameraTest {
       ctx.drawImage(
           this.canvas, 0, 0, width, height, 0, 0, newWidth, newHeight);
     }
-    showImage(tempCanvas.toDataURL('image/jpeg'));
+    showImage(await canvasToDataURL(tempCanvas));
   }
 }
 
