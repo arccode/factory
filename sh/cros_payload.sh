@@ -329,7 +329,7 @@ json_prettify() {
     return
   fi
 
-  python -c "\
+  python2 -c "\
 import json
 import sys
 
@@ -350,7 +350,7 @@ json_merge() {
     return
   fi
 
-  python -c "\
+  python2 -c "\
 import json
 import sys
 
@@ -383,7 +383,7 @@ json_get_file_value() {
     return
   fi
 
-  python -c "\
+  python2 -c "\
 import json
 import sys
 
@@ -402,7 +402,7 @@ json_get_keys() {
     return
   fi
 
-  python -c "import json; import sys; print('\n'.join(json.load(sys.stdin)))"
+  python2 -c "import json; import sys; print('\n'.join(json.load(sys.stdin)))"
 }
 
 # Gets the files of an image from a given JSON file or stdin.
@@ -419,7 +419,7 @@ json_get_image_files() {
     return
   fi
 
-  python -c "\
+  python2 -c "\
 import json
 import sys
 
@@ -442,7 +442,7 @@ json_get_file() {
     return
   fi
 
-  python -c "\
+  python2 -c "\
 import json
 import sys
 
@@ -461,7 +461,7 @@ json_encode_str() {
     "${JQ}" -c -n --arg input "$1" '$input'
     return
   fi
-  python -c "import json; import sys; print(json.dumps(sys.argv[1]))" "$1"
+  python2 -c "import json; import sys; print(json.dumps(sys.argv[1]))" "$1"
 }
 
 # Updates JSON data to specified config.
@@ -674,7 +674,7 @@ get_file_component_version() {
         return
       fi
 
-      echo "${json_manifest}" | python -c "\
+      echo "${json_manifest}" | python2 -c "\
 import json
 import sys
 j = json.load(sys.stdin)
@@ -872,7 +872,7 @@ install_add_stub() {
       ;;
     toolkit_config)
       stub_prefix="1_"
-      cmd="python -c \"$(get_install_toolkit_config_script)\" ./${component}"
+      cmd="python2 -c \"$(get_install_toolkit_config_script)\" ./${component}"
       ;;
     *)
       return

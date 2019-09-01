@@ -34,8 +34,8 @@ is_macosx() {
 
 realpath() {
   # Try to find "realpath" in a portable way.
-  if type python >/dev/null 2>&1; then
-    python -c 'import sys; import os; print os.path.realpath(sys.argv[1])' "$1"
+  if type python2 >/dev/null 2>&1; then
+    python2 -c 'import sys; import os; print os.path.realpath(sys.argv[1])' "$1"
   else
     readlink -f "$@"
   fi
@@ -758,7 +758,7 @@ do_dev_run() {
     ${DOCKER_LOCALTIME_VOLUME} \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
-    python manage.py runserver 0:8080
+    python2 manage.py runserver 0:8080
 
   # start nginx
   ${DOCKER} run \
@@ -882,7 +882,7 @@ do_prepare_dome() {
     --volume "${host_log_dir}:${docker_log_dir}" \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
-    python manage.py migrate
+    python2 manage.py migrate
 
   # Clear all temporary uploaded file records. These files were uploaded to
   # container but not in a volume, so they will be gone once the container has
@@ -893,7 +893,7 @@ do_prepare_dome() {
     --volume "${host_log_dir}:${docker_log_dir}" \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
-    python manage.py shell --command \
+    python2 manage.py shell --command \
     "import backend; backend.models.TemporaryUploadedFile.objects.all().delete()"
 
   # Restart all old umpire instances.
@@ -904,7 +904,7 @@ do_prepare_dome() {
     --volume "${host_log_dir}:${docker_log_dir}" \
     --workdir "${DOCKER_DOME_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
-    python manage.py restart_old_umpire
+    python2 manage.py restart_old_umpire
 }
 
 do_run() {
@@ -1221,7 +1221,7 @@ do_passwd() {
   check_container_status "${DOME_UWSGI_CONTAINER_NAME}"
 
   ${DOCKER} exec -it "${DOME_UWSGI_CONTAINER_NAME}" \
-    python manage.py changepassword "${username}"
+    python2 manage.py changepassword "${username}"
 }
 
 usage() {

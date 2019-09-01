@@ -53,9 +53,9 @@ options_load_file() {
     echo "Cannot load cutoff config ${file}. Only JSON format is supported."
     return 1
   fi
-  if python -c "import jsonschema" >/dev/null 2>&1; then
+  if python2 -c "import jsonschema" >/dev/null 2>&1; then
     echo "Checking JSON schema for file ${file}..."
-    python -c "import jsonschema; import json; jsonschema.validate(
+    python2 -c "import jsonschema; import json; jsonschema.validate(
       json.load(open('${file}')),
       json.load(open('$(dirname "$(readlink -f "$0")")/cutoff.schema.json')))"
   fi

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 #
 # Copyright 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -67,7 +67,7 @@ fi
 
 export PYTHONIOENCODING=utf-8
 
-exec python -c \
+exec python2 -c \
 "import os, runpy, sys
 
 # Remove '-c' from argument list.

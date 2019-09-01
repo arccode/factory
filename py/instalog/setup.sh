@@ -34,4 +34,4 @@ deactivate
 echo "Finished!"
 echo "You can go to the directory '$(dirname ${INSTALOG_DIR})' and"
 echo "run Instalog by 'source instalog/virtual_env/bin/activate &&" \
-     "python instalog [--config /path/to/instalog.yaml] start && deactivate'"
+     "python2 instalog [--config /path/to/instalog.yaml] start && deactivate'"

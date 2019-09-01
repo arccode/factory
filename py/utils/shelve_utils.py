@@ -29,7 +29,7 @@ def IsShelfValid(shelf):
   Returns:
     True if valid, False if not valid.
   """
-  process = process_utils.Spawn(['python', '-c',
+  process = process_utils.Spawn(['python2', '-c',
                                  'import factory_common, shelve, sys; '
                                  'shelve.open(sys.argv[1], "r").items(); '
                                  r'print "\nSHELF OK"',

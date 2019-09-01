@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 """Test program for tiny_par_unittest.py."""
 
 
