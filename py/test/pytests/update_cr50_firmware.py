@@ -11,7 +11,7 @@ This test provides two functionalities, toggled by the test argument ``method``.
 1. In `update mode`, this test calls `gsctool` on DUT to update Cr50 firmware
    in upstart mode (the actuall upgration will happen in the next reboot).
 2. In `check mode`, this test calls `gsctool` on DUT to check if the cr50
-   firmware version is equal to the given firmware image.
+   firmware version is greater than or equal to the given firmware image.
 
 The Cr50 firmware image to update or compare is either from a given path in
 station or DUT, or from the release partition on DUT.
@@ -31,7 +31,8 @@ This is an automatic test that doesn't need any user interaction.
 4. If `method` is set to `UPDATE`, DUT runs `gsctool` to update
    Cr50 firmware using the specified Cr50 image.
 5. If `method` is set to `CHECK_VERSION`, DUT runs `gsctool` to check
-   whether the Cr50 firmware version equals to the specified Cr50 image.
+   whether the Cr50 firmware version is greater than or equals to the
+   specified Cr50 image.
 
 Dependency
 ----------
@@ -58,8 +59,8 @@ To update Cr50 firmware with the Cr50 firmware image in station::
     }
   }
 
-To check if Cr50 firmware version equals to the Cr50 image in the release
-image::
+To check if Cr50 firmware version is greater than or equals to the Cr50 image
+in the release image::
 
   {
     "pytest_name": "update_cr50_firmware",
@@ -69,6 +70,7 @@ image::
   }
 """
 
+from distutils import version
 import functools
 import logging
 import os
@@ -209,9 +211,9 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
       for name in ('ro', 'rw'):
         actual = getattr(fw_ver, name + '_version')
         expect = getattr(image_info, name + '_fw_version')
-        if actual != expect:
+        if version.StrictVersion(actual) < version.StrictVersion(expect):
           raise type_utils.TestFailure(
-              '%s FW version mismatched (actual=%r, expect=%r)' %
+              '%s FW version is old (actual=%r, expect=%r)' %
               (name.upper(), actual, expect))
 
     try:
@@ -219,7 +221,7 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
     except type_utils.TestFailure:
       if self.args.check_version_retry_timeout <= 0:
         raise
-      self.ui.SetState('Version mismatch, sleep for %d seconds and re-check.' %
+      self.ui.SetState('Version is old, sleep for %d seconds and re-check.' %
                        self.args.check_version_retry_timeout)
       self.Sleep(self.args.check_version_retry_timeout)
       _Check()
