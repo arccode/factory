@@ -131,19 +131,18 @@ class FactoryBundleService(remote.Service):
       bundle.uploaded_timestamp_ms = int(blob['generation'])
       bundle.creator = blob['metadata'].get('Bundle-Creator', '-')
       bundle.toolkit_version = blob['metadata'].get('Tookit-Version', '-')
-      bundle.test_image_version = \
-          blob['metadata'].get('Test-Image-Version', '-')
-      bundle.release_image_version = \
-          blob['metadata'].get('Release-Image-Version', '-')
+      bundle.test_image_version = blob['metadata'].get(
+          'Test-Image-Version', '-')
+      bundle.release_image_version = blob['metadata'].get(
+          'Release-Image-Version', '-')
       bundle.firmware_source = blob['metadata'].get('Firmware-Source', '-')
       project_set = board_set.setdefault(bundle.board, {})
       project_set.setdefault(bundle.project, []).append(bundle)
     response = proto.GetBundleHistoryRpcResponse()
     for board_projects in request.board_projects:
       for project in board_projects.projects:
-        bundle_list = board_set \
-            .get(board_projects.board_name, {}) \
-            .get(project.name, [])
+        bundle_list = board_set.get(board_projects.board_name,
+                                    {}).get(project.name, [])
         for bundle in bundle_list:
           response.bundles.append(bundle)
     response.bundles.sort(key=lambda b: b.uploaded_timestamp_ms, reverse=True)
@@ -172,9 +171,8 @@ class FactoryBundleService(remote.Service):
       raise Exception(json.loads(api_response.content)['error']['message'])
 
     response = proto.DownloadBundleRpcResponse()
-    response.download_link = \
-        'https://storage.cloud.google.com/{}/{}'.format(
-            config.BUNDLE_BUCKET, request.path)
+    response.download_link = 'https://storage.cloud.google.com/{}/{}'.format(
+        config.BUNDLE_BUCKET, request.path)
     return response
 
 
