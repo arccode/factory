@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A factory test for checking Wifi antenna for Intel WP2 7260 chip.
+"""A factory test for checking Wifi antennas.
 
 Description
 -----------
@@ -299,11 +299,14 @@ class Capture(object):
   def set_beacon_filter(self, value):
     """Sets beacon filter.
 
-    This function may only for Intel WP2 7260 chip.
+    This function is currently only needed for Intel WiFi.
     """
     path = '/sys/kernel/debug/ieee80211/%s/netdev:%s/iwlmvm/bf_params' % (
         self.phy, self.parent_device)
-    self.dut.WriteFile(path, 'bf_enable_beacon_filter=%d\n' % value)
+    if self.dut.path.exists(path):
+      session.console.info('Setting beacon filter (enable=%d) for Intel WiFi',
+                           value)
+      self.dut.WriteFile(path, 'bf_enable_beacon_filter=%d\n' % value)
 
   def __enter__(self):
     if not self.created_device:
