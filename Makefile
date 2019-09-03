@@ -191,11 +191,11 @@ func-check-package = @\
 # at version instead of timestamp. So pre-built package may be older than ebuild
 # files, and this will be a problem for fresh checkout.
 # The solution is to do timestamp comparison only in an interactive quickfix
-# (modify, make, test) cycle, by checking if the build system allows interaction
-# (EPAUSE_IGNORE).
+# (modify, make, test) cycle, by checking if the build is triggered by ebuild
+# ($(FROM_EBUILD) is set in factory-9999.ebuild).
 check-board-resources:
 	$(if $(BOARD_EBUILD),\
-	   $(if $(EPAUSE_IGNORE),\
+	   $(if $(FROM_EBUILD),\
 	     $(info Ignore $(BOARD_PACKAGE_NAME) check.), \
 	     $(call func-check-package,$(BOARD_PACKAGE_NAME), \
 	       [ "$(realpath $(BOARD_EBUILD))" -ot "$(BOARD_PACKAGE_FILE)" ])) \
