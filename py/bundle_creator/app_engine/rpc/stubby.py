@@ -59,21 +59,51 @@ class FactoryBundleService(remote.Service):
     return proto.CreateBundleRpcResponse()
 
   @remote.method(proto.WorkerResult, proto.CreateBundleRpcResponse)
-  def ResponseCallback(self, request):
-    mail_list = [request.original_request.email]
-    if request.status == proto.WorkerResult.Status.NO_ERROR:
+  def ResponseCallback(self, worker_result):
+    mail_list = [worker_result.original_request.email]
+
+    if worker_result.status == proto.WorkerResult.Status.NO_ERROR:
       subject = 'Bundle creation success'
-      body = self.GenerateSuccessBody(request)
+      match = re.match(
+          r'^gs://{}/(.*)$'.format(config.BUNDLE_BUCKET), worker_result.gs_path)
+      download_link = (
+          'https://chromeos.google.com/partner/console/DownloadBundle?path={}'
+          .format(urllib.quote_plus(match.group(1))) if match else '-')
+      request = worker_result.original_request
+      items = ['Board: {}\n'.format(request.board)]
+      items.append('Device: {}\n'.format(request.project))
+      items.append('Phase: {}\n'.format(request.phase))
+      items.append('Toolkit Version: {}\n'.format(request.toolkit_version))
+      items.append(
+          'Test Image Version: {}\n'.format(request.test_image_version))
+      items.append(
+          'Release Image Version: {}\n'.format(request.release_image_version))
+      if request.firmware_source:
+        items.append('Firmware Source: {}\n'.format(request.firmware_source))
+      items.append('\nDownload link: {}\n'.format(download_link))
+      plain_content = ''.join(items)
+      unprocessed_html_content = plain_content.replace(
+          download_link,
+          '<a href="{}">{}</a>'.format(download_link, download_link))
     else:
       subject = 'Bundle creation failed - {:%Y-%m-%d %H:%M:%S}'.format(
           datetime.datetime.now())
-      body = request.error_message
+      buganizer_link = 'https://issuetracker.google.com/new?component=596923'
+      plain_content = ('If you have issues that need help, please use {}\n\n'
+                       '{}').format(buganizer_link, worker_result.error_message)
+      unprocessed_html_content = plain_content.replace(
+          buganizer_link,
+          '<a href="{}">{}</a>'.format(buganizer_link, buganizer_link))
       mail_list.append(config.FAILURE_EMAIL)
+
+    html_content = unprocessed_html_content.replace('\n', '<br>').replace(
+        ' ', '&nbsp;')
     mail.send_mail(
         sender=config.NOREPLY_EMAIL,
         to=mail_list,
         subject=subject,
-        body=body)
+        body=plain_content,
+        html=html_content)
     return proto.CreateBundleRpcResponse()
 
   @remote.method(
@@ -146,35 +176,6 @@ class FactoryBundleService(remote.Service):
         'https://storage.cloud.google.com/{}/{}'.format(
             config.BUNDLE_BUCKET, request.path)
     return response
-
-  def GenerateSuccessBody(self, work_result):
-    """Generate email body if bundle created successfully.
-
-    Args:
-      work_result: proto.WorkerResult defined in
-          '../../proto/factorybundle.proto'.
-
-    Returns:
-      a string of email body.
-    """
-    path_match = re.match(
-        r'^gs://{}/(.*)$'.format(config.BUNDLE_BUCKET), work_result.gs_path)
-    download_link = (
-        'https://chromeos.google.com/partner/console/DownloadBundle?path={}' \
-            .format(urllib.quote_plus(path_match.group(1)))
-        if path_match
-        else '-')
-    req = work_result.original_request
-    body = 'Board: %s\n' % req.board
-    body += 'Device: %s\n' % req.project
-    body += 'Phase: %s\n' % req.phase
-    body += 'Toolkit Version: %s\n' % req.toolkit_version
-    body += 'Test Image Version: %s\n' % req.test_image_version
-    body += 'Release Image Version: %s\n' % req.release_image_version
-    if req.firmware_source:
-      body += 'Firmware Source: %s\n' % req.firmware_source
-    body += '\nDownload link: %s\n' % download_link
-    return body
 
 
 # Map the RPC service and path
