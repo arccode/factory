@@ -70,13 +70,19 @@ class UpdateSKUIDTest(test_case.TestCase):
       # <type> is one of 0: BOARD_VERSION, 1: OEM_ID, 2: SKU_ID
       cbi_output = self._dut.CallOutput(
           ['ectool', 'cbi', 'get', str(data_type)])
-      # The output from ectool cbi get is 'As integer: %u (0x%x)\n' % (val, val)
-      match = re.search(r'As integer: ([0-9]+) \(0x[0-9a-fA-F]+\)', cbi_output)
-      if match:
-        return int(match.group(1))
+      if cbi_output:
+        # If the CBI field to be probed is set, the output from
+        # 'ectool cbi get' is 'As integer: %u (0x%x)\n' % (val, val)
+        match = re.search(r'As integer: ([0-9]+) \(0x[0-9a-fA-F]+\)',
+                          cbi_output)
+        if match:
+          return int(match.group(1))
+        else:
+          self.FailTask('Is the format of the output from "ectool cbi get" '
+                        'changed?')
       else:
-        self.FailTask('Is the format of the output from "ectool cbi get" '
-                      'changed?')
+        logging.warning('CBI field %d is not found in EEPROM.', data_type)
+        return None
 
     def GetSKUIDFromDeviceData():
       device_data_sku = device_data.GetDeviceData(_KEY_COMPONENT_SKU)
@@ -93,13 +99,18 @@ class UpdateSKUIDTest(test_case.TestCase):
 
     def GetOEMIDFromCrosConfig(sku_id):
       output = self._dut.CallOutput(
-          ['cros_config', '--test_sku_id=%d' % sku_id, '/', 'oem-id']).strip()
-      if not output:
-        self.FailTask('Can\'t get OEM ID from cros_config')
-      return int(output)
+          ['cros_config', '--test_sku_id=%d' % sku_id, '/', 'oem-id'])
+      if output:
+        return int(output.strip())
+      else:
+        logging.warning('Can\'t get OEM ID from cros_config')
+        return None
 
     new_sku_id = GetSKUIDFromDeviceData()
     old_sku_id = GetDataFromEEPROM(SKU_ID_TYPE)
+    if old_sku_id is None:
+      self.FailTask('No valid SKU ID found in EEPROM')
+
     if old_sku_id == new_sku_id:
       return
 
@@ -117,7 +128,15 @@ class UpdateSKUIDTest(test_case.TestCase):
 
     oem_id_in_eeprom = GetDataFromEEPROM(OEM_ID_TYPE)
     oem_id_in_cros_config = GetOEMIDFromCrosConfig(new_sku_id)
-    if oem_id_in_eeprom != oem_id_in_cros_config:
+
+    if oem_id_in_eeprom is None and oem_id_in_cros_config is None:
+      logging.info('OEM ID is not supported on this board.')
+    elif oem_id_in_eeprom is None:
+      self.FailTask('OEM ID is not set in EEPROM but exists in cros_config.')
+    elif oem_id_in_cros_config is None:
+      self.FailTask('OEM ID does not exist in cros_config but is set in'
+                    'EEPROM.')
+    elif oem_id_in_eeprom != oem_id_in_cros_config:
       self.FailTask('OEM ID in EEPROM (%d) is not equal to the OEM ID in '
                     'cros_config (%d)' % (oem_id_in_eeprom,
                                           oem_id_in_cros_config))
