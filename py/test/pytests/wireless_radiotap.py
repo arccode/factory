@@ -334,13 +334,14 @@ class WirelessRadiotapTest(test_case.TestCase):
   def tearDown(self):
     self._DisconnectService()
 
-  def _ConnectService(self, service_name, password):
+  def _ConnectService(self, service_name, password, freqs):
     """Associates a specified wifi AP.
 
     Password can be '' or None.
     """
     try:
-      self._ap = self._dut.wifi.FindAccessPoint(ssid=service_name)
+      self._ap = self._dut.wifi.FindAccessPoint(ssid=service_name,
+          frequency=freqs)
     except wifi.WifiError as e:
       session.console.info(
           'Unable to find the service %s: %r' % (service_name, e))
@@ -415,7 +416,8 @@ class WirelessRadiotapTest(test_case.TestCase):
     """
     signal_list = []
     self.ui.SetState(_('Switching to AP {ap}...', ap=service.ssid))
-    if not self._ConnectService(service.ssid, service.password):
+    if not self._ConnectService(
+        service.ssid, service.password, freqs=service.freq):
       return []
 
     self.ui.SetState(

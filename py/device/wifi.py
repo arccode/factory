@@ -787,9 +787,15 @@ class Connection(object):
   def _AuthenticateOpen(self):
     """Connects to an open network."""
     # TODO(kitching): Escape quotes in ssid properly.
-    connect_command = u'iw dev {interface} connect {ssid}'.format(
-        interface=self.interface,
-        ssid=self.ap.ssid)
+    if self.ap.frequency is None:
+      connect_command = u'iw dev {interface} connect {ssid}'.format(
+          interface=self.interface,
+          ssid=self.ap.ssid)
+    else:
+      connect_command = u'iw dev {interface} connect {ssid} {freq}'.format(
+          interface=self.interface,
+          ssid=self.ap.ssid,
+          freq=self.ap.frequency)
 
     # Pause until connected.  Throws exception if failed.
     def ConnectOpen():
@@ -808,11 +814,19 @@ class Connection(object):
   def _AuthenticateWEP(self):
     """Authenticates and connect to a WEP network."""
     # TODO(kitching): Escape quotes in ssid and passkey properly.
-    connect_command = (
-        u'iw dev {interface} connect {ssid} key 0:{passkey}'.format(
-            interface=self.interface,
-            ssid=self.ap.ssid,
-            passkey=self.passkey))
+    if self.ap.frequency is None:
+      connect_command = (
+          u'iw dev {interface} connect {ssid} key 0:{passkey}'.format(
+              interface=self.interface,
+              ssid=self.ap.ssid,
+              passkey=self.passkey))
+    else:
+      connect_command = (
+          u'iw dev {interface} connect {ssid} {freq} key 0:{passkey}'.format(
+              interface=self.interface,
+              ssid=self.ap.ssid,
+              freq=self.ap.frequency,
+              passkey=self.passkey))
 
     # Pause until connected.  Throws exception if failed.
     def ConnectWEP():
