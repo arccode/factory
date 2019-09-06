@@ -6,6 +6,8 @@
 
 import functools
 import logging
+import os
+import stat
 
 from twisted.internet import defer
 
@@ -41,3 +43,33 @@ def Deprecate(method):
     return method(*args, **kwargs)
 
   return _Wrapper
+
+
+def CreateLoopDevice(loop_path_prefix, start, end):
+  major_number = 7
+  mode = 0o0660 | stat.S_IFBLK
+  uid = 0
+  gid = 0
+  try:
+    stat_result = os.stat('/dev/loop0')
+    major_number = os.major(stat_result.st_rdev)
+    mode = stat_result.st_mode
+    uid = stat_result.st_uid
+    gid = stat_result.st_gid
+  except OSError as e:
+    logging.warn('Failed to stat /dev/loop0, try defalt value.', exc_info=True)
+
+  for i in range(start, end):
+    loop_path = loop_path_prefix + str(i)
+    if os.path.exists(loop_path):
+      continue
+
+    device_number = os.makedev(major_number, i)
+    try:
+      os.mknod(loop_path, mode, device_number)
+      os.chown(loop_path, uid, gid)
+    except OSError as e:
+      logging.warn('Failed to create %s: %s', loop_path, e)
+      return False
+
+  return True

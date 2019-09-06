@@ -5,6 +5,7 @@
 
 """Umpired implementation."""
 
+import argparse
 import glob
 import logging
 import os
@@ -15,6 +16,7 @@ from cros.factory.umpire.server import migrate
 from cros.factory.umpire.server import rpc_cli
 from cros.factory.umpire.server import rpc_dut
 from cros.factory.umpire.server import umpire_env
+from cros.factory.umpire.server import utils
 from cros.factory.umpire.server import webapp_download_slots
 from cros.factory.umpire.server import webapp_resourcemap
 
@@ -57,10 +59,25 @@ def StartServer():
 
 
 def main():
+  parser = argparse.ArgumentParser(
+      description='Umpire container tool. Default will create the loop\
+          device and run the umpire daemon')
+
+  parser.add_argument('--create_loop_device', action='store_true',
+                      default=True, help='will create loop device before\
+                      starting umpired')
+  parser.add_argument('--no-create_loop_device', dest='create_loop_device',
+                      action='store_false', help='will start umpired directly')
+  args = parser.parse_args()
+
   logging.basicConfig(
       level=logging.DEBUG,
       format=('%(asctime)s %(levelname)s %(filename)s %(funcName)s:%(lineno)d '
               '%(message)s'))
+
+  if args.create_loop_device:
+    utils.CreateLoopDevice("/dev/loop", 0, 256)
+
   StartServer()
 
 
