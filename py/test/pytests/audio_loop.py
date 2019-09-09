@@ -66,7 +66,8 @@ Audiofuntest external mic (default) of input_dev and speakers of output_dev::
           {
             "duration": 4,
             "threshold": 80,
-            "type": "audiofun"
+            "type": "audiofun",
+            "player_format": "s16"
           }
         ]
       }
@@ -142,6 +143,7 @@ Audiofuntest on 'mlb' mics of input_dev and speaker channel 0 of output_dev::
 
 from __future__ import print_function
 
+import logging
 import os
 import re
 import tempfile
@@ -178,10 +180,14 @@ _DEFAULT_AUDIOFUN_TEST_ITERATION = 10
 _DEFAULT_AUDIOFUN_TEST_INPUT_CHANNELS = [0, 1]
 # Default channels of the output_dev to be tested.
 _DEFAULT_AUDIOFUN_TEST_OUTPUT_CHANNELS = [0, 1]
-# Default capture sample rate used for audiofuntest.
-_DEFAULT_AUDIOFUN_TEST_SAMPLE_RATE = 48000
 # Default audio gain used for audiofuntest.
 _DEFAULT_AUDIOFUN_TEST_VOLUME_GAIN = 100
+# Default capture sample rate used for audiofuntest.
+_DEFAULT_AUDIOFUN_TEST_SAMPLE_RATE = 48000
+# Default sample format used by audiofuntest, s16 = Signed 16 Bit.
+_DEFAULT_AUDIOFUN_TEST_SAMPLE_FORMAT = 's16'
+# Default sample format used to play audio, s16 = Signed 16 Bit.
+_DEFAULT_AUDIOFUN_TEST_PLAYER_FORMAT = 's16'
 # Default duration to do the sinewav test, in seconds.
 _DEFAULT_SINEWAV_TEST_DURATION = 2
 # Default frequency tolerance, in Hz.
@@ -194,10 +200,6 @@ _DEFAULT_SOX_RMS_THRESHOLD = (0.08, None)
 _DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
 # Default duration in seconds to trim in the beginning of recorded file.
 _DEFAULT_TRIM_SECONDS = 0.5
-# Default sample format for player used by aplay, S16 = Signed 16 Bit.
-_DEFAULT_PLAYER_SAMPLE_FORMAT = 'S16'
-# Default sample format for recorder used by arecord, S16 = Signed 16 Bit.
-_DEFAULT_RECORDER_SAMPLE_FORMAT = 'S16'
 # Default minimum frequency.
 _DEFAULT_MIN_FREQUENCY = 4000
 # Default maximum frequency.
@@ -255,14 +257,14 @@ class AudioLoopTest(test_case.TestCase):
           '  - **threshold**: The minimum success rate to pass the test.\n'
           '  - **input_channels**: A list of input channels to be tested.\n'
           '  - **output_channels**: A list of output channels to be tested.\n'
-          '  - **capture_rate**: The capturing sample rate use for testing.\n'
           '  - **volume_gain**: The volume gain set to audiofuntest for \n'
           '        controlling the volume of generated audio frames. The \n'
-          '        range is from 0 to 100.'
-          '  - **recorder_sample_format**: The sample format for the input \n'
-          '        device. Use arecord to see all possible formats.'
-          '  - **player_sample_format**: The sample format for the output \n'
-          '        device. Use aplay to see all possible formats.'
+          '        range is from 0 to 100.\n'
+          '  - **capture_rate**: The capturing sample rate use for testing. \n'
+          '        The value should be determined by output device.\n'
+          '  - **sample_format**: The sample format for audiofuntest. \n'
+          '        See -t section in audiofuntest manual.\n'
+          '  - **player_format**: The sample format for output device.\n'
           '  - **min_frequency**: The minimum frequency set to audiofuntest.\n'
           '  - **max_frequency**: The maximum frequency set to audiofuntest.\n'
           '\n'
@@ -522,10 +524,25 @@ class AudioLoopTest(test_case.TestCase):
         'volume_gain', _DEFAULT_AUDIOFUN_TEST_VOLUME_GAIN)
     self.assertTrue(0 <= volume_gain <= 100)
 
+    audiofuntest_sample_format = self._current_test_args.get(
+        'sample_format', _DEFAULT_AUDIOFUN_TEST_SAMPLE_FORMAT).lower()
+    audiofuntest_bits = int(audiofuntest_sample_format[1:])
+    if audiofuntest_sample_format.startswith('s'):
+      audiofuntest_encoding = 'signed'
+    elif audiofuntest_sample_format.startswith('u'):
+      audiofuntest_encoding = 'unsigned'
+    else:
+      raise ValueError('Unknown audiofuntest encoding')
+
     player_sample_format = self._current_test_args.get(
-        'player_sample_format', _DEFAULT_PLAYER_SAMPLE_FORMAT)
-    recorder_sample_format = self._current_test_args.get(
-        'recorder_sample_format', _DEFAULT_RECORDER_SAMPLE_FORMAT)
+        'player_format', _DEFAULT_AUDIOFUN_TEST_PLAYER_FORMAT).lower()
+    player_bits = int(player_sample_format[1:])
+    if player_sample_format.startswith('s'):
+      player_encoding = 'signed'
+    elif player_sample_format.startswith('u'):
+      player_encoding = 'unsigned'
+    else:
+      raise ValueError('Unknown player encoding')
 
     min_frequency = self._current_test_args.get(
         'min_frequency', _DEFAULT_MIN_FREQUENCY)
@@ -534,21 +551,36 @@ class AudioLoopTest(test_case.TestCase):
         'max_frequency', _DEFAULT_MAX_FREQUENCY)
     self.assertLessEqual(min_frequency, max_frequency)
 
-    player_cmd = 'aplay -D %s -r %d -f %s -t raw -c 2 -B 0 -' % (
-        self._alsa_output_device, capture_rate, player_sample_format)
-    recorder_cmd = 'arecord -D %s -r %d -f %s -t raw -c %d -B 0 -' % (
-        self._alsa_input_device, capture_rate, recorder_sample_format,
-        self.args.num_input_channels)
+    player_cmd = 'sox -b%d -c2 -e%s -r%d -traw - '\
+                 '-b%d -e%s -talsa %s' % (
+                     audiofuntest_bits,
+                     audiofuntest_encoding,
+                     capture_rate,
+                     player_bits,
+                     player_encoding,
+                     self._alsa_output_device)
+
+    recorder_cmd = 'sox -talsa %s '\
+                   '-b%d -c%d -e%s -r%d -traw - remix %s' % (
+                       self._alsa_input_device,
+                       audiofuntest_bits,
+                       len(input_channels),
+                       audiofuntest_encoding,
+                       capture_rate,
+                       ' '.join(str(x+1) for x in input_channels))
+
+    logging.info('player_cmd: %s', player_cmd)
+    logging.info('recorder_cmd: %s', recorder_cmd)
 
     process = self._dut.Popen(
         [audio_utils.AUDIOFUNTEST_PATH,
          '-P', player_cmd,
          '-R', recorder_cmd,
+         '-t', audiofuntest_sample_format,
          '-r', '%d' % capture_rate,
          '-T', '%d' % iteration,
          '-a', '%d' % output_channel,
-         '-m', ','.join(map(str, input_channels)),
-         '-c', '%d' % self.args.num_input_channels,
+         '-c', '%d' % len(input_channels),
          '-g', '%d' % volume_gain,
          '-i', '%d' % min_frequency,
          '-x', '%d' % max_frequency],
