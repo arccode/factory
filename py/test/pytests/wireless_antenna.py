@@ -4,15 +4,49 @@
 
 """A factory test for basic Wifi.
 
+Description
+-----------
+The test checks if the strength of the input wireless services list satisfy the
+input spec via "iw dev {device} scan".
+
+Be sure to set AP correctly.
+1. Select a fixed channel instead of auto.
+2. Disable the power control in AP.
+3. Make sure SSID of AP is unique.
+
+Test Procedure
+--------------
 The test accepts a dict of wireless specs.
 Each spec contains candidate services and the signal constraints.
 For each spec, the test will first scan the signal quality using 'all' antenna
 to determine the strongest service to test. Then the test switches antenna
 configuration to test signal quality.
-Be sure to set AP correctly.
-1. Select a fixed channel instead of auto.
-2. Disable the power control in AP.
-3. Make sure SSID of AP is unique.
+
+Dependency
+----------
+- `iw` utility
+- `ifconfig` utility
+
+Examples
+--------
+To run this test on DUT, add a test item in the test list::
+
+  {
+    "pytest_name": "wireless_antenna",
+    "args": {
+      "device_name": "wlan0",
+      "services": [
+        ["my_ap_service", 5745]
+      ],
+      "strength": {
+        "main": -60,
+        "aux": -60,
+        "all": -60
+      },
+      "scan_count": 10,
+      "switch_antenna_sleep_secs": 1
+    }
+  }
 """
 
 from __future__ import print_function
@@ -23,6 +57,7 @@ import sys
 import time
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.device import device_utils
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
 from cros.factory.test import session
@@ -194,8 +229,9 @@ class WirelessTest(test_case.TestCase):
   """
   ARGS = [
       Arg('device_name', str,
-          'Wireless device name to test. '
-          'Set this correctly if check_antenna is True.', default='wlan0'),
+          'Wireless device name to test. e.g. wlan0. If not specified, it will'
+          'fail if multiple devices are found, otherwise use the only one '
+          'device it found.', default=None),
       Arg('services', list,
           'A list of (service_ssid, freq) tuples like '
           '``[(SSID1, FREQ1), (SSID2, FREQ2), '
@@ -212,7 +248,7 @@ class WirelessTest(test_case.TestCase):
           'Number of scans to get average signal strength.', default=5),
       Arg('switch_antenna_sleep_secs', int,
           'The sleep time after switchingantenna and ifconfig up. Need to '
-          'decide this value carefully since itdepends on the platform and '
+          'decide this value carefully since it depends on the platform and '
           'antenna config to test.', default=10),
       Arg('disable_switch', bool,
           'Do not switch antenna, just check "all" '
@@ -220,6 +256,10 @@ class WirelessTest(test_case.TestCase):
 
   def setUp(self):
     self.ui.ToggleTemplateClass('font-large', True)
+    _wifi = device_utils.CreateDUTInterface().wifi
+    self._device_name = _wifi.SelectInterface(self.args.device_name)
+    logging.info('Selected device_name is %s.', self._device_name)
+
     self._phy_name = self.DetectPhyName()
     logging.info('phy name is %s.', self._phy_name)
     self._antenna_service_strength = {}
@@ -253,7 +293,7 @@ class WirelessTest(test_case.TestCase):
       The phy name for device_name device.
     """
     output = process_utils.CheckOutput(
-        ['iw', 'dev', self.args.device_name, 'info'])
+        ['iw', 'dev', self._device_name, 'info'])
     logging.info('info output: %s', output)
     number = GetProp(output, _RE_WIPHY, None)
     return ('phy' + number) if number else None
@@ -301,17 +341,17 @@ class WirelessTest(test_case.TestCase):
     Returns:
       Scan output on device.
     """
-    logging.info('Start scanning on %s freq %d.', self.args.device_name, freq)
+    logging.info('Start scanning on %s freq %d.', self._device_name, freq)
     self.ui.SetState(
         _('Scanning on device {device} frequency {freq}...',
-          device=self.args.device_name,
+          device=self._device_name,
           freq=freq))
 
-    scan_output = IwScan(self._iw_scan_group_checker, self.args.device_name,
+    scan_output = IwScan(self._iw_scan_group_checker, self._device_name,
                          freq)
     self.ui.SetState(
         _('Done scanning on device {device} frequency {freq}...',
-          device=self.args.device_name,
+          device=self._device_name,
           freq=freq))
     logging.info('Scan finished.')
     return scan_output
@@ -345,9 +385,10 @@ class WirelessTest(test_case.TestCase):
       ssid = GetProp(line, _RE_SSID, ssid)
       last_seen = GetProp(line, _RE_LAST_SEEN, last_seen)
       if mac and freq and signal and ssid and last_seen:
-        if ssid == service_ssid:
+        last_seen = int(last_seen)
+        if ssid == service_ssid and last_seen <= _THRESHOLD_LAST_SEEN_MS:
           parsed_tuples.append(
-              (mac, int(freq), float(signal), int(last_seen)))
+              (mac, int(freq), float(signal), last_seen))
         mac, ssid, freq, signal, last_seen = (None, None, None, None, None)
 
     if not parsed_tuples:
@@ -375,10 +416,10 @@ class WirelessTest(test_case.TestCase):
                    ' %s. Just bring up the interface.', antenna)
       # Bring up the interface because IwSetAntenna brings up interface after
       # antenna is switched.
-      IfconfigUp(self.args.device_name, self.args.switch_antenna_sleep_secs)
+      IfconfigUp(self._device_name, self.args.switch_antenna_sleep_secs)
       return
     tx_bitmap, rx_bitmap = _ANTENNA_CONFIG[antenna]
-    IwSetAntenna(self.args.device_name, self._phy_name,
+    IwSetAntenna(self._device_name, self._phy_name,
                  tx_bitmap, rx_bitmap,
                  switch_antenna_sleep_secs=self.args.switch_antenna_sleep_secs)
     self._antenna = antenna
@@ -410,7 +451,7 @@ class WirelessTest(test_case.TestCase):
     # Gets all candidate freqs.
     set_all_freqs = set([service[1] for service in services])
 
-    # keys are services and values are lists of each scannd value.
+    # keys are services and values are lists of each scanned value.
     scan_results = {}
     for service in services:
       scan_results[service] = []
@@ -423,10 +464,6 @@ class WirelessTest(test_case.TestCase):
           service_ssid = service[0]
           mac, freq_scanned, strength, last_seen = self.ParseScanOutput(
               scan_output, service_ssid)
-          if last_seen > _THRESHOLD_LAST_SEEN_MS:
-            logging.warning('Ignore cached scan : %s %d ms ago.',
-                            service_ssid, last_seen)
-            continue
           # strength may be 0.
           if strength is not None:
             # iw returns the scan results of other frequencies as well.

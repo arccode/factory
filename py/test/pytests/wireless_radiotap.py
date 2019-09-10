@@ -334,7 +334,9 @@ class WirelessRadiotapTest(test_case.TestCase):
   """
   ARGS = [
       Arg('device_name', str,
-          'Wireless device name to test. ', default='wlan0'),
+          'Wireless device name to test. e.g. wlan0. If not specified, it will'
+          'fail if multiple devices are found, otherwise use the only one '
+          'device it found.', default=None),
       Arg('services', list,
           'A list of ``(<service_ssid>:str, <freq>:str|None, '
           '<password>:str|None)`` tuples like ``[(SSID1, FREQ1, PASS1), '
@@ -359,6 +361,7 @@ class WirelessRadiotapTest(test_case.TestCase):
     self.ui.ToggleTemplateClass('font-large', True)
 
     self._dut = device_utils.CreateDUTInterface()
+    self._device_name = None
     self._phy_name = None
     self._ap = None
     self._connection = None
@@ -417,7 +420,7 @@ class WirelessRadiotapTest(test_case.TestCase):
       The phy name for device_name device.
     """
     output = self._dut.CheckOutput(
-        ['iw', 'dev', self.args.device_name, 'info'], log=True)
+        ['iw', 'dev', self._device_name, 'info'], log=True)
     m = _RE_WIPHY.search(output)
     return ('phy' + m.group(1)) if m else None
 
@@ -477,9 +480,9 @@ class WirelessRadiotapTest(test_case.TestCase):
 
     self.ui.SetState(
         _('Scanning on device {device} frequency {freq}...',
-          device=self.args.device_name,
+          device=self._device_name,
           freq=service.freq))
-    with Capture(self._dut, self.args.device_name, self._phy_name) as capture:
+    with Capture(self._dut, self._device_name, self._phy_name) as capture:
       capture_times = 0
       while capture_times < times:
         signal_result = capture.GetSignal()
@@ -492,7 +495,7 @@ class WirelessRadiotapTest(test_case.TestCase):
           session.console.info('Ignore the signal %r', signal_result)
     self.ui.SetState(
         _('Done scanning on device {device} frequency {freq}...',
-          device=self.args.device_name,
+          device=self._device_name,
           freq=service.freq))
     self._DisconnectService()
     return signal_list
@@ -567,7 +570,7 @@ class WirelessRadiotapTest(test_case.TestCase):
     self.ui.SetState(_('Checking frequencies...'))
 
     scan_result = IwScan(
-        self._dut, self._iw_scan_group_checker, self.args.device_name)
+        self._dut, self._iw_scan_group_checker, self._device_name)
     ssid_freqs = {service.ssid: set() for service in self._services}
 
     for scanned_service in scan_result:
@@ -580,7 +583,7 @@ class WirelessRadiotapTest(test_case.TestCase):
       elif service.freq is None:
         if len(ssid_freqs[service.ssid]) > 1:
           self.FailTask('There are more than one frequencies (%r) for ssid %s. '
-                        'Please specify the frequency explicity.' %
+                        'Please specify the frequency explicitly.' %
                         (ssid_freqs[service.ssid], service.ssid))
         service.freq = ssid_freqs[service.ssid].pop()
       elif service.freq not in ssid_freqs[service.ssid]:
@@ -589,6 +592,10 @@ class WirelessRadiotapTest(test_case.TestCase):
                       (service.freq, service.ssid, ssid_freqs[service.ssid]))
 
   def runTest(self):
+    self._device_name = self._dut.wifi.SelectInterface(
+        self.args.device_name)
+    session.console.info('Selected device_name is %s.', self._device_name)
+
     self._phy_name = self._DetectPhyName()
     session.console.info('phy name is %s.', self._phy_name)
 

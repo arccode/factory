@@ -82,6 +82,40 @@ class WiFi(types.DeviceComponent):
                      self._device.Glob('/sys/class/net/' + pattern) or []]
     return interfaces
 
+  def SelectInterface(self, interface=None):
+    """Returns an interface for wireless LAN devices.
+
+    Args:
+      interface: The specified interface.
+
+    Raises:
+      WiFiError if the specified interface is not available or the interface is
+      not specified when there are multiple available interfaces.
+
+    Returns:
+      An available interface.
+    """
+    # Check that we have an online WLAN interface.
+    interfaces = self.GetInterfaces()
+
+    # Ensure there are WLAN interfaces available.
+    if not interfaces:
+      raise WiFiError('No available WLAN interfaces.')
+
+    # If a specific interface is specified, check that it exists.
+    if interface:
+      if interface not in interfaces:
+        raise WiFiError('Specified interface %s not available' %
+                        interface)
+      return interface
+
+    # If no interface is specified, check the uniqueness.
+    if len(interfaces) != 1:
+      raise WiFiError(
+          'There are multiple interfaces. '
+          'Please specify one from: %r' % interfaces)
+    return interfaces[0]
+
   def _ValidateInterface(self, interface=None):
     """Returns either provided interface, or one retrieved from system."""
     if interface:

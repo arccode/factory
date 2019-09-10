@@ -4,6 +4,8 @@
 
 """WiFi throughput test.
 
+Description
+-----------
 Accepts a list of wireless services, checks for their signal strength and
 quality, connects to them, and tests data throughput rate using iperf3.
 
@@ -15,9 +17,27 @@ One notable difference about this test is how it processes arguments:
   3. If it was not provided as a "test-level" argument, it takes the
      default value passed to the Arg() constructor.
 
+Test Procedure
+--------------
+
+Accepts a list of wireless services.
+
+For each service:
+  1. Checks signal strength.
+  2. Checks quality devices.
+  3. Connects to devices.
+  4. Tests data throughput rate using iperf3.
+
+Dependency
+----------
+- `ifconfig` utility
+- `iperf3` utility
+
+Examples
+--------
 Here's an example of input arguments::
 
-  ARGS={
+  {
       "event_log_name": "wifi_throughput_in_chamber",
       "services": [
           {
@@ -39,7 +59,7 @@ Here's an example of input arguments::
 After processing, each service would effectively have a configuration that
 looks like this::
 
-  ARGS={
+  {
       "event_log_name": "wifi_throughput_in_chamber",
       "services": [
           {
@@ -722,8 +742,9 @@ class WiFiThroughput(test_case.TestCase):
           'Does not check output of the command.',
           default=None),
       Arg('interface', str,
-          'WLAN interface being used.  e.g. wlan0.  If not specified, this '
-          'will default to the first wireless interface found.',
+          'WLAN interface being used.  e.g. wlan0.  If not specified, it will'
+          'fail if multiple devices are found, otherwise use the only one '
+          'device it found.',
           default=None),
       Arg('arduino_high_pins', list,
           'A list of ints.  If not None, set arduino pins in the list to high.',
@@ -793,7 +814,7 @@ class WiFiThroughput(test_case.TestCase):
   def _RunBasicSSIDList(self):
     # Basic WiFi test -- returns available APs.
     try:
-      found_aps = self._wifi.FilterAccessPoints(interface=self.args.interface)
+      found_aps = self._wifi.FilterAccessPoints(interface=self._interface)
       found_ssids = list(set([ap.ssid for ap in found_aps]))
       session.console.info('Found services: %s', ', '.join(found_ssids))
     except self._wifi.WiFiError:
@@ -943,32 +964,10 @@ class WiFiThroughput(test_case.TestCase):
       logging.info('Enabling ethernet interfaces')
       net_utils.SwitchEthernetInterfaces(True)
 
-  def _SelectInterface(self):
-    # Check that we have an online WLAN interface.
-    interfaces = self._wifi.GetInterfaces()
-
-    # Ensure there are WLAN interfaces available.
-    if not interfaces:
-      error_str = 'No WLAN interfaces available'
-      self.log['failures'].append(error_str)
-      self._Log()
-      self.fail(error_str)
-
-    # If a specific interface is specified, check that it exists.
-    if self.args.interface and self.args.interface not in interfaces:
-      error_str = 'Specified interface %s not available' % self.args.interface
-      self.log['failures'].append(error_str)
-      self._Log()
-      self.fail(error_str)
-
-    # Return the selected interface if specified, or choose the first available
-    # one by default.
-    return self.args.interface or interfaces[0]
-
   def runTest(self):
     # Choose the WLAN interface to use for this test, either from the test
-    # arguments, or by choosing the first one listed on the device.
-    self._interface = self._SelectInterface()
+    # arguments, or by choosing the only one listed on the device.
+    self._interface = self._wifi.SelectInterface(self.args.interface)
     session.console.info('Selected interface: %s', self._interface)
 
     # Run a basic SSID list test (if none found will fail).
