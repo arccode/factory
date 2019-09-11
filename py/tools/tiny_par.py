@@ -81,7 +81,7 @@ fi
 export PYTHONPATH="${PYTHONPATH}:${REAL_PATH}"
 export PAR_PATH="${REAL_PATH}"
 export PATH="${PATH}:${REAL_DIR}"
-exec python -m "${MODULE}" "$@"
+exec python2 -m "${MODULE}" "$@"
 exit 1
 # Should never reach here. Anything below are reserved for ZIP.
 """
