@@ -162,7 +162,7 @@ class GyroscopeController(sensor_utils.BasicSensorController):
       for key, re_exp in re_dict.iteritems():
         result[key] = re_exp.search(raw_info).group(1)
     except AttributeError as e:
-      MotionSensorException('Failed to parse key "%s": %s' % (key, e))
+      raise MotionSensorException('Failed to parse key "%s": %s' % (key, e))
 
     return result
 
