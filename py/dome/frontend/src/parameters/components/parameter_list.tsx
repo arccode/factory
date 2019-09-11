@@ -306,7 +306,7 @@ class ParameterList extends
             Current directory: {currentPath}
           </Typography>
         </ListItem>
-        <ListSubheader>DIRECTORIES</ListSubheader>
+        <ListSubheader>Directories</ListSubheader>
         <ListItem>{directoryTable}</ListItem>
         <ListSubheader>Files</ListSubheader>
         <ListItem>{componentTable}</ListItem>

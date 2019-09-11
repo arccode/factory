@@ -101,7 +101,7 @@ class LogForm extends React.Component<
           {(logType === 'echo_code') ||
             <CardContent>
               <List>
-                <ListSubheader>MAXIMUM ARCHIVE SIZE</ListSubheader>
+                <ListSubheader>Maximum Archive Size</ListSubheader>
                 <ListItem>
                   <ReduxFormTextField
                     name="archiveSize"
@@ -120,7 +120,7 @@ class LogForm extends React.Component<
                     ))}
                   </ReduxFormTextField>
                 </ListItem>
-                <ListSubheader>DATES</ListSubheader>
+                <ListSubheader>Dates</ListSubheader>
                 <ListItem>
                   <ReduxFormDateField
                     name="startDate"
