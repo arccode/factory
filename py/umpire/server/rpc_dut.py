@@ -145,7 +145,7 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
     Raises:
       ValueError if the parameter does not exist.
     """
-    abspaths = self.env.QueryParameters(namespace, name)
+    abspaths = self.env.parameters.QueryParameters(namespace, name)
 
     if not abspaths:
       raise ValueError('File does not exist or it is not a file')

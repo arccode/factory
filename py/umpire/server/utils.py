@@ -4,12 +4,17 @@
 
 """Umpire utility classes."""
 
+import filecmp
 import functools
 import logging
 import os
 import stat
 
 from twisted.internet import defer
+
+import factory_common  # pylint: disable=unused-import
+from cros.factory.umpire import common
+from cros.factory.utils import file_utils
 
 
 def ConcentrateDeferreds(deferred_list):
@@ -73,3 +78,28 @@ def CreateLoopDevice(loop_path_prefix, start, end):
       return False
 
   return True
+
+
+def CheckAndMoveFile(src_path, dst_path, use_move):
+  """Check if destination file exists and move file.
+
+  Args:
+    src_path: source file path.
+    dst_path: destination file path.
+    use_move: use os.rename() or file_utils.AtomicCopy().
+
+  Raise:
+    UmpireError if dst_path exists but has different content from src_path.
+  """
+  if os.path.exists(dst_path):
+    if filecmp.cmp(src_path, dst_path, shallow=False):
+      logging.warning('Skip copying as file already exists: %s', dst_path)
+      return
+    raise common.UmpireError(
+        'Hash collision: file %r != resource file %r' % (src_path, dst_path))
+  if use_move:
+    os.rename(src_path, dst_path)
+  else:
+    file_utils.AtomicCopy(src_path, dst_path)
+  os.chmod(dst_path, 0o644)
+  logging.info('File added: %s', dst_path)

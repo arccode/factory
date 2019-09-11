@@ -225,13 +225,13 @@ class CLICommand(umpire_rpc.UmpireRPC):
   @umpire_rpc.RPCCall
   def UpdateParameterComponent(self, comp_id, dir_id, comp_name, using_ver,
                                file_path=None):
-    return self.env.UpdateParameterComponent(comp_id, dir_id, comp_name,
-                                             using_ver, file_path)
+    return self.env.parameters.UpdateParameterComponent(
+        comp_id, dir_id, comp_name, using_ver, file_path)
 
   @umpire_rpc.RPCCall
   def GetParameterInfo(self):
-    return self.env.GetParameterInfo()
+    return self.env.parameters.GetParameterInfo()
 
   @umpire_rpc.RPCCall
   def UpdateParameterDirectory(self, dir_id, parent_id, name):
-    return self.env.UpdateParameterDirectory(dir_id, parent_id, name)
+    return self.env.parameters.UpdateParameterDirectory(dir_id, parent_id, name)
