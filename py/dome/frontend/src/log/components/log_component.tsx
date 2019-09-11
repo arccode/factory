@@ -214,15 +214,17 @@ class LogComponent extends React.Component<LogComponentProps> {
         </div>
         <div className={classes.icon}>
           <Tooltip title="remove">
-            <IconButton
-              onClick={remove}
-              disabled={
-                (remove === undefined ||
-                 componentState === 'WAITING' ||
-                 componentState === 'PROCESSING')}
-            >
-              <DeleteIcon/>
-            </IconButton>
+            <span>
+              <IconButton
+                onClick={remove}
+                disabled={
+                  (remove === undefined ||
+                   componentState === 'WAITING' ||
+                   componentState === 'PROCESSING')}
+              >
+                <DeleteIcon/>
+              </IconButton>
+            </span>
           </Tooltip>
           {actionButton}
         </div>
