@@ -374,6 +374,20 @@ class Database(object):
           raise common.HWIDException(
               'The encoded field %r is not defined in `encoded_fields` part.' %
               encoded_field_name)
+    # The last encoded patterns should always contain enough bits for all
+    # fields.
+    for encoded_field_name, bit_length in self.GetEncodedFieldsBitLength(
+        self.max_image_id).iteritems():
+      max_index = max(self.GetEncodedField(encoded_field_name))
+      if max_index.bit_length() > bit_length:
+        raise common.HWIDException(
+            'Number of allocated bits (%d) for field %r is not enough in the '
+            'encoded patterns for image id %r' %
+            (bit_length, encoded_field_name, self.max_image_id))
+    # TODO(yhong): Perform stricter check against the encoded fields that are
+    #     excluded in the latest encoded pattern.  Currently it's allowed as
+    #     this feature is often applied to solve exceptional HWID submittion
+    #     flows like b/124414887.
 
     # Each encoded field should be well defined.
     for encoded_field_name in self.encoded_fields:

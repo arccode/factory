@@ -47,7 +47,7 @@ def _CheckProject(args):
     args: A tuple of (project_name, project_info, hwid_dir).
 
   Returns:
-    None if the database is valid, else a tuple of (title, exc_info).
+    None if the database is valid, else a tuple of (title, error message).
   """
   project_name, project_info, hwid_dir = args
 
@@ -72,7 +72,7 @@ def _CheckProject(args):
       logging.info('Database %s is removed. Skip test for %s.',
                    db_path, project_name)
       return None
-    return (title, sys.exc_info())
+    return (title, traceback.format_exception(*sys.exc_info()))
 
   # Load databases and verify checksum. For old factory branches that do not
   # have database checksum, the checksum verification will be skipped.
@@ -93,7 +93,7 @@ def _CheckProject(args):
         db_raw, expected_checksum=expected_checksum)
   except Exception:
     logging.error('%s: Load database failed.', project_name)
-    return (title, sys.exc_info())
+    return (title, traceback.format_exception(*sys.exc_info()))
 
   return None
 
@@ -147,9 +147,9 @@ class ValidHWIDDBsTest(unittest.TestCase):
 
     if exception_list:
       error_msg = []
-      for title, info in exception_list:
+      for title, err_msg_lines in exception_list:
         error_msg.append('Error occurs in %s\n' % title +
-                         ''.join(traceback.format_exception(*info)))
+                         ''.join('  ' + l for l in err_msg_lines))
       raise Exception('\n'.join(error_msg))
 
 

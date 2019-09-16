@@ -27,7 +27,7 @@ class DetermineComponentNameTest(unittest.TestCase):
     value = {
         'version': 'rev2'}
     expected = 'rev2'
-    self.assertEquals(expected, builder.DetermineComponentName(comp_cls, value))
+    self.assertEqual(expected, builder.DetermineComponentName(comp_cls, value))
 
   def testFirmwareKeys(self):
     comp_cls = 'firmware_keys'
@@ -36,7 +36,7 @@ class DetermineComponentNameTest(unittest.TestCase):
             'c14bd720b70d97394257e3e826bd8f43de48d4ed#devkeys/recovery',
         'key_root': 'b11d74edd286c144e1135b49e7f0bc20cf041f10#devkeys/rootkey'}
     expected = 'firmware_keys_dev'
-    self.assertEquals(expected, builder.DetermineComponentName(comp_cls, value))
+    self.assertEqual(expected, builder.DetermineComponentName(comp_cls, value))
 
   def testDRAM(self):
     comp_cls = 'dram'
@@ -46,17 +46,17 @@ class DetermineComponentNameTest(unittest.TestCase):
         'slot': '0',
         'timing': 'DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600'}
     expected = 'ABCD_2048mb_0'
-    self.assertEquals(expected, builder.DetermineComponentName(comp_cls, value))
+    self.assertEqual(expected, builder.DetermineComponentName(comp_cls, value))
 
 
 class BuilderMethodTest(unittest.TestCase):
 
   def testFilterSpecialCharacter(self):
     function = builder.FilterSpecialCharacter
-    self.assertEquals(function(''), 'unknown')
-    self.assertEquals(function('foo  bar'), 'foo_bar')
-    self.assertEquals(function('aaa::bbb-ccc'), 'aaa_bbb_ccc')
-    self.assertEquals(function('  aaa::bbb-ccc___'), 'aaa_bbb_ccc')
+    self.assertEqual(function(''), 'unknown')
+    self.assertEqual(function('foo  bar'), 'foo_bar')
+    self.assertEqual(function('aaa::bbb-ccc'), 'aaa_bbb_ccc')
+    self.assertEqual(function('  aaa::bbb-ccc___'), 'aaa_bbb_ccc')
 
   def testPromptAndAsk(self):
     function = builder.PromptAndAsk
@@ -84,7 +84,7 @@ class BuilderMethodTest(unittest.TestCase):
     updated = checksum_updater.ReplaceChecksum(checksum_test)
     with open(os.path.join(_TEST_DATA_PATH, 'CHECKSUM_TEST.golden'), 'r') as f:
       checksum_test_golden = f.read()
-    self.assertEquals(updated, checksum_test_golden)
+    self.assertEqual(updated, checksum_test_golden)
 
 
 class DatabaseBuilderTest(unittest.TestCase):
@@ -94,16 +94,16 @@ class DatabaseBuilderTest(unittest.TestCase):
 
     # From file.
     db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
-    self.assertEquals(db.database,
-                      Database.LoadFile(_TEST_DATABASE_PATH,
-                                        verify_checksum=False))
+    self.assertEqual(db.database,
+                     Database.LoadFile(_TEST_DATABASE_PATH,
+                                       verify_checksum=False))
 
     # From stratch.
     self.assertRaises(ValueError, builder.DatabaseBuilder, project='PROJ')
 
     db = builder.DatabaseBuilder(project='PROJ', image_name='PROTO')
-    self.assertEquals(db.database.project, 'PROJ')
-    self.assertEquals(db.database.GetImageName(0), 'PROTO')
+    self.assertEqual(db.database.project, 'PROJ')
+    self.assertEqual(db.database.GetImageName(0), 'PROTO')
 
   def testAddDefaultComponent(self):
     db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
@@ -114,7 +114,7 @@ class DatabaseBuilderTest(unittest.TestCase):
     # component should be returned.
     bom = probe.GenerateBOMFromProbedResults(
         db.database, {}, {}, {}, 'normal', False)[0]
-    self.assertEquals(bom.components['comp_cls_1'], ['comp_cls_1_default'])
+    self.assertEqual(bom.components['comp_cls_1'], ['comp_cls_1_default'])
 
     # If the probed results contain a real component value, the default
     # component shouldn't be returned.
@@ -122,7 +122,7 @@ class DatabaseBuilderTest(unittest.TestCase):
         db.database,
         {'comp_cls_1': [{'name': 'comp1', 'values': {'value': "1"}}]},
         {}, {}, 'normal', False)[0]
-    self.assertEquals(bom.components['comp_cls_1'], ['comp_1_1'])
+    self.assertEqual(bom.components['comp_cls_1'], ['comp_1_1'])
 
     # One component class can have at most one default component.
     self.assertRaises(ValueError, db.AddDefaultComponent, 'comp_cls_1')
@@ -131,20 +131,20 @@ class DatabaseBuilderTest(unittest.TestCase):
     db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
 
     db.AddNullComponent('comp_cls_1')
-    self.assertEquals({0: {'comp_cls_1': ['comp_1_1']},
-                       1: {'comp_cls_1': ['comp_1_2']},
-                       2: {'comp_cls_1': []}},
-                      db.database.GetEncodedField('comp_cls_1_field'))
+    self.assertEqual({0: {'comp_cls_1': ['comp_1_1']},
+                      1: {'comp_cls_1': ['comp_1_2']},
+                      2: {'comp_cls_1': []}},
+                     db.database.GetEncodedField('comp_cls_1_field'))
 
     # The database already accepts a device without a cpu component.
     db.AddNullComponent('cpu')
-    self.assertEquals(
+    self.assertEqual(
         {0: {'cpu': []}}, db.database.GetEncodedField('cpu_field'))
 
     # The given component class was not recorded in the database.
     db.AddNullComponent('new_component')
-    self.assertEquals({0: {'new_component': []}},
-                      db.database.GetEncodedField('new_component_field'))
+    self.assertEqual({0: {'new_component': []}},
+                     db.database.GetEncodedField('new_component_field'))
 
     # Should fail if the encoded field of the specified component class encodes
     # more than one class of components.
@@ -159,7 +159,7 @@ class DatabaseBuilderTest(unittest.TestCase):
         {}, {})
 
     # Should deprecated the legacy firmwares.
-    self.assertEquals(
+    self.assertEqual(
         db.database.GetComponents('ro_main_firmware')['firmware0'].status,
         common.COMPONENT_STATUS.deprecated)
 
@@ -179,12 +179,12 @@ class DatabaseBuilderTest(unittest.TestCase):
                             {'name': 'special', 'values': {'key4': 'value4'}},
                             {'name': 'special', 'values': {'key4': 'value5'}}]},
           {}, {}, image_name='NEW_IMAGE')
-      self.assertEquals(
+      self.assertEqual(
           sorted([attr.values for attr in db.database.GetComponents(
               'comp_cls_100').itervalues()]),
           sorted([{'key1': 'value1'}, {'key4': 'value4'}, {'key4': 'value5'}]))
 
-      self.assertEquals(
+      self.assertEqual(
           add_null_comp,
           {'comp_cls_100': []} in db.database.GetEncodedField(
               'comp_cls_100_field').values())
@@ -199,7 +199,7 @@ class DatabaseBuilderTest(unittest.TestCase):
         {'comp_cls_1': [{'name': 'generic', 'values': {'value': '1'}},
                         {'name': 'generic', 'values': {'value': '3'}}]}, {}, {},
         image_name='NEW_IMAGE')
-    self.assertEquals(
+    self.assertEqual(
         sorted([attr.values for attr in db.database.GetComponents(
             'comp_cls_1').itervalues()]),
         sorted([{'value': '1'}, {'value': '2'}, {'value': '3'}]))
@@ -257,7 +257,7 @@ class DatabaseBuilderTest(unittest.TestCase):
          'comp_cls_100': [{'name': 'generic', 'values': {'value': '100'}}]},
         {}, {}, image_name='NEW_IMAGE')
 
-    self.assertEquals(
+    self.assertEqual(
         db.database.GetEncodedField('comp_cls_23_field'),
         {0: {'comp_cls_2': ['comp_2_1'], 'comp_cls_3': ['comp_3_1']},
          1: {'comp_cls_2': ['comp_2_2'], 'comp_cls_3': ['comp_3_2']},
@@ -265,18 +265,18 @@ class DatabaseBuilderTest(unittest.TestCase):
          3: {'comp_cls_2': ['comp_2_2'], 'comp_cls_3': ['comp_3_1']}})
 
     # Check the pattern by checking if the fields bit length are all correct.
-    self.assertEquals(db.database.GetEncodedFieldsBitLength(),
-                      {'mainboard_field': 8,
-                       'region_field': 5,
-                       'dram_field': 3,
-                       'cpu_field': 10,
-                       'storage_field': 3,
-                       'chassis_field': 0,
-                       'firmware_keys_field': 1,
-                       'ro_main_firmware_field': 5,
-                       'comp_cls_1_field': 2,
-                       'comp_cls_23_field': 2,
-                       'comp_cls_100_field': 0})
+    self.assertEqual(db.database.GetEncodedFieldsBitLength(),
+                     {'mainboard_field': 8,
+                      'region_field': 5,
+                      'dram_field': 3,
+                      'cpu_field': 10,
+                      'storage_field': 3,
+                      'chassis_field': 0,
+                      'firmware_keys_field': 1,
+                      'ro_main_firmware_field': 5,
+                      'comp_cls_1_field': 2,
+                      'comp_cls_23_field': 2,
+                      'comp_cls_100_field': 0})
 
   @mock.patch('cros.factory.hwid.v3.builder.PromptAndAsk', return_value=False)
   def testUpdateByProbedResultsNoNeedNewPattern(
@@ -289,8 +289,8 @@ class DatabaseBuilderTest(unittest.TestCase):
           {'comp_cls_2': [{'name': 'generic', 'values': {str(x): str(x)}}
                           for x in xrange(10)]},
           {}, {}, image_name=image_name)
-      self.assertEquals(db.database.GetBitMapping(0),
-                        db.database.GetBitMapping(db.database.max_image_id))
+      self.assertEqual(db.database.GetBitMapping(0),
+                       db.database.GetBitMapping(db.database.max_image_id))
 
   @mock.patch('cros.factory.hwid.v3.builder.PromptAndAsk', return_value=False)
   def testUpdateByProbedResultsNeedNewPattern(self, unused_prompt_and_ask_mock):
