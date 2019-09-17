@@ -175,16 +175,15 @@ class CameraTest(test_case.TestCase):
           'Whether to actually show the image on screen.', default=True),
       Arg('e2e_mode', bool, 'Perform end-to-end test or not (for camera).',
           default=False),
-      Arg('device_index', (int, type_utils.Enum(['front', 'rear'])),
-          'If in normal mode, index of video (camera-internal) device (default '
-          'is automatically searching one). '
-          'If in e2e mode, string "front" or "rear" for the camera to test '
-          '(default is "front").',
+      Arg('camera_facing', type_utils.Enum(['front', 'rear', None]),
+          'String "front" or "rear" for the camera to test. '
+          'If in normal mode, default is automatically searching one. '
+          'If in e2e mode, default is "front".',
           default=None),
       Arg('flip_image', bool,
           'Whether to flip the image horizontally. This should be set to False'
           'for the rear facing camera so the displayed image looks correct.'
-          'The default value is False if device_index is "rear", True '
+          'The default value is False if camera_facing is "rear", True '
           'otherwise.',
           default=None),
       Arg('camera_args', dict, 'Dict of args used for enabling the camera '
@@ -411,20 +410,18 @@ class CameraTest(test_case.TestCase):
 
     self.flip_image = self.args.flip_image
     if self.flip_image is None:
-      self.flip_image = self.args.device_index != 'rear'
+      self.flip_image = self.args.camera_facing != 'rear'
 
     if self.e2e_mode:
       if not self.dut.link.IsLocal():
         raise ValueError('e2e mode does not work on remote DUT.')
-      device_index = ('front' if self.args.device_index is None else
-                      self.args.device_index)
-      if not isinstance(device_index, basestring):
-        raise ValueError('device_index should be string in e2e mode.')
+      camera_facing = ('front' if self.args.camera_facing is None else
+                       self.args.camera_facing)
       options = {
           'facingMode': {
               'front': 'user',
               'rear': 'environment'
-          }[device_index]
+          }[camera_facing]
       }
       resolution = self.args.camera_args.get('resolution')
       if resolution:
@@ -440,12 +437,8 @@ class CameraTest(test_case.TestCase):
         # image in this case to speed up the process.
         self.need_transmit_to_ui = True
     else:
-      if not (isinstance(self.args.device_index, int) or
-              self.args.device_index is None):
-        raise ValueError(
-            'device_index should be integer or None in normal mode.')
       self.camera_device = self.dut.camera.GetCameraDevice(
-          self.args.device_index)
+          self.args.camera_facing)
 
   def runTest(self):
     self.ui.StartCountdownTimer(self.args.timeout_secs, self._Timeout)

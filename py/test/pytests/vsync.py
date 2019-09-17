@@ -22,13 +22,13 @@ Examples
 To run a VSync pin test, add this in test list::
 
   {
-    "pytest_name": "vsync",
-    "args": {
-      "camera_path": "/dev/camera-internal0"
-    }
+    "pytest_name": "vsync"
   }
 """
 
+
+import os
+import stat
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -41,15 +41,16 @@ from cros.factory.utils import type_utils
 
 
 DEFAULT_CAPTURE_NUMBER = 10
-DEFAULT_CAMERA_PATH = '/dev/camera-internal0'
 
 
 class SpatialSensorCalibration(test_case.TestCase):
   ARGS = [
       Arg('capture_number', int, 'The number of capture frames.',
           default=DEFAULT_CAPTURE_NUMBER),
-      Arg('camera_path', str, 'The path of camera.',
-          default=DEFAULT_CAMERA_PATH),
+      Arg('camera_facing', type_utils.Enum(['front', 'rear', None]),
+          'Direction the camera faces relative to device screen. Only allow '
+          '"front", "rear" or None. None is automatically searching one.',
+          default=None),
       Arg('timeout_secs', int, 'Timeout in seconds when waiting for device.',
           default=60),
       Arg('repeat_times', int, 'Number of cycles to test.',
@@ -65,6 +66,7 @@ class SpatialSensorCalibration(test_case.TestCase):
     self.assertIsNotNone(self._vsync, 'VSync controller not found')
 
   def runTest(self):
+    camera_path = self.GetDevicePath()
     self.WaitForDevice()
     # The "frequency" entry of a VSync sensor is actually being used as an
     # on/off switch, so this turns on the sensor.
@@ -75,8 +77,7 @@ class SpatialSensorCalibration(test_case.TestCase):
           _('Verifying VSync pin... ({count}/{total})',
             count=idx, total=self.args.repeat_times))
       self._dut.CheckCall(
-          ['yavta', '--capture=%d' % self.args.capture_number,
-           self.args.camera_path])
+          ['yavta', '--capture=%d' % self.args.capture_number, camera_path])
       end_count = self._vsync.GetCount()
       session.console.info('VSync device in_count_raw (%d/%d): %d',
                            idx, self.args.repeat_times, end_count)
@@ -85,6 +86,13 @@ class SpatialSensorCalibration(test_case.TestCase):
       start_count = end_count
     # Turning off the sensor.
     self._vsync.SetFrequency(0)
+
+  def GetDevicePath(self):
+    device_index = self._dut.camera.GetDeviceIndex(self.args.camera_facing)
+    camera_path = '/dev/video%d' % device_index
+    if not stat.S_ISCHR(os.stat(camera_path)[stat.ST_MODE]):
+      self.fail('%s is not a character special file' % camera_path)
+    return camera_path
 
   def WaitForDevice(self):
     self.ui.SetState(_('Waiting for device...'))

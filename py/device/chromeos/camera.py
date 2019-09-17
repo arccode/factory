@@ -15,6 +15,12 @@ from cros.factory.device import camera
 from cros.factory.test.utils.camera_utils import CameraDevice
 from cros.factory.test.utils.camera_utils import CameraError
 from cros.factory.test.utils.camera_utils import CVCameraReader
+from cros.factory.utils import type_utils
+
+
+CAMERA_CONFIG_PATH = '/etc/camera/camera_characteristics.conf'
+GLOB_CAMERA_PATH = '/sys/class/video4linux/video*'
+ALLOWED_FACING = type_utils.Enum(['front', 'rear', None])
 
 
 class ChromeOSCamera(camera.Camera):
@@ -26,34 +32,83 @@ class ChromeOSCamera(camera.Camera):
     Subclass should override GetCameraDevice(index).
   """
 
-  def _GetRealDeviceIndex(self, camera_index):
-    """Get the real video device index from camera-internal index."""
-    # If index is None, camera_utils will search the unique device.
-    if camera_index is None:
-      return None
-    camera_device_path = '/dev/camera-internal%d' % camera_index
-    if not os.path.islink(camera_device_path):
-      raise CameraError('Camera symlink not found')
-    real_device_path = os.path.realpath(
-        '/dev/camera-internal%d' % camera_index)
-    real_device_index = int(
-        re.search(r'/dev/video([0-9]+)$', real_device_path).group(1))
-    return real_device_index
+  _index_mapping = {}
 
-  def GetCameraDevice(self, index):
-    """Get the camera device of the given index.
-
-    Since the video device index may change after device reboot, we use
-    camera-internal index instead.
+  def GetDeviceIndex(self, facing):
+    """Search the video device index from the camera characteristics file.
 
     Args:
-      index: index of the camera-internal device.
+      facing: Direction the camera faces relative to device screen. Only allow
+              'front', 'rear' or None. None is automatically searching one.
+
+    Since the video device index may change after device reboot/suspend resume,
+    we search the video device index from the camera characteristics file.
+    """
+    if facing not in ALLOWED_FACING:
+      raise CameraError('The facing (%s) is not in ALLOWED_FACING (%s)' %
+                        (facing, ALLOWED_FACING))
+
+    if facing in self._index_mapping:
+      return self._index_mapping[facing]
+
+    camera_paths = self._device.Glob(GLOB_CAMERA_PATH)
+    index_to_vid_pid = {}
+    for path in camera_paths:
+      index = int(self._device.ReadFile(os.path.join(path, 'index')))
+      vid = self._device.ReadFile(
+          os.path.join(path, 'device', '..', 'idVendor')).strip()
+      pid = self._device.ReadFile(
+          os.path.join(path, 'device', '..', 'idProduct')).strip()
+      index_to_vid_pid[index] = '%s:%s' % (vid, pid)
+
+    camera_config = self._device.ReadFile(CAMERA_CONFIG_PATH)
+    index_to_camera_id = {}
+    for index, vid_pid in index_to_vid_pid.iteritems():
+      camera_id = re.findall(
+          r'^camera(\d+)\.module\d+\.usb_vid_pid=%s$' % vid_pid,
+          camera_config, re.MULTILINE)
+      if len(set(camera_id)) > 1:
+        raise CameraError(
+            'Multiple cameras have the same usb_vid_pid (%s)' % vid_pid)
+      elif not camera_id:
+        raise CameraError('No camera has the usb_vid_pid (%s)' % vid_pid)
+      else:
+        camera_id = int(camera_id[0])
+      index_to_camera_id[index] = camera_id
+
+    for index, camera_id in index_to_camera_id.iteritems():
+      camera_facing = int(re.search(
+          r'^camera%d\.lens_facing=(\d+)$' % camera_id,
+          camera_config, re.MULTILINE).group(1))
+      camera_facing = {
+          0: 'front',
+          1: 'rear'
+      }[camera_facing]
+      self._index_mapping[camera_facing] = index
+
+    if facing is None:
+      if len(self._index_mapping) > 1:
+        raise CameraError('Multiple cameras are found')
+      elif not self._index_mapping:
+        raise CameraError('No camera is found')
+      return self._index_mapping.values()[0]
+
+    if facing not in self._index_mapping:
+      raise CameraError('No %s camera is found' % facing)
+    return self._index_mapping[facing]
+
+  def GetCameraDevice(self, facing):
+    """Get the camera device of the given direction the camera faces.
+
+    Args:
+      facing: Direction the camera faces relative to device screen. Only allowed
+              'front', 'rear' or None. None is automatically searching one.
 
     Returns:
       Camera device object that implements
       cros.factory.test.utils.camera_utils.CameraDevice.
     """
-    real_index = self._GetRealDeviceIndex(index)
-    return self._devices.setdefault(index, CameraDevice(
+    device_index = self.GetDeviceIndex(facing)
+    return self._devices.setdefault(facing, CameraDevice(
         dut=self._device, sn_format=None,
-        reader=CVCameraReader(real_index, self._device)))
+        reader=CVCameraReader(device_index, self._device)))
