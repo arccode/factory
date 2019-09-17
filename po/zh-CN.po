@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-11-05 19:49+CST\n"
+"PO-Revision-Date: 2019-11-06 15:18+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -590,10 +590,6 @@ msgstr "无线频宽"
 #: ../build/pytests_label_generated.json
 msgid "Wireless Antenna"
 msgstr "无线天线"
-
-#: ../build/pytests_label_generated.json
-msgid "Wireless Radiotap"
-msgstr "无线扫描"
 
 #: ../build/pytests_label_generated.json
 msgid "Write Device Data To VPD"
@@ -3069,22 +3065,22 @@ msgid ""
 msgstr "请等其它的裝置完成测试后按空白键继续。"
 
 #: ../py/test/pytests/wireless_antenna.py
-#: ../py/test/pytests/wireless_radiotap.py
 msgid "Scanning on device {device} frequency {freq}..."
 msgstr "在装置 {device} 上扫描频率{freq}..."
 
 #: ../py/test/pytests/wireless_antenna.py
-#: ../py/test/pytests/wireless_radiotap.py
 msgid "Done scanning on device {device} frequency {freq}..."
 msgstr "在装置 {device} 上扫描频率{freq} 完成"
 
 #: ../py/test/pytests/wireless_antenna.py
-#: ../py/test/pytests/wireless_radiotap.py
+msgid "Detecting wifi chip type..."
+msgstr "侦测检测WiFi芯片类型中..."
+
+#: ../py/test/pytests/wireless_antenna.py
 msgid "Checking frequencies..."
 msgstr "检查频率中..."
 
 #: ../py/test/pytests/wireless_antenna.py
-#: ../py/test/pytests/wireless_radiotap.py
 msgid "Press space to start scanning."
 msgstr "请按空白键开始扫描。"
 

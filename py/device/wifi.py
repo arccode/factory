@@ -193,7 +193,7 @@ class WiFi(types.DeviceComponent):
     # in groups of: (BSSID, associated, other).
     bssid_ap_list = self._ACCESS_POINT_RE.split(output)[1:]
     bssid_ap_tuples = [bssid_ap_list[x:x+3]
-                       for x in xrange(0, len(bssid_ap_list), 3)]
+                       for x in range(0, len(bssid_ap_list), 3)]
 
     # Parse each AP.
     aps = []
@@ -622,11 +622,11 @@ class Connection(object):
         'wpa2': self._AuthenticateWPA}
     auth_process = auth_fns.get(
         self.ap.encryption_type, self._AuthenticateOpen)()
-    auth_process.next()
+    next(auth_process)
 
     # Grab an IP address.
     dhcp_process = self._dhcp_fn(**self._dhcp_args)
-    self.ip = dhcp_process.next()
+    self.ip = next(dhcp_process)
 
     # Store for disconnection.
     self._auth_process = auth_process
@@ -640,8 +640,8 @@ class Connection(object):
     self.ip = None
     dhcp_process, self._dhcp_process = self._dhcp_process, None
     auth_process, self._auth_process = self._auth_process, None
-    dhcp_process.next()
-    auth_process.next()
+    next(dhcp_process)
+    next(auth_process)
 
     # Remove temporary directory.
     if not self._user_tmp_dir:

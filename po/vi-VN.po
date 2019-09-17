@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-11-05 19:49+CST\n"
+"PO-Revision-Date: 2019-11-06 15:18+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -590,10 +590,6 @@ msgstr "Băng thông không dây"
 #: ../build/pytests_label_generated.json
 msgid "Wireless Antenna"
 msgstr "Ăng ten không dây"
-
-#: ../build/pytests_label_generated.json
-msgid "Wireless Radiotap"
-msgstr "Quét không dây"
 
 #: ../build/pytests_label_generated.json
 msgid "Write Device Data To VPD"
@@ -3143,22 +3139,22 @@ msgstr ""
 "tiếp tục"
 
 #: ../py/test/pytests/wireless_antenna.py
-#: ../py/test/pytests/wireless_radiotap.py
 msgid "Scanning on device {device} frequency {freq}..."
 msgstr "Tần suất quét {freq} trên thiết bị {device} ..."
 
 #: ../py/test/pytests/wireless_antenna.py
-#: ../py/test/pytests/wireless_radiotap.py
 msgid "Done scanning on device {device} frequency {freq}..."
 msgstr "Tần suất quét {freq} {device} trên thiết bị {freq} đã hoàn tất"
 
 #: ../py/test/pytests/wireless_antenna.py
-#: ../py/test/pytests/wireless_radiotap.py
+msgid "Detecting wifi chip type..."
+msgstr "Phát hiện loại chip wifi..."
+
+#: ../py/test/pytests/wireless_antenna.py
 msgid "Checking frequencies..."
 msgstr "Kiểm tra tần số..."
 
 #: ../py/test/pytests/wireless_antenna.py
-#: ../py/test/pytests/wireless_radiotap.py
 msgid "Press space to start scanning."
 msgstr "Bấm phím trống để bắt đầu quét"
 
