@@ -37,8 +37,8 @@ COPY docker/requirements.txt /root/
 RUN pip install -r /root/requirements.txt
 
 ARG GS_BASE="gs://chromeos-releases/dev-channel"
-ARG BOARD="amd64-generic-goofy"
-ARG VERSION="10808.0.0"
+ARG BOARD="grunt"
+ARG VERSION="12522.0.0"
 ARG TOOLKIT="${GS_BASE}/${BOARD}/${VERSION}/*-factory-*.zip"
 COPY docker/service_account.json /
 RUN gcloud auth activate-service-account --key-file=/service_account.json && \
