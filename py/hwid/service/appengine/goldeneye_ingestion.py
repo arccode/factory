@@ -23,7 +23,7 @@ MEMCACHE_NAMESPACE = 'SourceGoldenEye'
 class AllDevicesRefreshHandler(webapp2.RequestHandler):
   """Handle update of a possibly new all_devices.json file."""
 
-  # pylint: disable=bad-option-value, super-on-old-class
+  # pylint: disable=useless-super-delegation
   def __init__(self, request, response):
     super(AllDevicesRefreshHandler, self).__init__(request, response)
 
@@ -60,10 +60,14 @@ def IngestAllDevicesJson():
       regexp_to_board.append((board['hwid_match'], board['public_codename']))
       logging.info('Board: %s', (board['hwid_match'], board['public_codename']))
 
-    regexp_to_device.append((device['hwid_match'], device['public_codename'],
-                             regexp_to_board))
+    if device['hwid_match']:  # only allow non-empty patterns
+      regexp_to_device.append((device['hwid_match'], device['public_codename'],
+                               regexp_to_board))
 
-    logging.info('Device: %s', (device['hwid_match'],
-                                device['public_codename']))
+      logging.info('Device: %s', (device['hwid_match'],
+                                  device['public_codename']))
+    else:
+      logging.warn('Empty pattern: %s', (device['hwid_match'],
+                                         device['public_codename']))
 
   memcache.Put('regexp_to_device', regexp_to_device)
