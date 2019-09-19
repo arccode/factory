@@ -52,9 +52,8 @@ To run this test on DUT, add a test item in the test list::
 from __future__ import print_function
 
 import logging
-import re
+import subprocess
 import sys
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -65,63 +64,18 @@ from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
 
-
-_RE_FREQ = re.compile(r'^freq: ([\d]*?)$')
-_RE_SIGNAL = re.compile(r'^signal: ([-\d.]*?) dBm')
-_RE_SSID = re.compile(r'^SSID: (.+)$')
-_RE_LAST_SEEN = re.compile(r'^last seen: ([\d]+) ms ago$')
-_RE_WIPHY = re.compile(r'wiphy (\d+)')
 
 # The scanned result with last_seen value greater than this value
 # will be ignored.
 _THRESHOLD_LAST_SEEN_MS = 1000
 
 
-def GetProp(message, pattern, default):
-  """Gets the property from searching pattern in message.
-
-  Args:
-    message: A string to search for pattern.
-    pattern: A regular expression object which will capture a value if pattern
-             can be found. This object must have a group definition.
-    default: Default value of property.
-  """
-  obj = pattern.search(message)
-  return obj.group(1) if obj else default
-
-
 class IwException(Exception):
   pass
 
-
-def IfconfigUp(devname, sleep_time_secs=1):
-  """Brings up interface.
-
-  Args:
-    devname: Device name.
-    sleep_time_secs: The sleeping time after ifconfig up.
-  """
-  process_utils.Spawn(['ifconfig', devname, 'up'], check_call=True, log=True)
-  # Wait for device to settle down.
-  time.sleep(sleep_time_secs)
-
-
-def IfconfigDown(devname, sleep_time_secs=1):
-  """Brings down interface.
-
-  Args:
-    devname: Device name.
-    sleep_time_secs: The sleeping time after ifconfig down.
-  """
-  process_utils.Spawn(['ifconfig', devname, 'down'], check_call=True, log=True)
-  # Wait for device to settle down.
-  time.sleep(sleep_time_secs)
-
-
-def IwSetAntenna(devname, phyname, tx_bitmap, rx_bitmap, max_retries=10,
+def IwSetAntenna(dut, devname, phyname, tx_bitmap, rx_bitmap, max_retries=10,
                  switch_antenna_sleep_secs=10):
   """Sets antenna using iw command.
 
@@ -137,13 +91,14 @@ def IwSetAntenna(devname, phyname, tx_bitmap, rx_bitmap, max_retries=10,
   Raises:
     IwException if fail to set antenna for max_retries tries.
   """
-  IfconfigDown(devname)
+  dut.wifi.BringsDownInterface(devname)
   try_count = 0
   success = False
   while try_count < max_retries:
-    process = process_utils.Spawn(
+    process = dut.Popen(
         ['iw', 'phy', phyname, 'set', 'antenna', tx_bitmap, rx_bitmap],
-        read_stdout=True, log_stderr_on_error=True, log=True)
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, log=True)
+    unused_stdout, stderr = process.communicate()
     retcode = process.returncode
     if retcode == 0:
       success = True
@@ -153,61 +108,13 @@ def IwSetAntenna(devname, phyname, tx_bitmap, rx_bitmap, max_retries=10,
     elif retcode == 161:
       try_count += 1
       session.console.info('Retry...')
-      IfconfigDown(devname)
+      dut.wifi.BringsDownInterface(devname)
     else:
       raise IwException('Failed to set antenna. ret code: %d. stderr: %s' %
-                        (retcode, process.stderr))
-  IfconfigUp(devname, switch_antenna_sleep_secs)
+                        (retcode, stderr))
+  dut.wifi.BringsUpInterface(devname, switch_antenna_sleep_secs)
   if not success:
     raise IwException('Failed to set antenna for %s tries' % max_retries)
-
-
-def IwScan(iw_scan_group_checker, devname,
-           frequency=None, sleep_retry_time_secs=2, max_retries=10):
-  """Scans on device.
-
-  Args:
-    devname: device name.
-    frequency: The desired scan frequency.
-    sleep_retry_time_secs: The sleep time before a retry.
-    max_retries: The maximum retry time to scan.
-
-  Returns:
-    scan stdout.
-
-  Raises:
-    IwException if fail to scan for max_retries tries,
-    or fail because of reason other than device or resource busy (-16)
-  """
-  cmd = ['iw', 'dev', devname, 'scan']
-  if frequency is not None:
-    cmd += ['freq', str(frequency)]
-  try_count = 0
-  while try_count < max_retries:
-    process = process_utils.Spawn(
-        cmd, read_stdout=True, log_stderr_on_error=True, log=True)
-    stdout, stderr = process.communicate()
-    retcode = process.returncode
-
-    event_log.Log('iw_scaned', retcode=retcode, stderr=stderr)
-    with iw_scan_group_checker:
-      testlog.LogParam('retcode', retcode)
-      testlog.LogParam('stderr', stderr)
-
-    if retcode == 0:
-      logging.info('IwScan success.')
-      return stdout
-    elif retcode == 240:  # Device or resource busy (-16)
-      try_count += 1
-      time.sleep(sleep_retry_time_secs)
-    elif retcode == 234:  # Invalid argument (-22)
-      raise IwException('Failed to iw scan, ret code: %d. stderr: %s'
-                        'Frequency might be wrong.' %
-                        (retcode, stderr))
-    else:
-      raise IwException('Failed to iw scan, ret code: %d. stderr: %s' %
-                        (retcode, stderr))
-  raise IwException('Failed to iw scan for %s tries' % max_retries)
 
 
 _ANTENNA_CONFIG = {'main': ('1', '1'),
@@ -256,11 +163,12 @@ class WirelessTest(test_case.TestCase):
 
   def setUp(self):
     self.ui.ToggleTemplateClass('font-large', True)
-    _wifi = device_utils.CreateDUTInterface().wifi
-    self._device_name = _wifi.SelectInterface(self.args.device_name)
+
+    self._dut = device_utils.CreateDUTInterface()
+    self._device_name = self._dut.wifi.SelectInterface(self.args.device_name)
     logging.info('Selected device_name is %s.', self._device_name)
 
-    self._phy_name = self.DetectPhyName()
+    self._phy_name = self._dut.wifi.DetectPhyName(self._device_name)
     logging.info('phy name is %s.', self._phy_name)
     self._antenna_service_strength = {}
     for antenna in _ANTENNA_CONFIG:
@@ -272,8 +180,6 @@ class WirelessTest(test_case.TestCase):
                 self.args.strength.keys())
 
     # Group checker for Testlog.
-    self._iw_scan_group_checker = testlog.GroupParam(
-        'iw_scan', ['retcode', 'stderr'])
     self._service_group_checker = testlog.GroupParam(
         'service_signal', ['service', 'service_strength'])
     testlog.UpdateParam('service', param_type=testlog.PARAM_TYPE.argument)
@@ -285,18 +191,6 @@ class WirelessTest(test_case.TestCase):
   def tearDown(self):
     """Restores antenna."""
     self.RestoreAntenna()
-
-  def DetectPhyName(self):
-    """Detects the phy name for device_name device.
-
-    Returns:
-      The phy name for device_name device.
-    """
-    output = process_utils.CheckOutput(
-        ['iw', 'dev', self._device_name, 'info'])
-    logging.info('info output: %s', output)
-    number = GetProp(output, _RE_WIPHY, None)
-    return ('phy' + number) if number else None
 
   def ChooseMaxStrengthService(self, services, service_strengths):
     """Chooses the service that has the largest signal strength among services.
@@ -347,8 +241,9 @@ class WirelessTest(test_case.TestCase):
           device=self._device_name,
           freq=freq))
 
-    scan_output = IwScan(self._iw_scan_group_checker, self._device_name,
-                         freq)
+    scan_output = self._dut.wifi.FilterAccessPoints(interface=self._device_name,
+                                                    frequency=freq)
+
     self.ui.SetState(
         _('Done scanning on device {device} frequency {freq}...',
           device=self._device_name,
@@ -356,53 +251,38 @@ class WirelessTest(test_case.TestCase):
     logging.info('Scan finished.')
     return scan_output
 
-  def ParseScanOutput(self, scan_output, service_ssid):
-    """Parses iw scan output to get mac, freq and signal strength of service.
+  def ParseScanOutput(self, scan_output, service_ssid, service_freq):
+    """Select iw scan output to get a service that matches constraints.
 
-    This function can not parse two scan results with the same service_ssid.
+    If there are multiple choses, return the one with strongest signal.
 
     Args:
       scan_output: iw scan output.
       service_ssid: The ssid of the service to scan.
+      service_freq: The frequency of the service to scan.
 
     Returns:
-      (mac, freq, signal, last_seen) if there is a scan result of ssid in
-        the scan_output. last_seen is in ms.
-      (None, None, None, None) otherwise.
+      An wifi.AccessPoint object.
     """
     parsed_tuples = []
-    mac, ssid, freq, signal, last_seen = (None, None, None, None, None)
-    for line in scan_output.splitlines():
-      line = line.strip()
-      # a line starts with BSS should look like
-      # BSS d8:c7:c8:b6:6b:50(on wlan0)
-      if line.startswith('BSS'):
-        bss_format_line = re.sub(r'[ ()]', ' ', line)
-        mac, ssid, freq, signal, last_seen = (bss_format_line.split()[1], None,
-                                              None, None, None)
-      freq = GetProp(line, _RE_FREQ, freq)
-      signal = GetProp(line, _RE_SIGNAL, signal)
-      ssid = GetProp(line, _RE_SSID, ssid)
-      last_seen = GetProp(line, _RE_LAST_SEEN, last_seen)
-      if mac and freq and signal and ssid and last_seen:
-        last_seen = int(last_seen)
-        if ssid == service_ssid and last_seen <= _THRESHOLD_LAST_SEEN_MS:
-          parsed_tuples.append(
-              (mac, int(freq), float(signal), last_seen))
-        mac, ssid, freq, signal, last_seen = (None, None, None, None, None)
+    for ap in scan_output:
+      if (ap.ssid == service_ssid and
+          ap.frequency == service_freq and
+          ap.last_seen <= _THRESHOLD_LAST_SEEN_MS):
+        parsed_tuples.append(ap)
 
     if not parsed_tuples:
       session.console.warning('Can not scan service %s.', service_ssid)
-      return (None, None, None, None)
+      return None
     if len(parsed_tuples) > 1:
       session.console.warning('There are more than one result for ssid %s.',
                               service_ssid)
-      for mac, freq, signal, last_seen in parsed_tuples:
+      for ap in parsed_tuples:
         session.console.warning(
-            'mac: %s, ssid: %s, freq: %d, signal %f, '
-            'last_seen %d ms', mac, service_ssid, freq, signal, last_seen)
+            'mac: %s, ssid: %s, freq: %d, signal %f, last_seen %d ms',
+            ap.bssid, ap.ssid, ap.frequency, ap.strength, ap.last_seen)
     # Return the one with strongest signal.
-    return max(parsed_tuples, key=lambda t: t[2])
+    return max(parsed_tuples, key=lambda t: t.strength)
 
   def SwitchAntenna(self, antenna):
     """Switches antenna.
@@ -416,10 +296,11 @@ class WirelessTest(test_case.TestCase):
                    ' %s. Just bring up the interface.', antenna)
       # Bring up the interface because IwSetAntenna brings up interface after
       # antenna is switched.
-      IfconfigUp(self._device_name, self.args.switch_antenna_sleep_secs)
+      self._dut.wifi.BringsUpInterface(self._device_name,
+                                       self.args.switch_antenna_sleep_secs)
       return
     tx_bitmap, rx_bitmap = _ANTENNA_CONFIG[antenna]
-    IwSetAntenna(self._device_name, self._phy_name,
+    IwSetAntenna(self._dut, self._device_name, self._phy_name,
                  tx_bitmap, rx_bitmap,
                  switch_antenna_sleep_secs=self.args.switch_antenna_sleep_secs)
     self._antenna = antenna
@@ -462,17 +343,15 @@ class WirelessTest(test_case.TestCase):
         scan_output = self.ScanSignal(freq)
         for service in services:
           service_ssid = service[0]
-          mac, freq_scanned, strength, last_seen = self.ParseScanOutput(
-              scan_output, service_ssid)
-          # strength may be 0.
-          if strength is not None:
-            # iw returns the scan results of other frequencies as well.
-            if freq_scanned != freq:
-              continue
+          service_freq = service[1]
+          if service_freq != freq:
+            continue
+          ap = self.ParseScanOutput(scan_output, service_ssid, service_freq)
+          if ap is not None:
             session.console.info(
-                'scan : %s %s %d %f %d ms.', service_ssid, mac, freq_scanned,
-                strength, last_seen)
-            scan_results[service].append(strength)
+                'scan : %s %s %d %f %d ms.', ap.ssid, ap.bssid, ap.frequency,
+                ap.strength, ap.last_seen)
+            scan_results[service].append(ap.strength)
 
     # keys are services and values are averages
     average_results = {}

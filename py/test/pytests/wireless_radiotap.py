@@ -66,7 +66,6 @@ import re
 import struct
 import subprocess
 import sys
-import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -81,8 +80,6 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import type_utils
 
 
-_RE_IWSCAN = re.compile(r'freq: (\d+).*SSID: (.+)$')
-_RE_WIPHY = re.compile(r'wiphy (\d+)')
 _RE_BEACON = re.compile(r'(\d+) MHz.*Beacon \((.+)\)')
 
 _ANTENNA_CONFIG = ['all', 'main', 'aux']
@@ -94,53 +91,6 @@ class ServiceSpec(type_utils.Obj):
 
   def __hash__(self):
     return hash((self.ssid, self.freq, self.password))
-
-
-def IwScan(dut, iw_scan_group_checker, devname,
-           sleep_retry_time_secs=2, max_retries=10):
-  """Scans on device.
-
-  Args:
-    devname: device name.
-    sleep_retry_time_secs: The sleep time before a retry.
-    max_retries: The maximum retry time to scan.
-  Returns:
-    A list of `ServiceSpec` instance.
-
-  Raises:
-    IwException if fail to scan for max_retries tries,
-    or fail because of reason other than device or resource busy (-16)
-  """
-  cmd = ("iw %s scan | grep -e '^\\s*\\(freq\\|SSID\\):' | sed 'N;s/\\n/ /'" %
-         devname)
-  for unused_try_count in xrange(max_retries):
-    process = dut.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                        log=True)
-    stdout, stderr = process.communicate()
-    retcode = process.returncode
-    event_log.Log('iw_scaned', retcode=retcode, stderr=stderr)
-    with iw_scan_group_checker:
-      testlog.LogParam('retcode', retcode)
-      testlog.LogParam('stderr', stderr)
-
-    if retcode == 0:
-      scan_result = []
-      for line in stdout.splitlines():
-        m = _RE_IWSCAN.search(line)
-        if m:
-          scan_result.append(ServiceSpec(m.group(2), int(m.group(1)), None))
-      if scan_result:
-        session.console.info('IwScan success.')
-        return scan_result
-    elif retcode == 234:  # Invalid argument (-22)
-      raise Exception('Failed to iw scan, ret code: %d. stderr: %s'
-                      'Frequency might be wrong.' %
-                      (retcode, stderr))
-    elif retcode != 240:  # Device or resource busy (-16)
-      raise Exception('Failed to iw scan, ret code: %d. stderr: %s' %
-                      (retcode, stderr))
-    time.sleep(sleep_retry_time_secs)
-  raise Exception('Failed to iw scan for %s tries' % max_retries)
 
 
 class RadiotapPacket(object):
@@ -373,8 +323,6 @@ class WirelessRadiotapTest(test_case.TestCase):
     self.assertTrue(self._services, 'At least one service should be specified.')
 
     # Group checker for Testlog.
-    self._iw_scan_group_checker = testlog.GroupParam(
-        'iw_scan', ['retcode', 'stderr'])
     self._service_group_checker = testlog.GroupParam(
         'service_signal', ['service', 'service_strength'])
     testlog.UpdateParam('service', param_type=testlog.PARAM_TYPE.argument)
@@ -415,17 +363,6 @@ class WirelessRadiotapTest(test_case.TestCase):
       self._connection.Disconnect()
       session.console.info('Disconnect to service %s', self._ap.ssid)
       self._connection = None
-
-  def _DetectPhyName(self):
-    """Detects the phy name for device_name device.
-
-    Returns:
-      The phy name for device_name device.
-    """
-    output = self._dut.CheckOutput(
-        ['iw', 'dev', self._device_name, 'info'], log=True)
-    m = _RE_WIPHY.search(output)
-    return ('phy' + m.group(1)) if m else None
 
   def _ChooseMaxStrengthService(self, service_strengths):
     """Chooses the service that has the largest signal strength among services.
@@ -572,13 +509,12 @@ class WirelessRadiotapTest(test_case.TestCase):
   def _ScanAllServices(self):
     self.ui.SetState(_('Checking frequencies...'))
 
-    scan_result = IwScan(
-        self._dut, self._iw_scan_group_checker, self._device_name)
+    scan_result = self._dut.wifi.FilterAccessPoints(interface=self._device_name)
     ssid_freqs = {service.ssid: set() for service in self._services}
 
     for scanned_service in scan_result:
       if scanned_service.ssid in ssid_freqs:
-        ssid_freqs[scanned_service.ssid].add(scanned_service.freq)
+        ssid_freqs[scanned_service.ssid].add(scanned_service.frequency)
 
     for service in self._services:
       if not ssid_freqs[service.ssid]:
@@ -599,7 +535,7 @@ class WirelessRadiotapTest(test_case.TestCase):
         self.args.device_name)
     session.console.info('Selected device_name is %s.', self._device_name)
 
-    self._phy_name = self._DetectPhyName()
+    self._phy_name = self._dut.wifi.DetectPhyName(self._device_name)
     session.console.info('phy name is %s.', self._phy_name)
 
     if self.args.press_space_to_start:

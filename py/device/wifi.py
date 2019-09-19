@@ -30,6 +30,7 @@ import logging
 import os
 import re
 import textwrap
+import time
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
@@ -48,6 +49,7 @@ class WiFi(types.DeviceComponent):
   _ACCESS_POINT_RE = re.compile(
       r'BSS ([:\w]*)\W*\(on \w*\)( -- associated)?\r?\n')
   _WLAN_NAME_PATTERNS = ['wlan*', 'mlan*']
+  _RE_WIPHY = re.compile(r'wiphy (\d+)')
 
   # Shortcut to access exception object.
   WiFiError = WiFiError
@@ -116,6 +118,37 @@ class WiFi(types.DeviceComponent):
           'Please specify one from: %r' % interfaces)
     return interfaces[0]
 
+  def BringsUpInterface(self, interface, sleep_time_secs=1):
+    """Brings up interface.
+
+    Args:
+      interface: Interface name.
+      sleep_time_secs: The sleeping time after bringing up.
+    """
+    self._device.CheckCall(['ifconfig', interface, 'up'], log=True)
+    time.sleep(sleep_time_secs)
+
+  def BringsDownInterface(self, interface, sleep_time_secs=1):
+    """Brings up interface.
+
+    Args:
+      interface: Interface name.
+      sleep_time_secs: The sleeping time after bringing up.
+    """
+    self._device.CheckCall(['ifconfig', interface, 'down'], log=True)
+    time.sleep(sleep_time_secs)
+
+  def DetectPhyName(self, interface):
+    """Detects the phy name of interface.
+
+    Returns:
+      The phy name of interface.
+    """
+    output = self._device.CheckOutput(
+        ['iw', 'dev', interface, 'info'], log=True)
+    m = self._RE_WIPHY.search(output)
+    return ('phy' + m.group(1)) if m else None
+
   def _ValidateInterface(self, interface=None):
     """Returns either provided interface, or one retrieved from system."""
     if interface:
@@ -128,7 +161,7 @@ class WiFi(types.DeviceComponent):
     # Arbitrarily choose first interface.
     return interfaces[0]
 
-  def _AllAccessPoints(self, interface):
+  def _AllAccessPoints(self, interface, frequency):
     """Retrieves a list of AccessPoint objects.
 
     Args:
@@ -137,14 +170,16 @@ class WiFi(types.DeviceComponent):
     Returns:
       a list of the found access points objects.
     """
+    command = ['iw', 'dev', interface, 'scan']
+    if frequency is not None:
+      command += ['freq', str(frequency)]
     try:
       # First, bring the device up.  If it is already up, this will succeed
       # anyways.
-      logging.debug('Bringing up interface %s...', interface)
-      self._device.CheckCall(['ifconfig', interface, 'up'])
+      self.BringsUpInterface(interface, 0)
 
       output = self._device.CheckOutput(
-          ['iw', 'dev', interface, 'scan']).decode('string_escape')
+          command, log=True).decode('string_escape')
       return self._ParseScanResult(output)
     except types.CalledProcessError:
       return []
@@ -223,6 +258,9 @@ class WiFi(types.DeviceComponent):
         elif key.strip() == '* primary channel':
           ap.channel = int(value)
 
+        elif key == 'last seen':
+          ap.last_seen = int(value.partition(' ms ago')[0])
+
     # If no encryption type was encountered, but encryption is in place, the AP
     # uses WEP encryption.
     if encrypted and not ap.encryption_type:
@@ -230,8 +268,9 @@ class WiFi(types.DeviceComponent):
 
     return ap
 
-  def FindAccessPoint(self, ssid=None, active=None, encrypted=None,
-                      interface=None, scan_timeout=_SCAN_TIMEOUT_SECS):
+  def FindAccessPoint(self, ssid=None, frequency=None, active=None,
+                      encrypted=None, interface=None,
+                      scan_timeout=_SCAN_TIMEOUT_SECS):
     """Retrieves the first AccessPoint object with the given criteria.
 
     Args:
@@ -253,16 +292,20 @@ class WiFi(types.DeviceComponent):
     return self.FilterAccessPoints(
         interface=interface,
         ssid=ssid,
+        frequency=frequency,
         active=active,
         encrypted=encrypted,
         scan_timeout=scan_timeout)[0]
 
-  def FilterAccessPoints(self, ssid=None, active=None, encrypted=None,
-                         interface=None, scan_timeout=_SCAN_TIMEOUT_SECS):
+  def FilterAccessPoints(self, ssid=None, frequency=None, active=None,
+                         encrypted=None, interface=None,
+                         scan_timeout=_SCAN_TIMEOUT_SECS):
     """Retrieves a list of AccessPoint objects matching criteria.
 
     Args:
       ssid: the SSID of target access point. None to accept all SSIDs.
+      frequency: the frequency of target access point.
+          None to accept all frequencies.
       active: a boolean indicating the target AP is currently associated or not.
           None to accept both cases.
       encrypted: a boolean indicating the target AP is encrypted or not. None to
@@ -279,8 +322,11 @@ class WiFi(types.DeviceComponent):
     """
     interface = self._ValidateInterface(interface)
     def _TryGetAccessPoints():
-      return [ap for ap in self._AllAccessPoints(interface=interface)
+      # Filter frequency again because iw scan may report other frequency even
+      # if frequency is specified in the command.
+      return [ap for ap in self._AllAccessPoints(interface, frequency)
               if ((ssid is None or ssid == ap.ssid) and
+                  (frequency is None or frequency == ap.frequency) and
                   (active is None or active == ap.active) and
                   (encrypted is None or encrypted == ap.encrypted))]
 
@@ -359,6 +405,7 @@ class AccessPoint(object):
     self.strength = None
     self.quality = None
     self.encryption_type = None
+    self.last_seen = None
 
   @property
   def encrypted(self):
@@ -378,7 +425,7 @@ class AccessPoint(object):
     return (
         u'AccessPoint({ssid}, {bssid}, channel={channel}, '
         'frequency={frequency} MHz, {active}, '
-        '{strength}{quality}encryption={encryption})'.format(
+        '{strength}{quality}encryption={encryption}, {last_seen}ms)'.format(
             ssid=self.ssid,
             bssid=self.bssid,
             channel=self.channel,
@@ -386,7 +433,8 @@ class AccessPoint(object):
             active='active' if self.active else 'inactive',
             strength=strength,
             quality=quality,
-            encryption=self.encryption_type or 'none')).encode('utf-8')
+            encryption=self.encryption_type or 'none',
+            last_seen=self.last_seen)).encode('utf-8')
 
 
 class WiFiAndroid(WiFi):
