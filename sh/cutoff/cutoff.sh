@@ -43,7 +43,9 @@ find_battery_path() {
   local battery_path=""
   for power_supply in "${POWER_SUPPLY_PATH}"/*; do
     if [ -f "${power_supply}/type" ] &&
-       [ "$(cat "${power_supply}/type")" = "Battery" ]; then
+       [ "$(cat "${power_supply}/type")" = "Battery" ] &&
+       [ -f "${power_supply}/present" ] &&
+       [ "$(cat "${power_supply}/present")" != "0" ]; then
       battery_path="${power_supply}"
       break
     fi
@@ -64,27 +66,33 @@ get_battery_voltage() {
   echo "$((battery_voltage / 1000))"
 }
 
-is_ac_present() {
-  local battery_path="$1"
-  local battery_status="$(cat "${battery_path}/status")"
-  [ "${battery_status}" = "Charging" ] || [ "${battery_status}" = "Full" ]
+find_ac_path() {
+  local ac_path=""
+  for power_supply in "${POWER_SUPPLY_PATH}"/*; do
+    if [ -f "${power_supply}/type" ] &&
+       [ "$(cat "${power_supply}/type")" != "Battery" ] &&
+       [ -f "${power_supply}/online" ] &&
+       [ "$(cat "${power_supply}/online")" != "0" ]; then
+      ac_path="${power_supply}"
+      break
+    fi
+  done
+  echo "${ac_path}"
 }
 
 require_ac() {
-  local battery_path="$1"
-  if ! is_ac_present "${battery_path}"; then
+  if [ -z "$(find_ac_path)" ]; then
     "${DISPLAY_MESSAGE}" "connect_ac"
-    while ! is_ac_present "${battery_path}"; do
+    while [ -z "$(find_ac_path)" ]; do
       sleep 0.5
     done
   fi
 }
 
 require_remove_ac() {
-  local battery_path="$1"
-  if is_ac_present "${battery_path}"; then
+  if [ -n "$(find_ac_path)" ]; then
     "${DISPLAY_MESSAGE}" "remove_ac"
-    while is_ac_present "${battery_path}"; do
+    while [ -n "$(find_ac_path)" ]; do
       sleep 0.5
     done
   fi
@@ -117,7 +125,7 @@ check_battery_value() {
 
   if [ -n "${min_battery_value}" ] &&
      [ "${battery_value}" -lt "${min_battery_value}" ]; then
-    require_ac "${battery_path}"
+    require_ac
     charge_control "normal"
     "${DISPLAY_MESSAGE}" "charging"
 
@@ -171,11 +179,10 @@ check_battery_value() {
 
 check_ac_state() {
   local ac_state="$1"
-  local battery_path="$2"
   if [ "${ac_state}" = "connect_ac" ]; then
-    require_ac "${battery_path}"
+    require_ac
   elif [ "${ac_state}" = "remove_ac" ]; then
-    require_remove_ac "${battery_path}"
+    require_remove_ac
   fi
 }
 
@@ -215,7 +222,7 @@ main() {
     # idle to keep the charge percentage stable, and set back to normal just
     # before doing cutting off.
     charge_control "idle"
-    check_ac_state "${CUTOFF_AC_STATE}" "${battery_path}"
+    check_ac_state "${CUTOFF_AC_STATE}"
     charge_control "normal"
   else
     echo "Battery not found."
