@@ -10,6 +10,8 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 DISPLAY_MESSAGE="${SCRIPT_DIR}/display_wipe_message.sh"
 . "${SCRIPT_DIR}/options.sh"
+EC_PRESENT=0
+BATTERY_PATH="/sys/class/power_supply/BAT0"
 
 reset_activate_date() {
   activate_date --clean
@@ -26,25 +28,37 @@ reset_recovery_count() {
   fi
 }
 
+test_ec_flash_presence() {
+  # If "flashrom -p ec --get-size" command succeeds (returns 0),
+  # then EC flash chip is present in system. Otherwise, assume EC flash is not
+  # present or supported.
+  if flashrom -p ec --get-size >/dev/null 2>&1; then
+    EC_PRESENT=1
+  else
+    EC_PRESENT=0
+  fi
+}
+
 has_battery() {
-  ( type ectool && ectool battery ) >/dev/null 2>&1
+  [ -d "${BATTERY_PATH}" ]
 }
 
 get_battery_percentage() {
-  local full="" current=""
-  full="$(ectool battery 2>/dev/null |
-    awk '/Last full charge/ {print int($4)}')"
-  current="$(ectool battery 2>/dev/null |
-    awk '/Remaining capacity/ {print int($3)}')"
+  local full=$(cat "${BATTERY_PATH}/charge_full")
+  local current=$(cat "${BATTERY_PATH}/charge_now")
+  full=$((full / 1000))
+  current=$((current / 1000))
   echo $((current * 100 / full))
 }
 
 get_battery_voltage() {
-  ectool battery 2>/dev/null | awk '/Present voltage/ {print int($3)}'
+  battery_voltage=$(cat "${BATTERY_PATH}/voltage_now")
+  echo $((battery_voltage / 1000))
 }
 
 is_ac_present() {
-  ectool battery | grep -q AC_PRESENT
+  battery_status=$(cat "${BATTERY_PATH}/status")
+  [ "${battery_status}" = "Charging" ]
 }
 
 require_ac() {
@@ -66,7 +80,11 @@ require_remove_ac() {
 }
 
 charge_control() {
-  ectool chargecontrol "$1" >/dev/null
+  if [ "${EC_PRESENT}" = "1" ]; then
+    ectool chargecontrol "$1" >/dev/null
+  else
+    echo "Not support charge_control without EC"
+  fi
 }
 
 run_stressapptest() {
@@ -157,6 +175,8 @@ main() {
 
   reset_activate_date
   reset_recovery_count
+
+  test_ec_flash_presence
 
   if has_battery; then
     # Needed by 'ectool battery'.
