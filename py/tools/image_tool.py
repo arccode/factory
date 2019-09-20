@@ -3294,8 +3294,6 @@ class EditLSBCommand(SubCommand):
         'Select cutoff method', 'CUTOFF_METHOD',
         ['shutdown', 'reboot', 'battery_cutoff', 'ectool_cutoff',
          'ec_hibernate'])
-    if not answer.endswith('cutoff'):
-      return
     self._DoOptions(
         'Select cutoff AC state', 'CUTOFF_AC_STATE',
         ['none', 'remove_ac', 'connect_ac'])
