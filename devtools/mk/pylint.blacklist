@@ -1,4 +1,5 @@
 py/instalog/plugins/input_drm_screencap/drm.py
+py/instalog/virtual_env/%
 py/test/utils/media_utils_unittest.py
 py/proto/%_pb2.py
 py/umpire/server/e2e_test/testdata/umpire/toolkits/device/%
