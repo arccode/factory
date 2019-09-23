@@ -6,14 +6,12 @@ import base64
 import logging
 import time
 
-from google.cloud import pubsub_v1  # pylint: disable=import-error
+from google.cloud import pubsub_v1  # pylint: disable=import-error, no-name-in-module
 from googleapiclient import discovery  # pylint: disable=import-error
 
 import factory_common  # pylint: disable=unused-import
-# pylint: disable=no-name-in-module
-from cros.factory.bundle_creator.docker import config
-# pylint: disable=no-name-in-module
-from cros.factory.bundle_creator.docker import factorybundle_pb2
+from cros.factory.bundle_creator.docker import config  # pylint: disable=no-name-in-module
+from cros.factory.bundle_creator.docker import factorybundle_pb2  # pylint: disable=no-name-in-module
 from cros.factory.bundle_creator.docker import util
 
 

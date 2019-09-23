@@ -12,13 +12,12 @@ import string
 import subprocess
 import yaml
 
-from google.cloud import storage  # pylint: disable=import-error
-from google.protobuf import text_format  # pylint: disable=import-error
+from google.cloud import storage  # pylint: disable=import-error, no-name-in-module
+from google.protobuf import text_format
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
-# pylint: disable=no-name-in-module
-from cros.factory.bundle_creator.docker import config
+from cros.factory.bundle_creator.docker import config  # pylint: disable=no-name-in-module
 
 
 class CreateBundleException(Exception):
