@@ -50,29 +50,29 @@ class SpawnTest(unittest.TestCase):
                     stdout=PIPE, stderr=PIPE,
                     log=True)
     stdout, stderr = process.communicate()
-    self.assertEquals('f<o>o\n', stdout)
-    self.assertEquals('', stderr)
-    self.assertEquals(0, process.returncode)
-    self.assertEquals([('INFO',
-                        '''Running command: "echo \'f<o>o\'"''')],
-                      self.log_entries)
+    self.assertEqual('f<o>o\n', stdout)
+    self.assertEqual('', stderr)
+    self.assertEqual(0, process.returncode)
+    self.assertEqual([('INFO',
+                       '''Running command: "echo \'f<o>o\'"''')],
+                     self.log_entries)
 
   def testShell(self):
     process = Spawn('echo foo', shell=True,
                     stdout=PIPE, stderr=PIPE, log=True)
     stdout, stderr = process.communicate()
-    self.assertEquals('foo\n', stdout)
-    self.assertEquals('', stderr)
-    self.assertEquals(0, process.returncode)
-    self.assertEquals([('INFO', 'Running command: "echo foo"')],
-                      self.log_entries)
+    self.assertEqual('foo\n', stdout)
+    self.assertEqual('', stderr)
+    self.assertEqual(0, process.returncode)
+    self.assertEqual([('INFO', 'Running command: "echo foo"')],
+                     self.log_entries)
 
   def testCall(self):
     process = Spawn('echo blah; exit 3', shell=True, call=True)
-    self.assertEquals(3, process.returncode)
+    self.assertEqual(3, process.returncode)
     # stdout/stderr are not trapped
-    self.assertEquals(None, process.stdout)
-    self.assertEquals(None, process.stdout_data)
+    self.assertEqual(None, process.stdout)
+    self.assertEqual(None, process.stdout_data)
 
     # Would cause a bad buffering situation.
     self.assertRaises(ValueError,
@@ -89,9 +89,9 @@ class SpawnTest(unittest.TestCase):
     self.assertRaises(
         subprocess.CalledProcessError,
         lambda: Spawn('exit 3', shell=True, check_call=True, log=True))
-    self.assertEquals([('INFO', 'Running command: "exit 3"'),
-                       ('ERROR', 'Exit code 3 from command: "exit 3"')],
-                      self.log_entries)
+    self.assertEqual([('INFO', 'Running command: "exit 3"'),
+                      ('ERROR', 'Exit code 3 from command: "exit 3"')],
+                     self.log_entries)
 
   def testCheckCallFunction(self):
     Spawn('exit 3', shell=True, check_call=lambda code: code == 3)
@@ -101,7 +101,7 @@ class SpawnTest(unittest.TestCase):
                       check_call=lambda code: code == 3))
 
   def testCheckOutput(self):
-    self.assertEquals(
+    self.assertEqual(
         'foo\n',
         Spawn('echo foo', shell=True, check_output=True).stdout_data)
     self.assertRaises(subprocess.CalledProcessError,
@@ -109,33 +109,33 @@ class SpawnTest(unittest.TestCase):
 
   def testReadStdout(self):
     process = Spawn('echo foo; echo bar; exit 3', shell=True, read_stdout=True)
-    self.assertEquals('foo\nbar\n', process.stdout_data)
-    self.assertEquals(['foo\n', 'bar\n'], process.stdout_lines())
-    self.assertEquals(['foo', 'bar'], process.stdout_lines(strip=True))
-    self.assertEquals(None, process.stderr_data)
-    self.assertEquals(3, process.returncode)
+    self.assertEqual('foo\nbar\n', process.stdout_data)
+    self.assertEqual(['foo\n', 'bar\n'], process.stdout_lines())
+    self.assertEqual(['foo', 'bar'], process.stdout_lines(strip=True))
+    self.assertEqual(None, process.stderr_data)
+    self.assertEqual(3, process.returncode)
 
   def testReadStderr(self):
     process = Spawn('(echo bar; echo foo) >& 2', shell=True, read_stderr=True)
-    self.assertEquals(None, process.stdout_data)
-    self.assertEquals('bar\nfoo\n', process.stderr_data)
-    self.assertEquals(['bar\n', 'foo\n'], process.stderr_lines())
-    self.assertEquals(0, process.returncode)
+    self.assertEqual(None, process.stdout_data)
+    self.assertEqual('bar\nfoo\n', process.stderr_data)
+    self.assertEqual(['bar\n', 'foo\n'], process.stderr_lines())
+    self.assertEqual(0, process.returncode)
 
   def testReadStdoutAndStderr(self):
     process = Spawn('echo foo; echo bar >& 2', shell=True,
                     read_stdout=True, read_stderr=True)
-    self.assertEquals('foo\n', process.stdout_data)
-    self.assertEquals('bar\n', process.stderr_data)
-    self.assertEquals(('foo\n', 'bar\n'), process.communicate())
-    self.assertEquals(0, process.returncode)
+    self.assertEqual('foo\n', process.stdout_data)
+    self.assertEqual('bar\n', process.stderr_data)
+    self.assertEqual(('foo\n', 'bar\n'), process.communicate())
+    self.assertEqual(0, process.returncode)
 
   def testLogStderrOnError(self):
     Spawn('echo foo >& 2', shell=True, log_stderr_on_error=True)
     self.assertFalse(self.log_entries)
 
     Spawn('echo foo >& 2; exit 3', shell=True, log_stderr_on_error=True)
-    self.assertEquals(
+    self.assertEqual(
         [('ERROR',
           'Exit code 3 from command: "echo foo >& 2; exit 3"; '
           'stderr: """\nfoo\n\n"""')],
@@ -146,20 +146,20 @@ class SpawnTest(unittest.TestCase):
     process = Spawn('echo ignored; echo foo >& 2', shell=True,
                     ignore_stdout=True, read_stderr=True)
     self.assertTrue(process_utils.dev_null)
-    self.assertEquals('foo\n', process.stderr_data)
+    self.assertEqual('foo\n', process.stderr_data)
 
   def testIgnoreStderr(self):
     self.assertFalse(process_utils.dev_null)
     process = Spawn('echo foo; echo ignored >& 2', shell=True,
                     read_stdout=True, ignore_stderr=True)
     self.assertTrue(process_utils.dev_null)
-    self.assertEquals('foo\n', process.stdout_data)
+    self.assertEqual('foo\n', process.stdout_data)
 
   def testOpenDevNull(self):
     self.assertFalse(process_utils.dev_null)
     dev_null = process_utils.OpenDevNull()
-    self.assertEquals(os.devnull, dev_null.name)
-    self.assertEquals(dev_null, process_utils.OpenDevNull())
+    self.assertEqual(os.devnull, dev_null.name)
+    self.assertEqual(dev_null, process_utils.OpenDevNull())
 
 
 _CMD_FOO_SUCCESS = 'echo foo; exit 0'
@@ -169,7 +169,7 @@ _CMD_FOO_FAILED = 'echo foo; exit 1'
 class CheckOutputTest(unittest.TestCase):
 
   def testCheckOutput(self):
-    self.assertEquals('foo\n', CheckOutput(_CMD_FOO_SUCCESS, shell=True))
+    self.assertEqual('foo\n', CheckOutput(_CMD_FOO_SUCCESS, shell=True))
     self.assertRaises(subprocess.CalledProcessError,
                       lambda: CheckOutput(_CMD_FOO_FAILED, shell=True))
 
@@ -177,8 +177,8 @@ class CheckOutputTest(unittest.TestCase):
 class SpawnOutputTest(unittest.TestCase):
 
   def testSpawnOutput(self):
-    self.assertEquals('foo\n', SpawnOutput(_CMD_FOO_SUCCESS, shell=True))
-    self.assertEquals('foo\n', SpawnOutput(_CMD_FOO_FAILED, shell=True))
+    self.assertEqual('foo\n', SpawnOutput(_CMD_FOO_SUCCESS, shell=True))
+    self.assertEqual('foo\n', SpawnOutput(_CMD_FOO_FAILED, shell=True))
     self.assertRaises(subprocess.CalledProcessError,
                       lambda: SpawnOutput(_CMD_FOO_FAILED, shell=True,
                                           check_output=True))
@@ -237,15 +237,15 @@ class TestRedirectStdout(unittest.TestCase):
     with process_utils.RedirectStandardStreams(stdout=dummy_file):
       print 'SHOULD_NOT_OUTPUT'
     print 'after'
-    self.assertEquals('before\nafter\n', self.mock_stdout.getvalue())
+    self.assertEqual('before\nafter\n', self.mock_stdout.getvalue())
 
   def testNotRedirectStdout(self):
     print 'before'
     with process_utils.RedirectStandardStreams(stdout=None):
       print 'SHOULD_OUTPUT'
     print 'after'
-    self.assertEquals('before\nSHOULD_OUTPUT\nafter\n',
-                      self.mock_stdout.getvalue())
+    self.assertEqual('before\nSHOULD_OUTPUT\nafter\n',
+                     self.mock_stdout.getvalue())
 
   def testRedirectAgainStdoutWithinContext(self):
     dummy_file = process_utils.DummyFile()
@@ -261,7 +261,7 @@ class TestRedirectStdout(unittest.TestCase):
       sys.stdout = dummy_file
       print 'SHOULD_NOT_OUTPUT'
     print 'after'
-    self.assertEquals('before\nSHOULD_OUTPUT\n', self.mock_stdout.getvalue())
+    self.assertEqual('before\nSHOULD_OUTPUT\n', self.mock_stdout.getvalue())
 
 
 class TestPipeStdoutLines(unittest.TestCase):

@@ -36,11 +36,11 @@ class BaseYAMLTagHandlerUnittest(unittest.TestCase):
     # Test load YAML tag.
     value = yaml.load('!foo foo_bar')
     self.assertIsInstance(value, FooTag)
-    self.assertEquals('foo_bar', value.content)
+    self.assertEqual('foo_bar', value.content)
 
     # Test dump YAML tag.
     result = yaml.dump(value)
-    self.assertEquals("!foo 'foo_bar'\n", result)
+    self.assertEqual("!foo 'foo_bar'\n", result)
 
 
 class ParseMappingAsOrderedDictUnittest(unittest.TestCase):
@@ -53,13 +53,13 @@ class ParseMappingAsOrderedDictUnittest(unittest.TestCase):
   def testLoadAndDump(self):
     YAML_DOC = '{foo: foo1, bar: 234}'
     obj = yaml.load(YAML_DOC)
-    self.assertEquals(obj['foo'], 'foo1')
-    self.assertEquals(obj['bar'], 234)
-    self.assertEquals(obj.keys(), ['foo', 'bar'])
+    self.assertEqual(obj['foo'], 'foo1')
+    self.assertEqual(obj['bar'], 234)
+    self.assertEqual(obj.keys(), ['foo', 'bar'])
     self.assertIsInstance(obj, collections.OrderedDict)
 
     yaml_str = yaml.dump(obj).strip()
-    self.assertEquals(YAML_DOC, yaml_str)
+    self.assertEqual(YAML_DOC, yaml_str)
 
   def testDisable(self):
     YAML_DOC = '{foo: foo1, bar: 234}'
@@ -80,7 +80,7 @@ class ParseMappingAsOrderedDictUnittest(unittest.TestCase):
     del obj['buzz']
 
     yaml_str = yaml.dump(obj).strip()
-    self.assertEquals(EXPECT_YAML_DOC, yaml_str)
+    self.assertEqual(EXPECT_YAML_DOC, yaml_str)
 
 if __name__ == '__main__':
   unittest.main()

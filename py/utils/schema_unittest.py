@@ -26,18 +26,18 @@ class SchemaTest(unittest.TestCase):
         r'element_type .* of Scalar \'foo\' is not a scalar type',
         Scalar, 'foo', list)
     schema = Scalar('foo', int)
-    self.assertEquals("Scalar('foo', <type 'int'>)", repr(schema))
+    self.assertEqual("Scalar('foo', <type 'int'>)", repr(schema))
     self.assertRaisesRegexp(
         SchemaException, r'Type mismatch on .*: expected .*, got .*',
         schema.Validate, 'bar')
-    self.assertEquals(None, schema.Validate(0))
+    self.assertEqual(None, schema.Validate(0))
 
   def testScalarChoices(self):
     schema = Scalar('foo', int, choices=[1, 2])
-    self.assertEquals("Scalar('foo', <type 'int'>, choices=[1, 2])",
-                      repr(schema))
-    self.assertEquals(None, schema.Validate(1))
-    self.assertEquals(None, schema.Validate(2))
+    self.assertEqual("Scalar('foo', <type 'int'>, choices=[1, 2])",
+                     repr(schema))
+    self.assertEqual(None, schema.Validate(1))
+    self.assertEqual(None, schema.Validate(2))
     self.assertRaisesRegexp(
         SchemaException, r'Value mismatch on 3: expected one of \[1, 2\]',
         schema.Validate, 3)
@@ -61,7 +61,7 @@ class SchemaTest(unittest.TestCase):
         SchemaException, r'value_type .* of Dict .* is not Schema object',
         Dict, 'foo', Scalar('key', str), 'value')
     schema = Dict('foo', Scalar('key', int), Scalar('value', str))
-    self.assertEquals(
+    self.assertEqual(
         "Dict('foo', key_type=Scalar('key', <type 'int'>), "
         "value_type=Scalar('value', <type 'str'>), size=[0, inf])",
         repr(schema))
@@ -74,13 +74,13 @@ class SchemaTest(unittest.TestCase):
     self.assertRaisesRegexp(
         SchemaException, r'Type mismatch on .*: expected .*str.*, got .*',
         schema.Validate, {0: 1})
-    self.assertEquals(None, schema.Validate({0: 'bar'}))
+    self.assertEqual(None, schema.Validate({0: 'bar'}))
     schema = Dict('foo',
                   AnyOf([Scalar('key1', int), Scalar('key2', str)],
                         label='key'),
                   Scalar('value', str))
-    self.assertEquals(None, schema.Validate({0: 'bar'}))
-    self.assertEquals(None, schema.Validate({'foo': 'bar'}))
+    self.assertEqual(None, schema.Validate({0: 'bar'}))
+    self.assertEqual(None, schema.Validate({'foo': 'bar'}))
 
   def testFixedDict(self):
     self.assertRaisesRegexp(
@@ -92,11 +92,11 @@ class SchemaTest(unittest.TestCase):
     schema = FixedDict('foo',
                        {'required_item': Scalar('bar', int)},
                        {'optional_item': Scalar('buz', str)})
-    self.assertEquals("FixedDict('foo', "
-                      "items={'required_item': Scalar('bar', <type 'int'>)}, "
-                      "optional_items={'optional_item': "
-                      "Scalar('buz', <type 'str'>)})",
-                      repr(schema))
+    self.assertEqual("FixedDict('foo', "
+                     "items={'required_item': Scalar('bar', <type 'int'>)}, "
+                     "optional_items={'optional_item': "
+                     "Scalar('buz', <type 'str'>)})",
+                     repr(schema))
     self.assertRaisesRegexp(
         SchemaException, r'Type mismatch on .*: expected dict, got .*',
         schema.Validate, 'foo')
@@ -112,15 +112,15 @@ class SchemaTest(unittest.TestCase):
     self.assertRaisesRegexp(
         SchemaException, r'Type mismatch on .*: expected .*, got .*',
         schema.Validate, {'required_item': 0, 'optional_item': 0})
-    self.assertEquals(None, schema.Validate(
+    self.assertEqual(None, schema.Validate(
         {'required_item': 0, 'optional_item': 'foo'}))
 
     schema = FixedDict('foo', items={'required_item': Scalar('bar', int)},
                        optional_items={'optional_item': Scalar('buz', str)},
                        allow_undefined_keys=True)
-    self.assertEquals(None, schema.Validate(
+    self.assertEqual(None, schema.Validate(
         {'required_item': 0, 'optional_item': 'foo', 'extra_key': 'extra_val'}))
-    self.assertEquals(None, schema.Validate(
+    self.assertEqual(None, schema.Validate(
         {'required_item': 0, 'extra_key': 'extra_val'}))
     self.assertRaises(SchemaException, schema.Validate,
                       {'optional_item': 'foo', 'extra_key': 'extra_val'})
@@ -130,8 +130,8 @@ class SchemaTest(unittest.TestCase):
         SchemaException, r'element_type .* of List .* is not a Schema object',
         List, 'foo', {'foo': 'bar'})
     schema = List('foo', Scalar('buz', int), min_length=1)
-    self.assertEquals("List('foo', Scalar('buz', <type 'int'>), [1, inf])",
-                      repr(schema))
+    self.assertEqual("List('foo', Scalar('buz', <type 'int'>), [1, inf])",
+                     repr(schema))
     self.assertRaisesRegexp(
         SchemaException, r'Type mismatch on .*: expected list, got .*',
         schema.Validate, 'bar')
@@ -141,16 +141,16 @@ class SchemaTest(unittest.TestCase):
     self.assertRaisesRegexp(
         SchemaException, r'Length mismatch.*',
         schema.Validate, [])
-    self.assertEquals(None, schema.Validate([0, 1, 2]))
+    self.assertEqual(None, schema.Validate([0, 1, 2]))
 
   def testTuple(self):
     self.assertRaisesRegexp(
         SchemaException, r'element_types .* of Tuple .* is not a tuple or list',
         Tuple, 'foo', 'foo')
     schema = Tuple('foo', (Scalar('bar', int), Scalar('buz', str)))
-    self.assertEquals("Tuple('foo', (Scalar('bar', <type 'int'>), "
-                      "Scalar('buz', <type 'str'>)))",
-                      repr(schema))
+    self.assertEqual("Tuple('foo', (Scalar('bar', <type 'int'>), "
+                     "Scalar('buz', <type 'str'>)))",
+                     repr(schema))
     self.assertRaisesRegexp(
         SchemaException, r'Type mismatch on .*: expected tuple, got .*',
         schema.Validate, 'bar')
@@ -160,7 +160,7 @@ class SchemaTest(unittest.TestCase):
     self.assertRaisesRegexp(
         SchemaException, r'Type mismatch on .*: expected .*, got .*',
         schema.Validate, ('0', 'foo'))
-    self.assertEquals(None, schema.Validate((0, 'foo')))
+    self.assertEqual(None, schema.Validate((0, 'foo')))
 
   def testAnyOf(self):
     self.assertRaisesRegexp(
@@ -180,8 +180,8 @@ class SchemaTest(unittest.TestCase):
     self.assertRaisesRegexp(
         SchemaException, r'.* does not match any type in .*',
         schema.Validate, {'a': 0})
-    self.assertEquals(None, schema.Validate('foo'))
-    self.assertEquals(None, schema.Validate(0))
+    self.assertEqual(None, schema.Validate('foo'))
+    self.assertEqual(None, schema.Validate(0))
 
     schema_label = AnyOf([Scalar('bar', str), Scalar('buz', int)],
                          label='bar_buz')
@@ -200,16 +200,16 @@ class SchemaTest(unittest.TestCase):
     self.assertRaisesRegexp(
         SchemaException, r'.* is not None and does not match any type in .*',
         schema1.Validate, {'a': 0})
-    self.assertEquals(None, schema1.Validate(None))
-    self.assertEquals(None, schema1.Validate('foo'))
+    self.assertEqual(None, schema1.Validate(None))
+    self.assertEqual(None, schema1.Validate('foo'))
 
     schema2 = Optional([Scalar('bar', str), Scalar('buz', int)])
     self.assertRaisesRegexp(
         SchemaException, r'.* is not None and does not match any type in .*',
         schema2.Validate, {'a': 0})
-    self.assertEquals(None, schema2.Validate(None))
-    self.assertEquals(None, schema2.Validate('foo'))
-    self.assertEquals(None, schema2.Validate(0))
+    self.assertEqual(None, schema2.Validate(None))
+    self.assertEqual(None, schema2.Validate('foo'))
+    self.assertEqual(None, schema2.Validate(0))
 
     schema_label = Optional([Scalar('bar', str), Scalar('buz', int)],
                             label='bar_buz')
@@ -264,8 +264,8 @@ class SchemaTest(unittest.TestCase):
         }
 
     }
-    self.assertEquals(None, schema1.Validate(data))
-    self.assertEquals(None, schema2.Validate(data))
+    self.assertEqual(None, schema1.Validate(data))
+    self.assertEqual(None, schema2.Validate(data))
 
     schema = (
         List('patterns',
@@ -278,7 +278,7 @@ class SchemaTest(unittest.TestCase):
         {'camera': 0},
         {'cellular': 1}
     ]
-    self.assertEquals(None, schema.Validate(data))
+    self.assertEqual(None, schema.Validate(data))
     schema = (
         Dict('components', Scalar('component_class', str),
              Dict('component_names', Scalar('component_name', str),
@@ -314,7 +314,7 @@ class SchemaTest(unittest.TestCase):
             }
         }
     }
-    self.assertEquals(None, schema.Validate(data))
+    self.assertEqual(None, schema.Validate(data))
 
 
 if __name__ == '__main__':

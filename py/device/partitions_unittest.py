@@ -35,17 +35,17 @@ class PartitionsTest(unittest.TestCase):
 
     self.mox.ReplayAll()
 
-    self.assertEquals('/dev/mmcblk0p1', disk1.STATEFUL.path)
-    self.assertEquals('/dev/mmcblk0p2', disk1.FACTORY_KERNEL.path)
-    self.assertEquals('/dev/mmcblk0p3', disk1.FACTORY_ROOTFS.path)
-    self.assertEquals('/dev/mmcblk0p4', disk1.RELEASE_KERNEL.path)
-    self.assertEquals('/dev/mmcblk0p5', disk1.RELEASE_ROOTFS.path)
+    self.assertEqual('/dev/mmcblk0p1', disk1.STATEFUL.path)
+    self.assertEqual('/dev/mmcblk0p2', disk1.FACTORY_KERNEL.path)
+    self.assertEqual('/dev/mmcblk0p3', disk1.FACTORY_ROOTFS.path)
+    self.assertEqual('/dev/mmcblk0p4', disk1.RELEASE_KERNEL.path)
+    self.assertEqual('/dev/mmcblk0p5', disk1.RELEASE_ROOTFS.path)
 
-    self.assertEquals('/dev/sda1', disk2.STATEFUL.path)
-    self.assertEquals('/dev/sda2', disk2.FACTORY_KERNEL.path)
-    self.assertEquals('/dev/sda3', disk2.FACTORY_ROOTFS.path)
-    self.assertEquals('/dev/sda4', disk2.RELEASE_KERNEL.path)
-    self.assertEquals('/dev/sda5', disk2.RELEASE_ROOTFS.path)
+    self.assertEqual('/dev/sda1', disk2.STATEFUL.path)
+    self.assertEqual('/dev/sda2', disk2.FACTORY_KERNEL.path)
+    self.assertEqual('/dev/sda3', disk2.FACTORY_ROOTFS.path)
+    self.assertEqual('/dev/sda4', disk2.RELEASE_KERNEL.path)
+    self.assertEqual('/dev/sda5', disk2.RELEASE_ROOTFS.path)
 
     self.mox.VerifyAll()
 

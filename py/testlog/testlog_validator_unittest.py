@@ -43,7 +43,7 @@ class TestlogValidatorTest(unittest.TestCase):
     with self.assertRaises(ValueError):
       event['Long'] = 'aaaa'
     event['Long'] = 3333
-    self.assertEquals(event['Long'], 3333)
+    self.assertEqual(event['Long'], 3333)
 
   def testNumberValidator(self):
     event = self.TestEvent()
@@ -63,7 +63,7 @@ class TestlogValidatorTest(unittest.TestCase):
     with self.assertRaises(ValueError):
       event['String'] = 6666
     event['String'] = '7777'
-    self.assertEquals(event['String'], '7777')
+    self.assertEqual(event['String'], '7777')
 
   def testBooleanValidator(self):
     event = self.TestEvent()
@@ -72,7 +72,7 @@ class TestlogValidatorTest(unittest.TestCase):
     with self.assertRaises(ValueError):
       event['Boolean'] = 'False'
     event['Boolean'] = True
-    self.assertEquals(event['Boolean'], True)
+    self.assertEqual(event['Boolean'], True)
 
   def testDictValidator(self):
     event = self.TestEvent()
@@ -80,23 +80,23 @@ class TestlogValidatorTest(unittest.TestCase):
     with self.assertRaises(ValueError):
       event['Dict'] = {'key1': 'value1', 'key2': 'value2'}
     event['Dict'] = {'key': 'PARA1', 'value': 33}
-    self.assertEquals(event['Dict'], {'PARA1': 33})
+    self.assertEqual(event['Dict'], {'PARA1': 33})
     # Feed a duplicated key.
     with self.assertRaises(ValueError):
       event['Dict'] = {'key': 'PARA1', 'value': 'PARA2'}
     # Put the second dictionary
     event['Dict'] = {'key': 'PARA2', 'value': 'aaa'}
-    self.assertEquals(event['Dict'],
-                      {'PARA1': 33, 'PARA2': 'aaa'})
+    self.assertEqual(event['Dict'],
+                     {'PARA1': 33, 'PARA2': 'aaa'})
     # Converts to JSON and convert back.
     event2 = testlog.EventBase.FromJSON(event.ToJSON(), False)
-    self.assertEquals(event, event2)
+    self.assertEqual(event, event2)
 
   def testListValidator(self):
     event = self.TestEvent()
     event['List'] = 123
     event['List'] = '456'
-    self.assertEquals(event['List'], [123, '456'])
+    self.assertEqual(event['List'], [123, '456'])
 
 
 class StationTestRunFieldsValidatorTest(unittest.TestCase):

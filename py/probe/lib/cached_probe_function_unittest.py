@@ -40,28 +40,28 @@ class CachedProbeFunctionTest(unittest.TestCase):
     self.func.GetCategoryFromArgs.return_value = None
 
     result = self.func()
-    self.assertEquals(
+    self.assertEqual(
         sorted(result), sorted([{'k1': 'v1'}, {'k2': 'v21'}, {'k2': 'v22'}]))
-    self.assertEquals(result, self.func())
+    self.assertEqual(result, self.func())
 
   def testWithCategory(self):
     self.func.GetCategoryFromArgs.return_value = 'i1'
 
     result = self.func()
-    self.assertEquals(result, [{'k1': 'v1'}])
-    self.assertEquals(result, self.func())
+    self.assertEqual(result, [{'k1': 'v1'}])
+    self.assertEqual(result, self.func())
 
   def testInvalidCategory(self):
     self.func.GetCategoryFromArgs.side_effect = (
         cached_probe_function.InvalidCategoryError())
 
-    self.assertEquals(self.func(), [])
+    self.assertEqual(self.func(), [])
 
   def testProbedResultsNoCategory(self):
     self.probed_results = [{'aa': 'bb'}, {'cc': 'dd'}]
     self.func.GetCategoryFromArgs.return_value = None
 
-    self.assertEquals(sorted(self.func()), sorted([{'aa': 'bb'}, {'cc': 'dd'}]))
+    self.assertEqual(sorted(self.func()), sorted([{'aa': 'bb'}, {'cc': 'dd'}]))
 
 
 class LazyCachedProbeFunctionTest(unittest.TestCase):
@@ -88,26 +88,26 @@ class LazyCachedProbeFunctionTest(unittest.TestCase):
   def testNormal(self):
     self.func.GetCategoryFromArgs.return_value = 'i1'
     result = self.func()
-    self.assertEquals(result, [{'k1': 'v1'}])
-    self.assertEquals(result, self.func())
-    self.assertEquals(self.func.called, {'i1'})
+    self.assertEqual(result, [{'k1': 'v1'}])
+    self.assertEqual(result, self.func())
+    self.assertEqual(self.func.called, {'i1'})
 
     self.func.GetCategoryFromArgs.return_value = 'i2'
     result = self.func()
-    self.assertEquals(result, [{'k2': 'v21'}, {'k2': 'v22'}])
-    self.assertEquals(result, self.func())
-    self.assertEquals(self.func.called, {'i1', 'i2'})
+    self.assertEqual(result, [{'k2': 'v21'}, {'k2': 'v22'}])
+    self.assertEqual(result, self.func())
+    self.assertEqual(self.func.called, {'i1', 'i2'})
 
   def testInvalidCategory(self):
     self.func.GetCategoryFromArgs.side_effect = (
         cached_probe_function.InvalidCategoryError())
 
-    self.assertEquals(self.func(), [])
+    self.assertEqual(self.func(), [])
 
   def testProbeFailed(self):
     self.func.GetCategoryFromArgs.return_value = 'i999'
 
-    self.assertEquals(self.func(), [])
+    self.assertEqual(self.func(), [])
 
 
 class GlobPathCachedProbeFunctionTest(unittest.TestCase):
@@ -144,21 +144,21 @@ class GlobPathCachedProbeFunctionTest(unittest.TestCase):
   def testInvalidDirPath(self):
     func = self.Function(dir_path='aabbcc')
 
-    self.assertEquals(func(), [])
+    self.assertEqual(func(), [])
 
   def testWithDirPath(self):
     func = self.Function(dir_path=os.path.join(self.root_dir, 'dev1'))
     result = func()
-    self.assertEquals(result, self._GenerateExpectedProbedResults(['dev1']))
+    self.assertEqual(result, self._GenerateExpectedProbedResults(['dev1']))
 
     # Symlink should be resolved.
     func = self.Function(dir_path=os.path.join(self.root_dir, 'dev6'))
     result = func()
-    self.assertEquals(result, self._GenerateExpectedProbedResults(['dev6']))
+    self.assertEqual(result, self._GenerateExpectedProbedResults(['dev6']))
 
     func = self.Function(dir_path=os.path.join(self.root_dir, 'real_dev_6'))
     result = func()
-    self.assertEquals(result, self._GenerateExpectedProbedResults(['dev6']))
+    self.assertEqual(result, self._GenerateExpectedProbedResults(['dev6']))
 
   def _GenerateExpectedProbedResults(self, names):
     ret = []

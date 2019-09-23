@@ -39,7 +39,7 @@ class FactoryPythonArchiveUnittest(unittest.TestCase):
     result = self.factory_par.Call(command)
 
     self.dut.Call.assert_called_with(expected_call)
-    self.assertEquals(return_value, result)
+    self.assertEqual(return_value, result)
     self.factory_par.PushFactoryPar.assert_called_with()
 
   def testCallWithString(self):
@@ -58,7 +58,7 @@ class FactoryPythonArchiveUnittest(unittest.TestCase):
     result = self.factory_par.Call(command)
 
     self.dut.Call.assert_called_with(expected_call)
-    self.assertEquals(return_value, result)
+    self.assertEqual(return_value, result)
     self.factory_par.PushFactoryPar.assert_called_with()
 
   def testCallWithList(self):

@@ -15,40 +15,40 @@ class ExecFunctionTest(unittest.TestCase):
     command = 'echo "hello world"'
     func = shell.ShellFunction(command=command, key='idx')
     result = func()
-    self.assertEquals(result, [{'idx': 'hello world'}])
+    self.assertEqual(result, [{'idx': 'hello world'}])
 
     func = shell.ShellFunction(command=command)
     result = func()
-    self.assertEquals(result, [{shell.DEFAULT_KEY: 'hello world'}])
+    self.assertEqual(result, [{shell.DEFAULT_KEY: 'hello world'}])
 
   def testSequenceCommand(self):
     command = 'echo "hello world"; echo "second line"'
     func = shell.ShellFunction(command=command, key='idx')
     result = func()
-    self.assertEquals(result, [{'idx': 'hello world\nsecond line'}])
+    self.assertEqual(result, [{'idx': 'hello world\nsecond line'}])
 
     func = shell.ShellFunction(command=command, key='idx', split_line=True)
     result = func()
-    self.assertEquals(result, [{'idx': 'hello world'},
-                               {'idx': 'second line'}])
+    self.assertEqual(result, [{'idx': 'hello world'},
+                              {'idx': 'second line'}])
 
   def testFailedCommand(self):
     command = 'echo "hello world"; echo "second line"; false'
     func = shell.ShellFunction(command=command, key='idx')
     result = func()
-    self.assertEquals(result, [])
+    self.assertEqual(result, [])
 
   def testPipeCommand(self):
     command = 'echo "hello" | sed "s/e/a/"'
     func = shell.ShellFunction(command=command, key='idx')
     result = func()
-    self.assertEquals(result, [{'idx': 'hallo'}])
+    self.assertEqual(result, [{'idx': 'hallo'}])
 
   def testStderrCommand(self):
     command = 'echo "hello world"; >&2 echo "second line"'
     func = shell.ShellFunction(command=command, key='idx')
     result = func()
-    self.assertEquals(result, [{'idx': 'hello world'}])
+    self.assertEqual(result, [{'idx': 'hello world'}])
 
 
 if __name__ == '__main__':

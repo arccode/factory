@@ -49,7 +49,7 @@ class AuditSourceHashesTest(unittest.TestCase):
     self.assertRaisesRegexp(
         SystemExit, '^0$', audit_source_hashes.main,
         [os.path.join(paths.FACTORY_DIR, 'py')], out)
-    self.assertEquals('PASSED (1/1 samples passed).\n', out.getvalue())
+    self.assertEqual('PASSED (1/1 samples passed).\n', out.getvalue())
 
   def testGooftoolLogSourceHashes(self):
     """'End-to-end' test using 'gooftool log_source_hashes'."""
@@ -150,7 +150,7 @@ class FakeSourceTreeTest(unittest.TestCase):
     self.assertRaisesRegexp(
         SystemExit, '^0$', audit_source_hashes.main,
         ['-g', self.py, self.py2], out)
-    self.assertEquals('PASSED (1/1 samples passed).\n', out.getvalue())
+    self.assertEqual('PASSED (1/1 samples passed).\n', out.getvalue())
 
   def testMismatches(self):
     """Tests that comparing py and py2 yields the expected mismatches."""

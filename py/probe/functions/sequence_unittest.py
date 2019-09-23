@@ -34,14 +34,14 @@ class SequenceFunctionTest(unittest.TestCase):
                 {'mock': {'data': {'bar': 'BAR'}}}]}}
     expected_value = [{'foo': 'FOO', 'bar': 'BAR'}]
     ret = function.InterpretFunction(func_expression)()
-    self.assertEquals(ret, expected_value)
+    self.assertEqual(ret, expected_value)
 
     # Syntax sugar
     func_expression = [
         {'mock': {'data': {'foo': 'FOO'}}},
         {'mock': {'data': {'bar': 'BAR'}}}]
     ret = function.InterpretFunction(func_expression)()
-    self.assertEquals(ret, expected_value)
+    self.assertEqual(ret, expected_value)
 
 
 if __name__ == '__main__':

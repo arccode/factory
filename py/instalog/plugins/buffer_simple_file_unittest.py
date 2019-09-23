@@ -124,7 +124,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     self.sf.Produce([self.e1])
     self.sf.AddConsumer('a')
     stream = self.sf.Consume('a')
-    self.assertEquals(self.e1, stream.Next())
+    self.assertEqual(self.e1, stream.Next())
 
   def testLongCorruptedRecord(self):
     """Tests reading from a data store with a long corrupted record."""
@@ -141,7 +141,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     self.sf.Produce([self.e2])
     self.sf.AddConsumer('a')
     stream = self.sf.Consume('a')
-    self.assertEquals(self.e2, stream.Next())
+    self.assertEqual(self.e2, stream.Next())
 
   def testSkippedRecords(self):
     """Tests recovery from skipped records due to corruption.
@@ -191,10 +191,10 @@ class TestBufferSimpleFile(unittest.TestCase):
 
     self.sf.AddConsumer('a')
     stream = self.sf.Consume('a')
-    self.assertEquals(self.e1, stream.Next())
-    self.assertEquals(e, stream.Next())
-    self.assertEquals(self.e1, stream.Next())
-    self.assertEquals(self.e3, stream.Next())
+    self.assertEqual(self.e1, stream.Next())
+    self.assertEqual(e, stream.Next())
+    self.assertEqual(self.e1, stream.Next())
+    self.assertEqual(self.e3, stream.Next())
 
   def testAppendedJunkStore(self):
     """Tests reading from a data store that has appended junk."""
@@ -205,8 +205,8 @@ class TestBufferSimpleFile(unittest.TestCase):
     self.sf.Produce([self.e2])
     self.sf.AddConsumer('a')
     stream = self.sf.Consume('a')
-    self.assertEquals(self.e1, stream.Next())
-    self.assertEquals(self.e2, stream.Next())
+    self.assertEqual(self.e1, stream.Next())
+    self.assertEqual(self.e2, stream.Next())
 
   def testTwoBufferEventStreams(self):
     """Tries creating two BufferEventStream objects for one Consumer."""
@@ -214,7 +214,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     stream1 = self.sf.Consume('a')
     stream2 = self.sf.Consume('a')
     self.assertIsInstance(stream1, plugin_base.BufferEventStream)
-    self.assertEquals(stream2, None)
+    self.assertEqual(stream2, None)
 
   def testUseExpiredBufferEventStream(self):
     """Tests continuing to use an expired BufferEventStream."""
@@ -272,7 +272,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     self.assertEqual(self.sf.buffer_file.last_seq, 2)
 
     stream = self.sf.Consume('a')
-    self.assertEquals(self.e1, stream.Next())
+    self.assertEqual(self.e1, stream.Next())
     stream.Commit()
 
     self.sf.buffer_file.Truncate()
@@ -287,16 +287,16 @@ class TestBufferSimpleFile(unittest.TestCase):
     self.sf.Produce([self.e1])
     stream = self.sf.Consume('a')
     seq, _ = stream._Next()
-    self.assertEquals(seq, 1)
+    self.assertEqual(seq, 1)
     stream.Commit()
 
     self.sf.buffer_file.Truncate()
     self.sf.Produce([self.e1, self.e1])
     stream = self.sf.Consume('a')
     seq, _ = stream._Next()
-    self.assertEquals(seq, 2)
+    self.assertEqual(seq, 2)
     seq, _ = stream._Next()
-    self.assertEquals(seq, 3)
+    self.assertEqual(seq, 3)
     stream.Commit()
 
   @_WithBufferSize(0)  # Force only keeping one record in buffer.

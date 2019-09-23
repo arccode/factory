@@ -323,14 +323,14 @@ class TestLogMessagesTest(unittest.TestCase):
       f.write(('X' * 100) + '\n' + data)
       # Use max_length=len(data) + 5 so that we'll end up reading
       # (and discarding) the last 5 bytes of garbage X's.
-      self.assertEquals(
+      self.assertEqual(
           '<truncated 101 bytes>\n'
           "Captain's log.\xFF\n"
           'We are in pursuit of a starship of Ferengi design.\n',
           sys_utils.GetVarLogMessages(max_length=(len(data) + 5), path=f.name))
 
       dut = device_utils.CreateDUTInterface(board_class='LinuxBoard')
-      self.assertEquals(
+      self.assertEqual(
           '<truncated 101 bytes>\n'
           "Captain's log.\xFF\n"
           'We are in pursuit of a starship of Ferengi design.\n',
@@ -361,25 +361,25 @@ class TestLogMessagesTest(unittest.TestCase):
     with tempfile.NamedTemporaryFile(bufsize=0) as f:
       f.write(VAR_LOG_MESSAGES)
 
-      self.assertEquals(
+      self.assertEqual(
           ("19:27:17 kernel: That's all, folks.\n"
            "19:27:17 kernel: Kernel logging (proc) stopped.\n"
            "<after reboot, kernel came up at 19:27:56>\n"),
           sys_utils.GetVarLogMessagesBeforeReboot(
               path=f.name, lines=2, dut=dut))
 
-      self.assertEquals(
+      self.assertEqual(
           ("19:27:17 kernel: That's all, folks.\n"
            "19:27:17 kernel: Kernel logging (proc) stopped.\n"
            "<after reboot, kernel came up at 19:27:56>\n"),
           sys_utils.GetVarLogMessagesBeforeReboot(path=f.name, lines=2))
 
-      self.assertEquals(
+      self.assertEqual(
           ("19:27:17 kernel: Kernel logging (proc) stopped.\n"
            "<after reboot, kernel came up at 19:27:56>\n"),
           sys_utils.GetVarLogMessagesBeforeReboot(path=f.name, lines=1))
 
-      self.assertEquals(
+      self.assertEqual(
           ("19:00:00 kernel: 7 p.m. and all's well.\n"
            "19:27:17 kernel: That's all, folks.\n"
            "19:27:17 kernel: Kernel logging (proc) stopped.\n"
@@ -388,7 +388,7 @@ class TestLogMessagesTest(unittest.TestCase):
 
     with tempfile.NamedTemporaryFile(bufsize=0) as f:
       f.write(EARLIER_VAR_LOG_MESSAGES)
-      self.assertEquals(
+      self.assertEqual(
           ("19:26:17 kernel: That's all, folks.\n"
            "<after reboot, kernel came up at 19:26:56>\n"),
           sys_utils.GetVarLogMessagesBeforeReboot(path=f.name, lines=1))
@@ -406,7 +406,7 @@ class TestGetRunningFactoryPythonArchivePath(unittest.TestCase):
     sys_utils.os.path.exists(sys_utils.__file__).AndReturn(True)
 
     self.mox.ReplayAll()
-    self.assertEquals(sys_utils.GetRunningFactoryPythonArchivePath(), None)
+    self.assertEqual(sys_utils.GetRunningFactoryPythonArchivePath(), None)
 
     self.mox.VerifyAll()
 
@@ -418,8 +418,8 @@ class TestGetRunningFactoryPythonArchivePath(unittest.TestCase):
     sys_utils.os.path.exists(factory_par).AndReturn(True)
 
     self.mox.ReplayAll()
-    self.assertEquals(sys_utils.GetRunningFactoryPythonArchivePath(),
-                      factory_par)
+    self.assertEqual(sys_utils.GetRunningFactoryPythonArchivePath(),
+                     factory_par)
 
     self.mox.VerifyAll()
 
@@ -429,7 +429,7 @@ class TestGetRunningFactoryPythonArchivePath(unittest.TestCase):
     sys_utils.os.path.exists(sys_utils.__file__).AndReturn(False)
 
     self.mox.ReplayAll()
-    self.assertEquals(sys_utils.GetRunningFactoryPythonArchivePath(), None)
+    self.assertEqual(sys_utils.GetRunningFactoryPythonArchivePath(), None)
 
     self.mox.VerifyAll()
 
@@ -441,7 +441,7 @@ class TestGetRunningFactoryPythonArchivePath(unittest.TestCase):
     sys_utils.os.path.exists(factory_par).AndReturn(False)
 
     self.mox.ReplayAll()
-    self.assertEquals(sys_utils.GetRunningFactoryPythonArchivePath(), None)
+    self.assertEqual(sys_utils.GetRunningFactoryPythonArchivePath(), None)
 
     self.mox.VerifyAll()
 

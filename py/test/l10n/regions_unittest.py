@@ -75,7 +75,7 @@ class RegionTest(unittest.TestCase):
 
   def testFieldsDict(self):
     # 'description' and 'notes' should be missing.
-    self.assertEquals(
+    self.assertEqual(
         {'keyboards': ['xkb:b::b'],
          'keyboard_mechanical_layout': 'e',
          'language_codes': ['d'],
@@ -90,7 +90,7 @@ class RegionTest(unittest.TestCase):
     region_list = [regions.Region('a', 'xkb:b::b', 'c', 'd', 'e')
                    for _ in range(2)]
     # It's OK.
-    self.assertEquals(
+    self.assertEqual(
         {'a': region_list[0]}, regions._ConsolidateRegions(region_list))
 
     # Modify the second copy.

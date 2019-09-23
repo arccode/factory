@@ -41,21 +41,21 @@ class EmbeddedControllerTest(unittest.TestCase):
         ['mosys', 'ec', 'info', '-s', 'fw_version']).AndReturn(
             'link_v1.1.227-3b0e131')
     self.mox.ReplayAll()
-    self.assertEquals(self.ec.GetECVersion(), 'link_v1.1.227-3b0e131')
+    self.assertEqual(self.ec.GetECVersion(), 'link_v1.1.227-3b0e131')
     self.mox.VerifyAll()
 
   def testGetROVersion(self):
     self.board.CallOutput(['ectool', 'version']).AndReturn(
         self._EC_VERSION_OUTPUT)
     self.mox.ReplayAll()
-    self.assertEquals(self.ec.GetROVersion(), 'samus_v1.7.576-9648e39')
+    self.assertEqual(self.ec.GetROVersion(), 'samus_v1.7.576-9648e39')
     self.mox.VerifyAll()
 
   def testGetRWVersion(self):
     self.board.CallOutput(['ectool', 'version']).AndReturn(
         self._EC_VERSION_OUTPUT)
     self.mox.ReplayAll()
-    self.assertEquals(self.ec.GetRWVersion(), 'samus_v1.7.688-22cf733')
+    self.assertEqual(self.ec.GetRWVersion(), 'samus_v1.7.688-22cf733')
     self.mox.VerifyAll()
 
   def testGetECConsoleLog(self):
@@ -66,7 +66,7 @@ class EmbeddedControllerTest(unittest.TestCase):
 
     self.board.CallOutput(['ectool', 'console']).AndReturn(_MOCK_LOG)
     self.mox.ReplayAll()
-    self.assertEquals(self.ec.GetECConsoleLog(), _MOCK_LOG)
+    self.assertEqual(self.ec.GetECConsoleLog(), _MOCK_LOG)
     self.mox.VerifyAll()
 
   def testGetECPanicInfo(self):
@@ -80,7 +80,7 @@ class EmbeddedControllerTest(unittest.TestCase):
 
     self.board.CallOutput(['ectool', 'panicinfo']).AndReturn(_MOCK_PANIC)
     self.mox.ReplayAll()
-    self.assertEquals(self.ec.GetECPanicInfo(), _MOCK_PANIC)
+    self.assertEqual(self.ec.GetECPanicInfo(), _MOCK_PANIC)
     self.mox.VerifyAll()
 
   def testProbeEC(self):
@@ -102,7 +102,7 @@ class EmbeddedControllerTest(unittest.TestCase):
     self.board.CheckOutput(
         ['ectool', 'i2cread', '16', '0', '18', '18']).AndReturn(_MOCK_I2C_READ)
     self.mox.ReplayAll()
-    self.assertEquals(self.ec.I2CRead(0, 0x12, 0x12), 0xf912)
+    self.assertEqual(self.ec.I2CRead(0, 0x12, 0x12), 0xf912)
     self.mox.VerifyAll()
 
   def testI2CWrite(self):

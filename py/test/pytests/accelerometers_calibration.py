@@ -113,7 +113,7 @@ class AccelerometersCalibration(test_case.TestCase):
 
     self.dut = device_utils.CreateDUTInterface()
     # Checks arguments.
-    self.assertEquals(2, len(self.args.spec_offset))
+    self.assertEqual(2, len(self.args.spec_offset))
 
     self.accelerometer_controller = (
         self.dut.accelerometer.GetController(self.args.location))

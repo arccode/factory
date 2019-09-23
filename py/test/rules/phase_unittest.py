@@ -28,16 +28,16 @@ class BasicPhaseTest(unittest.TestCase):
       for r in xrange(len(PHASE_NAMES)):
         left = Phase(PHASE_NAMES[l])
         right = Phase(PHASE_NAMES[r])
-        self.assertEquals(left < right, l < r)
-        self.assertEquals(left > right, l > r)
-        self.assertEquals(left == right, l == r)
-        self.assertEquals(left != right, l != r)
-        self.assertEquals(left <= right, l <= r)
-        self.assertEquals(left >= right, l >= r)
+        self.assertEqual(left < right, l < r)
+        self.assertEqual(left > right, l > r)
+        self.assertEqual(left == right, l == r)
+        self.assertEqual(left != right, l != r)
+        self.assertEqual(left <= right, l <= r)
+        self.assertEqual(left >= right, l >= r)
 
-    self.assertEquals(Phase('EVT'), phase.EVT)
-    self.assertEquals(phase.EVT, phase.EVT)
-    self.assertNotEquals(Phase('DVT'), phase.EVT)
+    self.assertEqual(Phase('EVT'), phase.EVT)
+    self.assertEqual(phase.EVT, phase.EVT)
+    self.assertNotEqual(Phase('DVT'), phase.EVT)
 
   def testInvalidName(self):
     self.assertRaisesRegexp(
@@ -57,25 +57,25 @@ class PersistentPhaseTest(unittest.TestCase):
     phase._state_root_for_testing = None
 
   def testDefaultPhase(self):
-    self.assertEquals(phase.PVT, phase.GetPhase())
+    self.assertEqual(phase.PVT, phase.GetPhase())
 
   def testSetGetPhase(self):
     phase.SetPersistentPhase(phase.EVT)
     with open(os.path.join(phase._state_root_for_testing, 'PHASE')) as f:
-      self.assertEquals('EVT', f.read())
-    self.assertEquals(phase.EVT, phase._current_phase)
+      self.assertEqual('EVT', f.read())
+    self.assertEqual(phase.EVT, phase._current_phase)
 
     # Set current phase to None to force it to be re-read
     phase._current_phase = None
-    self.assertEquals(phase.EVT, phase.GetPhase())
-    self.assertEquals(phase.EVT, phase._current_phase)
+    self.assertEqual(phase.EVT, phase.GetPhase())
+    self.assertEqual(phase.EVT, phase._current_phase)
 
     # Delete phase file.  It will be read as the strictest possible
     # phase (PVT).
     phase.SetPersistentPhase(None)
-    self.assertEquals(None, phase._current_phase)
-    self.assertEquals(phase.PVT, phase.GetPhase())
-    self.assertEquals(phase.PVT, phase._current_phase)
+    self.assertEqual(None, phase._current_phase)
+    self.assertEqual(phase.PVT, phase.GetPhase())
+    self.assertEqual(phase.PVT, phase._current_phase)
 
 
 class AssertionTest(unittest.TestCase):
@@ -101,7 +101,7 @@ class AssertionTest(unittest.TestCase):
                                 lambda: called.append('EVT') or True, 'msg')
     phase.AssertStartingAtPhase(phase.DVT,
                                 lambda: called.append('DVT') or True, 'msg')
-    self.assertEquals(['PROTO', 'EVT'], called)
+    self.assertEqual(['PROTO', 'EVT'], called)
 
   def testAssertionFails(self):
     # Condition is True, so these always pass.
@@ -131,7 +131,7 @@ class AssertionTest(unittest.TestCase):
     # DVT check is not evaluated
     phase.AssertStartingAtPhase(phase.DVT,
                                 lambda: called.append('DVT') or True, 'msg')
-    self.assertEquals(['PROTO', 'EVT'], called)
+    self.assertEqual(['PROTO', 'EVT'], called)
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)

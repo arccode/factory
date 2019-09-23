@@ -731,9 +731,9 @@ class BomTest(unittest.TestCase):
     self.assertIn(hwid_manager.Component('baz', 'rox'), components)
     self.assertIn(hwid_manager.Component('zib', None), components)
 
-    self.assertEquals([hwid_manager.Component('foo', 'bar')],
-                      self.bom.GetComponents('foo'))
-    self.assertEquals([], self.bom.GetComponents('empty-class'))
+    self.assertEqual([hwid_manager.Component('foo', 'bar')],
+                     self.bom.GetComponents('foo'))
+    self.assertEqual([], self.bom.GetComponents('empty-class'))
 
   def _AssertHasComponent(self, cls, name):
     self.assertIn(cls, self.bom._components)

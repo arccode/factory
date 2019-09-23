@@ -158,10 +158,10 @@ class UtilityFunctionTest(unittest.TestCase):
 
     with mock.patch('glob.glob', return_value=interface_table.keys()):
       with mock.patch('os.path.realpath', side_effect=MockRealPath):
-        self.assertEquals('eth0', func_under_test('eth0'))
-        self.assertEquals('eth0', func_under_test('/REAL_PATH/0/net'))
-        self.assertEquals('eth1', func_under_test('/REAL_PATH/1/net'))
-        self.assertEquals(None, func_under_test('/WRONG_PATH'))
+        self.assertEqual('eth0', func_under_test('eth0'))
+        self.assertEqual('eth0', func_under_test('/REAL_PATH/0/net'))
+        self.assertEqual('eth1', func_under_test('/REAL_PATH/1/net'))
+        self.assertEqual(None, func_under_test('/WRONG_PATH'))
 
         self.assertIn(func_under_test('/REAL_PATH', True), ['eth0', 'eth1'])
         with self.assertRaises(ValueError):
@@ -177,7 +177,7 @@ class UtilityFunctionTest(unittest.TestCase):
     with mock.patch.object(process_utils, 'CheckOutput',
                            return_value=mock_value):
       ret = net_utils.GetDefaultGatewayInterface()
-      self.assertEquals('wlan0', ret)
+      self.assertEqual('wlan0', ret)
 
     # Duplicate case. It should return the first interface.
     mock_value = """\
@@ -189,7 +189,7 @@ class UtilityFunctionTest(unittest.TestCase):
     with mock.patch.object(process_utils, 'CheckOutput',
                            return_value=mock_value):
       ret = net_utils.GetDefaultGatewayInterface()
-      self.assertEquals('wlan0', ret)
+      self.assertEqual('wlan0', ret)
 
     # Empty case.
     mock_value = """\
@@ -199,7 +199,7 @@ class UtilityFunctionTest(unittest.TestCase):
     with mock.patch.object(process_utils, 'CheckOutput',
                            return_value=mock_value):
       ret = net_utils.GetDefaultGatewayInterface()
-      self.assertEquals(None, ret)
+      self.assertEqual(None, ret)
 
     # Failure case.
     mock_value = """Wrong content."""

@@ -28,7 +28,7 @@ class SysfsFunctionTest(unittest.TestCase):
 
     func = sysfs.SysfsFunction(dir_path=self.tmp_dir, keys=['vendor', 'device'])
     result = func()
-    self.assertEquals(result, [{'vendor': 'google', 'device': 'chromebook'}])
+    self.assertEqual(result, [{'vendor': 'google', 'device': 'chromebook'}])
 
   def testOptionalKeys(self):
     with open(os.path.join(self.tmp_dir, 'device'), 'w') as f:
@@ -40,8 +40,8 @@ class SysfsFunctionTest(unittest.TestCase):
         dir_path=self.tmp_dir, keys=['device'],
         optional_keys=['optional_1', 'optional_2'])
     result = func()
-    self.assertEquals(result, [{'device': 'chromebook',
-                                'optional_1': 'OPTIONAL_1'}])
+    self.assertEqual(result, [{'device': 'chromebook',
+                               'optional_1': 'OPTIONAL_1'}])
 
   def testFail(self):
     """Device is not found."""
@@ -50,7 +50,7 @@ class SysfsFunctionTest(unittest.TestCase):
 
     func = sysfs.SysfsFunction(dir_path=self.tmp_dir, keys=['vendor', 'device'])
     result = func()
-    self.assertEquals(result, [])
+    self.assertEqual(result, [])
 
   def testMultipleResults(self):
     os.mkdir(os.path.join(self.tmp_dir, 'foo'))
@@ -70,9 +70,9 @@ class SysfsFunctionTest(unittest.TestCase):
     func = sysfs.SysfsFunction(dir_path=os.path.join(self.tmp_dir, '*'),
                                keys=['vendor', 'device'])
     result = func()
-    self.assertEquals(sorted(result),
-                      sorted([{'vendor': 'google', 'device': 'chromebook'},
-                              {'vendor': 'apple', 'device': 'macbook'}]))
+    self.assertEqual(sorted(result),
+                     sorted([{'vendor': 'google', 'device': 'chromebook'},
+                             {'vendor': 'apple', 'device': 'macbook'}]))
 
 
 if __name__ == '__main__':

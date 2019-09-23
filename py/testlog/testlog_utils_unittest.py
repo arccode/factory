@@ -18,42 +18,42 @@ SAMPLE_DATETIME = datetime.datetime(1989, 8, 8, 8, 8, 8, 888888)
 class TestlogUtilsTest(unittest.TestCase):
 
   def testIsInRange(self):
-    self.assertEquals(False,
-                      testlog_utils.IsInRange(30, min_val=None, max_val=0))
-    self.assertEquals(True,
-                      testlog_utils.IsInRange(30, min_val=0, max_val=None))
-    self.assertEquals(True,
-                      testlog_utils.IsInRange(30, min_val=None, max_val=30))
-    self.assertEquals(False,
-                      testlog_utils.IsInRange(30, min_val=None, max_val=29.99))
-    self.assertEquals(True,
-                      testlog_utils.IsInRange(30, min_val=30, max_val=None))
-    self.assertEquals(False,
-                      testlog_utils.IsInRange(30, min_val=30.01, max_val=None))
-    self.assertEquals(True,
-                      testlog_utils.IsInRange(30, min_val=None, max_val=None))
-    self.assertEquals(True,
-                      testlog_utils.IsInRange(30, min_val=29, max_val=31))
-    self.assertEquals(False,
-                      testlog_utils.IsInRange(31.1, min_val=29, max_val=31))
+    self.assertEqual(False,
+                     testlog_utils.IsInRange(30, min_val=None, max_val=0))
+    self.assertEqual(True,
+                     testlog_utils.IsInRange(30, min_val=0, max_val=None))
+    self.assertEqual(True,
+                     testlog_utils.IsInRange(30, min_val=None, max_val=30))
+    self.assertEqual(False,
+                     testlog_utils.IsInRange(30, min_val=None, max_val=29.99))
+    self.assertEqual(True,
+                     testlog_utils.IsInRange(30, min_val=30, max_val=None))
+    self.assertEqual(False,
+                     testlog_utils.IsInRange(30, min_val=30.01, max_val=None))
+    self.assertEqual(True,
+                     testlog_utils.IsInRange(30, min_val=None, max_val=None))
+    self.assertEqual(True,
+                     testlog_utils.IsInRange(30, min_val=29, max_val=31))
+    self.assertEqual(False,
+                     testlog_utils.IsInRange(31.1, min_val=29, max_val=31))
 
   def testJSONHandlerDateTime(self):
     obj = SAMPLE_DATETIME
     # pylint: disable=protected-access
     output = testlog_utils.JSONHandler(obj)
-    self.assertEquals(output, SAMPLE_DATETIME_STRING)
+    self.assertEqual(output, SAMPLE_DATETIME_STRING)
 
   def testJSONHandlerDate(self):
     obj = datetime.date(1989, 8, 8)
     # pylint: disable=protected-access
     output = testlog_utils.JSONHandler(obj)
-    self.assertEquals(output, '1989-08-08')
+    self.assertEqual(output, '1989-08-08')
 
   def testJSONHandlerTime(self):
     obj = datetime.time(22, 10, 10)
     # pylint: disable=protected-access
     output = testlog_utils.JSONHandler(obj)
-    self.assertEquals(output, '22:10')
+    self.assertEqual(output, '22:10')
 
   def testJSONHandlerExceptionAndTraceback(self):
     try:

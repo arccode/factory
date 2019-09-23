@@ -70,13 +70,13 @@ class GlobalSeqTest(unittest.TestCase):
   def testBasic(self):
     seq = event_log.GlobalSeq()
     for i in range(3):
-      self.assertEquals(i, seq.Next())
+      self.assertEqual(i, seq.Next())
     del seq
 
     # Try again with a new sequence file
     seq = event_log.GlobalSeq()
     for i in range(3, 6):
-      self.assertEquals(i, seq.Next())
+      self.assertEqual(i, seq.Next())
     del seq
 
   def testYamlDump(self):
@@ -111,8 +111,8 @@ class GlobalSeqTest(unittest.TestCase):
   def testMissingSequenceFile(self):
     # Generate a few sequence numbers.
     seq = event_log.GlobalSeq()
-    self.assertEquals(0, seq.Next())
-    self.assertEquals(1, seq.Next())
+    self.assertEqual(0, seq.Next())
+    self.assertEqual(1, seq.Next())
     # Log an event (preamble will have sequence number 2; main
     # event will have 3).
     event_log.EventLog('test:foo').Log('bar')
@@ -123,8 +123,8 @@ class GlobalSeqTest(unittest.TestCase):
     os.unlink(event_log.SEQUENCE_PATH)
     # Sequence file should be re-created, starting with 4 plus
     # SEQ_INCREMENT_ON_BOOT.
-    self.assertEquals(4 + event_log.SEQ_INCREMENT_ON_BOOT,
-                      seq.Next())
+    self.assertEqual(4 + event_log.SEQ_INCREMENT_ON_BOOT,
+                     seq.Next())
 
     # Delete the sequence file and create a new GlobalSeq object to
     # simulate a reboot.  We'll do this a few times.
@@ -137,8 +137,8 @@ class GlobalSeqTest(unittest.TestCase):
       seq = event_log.GlobalSeq()
       # Sequence file should be re-created, increasing by 2 for the logged
       # event, and SEQ_INCREMENT_ON_BOOT for the reboot.
-      self.assertEquals(7 + i * 3 + (i + 2) * event_log.SEQ_INCREMENT_ON_BOOT,
-                        seq.Next())
+      self.assertEqual(7 + i * 3 + (i + 2) * event_log.SEQ_INCREMENT_ON_BOOT,
+                       seq.Next())
 
   def _testThreads(self, after_read=lambda: True):
     """Tests atomicity by doing operations in 10 threads for 1 sec.
@@ -164,7 +164,7 @@ class GlobalSeqTest(unittest.TestCase):
 
     # After we sort, should be numbers [0, len(values)).
     values.sort()
-    self.assertEquals(range(len(values)), values)
+    self.assertEqual(range(len(values)), values)
     return values
 
   def testThreadsWithSleep(self):
@@ -205,7 +205,7 @@ class EventLogTest(unittest.TestCase):
       Reset()
       log = event_log.EventLog('test:test', suppress=suppress)
       log.Log('test')
-      self.assertEquals(suppress, not os.path.exists(event_log.EVENTS_PATH))
+      self.assertEqual(suppress, not os.path.exists(event_log.EVENTS_PATH))
 
   def testEventLogDefer(self):
     self._testEventLog(True)
@@ -360,7 +360,7 @@ class GlobalEventLogTest(unittest.TestCase):
   def testSingleton(self):
     os.environ['CROS_FACTORY_TEST_PATH'] = 'FooTest'
     # pylint: disable=protected-access
-    self.assertEquals(None, event_log._global_event_logger)
+    self.assertEqual(None, event_log._global_event_logger)
     log1 = event_log.GetGlobalLogger()
     log2 = event_log.GetGlobalLogger()
     self.assertTrue(log1 is log2)

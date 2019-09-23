@@ -105,8 +105,8 @@ class GSCToolTest(unittest.TestCase):
         stdout=(''.join('%s=%s\n' % (k, v) for k, v in fields.iteritems())))
     board_id = self.gsctool.GetBoardID()
     self._CheckCalledCommand(['/usr/sbin/gsctool', '-a', '-M', '-i'])
-    self.assertEquals(board_id.type, 0x41424344)
-    self.assertEquals(board_id.flags, 0x0000ff00)
+    self.assertEqual(board_id.type, 0x41424344)
+    self.assertEqual(board_id.flags, 0x0000ff00)
 
     # If Cr50 is never provisioned yet, both BID_TYPE and BID_TYPE_INV are
     # 0xffffffff.
@@ -119,8 +119,8 @@ class GSCToolTest(unittest.TestCase):
         stdout=(''.join('%s=%s\n' % (k, v) for k, v in fields2.iteritems())))
     board_id = self.gsctool.GetBoardID()
     self._CheckCalledCommand(['/usr/sbin/gsctool', '-a', '-M', '-i'])
-    self.assertEquals(board_id.type, 0xffffffff)
-    self.assertEquals(board_id.flags, 0x0000ff00)
+    self.assertEqual(board_id.type, 0xffffffff)
+    self.assertEqual(board_id.flags, 0x0000ff00)
 
     # BID_TYPE_INV should be complement to BID_TYPE
     bad_fields = dict(fields, BID_TYPE_INV='aabbccdd')

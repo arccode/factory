@@ -55,24 +55,24 @@ class SysfsPowerInfoTest(unittest.TestCase):
   def testCheckACPresent(self):
     self.power.FindPowerPath = mock.MagicMock(return_value='')
     self.power.ReadOneLine = mock.MagicMock(return_value='1')
-    self.assertEquals(self.power.CheckACPresent(), True)
+    self.assertEqual(self.power.CheckACPresent(), True)
     self.power.ReadOneLine = mock.MagicMock(return_value='0')
-    self.assertEquals(self.power.CheckACPresent(), False)
+    self.assertEqual(self.power.CheckACPresent(), False)
 
   def testGetACType(self):
     self.power.FindPowerPath = mock.MagicMock(return_value='')
     self.power.ReadOneLine = mock.MagicMock(return_value='USB_PD')
-    self.assertEquals(self.power.GetACType(), 'USB_PD')
+    self.assertEqual(self.power.GetACType(), 'USB_PD')
 
   def testCheckBatteryPresent(self):
     _MOCK_BATTERY_PATH = '/sys/class/power_supply/BAT0'
     # pylint: disable=protected-access
     type(self.power)._battery_path = mock.PropertyMock(
         return_value=_MOCK_BATTERY_PATH)
-    self.assertEquals(self.power.CheckBatteryPresent(), True)
+    self.assertEqual(self.power.CheckBatteryPresent(), True)
     # pylint: disable=protected-access
     type(self.power)._battery_path = mock.PropertyMock(return_value='')
-    self.assertEquals(self.power.CheckBatteryPresent(), False)
+    self.assertEqual(self.power.CheckBatteryPresent(), False)
 
   def testGetChargerCurrent(self):
     _MOCK_ECTOOL_CHARGESTATE = textwrap.dedent("""
@@ -89,17 +89,17 @@ class SysfsPowerInfoTest(unittest.TestCase):
   def testGetBatteryVoltage(self):
     self.power.FindPowerPath = mock.MagicMock(return_value='')
     self.power.ReadOneLine = mock.MagicMock(return_value='12660000')
-    self.assertEquals(self.power.GetBatteryVoltage(), 12660)
+    self.assertEqual(self.power.GetBatteryVoltage(), 12660)
 
   def testGetBatteryCycleCount(self):
     self.power.FindPowerPath = mock.MagicMock(return_value='')
     self.power.ReadOneLine = mock.MagicMock(return_value='10')
-    self.assertEquals(self.power.GetBatteryCycleCount(), 10)
+    self.assertEqual(self.power.GetBatteryCycleCount(), 10)
 
   def testGetBatteryManufacturer(self):
     self.power.FindPowerPath = mock.MagicMock(return_value='')
     self.power.ReadOneLine = mock.MagicMock(return_value='LGC')
-    self.assertEquals(self.power.GetBatteryManufacturer(), 'LGC')
+    self.assertEqual(self.power.GetBatteryManufacturer(), 'LGC')
 
 
 class ECToolPowerInfoTest(unittest.TestCase):
@@ -127,45 +127,45 @@ class ECToolPowerInfoTest(unittest.TestCase):
   def testCheckACPresent(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_EC_BATTERY_READ)
-    self.assertEquals(self.power.CheckACPresent(), True)
+    self.assertEqual(self.power.CheckACPresent(), True)
 
   def testGetACType(self):
-    self.assertEquals(self.power.GetACType(), 'Unknown')
+    self.assertEqual(self.power.GetACType(), 'Unknown')
 
   def testCheckBatteryPresent(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_EC_BATTERY_READ)
-    self.assertEquals(self.power.CheckBatteryPresent(), True)
+    self.assertEqual(self.power.CheckBatteryPresent(), True)
 
   def testGetCharge(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_EC_BATTERY_READ)
-    self.assertEquals(self.power.GetCharge(), 1597)
+    self.assertEqual(self.power.GetCharge(), 1597)
 
   def testGetChargeFull(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_EC_BATTERY_READ)
-    self.assertEquals(self.power.GetChargeFull(), 3194)
+    self.assertEqual(self.power.GetChargeFull(), 3194)
 
   def testGetChargePct(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_EC_BATTERY_READ)
-    self.assertEquals(self.power.GetChargePct(), 50.0)
+    self.assertEqual(self.power.GetChargePct(), 50.0)
 
   def testGetWearPct(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_EC_BATTERY_READ)
-    self.assertEquals(self.power.GetWearPct(), 1.0)
+    self.assertEqual(self.power.GetWearPct(), 1.0)
 
   def testGetChargeState(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_EC_BATTERY_READ)
-    self.assertEquals(self.power.GetChargeState(), 'CHARGE')
+    self.assertEqual(self.power.GetChargeState(), 'CHARGE')
 
   def testGetBatteryCurrent(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_EC_BATTERY_READ)
-    self.assertEquals(self.power.GetBatteryCurrent(), 128)
+    self.assertEqual(self.power.GetBatteryCurrent(), 128)
 
   def testGetBatteryDesignCapacity(self):
     self.board.CallOutput = mock.MagicMock(
@@ -197,7 +197,7 @@ class ECToolPowerInfoTest(unittest.TestCase):
   def testGetBatteryManufacturer(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_EC_BATTERY_READ)
-    self.assertEquals(self.power.GetBatteryManufacturer(), 'LGC')
+    self.assertEqual(self.power.GetBatteryManufacturer(), 'LGC')
 
   def testGetInfoDict(self):
     self.board.CallOutput = mock.MagicMock(
@@ -333,59 +333,59 @@ class PowerDaemonPowerInfoTest(unittest.TestCase):
   def testCheckACPresent(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_CHARGE)
-    self.assertEquals(self.power.CheckACPresent(), True)
+    self.assertEqual(self.power.CheckACPresent(), True)
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_DISCHARGE)
-    self.assertEquals(self.power.CheckACPresent(), False)
+    self.assertEqual(self.power.CheckACPresent(), False)
 
   def testGetACType(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_CHARGE)
-    self.assertEquals(self.power.GetACType(), 'USB_PD')
+    self.assertEqual(self.power.GetACType(), 'USB_PD')
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_DISCHARGE)
-    self.assertEquals(self.power.GetACType(), '')
+    self.assertEqual(self.power.GetACType(), '')
 
   def testCheckBatteryPresent(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_CHARGE)
-    self.assertEquals(self.power.CheckBatteryPresent(), True)
+    self.assertEqual(self.power.CheckBatteryPresent(), True)
 
   def testGetCharge(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_CHARGE)
-    self.assertEquals(self.power.GetCharge(), 1720)
+    self.assertEqual(self.power.GetCharge(), 1720)
 
   def testGetChargeFull(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_CHARGE)
-    self.assertEquals(self.power.GetChargeFull(), 4710)
+    self.assertEqual(self.power.GetChargeFull(), 4710)
 
   def testGetChargePct(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_CHARGE)
-    self.assertEquals(self.power.GetChargePct(), 36.0)
+    self.assertEqual(self.power.GetChargePct(), 36.0)
 
   def testGetWearPct(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_CHARGE)
-    self.assertEquals(self.power.GetWearPct(), -1.0)
+    self.assertEqual(self.power.GetWearPct(), -1.0)
 
   def testGetChargeState(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_CHARGE)
-    self.assertEquals(self.power.GetChargeState(), 'CHARGE')
+    self.assertEqual(self.power.GetChargeState(), 'CHARGE')
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_DISCHARGE)
-    self.assertEquals(self.power.GetChargeState(), 'DISCHARGE')
+    self.assertEqual(self.power.GetChargeState(), 'DISCHARGE')
 
   def testGetBatteryCurrent(self):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_CHARGE)
-    self.assertEquals(self.power.GetBatteryCurrent(), 2920)
+    self.assertEqual(self.power.GetBatteryCurrent(), 2920)
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_DISCHARGE)
-    self.assertEquals(self.power.GetBatteryCurrent(), -2920)
+    self.assertEqual(self.power.GetBatteryCurrent(), -2920)
 
   def testGetBatteryDesignCapacity(self):
     self.board.CallOutput = mock.MagicMock(

@@ -87,7 +87,7 @@ class LoadPytestModuleTest(unittest.TestCase):
         suffix='.py', dir=self.pytests_root) as script_file:
       (pytest_name, _) = os.path.splitext(os.path.basename(script_file))
       module = LoadPytestModule(pytest_name)
-      self.assertEquals(module.__file__, script_file)
+      self.assertEqual(module.__file__, script_file)
       # remove tmpXXXXXX.pyc
       file_utils.TryUnlink(script_file + 'c')
 
@@ -97,7 +97,7 @@ class LoadPytestModuleTest(unittest.TestCase):
     basename = os.path.basename(self.tmpdir)
     pytest_name = basename + '.x.y.z'
     module = LoadPytestModule(pytest_name)
-    self.assertEquals(module.__file__, os.path.join(self.tmpdir, 'x/y/z.py'))
+    self.assertEqual(module.__file__, os.path.join(self.tmpdir, 'x/y/z.py'))
 
 
 if __name__ == '__main__':

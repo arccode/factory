@@ -34,7 +34,7 @@ class ECToolFanControlTest(unittest.TestCase):
     _MOCK_FAN_RPM = 'Fan 0 RPM: 2974\n'
     self.board.CallOutput(['ectool', 'pwmgetfanrpm']).AndReturn(_MOCK_FAN_RPM)
     self.mox.ReplayAll()
-    self.assertEquals(self.fan.GetFanRPM(), [2974])
+    self.assertEqual(self.fan.GetFanRPM(), [2974])
     self.mox.VerifyAll()
 
   def testSetFanRPM(self):
@@ -71,7 +71,7 @@ class SysFSFanControlTest(unittest.TestCase):
     fan_obj = fan.SysFSFanControl(self.board, fans_info=self._FANS_INFO)
     self.board.ReadFile('/sys/fan/fan1_input').AndReturn('5566')
     self.mox.ReplayAll()
-    self.assertEquals(fan_obj.GetFanRPM(), [5566])
+    self.assertEqual(fan_obj.GetFanRPM(), [5566])
     self.mox.VerifyAll()
 
   def testSetFanRPMAuto(self):

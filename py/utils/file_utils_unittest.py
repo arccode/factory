@@ -86,9 +86,9 @@ class UnopenedTemporaryFileTest(unittest.TestCase):
     with file_utils.UnopenedTemporaryFile(
         prefix='prefix', suffix='suffix') as x:
       self.assertTrue(os.path.exists(x))
-      self.assertEquals(0, os.path.getsize(x))
+      self.assertEqual(0, os.path.getsize(x))
       assert re.match(r'prefix.+suffix', os.path.basename(x))
-      self.assertEquals(tempfile.gettempdir(), os.path.dirname(x))
+      self.assertEqual(tempfile.gettempdir(), os.path.dirname(x))
     self.assertFalse(os.path.exists(x))
 
 
@@ -101,9 +101,9 @@ class ReadLinesTest(unittest.TestCase):
     tmp.close()
     try:
       lines = file_utils.ReadLines(tmp.name)
-      self.assertEquals(len(lines), 2)
-      self.assertEquals(lines[0], 'line 1\n')
-      self.assertEquals(lines[1], 'line 2\n')
+      self.assertEqual(len(lines), 2)
+      self.assertEqual(lines[0], 'line 1\n')
+      self.assertEqual(lines[1], 'line 2\n')
     finally:
       os.unlink(tmp.name)
 
@@ -113,7 +113,7 @@ class ReadLinesTest(unittest.TestCase):
     try:
       lines = file_utils.ReadLines(tmp.name)
       self.assertTrue(isinstance(lines, list))
-      self.assertEquals(len(lines), 0)
+      self.assertEqual(len(lines), 0)
     finally:
       os.unlink(tmp.name)
 
@@ -131,9 +131,9 @@ class ReadLinesTest(unittest.TestCase):
     tmp.close()
     try:
       lines = file_utils.ReadLines(tmp.name, device_utils.CreateDUTInterface())
-      self.assertEquals(len(lines), 2)
-      self.assertEquals(lines[0], 'line 1\n')
-      self.assertEquals(lines[1], 'line 2\n')
+      self.assertEqual(len(lines), 2)
+      self.assertEqual(lines[0], 'line 1\n')
+      self.assertEqual(lines[1], 'line 2\n')
     finally:
       os.unlink(tmp.name)
 
@@ -143,7 +143,7 @@ class ReadLinesTest(unittest.TestCase):
     try:
       lines = file_utils.ReadLines(tmp.name, device_utils.CreateDUTInterface())
       self.assertTrue(isinstance(lines, list))
-      self.assertEquals(len(lines), 0)
+      self.assertEqual(len(lines), 0)
     finally:
       os.unlink(tmp.name)
 
@@ -234,7 +234,7 @@ class CopyFileSkipBytesTest(unittest.TestCase):
     file_utils.CopyFileSkipBytes(self.in_file.name, self.out_file.name, 3)
     with open(self.out_file.name, 'r') as o:
       result = o.read()
-      self.assertEquals(result, '4567890')
+      self.assertEqual(result, '4567890')
 
   def testSkipTooMany(self):
     self.PrepareFile('1234567890', '')
@@ -242,7 +242,7 @@ class CopyFileSkipBytesTest(unittest.TestCase):
     self.assertRaises(ValueError, file_utils.CopyFileSkipBytes,
                       self.in_file.name, self.out_file.name, 100)
     with open(self.out_file.name, 'r') as o:
-      self.assertEquals(len(o.read()), 0)
+      self.assertEqual(len(o.read()), 0)
 
   def testNoInput(self):
     self.PrepareFile('abc', '')
@@ -254,7 +254,7 @@ class CopyFileSkipBytesTest(unittest.TestCase):
     file_utils.CopyFileSkipBytes(self.in_file.name, self.out_file.name, 3)
     with open(self.out_file.name, 'r') as o:
       result = o.read()
-      self.assertEquals(result, '4567890')
+      self.assertEqual(result, '4567890')
 
   def testSkipLargeFile(self):
     # 10000 bytes input.
@@ -262,7 +262,7 @@ class CopyFileSkipBytesTest(unittest.TestCase):
     file_utils.CopyFileSkipBytes(self.in_file.name, self.out_file.name, 5)
     with open(self.out_file.name, 'r') as o:
       result = o.read()
-      self.assertEquals(len(result), 10000 - 5)
+      self.assertEqual(len(result), 10000 - 5)
       self.assertTrue(result.startswith('67890'))
 
 
@@ -375,8 +375,8 @@ class ForceSymlinkTest(unittest.TestCase):
 
     file_utils.ForceSymlink(target_path, link_path)
 
-    self.assertEquals(target_path, os.path.realpath(link_path))
-    self.assertEquals('target', file_utils.ReadLines(link_path)[0])
+    self.assertEqual(target_path, os.path.realpath(link_path))
+    self.assertEqual('target', file_utils.ReadLines(link_path)[0])
 
   def testForceOverwrite(self):
     target_path = os.path.join(self.temp_dir, 'target')
@@ -386,8 +386,8 @@ class ForceSymlinkTest(unittest.TestCase):
 
     file_utils.ForceSymlink(target_path, link_path)
 
-    self.assertEquals(target_path, os.path.realpath(link_path))
-    self.assertEquals('target', file_utils.ReadLines(link_path)[0])
+    self.assertEqual(target_path, os.path.realpath(link_path))
+    self.assertEqual('target', file_utils.ReadLines(link_path)[0])
 
   def testRelativeSymlink(self):
     absolute_target_path = os.path.join(self.temp_dir, 'target')
@@ -397,8 +397,8 @@ class ForceSymlinkTest(unittest.TestCase):
 
     file_utils.ForceSymlink(relative_target_path, link_path)
 
-    self.assertEquals(absolute_target_path, os.path.realpath(link_path))
-    self.assertEquals('target', file_utils.ReadLines(link_path)[0])
+    self.assertEqual(absolute_target_path, os.path.realpath(link_path))
+    self.assertEqual('target', file_utils.ReadLines(link_path)[0])
 
 
 class AtomicCopyTest(unittest.TestCase):
@@ -626,7 +626,7 @@ class ReadWriteFileTest(unittest.TestCase):
     with file_utils.UnopenedTemporaryFile() as tmp:
       data = 'abc\n\0'
       file_utils.WriteFile(tmp, data)
-      self.assertEquals(data, file_utils.ReadFile(tmp))
+      self.assertEqual(data, file_utils.ReadFile(tmp))
 
 
 class GlobSingleFileTest(unittest.TestCase):
@@ -636,7 +636,7 @@ class GlobSingleFileTest(unittest.TestCase):
       for f in ('a', 'b'):
         file_utils.TouchFile(os.path.join(d, f))
 
-      self.assertEquals(
+      self.assertEqual(
           os.path.join(d, 'a'),
           file_utils.GlobSingleFile(os.path.join(d, '[a]')))
       self.assertRaisesRegexp(
@@ -667,7 +667,7 @@ class HashFilesTest(unittest.TestCase):
     shutil.rmtree(self.tmpdir)
 
   def testDefault(self):
-    self.assertEquals({
+    self.assertEqual({
         'a': 'fbd313f05f277535c6f0bb2e9b0cff43cebef360',
         'b': '1ac13620623e6ff9049a7a261e04dda284b2c52a',
         'c': 'eef64cf8244577e292e46fc6a12e64261239d972',
@@ -676,7 +676,7 @@ class HashFilesTest(unittest.TestCase):
     }, file_utils.HashFiles(self.tmpdir))
 
   def testSimpleHash(self):
-    self.assertEquals({
+    self.assertEqual({
         'a': 2937989080,
         'b': 907507298,
         'c': 1091585780,
@@ -688,7 +688,7 @@ class HashFilesTest(unittest.TestCase):
 
   def testFilter(self):
     # Get checksum only everything but 'c'.
-    self.assertEquals({
+    self.assertEqual({
         'a': 'fbd313f05f277535c6f0bb2e9b0cff43cebef360',
         'b': '1ac13620623e6ff9049a7a261e04dda284b2c52a',
         'd/e': '585a50860871f4df30be233ace89b3c83f776c9b',

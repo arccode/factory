@@ -20,19 +20,19 @@ class ActionFunctionTest(unittest.TestCase):
     self.func.Action = mock.MagicMock(return_value=True)
     ret = self.func(function.INITIAL_DATA)
     self.func.Action.assert_called_once_with()
-    self.assertEquals(ret, function.INITIAL_DATA)
+    self.assertEqual(ret, function.INITIAL_DATA)
 
   def testNotCall(self):
     self.func.Action = mock.MagicMock(return_value=True)
     ret = self.func(function.NOTHING)
     self.func.Action.assert_not_called()
-    self.assertEquals(ret, function.NOTHING)
+    self.assertEqual(ret, function.NOTHING)
 
   def testCallFail(self):
     self.func.Action = mock.MagicMock(return_value=False)
     ret = self.func([{}])
     self.func.Action.assert_called_once_with()
-    self.assertEquals(ret, function.NOTHING)
+    self.assertEqual(ret, function.NOTHING)
 
 
 if __name__ == '__main__':

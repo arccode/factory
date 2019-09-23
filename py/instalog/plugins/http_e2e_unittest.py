@@ -70,7 +70,7 @@ class TestHTTP(unittest.TestCase):
   def testOneEvent(self):
     self.stream.Queue([datatypes.Event({})])
     self.output_sandbox.Flush(2, True)
-    self.assertEquals(self.core.emit_calls, [[datatypes.Event({})]])
+    self.assertEqual(self.core.emit_calls, [[datatypes.Event({})]])
 
   def testMultiEvent(self):
     with tempfile.NamedTemporaryFile('w', dir=self._tmp_dir) as f1:
@@ -254,7 +254,7 @@ class TestHTTPAE(unittest.TestCase):
   def testOneEvent(self):
     self.stream.Queue([datatypes.Event({})])
     self.output_sandbox.Flush(2, True)
-    self.assertEquals(self.core.emit_calls, [[datatypes.Event({})]])
+    self.assertEqual(self.core.emit_calls, [[datatypes.Event({})]])
 
   def testMultiEvent(self):
     with tempfile.NamedTemporaryFile('w', dir=self._tmp_dir) as f1:

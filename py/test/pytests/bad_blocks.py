@@ -219,9 +219,9 @@ class BadBlocksTest(test_case.TestCase):
 
       # Could get this to work, but for now we assume that fs_block_size is a
       # multiple of sector_size.
-      self.assertEquals(0, fs_block_size % sector_size,
-                        'fs_block_size %d is not a multiple of sector_size %d' %
-                        (fs_block_size, sector_size))
+      self.assertEqual(0, fs_block_size % sector_size,
+                       'fs_block_size %d is not a multiple of sector_size %d' %
+                       (fs_block_size, sector_size))
 
       first_unused_sector = (fs_first_block + fs_block_count) * (
           fs_block_size / sector_size)
@@ -385,13 +385,13 @@ class BadBlocksTest(test_case.TestCase):
       else:
         buf.append(ch)
 
-    self.assertEquals(
+    self.assertEqual(
         0, process.wait(),
         'badblocks returned with error code %d' % process.returncode)
 
     last_line = lines[-1]
-    self.assertEquals('Pass completed, 0 bad blocks found. (0/0/0 errors)',
-                      last_line)
+    self.assertEqual('Pass completed, 0 bad blocks found. (0/0/0 errors)',
+                     last_line)
 
   def _GenerateTestFile(self, file_path, file_bytes):
     """Generate a sparse file for testing of a given size.

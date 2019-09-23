@@ -24,7 +24,7 @@ class BuildBoardTest(unittest.TestCase):
 
     # "daisy_spring" and "daisy-spring" should be the same
     for i in ['daisy_spring', 'daisy-spring']:
-      self.assertEquals(spring.__dict__, BuildBoard(i).__dict__)
+      self.assertEqual(spring.__dict__, BuildBoard(i).__dict__)
 
     self.assertDictContainsSubset(
         dict(base='link', variant=None, full_name='link',
@@ -37,11 +37,11 @@ class BuildBoardTest(unittest.TestCase):
                             BuildBoard, 'he')
 
   def testBoardArch(self):
-    self.assertEquals('arm', BuildBoard('beaglebone').arch)
-    self.assertEquals('arm', BuildBoard('nyan').arch)
-    self.assertEquals('arm', BuildBoard('spring').arch)
-    self.assertEquals('amd64', BuildBoard('rambi').arch)
-    self.assertEquals('amd64', BuildBoard('link').arch)
+    self.assertEqual('arm', BuildBoard('beaglebone').arch)
+    self.assertEqual('arm', BuildBoard('nyan').arch)
+    self.assertEqual('arm', BuildBoard('spring').arch)
+    self.assertEqual('amd64', BuildBoard('rambi').arch)
+    self.assertEqual('amd64', BuildBoard('link').arch)
 
 if __name__ == '__main__':
   unittest.main()

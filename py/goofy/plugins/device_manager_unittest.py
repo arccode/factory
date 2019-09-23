@@ -31,7 +31,7 @@ class DeviceManagerTest(unittest.TestCase):
     expected_output = u'foo\ufffd\nbar\n'
     sys_utils.GetVarLogMessagesBeforeReboot.return_value = var_log_messages
     data = self.dm.GetVarLogMessagesBeforeReboot()
-    self.assertEquals(expected_output, data.data)
+    self.assertEqual(expected_output, data.data)
 
   @mock.patch.multiple('cros.factory.goofy.plugins.device_manager',
                        process_utils=mock.DEFAULT,
@@ -45,9 +45,9 @@ class DeviceManagerTest(unittest.TestCase):
     device_manager.DeviceManager._ReadUptime.return_value = '3000.0'
     time.time.return_value = 1343806777.0
 
-    self.assertEquals('2012-08-01T06:51:40.000Z [ 123.0] A\n'
-                      '2012-08-01T07:28:42.000Z [2345.0] B\n',
-                      self.dm.GetDmesg().data)
+    self.assertEqual('2012-08-01T06:51:40.000Z [ 123.0] A\n'
+                     '2012-08-01T07:28:42.000Z [2345.0] B\n',
+                     self.dm.GetDmesg().data)
     process_utils.Spawn.assert_called_once_with(
         ['dmesg'], check_call=True, read_stdout=True)
 

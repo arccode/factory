@@ -46,11 +46,11 @@ class SystemInfoTest(unittest.TestCase):
     self.mox.ReplayAll()
 
     info = info_module.SystemInfo(dut)
-    self.assertEquals('5264.0.0', info.release_image_version)
-    self.assertEquals('canary-channel', info.release_image_channel)
+    self.assertEqual('5264.0.0', info.release_image_version)
+    self.assertEqual('canary-channel', info.release_image_channel)
     # The cached release image version will be used in the second time.
-    self.assertEquals('5264.0.0', info.release_image_version)
-    self.assertEquals('canary-channel', info.release_image_channel)
+    self.assertEqual('5264.0.0', info.release_image_version)
+    self.assertEqual('canary-channel', info.release_image_channel)
 
     self.mox.VerifyAll()
 

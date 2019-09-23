@@ -58,7 +58,7 @@ class I2CFunctionTest(unittest.TestCase):
       """)
       func = i2c.I2CFunction(bus_number='1', addr='0xb')
       result = func()
-      self.assertEquals(result, [])
+      self.assertEqual(result, [])
 
     with mock.patch('subprocess.check_output') as mock_output:
       mock_output.return_value = textwrap.dedent("""\
@@ -74,7 +74,7 @@ class I2CFunctionTest(unittest.TestCase):
       """)
       func = i2c.I2CFunction(bus_number='1', addr='0xb')
       result = func()
-      self.assertEquals(result, [expected])
+      self.assertEqual(result, [expected])
 
     with mock.patch('subprocess.check_output') as mock_output:
       mock_output.return_value = textwrap.dedent("""\
@@ -90,18 +90,18 @@ class I2CFunctionTest(unittest.TestCase):
       """)
       func = i2c.I2CFunction(bus_number='1', addr='0xb')
       result = func()
-      self.assertEquals(result, [expected])
+      self.assertEqual(result, [expected])
 
   def testProbeECI2C(self):
     with mock.patch('subprocess.call', return_value=1):
       func = i2c.I2CFunction(bus_number='EC-0', addr='0xb')
       result = func()
-      self.assertEquals(result, [])
+      self.assertEqual(result, [])
 
     with mock.patch('subprocess.call', return_value=0):
       func = i2c.I2CFunction(bus_number='EC-0', addr='0xb')
       result = func()
-      self.assertEquals(result, [{'bus_number': 'EC-0', 'addr': '0x0b'}])
+      self.assertEqual(result, [{'bus_number': 'EC-0', 'addr': '0x0b'}])
 
 
 if __name__ == '__main__':

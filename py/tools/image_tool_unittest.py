@@ -233,7 +233,7 @@ class UserInputTest(unittest.TestCase):
     # '1' is valid, and converted into 0-based index, which is 0.
     raw_input_mock.side_effect = ['0', '3', 'a', '', '1']
     answer = image_tool.UserInput.Select(title, options_list)
-    self.assertEquals(answer, 0)
+    self.assertEqual(answer, 0)
 
     # Empty string is accepted.
     raw_input_mock.side_effect = ['0', '3', 'a', '', '1']
@@ -248,10 +248,10 @@ class UserInputTest(unittest.TestCase):
     # List and dict combined.
     raw_input_mock.side_effect = ['2']
     answer = image_tool.UserInput.Select(title, options_list, options_dict)
-    self.assertEquals(answer, 1)
+    self.assertEqual(answer, 1)
     raw_input_mock.side_effect = ['b']
     answer = image_tool.UserInput.Select(title, options_list, options_dict)
-    self.assertEquals(answer, 'b')
+    self.assertEqual(answer, 'b')
 
   @mock.patch('__builtin__.raw_input')
   def testYesNo(self, raw_input_mock):
@@ -259,10 +259,10 @@ class UserInputTest(unittest.TestCase):
 
     raw_input_mock.side_effect = ['', 'y']
     answer = image_tool.UserInput.YesNo(title)
-    self.assertEquals(answer, True)
+    self.assertEqual(answer, True)
     raw_input_mock.side_effect = ['a', 'n']
     answer = image_tool.UserInput.YesNo(title)
-    self.assertEquals(answer, False)
+    self.assertEqual(answer, False)
 
   @mock.patch('__builtin__.raw_input')
   def testGetNumber(self, raw_input_mock):
@@ -271,20 +271,20 @@ class UserInputTest(unittest.TestCase):
     # No range.
     raw_input_mock.side_effect = ['', '10']
     answer = image_tool.UserInput.GetNumber(title)
-    self.assertEquals(answer, 10)
+    self.assertEqual(answer, 10)
 
     raw_input_mock.side_effect = ['', '10']
     answer = image_tool.UserInput.GetNumber(title, optional=True)
-    self.assertEquals(answer, None)
+    self.assertEqual(answer, None)
 
     # With range.
     raw_input_mock.side_effect = ['10', '1']
     answer = image_tool.UserInput.GetNumber(title, max_value=5)
-    self.assertEquals(answer, 1)
+    self.assertEqual(answer, 1)
 
     raw_input_mock.side_effect = ['10', '1', '3']
     answer = image_tool.UserInput.GetNumber(title, min_value=2, max_value=5)
-    self.assertEquals(answer, 3)
+    self.assertEqual(answer, 3)
 
   @mock.patch('__builtin__.raw_input')
   def testGetString(self, raw_input_mock):
@@ -292,10 +292,10 @@ class UserInputTest(unittest.TestCase):
 
     raw_input_mock.side_effect = ['', 'test']
     answer = image_tool.UserInput.GetString(title)
-    self.assertEquals(answer, 'test')
+    self.assertEqual(answer, 'test')
     raw_input_mock.side_effect = ['', 'test']
     answer = image_tool.UserInput.GetString(title, optional=True)
-    self.assertEquals(answer, None)
+    self.assertEqual(answer, None)
 
 
 if __name__ == '__main__':

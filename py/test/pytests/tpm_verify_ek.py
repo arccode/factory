@@ -52,7 +52,7 @@ class TPMVerifyEK(unittest.TestCase):
 
     # Make sure TPM is enabled.
     status = _TPMStatus()
-    self.assertEquals('true', status['TPM Enabled'])
+    self.assertEqual('true', status['TPM Enabled'])
 
     # Check explicitly for the case where TPM is owned but password is
     # unavailable.  This shouldn't really ever happen, but in any case
@@ -72,7 +72,7 @@ class TPMVerifyEK(unittest.TestCase):
     # Sync, to make sure TPM password was written to disk.
     self.dut.CheckCall(['sync'], log=True)
 
-    self.assertEquals('true', _TPMStatus()['TPM Owned'])
+    self.assertEqual('true', _TPMStatus()['TPM Owned'])
 
     # Verify the endorsement key.
     with tempfile.TemporaryFile() as stderr:
@@ -84,7 +84,7 @@ class TPMVerifyEK(unittest.TestCase):
       # check_call=True, is the only reliable way to make sure it
       # worked).
       stderr.seek(0)
-      self.assertEquals('', stderr.read())
+      self.assertEqual('', stderr.read())
 
   def VerifyByTpmManager(self):
     """Verifies TPM endorsement by tpm-manager (from CryptoHome package)."""

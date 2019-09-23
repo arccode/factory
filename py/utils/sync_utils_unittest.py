@@ -68,7 +68,7 @@ class WaitForTest(PollingTestBase):
       return self._timeline.GetTime() > t
 
     now = self._timeline.GetTime()
-    self.assertEquals(True, sync_utils.WaitFor(
+    self.assertEqual(True, sync_utils.WaitFor(
         lambda: _ReturnTrueAfter(now + 0.5),
         timeout_secs=1))
 

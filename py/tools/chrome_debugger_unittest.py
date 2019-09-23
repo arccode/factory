@@ -65,12 +65,12 @@ class ChromeRemoteDebuggerTest(unittest.TestCase):
     urllib2.urlopen(self.mock_pageset_url).AndReturn(self.mock_pageset_stream)
     urllib2.urlopen(self.mock_pageset_url).AndReturn(self.mock_pageset_stream)
     self.mox.ReplayAll()
-    self.assertEquals(self.chrome.GetPages(), self.mock_pageset)
+    self.assertEqual(self.chrome.GetPages(), self.mock_pageset)
     self.mock_pageset_stream.seek(0)
-    self.assertEquals(self.chrome.GetPages("background_page"),
-                      [self.mock_pageset[0]])
+    self.assertEqual(self.chrome.GetPages("background_page"),
+                     [self.mock_pageset[0]])
     self.mock_pageset_stream.seek(0)
-    self.assertEquals(self.chrome.GetPages("no-such-page"), [])
+    self.assertEqual(self.chrome.GetPages("no-such-page"), [])
     self.mox.VerifyAll()
 
   def testSetActivePage(self):
@@ -95,9 +95,9 @@ class ChromeRemoteDebuggerTest(unittest.TestCase):
     self.chrome.active_websocket.send(json.dumps(expected))
     self.mox.ReplayAll()
 
-    self.assertEquals(1, self.chrome.id)
+    self.assertEqual(1, self.chrome.id)
     self.chrome.SendCommand(command)
-    self.assertEquals(2, self.chrome.id)
+    self.assertEqual(2, self.chrome.id)
     self.chrome.active_websocket = None
     self.mox.VerifyAll()
 

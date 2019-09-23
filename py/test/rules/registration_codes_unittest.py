@@ -43,14 +43,14 @@ class RegistrationCodeTest(unittest.TestCase):
   def testValid(self):
     # Build and test a valid registration code.
     encoded_string = self._Encode()
-    self.assertEquals(
+    self.assertEqual(
         '=CjAKIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fEAEaCmNocm9tZWJvb2sQg'
         'dSQ-AI=', self._Encode())
 
     reg_code = RegistrationCode(encoded_string)
-    self.assertEquals('chromebook', reg_code.device)
-    self.assertEquals(RegistrationCode.Type.UNIQUE_CODE, reg_code.type)
-    self.assertEquals(encoded_string, reg_code.encoded_string)
+    self.assertEqual('chromebook', reg_code.device)
+    self.assertEqual(RegistrationCode.Type.UNIQUE_CODE, reg_code.type)
+    self.assertEqual(encoded_string, reg_code.encoded_string)
 
   def testValid_Pregenerated(self):
     for expected_type, encoded_string in (
@@ -68,17 +68,17 @@ class RegistrationCodeTest(unittest.TestCase):
           'iB8CqFmqOOFVWT4EAAaBGxpbmsQr_PG2gE=')),
     ):
       reg_code = RegistrationCode(encoded_string)
-      self.assertEquals(expected_type, reg_code.type)
-      self.assertEquals('link', reg_code.device)
+      self.assertEqual(expected_type, reg_code.type)
+      self.assertEqual('link', reg_code.device)
 
   def testValid_Group(self):
     self.proto.content.code_type = reg_code_pb2.GROUP_CODE
-    self.assertEquals(RegistrationCode.Type.GROUP_CODE, RegistrationCode(
+    self.assertEqual(RegistrationCode.Type.GROUP_CODE, RegistrationCode(
         self._Encode()).type)
 
   def testValid_OneTime(self):
     self.proto.content.code_type = reg_code_pb2.ONE_TIME_CODE
-    self.assertEquals(RegistrationCode.Type.ONE_TIME_CODE, RegistrationCode(
+    self.assertEqual(RegistrationCode.Type.ONE_TIME_CODE, RegistrationCode(
         self._Encode()).type)
 
   def testInvalid_Padding(self):
@@ -137,8 +137,8 @@ class RegistrationCodeTest(unittest.TestCase):
                       '0000000000000000000000000000190a55ad')
     reg_code = RegistrationCode(encoded_string)
     self.assertIsNone(reg_code.device)
-    self.assertEquals(RegistrationCode.Type.LEGACY, reg_code.type)
-    self.assertEquals(encoded_string, reg_code.encoded_string)
+    self.assertEqual(RegistrationCode.Type.LEGACY, reg_code.type)
+    self.assertEqual(encoded_string, reg_code.encoded_string)
 
   def testLegacy_BadChecksum(self):
     encoded_string = ('000000000000000000000000000000000000'

@@ -47,9 +47,9 @@ class TestInputSocket(unittest.TestCase):
 
   def _ConfirmTransaction(self):
     """Performs the confirm transaction handshake."""
-    self.assertEquals('1', self.sock.recv(1))
+    self.assertEqual('1', self.sock.recv(1))
     self.sock.sendall('1')
-    self.assertEquals('1', self.sock.recv(1))
+    self.assertEqual('1', self.sock.recv(1))
 
   def setUp(self):
     self._CreatePlugin()
@@ -67,7 +67,7 @@ class TestInputSocket(unittest.TestCase):
   def testPingAndOneEvent(self):
     # Ping.
     self.sock.sendall('0\0')
-    self.assertEquals('1', self.sock.recv(1))
+    self.assertEqual('1', self.sock.recv(1))
 
     # One event.
     self.sock.sendall('1\0'
@@ -76,7 +76,7 @@ class TestInputSocket(unittest.TestCase):
                       '0\0')
     self._ConfirmTransaction()
     self._AssertSocketClosed()
-    self.assertEquals(self.core.emit_calls, [[datatypes.Event({})]])
+    self.assertEqual(self.core.emit_calls, [[datatypes.Event({})]])
 
   @mock.patch('socket_common.SOCKET_TIMEOUT', 0.1)
   def testOutputTimeout(self):
@@ -97,7 +97,7 @@ class TestInputSocket(unittest.TestCase):
                       '0000000000000000000000000000000000000000\0'
                       '0\0')
     self._AssertSocketClosed()
-    self.assertEquals([], self.core.emit_calls)
+    self.assertEqual([], self.core.emit_calls)
 
   def testOneEventOneAttachment(self):
     self.sock.sendall('1\0'

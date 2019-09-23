@@ -87,12 +87,12 @@ class TestPluginSandbox(unittest.TestCase):
       p.AdvanceState(True)
 
     # Verify new state.
-    self.assertEquals(expected_state, p.GetState())
+    self.assertEqual(expected_state, p.GetState())
 
   def _TestStateCommands(self, p, sync):
     """Runs the plugin sandbox through all possible states."""
     # pylint: disable=protected-access
-    self.assertEquals(plugin_sandbox.DOWN, p.GetState())
+    self.assertEqual(plugin_sandbox.DOWN, p.GetState())
 
     # Start
     self._CheckStateCommand(
@@ -193,8 +193,8 @@ class TestPluginSandbox(unittest.TestCase):
     # Give thread enough time to run one core command and stop due to receiving
     # an UnexpectedAccess exception.
     time.sleep(2)
-    self.assertEquals(1, len(p._unexpected_accesses))
-    self.assertEquals('GetDataDir', p._unexpected_accesses[0]['caller_name'])
+    self.assertEqual(1, len(p._unexpected_accesses))
+    self.assertEqual('GetDataDir', p._unexpected_accesses[0]['caller_name'])
 
   def testGatekeeper(self):
     """Tests plugin API calls across different plugin states."""
@@ -218,7 +218,7 @@ class TestPluginSandbox(unittest.TestCase):
       p.EventStreamCommit(p._plugin, None)
     with self.assertRaises(plugin_base.UnexpectedAccess):
       p.EventStreamAbort(p._plugin, None)
-    self.assertEquals(
+    self.assertEqual(
         len(p._unexpected_accesses),
         min(7, plugin_sandbox._UNEXPECTED_ACCESSES_MAX))
 
@@ -243,13 +243,13 @@ class TestPluginSandbox(unittest.TestCase):
     with mock.patch.object(p._core_api, 'NewStream', m):
       with mock.patch.object(p._core_api, 'GetNodeID', return_value='testing'):
         plugin_stream = p.NewStream(p._plugin)
-    self.assertEquals(p._event_stream_map, {plugin_stream: buffer_stream})
+    self.assertEqual(p._event_stream_map, {plugin_stream: buffer_stream})
 
     with self.assertRaises(NotImplementedError):
       p.EventStreamNext(p._plugin, plugin_stream)
     with self.assertRaises(NotImplementedError):
       p.EventStreamCommit(p._plugin, plugin_stream)
-    self.assertEquals(p._event_stream_map, {})
+    self.assertEqual(p._event_stream_map, {})
     with self.assertRaises(plugin_base.UnexpectedAccess):
       p.EventStreamCommit(p._plugin, plugin_stream)
 
@@ -261,13 +261,13 @@ class TestPluginSandbox(unittest.TestCase):
     with mock.patch.object(p._core_api, 'NewStream', m):
       with mock.patch.object(p._core_api, 'GetNodeID', return_value='testing'):
         plugin_stream = p.NewStream(p._plugin)
-    self.assertEquals(p._event_stream_map, {plugin_stream: buffer_stream})
+    self.assertEqual(p._event_stream_map, {plugin_stream: buffer_stream})
 
     with self.assertRaises(plugin_base.WaitException):
       p.EventStreamNext(p._plugin, plugin_stream)
     with self.assertRaises(NotImplementedError):
       p.EventStreamCommit(p._plugin, plugin_stream)
-    self.assertEquals(p._event_stream_map, {})
+    self.assertEqual(p._event_stream_map, {})
     with self.assertRaises(plugin_base.UnexpectedAccess):
       p.EventStreamCommit(p._plugin, plugin_stream)
 
@@ -305,13 +305,13 @@ class TestPluginSandbox(unittest.TestCase):
 
     p.Pause(False)
     p.AdvanceState(False)
-    self.assertEquals(p.GetState(), plugin_sandbox.PAUSING)
+    self.assertEqual(p.GetState(), plugin_sandbox.PAUSING)
 
     with mock.patch.object(buffer_stream, 'Commit', return_value=True):
       p.EventStreamCommit(p._plugin, plugin_stream)
 
     p.AdvanceState(False)
-    self.assertEquals(p.GetState(), plugin_sandbox.PAUSED)
+    self.assertEqual(p.GetState(), plugin_sandbox.PAUSED)
 
     p.Stop(True)
 

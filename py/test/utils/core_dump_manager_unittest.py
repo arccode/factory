@@ -47,10 +47,10 @@ class CoreDumpManagerTest(unittest.TestCase):
         watchlist=self.watchlist, crash_dir=self.crash_dir)
     self.CreateFiles()
     # Should get a list containing watched_file.
-    self.assertEquals(manager.ScanFiles(), [self.watched_file.name])
+    self.assertEqual(manager.ScanFiles(), [self.watched_file.name])
     # Other files should get deleted in ScanFiles().
-    self.assertEquals(os.listdir(self.crash_dir),
-                      [os.path.basename(self.watched_file.name)])
+    self.assertEqual(os.listdir(self.crash_dir),
+                     [os.path.basename(self.watched_file.name)])
     self.mocker.VerifyAll()
 
   def testScanNoWatch(self):
@@ -63,9 +63,9 @@ class CoreDumpManagerTest(unittest.TestCase):
         crash_dir=self.crash_dir)
     self.CreateFiles()
     # Should get an empty list.
-    self.assertEquals(manager.ScanFiles(), [])
+    self.assertEqual(manager.ScanFiles(), [])
     # All files should get deleted in ScanFiles().
-    self.assertEquals(os.listdir(self.crash_dir), [])
+    self.assertEqual(os.listdir(self.crash_dir), [])
     self.mocker.VerifyAll()
 
   def testClear(self):
@@ -80,10 +80,10 @@ class CoreDumpManagerTest(unittest.TestCase):
     watch_file = manager.ScanFiles()
     # Should get a list containing watched_file.
     # Other files should get deleted in ScanFiles().
-    self.assertEquals(watch_file, [self.watched_file.name])
+    self.assertEqual(watch_file, [self.watched_file.name])
     manager.ClearFiles(watch_file)
     # The watched file is deleted after ClearFiles()
-    self.assertEquals(os.listdir(self.crash_dir), [])
+    self.assertEqual(os.listdir(self.crash_dir), [])
     self.mocker.VerifyAll()
 
 

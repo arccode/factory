@@ -18,28 +18,28 @@ class VPDFunctionTest(unittest.TestCase):
     get_all_data_func.return_value = {'region': 'tw', 'aa': 'bb'}
     vpd.VPDFunction.CleanCachedData()
     vpd_function = vpd.VPDFunction()
-    self.assertEquals(vpd_function(), [{'region': 'tw', 'aa': 'bb'}])
+    self.assertEqual(vpd_function(), [{'region': 'tw', 'aa': 'bb'}])
 
   @mock.patch('cros.factory.gooftool.vpd.VPDTool.GetAllData')
   def testChangeKey(self, get_all_data_func):
     get_all_data_func.return_value = {'region': 'tw'}
     vpd.VPDFunction.CleanCachedData()
     vpd_function = vpd.VPDFunction(fields=['region'], key='region_code')
-    self.assertEquals(vpd_function(), [{'region_code': 'tw'}])
+    self.assertEqual(vpd_function(), [{'region_code': 'tw'}])
 
   @mock.patch('cros.factory.gooftool.vpd.VPDTool.GetAllData')
   def testListOfFieldsCommand(self, get_all_data_func):
     get_all_data_func.return_value = {'region': 'tw', 'sn': 'xxx'}
     vpd.VPDFunction.CleanCachedData()
     vpd_function = vpd.VPDFunction(fields=['region', 'sn'])
-    self.assertEquals(vpd_function(), [{'region': 'tw', 'sn': 'xxx'}])
+    self.assertEqual(vpd_function(), [{'region': 'tw', 'sn': 'xxx'}])
 
   @mock.patch('cros.factory.gooftool.vpd.VPDTool.GetAllData')
   def testNoResult(self, get_all_data_func):
     get_all_data_func.return_value = {'region': 'tw'}
     vpd.VPDFunction.CleanCachedData()
     vpd_function = vpd.VPDFunction(fields=['FAKE1', 'region'])
-    self.assertEquals(vpd_function(), [])
+    self.assertEqual(vpd_function(), [])
 
 
 if __name__ == '__main__':

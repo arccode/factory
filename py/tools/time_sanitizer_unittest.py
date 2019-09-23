@@ -66,9 +66,9 @@ class TimeSanitizerBaseTimeTest(TimeSanitizerTestBase):
     # pylint: disable=protected-access
     # (access to protected members)
     with tempfile.NamedTemporaryFile() as f:
-      self.assertEquals(os.stat(f.name).st_mtime,
-                        time_sanitizer.GetBaseTimeFromFile(f.name))
-    self.assertEquals(
+      self.assertEqual(os.stat(f.name).st_mtime,
+                       time_sanitizer.GetBaseTimeFromFile(f.name))
+    self.assertEqual(
         None,
         time_sanitizer.GetBaseTimeFromFile('/some-nonexistent-file'))
 
@@ -78,32 +78,32 @@ class TimeSanitizerTest(TimeSanitizerTestBase):
   def runTest(self):
     with self.Mock():
       self.fake_time.Time().AndReturn(BASE_TIME)
-    self.assertEquals(BASE_TIME, self._ReadStateFile())
+    self.assertEqual(BASE_TIME, self._ReadStateFile())
 
     # Now move forward 1 second, and then forward 0 seconds.  Should
     # be fine.
     for _ in xrange(2):
       with self.Mock():
         self.fake_time.Time().AndReturn(BASE_TIME + 1)
-      self.assertEquals(BASE_TIME + 1, self._ReadStateFile())
+      self.assertEqual(BASE_TIME + 1, self._ReadStateFile())
 
     # Now move forward 2 days.  This should be considered hosed, so
     # the time should be bumped up by time_bump_secs (120).
     with self.Mock():
       self.fake_time.Time().AndReturn(BASE_TIME + 2 * SECONDS_PER_DAY)
       self.fake_time.SetTime(BASE_TIME + 61)
-    self.assertEquals(BASE_TIME + 61, self._ReadStateFile())
+    self.assertEqual(BASE_TIME + 61, self._ReadStateFile())
 
     # Move forward a bunch.  Fine.
     with self.Mock():
       self.fake_time.Time().AndReturn(BASE_TIME + 201.5)
-    self.assertEquals(BASE_TIME + 201.5, self._ReadStateFile())
+    self.assertEqual(BASE_TIME + 201.5, self._ReadStateFile())
 
     # Jump back 20 seconds.  Not fine!
     with self.Mock():
       self.fake_time.Time().AndReturn(BASE_TIME + 181.5)
       self.fake_time.SetTime(BASE_TIME + 261.5)
-    self.assertEquals(BASE_TIME + 261.5, self._ReadStateFile())
+    self.assertEqual(BASE_TIME + 261.5, self._ReadStateFile())
 
 
 if __name__ == '__main__':

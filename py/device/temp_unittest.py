@@ -26,24 +26,24 @@ class TemporaryFilesTest(unittest.TestCase):
     temp = self.temp
 
     self.dut.CheckOutput = mock.MagicMock(return_value=result)
-    self.assertEquals(result, temp.mktemp(False))
+    self.assertEqual(result, temp.mktemp(False))
     self.dut.CheckOutput.assert_called_with(['mktemp', '--tmpdir', template])
 
     # test is_dir
     self.dut.CheckOutput = mock.MagicMock(return_value=result)
-    self.assertEquals(result, temp.mktemp(True))
+    self.assertEqual(result, temp.mktemp(True))
     self.dut.CheckOutput.assert_called_with(
         ['mktemp', '-d', '--tmpdir', template])
     # test dir
     self.dut.CheckOutput = mock.MagicMock(return_value=result)
-    self.assertEquals(result, temp.mktemp(False, dir='/local'))
+    self.assertEqual(result, temp.mktemp(False, dir='/local'))
     self.dut.CheckOutput.assert_called_with(
         ['mktemp', '--tmpdir=/local', template])
 
     # test suffix
     result = '/tmp/abcdef.ext'
     self.dut.CheckOutput = mock.MagicMock(return_value=result)
-    self.assertEquals(result, temp.mktemp(False, suffix='.ext'))
+    self.assertEqual(result, temp.mktemp(False, suffix='.ext'))
     self.dut.CheckOutput.assert_called_with(
         ['mktemp', '--tmpdir', template + '.ext'])
 
@@ -51,7 +51,7 @@ class TemporaryFilesTest(unittest.TestCase):
     template = 'pre.XXXXXX'
     result = '/tmp/pre_abcdef'
     self.dut.CheckOutput = mock.MagicMock(return_value=result)
-    self.assertEquals(result, temp.mktemp(False, prefix='pre'))
+    self.assertEqual(result, temp.mktemp(False, prefix='pre'))
     self.dut.CheckOutput.assert_called_with(['mktemp', '--tmpdir', template])
 
   def testAndroidTemp(self):
@@ -60,12 +60,12 @@ class TemporaryFilesTest(unittest.TestCase):
     result = '/tmp/abcdef'
 
     self.dut.CheckOutput = mock.MagicMock(return_value=result)
-    self.assertEquals(result, temp.mktemp(False))
+    self.assertEqual(result, temp.mktemp(False))
     self.dut.CheckOutput.assert_called_with(['mktemp', template])
 
     # test dir
     self.dut.CheckOutput = mock.MagicMock(return_value=result)
-    self.assertEquals(result, temp.mktemp(False, dir='/local'))
+    self.assertEqual(result, temp.mktemp(False, dir='/local'))
     self.dut.CheckOutput.assert_called_with(
         ['mktemp', '-p', '/local', template])
 

@@ -49,7 +49,7 @@ class ShelveUtilsTest(unittest.TestCase):
 
     # No worries, we have a backup!
     shelf = shelve_utils.OpenShelfOrBackup(self.shelf_path)
-    self.assertEquals('BAR', shelf['FOO'])
+    self.assertEqual('BAR', shelf['FOO'])
     shelf['FOO'] = 'BAZ'
     del shelf
 
@@ -60,7 +60,7 @@ class ShelveUtilsTest(unittest.TestCase):
     WipeFiles(self.tmp)
     self.assertFalse(shelve_utils.IsShelfValid(self.shelf_path))
     shelf = shelve_utils.OpenShelfOrBackup(self.shelf_path)
-    self.assertEquals('BAZ', shelf['FOO'])
+    self.assertEqual('BAZ', shelf['FOO'])
 
   def testIsShelfValid_Nonexistent(self):
     self.assertFalse(shelve_utils.IsShelfValid(self.shelf_path))

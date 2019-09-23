@@ -35,11 +35,11 @@ _TEST_ENCODED_STRING_FIRMWARE_KEYS_PREMP = 'CHROMEBOOK B8M-A7Y'
 
 class _HWIDTestCaseBase(unittest.TestCase):
   def assertBOMEquals(self, bom1, bom2):
-    self.assertEquals(bom1.encoding_pattern_index, bom2.encoding_pattern_index)
-    self.assertEquals(bom1.image_id, bom2.image_id)
-    self.assertEquals(set(bom1.components.keys()), set(bom2.components.keys()))
+    self.assertEqual(bom1.encoding_pattern_index, bom2.encoding_pattern_index)
+    self.assertEqual(bom1.image_id, bom2.image_id)
+    self.assertEqual(set(bom1.components.keys()), set(bom2.components.keys()))
     for comp_cls, bom1_comp_names in bom1.components.iteritems():
-      self.assertEquals(bom1_comp_names, bom2.components[comp_cls])
+      self.assertEqual(bom1_comp_names, bom2.components[comp_cls])
 
   def setUp(self):
     self.database = Database.LoadFile(_TEST_DATABASE_PATH,
@@ -52,13 +52,13 @@ class GenerateHWIDTest(_HWIDTestCaseBase):
   def testNormal(self):
     identity = hwid_utils.GenerateHWID(
         self.database, self.probed_results, {}, {}, False, False, None)
-    self.assertEquals(identity.encoded_string, _TEST_ENCODED_STRING_GOOD)
+    self.assertEqual(identity.encoded_string, _TEST_ENCODED_STRING_GOOD)
 
   def testWithConfigless(self):
     identity = hwid_utils.GenerateHWID(
         self.database, self.probed_results, {}, {}, False, True, 'BRAND')
-    self.assertEquals(identity.encoded_string,
-                      _TEST_ENCODED_STRING_WITH_CONFIGLESS_GOOD)
+    self.assertEqual(identity.encoded_string,
+                     _TEST_ENCODED_STRING_WITH_CONFIGLESS_GOOD)
 
   def testBadComponentStatus(self):
     # The function should also verify if all the component status are valid.
@@ -74,40 +74,40 @@ class DecodeHWIDTest(_HWIDTestCaseBase):
     identity, bom, configless = hwid_utils.DecodeHWID(
         self.database, _TEST_ENCODED_STRING_FIRMWARE_KEYS_PREMP)
 
-    self.assertEquals(identity.encoded_string,
-                      _TEST_ENCODED_STRING_FIRMWARE_KEYS_PREMP)
+    self.assertEqual(identity.encoded_string,
+                     _TEST_ENCODED_STRING_FIRMWARE_KEYS_PREMP)
     self.assertBOMEquals(bom, BOM(0, 1, {'battery': ['battery_supported'] * 2,
                                          'storage': [],
                                          'dram': [],
                                          'firmware_keys': ['key_premp'],
                                          'region': ['tw']}))
-    self.assertEquals(identity.brand_code, None)
-    self.assertEquals(configless, None)
+    self.assertEqual(identity.brand_code, None)
+    self.assertEqual(configless, None)
 
   def testWithConfigless(self):
     identity, bom, configless = hwid_utils.DecodeHWID(
         self.database, _TEST_ENCODED_STRING_WITH_CONFIGLESS_GOOD)
 
-    self.assertEquals(identity.encoded_string,
-                      _TEST_ENCODED_STRING_WITH_CONFIGLESS_GOOD)
+    self.assertEqual(identity.encoded_string,
+                     _TEST_ENCODED_STRING_WITH_CONFIGLESS_GOOD)
     self.assertBOMEquals(bom, BOM(0, 1, {'battery': ['battery_supported'] * 2,
                                          'storage': [],
                                          'dram': [],
                                          'firmware_keys': ['key_mp'],
                                          'region': ['tw']}))
-    self.assertEquals(identity.brand_code, 'BRAND')
-    self.assertEquals(configless, {'version': 0,
-                                   'memory': 8,
-                                   'storage': 58,
-                                   'feature_list': {
-                                       'has_touchscreen': 0,
-                                       'has_touchpad': 0,
-                                       'has_stylus': 0,
-                                       'has_front_camera': 0,
-                                       'has_rear_camera': 0,
-                                       'has_fingerprint': 0,
-                                       'is_convertible': 0,
-                                       'is_rma_device': 0}})
+    self.assertEqual(identity.brand_code, 'BRAND')
+    self.assertEqual(configless, {'version': 0,
+                                  'memory': 8,
+                                  'storage': 58,
+                                  'feature_list': {
+                                      'has_touchscreen': 0,
+                                      'has_touchpad': 0,
+                                      'has_stylus': 0,
+                                      'has_front_camera': 0,
+                                      'has_rear_camera': 0,
+                                      'has_fingerprint': 0,
+                                      'is_convertible': 0,
+                                      'is_rma_device': 0}})
 
 class VerifyHWIDTest(_HWIDTestCaseBase):
   def testNormal(self):
@@ -154,7 +154,7 @@ class ListComponentsTest(_HWIDTestCaseBase):
       return {key: set(value) for key, value in orig_dict.iteritems()}
 
     results = hwid_utils.ListComponents(self.database, comp_cls)
-    self.assertEquals(_ConvertToSets(results), _ConvertToSets(expected_results))
+    self.assertEqual(_ConvertToSets(results), _ConvertToSets(expected_results))
 
   def testSpecificComponentClass(self):
     self._TestListComponents('firmware_keys',
@@ -173,29 +173,29 @@ class EnumerateHWIDTest(_HWIDTestCaseBase):
 
   def testSupported(self):
     results = hwid_utils.EnumerateHWID(self.database, status='supported')
-    self.assertEquals(len(results), 6)
+    self.assertEqual(len(results), 6)
 
   def testReleased(self):
     results = hwid_utils.EnumerateHWID(self.database, status='released')
-    self.assertEquals(len(results), 12)
+    self.assertEqual(len(results), 12)
 
   def testAll(self):
     results = hwid_utils.EnumerateHWID(self.database, status='all')
-    self.assertEquals(len(results), 24)
+    self.assertEqual(len(results), 24)
 
   def testPrevImageId(self):
     results = hwid_utils.EnumerateHWID(self.database, image_id=0, status='all')
-    self.assertEquals(len(results), 12)
+    self.assertEqual(len(results), 12)
 
   def testSpecificSomeComponents(self):
     results = hwid_utils.EnumerateHWID(self.database, image_id=0, status='all',
                                        comps={'firmware_keys': ['key_premp']})
-    self.assertEquals(len(results), 6)
+    self.assertEqual(len(results), 6)
 
   def testNoResult(self):
     results = hwid_utils.EnumerateHWID(self.database, image_id=0, status='all',
                                        comps={'firmware_keys': ['key_xxx']})
-    self.assertEquals(len(results), 0)
+    self.assertEqual(len(results), 0)
 
 
 class GetProbeStatementPathTest(unittest.TestCase):

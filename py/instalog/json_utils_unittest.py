@@ -55,12 +55,12 @@ class TestJSONUtils(unittest.TestCase):
     enc = json_utils.JSONEncoder()
     dec = json_utils.JSONDecoder()
     orig = [_SAMPLE_DATETIME, _SAMPLE_DATE, _SAMPLE_TIME, 'test_string']
-    self.assertEquals(dec.decode(enc.encode(orig)), orig)
+    self.assertEqual(dec.decode(enc.encode(orig)), orig)
 
   def testSerializable(self):
     orig = A('test')
-    self.assertEquals(orig.data, A.Deserialize(orig.Serialize()).data)
-    self.assertEquals(orig.data, json_utils.Deserialize(orig.Serialize()).data)
+    self.assertEqual(orig.data, A.Deserialize(orig.Serialize()).data)
+    self.assertEqual(orig.data, json_utils.Deserialize(orig.Serialize()).data)
 
   def testRecursiveSerialize(self):
     orig = A(B('test'))

@@ -49,7 +49,7 @@ class PatchSSHLinkConfigUnittest(unittest.TestCase):
     self.test.PatchSSHLinkConfig()
     with open(self.test.config_file_path, 'r') as f:
       patched_config = json.load(f)
-    self.assertEquals(expected_config, patched_config)
+    self.assertEqual(expected_config, patched_config)
 
 
   def testOverrideExistedConfig(self):
@@ -70,7 +70,7 @@ class PatchSSHLinkConfigUnittest(unittest.TestCase):
     self.test.PatchSSHLinkConfig()
     with open(self.test.config_file_path, 'r') as f:
       patched_config = json.load(f)
-    self.assertEquals(expected_config, patched_config)
+    self.assertEqual(expected_config, patched_config)
 
 
 if __name__ == '__main__':

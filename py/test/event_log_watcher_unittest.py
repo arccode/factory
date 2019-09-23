@@ -41,8 +41,8 @@ MOCK_PERIOD = 0.01
 class ChunkTest(unittest.TestCase):
 
   def testStr(self):
-    self.assertEquals("Chunk(log_name='a', len=3, pos=10)",
-                      str(Chunk('a', 'foo', 10)))
+    self.assertEqual("Chunk(log_name='a', len=3, pos=10)",
+                     str(Chunk('a', 'foo', 10)))
 
 
 class EventLogWatcherTest(unittest.TestCase):
@@ -242,7 +242,7 @@ class EventLogWatcherTest(unittest.TestCase):
       self.assertIsNone(watcher.GetEventLog(MOCK_LOG_NAME(0)))
     else:
       # The event log watcher has the correct sync offset for the file.
-      self.assertEquals(
+      self.assertEqual(
           {event_log_watcher.KEY_OFFSET: len(MOCK_PREAMBLE(0, True))},
           watcher.GetEventLog(MOCK_LOG_NAME(0)))
 

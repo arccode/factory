@@ -19,7 +19,7 @@ class FlashChipFunctionTest(unittest.TestCase):
   def testNormal(self, MockCheckOutput):
     expected = {'vendor': 'Google', 'name': 'Chip'}
     results = flash_chip.FlashChipFunction(chip='main')()
-    self.assertEquals(results, [expected])
+    self.assertEqual(results, [expected])
     MockCheckOutput.assert_called_with(
         ['flashrom', '-p', 'host', '--flash-name'])
 
@@ -27,7 +27,7 @@ class FlashChipFunctionTest(unittest.TestCase):
               side_effect=subprocess.CalledProcessError(1, 'command'))
   def testNoOutput(self, MockCheckOutput):
     results = flash_chip.FlashChipFunction(chip='ec')()
-    self.assertEquals(results, [])
+    self.assertEqual(results, [])
     MockCheckOutput.assert_called_with(['flashrom', '-p', 'ec', '--flash-name'])
 
 

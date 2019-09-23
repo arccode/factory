@@ -58,7 +58,7 @@ class TestSocket(unittest.TestCase):
   def testOneEvent(self):
     self.stream.Queue([datatypes.Event({})])
     self.output_sandbox.Flush(2, True)
-    self.assertEquals(self.core.emit_calls, [[datatypes.Event({})]])
+    self.assertEqual(self.core.emit_calls, [[datatypes.Event({})]])
 
   def testOneEventOneAttachment(self):
     with tempfile.NamedTemporaryFile() as f:

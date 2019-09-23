@@ -71,8 +71,8 @@ class FindTtyByDriverTest(unittest.TestCase):
         _DEFAULT_DRIVER)
 
     self.mox.ReplayAll()
-    self.assertEquals(_DEFAULT_PORT,
-                      serial_utils.FindTtyByDriver(_DEFAULT_DRIVER))
+    self.assertEqual(_DEFAULT_PORT,
+                     serial_utils.FindTtyByDriver(_DEFAULT_DRIVER))
 
   def testFindTtyByDriverSecondPort(self):
     os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn('foo')
@@ -80,8 +80,8 @@ class FindTtyByDriverTest(unittest.TestCase):
         _DEFAULT_DRIVER)
 
     self.mox.ReplayAll()
-    self.assertEquals('/dev/ttyUSB1',
-                      serial_utils.FindTtyByDriver(_DEFAULT_DRIVER))
+    self.assertEqual('/dev/ttyUSB1',
+                     serial_utils.FindTtyByDriver(_DEFAULT_DRIVER))
 
   def testFindTtyByDriverNotFound(self):
     os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn('foo')
@@ -101,9 +101,9 @@ class FindTtyByDriverTest(unittest.TestCase):
         '/sys/class/tty/ttyUSB1/device').AndReturn('01')
 
     self.mox.ReplayAll()
-    self.assertEquals('/dev/ttyUSB1',
-                      serial_utils.FindTtyByDriver(_DEFAULT_DRIVER,
-                                                   interface_protocol='01'))
+    self.assertEqual('/dev/ttyUSB1',
+                     serial_utils.FindTtyByDriver(_DEFAULT_DRIVER,
+                                                  interface_protocol='01'))
 
   def testFindTtyByDriverMultiple(self):
     os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn(
@@ -112,9 +112,9 @@ class FindTtyByDriverTest(unittest.TestCase):
         _DEFAULT_DRIVER)
 
     self.mox.ReplayAll()
-    self.assertEquals([_DEFAULT_PORT, '/dev/ttyUSB1'],
-                      serial_utils.FindTtyByDriver(_DEFAULT_DRIVER,
-                                                   multiple_ports=True))
+    self.assertEqual([_DEFAULT_PORT, '/dev/ttyUSB1'],
+                     serial_utils.FindTtyByDriver(_DEFAULT_DRIVER,
+                                                  multiple_ports=True))
 
 
 class FindTtyByPortIndexTest(unittest.TestCase):
@@ -136,9 +136,9 @@ class FindTtyByPortIndexTest(unittest.TestCase):
         '/%s/' % _DEFAULT_INDEX)
 
     self.mox.ReplayAll()
-    self.assertEquals(_DEFAULT_PORT,
-                      serial_utils.FindTtyByPortIndex(_DEFAULT_INDEX,
-                                                      _DEFAULT_DRIVER))
+    self.assertEqual(_DEFAULT_PORT,
+                     serial_utils.FindTtyByPortIndex(_DEFAULT_INDEX,
+                                                     _DEFAULT_DRIVER))
 
   def testFindTtyByPortIndexSecondPort(self):
     os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn('foo')
@@ -148,9 +148,9 @@ class FindTtyByPortIndexTest(unittest.TestCase):
         '/%s/' % _DEFAULT_INDEX)
 
     self.mox.ReplayAll()
-    self.assertEquals('/dev/ttyUSB1',
-                      serial_utils.FindTtyByPortIndex(_DEFAULT_INDEX,
-                                                      _DEFAULT_DRIVER))
+    self.assertEqual('/dev/ttyUSB1',
+                     serial_utils.FindTtyByPortIndex(_DEFAULT_INDEX,
+                                                     _DEFAULT_DRIVER))
 
   def testFindTtyByPortIndexNotFound(self):
     os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn('foo')

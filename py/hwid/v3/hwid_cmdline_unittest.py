@@ -38,14 +38,14 @@ class OutputObjectTest(TestCaseBaseWithFakeOutput):
   def testYamlFormat(self):
     hwid_cmdline.OutputObject(mock.MagicMock(json_output=False),
                               {'aaa': ['bbb', 'ccc'], 'xxx': 3})
-    self.assertEquals(yaml.load(hwid_cmdline.Output.data),
-                      {'aaa': ['bbb', 'ccc'], 'xxx': 3})
+    self.assertEqual(yaml.load(hwid_cmdline.Output.data),
+                     {'aaa': ['bbb', 'ccc'], 'xxx': 3})
 
   def testJsonFormat(self):
     hwid_cmdline.OutputObject(mock.MagicMock(json_output=True),
                               {'aaa': ['bbb', 'ccc'], 'xxx': 3})
-    self.assertEquals(json.loads(hwid_cmdline.Output.data),
-                      {'aaa': ['bbb', 'ccc'], 'xxx': 3})
+    self.assertEqual(json.loads(hwid_cmdline.Output.data),
+                     {'aaa': ['bbb', 'ccc'], 'xxx': 3})
 
 
 class TestCaseBaseWithMockedOutputObject(unittest.TestCase):
@@ -76,10 +76,10 @@ class ObtainAllDeviceDataTest(unittest.TestCase):
     get_device_info_mock.assert_called_once_with(
         infile=options.device_info_file)
 
-    self.assertEquals(type_utils.Obj(probed_results=ret.probed_results,
-                                     vpd=ret.vpd,
-                                     device_info=ret.device_info),
-                      ret)
+    self.assertEqual(type_utils.Obj(probed_results=ret.probed_results,
+                                    vpd=ret.vpd,
+                                    device_info=ret.device_info),
+                     ret)
 
 
 class BuildDatabaseWrapperTest(unittest.TestCase):
@@ -233,7 +233,7 @@ class EnumerateHWIDWrapperTest(TestCaseBaseWithFakeOutput):
   def testDefault(self, unused_enumerate_hwid_mock):
     hwid_cmdline.EnumerateHWIDWrapper(mock.MagicMock(comp=None, no_bom=False))
 
-    self.assertEquals(hwid_cmdline.Output.data, 'HWID1: bbb\nHWID2: aaa\n')
+    self.assertEqual(hwid_cmdline.Output.data, 'HWID1: bbb\nHWID2: aaa\n')
 
   @mock.patch('cros.factory.hwid.v3.hwid_utils.EnumerateHWID', return_value={})
   def testComp(self, enumerate_hwid_mock):
@@ -252,7 +252,7 @@ class EnumerateHWIDWrapperTest(TestCaseBaseWithFakeOutput):
   def testOutputWithoutBOM(self, unused_enumerate_hwid_mock):
     hwid_cmdline.EnumerateHWIDWrapper(mock.MagicMock(no_bom=True))
 
-    self.assertEquals(hwid_cmdline.Output.data, 'HWID1\nHWID2\n')
+    self.assertEqual(hwid_cmdline.Output.data, 'HWID1\nHWID2\n')
 
 
 if __name__ == '__main__':

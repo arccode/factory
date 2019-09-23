@@ -34,7 +34,7 @@ class OrFunctionTest(unittest.TestCase):
                 {'mock': {'data': {'bar': 'BAR'}}}]}}
     expected_value = [{'foo': 'FOO'}]
     ret = function.InterpretFunction(func_expression)()
-    self.assertEquals(ret, expected_value)
+    self.assertEqual(ret, expected_value)
 
     func_expression = {
         'or': {
@@ -44,7 +44,7 @@ class OrFunctionTest(unittest.TestCase):
                 {'mock': {'data': {'bar': 'BAR'}}}]}}
     expected_value = [{'foo': 'FOO'}]
     ret = function.InterpretFunction(func_expression)()
-    self.assertEquals(ret, expected_value)
+    self.assertEqual(ret, expected_value)
 
     func_expression = {
         'or': {
@@ -52,7 +52,7 @@ class OrFunctionTest(unittest.TestCase):
                 {'fail': {}},
                 {'fail': {}}]}}
     ret = function.InterpretFunction(func_expression)()
-    self.assertEquals(ret, function.NOTHING)
+    self.assertEqual(ret, function.NOTHING)
 
 
 if __name__ == '__main__':

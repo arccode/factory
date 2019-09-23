@@ -43,9 +43,9 @@ class BootSequenceTest(unittest.TestCase):
     seq = testlog_seq.SeqGenerator(self.seq_path, self.json_path)
     next_seq = seq.Next()
     current_seq = seq.Current()
-    self.assertEquals(next_seq, current_seq)
+    self.assertEqual(next_seq, current_seq)
     # pylint: disable=protected-access
-    self.assertEquals(
+    self.assertEqual(
         next_seq, 1 + first_seq + testlog_seq.SEQ_INCREMENT_ON_BOOT)
 
   def testAllCorrupt(self):
@@ -77,7 +77,7 @@ class BootSequenceTest(unittest.TestCase):
       fd.write('\0' * 100)
     seq = testlog_seq.SeqGenerator(self.seq_path, self.json_path)
     next_seq = seq.Next()
-    self.assertEquals(
+    self.assertEqual(
         next_seq, 1 + last_valid_seq + testlog_seq.SEQ_INCREMENT_ON_BOOT)
 
   def testFailsWhenLocked(self):
@@ -93,13 +93,13 @@ class BootSequenceTest(unittest.TestCase):
       # The context of JSON file for recovery is empty.
       seq = testlog_seq.SeqGenerator(self.seq_path, fd.name)
       for i in range(3):
-        self.assertEquals(i, seq.Next())
+        self.assertEqual(i, seq.Next())
       del seq
 
       # Test if it will read out the existing seq file.
       seq = testlog_seq.SeqGenerator(self.seq_path, fd.name)
       for i in range(3, 6):
-        self.assertEquals(i, seq.Next())
+        self.assertEqual(i, seq.Next())
 
   def _testThreads(self, after_read=lambda: True, filelock_waitsecs=1.0):
     """Tests atomicity by doing operations in 10 threads for 1 sec.
@@ -127,7 +127,7 @@ class BootSequenceTest(unittest.TestCase):
 
     # After we sort, should be numbers [1, len(values)].
     values.sort()
-    self.assertEquals(range(len(values)), values)
+    self.assertEqual(range(len(values)), values)
     return values
 
   def testThreadsWithSleep(self):

@@ -84,7 +84,7 @@ class CoreTempSensorTest(unittest.TestCase):
   def testGetSensors(self):
     self.mockProbe()
     self.mox.ReplayAll()
-    self.assertEquals(self.sensor.GetSensors(), {
+    self.assertEqual(self.sensor.GetSensors(), {
         'coretemp.0 Package 0': _CORETEMP_PREFIX + '0/temp1_input',
         'coretemp.0 Core 0': _CORETEMP_PREFIX + '0/temp2_input',
         'coretemp.1 Core X': _CORETEMP_PREFIX + '1/hwmon/hwmon0/temp1_input',
@@ -94,14 +94,14 @@ class CoreTempSensorTest(unittest.TestCase):
   def testGetMainSensorName(self):
     self.mockProbe()
     self.mox.ReplayAll()
-    self.assertEquals(self.sensor.GetMainSensorName(), 'coretemp.0 Package 0')
+    self.assertEqual(self.sensor.GetMainSensorName(), 'coretemp.0 Package 0')
     self.mox.VerifyAll()
 
   def testGetValue(self):
     self.mockProbe()
     self.board.ReadFile(_CORETEMP_PREFIX + '0/temp2_input').AndReturn('50000')
     self.mox.ReplayAll()
-    self.assertEquals(self.sensor.GetValue('coretemp.0 Core 0'), 50)
+    self.assertEqual(self.sensor.GetValue('coretemp.0 Core 0'), 50)
     self.mox.VerifyAll()
 
   def testGetAllValues(self):
@@ -114,16 +114,16 @@ class CoreTempSensorTest(unittest.TestCase):
       self.board.ReadFile(
           _CORETEMP_PREFIX + suffix).InAnyOrder().AndReturn(value)
     self.mox.ReplayAll()
-    self.assertEquals(self.sensor.GetAllValues(), {'coretemp.0 Package 0': 52,
-                                                   'coretemp.0 Core 0': 37,
-                                                   'coretemp.1 Core X': 47})
+    self.assertEqual(self.sensor.GetAllValues(), {'coretemp.0 Package 0': 52,
+                                                  'coretemp.0 Core 0': 37,
+                                                  'coretemp.1 Core X': 47})
     self.mox.VerifyAll()
 
   def testGetCriticalValue(self):
     self.mockProbe()
     self.board.ReadFile(_CORETEMP_PREFIX + '0/temp2_crit').AndReturn('97000')
     self.mox.ReplayAll()
-    self.assertEquals(self.sensor.GetCriticalValue('coretemp.0 Core 0'), 97)
+    self.assertEqual(self.sensor.GetCriticalValue('coretemp.0 Core 0'), 97)
     self.mox.VerifyAll()
 
 class ThermalZoneSensors(unittest.TestCase):
@@ -150,9 +150,9 @@ class ThermalZoneSensors(unittest.TestCase):
     self.board.ReadFile('/sys/class/thermal/thermal_zone0/temp').AndReturn(
         '38000')
     self.mox.ReplayAll()
-    self.assertEquals(self.sensor.GetMainSensorName(), 'thermal_zone0 CPU')
-    self.assertEquals(self.sensor.GetValue('thermal_zone0 CPU'), 37)
-    self.assertEquals(self.sensor.GetAllValues(), {'thermal_zone0 CPU': 38})
+    self.assertEqual(self.sensor.GetMainSensorName(), 'thermal_zone0 CPU')
+    self.assertEqual(self.sensor.GetValue('thermal_zone0 CPU'), 37)
+    self.assertEqual(self.sensor.GetAllValues(), {'thermal_zone0 CPU': 38})
     self.mox.VerifyAll()
 
 
@@ -180,14 +180,14 @@ class ECToolTemperatureSensors(unittest.TestCase):
         '2: 293']))
 
     self.mox.ReplayAll()
-    self.assertEquals(self.sensor.GetMainSensorName(), None)
-    self.assertEquals(self.sensor.GetSensors(), {
+    self.assertEqual(self.sensor.GetMainSensorName(), None)
+    self.assertEqual(self.sensor.GetSensors(), {
         'ectool I2C_CPU-Die': '0',
         'ectool ECInternal': '1',
         'ectool PECI': '2',
     })
-    self.assertEquals(self.sensor.GetValue('ectool PECI'), 50)
-    self.assertEquals(self.sensor.GetAllValues(), {
+    self.assertEqual(self.sensor.GetValue('ectool PECI'), 50)
+    self.assertEqual(self.sensor.GetAllValues(), {
         'ectool I2C_CPU-Die': 0,
         'ectool ECInternal': 10,
         'ectool PECI': 20})
@@ -203,12 +203,12 @@ class ECToolTemperatureSensors(unittest.TestCase):
         '1: 327 K',
         '2: 273 K']))
     self.mox.ReplayAll()
-    self.assertEquals(self.sensor.GetSensors(), {
+    self.assertEqual(self.sensor.GetSensors(), {
         'ectool TMP432_Internal': '0',
         'ectool TMP432_Sensor_1': '1',
         'ectool TMP432_Sensor_2': '2',
     })
-    self.assertEquals(self.sensor.GetAllValues(), {
+    self.assertEqual(self.sensor.GetAllValues(), {
         'ectool TMP432_Internal': 56,
         'ectool TMP432_Sensor_1': 54,
         'ectool TMP432_Sensor_2': 0})
@@ -247,13 +247,13 @@ class ThermalTest(unittest.TestCase):
         '1: 331')
     self.board.ReadFile(self.coretemp1crit_path).AndReturn('104000')
     self.mox.ReplayAll()
-    self.assertEquals(self.thermal.GetMainSensorName(), 'coretemp.0 Package 0')
+    self.assertEqual(self.thermal.GetMainSensorName(), 'coretemp.0 Package 0')
     self.assertItemsEqual(self.thermal.GetAllSensorNames(),
                           ['coretemp.0 Package 0', 'ectool ECInternal'])
-    self.assertEquals(self.thermal.GetTemperature(), 37)
-    self.assertEquals(
+    self.assertEqual(self.thermal.GetTemperature(), 37)
+    self.assertEqual(
         self.thermal.GetTemperature(self.thermal.GetMainSensorName()), 38)
-    self.assertEquals(
+    self.assertEqual(
         self.thermal.GetTemperature('ectool ECInternal'), 59)
     self.assertItemsEqual(self.thermal.GetAllTemperatures(),
                           {'coretemp.0 Package 0': 34,

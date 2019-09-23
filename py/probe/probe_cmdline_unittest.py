@@ -21,10 +21,10 @@ CMD_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 
 class ProbeCmdTest(unittest.TestCase):
   def assertProbedResultEquals(self, result1, result2):
-    self.assertEquals(len(result1), len(result2))
+    self.assertEqual(len(result1), len(result2))
     for k, v1 in result1.iteritems():
       self.assertIn(k, result2)
-      self.assertEquals(sorted(v1), sorted(result2[k]))
+      self.assertEqual(sorted(v1), sorted(result2[k]))
 
   def setUp(self):
     self.tmp_file = file_utils.CreateTemporaryFile()
@@ -126,26 +126,26 @@ class EvalFunctionCmdTest(unittest.TestCase):
     with open(output_file, 'r') as f:
       file_content = f.read()
       results = json.loads(file_content)
-    self.assertEquals(results, expected)
+    self.assertEqual(results, expected)
 
     # Output to stdout.
     cmd = [CMD_PATH, '--output-file', '-',
            'eval-function', 'file', self.tmp_file,
            '--key', 'file_raw', '--split-line']
     results = json.loads(process_utils.CheckOutput(cmd))
-    self.assertEquals(expected, results)
+    self.assertEqual(expected, results)
 
     cmd = [CMD_PATH, 'eval-function', 'file', self.tmp_file,
            '--key', 'file_raw', '--split-line']
     results = json.loads(process_utils.CheckOutput(cmd))
-    self.assertEquals(expected, results)
+    self.assertEqual(expected, results)
 
   def testShellCommand(self):
     expected = [
         {'shell_raw': 'hello'}]
     cmd = [CMD_PATH, 'eval-function', 'shell', 'echo hello']
     results = json.loads(process_utils.CheckOutput(cmd))
-    self.assertEquals(expected, results)
+    self.assertEqual(expected, results)
 
 
 if __name__ == '__main__':

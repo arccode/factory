@@ -28,7 +28,7 @@ class ConvertToProbeStatementTest(unittest.TestCase):
     result = json_utils.LoadFile(
         os.path.join(_TEST_DATA_PATH, 'test_converter_result.json'),
         convert_to_str=False)
-    self.assertEquals(converter.ConvertToProbeStatement(
+    self.assertEqual(converter.ConvertToProbeStatement(
         database, 'fake_probe_statement_path'), result)
 
 

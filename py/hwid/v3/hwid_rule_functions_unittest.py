@@ -62,45 +62,45 @@ class HWIDRuleTest(unittest.TestCase):
 
   def testSetComponent(self):
     SetComponent('cpu', 'cpu_3')
-    self.assertEquals(['cpu_3'], self.bom.components['cpu'])
+    self.assertEqual(['cpu_3'], self.bom.components['cpu'])
 
     SetComponent('cpu', None)
-    self.assertEquals(0, len(self.bom.components['cpu']))
+    self.assertEqual(0, len(self.bom.components['cpu']))
 
   def testGetSetImageId(self):
-    self.assertEquals(0, GetImageId())
+    self.assertEqual(0, GetImageId())
 
     SetImageId(1)
-    self.assertEquals(1, self.bom.image_id)
-    self.assertEquals(1, GetImageId())
+    self.assertEqual(1, self.bom.image_id)
+    self.assertEqual(1, GetImageId())
 
     SetImageId(2)
-    self.assertEquals(2, self.bom.image_id)
-    self.assertEquals(2, GetImageId())
+    self.assertEqual(2, self.bom.image_id)
+    self.assertEqual(2, GetImageId())
 
   def testGetOperationMode(self):
-    self.assertEquals(common.OPERATION_MODE.normal, GetOperationMode())
+    self.assertEqual(common.OPERATION_MODE.normal, GetOperationMode())
 
   def testGetDeviceInfo(self):
-    self.assertEquals(1, GetDeviceInfo('SKU'))
-    self.assertEquals(False, GetDeviceInfo('has_cellular'))
+    self.assertEqual(1, GetDeviceInfo('SKU'))
+    self.assertEqual(False, GetDeviceInfo('has_cellular'))
 
-    self.assertEquals(1, GetDeviceInfo('SKU'))
-    self.assertEquals('Default', GetDeviceInfo('has_something', 'Default'))
+    self.assertEqual(1, GetDeviceInfo('SKU'))
+    self.assertEqual('Default', GetDeviceInfo('has_something', 'Default'))
 
   def testGetVPDValue(self):
-    self.assertEquals('foo', GetVPDValue('ro', 'serial_number'))
-    self.assertEquals('buz', GetVPDValue('rw', 'registration_code'))
+    self.assertEqual('foo', GetVPDValue('ro', 'serial_number'))
+    self.assertEqual('buz', GetVPDValue('rw', 'registration_code'))
 
   def testGetPhase(self):
     # Should be 'PVT' when no build phase is set.
-    self.assertEquals('PVT', GetPhase())
+    self.assertEqual('PVT', GetPhase())
 
     phase._current_phase = phase.PROTO  # pylint: disable=protected-access
-    self.assertEquals('PROTO', GetPhase())
+    self.assertEqual('PROTO', GetPhase())
 
     phase._current_phase = phase.PVT_DOGFOOD  # pylint: disable=protected-access
-    self.assertEquals('PVT_DOGFOOD', GetPhase())
+    self.assertEqual('PVT_DOGFOOD', GetPhase())
 
 
 if __name__ == '__main__':

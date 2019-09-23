@@ -20,7 +20,7 @@ use the args attribute to access the attribute values.
         self.ui.SetTitle(self.args.title)
       device.StartCountdown(self.args.countdown_secs)
       time.sleep(self.args.countdown_secs)
-      self.assertEquals(self.args.explode, device.exploded)
+      self.assertEqual(self.args.explode, device.exploded)
 """
 
 from .type_utils import Enum

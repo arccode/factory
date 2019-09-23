@@ -25,7 +25,7 @@ class EvaluateStatementTest(unittest.TestCase):
         {'eval': {'mock': {'data': [{'foo': 'FOO1', 'bar': 'BAR1'},
                                     {'foo': 'FOO2', 'bar': 'BAR2'}]}},
          'expect': {'foo': 'FOO1'}})
-    self.assertEquals(results, [{'values': {'foo': 'FOO1', 'bar': 'BAR1'}}])
+    self.assertEqual(results, [{'values': {'foo': 'FOO1', 'bar': 'BAR1'}}])
 
   def testNormalWithKeys(self):
     results = common.EvaluateStatement(
@@ -33,7 +33,7 @@ class EvaluateStatementTest(unittest.TestCase):
                                     {'foo': 'FOO2', 'bar': 'BAR2'}]}},
          'expect': {'foo': 'FOO1'},
          'keys': ['foo']})
-    self.assertEquals(results, [{'values': {'foo': 'FOO1'}}])
+    self.assertEqual(results, [{'values': {'foo': 'FOO1'}}])
 
   def testNormalWithApproxMatch(self):
     results = common.EvaluateStatement(

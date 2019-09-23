@@ -37,7 +37,7 @@ class HWIDRuleTest(unittest.TestCase):
                 when='StrLen() > 3',
                 evaluate='AssertStrLen(3)',
                 otherwise=None)
-    self.assertEquals(None, rule.Evaluate(self.context))
+    self.assertEqual(None, rule.Evaluate(self.context))
     rule = Rule(name='foobar2',
                 when='StrLen() > 3',
                 evaluate='AssertStrLen(6)',
@@ -58,7 +58,7 @@ class HWIDRuleTest(unittest.TestCase):
     self.assertFalse(Value('^foo.*bar$', is_re=True).Matches('barxyzfoo'))
 
   def testEvaluateOnce(self):
-    self.assertEquals(5, Rule.EvaluateOnce('StrLen()', self.context))
+    self.assertEqual(5, Rule.EvaluateOnce('StrLen()', self.context))
     self.assertRaisesRegexp(
         RuleException, r'ERROR: Assertion error',
         Rule.EvaluateOnce, 'AssertStrLen(6)', self.context)

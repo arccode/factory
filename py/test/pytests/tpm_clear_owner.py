@@ -21,7 +21,7 @@ class ClearTPMOwnerRequest(unittest.TestCase):
 
   def runTest(self):
     if self.args.only_check_clear_done:
-      self.assertEquals(
+      self.assertEqual(
           process_utils.CheckOutput(['crossystem', 'clear_tpm_owner_done']),
           '1')
     else:

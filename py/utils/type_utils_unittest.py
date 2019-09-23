@@ -18,43 +18,43 @@ JIONG_UTF8 = '\xe5\x9b\xa7'
 class FlattenListTest(unittest.TestCase):
 
   def runTest(self):
-    self.assertEquals([], type_utils.FlattenList([]))
-    self.assertEquals([], type_utils.FlattenList([[]]))
-    self.assertEquals([1], type_utils.FlattenList([1]))
-    self.assertEquals([1], type_utils.FlattenList([1, []]))
-    self.assertEquals([1, 2, 3, 4, 5, 6],
-                      type_utils.FlattenList([1, 2, [3, 4, []], 5, 6]))
+    self.assertEqual([], type_utils.FlattenList([]))
+    self.assertEqual([], type_utils.FlattenList([[]]))
+    self.assertEqual([1], type_utils.FlattenList([1]))
+    self.assertEqual([1], type_utils.FlattenList([1, []]))
+    self.assertEqual([1, 2, 3, 4, 5, 6],
+                     type_utils.FlattenList([1, 2, [3, 4, []], 5, 6]))
 
 
 class FlattenTupleTest(unittest.TestCase):
 
   def runTest(self):
-    self.assertEquals((), type_utils.FlattenTuple(()))
-    self.assertEquals((), type_utils.FlattenTuple((())))
-    self.assertEquals((1, ), type_utils.FlattenTuple((1, )))
-    self.assertEquals((1, ), type_utils.FlattenTuple((1, ())))
-    self.assertEquals((1, 2, 3, 4, 5, 6),
-                      type_utils.FlattenTuple((1, 2, (3, 4, ()), 5, 6)))
+    self.assertEqual((), type_utils.FlattenTuple(()))
+    self.assertEqual((), type_utils.FlattenTuple((())))
+    self.assertEqual((1, ), type_utils.FlattenTuple((1, )))
+    self.assertEqual((1, ), type_utils.FlattenTuple((1, ())))
+    self.assertEqual((1, 2, 3, 4, 5, 6),
+                     type_utils.FlattenTuple((1, 2, (3, 4, ()), 5, 6)))
 
 
 class MakeListTest(unittest.TestCase):
 
   def runTest(self):
-    self.assertEquals(['a'], type_utils.MakeList('a'))
-    self.assertEquals(['abc'], type_utils.MakeList('abc'))
-    self.assertEquals(['a', 'b'], type_utils.MakeList(['a', 'b']))
-    self.assertEquals(['a', 'b'], type_utils.MakeList({'a': 'foo', 'b': 'bar'}))
+    self.assertEqual(['a'], type_utils.MakeList('a'))
+    self.assertEqual(['abc'], type_utils.MakeList('abc'))
+    self.assertEqual(['a', 'b'], type_utils.MakeList(['a', 'b']))
+    self.assertEqual(['a', 'b'], type_utils.MakeList({'a': 'foo', 'b': 'bar'}))
 
 
 class MakeTupleTest(unittest.TestCase):
 
   def runTest(self):
-    self.assertEquals(('a',), type_utils.MakeTuple('a'))
-    self.assertEquals(('abc',), type_utils.MakeTuple('abc'))
-    self.assertEquals(('a', 'b'), type_utils.MakeTuple(['a', 'b']))
-    self.assertEquals(
+    self.assertEqual(('a',), type_utils.MakeTuple('a'))
+    self.assertEqual(('abc',), type_utils.MakeTuple('abc'))
+    self.assertEqual(('a', 'b'), type_utils.MakeTuple(['a', 'b']))
+    self.assertEqual(
         ('a', 'b'), type_utils.MakeTuple({'a': 'foo', 'b': 'bar'}))
-    self.assertEquals(
+    self.assertEqual(
         (1, 2, (3, 4, ('str',))),
         type_utils.MakeTuple([1, 2, (3, 4, ['str'])]))
 
@@ -62,11 +62,11 @@ class MakeTupleTest(unittest.TestCase):
 class MakeSetTest(unittest.TestCase):
 
   def runTest(self):
-    self.assertEquals(set(['ab']), type_utils.MakeSet('ab'))
-    self.assertEquals(set(['a', 'b']), type_utils.MakeSet(['a', 'b']))
-    self.assertEquals(set(['a', 'b']), type_utils.MakeSet(('a', 'b')))
-    self.assertEquals(set(['a', 'b']),
-                      type_utils.MakeSet({'a': 'foo', 'b': 'bar'}))
+    self.assertEqual(set(['ab']), type_utils.MakeSet('ab'))
+    self.assertEqual(set(['a', 'b']), type_utils.MakeSet(['a', 'b']))
+    self.assertEqual(set(['a', 'b']), type_utils.MakeSet(('a', 'b')))
+    self.assertEqual(set(['a', 'b']),
+                     type_utils.MakeSet({'a': 'foo', 'b': 'bar'}))
 
 
 class AttrDictTest(unittest.TestCase):
@@ -205,22 +205,22 @@ class CachedGetterTest(unittest.TestCase):
     self.args_getter = args_getter
 
   def testSimpleGetter(self):
-    self.assertEquals(self.simple_getter(), 1)
-    self.assertEquals(self.data['init'], 1)
-    self.assertEquals(self.simple_getter(), 1)
-    self.assertEquals(self.data['init'], 1)
+    self.assertEqual(self.simple_getter(), 1)
+    self.assertEqual(self.data['init'], 1)
+    self.assertEqual(self.simple_getter(), 1)
+    self.assertEqual(self.data['init'], 1)
 
     self.simple_getter.InvalidateCache()
-    self.assertEquals(self.simple_getter(), 2)
-    self.assertEquals(self.data['init'], 2)
-    self.assertEquals(self.simple_getter(), 2)
-    self.assertEquals(self.data['init'], 2)
+    self.assertEqual(self.simple_getter(), 2)
+    self.assertEqual(self.data['init'], 2)
+    self.assertEqual(self.simple_getter(), 2)
+    self.assertEqual(self.data['init'], 2)
 
     self.simple_getter.Override(3)
-    self.assertEquals(self.simple_getter(), 3)
-    self.assertEquals(self.data['init'], 2)
-    self.assertEquals(self.simple_getter(), 3)
-    self.assertEquals(self.data['init'], 2)
+    self.assertEqual(self.simple_getter(), 3)
+    self.assertEqual(self.data['init'], 2)
+    self.assertEqual(self.simple_getter(), 3)
+    self.assertEqual(self.data['init'], 2)
 
   def testArgsGetter(self):
     """Test getter with arguments.
@@ -233,14 +233,14 @@ class CachedGetterTest(unittest.TestCase):
     arguments are changed, please first make sure all users of CachedGetter
     won't have problem and then change this unit test.
     """
-    self.assertEquals(self.args_getter(0), 1)
-    self.assertEquals(self.args_getter(1), 1)
-    self.assertEquals(self.args_getter(2), 1)
+    self.assertEqual(self.args_getter(0), 1)
+    self.assertEqual(self.args_getter(1), 1)
+    self.assertEqual(self.args_getter(2), 1)
 
     self.args_getter.InvalidateCache()
-    self.assertEquals(self.args_getter(2), 3)
-    self.assertEquals(self.args_getter(1), 3)
-    self.assertEquals(self.args_getter(0), 3)
+    self.assertEqual(self.args_getter(2), 3)
+    self.assertEqual(self.args_getter(1), 3)
+    self.assertEqual(self.args_getter(0), 3)
 
 
 class UniqueSetTest(unittest.TestCase):
@@ -302,12 +302,12 @@ class GetDictTest(unittest.TestCase):
             }
         }
     }
-    self.assertEquals(GetDict(data, 'blah'), 1)
-    self.assertEquals(GetDict(data, 'non_exist'), None)
-    self.assertEquals(GetDict(data, 'non_exist', True), True)
-    self.assertEquals(GetDict(data, 'services.non_exist', 'N/A'), 'N/A')
-    self.assertEquals(GetDict(data, 'services.shop_floor', 'FAIL'), {})
-    self.assertEquals(GetDict(
+    self.assertEqual(GetDict(data, 'blah'), 1)
+    self.assertEqual(GetDict(data, 'non_exist'), None)
+    self.assertEqual(GetDict(data, 'non_exist', True), True)
+    self.assertEqual(GetDict(data, 'services.non_exist', 'N/A'), 'N/A')
+    self.assertEqual(GetDict(data, 'services.shop_floor', 'FAIL'), {})
+    self.assertEqual(GetDict(
         data, 'services.shop_floor.service_url', 'DEFAULT'), 'DEFAULT')
 
 

@@ -35,9 +35,9 @@ class GenericBatteryProbeStatementGeneratorTest(unittest.TestCase):
         {'manufacturer': 'foo',
          'model_name': hwid_rule.Value('bar', is_re=True),
          'other_value': 'z'})
-    self.assertEquals(ps, {'eval': {'generic_battery': {}},
-                           'expect': {'manufacturer': [True, 'str', '!eq foo'],
-                                      'model_name': [True, 'str', '!re bar']}})
+    self.assertEqual(ps, {'eval': {'generic_battery': {}},
+                          'expect': {'manufacturer': [True, 'str', '!eq foo'],
+                                     'model_name': [True, 'str', '!re bar']}})
 
     # Should report not supported if some fields are missing.
     self.assertRaises(NotSuitableError, self.TARGET_CLS.TryGenerate,
@@ -52,12 +52,12 @@ class GenericStorageMMCProbeStatementGeneratorTest(unittest.TestCase):
     ps = self.TARGET_CLS.TryGenerate(
         {'sectors': '112233', 'name': 'ABCxyz', 'manfid': '0x001122',
          'oemid': '0x4455', 'prv': '0xa'})
-    self.assertEquals(ps, {'eval': {'generic_storage': {}},
-                           'expect': {'sectors': [True, 'int', '!eq 112233'],
-                                      'name': [True, 'str', '!eq ABCxyz'],
-                                      'manfid': [True, 'hex', '!eq 0x001122'],
-                                      'oemid': [True, 'hex', '!eq 0x4455'],
-                                      'prv': [True, 'hex', '!eq 0xa']}})
+    self.assertEqual(ps, {'eval': {'generic_storage': {}},
+                          'expect': {'sectors': [True, 'int', '!eq 112233'],
+                                     'name': [True, 'str', '!eq ABCxyz'],
+                                     'manfid': [True, 'hex', '!eq 0x001122'],
+                                     'oemid': [True, 'hex', '!eq 0x4455'],
+                                     'prv': [True, 'hex', '!eq 0xa']}})
 
     # Should report not supported if some fields are missing.
     self.assertRaises(NotSuitableError, self.TARGET_CLS.TryGenerate,
@@ -90,12 +90,12 @@ class GenericStorageATAProbeStatementGeneratorTest(unittest.TestCase):
     ps = self.TARGET_CLS.TryGenerate(
         {'sectors': '112233', 'vendor': 'aabbccdd', 'model': 'this_is_model',
          'extra': '???'})
-    self.assertEquals(ps, {'eval': {'generic_storage': {}},
-                           'expect': {'sectors': [True, 'int', '!eq 112233'],
-                                      'ata_vendor': [True, 'str',
-                                                     '!eq aabbccdd'],
-                                      'ata_model': [True, 'str',
-                                                    '!eq this_is_model']}})
+    self.assertEqual(ps, {'eval': {'generic_storage': {}},
+                          'expect': {'sectors': [True, 'int', '!eq 112233'],
+                                     'ata_vendor': [True, 'str',
+                                                    '!eq aabbccdd'],
+                                     'ata_model': [True, 'str',
+                                                   '!eq this_is_model']}})
 
     # Should report not supported if some fields are missing.
     self.assertRaises(NotSuitableError, self.TARGET_CLS.TryGenerate,
@@ -115,14 +115,14 @@ class GenericStorageNVMeProbeStatementGeneratorTest(unittest.TestCase):
     ps = self.TARGET_CLS.TryGenerate(
         {'sectors': '112233', 'class': '0x123456', 'device': '0x1234',
          'vendor': '0x5678'})
-    self.assertEquals(ps, {'eval': {'generic_storage': {}},
-                           'expect': {'sectors': [True, 'int', '!eq 112233'],
-                                      'pci_class': [True, 'hex',
-                                                    '!eq 0x123456'],
-                                      'pci_vendor': [True, 'hex',
-                                                     '!eq 0x5678'],
-                                      'pci_device': [True, 'hex',
-                                                     '!eq 0x1234']}})
+    self.assertEqual(ps, {'eval': {'generic_storage': {}},
+                          'expect': {'sectors': [True, 'int', '!eq 112233'],
+                                     'pci_class': [True, 'hex',
+                                                   '!eq 0x123456'],
+                                     'pci_vendor': [True, 'hex',
+                                                    '!eq 0x5678'],
+                                     'pci_device': [True, 'hex',
+                                                    '!eq 0x1234']}})
 
     # Should report not supported if some fields are missing.
     self.assertRaises(NotSuitableError, self.TARGET_CLS.TryGenerate,

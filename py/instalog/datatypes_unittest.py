@@ -238,15 +238,15 @@ class TestEventStream(unittest.TestCase):
     event_stream = datatypes.EventStream(None, plugin_api)
 
     # Try pulling events.
-    self.assertEquals(event_stream.GetCount(), 0)
+    self.assertEqual(event_stream.GetCount(), 0)
     self.assertIsNone(event_stream.Next())
-    self.assertEquals(event_stream.GetCount(), 0)
+    self.assertEqual(event_stream.GetCount(), 0)
     buffer_q.put(1)
-    self.assertEquals(event_stream.Next(), 1)
-    self.assertEquals(event_stream.GetCount(), 1)
+    self.assertEqual(event_stream.Next(), 1)
+    self.assertEqual(event_stream.GetCount(), 1)
 
     # Try committing/aborting before and after expiration.
-    self.assertEquals(event_stream.Commit(), True)
+    self.assertEqual(event_stream.Commit(), True)
     with self.assertRaises(plugin_base.EventStreamExpired):
       event_stream.Commit()
     with self.assertRaises(plugin_base.EventStreamExpired):

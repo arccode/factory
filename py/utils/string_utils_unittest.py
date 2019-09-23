@@ -36,30 +36,30 @@ class DecodeUTF8Test(unittest.TestCase):
   """Unittest for DecodeUTF8."""
 
   def testDecodeUTF8(self):
-    self.assertEquals(u'abc', DecodeUTF8('abc'))
-    self.assertEquals(u'abc', DecodeUTF8(u'abc'))
-    self.assertEquals(u'TEST 測試', DecodeUTF8(u'TEST 測試'))
-    self.assertEquals(1, DecodeUTF8(1))
+    self.assertEqual(u'abc', DecodeUTF8('abc'))
+    self.assertEqual(u'abc', DecodeUTF8(u'abc'))
+    self.assertEqual(u'TEST 測試', DecodeUTF8(u'TEST 測試'))
+    self.assertEqual(1, DecodeUTF8(1))
 
 
 class ParseDictTest(unittest.TestCase):
   """Unittest for ParseDict."""
 
   def testParseDict(self):
-    self.assertEquals(_DICT_RESULT, ParseDict(_LINES, ':'))
+    self.assertEqual(_DICT_RESULT, ParseDict(_LINES, ':'))
 
 
 class ParseStringTest(unittest.TestCase):
   """Unittest for ParseString."""
 
   def testPaseString(self):
-    self.assertEquals('abc', ParseString('abc'))
-    self.assertEquals(True, ParseString('true'))
-    self.assertEquals(True, ParseString('True'))
-    self.assertEquals(False, ParseString('false'))
-    self.assertEquals(False, ParseString('False'))
-    self.assertEquals(None, ParseString('None'))
-    self.assertEquals(123, ParseString('123'))
+    self.assertEqual('abc', ParseString('abc'))
+    self.assertEqual(True, ParseString('true'))
+    self.assertEqual(True, ParseString('True'))
+    self.assertEqual(False, ParseString('false'))
+    self.assertEqual(False, ParseString('False'))
+    self.assertEqual(None, ParseString('None'))
+    self.assertEqual(123, ParseString('123'))
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)

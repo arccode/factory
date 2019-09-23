@@ -26,8 +26,8 @@ class InterpretFunctionTest(unittest.TestCase):
 
   def testInterpret(self):
     func = function.InterpretFunction({'mock': {'key': 'foo', 'value': 'bar'}})
-    self.assertEquals(func.args.key, 'foo')
-    self.assertEquals(func.args.value, 'bar')
+    self.assertEqual(func.args.key, 'foo')
+    self.assertEqual(func.args.value, 'bar')
 
   def testWrongFunction(self):
     with self.assertRaisesRegexp(
@@ -74,13 +74,13 @@ class InterpretFunctionTest(unittest.TestCase):
     function.RegisterFunction('mock', MockFunction, force=True)
 
     func = function.InterpretFunction({'mock': {'value': 'bar'}})
-    self.assertEquals(func.args.value, 'bar')
+    self.assertEqual(func.args.value, 'bar')
     func = function.InterpretFunction({'mock': 'bar'})
-    self.assertEquals(func.args.value, 'bar')
+    self.assertEqual(func.args.value, 'bar')
     func = function.InterpretFunction('mock:bar')
-    self.assertEquals(func.args.value, 'bar')
+    self.assertEqual(func.args.value, 'bar')
     func = function.InterpretFunction('mock')
-    self.assertEquals(func.args.value, 'DATA')
+    self.assertEqual(func.args.value, 'DATA')
 
 
 class UtilTest(unittest.TestCase):

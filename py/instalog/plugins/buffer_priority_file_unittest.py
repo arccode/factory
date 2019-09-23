@@ -75,8 +75,8 @@ class TestBufferPriorityFile(unittest.TestCase):
     self._ProducePriorityEvent(3, 3)
     stream = self.sf.Consume('a')
     for pri_level in range(self.pri_level_max):
-      self.assertEquals(self.e[pri_level], stream.Next())
-    self.assertEquals(None, stream.Next())
+      self.assertEqual(self.e[pri_level], stream.Next())
+    self.assertEqual(None, stream.Next())
     stream.Commit()
 
     self._ProducePriorityEvent(3, 3)
@@ -85,8 +85,8 @@ class TestBufferPriorityFile(unittest.TestCase):
     self._ProducePriorityEvent(0, 0)
     stream = self.sf.Consume('a')
     for pri_level in range(self.pri_level_max):
-      self.assertEquals(self.e[pri_level], stream.Next())
-    self.assertEquals(None, stream.Next())
+      self.assertEqual(self.e[pri_level], stream.Next())
+    self.assertEqual(None, stream.Next())
     stream.Commit()
 
     self._ProducePriorityEvent(3, 0)
@@ -95,20 +95,20 @@ class TestBufferPriorityFile(unittest.TestCase):
     self._ProducePriorityEvent(0, 0)
     stream = self.sf.Consume('a')
     for pri_level in range(self.pri_level_max):
-      self.assertEquals(self.e[pri_level], stream.Next())
-    self.assertEquals(None, stream.Next())
+      self.assertEqual(self.e[pri_level], stream.Next())
+    self.assertEqual(None, stream.Next())
     stream.Commit()
 
     self._ProducePriorityEvent(0)
     self._ProducePriorityEvent(3)
     stream = self.sf.Consume('a')
-    self.assertEquals(self.e[0], stream.Next())
-    self.assertEquals(self.e[3], stream.Next())
+    self.assertEqual(self.e[0], stream.Next())
+    self.assertEqual(self.e[3], stream.Next())
     self._ProducePriorityEvent(2)
     self._ProducePriorityEvent(0)
-    self.assertEquals(self.e[0], stream.Next())
-    self.assertEquals(self.e[2], stream.Next())
-    self.assertEquals(None, stream.Next())
+    self.assertEqual(self.e[0], stream.Next())
+    self.assertEqual(self.e[2], stream.Next())
+    self.assertEqual(None, stream.Next())
     stream.Commit()
 
   def testMultithreadOrder(self):
@@ -131,8 +131,8 @@ class TestBufferPriorityFile(unittest.TestCase):
 
     for pri_level in range(self.pri_level_max):
       for i in range(2000):
-        self.assertEquals(self.e[pri_level], stream.Next())
-    self.assertEquals(None, stream.Next())
+        self.assertEqual(self.e[pri_level], stream.Next())
+    self.assertEqual(None, stream.Next())
 
   def testTruncate(self):
     self.sf.AddConsumer('a')
@@ -147,24 +147,24 @@ class TestBufferPriorityFile(unittest.TestCase):
     self._ProducePriorityEvent(3, 0)
 
     stream = self.sf.Consume('a')
-    self.assertEquals(self.e[0], stream.Next())
-    self.assertEquals(self.e[0], stream.Next())
-    self.assertEquals(self.e[1], stream.Next())
+    self.assertEqual(self.e[0], stream.Next())
+    self.assertEqual(self.e[0], stream.Next())
+    self.assertEqual(self.e[1], stream.Next())
     stream.Commit()
 
     self.sf.Truncate()
     stream = self.sf.Consume('a')
-    self.assertEquals(self.e[1], stream.Next())
-    self.assertEquals(self.e[2], stream.Next())
+    self.assertEqual(self.e[1], stream.Next())
+    self.assertEqual(self.e[2], stream.Next())
     stream.Commit()
 
     self._ProducePriorityEvent(0)
     self._ProducePriorityEvent(1)
 
     stream = self.sf.Consume('a')
-    self.assertEquals(self.e[0], stream.Next())
-    self.assertEquals(self.e[1], stream.Next())
-    self.assertEquals(self.e[2], stream.Next())
+    self.assertEqual(self.e[0], stream.Next())
+    self.assertEqual(self.e[1], stream.Next())
+    self.assertEqual(self.e[2], stream.Next())
     stream.Commit()
 
     self._ProducePriorityEvent(0)
@@ -175,19 +175,19 @@ class TestBufferPriorityFile(unittest.TestCase):
     self.sf.SetUp()
 
     stream = self.sf.Consume('a')
-    self.assertEquals(self.e[0], stream.Next())
-    self.assertEquals(self.e[1], stream.Next())
-    self.assertEquals(self.e[3], stream.Next())
+    self.assertEqual(self.e[0], stream.Next())
+    self.assertEqual(self.e[1], stream.Next())
+    self.assertEqual(self.e[3], stream.Next())
     stream.Commit()
 
     self._ProducePriorityEvent(0)
     self._ProducePriorityEvent(1)
 
     stream = self.sf.Consume('a')
-    self.assertEquals(self.e[0], stream.Next())
-    self.assertEquals(self.e[1], stream.Next())
-    self.assertEquals(self.e[3], stream.Next())
-    self.assertEquals(None, stream.Next())
+    self.assertEqual(self.e[0], stream.Next())
+    self.assertEqual(self.e[1], stream.Next())
+    self.assertEqual(self.e[3], stream.Next())
+    self.assertEqual(None, stream.Next())
     stream.Commit()
 
   def testTruncateWithAttachments(self):
@@ -208,7 +208,7 @@ class TestBufferPriorityFile(unittest.TestCase):
     self._ProducePriorityEvent(2, 2)
     self._ProducePriorityEvent(3, 3)
 
-    self.assertEquals(self.e[0], stream.Next())
+    self.assertEqual(self.e[0], stream.Next())
 
     self.sf.SaveTemporaryMetadata(0)
     # These four events should be ignored.
@@ -228,13 +228,13 @@ class TestBufferPriorityFile(unittest.TestCase):
 
     self._ProducePriorityEvent(3, 3)
 
-    self.assertEquals(self.e[1], stream.Next())
-    self.assertEquals(self.e[1], stream.Next())
-    self.assertEquals(self.e[2], stream.Next())
-    self.assertEquals(self.e[2], stream.Next())
-    self.assertEquals(self.e[3], stream.Next())
-    self.assertEquals(self.e[3], stream.Next())
-    self.assertEquals(None, stream.Next())
+    self.assertEqual(self.e[1], stream.Next())
+    self.assertEqual(self.e[1], stream.Next())
+    self.assertEqual(self.e[2], stream.Next())
+    self.assertEqual(self.e[2], stream.Next())
+    self.assertEqual(self.e[3], stream.Next())
+    self.assertEqual(self.e[3], stream.Next())
+    self.assertEqual(None, stream.Next())
 
   def testRecoverTemporaryMetadataWithAttachments(self):
     self._CreateBuffer({'copy_attachments': True})

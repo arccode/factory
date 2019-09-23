@@ -184,16 +184,16 @@ class GPTTest(unittest.TestCase):
     gpt.WriteToFile(bin_file)
 
     gpt = pygpt.GPT.LoadFromFile(bin_file)
-    self.assertEquals(gpt.header.Signature, gpt.header.SIGNATURES[1])
+    self.assertEqual(gpt.header.Signature, gpt.header.SIGNATURES[1])
 
     with open(bin_file, 'r+') as f:
       f.seek(512)
       f.write(gpt.header.SIGNATURE_IGNORE)
 
     gpt = pygpt.GPT.LoadFromFile(bin_file)
-    self.assertEquals(gpt.is_secondary, True)
-    self.assertEquals(gpt.header.CurrentLBA, 102399)
-    self.assertEquals(gpt.header.BackupLBA, 1)
+    self.assertEqual(gpt.is_secondary, True)
+    self.assertEqual(gpt.header.CurrentLBA, 102399)
+    self.assertEqual(gpt.header.BackupLBA, 1)
 
   def testAdd(self):
     for cmd in self.init_commands:

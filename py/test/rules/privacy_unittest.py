@@ -14,12 +14,12 @@ from cros.factory.test.rules import privacy
 class PrivacyTest(unittest.TestCase):
 
   def testList(self):
-    self.assertEquals(
+    self.assertEqual(
         ['element1', {u'gbind_attribute': '<redacted 1 chars>'}],
         privacy.FilterDict(['element1', {u'gbind_attribute': '1'}]))
 
   def testFilterDict(self):
-    self.assertEquals(
+    self.assertEqual(
         dict(a='A', b='B',
              ubind_attribute='<redacted 1 chars>',
              gbind_attribute='<redacted 2 chars>'),
@@ -27,7 +27,7 @@ class PrivacyTest(unittest.TestCase):
             dict(a='A', b='B', ubind_attribute='U', gbind_attribute=u'GG')))
 
   def testFilterDictType(self):
-    self.assertEquals(
+    self.assertEqual(
         dict(a='A', b='B',
              ubind_attribute='<redacted type int>',
              gbind_attribute='<redacted 2 chars>'),
@@ -43,8 +43,8 @@ class PrivacyTest(unittest.TestCase):
         gbind_attribute='<redacted 1 chars>',
         test_attribute=dict(ubind_attribute='<redacted 1 chars>'),
         test_attribute_2=[dict(ubind_attribute='<redacted 1 chars>'), 'hi'])
-    self.assertEquals(filtered_data, golden_data)
-    self.assertEquals(
+    self.assertEqual(filtered_data, golden_data)
+    self.assertEqual(
         data,
         dict(
             gbind_attribute='1', test_attribute=dict(ubind_attribute='2'),

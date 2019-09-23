@@ -84,7 +84,7 @@ class ToolkitInstallerTest(unittest.TestCase):
       self.assertEqual(f.read(), 'install me!')
     self.assertTrue(os.path.exists(
         os.path.join(self.dest, 'usr/local/factory/enabled')))
-    self.assertEquals(
+    self.assertEqual(
         '../factory/bin/gooftool',
         os.readlink(os.path.join(self.dest, 'usr/local/bin/gooftool')))
     self.assertTrue(os.path.exists(

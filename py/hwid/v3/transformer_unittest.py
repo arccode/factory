@@ -162,14 +162,14 @@ class IdentityToBOMTest(_TransformerTestBase):
     # Removes the bits for the battery field.
     identity = self._GenerateIdentityFromTestData(
         4, components_bitset=self.test_data[4][0][:-3] + '1')
-    self.assertEquals(self.test_data[4][1],
-                      transformer.IdentityToBOM(self.database, identity))
+    self.assertEqual(self.test_data[4][1],
+                     transformer.IdentityToBOM(self.database, identity))
 
   def testNormal(self):
     for idx, test_data in enumerate(self.test_data):
       identity = self._GenerateIdentityFromTestData(idx)
-      self.assertEquals(test_data[1],
-                        transformer.IdentityToBOM(self.database, identity))
+      self.assertEqual(test_data[1],
+                       transformer.IdentityToBOM(self.database, identity))
 
 
 if __name__ == '__main__':

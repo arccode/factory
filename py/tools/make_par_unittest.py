@@ -37,7 +37,7 @@ class MakePARTest(unittest.TestCase):
     """
     for expected_retcode, script in ((0, 'pass'),
                                      (1, 'raise ValueError')):
-      self.assertEquals(
+      self.assertEqual(
           expected_retcode,
           Spawn(command + ['exec_python', '--args', repr({'script': script})],
                 log=True, call=True, env={}, cwd='/',
@@ -63,7 +63,7 @@ class MakePARTest(unittest.TestCase):
     # First try it without unzipping.
     process = Spawn([link, '--help'], log=True,
                     read_stdout=True, read_stderr=True)
-    self.assertEquals(0, process.returncode)
+    self.assertEqual(0, process.returncode)
     self.assertTrue(usage in process.stdout_data)
     self.assertFalse('WARNING' in process.stderr_data, process.stderr_data)
 
@@ -84,7 +84,7 @@ class MakePARTest(unittest.TestCase):
     # Run help again.
     process = Spawn([link, '--help'], log=True,
                     read_stdout=True, read_stderr=True)
-    self.assertEquals(0, process.returncode)
+    self.assertEqual(0, process.returncode)
     self.assertTrue(modified_usage in process.stdout_data)
     self.assertTrue(
         'WARNING: factory.par has been unzipped' in process.stderr_data)

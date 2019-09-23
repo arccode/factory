@@ -58,9 +58,9 @@ class SystemStatusTest(unittest.TestCase):
 
     # Don't check battery, since this system might not even have one.
     self.assertTrue(isinstance(status.battery, dict))
-    self.assertEquals([2000], status.fan_rpm)
-    self.assertEquals(37, status.temperature)
-    self.assertEquals(
+    self.assertEqual([2000], status.fan_rpm)
+    self.assertEqual(37, status.temperature)
+    self.assertEqual(
         'eth0=192.168.1.100, wlan0=192.168.16.100+192.168.16.101',
         status.ips)
 

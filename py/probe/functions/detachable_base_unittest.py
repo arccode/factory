@@ -19,7 +19,7 @@ class DetachableBaseFunctionTest(unittest.TestCase):
               side_effect=FakeCheckOutput)
   def testNormal(self, unused_mock_check_output):
     result = detachable_base.DetachableBaseFunction()()
-    self.assertEquals(
+    self.assertEqual(
         result,
         [{'ro_version': 'hammer_info.py ro_version',
           'rw_version': 'hammer_info.py rw_version',

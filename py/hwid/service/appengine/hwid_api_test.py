@@ -37,7 +37,7 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetBoards(request)
 
-    self.assertEquals(sorted(list(boards)), sorted(list(response.boards)))
+    self.assertEqual(sorted(list(boards)), sorted(list(response.boards)))
 
   def testGetBoardsEmpty(self):
     request = hwid_api_messages.BoardsRequest()
@@ -46,7 +46,7 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetBoards(request)
 
-    self.assertEquals(0, len(response.boards))
+    self.assertEqual(0, len(response.boards))
 
   def testGetBomNone(self):
     request = hwid_api.HwidApi.GET_BOM_REQUEST.combined_message_class(
@@ -89,8 +89,8 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetBom(request)
 
-    self.assertEquals(0, len(response.components))
-    self.assertEquals(0, len(response.labels))
+    self.assertEqual(0, len(response.components))
+    self.assertEqual(0, len(response.labels))
 
   def testGetBomComponents(self):
     request = hwid_api.HwidApi.GET_BOM_REQUEST.combined_message_class(
@@ -102,11 +102,11 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetBom(request)
 
-    self.assertEquals(3, len(response.components))
+    self.assertEqual(3, len(response.components))
     self.assertIn(
         hwid_api_messages.Component(name='bar', componentClass='foo'),
         response.components)
-    self.assertEquals(0, len(response.labels))
+    self.assertEqual(0, len(response.labels))
 
   def testGetBomLabels(self):
     request = hwid_api.HwidApi.GET_BOM_REQUEST.combined_message_class(
@@ -118,8 +118,8 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetBom(request)
 
-    self.assertEquals(0, len(response.components))
-    self.assertEquals(3, len(response.labels))
+    self.assertEqual(0, len(response.components))
+    self.assertEqual(3, len(response.labels))
     self.assertIn(
         hwid_api_messages.Label(componentClass='foo', name='bar'),
         response.labels)
@@ -138,7 +138,7 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetHwids(request)
 
-    self.assertEquals(3, len(response.hwids))
+    self.assertEqual(3, len(response.hwids))
     self.assertIn('alfa', response.hwids)
     self.assertIn('bravo', response.hwids)
     self.assertIn('charlie', response.hwids)
@@ -151,7 +151,7 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetHwids(request)
 
-    self.assertEquals(0, len(response.hwids))
+    self.assertEqual(0, len(response.hwids))
 
   def testGetHwidsErrors(self):
     request = hwid_api.HwidApi.GET_HWIDS_REQUEST.combined_message_class(
@@ -183,7 +183,7 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetComponentClasses(request)
 
-    self.assertEquals(3, len(response.componentClasses))
+    self.assertEqual(3, len(response.componentClasses))
     self.assertIn('alfa', response.componentClasses)
     self.assertIn('bravo', response.componentClasses)
     self.assertIn('charlie', response.componentClasses)
@@ -197,7 +197,7 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetComponentClasses(request)
 
-    self.assertEquals(0, len(response.componentClasses))
+    self.assertEqual(0, len(response.componentClasses))
 
   def testGetComponentClassesErrors(self):
     request = (
@@ -222,7 +222,7 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetComponents(request)
 
-    self.assertEquals(4, len(response.components))
+    self.assertEqual(4, len(response.components))
     self.assertIn(alfa, response.components)
     self.assertIn(bravo, response.components)
     self.assertIn(charlie, response.components)
@@ -242,7 +242,7 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetComponents(request)
 
-    self.assertEquals(4, len(response.components))
+    self.assertEqual(4, len(response.components))
     self.assertIn(alfa, response.components)
     self.assertIn(bravo, response.components)
     self.assertIn(charlie, response.components)
@@ -256,7 +256,7 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetComponents(request)
 
-    self.assertEquals(0, len(response.components))
+    self.assertEqual(0, len(response.components))
 
   def testGetComponentsErrors(self):
     request = hwid_api.HwidApi.GET_COMPONENTS_REQUEST.combined_message_class(
@@ -271,7 +271,7 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.ValidateConfig(request)
 
-    self.assertEquals(None, response.errorMessage)
+    self.assertEqual(None, response.errorMessage)
 
   def testValidateConfigErrors(self):
     request = hwid_api_messages.ValidateConfigRequest(hwidConfigContents='test')
@@ -280,7 +280,7 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.ValidateConfig(request)
 
-    self.assertEquals('msg', response.errorMessage)
+    self.assertEqual('msg', response.errorMessage)
 
   def testValidateConfigAndUpdateChecksum(self):
     request = hwid_api_messages.ValidateConfigAndUpdateChecksumRequest(
@@ -291,8 +291,8 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.ValidateConfigAndUpdateChecksum(request)
 
-    self.assertEquals('test2', response.newHwidConfigContents)
-    self.assertEquals(None, response.errorMessage)
+    self.assertEqual('test2', response.newHwidConfigContents)
+    self.assertEqual(None, response.errorMessage)
 
   def testValidateConfigAndUpdateChecksumErrors(self):
     request = hwid_api_messages.ValidateConfigAndUpdateChecksumRequest(
@@ -304,8 +304,8 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.ValidateConfigAndUpdateChecksum(request)
 
-    self.assertEquals(None, response.newHwidConfigContents)
-    self.assertEquals('msg', response.errorMessage)
+    self.assertEqual(None, response.newHwidConfigContents)
+    self.assertEqual('msg', response.errorMessage)
 
   @mock.patch.object(hwid_util, 'GetTotalRamFromHwidData')
   def testGetSKU(self, mock_get_total_ram):
@@ -320,11 +320,11 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetSKU(request)
 
-    self.assertEquals('foo', response.board)
-    self.assertEquals('bar1_bar2', response.cpu)
-    self.assertEquals('1Mb', response.memory)
-    self.assertEquals(100000000, response.memoryInBytes)
-    self.assertEquals('foo_bar1_bar2_1Mb', response.sku)
+    self.assertEqual('foo', response.board)
+    self.assertEqual('bar1_bar2', response.cpu)
+    self.assertEqual('1Mb', response.memory)
+    self.assertEqual(100000000, response.memoryInBytes)
+    self.assertEqual('foo_bar1_bar2_1Mb', response.sku)
 
   @mock.patch.object(hwid_util, 'GetTotalRamFromHwidData')
   def testGetSKUWithConfigless(self, mock_get_total_ram):
@@ -339,11 +339,11 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetSKU(request)
 
-    self.assertEquals('foo', response.board)
-    self.assertEquals('bar1_bar2', response.cpu)
-    self.assertEquals('4GB', response.memory)
-    self.assertEquals(4294967296, response.memoryInBytes)
-    self.assertEquals('foo_bar1_bar2_4GB', response.sku)
+    self.assertEqual('foo', response.board)
+    self.assertEqual('bar1_bar2', response.cpu)
+    self.assertEqual('4GB', response.memory)
+    self.assertEqual(4294967296, response.memoryInBytes)
+    self.assertEqual('foo_bar1_bar2_4GB', response.sku)
 
   @mock.patch.object(hwid_util, 'GetTotalRamFromHwidData')
   def testGetSKUBadDRAM(self, mock_get_total_ram):
@@ -376,11 +376,11 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.api.GetSKU(request)
 
-    self.assertEquals('foo', response.board)
-    self.assertEquals(None, response.cpu)
-    self.assertEquals(2000000, response.memoryInBytes)
-    self.assertEquals('2Mb', response.memory)
-    self.assertEquals('foo_None_2Mb', response.sku)
+    self.assertEqual('foo', response.board)
+    self.assertEqual(None, response.cpu)
+    self.assertEqual(2000000, response.memoryInBytes)
+    self.assertEqual('2Mb', response.memory)
+    self.assertEqual('foo_None_2Mb', response.sku)
 
   @mock.patch.object(hwid_util, 'GetSkuFromBom')
   def testGetDUTLabels(self, mock_get_sku_from_bom):

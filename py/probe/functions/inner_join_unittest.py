@@ -41,7 +41,7 @@ class InnerJoinFunctionTest(unittest.TestCase):
                     {'idx': '1', 'bar': 'BAR1'},
                     {'idx': '3', 'bar': 'BAR3'}]}}]}}
     ret = function.InterpretFunction(func_expression)()
-    self.assertEquals(ret, expected_value)
+    self.assertEqual(ret, expected_value)
 
     func_expression = {
         'inner_join': {
@@ -56,7 +56,7 @@ class InnerJoinFunctionTest(unittest.TestCase):
                     {'idx': '1', 'bar': 'BAR1'},
                     {'idx': '3', 'bar': 'BAR3'}]}}]}}
     ret = function.InterpretFunction(func_expression)()
-    self.assertEquals(ret, function.NOTHING)
+    self.assertEqual(ret, function.NOTHING)
 
 
 if __name__ == '__main__':

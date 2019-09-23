@@ -107,8 +107,8 @@ class TestlogTest(TestlogTestBase):
       logging.info('testing 456')
     testlog.CapturePythonLogging(callback=CheckMessage)
     logging.info('testing 123')
-    self.assertEquals(len(logged_events), 1)
-    self.assertEquals(logged_events[0]['message'], 'testing 123')
+    self.assertEqual(len(logged_events), 1)
+    self.assertEqual(logged_events[0]['message'], 'testing 123')
 
 
 class TestlogEventTest(TestlogTestBase):
@@ -127,11 +127,11 @@ class TestlogEventTest(TestlogTestBase):
   def testEventSerializeUnserialize(self):
     original = testlog.StationInit()
     output = testlog.Event.FromJSON(original.ToJSON(), False)
-    self.assertEquals(output, original)
+    self.assertEqual(output, original)
 
   def testNewEventTime(self):
     event = testlog.StationInit({'time': SAMPLE_DATETIME_FLOAT})
-    self.assertEquals(event['time'], SAMPLE_DATETIME_FLOAT)
+    self.assertEqual(event['time'], SAMPLE_DATETIME_FLOAT)
     with self.assertRaises(ValueError):
       event = testlog.StationInit({'time': None})
     event = testlog.StationTestRun({
@@ -197,7 +197,7 @@ class TestlogEventTest(TestlogTestBase):
     event = testlog.StationTestRun()
     event.AddArgument('K1', 'V1')
     event.AddArgument('K2', 2.2, 'D2')
-    self.assertEquals(
+    self.assertEqual(
         testlog.StationTestRun({
             'arguments': {
                 'K1': {'value': '"V1"'},
@@ -207,13 +207,13 @@ class TestlogEventTest(TestlogTestBase):
   def testAddSerialNumber(self):
     event = testlog.StationTestRun()
     event.AddSerialNumber('K1', 'V1')
-    self.assertEquals(
+    self.assertEqual(
         testlog.StationTestRun({
             'serialNumbers': {
                 'K1': 'V1'}}),
         event)
     event.AddSerialNumber('K2', 'SN')
-    self.assertEquals(
+    self.assertEqual(
         testlog.StationTestRun({
             'serialNumbers': {
                 'K1': 'V1',
@@ -409,14 +409,14 @@ class TestlogEventTest(TestlogTestBase):
     paths = set()
     for att_name, att_dict in event['attachments'].iteritems():
       description = att_dict['description']
-      self.assertEquals(DESCRIPTION, description)
+      self.assertEqual(DESCRIPTION, description)
       path = att_dict['path']
       text = open(path, 'r').read()
-      self.assertEquals(CONTENT, text)
+      self.assertEqual(CONTENT, text)
       self.assertTrue(att_name in path)
       paths.add(path)
     # Make sure the file names are distinguished
-    self.assertEquals(len(paths), 3)
+    self.assertEqual(len(paths), 3)
 
   def testStationTestRunWrapperInSession(self):
     session_json_path = self._SimulateSubSession()
@@ -517,11 +517,11 @@ class TestlogEventTest(TestlogTestBase):
     for att_name, att_dict in event['attachments'].iteritems():
       path = att_dict['path']
       text = open(path, 'r').read()
-      self.assertEquals(CONTENT, text)
+      self.assertEqual(CONTENT, text)
       self.assertTrue(att_name in path)
       paths.add(path)
     # Make sure the file names are distinguished
-    self.assertEquals(len(paths), 2)
+    self.assertEqual(len(paths), 2)
 
   def testFromDict(self):
     example_dict = {

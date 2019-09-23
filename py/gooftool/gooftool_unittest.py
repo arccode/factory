@@ -92,13 +92,13 @@ class UtilTest(unittest.TestCase):
 
     self.mox.ReplayAll()
 
-    self.assertEquals('/dev/sda', self._util.GetPrimaryDevicePath())
-    self.assertEquals('/dev/sda1', self._util.GetPrimaryDevicePath(1))
-    self.assertEquals('/dev/sda2', self._util.GetPrimaryDevicePath(2))
+    self.assertEqual('/dev/sda', self._util.GetPrimaryDevicePath())
+    self.assertEqual('/dev/sda1', self._util.GetPrimaryDevicePath(1))
+    self.assertEqual('/dev/sda2', self._util.GetPrimaryDevicePath(2))
 
     # also test thin callers
-    self.assertEquals('/dev/sda5', self._util.GetReleaseRootPartitionPath())
-    self.assertEquals('/dev/sda4', self._util.GetReleaseKernelPartitionPath())
+    self.assertEqual('/dev/sda5', self._util.GetReleaseRootPartitionPath())
+    self.assertEqual('/dev/sda4', self._util.GetReleaseKernelPartitionPath())
 
   def testGetPrimaryDevicePathNotFixed(self):
     """Test for GetPrimaryDevice when multiple primary devices are found."""
@@ -611,7 +611,7 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._util.GetCrosSystem().AndReturn({'key': 'value'})
 
     self.mox.ReplayAll()
-    self.assertEquals(
+    self.assertEqual(
         set(['platform_name', 'crossystem', 'modem_status', 'ec_wp_status',
              'bios_wp_status']),
         set(self._gooftool.GetSystemDetails().keys()))

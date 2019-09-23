@@ -49,7 +49,7 @@ class GenerateDocsTest(unittest.TestCase):
         lines = f.read().splitlines()
 
       self.maxDiff = None
-      self.assertEquals(
+      self.assertEqual(
           ['pseudo_test',
            '===========',
            'Module-level help.',

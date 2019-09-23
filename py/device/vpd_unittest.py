@@ -47,9 +47,9 @@ class VPDTest(unittest.TestCase):
     VPDTool.GetValue('b', default_value=123, partition='RO_VPD').AndReturn(123)
 
     self.mox.ReplayAll()
-    self.assertEquals(dict(a='b', foo='bar', empty=''), self.vpd.rw.GetAll())
-    self.assertEquals('aa', self.vpd.ro.get('a'))
-    self.assertEquals(123, self.vpd.ro.get('b', 123))
+    self.assertEqual(dict(a='b', foo='bar', empty=''), self.vpd.rw.GetAll())
+    self.assertEqual('aa', self.vpd.ro.get('a'))
+    self.assertEqual(123, self.vpd.ro.get('b', 123))
     self.mox.VerifyAll()
 
   def testUpdate(self):
@@ -90,10 +90,10 @@ class VPDTest(unittest.TestCase):
     VPDTool.GetAllData(partition='RW_VPD').AndReturn(dict(foo='bar'))
     VPDTool.GetAllData(partition='RO_VPD').AndReturn(dict(bar='foo'))
     self.mox.ReplayAll()
-    self.assertEquals(dict(foo='bar'),
-                      self.vpd.GetPartition('rw').GetAll())
-    self.assertEquals(dict(bar='foo'),
-                      self.vpd.GetPartition('ro').GetAll())
+    self.assertEqual(dict(foo='bar'),
+                     self.vpd.GetPartition('rw').GetAll())
+    self.assertEqual(dict(bar='foo'),
+                     self.vpd.GetPartition('ro').GetAll())
     self.mox.VerifyAll()
 
 if __name__ == '__main__':

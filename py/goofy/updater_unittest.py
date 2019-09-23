@@ -40,7 +40,7 @@ class CheckForUpdateTest(unittest.TestCase):
         local_version != '11111')
 
     self.mox.ReplayAll()
-    self.assertEquals(
+    self.assertEqual(
         updater.CheckForUpdate(3), ('11111', local_version != '11111'))
     self.mox.VerifyAll()
 

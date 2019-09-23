@@ -210,7 +210,7 @@ class RFGraphyteTest(test_case.TestCase):
                 % (self.result_file_path, e.__class__.__name__, e))
 
     # Pass or fail the pytest.
-    self.assertEquals(final_result, 'PASS')
+    self.assertEqual(final_result, 'PASS')
 
   def GetLogPath(self, timestamp, suffix):
     """Get the file path of Graphyte output files.

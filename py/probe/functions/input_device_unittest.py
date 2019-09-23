@@ -67,7 +67,7 @@ class InputDeviceFunctionTest(unittest.TestCase):
          'event': 'event3'}]
 
     devices = input_device.GetInputDevices()
-    self.assertEquals(devices, expected)
+    self.assertEqual(devices, expected)
 
 
 if __name__ == '__main__':

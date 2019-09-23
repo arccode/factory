@@ -30,7 +30,7 @@ class CameraCrosTest(unittest.TestCase):
               return_value='            Name | Vendor ID\n')
   def testEmpty(self, unused_mock_check_output):
     func = camera_cros.CameraCrosFunction()
-    self.assertEquals(func(), [])
+    self.assertEqual(func(), [])
 
 
 if __name__ == '__main__':

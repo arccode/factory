@@ -145,7 +145,7 @@ class ProbeSimCardTrayTest(test_case.TestCase):
       return _TrayState.INSERTED if ret == '0' else _TrayState.REMOVED
 
   def CheckPresence(self):
-    self.assertEquals(
+    self.assertEqual(
         self.args.tray_already_present,
         self.GetDetection() == _TrayState.INSERTED,
         ('Unexpected tray %s. Please %s SIM card tray and retest.' %

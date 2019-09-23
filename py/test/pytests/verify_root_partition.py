@@ -144,7 +144,7 @@ class VerifyRootPartitionTest(test_case.TestCase):
       assert match, 'unexpected dd output: %s' % dd_output
       bytes_read = int(match.group(1))
 
-    self.assertEquals(bytes_to_read, bytes_read)
+    self.assertEqual(bytes_to_read, bytes_read)
 
   def tearDown(self):
     self._RemoveDMDevice()

@@ -33,7 +33,7 @@ class ConcatFunctionTest(unittest.TestCase):
                 {'mock': {'data': [{'foo': 'FOO'}]}},
                 {'mock': {'data': [{'bar': 'BAR'}]}}]}}
     ret = function.InterpretFunction(func_expression)()
-    self.assertEquals(ret, expected_value)
+    self.assertEqual(ret, expected_value)
 
   def testConcatFail(self):
     func_expression = {
