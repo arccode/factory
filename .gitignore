@@ -6,3 +6,4 @@ shopfloor_data
 overlay-*
 go/bin
 go/pkg
+*.venv

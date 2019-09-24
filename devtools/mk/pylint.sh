@@ -10,6 +10,8 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 : "${PYLINT_MSG_TEMPLATE:='{path}:{line}: {symbol}: {msg}'}"
 : "${PYLINT_RC_FILE:="${SCRIPT_DIR}/pylint.rc"}"
 : "${PYLINT_OPTIONS:=}"
+: "${PYLINT_VENV:="${SCRIPT_DIR}/pylint.venv"}"
+: "${PYLINT_REQUIREMENTS:="${SCRIPT_DIR}/pylint.requirements.txt"}"
 
 do_lint() {
   local ret="0"
@@ -17,7 +19,7 @@ do_lint() {
   shift
   local num_cpu="$(grep -c ^processor /proc/cpuinfo)"
 
-  PYTHONPATH="${PYTHONPATH}" pylint -j "${num_cpu}"\
+  PYTHONPATH="${PYTHONPATH}" pylint -j "${num_cpu}" \
     --rcfile="${PYLINT_RC_FILE}" \
     --msg-template="${PYLINT_MSG_TEMPLATE}" \
     ${PYLINT_OPTIONS} \
@@ -34,10 +36,27 @@ do_lint() {
   fi
 }
 
+load_venv() {
+  if ! [ -d "${PYLINT_VENV}" ]; then
+    echo "Cannot find '${PYLINT_VENV}', install virtualvenv"
+    mkdir -p "${PYLINT_VENV}"
+    # Include system site packages for packages like "yaml", "mox".
+    virtualenv --system-site-package -p python2 "${PYLINT_VENV}"
+  fi
+
+  source "${PYLINT_VENV}/bin/activate"
+
+  if ! diff <(pip freeze --local) "${PYLINT_REQUIREMENTS}" ; then
+    pip install -r "${PYLINT_REQUIREMENTS}"
+  fi
+}
+
 main(){
   set -o pipefail
   local out="$(mktemp)"
   add_temp "${out}"
+
+  load_venv
 
   echo "Linting $(echo "$@" | wc -w) files..."
   if [ -n "$*" ]; then
@@ -46,4 +65,5 @@ main(){
   mk_success
   echo "...no lint errors! You are awesome!"
 }
+
 main "$@"

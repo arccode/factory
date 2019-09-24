@@ -1,5 +1,7 @@
-py/instalog/plugins/input_drm_screencap/drm.py
+# Virtual environments
 py/instalog/virtual_env/%
+devtools/mk/pylint.venv/%
+py/instalog/plugins/input_drm_screencap/drm.py
 py/test/utils/media_utils_unittest.py
 py/proto/%_pb2.py
 py/umpire/server/e2e_test/testdata/umpire/toolkits/device/%
