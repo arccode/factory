@@ -4,6 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import print_function
+
 import argparse
 from collections import namedtuple
 from contextlib import contextmanager
@@ -172,7 +174,7 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
     with open(os.path.join(tmp, 'crossystem'), 'w') as f:
       Spawn('crossystem', stdout=f, stderr=f, check_call=True)
       if has_ec:
-        print >> f, '\nectool version:'
+        print('\nectool version:', file=f)
         f.flush()
         Spawn(['ectool', 'version'], stdout=f, check_call=True)
       files += ['crossystem']

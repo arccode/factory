@@ -5,6 +5,8 @@
 
 """Implementation of base32 utilities."""
 
+from __future__ import print_function
+
 import argparse
 
 from zlib import crc32
@@ -101,13 +103,13 @@ if __name__ == '__main__':
   options = option_parser.parse_args()
   stripped_hwid = options.hwid.upper().replace('-', '')
   if options.checksum:
-    print Base32.Checksum(stripped_hwid)
+    print(Base32.Checksum(stripped_hwid))
   elif options.verify_checksum:
     expected_checksum = Base32.Checksum(stripped_hwid[:-2])
     given_checksum = stripped_hwid[-2:]
     if expected_checksum == given_checksum:
-      print 'Success.'
+      print('Success.')
     else:
-      print 'Checksum should be: %r' % expected_checksum
+      print('Checksum should be: %r' % expected_checksum)
   else:
     option_parser.print_help()

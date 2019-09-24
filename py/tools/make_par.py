@@ -6,6 +6,8 @@
 
 """Creates a self-extracting Python executable."""
 
+from __future__ import print_function
+
 import argparse
 from distutils.sysconfig import get_python_lib
 import glob
@@ -271,7 +273,7 @@ def main(argv=None):
       os.fchmod(out.fileno(), 0o755)
 
     # Done!
-    print 'Created %s (%d bytes)' % (args.output, os.path.getsize(args.output))
+    print('Created %s (%d bytes)' % (args.output, os.path.getsize(args.output)))
 
     # Sanity check: make sure we can run 'make_par --help' within the
     # archive, in a totally clean environment, and see the help

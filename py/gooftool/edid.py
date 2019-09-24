@@ -9,6 +9,8 @@ See for more info:
   http://en.wikipedia.org/wiki/Extended_display_identification_data
 """
 
+from __future__ import print_function
+
 import os
 import sys
 
@@ -40,6 +42,6 @@ if __name__ == '__main__':
     sys.exit('Usage: %s [i2c_bus_number | EDID_file]' % sys.argv[0])
   source = sys.argv[1]
   if os.path.exists(source):
-    print repr(Parse(open(source).read()))
+    print(repr(Parse(open(source).read())))
   else:
-    print repr(LoadFromI2c(int(source)))
+    print(repr(LoadFromI2c(int(source))))

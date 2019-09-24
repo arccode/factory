@@ -27,6 +27,7 @@ under DUT shell. For example::
   You may specify config like:
   bft_fixture --config whale/bft.conf Ping
 """
+from __future__ import print_function
 
 import argparse
 import logging
@@ -444,23 +445,23 @@ def main():
 
   command = args.command
   if command == 'Engage' or command == 'Disengage':
-    print '%s %s' % (command, args.device)
+    print('%s %s' % (command, args.device))
     fixture.SetDeviceEngaged(args.device,
                              True if command == 'Engage' else False)
   elif command == 'DeviceStatus':
     device = args.device
-    print 'GetDeviceStatus(%s): %s' % (device, fixture.GetDeviceStatus(device))
+    print('GetDeviceStatus(%s): %s' % (device, fixture.GetDeviceStatus(device)))
   elif command == 'SystemStatus':
     component = args.component
-    print 'GetSystemStatus(%s): %s' % (device,
-                                       fixture.GetSystemStatus(component))
+    print('GetSystemStatus(%s): %s' % (device,
+                                       fixture.GetSystemStatus(component)))
   elif command == 'IsLEDColor':
     color = args.color
-    print 'IsLEDColor(%s): %s' % (color, fixture.IsLEDColor(color))
+    print('IsLEDColor(%s): %s' % (color, fixture.IsLEDColor(color)))
   elif command == 'SetStatusColor':
     color = args.color
     fixture.SetStatusColor(color)
-    print 'SetStatusColor(%s)' % color
+    print('SetStatusColor(%s)' % color)
   elif command == 'ResetKeyboard':
     fixture.ResetKeyboard()
   elif command == 'SimulateKeystrokes':
@@ -468,23 +469,23 @@ def main():
   elif command == 'SimulateKeyPress':
     bitmask = args.bitmask
     period_secs = args.period_secs
-    print 'SimulateKeyPress(%s, %s)' % (bitmask, period_secs)
+    print('SimulateKeyPress(%s, %s)' % (bitmask, period_secs))
     fixture.SimulateKeyPress(bitmask, period_secs)
   elif command == 'SetLcmText':
     row_number = args.row_number
     message = args.message
-    print 'SetLcmText(%s, %s)' % (row_number, message)
+    print('SetLcmText(%s, %s)' % (row_number, message))
     fixture.SetLcmText(row_number, message)
   elif command == 'IssueLcmCommand':
     action = args.action
-    print 'IssueLcmCommand(%s)' % (action)
+    print('IssueLcmCommand(%s)' % (action))
     fixture.IssueLcmCommand(action)
   elif command == 'SetUSBHubChargeStatus':
     enable = args.enable
-    print 'SetUSBHubChargeStatus(%r)' % (enable)
+    print('SetUSBHubChargeStatus(%r)' % (enable))
     fixture.SetUSBHubChargeStatus(enable)
   else:
-    print getattr(fixture, command)()
+    print(getattr(fixture, command)())
 
 
 if __name__ == '__main__':

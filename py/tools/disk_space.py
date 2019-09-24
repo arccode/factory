@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import print_function
 
 import argparse
 import collections
@@ -182,7 +183,7 @@ class DiskSpace(object):
 
   def ShowDiskSpace(self):
     """Shows all disk space usage"""
-    print FormatSpaceUsedAll(GetAllVFSInfo())
+    print(FormatSpaceUsedAll(GetAllVFSInfo()))
 
   def CheckStatefulThreshold(self):
     """Raises an exception if stateful usage is greater than threshold.

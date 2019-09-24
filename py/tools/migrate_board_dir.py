@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import print_function
 
 import argparse
 from collections import namedtuple
@@ -248,8 +249,8 @@ def main():
   ReplaceStringInFiles(args.dst_dir,
                        GenerateReplacePatterns(args.src_board_name,
                                                args.dst_board_name))
-  print ('Migration complete!\n'
-         'Please check the result under: %r.') % args.dst_dir
+  print(('Migration complete!\n'
+         'Please check the result under: %r.') % args.dst_dir)
 
 
 if __name__ == '__main__':

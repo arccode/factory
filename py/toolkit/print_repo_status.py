@@ -10,6 +10,7 @@ This is used to generate the file containing the status of each repositories
 in the factory toolkit.
 """
 
+from __future__ import print_function
 
 import argparse
 import os
@@ -69,31 +70,31 @@ def main():
           'No overlay available for %s! Please check if the board is correct '
           'and you have done `setup_board --board %s`.'
           % (args.board, args.board))
-    print 'Repository %s' % repo_path
+    print('Repository %s' % repo_path)
     repo_full_path = os.path.join(SRC, repo_path)
 
     if not os.path.exists(repo_full_path):
-      print '  >>> Repository does not exist'
+      print('  >>> Repository does not exist')
       continue
 
     uncommitted = GetUncommittedFiles(repo_full_path)
     if uncommitted:
-      print '  >>> Repository contains uncommitted changes:'
+      print('  >>> Repository contains uncommitted changes:')
       for changed_file in uncommitted:
-        print '\t%s' % changed_file
+        print('\t%s' % changed_file)
 
     unmerged = GetUnmergedCommits(repo_full_path)
     if unmerged:
-      print '  >>> Repository contains %d unmerged commits:' % len(unmerged)
+      print('  >>> Repository contains %d unmerged commits:' % len(unmerged))
       for commit in unmerged:
-        print '\t%s' % commit
+        print('\t%s' % commit)
 
     commit_list = GetCommitList(repo_full_path)
-    print '  >>> Last %d commits in the repository:' % len(commit_list)
+    print('  >>> Last %d commits in the repository:' % len(commit_list))
     for commit in commit_list:
-      print '\t%s' % commit
+      print('\t%s' % commit)
 
-    print '\n'
+    print('\n')
 
 
 if __name__ == '__main__':

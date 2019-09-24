@@ -8,6 +8,7 @@
 Run this module to display all known regions (use --help to see options).
 """
 
+from __future__ import print_function
 
 import argparse
 import json
@@ -409,7 +410,7 @@ def main(args=sys.argv[1:], out=sys.stdout):
   if args.format == 'csv':
     # Just print the lines in CSV format.
     for l in lines:
-      print ','.join(l)
+      print(','.join(l))
   elif args.format == 'human-readable':
     num_columns = len(lines[0])
 

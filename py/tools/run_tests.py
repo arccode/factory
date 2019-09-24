@@ -6,6 +6,8 @@
 
 """Runs unittests in parallel."""
 
+from __future__ import print_function
+
 import argparse
 import logging
 import os
@@ -214,9 +216,9 @@ class RunTests(object):
       del sig, frame  # Unused.
       if self._abort_event.isSet():
         # Ignore cleanup and force exit if ctrl-c is pressed twice
-        print '\033[22;31mGot ctrl-c twice, force shutdown!\033[22;0m'
+        print('\033[22;31mGot ctrl-c twice, force shutdown!\033[22;0m')
         raise KeyboardInterrupt
-      print '\033[1;33mGot ctrl-c, gracefully shutdown.\033[22;0m'
+      print('\033[1;33mGot ctrl-c, gracefully shutdown.\033[22;0m')
       self._abort_event.set()
 
     signal.signal(signal.SIGINT, AbortHandler)
@@ -376,15 +378,15 @@ class RunTests(object):
 
   def _PassMessage(self, message):
     self._ClearLine()
-    print '\033[22;32m%s\033[22;0m' % message
+    print('\033[22;32m%s\033[22;0m' % message)
 
   def _FailMessage(self, message):
     self._ClearLine()
-    print '\033[22;31m%s\033[22;0m' % message
+    print('\033[22;31m%s\033[22;0m' % message)
 
   def _InfoMessage(self, message):
     self._ClearLine()
-    print message
+    print(message)
 
   def _ClearLine(self):
     sys.stderr.write('\r\033[K')

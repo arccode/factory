@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import print_function
 
 import cStringIO
 import logging
@@ -232,18 +233,18 @@ class TestRedirectStdout(unittest.TestCase):
     sys.stdout = self.saved_stdout
 
   def testRedirectStdout(self):
-    print 'before'
+    print('before')
     dummy_file = process_utils.DummyFile()
     with process_utils.RedirectStandardStreams(stdout=dummy_file):
-      print 'SHOULD_NOT_OUTPUT'
-    print 'after'
+      print('SHOULD_NOT_OUTPUT')
+    print('after')
     self.assertEqual('before\nafter\n', self.mock_stdout.getvalue())
 
   def testNotRedirectStdout(self):
-    print 'before'
+    print('before')
     with process_utils.RedirectStandardStreams(stdout=None):
-      print 'SHOULD_OUTPUT'
-    print 'after'
+      print('SHOULD_OUTPUT')
+    print('after')
     self.assertEqual('before\nSHOULD_OUTPUT\nafter\n',
                      self.mock_stdout.getvalue())
 
@@ -255,12 +256,12 @@ class TestRedirectStdout(unittest.TestCase):
 
   def testRedirectStdoutWithinContext(self):
     dummy_file = process_utils.DummyFile()
-    print 'before'
+    print('before')
     with process_utils.RedirectStandardStreams(stdout=None):
-      print 'SHOULD_OUTPUT'
+      print('SHOULD_OUTPUT')
       sys.stdout = dummy_file
-      print 'SHOULD_NOT_OUTPUT'
-    print 'after'
+      print('SHOULD_NOT_OUTPUT')
+    print('after')
     self.assertEqual('before\nSHOULD_OUTPUT\n', self.mock_stdout.getvalue())
 
 

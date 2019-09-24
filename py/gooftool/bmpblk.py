@@ -14,6 +14,8 @@
     ref: src/platform/vboot_reference/firmware/include/bmpblk_header.h
 """
 
+from __future__ import print_function
+
 import struct
 import sys
 
@@ -147,7 +149,7 @@ def main():
   import pprint
   for filename in sys.argv[1:]:
     bmpblk = unpack_bmpblock(open(filename, 'rb').read(), 0)
-    print pprint.pformat(bmpblk)
+    print(pprint.pformat(bmpblk))
 
 
 # When running in command line, try to report blob in the parameters

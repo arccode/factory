@@ -12,6 +12,7 @@ Run "factory --help" for more info and a list of subcommands.
 To add a subcommand, just add a new Subcommand subclass to this file.
 """
 
+from __future__ import print_function
 
 import argparse
 import csv
@@ -124,8 +125,8 @@ class RunCommand(Subcommand):
 
   def Run(self):
     run_id = state.GetInstance().RunTest(self.args.id)
-    print 'Running test %s' % self.args.id
-    print 'Active test run ID: %s' % run_id
+    print('Running test %s' % self.args.id)
+    print('Active test run ID: %s' % run_id)
 
 
 class WaitCommand(Subcommand):
@@ -153,7 +154,7 @@ class WaitCommand(Subcommand):
         if last_test_dict is None:
           # First time; just print active tests
           if t['status'] == TestState.ACTIVE:
-            print '%s: %s' % (t['path'], t['status'])
+            print('%s: %s' % (t['path'], t['status']))
         else:
           # Show any tests with changed statuses.
           if t['status'] != last_test_dict[t['path']]['status']:
@@ -169,7 +170,7 @@ class WaitCommand(Subcommand):
       sys.stdout.flush()
       if not any(t['pending'] for t in tests):
         # All done!  Bail.
-        print 'done'
+        print('done')
         break
       # Wait one second and poll again
       time.sleep(1)
@@ -186,10 +187,10 @@ class RunStatusCommand(Subcommand):
   def Run(self):
     goofy = state.GetInstance()
     run_status = goofy.GetTestRunStatus(self.args.id)
-    print 'status: %s' % run_status['status']
+    print('status: %s' % run_status['status'])
     if 'run_id' in run_status:
-      print 'run_id: %s' % run_status['run_id']
-      print 'scheduled_tests:'
+      print('run_id: %s' % run_status['run_id'])
+      print('scheduled_tests:')
       # Simply call 'tests' subcommand to print out information about the
       # scheduled tests.
       args = self.parser.parse_args(['tests', '--this-run', '--status'])
@@ -236,7 +237,7 @@ class TestsCommand(Subcommand):
           x for x in tests if x['path'] in scheduled_tests]
 
     if self.args.yaml:
-      print yaml.safe_dump(tests)
+      print(yaml.safe_dump(tests))
     elif self.args.status:
       for t in tests:
         sys.stdout.write(t['path'])
@@ -247,7 +248,7 @@ class TestsCommand(Subcommand):
         sys.stdout.write('\n')
     else:
       for t in tests:
-        print t['path']
+        print(t['path'])
 
 
 class ClearCommand(Subcommand):
@@ -333,22 +334,22 @@ class TestListCommand(Subcommand):
         sys.exit('Unknown test list ID %r (use "factory test-list --list" to '
                  'see available test lists' % self.args.id)
       mgr.SetActiveTestList(self.args.id)
-      print 'Set active test list to %s (wrote %r to %s)' % (
+      print('Set active test list to %s (wrote %r to %s)' % (
           self.args.id, self.args.id,
-          test_list_common.ACTIVE_TEST_LIST_CONFIG_PATH)
+          test_list_common.ACTIVE_TEST_LIST_CONFIG_PATH))
       sys.stdout.flush()
     else:
-      print mgr.GetActiveTestListId()
+      print(mgr.GetActiveTestListId())
 
     if self.args.list:
       active_id = mgr.GetActiveTestListId()
 
       line_format = '%-8s %-20s %s'
-      print line_format % ('ACTIVE?', 'ID', 'PATH')
+      print(line_format % ('ACTIVE?', 'ID', 'PATH'))
 
       for k, v in sorted(all_test_lists.items()):
         is_active = '(active)' if k == active_id else ''
-        print line_format % (is_active, k, v.source_path)
+        print(line_format % (is_active, k, v.source_path))
 
     if self.args.restart:
       goofy = state.GetInstance()
@@ -449,7 +450,7 @@ class DeviceDataCommand(Subcommand):
 
   def Run(self):
     if self.args.get:
-      print device_data.GetDeviceData(self.args.get, '')
+      print(device_data.GetDeviceData(self.args.get, ''))
       return
 
     if self.args.set:
@@ -519,7 +520,7 @@ class PhaseCommand(Subcommand):
     if self.args.set:
       phase.SetPersistentPhase(None if self.args.set in ['None', '']
                                else self.args.set)
-    print phase.GetPhase()
+    print(phase.GetPhase())
 
 
 def main():

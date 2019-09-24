@@ -6,6 +6,7 @@
 
 """Visualize and/or modify HWID and related component data."""
 
+from __future__ import print_function
 
 import copy
 import logging
@@ -1044,24 +1045,24 @@ def PrintHwidHierarchy(device, cooked_boms, status_mask):
         variant = device.variants[variant_code]
         hwid = device.FmtHwid(bom_name, variant_code, volatile_code)
         status = device.GetHwidStatus(bom_name, variant_code, volatile_code)
-        print (depth * '  ') + '%s  [%s]' % (hwid, status)
+        print((depth * '  ') + '%s  [%s]' % (hwid, status))
         variant_comps = (
             dict(
                 (comp_class, ', '.join(comps))
                 for comp_class, comps in
                 ComponentSpecClassCompsMap(variant).items()))
         for line in FmtRightAlignedDict(variant_comps):
-          print (depth * '  ') + '  (variant) ' + line
+          print((depth * '  ') + '  (variant) ' + line)
         extra_class_data = {'classes missing': variant.classes_missing,
                             'classes dontcare': variant.classes_dontcare}
         extra_class_output = dict(
             (k, FmtList(depth, v)) for k, v in extra_class_data.items() if v)
         for line in FmtLeftAlignedDict(extra_class_output):
-          print (depth * '  ') + '  ' + line
-        print ''
+          print((depth * '  ') + '  ' + line)
+        print('')
 
   def TraverseBomHierarchy(boms, depth, masks):
-    print (depth * '  ') + '-'.join(sorted(boms.names))
+    print((depth * '  ') + '-'.join(sorted(boms.names)))
     common_ic = device.CommonInitialConfigs(boms.names) - masks.ic
     common_missing = device.CommonMissingClasses(boms.names) - masks.missing
     common_wild = device.CommonDontcareClasses(boms.names) - masks.wild
@@ -1071,14 +1072,14 @@ def PrintHwidHierarchy(device, cooked_boms, status_mask):
     common_output = dict(
         (k, FmtList(depth, v)) for k, v in common_data.items() if v)
     for line in FmtLeftAlignedDict(common_output):
-      print (depth * '  ') + '  ' + line
+      print((depth * '  ') + '  ' + line)
     common_present = dict(
         (comp_class, ', '.join(x for x in comps - masks.present))
         for comp_class, comps in boms.comp_map.items()
         if comps - masks.present)
     for line in FmtRightAlignedDict(common_present):
-      print (depth * '  ') + '  (primary) ' + line
-    print ''
+      print((depth * '  ') + '  (primary) ' + line)
+    print('')
     if len(boms.names) == 1:
       ShowHwids(depth + 1, list(boms.names)[0])
     for sub_boms in boms.hierarchy:
@@ -1162,7 +1163,7 @@ def CreateBom(config, hw_db):
       components=config.comps,
       dontcare=config.dontcare,
       missing=config.missing)
-  print 'creating %s bom %s' % (config.board, bom_name)
+  print('creating %s bom %s' % (config.board, bom_name))
   device.CreateBom(bom_name, component_spec)
 
 
@@ -1224,7 +1225,7 @@ def CreateBomMatrix(config, hw_db):
       filter_component_classes=ComponentSpecClasses(fixed_component_spec))
   fixed_component_spec = CombineComponentSpecs(
       fixed_component_spec, common_component_spec)
-  print 'fixed component spec:\n%s' % fixed_component_spec.Encode()
+  print('fixed component spec:\n%s' % fixed_component_spec.Encode())
   cross_component_spec = comp_db.CreateComponentSpec(
       components=config.cross_comps)
   cross_class_comps_map = ComponentSpecClassCompsMap(cross_component_spec)
@@ -1244,15 +1245,15 @@ def CreateBomMatrix(config, hw_db):
     def Unique((bom_name, bom)):
       if not ComponentSpecsEqual(component_spec, bom.primary):
         return True
-      print 'existing bom matches one config: %s' % bom_name
+      print('existing bom matches one config: %s' % bom_name)
     if not all(map(Unique, device.boms.items())):
       continue
     target_component_specs.append(component_spec)
-  print 'creating %d new boms\n' % len(target_component_specs)
+  print('creating %d new boms\n' % len(target_component_specs))
   bom_names = device.AvailableBomNames(len(target_component_specs))
   for bom_name, component_spec in zip(bom_names, target_component_specs):
-    print bom_name
-    print component_spec.Encode()
+    print(bom_name)
+    print(component_spec.Encode())
     device.CreateBom(bom_name, component_spec)
 
 
@@ -1291,7 +1292,7 @@ def CreateVariant(config, hw_db):
   component_spec = hw_db.comp_db.CreateComponentSpec(
       config.comps, config.dontcare, config.missing)
   variant = device.CreateVariant(component_spec)
-  print 'created %s variant %s' % (config.board, variant)
+  print('created %s variant %s' % (config.board, variant))
 
 
 @Command('assign_variant',
@@ -1306,12 +1307,12 @@ def AssignVariant(config, hw_db):
   device.VariantExists(config.variant)
   bom = device.boms[config.bom]
   if config.variant in bom.variants:
-    print '%s bom %s already uses variant %s' % (
-        config.board, config.bom, config.variant)
+    print('%s bom %s already uses variant %s' % (
+        config.board, config.bom, config.variant))
   else:
     bom.variants.append(config.variant)
-    print 'added variant %s for %s bom %s' % (
-        config.board, config.bom, config.variant)
+    print('added variant %s for %s bom %s' % (
+        config.board, config.bom, config.variant))
 
 
 @Command('apply_initial_config',
@@ -1333,20 +1334,20 @@ def AssignInitialConfig(config, hw_db):
   ic = device.initial_configs[config.ic]
   if config.cancel:
     if config.bom not in ic.enforced_for_boms:
-      print 'initial config %s already not enforced for bom %s' % (
-          config.ic, config.bom)
+      print('initial config %s already not enforced for bom %s' % (
+          config.ic, config.bom))
     else:
       ic.enforced_for_boms.remove(config.ic)
-      print 'not enforcing initial config %s for bom %s' % (
-          config.ic, config.bom)
+      print('not enforcing initial config %s for bom %s' % (
+          config.ic, config.bom))
   else:
     if config.bom in ic.enforced_for_boms:
-      print 'initial config %s already enforced for bom %s' % (
-          config.ic, config.bom)
+      print('initial config %s already enforced for bom %s' % (
+          config.ic, config.bom))
     else:
       ic.enforced_for_boms.append(config.bom)
       ic.enforced_for_boms.sort()
-      print 'enforcing initial config %s for bom %s' % (config.ic, config.bom)
+      print('enforcing initial config %s for bom %s' % (config.ic, config.bom))
 
 
 @Command('set_hwid_status',
@@ -1429,29 +1430,30 @@ def AssimilateProbeResults(config, hw_db):
   cooked_components = hw_db.comp_db.MatchComponentProbeValues(
       probe_results.found_probe_value_map)
   for comp in cooked_components.matched:
-    print 'found matching %r component %r' % (
-        hw_db.comp_db.name_class_map[comp], comp)
+    print('found matching %r component %r' % (
+        hw_db.comp_db.name_class_map[comp], comp))
   for comp_class, comp_prs in cooked_components.unmatched.items():
     for comp_probe_result in comp_prs:
       comp_name = hw_db.comp_db.AddComponent(comp_class, comp_probe_result)
-      print 'added component/probe_result %r : %r' % (
-          comp_name, comp_probe_result)
+      print('added component/probe_result %r : %r' % (
+          comp_name, comp_probe_result))
   cooked_volatiles = device.MatchVolatileValues(
       probe_results.found_volatile_values)
   for vol_class, vol_name in cooked_volatiles.matched_volatiles.items():
-    print 'found matching %r %r volatile %r' % (
-        device.board_name, vol_class, vol_name)
+    print('found matching %r %r volatile %r' % (
+        device.board_name, vol_class, vol_name))
   for vol_class, vol_value in cooked_volatiles.unmatched_values.items():
     vol_name = device.AddVolatileValue(vol_class, vol_value)
-    print 'added volatile_value/probe_result %r : %r' % (
-        vol_name, vol_value)
+    print('added volatile_value/probe_result %r : %r' % (
+        vol_name, vol_value))
   cooked_initial_configs = device.MatchInitialConfigValues(
       probe_results.initial_configs)
   if cooked_initial_configs:
-    print 'matching initial config tags: %s' % ', '.join(cooked_initial_configs)
+    print('matching initial config tags: %s' %
+          ', '.join(cooked_initial_configs))
   else:
     ic_tag = device.AddInitialConfig(probe_results.initial_configs)
-    print 'added initial config spec as tag %s' % ic_tag
+    print('added initial config spec as tag %s' % ic_tag)
   # Cook components and volatiles again, to pick up new mappings.
   recooked_components = hw_db.comp_db.MatchComponentProbeValues(
       probe_results.found_probe_value_map)
@@ -1461,25 +1463,25 @@ def AssimilateProbeResults(config, hw_db):
   recooked_volatiles = device.MatchVolatileValues(
       probe_results.found_volatile_values)
   if recooked_volatiles.matched_tags:
-    print 'matching volatile tags: %s' % ', '.join(
-        recooked_volatiles.matched_tags)
+    print('matching volatile tags: %s' % ', '.join(
+        recooked_volatiles.matched_tags))
   else:
     vol_tag = device.AddVolatile(recooked_volatiles.matched_volatiles)
-    print 'added volatile spec as tag %s' % vol_tag
+    print('added volatile spec as tag %s' % vol_tag)
   match_tree = device.BuildMatchTree(
       component_data, recooked_volatiles.matched_tags)
   if match_tree:
     is_complete = hw_db.comp_db.ComponentDataIsComplete(component_data)
-    print '%s matching boms: %s' % (
+    print('%s matching boms: %s' % (
         'exactly' if is_complete else 'partially', ', '.join(
-            sorted(match_tree)))
+            sorted(match_tree))))
   if config.create_bom != False:
     missing_classes = (
         hw_db.comp_db.all_comp_classes - device.variant_classes -
         hw_db.comp_db.ComponentDataClasses(component_data))
     if missing_classes:
-      print ('ignoring create_bom argument; component data missing [%s] classes'
-             % ', '.join(missing_classes))
+      print('ignoring create_bom argument; component data missing [%s] classes'
+            % ', '.join(missing_classes))
       return
     component_spec = hw_db.comp_db.CreateComponentSpec(
         components=recooked_components.matched,
@@ -1488,17 +1490,17 @@ def AssimilateProbeResults(config, hw_db):
     for bom_name in match_tree:
       bom = device.boms[bom_name]
       if bom.primary == component_spec.components:
-        print ('ignoring create_bom argument; identical bom %r already exists' %
-               bom_name)
+        print('ignoring create_bom argument; identical bom %r already exists' %
+              bom_name)
         return
     if config.create_bom in device.boms:
-      print ('bom %r exists, but component list differs from this data' %
-             config.create_bom)
+      print('bom %r exists, but component list differs from this data' %
+            config.create_bom)
       return
     bom_name = (config.create_bom if config.create_bom
                 else device.AvailableBomNames(1)[0])
     Validate.BomName(bom_name)
-    print 'creating %s bom %s' % (config.board, bom_name)
+    print('creating %s bom %s' % (config.board, bom_name))
     device.CreateBom(bom_name, component_spec)
 
 
@@ -1523,7 +1525,7 @@ def HwidHierarchyViewCommand(config, hw_db):
       if not config.board == board:
         continue
     else:
-      print '---- %s ----\n' % board
+      print('---- %s ----\n' % board)
     PrintHwidHierarchy(device, device.cooked_boms, status_mask)
 
 
@@ -1552,9 +1554,9 @@ def ListHwidsCommand(config, hw_db):
                     if filtered_hwid_status_map else 0)
     for hwid, status in sorted(filtered_hwid_status_map.items()):
       if config.verbose:
-        print '%s%s  [%s]' % (hwid, (max_hwid_len - len(hwid)) * ' ', status)
+        print('%s%s  [%s]' % (hwid, (max_hwid_len - len(hwid)) * ' ', status))
       else:
-        print hwid
+        print(hwid)
 
 
 @Command('hwid_list_csv',
@@ -1607,7 +1609,7 @@ def ListHwidsCSVCommand(config, hw_db):
         for comp_class, comps in sorted(bom.primary.components.iteritems()):
           header.append(comp_class)
         header += var_header
-        print ','.join(header)
+        print(','.join(header))
 
       for var_code in bom.variants:
         for vol_code in device.volatiles:
@@ -1621,7 +1623,7 @@ def ListHwidsCSVCommand(config, hw_db):
               else:
                 comp_list.append(comps)
             comp_list += var_comps_dict[var_code]
-            print '%s,%s' % (hwid, ','.join(comp_list))
+            print('%s,%s' % (hwid, ','.join(comp_list)))
 
 
 @Command('component_breakdown',
@@ -1638,14 +1640,14 @@ def ComponentBreakdownCommand(config, hw_db):
       if not config.board == board:
         continue
     else:
-      print '---- %s ----' % board
+      print('---- %s ----' % board)
     common_comp_map = dict(
         (comp_class, ', '.join(comps))
         for comp_class, comps in device.cooked_boms.comp_map.items())
     if common_comp_map:
-      print '[common]'
+      print('[common]')
       for line in FmtRightAlignedDict(common_comp_map):
-        print '  ' + line
+        print('  ' + line)
     uncommon_comps = (set(device.cooked_boms.comp_boms_map) -
                       device.cooked_boms.common_comps)
     uncommon_comp_map = {}
@@ -1655,9 +1657,9 @@ def ComponentBreakdownCommand(config, hw_db):
       comp_map = uncommon_comp_map.setdefault(comp_class, {})
       comp_map[comp] = ', '.join(sorted(bom_names))
     for comp_class, comp_map in uncommon_comp_map.items():
-      print comp_class + ':'
+      print(comp_class + ':')
       for line in FmtRightAlignedDict(comp_map):
-        print '  ' + line
+        print('  ' + line)
 
 
 @Command('filter_database',
@@ -1780,10 +1782,10 @@ def LegacyExport(config, data):
   """
   from pprint import pprint  # pylint: disable=W0404
   if config.board not in data.devices:
-    print 'ERROR: unknown board %r.' % config.board
+    print('ERROR: unknown board %r.' % config.board)
     return
   if not os.path.exists(config.dest_dir):
-    print 'ERROR: destination directory %r does not exist.' % config.dest_dir
+    print('ERROR: destination directory %r does not exist.' % config.dest_dir)
     return
   # pylint: disable=eval-used
   extra_fields = eval(open(config.extra).read()) if config.extra else None
@@ -1811,8 +1813,8 @@ def LegacyExport(config, data):
       export_data['hash_' + vol_class] = [vol_name]
     variant_data = device.variant_map[variant]
     if len(variant_data) not in [0, 1]:
-      print ('ERROR: legacy_export expects zero or one variants, '
-             'hwid %s has %d.' % (hwid_str, len(variant_data)))
+      print('ERROR: legacy_export expects zero or one variants, '
+            'hwid %s has %d.' % (hwid_str, len(variant_data)))
     for variant_value in variant_data:
       export_data['part_id_keyboard'] = [
           data.comp_db.registry['keyboard'][variant_value]]

@@ -8,6 +8,7 @@
 This script output all pytests in py/test/pytests in JSON format, with most
 non-pytest items filtered (unittests, utils, ...)
 """
+from __future__ import print_function
 
 import argparse
 import json
@@ -41,7 +42,7 @@ def main():
   if options.label:
     pytest_list = map(_ToI18nLabel, pytest_list)
 
-  print json.dumps(pytest_list)
+  print(json.dumps(pytest_list))
 
 
 if __name__ == '__main__':

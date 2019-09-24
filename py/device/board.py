@@ -4,6 +4,8 @@
 
 # TODO(hungte) Remove this legacy file when migration is over.
 
+from __future__ import print_function
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 

@@ -24,6 +24,7 @@ Usage:
   tuple of decoded area flags.
 """
 
+from __future__ import print_function
 
 import logging
 import struct
@@ -259,14 +260,14 @@ class FirmwareImage(object):
 def main():
   """Decode FMAP from supplied file and print."""
   if len(sys.argv) < 2:
-    print 'Usage: fmap.py <file>'
+    print('Usage: fmap.py <file>')
     sys.exit(1)
 
   filename = sys.argv[1]
-  print 'Decoding FMAP from: %s' % filename
+  print('Decoding FMAP from: %s' % filename)
   blob = open(filename).read()
   obj = fmap_decode(blob)
-  print obj
+  print(obj)
 
 
 if __name__ == '__main__':

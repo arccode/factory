@@ -7,6 +7,7 @@
 
 """A command-line tool for reg code handling."""
 
+from __future__ import print_function
 
 import base64
 import binascii
@@ -33,9 +34,9 @@ from cros.factory.utils import sys_utils
 def Decode(options):
   reg_code = RegistrationCode(options.regcode)
   if reg_code.proto:
-    print reg_code.proto
+    print(reg_code.proto)
   else:
-    print reg_code
+    print(reg_code)
 
 
 @Command(
@@ -53,7 +54,7 @@ def GenerateDummy(options):
          'not for a real device.')
   yes_no = raw_input('*** Are you OK with that? (yes/no) ')
   if yes_no != 'yes':
-    print 'Aborting.'
+    print('Aborting.')
     sys.exit(1)
 
   random.seed(options.seed)
@@ -81,9 +82,9 @@ def GenerateDummy(options):
   # Make sure the string can be parsed as a sanity check (this will catch,
   # e.g., invalid device names)
   reg_code = RegistrationCode(encoded_string)
-  print
-  print reg_code.proto
-  print encoded_string
+  print('')
+  print(reg_code.proto)
+  print(encoded_string)
 
 
 @Command(

@@ -19,6 +19,8 @@ To use the helper, the user can either:
   2. Import this module and use the APIs of UploaderHelper, RequesterHelper.
 """
 
+from __future__ import print_function
+
 import argparse
 import os
 import shutil
@@ -250,12 +252,12 @@ def main():
 
   if args.command == 'available':
     if args.mock:
-      print 1
+      print(1)
     else:
       helper = BaseHelper(
           args.server_ip, args.server_port, args.server_key_file_path,
           args.client_key_file_path, args.passphrase_file_path)
-      print helper.AvailableKeyCount()
+      print(helper.AvailableKeyCount())
 
   elif args.command == 'upload':
     helper = UploaderHelper(
@@ -271,9 +273,9 @@ def main():
         args.server_ip, args.server_port, args.server_key_file_path,
         args.client_key_file_path, args.passphrase_file_path)
     if args.mock:
-      print helper.MockRequest(args.serial_number)
+      print(helper.MockRequest(args.serial_number))
     else:
-      print helper.Request(args.serial_number)
+      print(helper.Request(args.serial_number))
 
   else:
     raise ValueError('Unknown command %s' % args.command)

@@ -9,6 +9,7 @@ Because N1914A supports various of sensors, this performance measuring
 tool is aimed to better understand the accuracy and speed of different
 configuration/ sensor combination.
 """
+from __future__ import print_function
 
 import argparse
 import time
@@ -35,7 +36,7 @@ if __name__ == '__main__':
            ('Fast', n1914a.ToFastMode)]
 
   # Preparation
-  print 'Preparing device...'
+  print('Preparing device...')
   n1914a.SetRealFormat()
   # Disable average filter
   n1914a.SetAverageFilter(port=args.port, avg_length=None)
@@ -47,7 +48,7 @@ if __name__ == '__main__':
   last_measurment = {}
   for mode_name, mode_func in modes:
     mode_func(port=args.port)
-    print 'Profiling mode %s ...' % mode_name
+    print('Profiling mode %s ...' % mode_name)
     start_time = time.time()
     for iteration in xrange(args.iteration):
       power = n1914a.MeasureOnceInBinary(port=args.port)
@@ -56,6 +57,6 @@ if __name__ == '__main__':
 
   # Printing the result.
   for mode_name, _ in modes:
-    print 'Mode[%8s]:  %8.2f reading/sec, last measurment=%10.7f dBm.' % (
+    print('Mode[%8s]:  %8.2f reading/sec, last measurment=%10.7f dBm.' % (
         mode_name, args.iteration / float(time_elapsed[mode_name]),
-        last_measurment[mode_name])
+        last_measurment[mode_name]))

@@ -12,6 +12,8 @@ provides all of the Google required test functionality and must be run
 on each device as part of the assembly process.
 """
 
+from __future__ import print_function
+
 import logging
 import os
 import pipes
@@ -109,7 +111,7 @@ def WriteHWID(options):
   logging.info('writing hwid string %r', options.hwid)
   GetGooftool(options).WriteHWID(options.hwid)
   event_log.Log('write_hwid', hwid=options.hwid)
-  print 'Wrote HWID: %r' % options.hwid
+  print('Wrote HWID: %r' % options.hwid)
 
 
 @Command('read_hwid')
@@ -117,7 +119,7 @@ def ReadHWID(options):
   """Read the HWID string from GBB."""
 
   logging.info('reading the hwid string')
-  print GetGooftool(options).ReadHWID()
+  print(GetGooftool(options).ReadHWID())
 
 
 _project_cmd_arg = CmdArg(
@@ -821,7 +823,7 @@ def GetFirmwareHash(options):
   if os.path.exists(options.file):
     value_dict = chromeos_firmware.CalculateFirmwareHashes(options.file)
     for key, value in value_dict.iteritems():
-      print '  %s: %s' % (key, value)
+      print('  %s: %s' % (key, value))
   else:
     raise Error('File does not exist: %s' % options.file)
 

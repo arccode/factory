@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import print_function
+
 import copy
 import logging
 import re
@@ -195,7 +197,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
     if 'double_cc_cable' in port_params:
       self._double_cc_cable = port_params['double_cc_cable']
 
-    print 'connect to ' + serial_params['port']
+    print('connect to ' + serial_params['port'])
     self._plankton_conn = serial_utils.SerialDevice()
     self._plankton_conn.Connect(**serial_params)
     if not self._parallel_test:

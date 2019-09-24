@@ -29,7 +29,7 @@ class ValidHWIDsTest(unittest.TestCase):
         'src', 'platform', 'chromeos-hwid', 'v2')
 
     if not os.path.exists(hwid_dir):
-      print 'ValidHWIDsTest: ignored, no %s in source tree.' % hwid_dir
+      print('ValidHWIDsTest: ignored, no %s in source tree.' % hwid_dir)
       return
 
     # Create a temporary copy of the hwid directory

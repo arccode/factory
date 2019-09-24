@@ -6,6 +6,8 @@
 
 """Unit tests for sys_utils module."""
 
+from __future__ import print_function
+
 import os
 import subprocess
 import tempfile
@@ -229,7 +231,7 @@ class GetPartitionsTest(unittest.TestCase):
 
     partitions = sys_utils.GetPartitions()
     for p in partitions:
-      print unicode(p)
+      print(unicode(p))
 
 
 class MountDeviceAndReadFileTest(unittest.TestCase):

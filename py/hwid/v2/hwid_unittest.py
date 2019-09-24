@@ -38,11 +38,11 @@ def LogOnException(test_name, *log_files):
   except Exception as e:
     regexp = r'line ([0-9]+), in %s\s*([^\n]+)\n' % test_name
     line_no, line_str = re.findall(regexp, format_exc(e), re.M)[0]
-    print '------ FAILURE at %s line %s: %r' % (test_name, line_no, line_str)
-    print '\n', e, '\n'
+    print('------ FAILURE at %s line %s: %r' % (test_name, line_no, line_str))
+    print('\n', e, '\n')
     for f in log_files:
       if os.path.exists(f):
-        print '-- %s:\n%s' % (f, open(f).read())
+        print('-- %s:\n%s' % (f, open(f).read()))
     raise
 
 

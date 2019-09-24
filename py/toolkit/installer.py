@@ -11,6 +11,7 @@ related files and this installer. This installer is invoked when the toolkit
 is deployed and is responsible for installing files.
 """
 
+from __future__ import print_function
 
 import argparse
 from contextlib import contextmanager
@@ -190,11 +191,11 @@ class FactoryToolkitInstaller(object):
   def _SetTagFile(self, name, path, enabled):
     """Install or remove a tag file."""
     if enabled:
-      print '*** Installing %s enabled tag...' % name
+      print('*** Installing %s enabled tag...' % name)
       Spawn(['touch', path], sudo=True, log=True, check_call=True)
       Spawn(['chmod', 'go+r', path], sudo=True, log=True, check_call=True)
     else:
-      print '*** Removing %s enabled tag...' % name
+      print('*** Removing %s enabled tag...' % name)
       Spawn(['rm', '-f', path], sudo=True, log=True, check_call=True)
 
   def _SetActiveTestList(self):
@@ -222,12 +223,12 @@ class FactoryToolkitInstaller(object):
     app_disable = os.path.join(self._usr_local_dest,
                                'factory', 'init', 'main.d', 'disable-' + app)
     if enabled:
-      print '*** Enabling {app} ***'.format(app=app)
+      print('*** Enabling {app} ***'.format(app=app))
       Spawn(['rm', '-f', app_disable], sudo=self._sudo, log=True,
             check_call=True)
       Spawn(['touch', app_enable], sudo=self._sudo, log=True, check_call=True)
     else:
-      print '*** Disabling {app} ***'.format(app=app)
+      print('*** Disabling {app} ***'.format(app=app))
       Spawn(['touch', app_disable], sudo=self._sudo, log=True, check_call=True)
       Spawn(['rm', '-f', app_enable], sudo=self._sudo, log=True,
             check_call=True)
@@ -260,7 +261,7 @@ class FactoryToolkitInstaller(object):
         Spawn(['mkdir', '-p', sub_dir_dest], sudo=True, log=True,
               check_call=True)
       except OSError as e:
-        print str(e)
+        print(str(e))
         return
 
       Spawn(['rsync', '-a', '--force', '-v',
@@ -278,7 +279,7 @@ class FactoryToolkitInstaller(object):
     self._EnableApps()
 
   def Install(self):
-    print '*** Installing factory toolkit...'
+    print('*** Installing factory toolkit...')
 
     # --no-owner and --no-group will set owner/group to the current user/group
     # running the command. This is important if we're running with sudo, so
@@ -286,13 +287,13 @@ class FactoryToolkitInstaller(object):
     # before sudo (doesn't matter if sudo is not present). --force is also
     # necessary to allow goofy directory from prior toolkit installations to
     # be overwritten by the goofy symlink.
-    print '***   %s -> %s' % (self._usr_local_src, self._usr_local_dest)
+    print('***   %s -> %s' % (self._usr_local_src, self._usr_local_dest))
     Spawn(['rsync', '-a', '--no-owner', '--no-group', '--chmod=ugo+rX',
            '--force'] + SERVER_FILE_MASK + [self._usr_local_src + '/',
                                             self._usr_local_dest],
           sudo=self._sudo, log=True, check_output=True, cwd=self._usr_local_src)
 
-    print '*** Ensure SSH keys file permission...'
+    print('*** Ensure SSH keys file permission...')
     sshkeys_dir = os.path.join(self._usr_local_dest, 'factory/misc/sshkeys')
     sshkeys = glob.glob(os.path.join(sshkeys_dir, '*'))
     ssh_public_keys = glob.glob(os.path.join(sshkeys_dir, '*.pub'))
@@ -301,7 +302,7 @@ class FactoryToolkitInstaller(object):
       Spawn(['chmod', '600'] + ssh_private_keys, log=True, check_call=True,
             sudo=self._sudo)
 
-    print '*** Installing symlinks...'
+    print('*** Installing symlinks...')
     install_symlinks.InstallSymlinks(
         '../factory/bin',
         os.path.join(self._usr_local_dest, 'bin'),
@@ -313,7 +314,7 @@ class FactoryToolkitInstaller(object):
     self._SetActiveTestList()
     self._EnableApps()
 
-    print '*** Installation completed.'
+    print('*** Installation completed.')
 
 
 @contextmanager
@@ -327,7 +328,7 @@ def PrintBuildInfo(src_root):
   info_file = os.path.join(src_root, 'REPO_STATUS')
   if not os.path.exists(info_file):
     raise OSError('Build info file not found!')
-  print file_utils.ReadFile(info_file)
+  print(file_utils.ReadFile(info_file))
 
 
 def PackFactoryToolkit(src_root, output_path, initial_version):
@@ -365,16 +366,16 @@ def PackFactoryToolkit(src_root, output_path, initial_version):
     file_utils.WriteFile(version_path, complete_version)
     Spawn([cmd[0], '--lsm', version_path, '--append', tmp_dir, output_path],
           check_call=True, log=True)
-  print ('\n'
-         '  Factory toolkit generated at %s.\n'
-         '\n'
-         '  To install factory toolkit on a live device running a test image,\n'
-         '  copy this to the device and execute it as root.\n'
-         '\n'
-         '  Alternatively, the factory toolkit can be used to patch a test\n'
-         '  image. For more information, run:\n'
-         '    %s --help\n'
-         '\n' % (output_path, output_path))
+  print('\n'
+        '  Factory toolkit generated at %s.\n'
+        '\n'
+        '  To install factory toolkit on a live device running a test image,\n'
+        '  copy this to the device and execute it as root.\n'
+        '\n'
+        '  Alternatively, the factory toolkit can be used to patch a test\n'
+        '  image. For more information, run:\n'
+        '    %s --help\n'
+        '\n' % (output_path, output_path))
 
 
 def ExtractOverlord(src_root, output_dir):
@@ -382,7 +383,7 @@ def ExtractOverlord(src_root, output_dir):
   try:
     os.makedirs(output_dir)
   except OSError as e:
-    print str(e)
+    print(str(e))
     return
 
   # Copy overlord binary and resource files
@@ -393,7 +394,7 @@ def ExtractOverlord(src_root, output_dir):
 
   # Give overlordd execution permission
   os.chmod(os.path.join(output_dir, 'overlordd'), 0o755)
-  print "Extracted overlord under '%s'" % output_dir
+  print("Extracted overlord under '%s'" % output_dir)
 
 
 def main():
@@ -507,7 +508,7 @@ def main():
         non_cros=args.non_cros, apps=args.apps,
         active_test_list=args.active_test_list)
 
-    print installer.WarningMessage(args.dest if patch_test_image else None)
+    print(installer.WarningMessage(args.dest if patch_test_image else None))
 
     if not args.yes:
       answer = raw_input('*** Continue? [y/N] ')

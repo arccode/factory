@@ -21,6 +21,7 @@
 # The original version is from Python source repository:
 # https://hg.python.org/cpython/file/2.7/Tools/i18n/pygettext.py
 
+from __future__ import print_function
 
 import argparse
 import ast
@@ -83,7 +84,7 @@ def Normalize(s):
 
 
 def WritePot(fp, messages, width):
-  print >> fp, POT_HEADER
+  print(POT_HEADER, file=fp)
 
   # Collect files with same text together.
   message_dict = {}
@@ -104,12 +105,12 @@ def WritePot(fp, messages, width):
       if len(locline) + len(s) <= width:
         locline = locline + s
       else:
-        print >> fp, locline
+        print(locline, file=fp)
         locline = "#:" + s
     if len(locline) > 2:
-      print >> fp, locline
-    print >> fp, 'msgid', Normalize(text)
-    print >> fp, 'msgstr ""\n'
+      print(locline, file=fp)
+    print('msgid', Normalize(text), file=fp)
+    print('msgstr ""\n', file=fp)
 
 
 class PyAstVisitor(ast.NodeVisitor):
@@ -268,7 +269,7 @@ def ParseJSFiles(files, options):
 
   try:
     if options.verbose:
-      print 'Running xgettext on JS files %r' % files
+      print('Running xgettext on JS files %r' % files)
     subprocess.check_call(cmd)
     return GetPotMessages(temp_filename)
   finally:
@@ -314,7 +315,7 @@ def ParseMultipleFilesWrapper(func):
     messages = []
     for filename in files:
       if options.verbose:
-        print 'Working on %s' % filename
+        print('Working on %s' % filename)
       try:
         new_messages = func(filename, options)
         messages.extend(((filename, i), msg)

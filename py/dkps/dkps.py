@@ -8,6 +8,8 @@
 #                  keys directly with ODM's public key, and the key server
 #                  merely stores them without knowing anything about them.
 
+from __future__ import print_function
+
 import argparse
 import hashlib
 import imp
@@ -711,15 +713,15 @@ def main():
         'recoverable! Are you sure? (y/N)')
     answer = raw_input(textwrap.fill(message, 80) + ' ')
     if answer.lower() != 'y' and answer.lower() != 'yes':
-      print 'OK, nothing will be removed.'
+      print('OK, nothing will be removed.')
     else:
-      print 'Removing all projects and keys information...',
+      print('Removing all projects and keys information...', end=' ')
       dkps.Destroy()
-      print 'done.'
+      print('done.')
   elif args.command == 'listen':
     dkps.ListenForever(args.ip, args.port)
   elif args.command == 'list':
-    print dkps.ListProjects()
+    print(dkps.ListProjects())
   elif args.command == 'add':
     dkps.AddProject(
         args.name, args.uploader_key_file_path, args.requester_key_file_path,

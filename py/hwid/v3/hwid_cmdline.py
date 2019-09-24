@@ -6,6 +6,8 @@
 
 """Command-line interface for HWID v3 utilities."""
 
+from __future__ import print_function
+
 import hashlib
 import logging
 import os
@@ -103,7 +105,7 @@ def GetHWIDString():
 
 
 def Output(msg):
-  print msg
+  print(msg)
 
 
 def OutputObject(options, obj):

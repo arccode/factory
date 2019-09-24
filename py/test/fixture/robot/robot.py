@@ -23,6 +23,7 @@ For example::
   Bye.
 """
 
+from __future__ import print_function
 
 import argparse
 import json
@@ -126,9 +127,9 @@ def main(class_name, robot_params):
       # When argparse fail, do nothing and ask for input again.
       pass
 
-  print 'Disconnecting the robot...'
+  print('Disconnecting the robot...')
   robot.Disconnect()
-  print 'Bye.'
+  print('Bye.')
 
 
 if __name__ == '__main__':

@@ -17,6 +17,8 @@
     ref: src/platform/vboot_reference/firmware/lib/include/vboot_struct.h
 """
 
+from __future__ import print_function
+
 import struct
 import sys
 
@@ -110,15 +112,15 @@ def unpack_verification_block(blob, offset=0):
 def test_report_vblock_info(blob, offset=0):
   """ Reports the information of a vblock blob. """
   kb_header = unpack_VbKeyBlockHeader(blob, offset)
-  print '-- VbKeyBlockHeader --'
+  print('-- VbKeyBlockHeader --')
   for name, value in kb_header.items():
-    print name, ':', value
+    print(name, ':', value)
   preamble = unpack_VbFirmwarePreambleHeader(blob,
                                              kb_header['key_block_size'])
-  print '-- VbFirmwarePreambleHeader --'
+  print('-- VbFirmwarePreambleHeader --')
   for name, value in preamble.items():
-    print name, ':', value
-  print '-- END --'
+    print(name, ':', value)
+  print('-- END --')
 
 
 # main stub
