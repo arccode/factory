@@ -46,6 +46,8 @@ import tempfile
 import threading
 import time
 
+from six import iterkeys
+
 from . import hooks
 from . import testlog_seq
 from . import testlog_utils
@@ -824,7 +826,7 @@ class EventBase(object):
                 'The parameters length in the group(%s) are not the same' %
                 group)
 
-    for key in self._data.iterkeys():
+    for key in iterkeys(self._data):
       # Ignore keys that start with an underscore.
       if key.startswith('_'):
         continue
@@ -850,7 +852,7 @@ class EventBase(object):
     Returns:
       The event being modified (self).
     """
-    for key in data.iterkeys():
+    for key in iterkeys(data):
       # Ignore keys that start with an underscore.
       if key.startswith('_'):
         continue

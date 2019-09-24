@@ -62,6 +62,7 @@ import tempfile
 import threading
 import zipfile
 
+from six import iterkeys
 import yaml
 
 import factory_common  # pylint: disable=unused-import
@@ -257,7 +258,7 @@ class AudioQualityTest(test_case.TestCase):
       conn.send(instruction + '\x05' + 'Active' + '\x04\x03')
 
       match_command = False
-      for key in self._handlers.iterkeys():
+      for key in iterkeys(self._handlers):
         if key.match(instruction):
           match_command = True
           session.console.info('match command %s', instruction)

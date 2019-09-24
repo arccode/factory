@@ -53,6 +53,8 @@ import os
 import sys
 import zipimport
 
+from six import iterkeys
+
 from . import file_utils
 from . import type_utils
 
@@ -190,7 +192,7 @@ def GetNamedTuple(mapping):
   if not isinstance(mapping, collections.Mapping):
     return mapping
   new_mapping = dict((k, GetNamedTuple(v)) for k, v in mapping.iteritems())
-  return collections.namedtuple('Config', new_mapping.iterkeys())(**new_mapping)
+  return collections.namedtuple('Config', iterkeys(new_mapping))(**new_mapping)
 
 
 def _LoadJsonFile(file_path, logger):
@@ -608,7 +610,7 @@ def _C3Linearization(parent_configs, config_name):
   inheritance.
   """
   def FirstKey(odict):
-    return next(odict.iterkeys())
+    return next(iterkeys(odict))
   # We collect all configs into all_configs, and only use keys in parent_configs
   # as OrderedSet afterward.
   all_configs = {}

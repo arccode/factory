@@ -10,13 +10,14 @@ import collections
 import json
 import sys
 
+from six import iterkeys
 
 def ReorderDictKey(obj, key_order=None):
   if key_order is None:
     key_order = lambda x: x
 
   if callable(key_order):
-    key_order = list(sorted(obj.iterkeys(), key=key_order))
+    key_order = list(sorted(iterkeys(obj), key=key_order))
   elif not all(k in key_order for k in obj):
     raise ValueError('Some keys of %r is not inside order %r.' % (obj,
                                                                   key_order))

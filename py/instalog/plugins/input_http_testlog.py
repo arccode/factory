@@ -55,6 +55,8 @@ from __future__ import print_function
 import logging
 import time
 
+from six import iterkeys
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog.plugins import input_http
@@ -99,7 +101,7 @@ class InputHTTPTestlog(input_http.InputHTTP):
       if len(event.attachments) != len(event['attachments']):
         raise ValueError("event['attachment'] are not consistent with "
                          'attachments in requests.')
-      for key in event['attachments'].iterkeys():
+      for key in iterkeys(event['attachments']):
         if key not in event.attachments:
           raise ValueError("event['attachment'] are not consistent with "
                            'attachments in requests.')

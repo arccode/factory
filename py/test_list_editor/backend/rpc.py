@@ -8,6 +8,8 @@ import logging
 import numbers
 import os
 
+from six import iterkeys
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import i18n
 from cros.factory.test.test_lists import test_list_common
@@ -122,7 +124,7 @@ class RPC(object):
 
   def ListPytests(self):
     """Returns a sorted list of pytest names."""
-    return sorted(self._pytests.iterkeys())
+    return sorted(iterkeys(self._pytests))
 
   def GetPytestInfo(self, pytest_name):
     # TODO(youcheng): Provide HTML documents.
