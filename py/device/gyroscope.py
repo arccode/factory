@@ -7,6 +7,8 @@ import math
 import os
 import re
 
+from six import viewitems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import sensor_utils
 from cros.factory.device import types
@@ -84,7 +86,7 @@ class GyroscopeController(sensor_utils.BasicSensorController):
     logging.info('Calibration results: %s.', calib_bias)
     # The data is converted to 1/1024dps unit before writing.
     scaled = dict((k, str(int(v * 1024 * _RADIAN_TO_DEGREE)))
-                  for k, v in calib_bias.viewitems())
+                  for k, v in viewitems(calib_bias))
     self._device.vpd.ro.Update(scaled)
     mapping = []
     for signal_name in self.signal_names:

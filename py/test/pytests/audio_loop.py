@@ -149,6 +149,7 @@ import re
 import tempfile
 import time
 
+from six import viewitems
 from six import viewvalues
 
 import factory_common  # pylint: disable=unused-import
@@ -597,7 +598,7 @@ class AudioLoopTest(test_case.TestCase):
         break
       rate_msg = ', '.join(
           'Mic %d: %.1f%%' %
-          (channel, rate) for channel, rate in last_success_rate.viewitems())
+          (channel, rate) for channel, rate in viewitems(last_success_rate))
       self.ui.CallJSFunction('testInProgress', rate_msg)
 
     if last_success_rate is None:
