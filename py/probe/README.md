@@ -223,7 +223,7 @@ each components, classified by user-defined component categories.
   },
   "touchscreen": {
     "elan": {
-      "eval": "touchscreen_elan"
+      "eval": "touchscreen_i2c"
     }
   }
 }

@@ -8,20 +8,20 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.probe.functions import touchscreen_elan
+from cros.factory.probe.functions import touchscreen_i2c
 from cros.factory.utils import file_utils
 
 
-class TouchscreenElanFunctionTest(unittest.TestCase):
+class I2cTouchscreenFunctionTest(unittest.TestCase):
   def setUp(self):
     self.my_root = tempfile.mkdtemp()
 
-    self.orig_glob_path = touchscreen_elan.TouchscreenElanFunction.GLOB_PATH
-    touchscreen_elan.TouchscreenElanFunction.GLOB_PATH = (
-        self.my_root + touchscreen_elan.TouchscreenElanFunction.GLOB_PATH)
+    self.orig_glob_path = touchscreen_i2c.I2cTouchscreenFunction.GLOB_PATH
+    touchscreen_i2c.I2cTouchscreenFunction.GLOB_PATH = (
+        self.my_root + touchscreen_i2c.I2cTouchscreenFunction.GLOB_PATH)
 
   def tearDown(self):
-    touchscreen_elan.TouchscreenElanFunction.GLOB_PATH = self.orig_glob_path
+    touchscreen_i2c.I2cTouchscreenFunction.GLOB_PATH = self.orig_glob_path
 
   def _CreateDevice(self, name, driver_target, values):
     path = os.path.join(self.my_root, 'sys', 'bus', 'i2c', 'devices', name)
@@ -42,7 +42,7 @@ class TouchscreenElanFunctionTest(unittest.TestCase):
     values2 = {'name': 'xxxx', 'hw_version': '1357', 'fw_version': '2468'}
     self._CreateDevice('dev2', '/sys/bus/i2c/drivers/not_elants_i2c', values2)
 
-    func = touchscreen_elan.TouchscreenElanFunction()
+    func = touchscreen_i2c.I2cTouchscreenFunction()
     device_path = os.path.join(self.my_root,
                                'sys', 'bus', 'i2c', 'devices', 'dev1')
     self.assertItemsEqual(func(), [dict(values1, device_path=device_path,

@@ -194,13 +194,11 @@
                 "device_type": "touchscreen"
               }
             },
-            "touchscreen_elan",
-            "touchscreen_raydium"
+            "touchscreen_i2c"
           ]
         }
       },
       "expect": {
-        "product": "!re (?!0000)(?!0x00000000)(.{4}|0x.{8})$",
         "vendor": "!re (?!0000)....$"
       },
       "keys": [
