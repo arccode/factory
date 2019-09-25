@@ -149,6 +149,8 @@ import re
 import tempfile
 import time
 
+from six import viewvalues
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import base
 from cros.factory.device import device_utils
@@ -604,7 +606,7 @@ class AudioLoopTest(test_case.TestCase):
 
     threshold = self._current_test_args.get(
         'threshold', _DEFAULT_AUDIOFUN_TEST_THRESHOLD)
-    if any(rate < threshold for rate in last_success_rate.viewvalues()):
+    if any(rate < threshold for rate in viewvalues(last_success_rate)):
       self.AppendErrorMessage(
           'For output device channel %s, the success rate is "'
           '%s", too low!' % (output_channel, rate_msg))
