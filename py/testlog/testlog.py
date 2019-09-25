@@ -47,6 +47,7 @@ import threading
 import time
 
 from six import iterkeys
+from six import itervalues
 
 from . import hooks
 from . import testlog_seq
@@ -816,7 +817,7 @@ class EventBase(object):
     # Check the length of the grouped parameters.
     if 'parameters' in self._data:
       group_length = {}
-      for param in self._data['parameters'].itervalues():
+      for param in itervalues(self._data['parameters']):
         if 'group' in param:
           group = param['group']
           if group not in group_length:

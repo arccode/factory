@@ -19,6 +19,8 @@ import traceback
 import uuid
 from xmlrpclib import Binary
 
+from six import itervalues
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.goofy.goofy_rpc import GoofyRPC
@@ -211,7 +213,7 @@ class Goofy(object):
   def Destroy(self):
     """Performs any shutdown tasks."""
     # To avoid race condition when running shutdown test.
-    for invoc in self.invocations.itervalues():
+    for invoc in itervalues(self.invocations):
       logging.info('Waiting for %s to complete...', invoc.test)
       invoc.thread.join(3)  # Timeout in 3 seconds.
 
@@ -827,7 +829,7 @@ class Goofy(object):
   def _CheckPlugins(self):
     """Check plugins to be paused or resumed."""
     exclusive_resources = set()
-    for invoc in self.invocations.itervalues():
+    for invoc in itervalues(self.invocations):
       exclusive_resources = exclusive_resources.union(
           invoc.test.GetExclusiveResources())
     self.plugin_controller.PauseAndResumePluginByResource(exclusive_resources)
@@ -1447,7 +1449,7 @@ class Goofy(object):
     Useful for testing.
     """
     while self.invocations:
-      for invoc in self.invocations.itervalues():
+      for invoc in itervalues(self.invocations):
         logging.info('Waiting for %s to complete...', invoc.test)
         invoc.thread.join()
       self.ReapCompletedTests()

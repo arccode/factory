@@ -25,6 +25,7 @@ import logging
 import math
 
 import numpy as np
+from six import itervalues
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
@@ -92,7 +93,7 @@ class AccelerometersLidAngleTest(test_case.TestCase):
     # The calulation requires hinge in a horizontal position.
     min_value = -self.args.spec_offset[0]
     max_value = self.args.spec_offset[0]
-    for data in cal_data.itervalues():
+    for data in itervalues(cal_data):
       if not min_value <= data['in_accel_x'] <= max_value:
         self.FailTask('The hinge is not in a horizontal plane.')
 

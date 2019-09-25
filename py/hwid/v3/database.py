@@ -41,6 +41,8 @@ import hashlib
 import logging
 import re
 
+from six import itervalues
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.rule import Rule
@@ -391,7 +393,7 @@ class Database(object):
 
     # Each encoded field should be well defined.
     for encoded_field_name in self.encoded_fields:
-      for comps in self.GetEncodedField(encoded_field_name).itervalues():
+      for comps in itervalues(self.GetEncodedField(encoded_field_name)):
         for comp_cls, comp_names in comps.iteritems():
           missing_comp_names = (
               set(comp_names) - set(self.GetComponents(comp_cls).keys()))
@@ -1117,7 +1119,7 @@ class Components(object):
                                  (comp_cls, comp_name))
 
     if values is None and any(
-        c.values is None for c in self.GetComponents(comp_cls).itervalues()):
+        c.values is None for c in itervalues(self.GetComponents(comp_cls))):
       logging.warning('Found more than one default component of %r, '
                       'mark can_encode=False.', comp_cls)
       self._can_encode = False

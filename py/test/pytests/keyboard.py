@@ -92,6 +92,8 @@ import ast
 import os
 import re
 
+from six import itervalues
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test.l10n import regions
@@ -321,7 +323,7 @@ class KeyboardTest(test_case.TestCase):
       else:
         self.MarkKeyState(keycode, 'tested')
 
-    if all(num_left == 0 for num_left in self.number_to_press.itervalues()):
+    if all(num_left == 0 for num_left in itervalues(self.number_to_press)):
       self.PassTask()
 
   def FailTestTimeout(self):

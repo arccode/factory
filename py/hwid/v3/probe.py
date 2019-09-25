@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from six import itervalues
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
@@ -144,7 +146,7 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
         matched_components[comp_cls].append(default_comp)
 
     if (not allow_mismatched_components and
-        any(mismatched_components.itervalues())):
+        any(itervalues(mismatched_components))):
       raise common.HWIDException(
           'Probed components %r are not matched with any component records in '
           'the database.' % mismatched_components)

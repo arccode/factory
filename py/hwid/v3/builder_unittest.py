@@ -7,6 +7,7 @@ import os
 import unittest
 
 import mock
+from six import itervalues
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import builder
@@ -180,8 +181,8 @@ class DatabaseBuilderTest(unittest.TestCase):
                             {'name': 'special', 'values': {'key4': 'value5'}}]},
           {}, {}, image_name='NEW_IMAGE')
       self.assertEqual(
-          sorted([attr.values for attr in db.database.GetComponents(
-              'comp_cls_100').itervalues()]),
+          sorted([attr.values for attr in itervalues(db.database.GetComponents(
+              'comp_cls_100'))]),
           sorted([{'key1': 'value1'}, {'key4': 'value4'}, {'key4': 'value5'}]))
 
       self.assertEqual(
@@ -200,8 +201,8 @@ class DatabaseBuilderTest(unittest.TestCase):
                         {'name': 'generic', 'values': {'value': '3'}}]}, {}, {},
         image_name='NEW_IMAGE')
     self.assertEqual(
-        sorted([attr.values for attr in db.database.GetComponents(
-            'comp_cls_1').itervalues()]),
+        sorted([attr.values for attr in itervalues(db.database.GetComponents(
+            'comp_cls_1'))]),
         sorted([{'value': '1'}, {'value': '2'}, {'value': '3'}]))
 
     self.assertIn({'comp_cls_1': sorted(['comp_1_1', '3'])},

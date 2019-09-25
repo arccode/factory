@@ -23,6 +23,7 @@ import unittest
 
 import mox
 from mox import IgnoreArg
+from six import itervalues
 from ws4py.client import WebSocketBaseClient
 
 import factory_common  # pylint: disable=unused-import
@@ -234,7 +235,7 @@ class GoofyTest(unittest.TestCase):
     self.assertTrue(self.goofy.RunOnce())
     self.assertEqual(
         [] if does_not_start else [test_id],
-        [invoc.test.path for invoc in self.goofy.invocations.itervalues()])
+        [invoc.test.path for invoc in itervalues(self.goofy.invocations)])
     self._Wait()
     test_state = self.state.GetTestState(test_id)
     self.assertEqual(passed, test_state.status)
@@ -550,7 +551,7 @@ class PyTestTest(GoofyUITest):
   def runTest(self):
     self.goofy.RunOnce()
     self.assertEqual(
-        ['a'], [invoc.test.id for invoc in self.goofy.invocations.itervalues()])
+        ['a'], [invoc.test.id for invoc in itervalues(self.goofy.invocations)])
     self.goofy.Wait()
     self.assertEqual(
         TestState.PASSED,
@@ -558,7 +559,7 @@ class PyTestTest(GoofyUITest):
 
     self.goofy.RunOnce()
     self.assertEqual(
-        ['b'], [invoc.test.id for invoc in self.goofy.invocations.itervalues()])
+        ['b'], [invoc.test.id for invoc in itervalues(self.goofy.invocations)])
     self.goofy.Wait()
     failed_state = state.GetInstance().GetTestState(path='test:b')
     self.assertEqual(TestState.FAILED, failed_state.status)
@@ -673,7 +674,7 @@ class ParallelTest(GoofyUITest):
     self.goofy.RunOnce()
     self.assertEqual(
         {'a', 'b', 'c'},
-        {invoc.test.id for invoc in self.goofy.invocations.itervalues()})
+        {invoc.test.id for invoc in itervalues(self.goofy.invocations)})
     self.goofy.Wait()
 
     self.mocker.VerifyAll()

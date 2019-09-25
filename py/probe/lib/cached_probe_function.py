@@ -6,6 +6,8 @@ import glob
 import logging
 import os
 
+from six import itervalues
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
 from cros.factory.probe.lib import probe_function
@@ -39,7 +41,7 @@ class CachedProbeFunction(probe_function.ProbeFunction):
       return function.NOTHING
 
     if not category:
-      return sum(self._CACHED_DEVICES.itervalues(), [])
+      return sum(itervalues(self._CACHED_DEVICES), [])
     else:
       return self._CACHED_DEVICES.get(category, function.NOTHING)
 

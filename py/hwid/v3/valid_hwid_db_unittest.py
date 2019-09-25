@@ -30,6 +30,8 @@ import sys
 import traceback
 import unittest
 
+from six import itervalues
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
@@ -124,7 +126,7 @@ class ValidHWIDDBsTest(unittest.TestCase):
     else:
       # If PRESUBMIT_FILES is not found, defaults to test all v3 projects in
       # projects.yaml.
-      files = [b['path'] for b in projects_info.itervalues()
+      files = [b['path'] for b in itervalues(projects_info)
                if b['version'] == 3]
 
     projects = []
