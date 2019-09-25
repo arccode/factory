@@ -52,6 +52,7 @@ You can also change the limits of each axis to loose the criteria::
 
 """
 
+from six import viewkeys
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
@@ -97,7 +98,7 @@ class AccelerometersTest(test_case.TestCase):
 
     if self.args.limits is None:
       self.args.limits = DEFAULT_LIMITS
-    assert self.args.limits.viewkeys() == {'x', 'y', 'z'}, (
+    assert viewkeys(self.args.limits) == {'x', 'y', 'z'}, (
         'Limits should be a dictionary with keys "x", "y" and "z"')
     for unused_axis, [limit_min, limit_max] in self.args.limits.iteritems():
       assert limit_min <= limit_max

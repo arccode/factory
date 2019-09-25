@@ -4,6 +4,8 @@
 
 import threading
 
+from six import viewkeys
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 from cros.factory.utils import process_utils
@@ -261,10 +263,10 @@ class PollingUdevMonitor(UdevMonitorBase):
       return
 
     curr_devices = self._Scan()
-    for sys_path in curr_devices.viewkeys() - self._devices.viewkeys():
+    for sys_path in viewkeys(curr_devices) - viewkeys(self._devices):
       self.NotifyEvent(self.Event.INSERT, sys_path, curr_devices[sys_path])
 
-    for sys_path in self._devices.viewkeys() - curr_devices.viewkeys():
+    for sys_path in viewkeys(self._devices) - viewkeys(curr_devices):
       self.NotifyEvent(self.Event.REMOVE, sys_path, self._devices[sys_path])
 
     self._devices = curr_devices
