@@ -39,7 +39,7 @@ class PluginControllerTest(unittest.TestCase):
 
   def testInit(self):
     controller = self.CreateController()
-    self.assertItemsEqual(controller._plugins.keys(), [self.BASE_PLUGIN_MODULE])
+    self.assertItemsEqual(list(controller._plugins), [self.BASE_PLUGIN_MODULE])
     self.assertItemsEqual(controller._frontend_configs, [{
         'url': '/plugin/mock_plugin_mock_plugin/mock_plugin.html',
         'location': 'testlist'
@@ -52,7 +52,7 @@ class PluginControllerTest(unittest.TestCase):
   def testInitError(self):
     self._config['plugins']['not_exist_plugin.NotExistPlugin'] = {}
     controller = self.CreateController()
-    self.assertItemsEqual(controller._plugins.keys(), [self.BASE_PLUGIN_MODULE])
+    self.assertItemsEqual(list(controller._plugins), [self.BASE_PLUGIN_MODULE])
 
   def testStartAllPlugins(self):
     mock_plugin = mock.Mock(plugin.Plugin)

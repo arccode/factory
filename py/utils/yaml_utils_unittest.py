@@ -55,7 +55,7 @@ class ParseMappingAsOrderedDictUnittest(unittest.TestCase):
     obj = yaml.load(YAML_DOC)
     self.assertEqual(obj['foo'], 'foo1')
     self.assertEqual(obj['bar'], 234)
-    self.assertEqual(obj.keys(), ['foo', 'bar'])
+    self.assertEqual(list(obj), ['foo', 'bar'])
     self.assertIsInstance(obj, collections.OrderedDict)
 
     yaml_str = yaml.dump(obj).strip()

@@ -133,7 +133,7 @@ class TinyalsaMixerController(base.BaseMixerController):
     for store_settings, store_card in self._restore_mixer_control_stack:
       if card != store_card:
         continue
-      for name in new_settings.keys():
+      for name in list(new_settings):
         if name in store_settings:
           del new_settings[name]
       if not new_settings:

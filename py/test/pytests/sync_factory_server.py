@@ -279,7 +279,7 @@ class SyncFactoryServer(test_case.TestCase):
     ])
 
   def DetectServerURL(self):
-    expected_networks = self.args.server_url.keys()
+    expected_networks = list(self.args.server_url)
     label_connect = _('Please connect to network...')
     label_status = _('Expected network: {networks}', networks=expected_networks)
 

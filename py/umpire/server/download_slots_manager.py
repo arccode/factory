@@ -104,7 +104,7 @@ class DownloadSlotsManager(object):
       place = 0
     else:
       self.wait_queue[identity] = now
-      place = self.wait_queue.keys().index(identity) + 1
+      place = list(self.wait_queue).index(identity) + 1
     return (identity, place)
 
   def _CheckAvailableSlot(self):

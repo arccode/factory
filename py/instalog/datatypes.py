@@ -177,7 +177,7 @@ class Event(json_utils.Serializable):
 
   def keys(self):
     """Implements dict keys function."""
-    return self.payload.keys()
+    return list(self.payload)
 
   def values(self):
     """Implements dict values function."""

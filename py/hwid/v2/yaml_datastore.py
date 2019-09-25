@@ -125,7 +125,7 @@ class _DatastoreBase(object):
 
   @classmethod
   def FieldNames(cls):
-    return cls._schema.keys()
+    return list(cls._schema)
 
   @classmethod
   def ValidateSchema(cls, field_dict):

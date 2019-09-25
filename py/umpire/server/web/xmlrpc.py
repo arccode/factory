@@ -35,7 +35,7 @@ class XMLRPCContainer(xmlrpc.XMLRPC, object):
     Derived from xmlrpc.XMLRPC resource class. XMLRPC introspection calls
     this method to get list of procedure name string.
     """
-    return self.handlers.keys()
+    return list(self.handlers)
 
   def lookupProcedure(self, procedure_path):
     """Searches RPC procedure by name.

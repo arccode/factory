@@ -337,7 +337,7 @@ class Thermal(types.DeviceComponent):
 
   def GetAllSensorNames(self):
     """Returns names of all available sensors."""
-    return self._GetSensors().keys()
+    return list(self._GetSensors())
 
   def GetTemperature(self, sensor_name=None):
     """Gets current temperature of specified sensor.

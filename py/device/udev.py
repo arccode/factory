@@ -74,7 +74,7 @@ class UdevMonitorBase(types.DeviceComponent):
 
   def GetPathUnderMonitor(self):
     """Get the list of the sysfs paths that is currently under monitoring."""
-    return self._handler.keys()[:]
+    return list(self._handler)
 
   def NotifyEvent(self, event, sys_path, device):
     """Execute the callback function related to the given sysfs path.

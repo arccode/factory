@@ -226,11 +226,11 @@ class Database(object):
 
   @property
   def encoding_patterns(self):
-    return self._encoding_patterns.keys()
+    return list(self._encoding_patterns)
 
   @property
   def image_ids(self):
-    return self._image_id.keys()
+    return list(self._image_id)
 
   @property
   def max_image_id(self):
@@ -551,11 +551,11 @@ class ImageId(_NamedNumber):
   @property
   def max_image_id(self):
     """Returns the maximum image id."""
-    return self.GetMaxImageIDFromList(self.keys())
+    return self.GetMaxImageIDFromList(list(self))
 
   @property
   def rma_image_id(self):
-    return self.GetRMAImageIDFromList(self.keys())
+    return self.GetRMAImageIDFromList(list(self))
 
   @classmethod
   def GetMaxImageIDFromList(cls, image_ids):
@@ -686,7 +686,7 @@ class EncodedFields(object):
     self._can_encode = True
 
     for field_name, field_data in encoded_fields_expr.iteritems():
-      self._RegisterNewEmptyField(field_name, field_data.values()[0].keys())
+      self._RegisterNewEmptyField(field_name, list(field_data.values()[0]))
       for index, comps in field_data.iteritems():
         comps = yaml.Dict([(c, self._StandardlizeList(n))
                            for c, n in comps.iteritems()])
@@ -712,7 +712,7 @@ class EncodedFields(object):
   @property
   def encoded_fields(self):
     """Returns a list of encoded field names."""
-    return self._fields.keys()
+    return list(self._fields)
 
   def GetField(self, field_name):
     """Gets the specific field.
@@ -775,7 +775,7 @@ class EncodedFields(object):
           'Encoded field %r does not exist' % (field_name,))
 
     if field_name == 'region_field':
-      if len(components) != 1 or components.keys() != ['region']:
+      if len(components) != 1 or list(components) != ['region']:
         raise common.HWIDException(
             'Region field should contain only region component.')
 
@@ -814,7 +814,7 @@ class EncodedFields(object):
           'Region field should always exist in the HWID database, it is '
           'prohibited to add a new field called "region_field".')
 
-    self._RegisterNewEmptyField(field_name, components.keys())
+    self._RegisterNewEmptyField(field_name, list(components))
 
     self.AddFieldComponents(field_name, components)
 
@@ -1044,7 +1044,7 @@ class Components(object):
   @property
   def component_classes(self):
     """Returns a list of string of the component class names."""
-    return self._components.keys()
+    return list(self._components)
 
   def GetComponents(self, comp_cls):
     """Gets the components of the specific component class.
@@ -1257,7 +1257,7 @@ class Pattern(object):
       pattern_obj = _PatternDatum(pattern_expr['encoding_scheme'], [])
       for field_expr in pattern_expr['fields']:
         pattern_obj.fields.append(
-            _PatternField(field_expr.keys()[0], field_expr.values()[0]))
+            _PatternField(list(field_expr)[0], field_expr.values()[0]))
 
       for image_id in pattern_expr['image_ids']:
         if image_id in self._image_id_to_pattern:
@@ -1297,7 +1297,7 @@ class Pattern(object):
   @property
   def all_image_ids(self):
     """Returns all image ids."""
-    return self._image_id_to_pattern.keys()
+    return list(self._image_id_to_pattern)
 
   def AddEmptyPattern(self, image_id, encoding_scheme):
     """Adds a new empty pattern.
@@ -1465,7 +1465,7 @@ class Pattern(object):
 
   @property
   def _max_image_id(self):
-    return ImageId.GetMaxImageIDFromList(self._image_id_to_pattern.keys())
+    return ImageId.GetMaxImageIDFromList(list(self._image_id_to_pattern))
 
 
 class Rules(object):

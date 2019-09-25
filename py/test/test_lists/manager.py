@@ -200,7 +200,7 @@ class Manager(object):
       raise
 
   def GetTestListIDs(self):
-    return self.test_lists.keys()
+    return list(self.test_lists)
 
   def BuildAllTestLists(self):
     failed_test_lists = {}
@@ -227,7 +227,7 @@ class Manager(object):
           continue
       valid_test_lists[test_list_id] = test_list
 
-    logging.debug('loaded test lists: %r', self.test_lists.keys())
+    logging.debug('loaded test lists: %r', list(self.test_lists))
     return valid_test_lists, failed_test_lists
 
   @staticmethod

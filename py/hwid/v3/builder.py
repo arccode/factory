@@ -276,7 +276,7 @@ class DatabaseBuilder(object):
             comp_cls, comp_name, common.COMPONENT_STATUS.deprecated)
 
     comp_name = DetermineComponentName(
-        comp_cls, probed_value, self.database.GetComponents(comp_cls).keys())
+        comp_cls, probed_value, list(self.database.GetComponents(comp_cls)))
 
     logging.info('Component %s: add an item "%s".', comp_cls, comp_name)
     self.database.AddComponent(

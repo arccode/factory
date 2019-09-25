@@ -263,7 +263,7 @@ class VSWR(test_case.TestCase):
         self._config['network_analyzer']['measure_segment']['sample_points'])])
 
     # TODO(littlecvr): Name is not right.
-    ports = measurement_sequence.keys()
+    ports = list(measurement_sequence)
     traces = self._ena.GetTraces(map(_PortName, ports))
     trace = self._SerializeTraces(traces)
 

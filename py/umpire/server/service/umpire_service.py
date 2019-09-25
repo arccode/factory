@@ -580,4 +580,4 @@ def GetAllServiceNames():
   Returns:
     List of service name strings.
   """
-  return _INSTANCE_MAP.keys()
+  return list(_INSTANCE_MAP)

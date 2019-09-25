@@ -96,7 +96,7 @@ class ChromeOSDisplay(display.LinuxDisplay):
     port_info_dict = self.GetPortInfo()
     if port not in port_info_dict:
       raise DisplayError('Unknown port %s; valid ports are: %r' %
-                         (port, port_info_dict.keys()))
+                         (port, list(port_info_dict)))
     port_info = port_info_dict[port]
     if not port_info.connected:
       raise DisplayError('Port %s is not connected')

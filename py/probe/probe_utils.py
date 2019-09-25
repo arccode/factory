@@ -26,7 +26,7 @@ def Probe(probe_statement, comps=None, approx_match=False, max_mismatch=0):
     A dict of probe results of each component.
   """
   if comps is None:
-    comps = probe_statement.keys()
+    comps = list(probe_statement)
 
   results = {}
   for comp_cls in probe_statement:

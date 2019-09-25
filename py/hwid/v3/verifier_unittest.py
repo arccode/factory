@@ -79,7 +79,7 @@ class VerifyPhaseTest(unittest.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(_TEST_DATABASE_PATH,
                                       verify_checksum=False)
-    self.possible_names = self.database.GetComponents('firmware_keys').keys()
+    self.possible_names = list(self.database.GetComponents('firmware_keys'))
 
   @staticmethod
   def _CreateBOM(image_id, firmware_key_name=None):

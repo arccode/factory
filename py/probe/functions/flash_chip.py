@@ -71,7 +71,7 @@ class FlashChipFunction(cached_probe_function.LazyCachedProbeFunction):
   }
 
   ARGS = [
-      Arg('chip', type_utils.Enum(TARGET_MAP.keys()),
+      Arg('chip', type_utils.Enum(TARGET_MAP),
           'The flash chip. It should be one of {%s}' %
           ', '.join(TARGET_MAP.keys())),
   ]
@@ -79,7 +79,7 @@ class FlashChipFunction(cached_probe_function.LazyCachedProbeFunction):
   def GetCategoryFromArgs(self):
     category = self.TARGET_MAP.get(self.args.chip)
     if not category:
-      logging.error('Chip should be one of %s', self.TARGET_MAP.keys())
+      logging.error('Chip should be one of %s', list(self.TARGET_MAP))
     return category
 
   @classmethod

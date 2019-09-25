@@ -175,9 +175,9 @@ class WirelessTest(test_case.TestCase):
       self._antenna_service_strength[antenna] = {}
     self._antenna = None
 
-    if self.args.disable_switch and self.args.strength.keys() != ['all']:
+    if self.args.disable_switch and list(self.args.strength) != ['all']:
       self.fail('Switching antenna is disabled but antenna configs are %s' %
-                self.args.strength.keys())
+                list(self.args.strength))
 
     # Group checker for Testlog.
     self._service_group_checker = testlog.GroupParam(

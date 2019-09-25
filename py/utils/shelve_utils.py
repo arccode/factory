@@ -268,7 +268,7 @@ class DictShelfView(object):
       shelf_view.SetValue('a.b.c', 1)
       shelf_view.GetKeys() == ['a.b.c']  # note there is no 'a' and 'a.b'
     """
-    return self._shelf.keys()
+    return list(self._shelf)
 
   def Close(self):
     """Closes the shelf."""
@@ -315,7 +315,7 @@ class DictShelfView(object):
         self._DeleteOneKey(parent, update_parent=True)
 
   def _InitCache(self):
-    keys = self._shelf.keys()
+    keys = list(self._shelf)
     for key in keys:
       self._AddCache(key)
 

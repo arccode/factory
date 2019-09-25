@@ -1233,7 +1233,7 @@ class UserInput(object):
 
     while True:
       keys = [] if list_n == 0 else ['1'] if list_n == 1 else ['1-%d' % list_n]
-      keys += options_dict.keys()
+      keys += list(options_dict)
       prompt = 'Please select an option [%s]%s: ' % (
           ', '.join(keys), ' or empty to skip' if optional else '')
       answer = raw_input(prompt).strip()

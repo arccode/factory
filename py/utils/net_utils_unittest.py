@@ -156,7 +156,7 @@ class UtilityFunctionTest(unittest.TestCase):
     def MockRealPath(path):
       return interface_table.get(path, '')
 
-    with mock.patch('glob.glob', return_value=interface_table.keys()):
+    with mock.patch('glob.glob', return_value=list(interface_table)):
       with mock.patch('os.path.realpath', side_effect=MockRealPath):
         self.assertEqual('eth0', func_under_test('eth0'))
         self.assertEqual('eth0', func_under_test('/REAL_PATH/0/net'))

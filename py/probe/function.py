@@ -23,7 +23,7 @@ _function_loaded = False  # Only load the function classes in 'functions/' once.
 
 
 def GetRegisteredFunctions():
-  return _function_map.keys()
+  return list(_function_map)
 
 
 def GetFunctionClass(func_name):

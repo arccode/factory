@@ -229,7 +229,7 @@ class DataEntry(object):
 
     # Region should be processed differently.
     if key == device_data.KEY_VPD_REGION:
-      all_regions = regions.REGIONS.keys()
+      all_regions = list(regions.REGIONS)
       if not value_check:
         ordered_values = [v for v in _KNOWN_REGIONS if v in all_regions]
         other_values = sorted(set(all_regions) - set(ordered_values))

@@ -263,7 +263,7 @@ class _RegionComponentYAMLTagHandler(_HWIDV3YAMLTagHandler):
       raise constructor.ConstructorError(str(e) + '%r' % status_lists)
 
     for i, s1 in enumerate(status_lists.keys()):
-      for s2 in status_lists.keys()[i + 1:]:
+      for s2 in list(status_lists)[i + 1:]:
         duplicated_regions = set(status_lists[s1]) & set(status_lists[s2])
         if duplicated_regions:
           raise constructor.ConstructorError(

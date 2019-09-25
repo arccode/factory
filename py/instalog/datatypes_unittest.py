@@ -122,7 +122,7 @@ class TestEvent(unittest.TestCase):
     payload = {'a': 1, 'b': 2, 'c': {}, '__d__': True}
     event = datatypes.Event(payload)
     self.assertEqual(event.payload, payload)
-    self.assertEqual(event.keys(), payload.keys())
+    self.assertEqual(event.keys(), list(payload))
     self.assertEqual(event.values(), payload.values())
     self.assertEqual(event['a'], payload['a'])
     self.assertEqual(event['b'], payload['b'])

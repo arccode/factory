@@ -1477,7 +1477,7 @@ class GPTCommands(object):
         # Do not change any partitions with priority=0
         groups.pop(0)
 
-      prios = groups.keys()
+      prios = list(groups)
       prios.sort(reverse=True)
 
       # Max priority is 0xf.

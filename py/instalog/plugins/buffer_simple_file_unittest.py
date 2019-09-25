@@ -115,7 +115,7 @@ class TestBufferSimpleFile(unittest.TestCase):
     """Tests adding and removing a Consumer."""
     self.assertEqual({}, self.sf.ListConsumers())
     self.sf.AddConsumer('a')
-    self.assertEqual(['a'], self.sf.ListConsumers().keys())
+    self.assertEqual(['a'], list(self.sf.ListConsumers()))
     self.sf.RemoveConsumer('a')
     self.assertEqual({}, self.sf.ListConsumers())
 

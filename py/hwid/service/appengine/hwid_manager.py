@@ -12,6 +12,8 @@ import collections
 import logging
 import re
 
+from six import iteritems
+
 # pylint: disable=import-error, no-name-in-module
 from google.appengine.ext import db
 
@@ -889,12 +891,9 @@ class _HwidV2Data(_HwidData):
               vol_ltrs.update(self._volatile_map)
             else:
               vol_ltrs.add(hw_vol.rpartition('-')[2])
-      items = list()
-      for cls in self._bom_map[hw]['primary']['components'].keys():
-        items.append((cls, self._bom_map[hw]['primary']['components'][cls]))
+      items = list(iteritems(self._bom_map[hw]['primary']['components']))
       for var in self._bom_map[hw]['variants']:
-        for cls in self._variant_map[var]['components'].keys():
-          items.append((cls, self._variant_map[var]['components'][cls]))
+        items += list(iteritems(self._variant_map[var]['components']))
       for vol in vol_ltrs:
         for cls, comp in self._volatile_map[vol].items():
           items.append((cls, comp))

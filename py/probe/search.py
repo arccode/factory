@@ -32,7 +32,7 @@ def _LoadGenericProbeStatement():
 
 def GetGenericComponentClasses():
   """Gets the list of components classes which have generic probe function."""
-  return _LoadGenericProbeStatement().keys()
+  return list(_LoadGenericProbeStatement())
 
 
 def GenerateProbeStatement(comp_cls):
@@ -48,7 +48,7 @@ def GenerateProbeStatement(comp_cls):
     results = map(dict, set(frozenset(result.items()) for result in results))
     for result in results:
       comp_name = builder.DetermineComponentName(
-          comp_cls, result, statement[comp_cls].keys())
+          comp_cls, result, list(statement[comp_cls]))
       statement[comp_cls][comp_name] = {
           'eval': func_expression,
           'expect': result}

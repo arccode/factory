@@ -192,7 +192,7 @@ class Instalog(plugin_sandbox.CoreAPI):
     """Synchronizes consumer list with buffer."""
     consumers = [plugin.plugin_id for plugin in self._plugins.values()
                  if plugin.GetSuperclass() is plugin_base.OutputPlugin]
-    buffer_consumers = self._buffer.CallPlugin('ListConsumers').keys()
+    buffer_consumers = list(self._buffer.CallPlugin('ListConsumers'))
     logging.info('Syncing consumer lists')
     logging.debug('Our consumer list: %s', consumers)
     logging.debug('Buffer consumer list: %s', buffer_consumers)

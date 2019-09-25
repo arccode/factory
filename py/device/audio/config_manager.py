@@ -287,7 +287,7 @@ class AudioConfigManager(BaseConfigManager):
       raise ValueError('Volume should be positive integer.')
     if card in self.audio_config:
       if 'set_speaker_volume' in self.audio_config[card]:
-        for name in self.audio_config[card]['set_speaker_volume'].keys():
+        for name in list(self.audio_config[card]['set_speaker_volume']):
           if 'Volume' in name:
             self.audio_config[card]['set_speaker_volume'][name] = str(volume)
             self._mixer_controller.SetMixerControls(
@@ -299,7 +299,7 @@ class AudioConfigManager(BaseConfigManager):
       raise ValueError('Volume should be positive integer.')
     if card in self.audio_config:
       if 'set_headphone_volume' in self.audio_config[card]:
-        for name in self.audio_config[card]['set_headphone_volume'].keys():
+        for name in list(self.audio_config[card]['set_headphone_volume']):
           if 'Volume' in name:
             self.audio_config[card]['set_headphone_volume'][name] = str(volume)
             self._mixer_controller.SetMixerControls(

@@ -144,7 +144,7 @@ class WebAppDispatcher(dict):
         return self[session.PATH_INFO](environ, start_response)
       else:
         logging.error('request path does not exist: %s', session.PATH_INFO)
-        logging.error('  : keys = %s', self.keys())
+        logging.error('  : keys = %s', list(self))
         return session.MethodNotAllowed405()
     except Exception:
       logging.exception('web app exception')

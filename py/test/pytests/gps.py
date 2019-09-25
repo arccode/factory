@@ -117,7 +117,7 @@ class GPS(unittest.TestCase):
       Arg('limits', list,
           'List of limits, in the format ("nmea_field", "fn", "cmp", value), '
           'where fn can be any of %s, and cmp can be any of %s.'
-          % (STAT_FNS.keys(), CMP_FNS.keys()),
+          % (list(STAT_FNS), list(CMP_FNS)),
           default=[])
   ]
 

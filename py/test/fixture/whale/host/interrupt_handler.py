@@ -161,7 +161,7 @@ class InterruptHandler(object):
       logging.info('No dut sensor...')
       return True
 
-    dut_sensor_list = self._DUT_SENSOR_CHECK_LIST.keys()
+    dut_sensor_list = list(self._DUT_SENSOR_CHECK_LIST)
     dut_sensor_status = self._servo.MultipleIsOn(dut_sensor_list)
     return cmp(dut_sensor_status, self._DUT_SENSOR_CHECK_LIST) == 0
 

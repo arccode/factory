@@ -750,7 +750,7 @@ class BluetoothTest(test_case.TestCase):
     self._strongest_rssi_mac = max_average_rssi_mac
 
     if mac_to_scan and not HasScannedTargetMac():
-      found_addresses = candidate_rssis.keys()
+      found_addresses = list(candidate_rssis)
       self.FailTask('Failed to find MAC address %s.'
                     'Scanned addresses: %s' % (mac_to_scan, found_addresses))
 

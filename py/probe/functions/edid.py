@@ -289,7 +289,7 @@ class EDIDFunction(probe_function.ProbeFunction):
         return self.identity_to_edid[self.path_to_identity[path]]
 
     logging.error('The given path is invalid, available edid path are: %r',
-                  self.path_to_identity.keys())
+                  list(self.path_to_identity))
     return function.NOTHING
 
   @classmethod

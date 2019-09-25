@@ -146,7 +146,7 @@ class TestListLoaderTest(unittest.TestCase):
         ('b:SMT.RebootStep_4', 'STOP')])
 
     self.assertListEqual(
-        expected.keys(),
+        list(expected),
         [test.path for test in factory_test_list.Walk() if test.IsLeaf()])
 
     for key, value in expected.iteritems():
@@ -265,7 +265,7 @@ class TestListLoaderTest(unittest.TestCase):
     ])
 
     self.assertListEqual(
-        expected.keys(),
+        list(expected),
         [test.path for test in test_list.Walk() if test.IsLeaf()])
 
     for test in test_list.Walk():

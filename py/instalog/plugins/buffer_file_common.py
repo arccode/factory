@@ -439,7 +439,7 @@ class BufferFile(log_utils.LoggerMixin):
   def _SaveConsumers(self):
     """Saves the current list of active Consumers to disk."""
     with file_utils.AtomicWrite(self.consumers_list_path, fsync=True) as f:
-      json.dump(self.consumers.keys(), f)
+      json.dump(list(self.consumers), f)
 
   def _RestoreConsumers(self):
     """Restore Consumers from disk.

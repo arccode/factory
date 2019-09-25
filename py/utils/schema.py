@@ -299,7 +299,7 @@ class FixedDict(BaseType):
     if not isinstance(data, dict):
       raise SchemaException('Type mismatch on %r: expected dict, got %r' %
                             (self.label, type(data)))
-    data_key_list = data.keys()
+    data_key_list = list(data)
     # Check that every key-value pair in items exists in data
     for key, value_schema in self.items.iteritems():
       if key not in data:
