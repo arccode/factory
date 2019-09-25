@@ -6,5 +6,6 @@ bin/list_dir_as_yaml
 py/bundle_creator
 py/doc
 py/dome
+py/instalog/virtual_env
 py/test_list_editor
 .wh..wh.*
