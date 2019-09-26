@@ -11,7 +11,7 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 DISPLAY_MESSAGE="${SCRIPT_DIR}/display_wipe_message.sh"
 . "${SCRIPT_DIR}/options.sh"
 EC_PRESENT=0
-BATTERY_PATH="/sys/class/power_supply/BAT0"
+POWER_SUPPLY_PATH="/sys/class/power_supply"
 
 reset_activate_date() {
   activate_date --clean
@@ -39,41 +39,52 @@ test_ec_flash_presence() {
   fi
 }
 
-has_battery() {
-  [ -d "${BATTERY_PATH}" ]
+find_battery_path() {
+  local battery_path=""
+  for power_supply in "${POWER_SUPPLY_PATH}"/*; do
+    if [ -f "${power_supply}/type" ] &&
+       [ "$(cat "${power_supply}/type")" = "Battery" ]; then
+      battery_path="${power_supply}"
+      break
+    fi
+  done
+  echo "${battery_path}"
 }
 
 get_battery_percentage() {
-  local full=$(cat "${BATTERY_PATH}/charge_full")
-  local current=$(cat "${BATTERY_PATH}/charge_now")
-  full=$((full / 1000))
-  current=$((current / 1000))
-  echo $((current * 100 / full))
+  local battery_path="$1"
+  local full="$(cat "${battery_path}/charge_full")"
+  local current="$(cat "${battery_path}/charge_now")"
+  echo "$((current * 100 / full))"
 }
 
 get_battery_voltage() {
-  battery_voltage=$(cat "${BATTERY_PATH}/voltage_now")
-  echo $((battery_voltage / 1000))
+  local battery_path="$1"
+  local battery_voltage="$(cat "${battery_path}/voltage_now")"
+  echo "$((battery_voltage / 1000))"
 }
 
 is_ac_present() {
-  battery_status=$(cat "${BATTERY_PATH}/status")
-  [ "${battery_status}" = "Charging" ]
+  local battery_path="$1"
+  local battery_status="$(cat "${battery_path}/status")"
+  [ "${battery_status}" = "Charging" ] || [ "${battery_status}" = "Full" ]
 }
 
 require_ac() {
-  if ! is_ac_present; then
+  local battery_path="$1"
+  if ! is_ac_present "${battery_path}"; then
     "${DISPLAY_MESSAGE}" "connect_ac"
-    while ! is_ac_present; do
+    while ! is_ac_present "${battery_path}"; do
       sleep 0.5
     done
   fi
 }
 
 require_remove_ac() {
-  if is_ac_present; then
+  local battery_path="$1"
+  if is_ac_present "${battery_path}"; then
     "${DISPLAY_MESSAGE}" "remove_ac"
-    while is_ac_present; do
+    while is_ac_present "${battery_path}"; do
       sleep 0.5
     done
   fi
@@ -83,7 +94,7 @@ charge_control() {
   if [ "${EC_PRESENT}" = "1" ]; then
     ectool chargecontrol "$1" >/dev/null
   else
-    echo "Not support charge_control without EC"
+    echo "Not support charge_control without EC."
   fi
 }
 
@@ -97,15 +108,16 @@ run_stressapptest() {
 check_battery_value() {
   local min_battery_value="$1" max_battery_value="$2"
   local get_value_cmd="$3"
+  local battery_path="$4"
   local battery_value=""
   local prev_battery_value=""
   local stressapptest_pid=""
 
-  battery_value="$(${get_value_cmd})"
+  battery_value="$(${get_value_cmd} "${battery_path}")"
 
   if [ -n "${min_battery_value}" ] &&
      [ "${battery_value}" -lt "${min_battery_value}" ]; then
-    require_ac
+    require_ac "${battery_path}"
     charge_control "normal"
     "${DISPLAY_MESSAGE}" "charging"
 
@@ -122,7 +134,7 @@ check_battery_value() {
         prev_battery_value="${battery_value}"
       fi
       sleep 1
-      battery_value="$(${get_value_cmd})"
+      battery_value="$(${get_value_cmd} "${battery_path}")"
     done
     echo ""
   fi
@@ -147,7 +159,7 @@ check_battery_value() {
         prev_battery_value="${battery_value}"
       fi
       sleep 1
-      battery_value="$(${get_value_cmd})"
+      battery_value="$(${get_value_cmd} "${battery_path}")"
     done
     echo ""
   fi
@@ -159,10 +171,11 @@ check_battery_value() {
 
 check_ac_state() {
   local ac_state="$1"
+  local battery_path="$2"
   if [ "${ac_state}" = "connect_ac" ]; then
-    require_ac
+    require_ac "${battery_path}"
   elif [ "${ac_state}" = "remove_ac" ]; then
-    require_remove_ac
+    require_remove_ac "${battery_path}"
   fi
 }
 
@@ -178,7 +191,9 @@ main() {
 
   test_ec_flash_presence
 
-  if has_battery; then
+  local battery_path="$(find_battery_path)"
+  if [ -n "${battery_path}" ]; then
+    echo "Battery found in ${battery_path}."
     # Needed by 'ectool battery'.
     mkdir -p /var/lib/power_manager
     modprobe i2c_dev || true
@@ -186,23 +201,25 @@ main() {
        [ -n "${CUTOFF_BATTERY_MAX_PERCENTAGE}" ]; then
       check_battery_value \
         "${CUTOFF_BATTERY_MIN_PERCENTAGE}" "${CUTOFF_BATTERY_MAX_PERCENTAGE}" \
-        "get_battery_percentage"
+        "get_battery_percentage" "${battery_path}"
     fi
     if [ -n "${CUTOFF_BATTERY_MIN_VOLTAGE}" ] ||
        [ -n "${CUTOFF_BATTERY_MAX_VOLTAGE}" ]; then
       check_battery_value \
         "${CUTOFF_BATTERY_MIN_VOLTAGE}" "${CUTOFF_BATTERY_MAX_VOLTAGE}" \
-        "get_battery_voltage"
+        "get_battery_voltage" "${battery_path}"
     fi
-  fi
 
-  # Ask operator to plug or unplug AC before doing cut off.
-  # The operator might not do this immediately, so we set the charge status to
-  # idle to keep the charge percentage stable, and set back to normal just
-  # before doing cutting off.
-  charge_control "idle"
-  check_ac_state "${CUTOFF_AC_STATE}"
-  charge_control "normal"
+    # Ask operator to plug or unplug AC before doing cut off.
+    # The operator might not do this immediately, so we set the charge status to
+    # idle to keep the charge percentage stable, and set back to normal just
+    # before doing cutting off.
+    charge_control "idle"
+    check_ac_state "${CUTOFF_AC_STATE}" "${battery_path}"
+    charge_control "normal"
+  else
+    echo "Battery not found."
+  fi
 
   $DISPLAY_MESSAGE "cutting_off"
 
