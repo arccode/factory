@@ -19,6 +19,7 @@ import traceback
 import uuid
 from xmlrpclib import Binary
 
+from six import iteritems
 from six import itervalues
 
 import factory_common  # pylint: disable=unused-import
@@ -304,7 +305,7 @@ class Goofy(object):
     self.state_instance = state.FactoryState()
 
     # Write back the preserved data.
-    for key, value in preserved_data.iteritems():
+    for key, value in iteritems(preserved_data):
       if value is not None:
         self.state_instance.DataShelfSetValue(key, value)
 
@@ -1104,7 +1105,7 @@ class Goofy(object):
       if failed_test_lists:
         logging.info('Failed test list IDs: [%s]',
                      ' '.join(failed_test_lists.keys()))
-        for test_list_id, reason in failed_test_lists.iteritems():
+        for test_list_id, reason in iteritems(failed_test_lists):
           logging.error('Error in test list %s: %s', test_list_id, reason)
           startup_errors.append('Error in test list %s:\n%s'
                                 % (test_list_id, reason))
@@ -1227,7 +1228,7 @@ class Goofy(object):
 
     try:
       goofy_default_options = config_utils.LoadConfig(validate_schema=False)
-      for key, value in goofy_default_options.iteritems():
+      for key, value in iteritems(goofy_default_options):
         if getattr(self.options, key, None) is None:
           logging.info('self.options.%s = %r', key, value)
           setattr(self.options, key, value)

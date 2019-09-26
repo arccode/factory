@@ -24,6 +24,8 @@ import os
 import re
 import StringIO
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function as probe_function
 from cros.factory.test.env import paths
@@ -197,7 +199,7 @@ def GeneratePyTestsDoc(pytests_output_dir):
   index_rst = os.path.join(pytests_output_dir, 'index.rst')
   with open(index_rst, 'a') as f:
     rst = RSTWriter(f)
-    for k, v in sorted(pytest_info.iteritems()):
+    for k, v in sorted(iteritems(pytest_info)):
       rst.WriteListTableRow((LinkToDoc(k, k), v))
 
 
@@ -219,7 +221,7 @@ def WriteTestObjectDetail(
 
   if test_object.get('args'):
     rst.WriteTitle('args', '`')
-    for key, value in test_object['args'].iteritems():
+    for key, value in iteritems(test_object['args']):
       formatted_value = json_utils.DumpStr(value, pretty=True)
       formatted_value = '::\n\n' + Indent(formatted_value, '  ')
       formatted_value = Indent(formatted_value, '  ')
@@ -366,7 +368,7 @@ def main():
                       help='Output directory (default: %default)', default='.')
   args = parser.parse_args()
 
-  for dir_name, func in DOC_GENERATORS.iteritems():
+  for dir_name, func in iteritems(DOC_GENERATORS):
     full_path = os.path.join(args.output_dir, dir_name)
     file_utils.TryMakeDirs(full_path)
     func(full_path)

@@ -12,6 +12,8 @@ import threading
 import time
 import _strptime  # pylint: disable=unused-import
 
+from six import iteritems
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import flow_policy
 from instalog import json_utils
@@ -101,7 +103,7 @@ class Instalog(plugin_sandbox.CoreAPI):
 
     # Next, convert 'targets' entries to corresponding allow policy rule.
     for dct in [input_plugins, output_plugins]:
-      for plugin_id, plugin_config in dct.iteritems():
+      for plugin_id, plugin_config in iteritems(dct):
         if 'targets' in plugin_config:
           targets = plugin_config.pop('targets')
           if not isinstance(targets, list):
@@ -117,7 +119,7 @@ class Instalog(plugin_sandbox.CoreAPI):
                                  'position': -1})
 
     # Ensure that all output plugins have at least one event source.
-    for plugin_id, plugin_config in output_plugins.iteritems():
+    for plugin_id, plugin_config in iteritems(output_plugins):
       if not plugin_config.get('allow'):
         raise plugin_base.ConfigError(
             'No plugin is targetting output plugin `%s\'.  Please (1) disable '
@@ -175,7 +177,7 @@ class Instalog(plugin_sandbox.CoreAPI):
 
   def _ConfigEntriesToSandboxes(self, superclass, entries):
     plugins = {}
-    for plugin_id, plugin_config in entries.iteritems():
+    for plugin_id, plugin_config in iteritems(entries):
       # Parse this particular plugin entry and add to the _plugins map.
       plugin_entry = self._ConfigEntryToSandbox(
           superclass=superclass,

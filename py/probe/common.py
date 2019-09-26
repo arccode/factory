@@ -8,6 +8,8 @@
 
 import os
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
 from cros.factory.probe.functions.approx_match import ApproxMatchFunction
@@ -72,7 +74,7 @@ def EvaluateStatement(statement, approx_match=False, max_mismatch=0):
     the probe results.
   """
   def _FilterKey(values, statement):
-    return {k: v for k, v in values.iteritems()
+    return {k: v for k, v in iteritems(values)
             if k in statement['keys']}
 
   def _ChooseMatchFunction(approx_match, max_mismatch):

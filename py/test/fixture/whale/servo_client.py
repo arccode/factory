@@ -35,6 +35,8 @@ import re
 import time
 import xmlrpclib
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture.whale import servo_config
 from cros.factory.utils.net_utils import TimeoutXMLRPCServerProxy
@@ -256,7 +258,7 @@ class ServoClient(object):
       ServoClientError: If error occurs when getting value.
     """
     return dict((name, self._OnOffToBool(name, value))
-                for name, value in self.MultipleGet(names).iteritems())
+                for name, value in iteritems(self.MultipleGet(names)))
 
   def Set(self, name, value):
     """Sets the value from servo for control name.

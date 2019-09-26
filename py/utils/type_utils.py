@@ -10,6 +10,7 @@ import inspect
 import Queue
 import re
 
+from six import iteritems
 
 # The regular expression used by Overrides.
 _OVERRIDES_CLASS_RE = re.compile(r'^\s*class[^#]+\(\s*([^\s#]+)\s*\)\s*\:')
@@ -221,7 +222,7 @@ class AttrDict(dict):
 
   def __init__(self, *args, **kwargs):
     super(AttrDict, self).__init__(*args, **kwargs)
-    for key, val in self.iteritems():
+    for key, val in iteritems(self):
       self[key] = self._Convert(val)
     self.__dict__ = self
 
@@ -489,7 +490,7 @@ def UnicodeToString(obj):
     return [UnicodeToString(x) for x in obj]
   elif isinstance(obj, dict):
     return dict((UnicodeToString(k), UnicodeToString(v))
-                for k, v in obj.iteritems())
+                for k, v in iteritems(obj))
   elif isinstance(obj, unicode):
     return obj.encode('utf-8')
   elif isinstance(obj, tuple):

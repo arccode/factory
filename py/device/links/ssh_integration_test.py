@@ -11,6 +11,8 @@ import os
 import tempfile
 import unittest
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device.links import local
 from cros.factory.device.links import ssh
@@ -70,7 +72,7 @@ if __name__ == '__main__':
   parser.add_argument('-u', '--user', help='user name')
   parser.add_argument('-p', '--port', type=int, help='port')
   args = parser.parse_args()
-  dut_options.update([x for x in vars(args).iteritems() if x[1] is not None])
+  dut_options.update([x for x in iteritems(vars(args)) if x[1] is not None])
 
   logging.info('dut_options: %s', dut_options)
 

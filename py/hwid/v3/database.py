@@ -41,6 +41,7 @@ import hashlib
 import logging
 import re
 
+from six import iteritems
 from six import itervalues
 
 import factory_common  # pylint: disable=unused-import
@@ -332,7 +333,7 @@ class Database(object):
     """
     comps = self._components.GetComponents(comp_cls)
     if not include_default:
-      comps = {name: info for name, info in comps.iteritems()
+      comps = {name: info for name, info in iteritems(comps)
                if info.values is not None}
     return comps
 
@@ -394,7 +395,7 @@ class Database(object):
     # Each encoded field should be well defined.
     for encoded_field_name in self.encoded_fields:
       for comps in itervalues(self.GetEncodedField(encoded_field_name)):
-        for comp_cls, comp_names in comps.iteritems():
+        for comp_cls, comp_names in iteritems(comps):
           missing_comp_names = (
               set(comp_names) - set(self.GetComponents(comp_cls).keys()))
           if missing_comp_names:
@@ -403,7 +404,7 @@ class Database(object):
                 missing_comp_names)
 
   def _VerifyEncodedFieldComponents(self, components):
-    for comp_cls, comp_names in components.iteritems():
+    for comp_cls, comp_names in iteritems(components):
       for comp_name in comp_names:
         if comp_name not in self.GetComponents(comp_cls):
           raise common.HWIDException('The component %r is not recorded '
@@ -433,7 +434,7 @@ class _NamedNumber(dict):
           'Invalid source %r for `%s` part of a HWID database.' %
           (source, self.PART_TAG))
 
-    for number, name in source.iteritems():
+    for number, name in iteritems(source):
       self[number] = name
 
   def Export(self):
@@ -542,7 +543,7 @@ class ImageId(_NamedNumber):
     Raises:
       common.HWIDException if the image id is not found.
     """
-    for i, name in self.iteritems():
+    for i, name in iteritems(self):
       if name == image_name:
         return i
 
@@ -685,11 +686,11 @@ class EncodedFields(object):
     self._field_to_comp_classes = {}
     self._can_encode = True
 
-    for field_name, field_data in encoded_fields_expr.iteritems():
+    for field_name, field_data in iteritems(encoded_fields_expr):
       self._RegisterNewEmptyField(field_name, list(field_data.values()[0]))
-      for index, comps in field_data.iteritems():
+      for index, comps in iteritems(field_data):
         comps = yaml.Dict([(c, self._StandardlizeList(n))
-                           for c, n in comps.iteritems()])
+                           for c, n in iteritems(comps)])
         self.AddFieldComponents(field_name, comps, _index=index)
 
     # Preserve the class type reported by the parser.
@@ -729,8 +730,8 @@ class EncodedFields(object):
       raise common.HWIDException('The field name %r is invalid.' % field_name)
 
     ret = {}
-    for index, comps in self._fields[field_name].iteritems():
-      ret[index] = {c: self._StandardlizeList(n) for c, n in comps.iteritems()}
+    for index, comps in iteritems(self._fields[field_name]):
+      ret[index] = {c: self._StandardlizeList(n) for c, n in iteritems(comps)}
     return ret
 
   def GetComponentClasses(self, field_name):
@@ -756,7 +757,7 @@ class EncodedFields(object):
     Returns:
       None if no field for that; otherwise a string of the field name.
     """
-    for field_name, comp_cls_set in self._field_to_comp_classes.iteritems():
+    for field_name, comp_cls_set in iteritems(self._field_to_comp_classes):
       if comp_cls in comp_cls_set:
         return field_name
     return None
@@ -783,10 +784,10 @@ class EncodedFields(object):
       raise common.HWIDException('Each encoded field should encode a fixed set '
                                  'of component classes.')
 
-    counters = {c: collections.Counter(n) for c, n in components.iteritems()}
-    for existing_index, existing_comps in self.GetField(field_name).iteritems():
+    counters = {c: collections.Counter(n) for c, n in iteritems(components)}
+    for existing_index, existing_comps in iteritems(self.GetField(field_name)):
       if all(counter == collections.Counter(existing_comps[comp_cls])
-             for comp_cls, counter in counters.iteritems()):
+             for comp_cls, counter in iteritems(counters)):
         self._can_encode = False
         logging.warning(
             'The components combination %r already exists (at index %r).',
@@ -795,7 +796,7 @@ class EncodedFields(object):
     index = (_index if _index is not None
              else max(self._fields[field_name].keys() or [-1]) + 1)
     self._fields[field_name][index] = yaml.Dict(
-        sorted([(c, self._SimplifyList(n)) for c, n in components.iteritems()]))
+        sorted([(c, self._SimplifyList(n)) for c, n in iteritems(components)]))
 
   def AddNewField(self, field_name, components):
     """Adds a new field.
@@ -984,9 +985,9 @@ class Components(object):
     self._default_components = set()
     self._non_probeable_component_classes = set()
 
-    for comp_cls, comps_data in self._components_expr.iteritems():
+    for comp_cls, comps_data in iteritems(self._components_expr):
       self._components[comp_cls] = {}
-      for comp_name, comp_attr in comps_data['items'].iteritems():
+      for comp_name, comp_attr in iteritems(comps_data['items']):
         self._AddComponent(comp_cls, comp_name, comp_attr['values'],
                            comp_attr.get('status',
                                          common.COMPONENT_STATUS.supported))
@@ -1018,7 +1019,7 @@ class Components(object):
     for comp_cls in self.component_classes:
       components_dict = self._components_expr.setdefault(
           comp_cls, {'items': yaml.Dict()})['items']
-      for comp_name, comp_info in self.GetComponents(comp_cls).iteritems():
+      for comp_name, comp_info in iteritems(self.GetComponents(comp_cls)):
         if comp_name not in components_dict:
           components_dict[comp_name] = yaml.Dict()
           if comp_info.status != common.COMPONENT_STATUS.supported:
@@ -1069,7 +1070,7 @@ class Components(object):
     Returns:
       None or a string of the component name.
     """
-    for comp_name, comp_info in self._components.get(comp_cls, {}).iteritems():
+    for comp_name, comp_info in iteritems(self._components.get(comp_cls, {})):
       if comp_info.values is None:
         return comp_name
     return None
@@ -1124,8 +1125,8 @@ class Components(object):
                       'mark can_encode=False.', comp_cls)
       self._can_encode = False
 
-    for existed_comp_name, existed_comp_info in self.GetComponents(
-        comp_cls).iteritems():
+    for existed_comp_name, existed_comp_info in iteritems(self.GetComponents(
+        comp_cls)):
       existed_comp_values = existed_comp_info.values
       # At here, we only complain if two components are exactly the same.  There
       # is another case that is not caught here: at least one of the component
@@ -1279,7 +1280,7 @@ class Pattern(object):
     """Exports this `pattern` part of HWID database into a serializable object
     which can be stored into a HWID database file."""
     pattern_list = []
-    for image_id, pattern in sorted(self._image_id_to_pattern.iteritems()):
+    for image_id, pattern in sorted(iteritems(self._image_id_to_pattern)):
       for obj_to_export, existed_pattern in pattern_list:
         if pattern is existed_pattern:
           obj_to_export['image_ids'].append(image_id)

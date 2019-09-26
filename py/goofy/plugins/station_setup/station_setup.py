@@ -10,6 +10,8 @@ import os
 import re
 import subprocess
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import paths
@@ -112,7 +114,7 @@ class StationSetup(plugin.Plugin):
       return False
 
     ls_cmd = [_OVL_BIN, 'ls']
-    for key, value in check_dict.iteritems():
+    for key, value in iteritems(check_dict):
       ls_cmd.extend(['-f', '%s=^%s$' % (key, re.escape(value))])
     match_clients = process_utils.CheckOutput(ls_cmd, log=True).splitlines()
 
@@ -149,7 +151,7 @@ class StationSetup(plugin.Plugin):
 
   @plugin.RPCFunction
   def UpdateProperties(self, update):
-    for key, value in update.iteritems():
+    for key, value in iteritems(update):
       if not value:
         return {
             'success': False,

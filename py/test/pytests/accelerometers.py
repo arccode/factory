@@ -52,6 +52,7 @@ You can also change the limits of each axis to loose the criteria::
 
 """
 
+from six import iteritems
 from six import viewkeys
 
 import factory_common  # pylint: disable=unused-import
@@ -100,7 +101,7 @@ class AccelerometersTest(test_case.TestCase):
       self.args.limits = DEFAULT_LIMITS
     assert viewkeys(self.args.limits) == {'x', 'y', 'z'}, (
         'Limits should be a dictionary with keys "x", "y" and "z"')
-    for unused_axis, [limit_min, limit_max] in self.args.limits.iteritems():
+    for unused_axis, [limit_min, limit_max] in iteritems(self.args.limits):
       assert limit_min <= limit_max
 
     self.dut = device_utils.CreateDUTInterface()
@@ -128,7 +129,7 @@ class AccelerometersTest(test_case.TestCase):
       self.FailTask('Read raw data failed.')
 
     passed = True
-    for axis, [limit_min, limit_max] in self.args.limits.iteritems():
+    for axis, [limit_min, limit_max] in iteritems(self.args.limits):
       key = 'in_accel_' + axis  # in_accel_(x|y|z)
       passed &= testlog.CheckNumericParam(
           name=key, value=raw_data[key], min=limit_min, max=limit_max)

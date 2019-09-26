@@ -6,6 +6,7 @@
 import unittest
 
 import mox
+from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -34,7 +35,7 @@ class VPDTest(unittest.TestCase):
       data: A dict to be read.
     """
     self.dut.CallOutput(['vpd', '-i', partition, '-l']).AndReturn(
-        '\n'.join(('"%s"="%s"' % (k, v) for k, v in data.iteritems())))
+        '\n'.join(('"%s"="%s"' % (k, v) for k, v in iteritems(data))))
 
   def tearDown(self):
     self.mox.UnsetStubs()

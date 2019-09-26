@@ -21,6 +21,7 @@ import time
 import uuid
 import xmlrpclib
 
+from six import iteritems
 import yaml
 
 import factory_common  # pylint: disable=unused-import
@@ -400,7 +401,7 @@ class GoofyRPC(object):
         enabled: Whether this is the current-enabled test list.
     """
     ret = []
-    for k, v in self.goofy.test_lists.iteritems():
+    for k, v in iteritems(self.goofy.test_lists):
       ret.append(
           dict(id=k, name=v.label,
                enabled=(k == self.goofy.test_list.test_list_id)))
@@ -418,7 +419,7 @@ class GoofyRPC(object):
   def GetTestStateMap(self):
     """Returns the test states in JSON serializable struct."""
     states = self.goofy.state_instance.GetTestStates()
-    return {key: state.ToStruct() for key, state in states.iteritems()}
+    return {key: state.ToStruct() for key, state in iteritems(states)}
 
   def GetGoofyStatus(self):
     """Returns a dictionary containing Goofy status information.
@@ -554,7 +555,7 @@ class GoofyRPC(object):
       output_filename = '%s-%%s%s' % os.path.splitext(output_file)
 
     display = device_utils.CreateDUTInterface().display
-    for port_id, port_info in display.GetPortInfo().iteritems():
+    for port_id, port_info in iteritems(display.GetPortInfo()):
       if port_info.connected:
         display.CaptureFramebuffer(port_id).save(output_filename % port_id)
 

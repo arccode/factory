@@ -62,6 +62,7 @@ import tempfile
 import threading
 import zipfile
 
+from six import iteritems
 from six import iterkeys
 import yaml
 
@@ -755,7 +756,7 @@ class AudioQualityTest(test_case.TestCase):
     cmd = event.data.get('cmd', '')
     if cmd == 'reset':
       self.SetMessage(_LABEL_SPACE_TO_START)
-    for key, handler in self._handlers.iteritems():
+    for key, handler in iteritems(self._handlers):
       if key.match(cmd):
         handler()
         break

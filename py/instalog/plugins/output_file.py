@@ -24,6 +24,8 @@ from __future__ import print_function
 import os
 import shutil
 
+from six import iteritems
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
@@ -98,7 +100,7 @@ class OutputFile(plugin_base.OutputPlugin):
 
   def PrepareEvent(self, event, base_dir):
     """Copies an event's attachments and returns its serialized form."""
-    for att_id, att_path in event.attachments.iteritems():
+    for att_id, att_path in iteritems(event.attachments):
       if os.path.isfile(att_path):
         att_hash = file_utils.SHA1InHex(att_path)
         att_newpath = os.path.join(ATT_DIR_NAME, att_hash)
@@ -109,7 +111,7 @@ class OutputFile(plugin_base.OutputPlugin):
   def GetEventAttachmentSize(self, event):
     """Returns the total size of given event's attachments."""
     total_size = 0
-    for _unused_att_id, att_path in event.attachments.iteritems():
+    for _unused_att_id, att_path in iteritems(event.attachments):
       if os.path.isfile(att_path):
         total_size += os.path.getsize(att_path)
     return total_size

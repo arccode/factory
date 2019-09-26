@@ -5,6 +5,8 @@
 
 import unittest
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.test_lists import checker
 from cros.factory.test.test_lists import manager
@@ -83,7 +85,7 @@ class CheckerTest(unittest.TestCase):
     }
 
     resolved_args = self.checker.StaticallyResolveTestArgs(test, test_list)
-    for key, expected_value in expected_args.iteritems():
+    for key, expected_value in iteritems(expected_args):
       if expected_value == checker.UnresolvableException:
         self.assertEqual(resolved_args[key].eval_string, test.dargs[key])
       else:

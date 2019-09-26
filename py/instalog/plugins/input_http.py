@@ -40,6 +40,8 @@ try:
 except ImportError:
   import StringIO
 
+from six import iteritems
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import log_utils
@@ -194,7 +196,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
             if key != 'event':
               event.attachments[key] = key
 
-        for att_id, att_key in event.attachments.iteritems():
+        for att_id, att_key in iteritems(event.attachments):
           if att_key not in form or isinstance(form[att_key], list):
             raise ValueError('Attachment(%s) should have exactly one in the '
                              'request' % att_key)

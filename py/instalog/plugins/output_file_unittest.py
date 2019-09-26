@@ -13,6 +13,8 @@ import os
 import tempfile
 import unittest
 
+from six import iteritems
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import log_utils
@@ -85,7 +87,7 @@ class TestOutputFile(unittest.TestCase):
       self.assertEqual([], deserialized_event.history)
 
   def ChangeRelativePath(self, event, base_dir):
-    for att_id, relative_path in event.attachments.iteritems():
+    for att_id, relative_path in iteritems(event.attachments):
       event.attachments[att_id] = os.path.join(
           base_dir, relative_path)
 

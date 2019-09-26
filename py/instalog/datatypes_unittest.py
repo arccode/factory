@@ -16,6 +16,7 @@ import tempfile
 import unittest
 
 import mock
+from six import iteritems
 
 import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
@@ -127,7 +128,7 @@ class TestEvent(unittest.TestCase):
     self.assertEqual(event['a'], payload['a'])
     self.assertEqual(event['b'], payload['b'])
     self.assertTrue(repr(payload) in repr(event))
-    self.assertEqual(('a', 1), event.iteritems().next())
+    self.assertEqual(('a', 1), iteritems(event).next())
     with self.assertRaises(AttributeError):
       self.assertTrue(event.__d__)
     event.setdefault('a', 2)

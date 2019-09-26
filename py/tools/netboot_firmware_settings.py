@@ -13,6 +13,8 @@ import socket
 import struct
 import sys
 
+from six import iteritems
+
 import factory_common  # pylint:disable=unused-import
 from cros.factory.utils import fmap
 
@@ -213,7 +215,7 @@ class Settings(object):
     """
     value = self.signature
     value += struct.pack('<I', len(self.attributes))
-    for unused_i, attr in self.attributes.iteritems():
+    for unused_i, attr in iteritems(self.attributes):
       value += attr.pack()
     return value
 

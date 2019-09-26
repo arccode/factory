@@ -7,6 +7,7 @@
 import unittest
 
 import mox
+from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import service_utils
@@ -71,7 +72,7 @@ class ServiceManagerTest(unittest.TestCase):
         Status.START: 'start',
         Status.STOP: 'stop'}
 
-    for (status, cmd) in commands.iteritems():
+    for status, cmd in iteritems(commands):
       output = cmd + '_result'
       service_utils.CheckOutput([cmd, 'service']).AndReturn(output)
       service_utils.ParseServiceStatus(output).AndReturn(status)
@@ -93,7 +94,7 @@ class ServiceManagerTest(unittest.TestCase):
         Status.START: 'start',
         Status.STOP: 'stop'}
 
-    for (status, cmd) in commands.iteritems():
+    for status, cmd in iteritems(commands):
       output = cmd + '_result'
       self.dut.CheckOutput([cmd, 'service']).AndReturn(output)
       service_utils.ParseServiceStatus(output).AndReturn(status)

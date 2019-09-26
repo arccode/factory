@@ -15,6 +15,8 @@ import tempfile
 import threading
 import time
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
@@ -586,7 +588,7 @@ class _TestInvocationTestLogHelper(object):
           dargs, allow_types=(int, long, float, basestring, type(None)))
       for k, v in flattened_dargs:
         testlog_event.AddArgument(k, v)
-    for k, v in init_data['serialNumbers'].iteritems():
+    for k, v in iteritems(init_data['serialNumbers']):
       testlog_event.AddSerialNumber(k, v)
 
     tag = init_data['tag']

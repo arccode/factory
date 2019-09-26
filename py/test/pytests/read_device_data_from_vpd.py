@@ -84,6 +84,7 @@ To write and read back component data into VPD, add this in test list::
   }
 """
 
+from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -116,7 +117,7 @@ class ReadDeviceDataFromVPD(test_case.TestCase):
       sections['ro'] = device_data.DEFAULT_RO_VPD_KEY_MAP
       sections['rw'] = device_data.DEFAULT_RW_VPD_KEY_MAP
 
-    for name, key_map in sections.iteritems():
+    for name, key_map in iteritems(sections):
       self.ui.SetState(
           _('Reading device data from {vpd_section} VPD...',
             vpd_section=name.upper()))

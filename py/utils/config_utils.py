@@ -53,6 +53,7 @@ import os
 import sys
 import zipimport
 
+from six import iteritems
 from six import iterkeys
 
 from . import file_utils
@@ -157,7 +158,7 @@ def OverrideConfig(base, overrides, copy_on_write=False):
 
   changed = False
   result = base.copy() if copy_on_write else base
-  for k, v in overrides.iteritems():
+  for k, v in iteritems(overrides):
     if isinstance(v, collections.Mapping):
       v = v.copy()
       if pop_bool(v, _OVERRIDE_DELETE_KEY):
@@ -191,7 +192,7 @@ def GetNamedTuple(mapping):
   """
   if not isinstance(mapping, collections.Mapping):
     return mapping
-  new_mapping = dict((k, GetNamedTuple(v)) for k, v in mapping.iteritems())
+  new_mapping = dict((k, GetNamedTuple(v)) for k, v in iteritems(mapping))
   return collections.namedtuple('Config', iterkeys(new_mapping))(**new_mapping)
 
 

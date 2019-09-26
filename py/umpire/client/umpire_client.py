@@ -6,6 +6,8 @@
 
 import logging
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.umpire import common
@@ -157,7 +159,7 @@ class UmpireClientInfo(object):
         # With prefix 'mac', output should be
         # 'mac.eth0='xxxx', 'mac.wlan0=xxxx'.
         values = getattr(self, UmpireClientInfo.KEY_TRANSLATION[key_prefix])
-        for subkey, value in values.iteritems():
+        for subkey, value in iteritems(values):
           info_dict['%s.%s' % (key_prefix, subkey)] = value
     except KeyError as e:
       raise UmpireClientInfoException(

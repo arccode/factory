@@ -10,6 +10,8 @@ import json
 import logging
 import os
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import config_utils
 
@@ -47,7 +49,7 @@ def _ExtractArgs(func, kargs):
   if spec.keywords is None:
     # if the function accepts ** arguments, we can just pass everything into it
     # so we only need to filter kargs if spec.keywords is None
-    kargs = {k: v for (k, v) in kargs.iteritems() if k in spec.args}
+    kargs = {k: v for (k, v) in iteritems(kargs) if k in spec.args}
   return kargs
 
 

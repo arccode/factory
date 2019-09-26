@@ -9,6 +9,8 @@ import shutil
 import tempfile
 import unittest
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
@@ -22,7 +24,7 @@ CMD_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 class ProbeCmdTest(unittest.TestCase):
   def assertProbedResultEquals(self, result1, result2):
     self.assertEqual(len(result1), len(result2))
-    for k, v1 in result1.iteritems():
+    for k, v1 in iteritems(result1):
       self.assertIn(k, result2)
       self.assertEqual(sorted(v1), sorted(result2[k]))
 

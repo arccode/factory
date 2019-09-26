@@ -39,6 +39,7 @@ import subprocess
 import sys
 import uuid
 
+from six import iteritems
 
 class StructError(Exception):
   """Exceptions in packing and unpacking from/to struct fields."""
@@ -280,7 +281,7 @@ class GPTObject(object):
       self.Zero()
 
     all_names = [f for f in self.__slots__]
-    for name, value in kargs.iteritems():
+    for name, value in iteritems(kargs):
       if name not in all_names:
         raise GPTError('%s does not support keyword arg <%s>.' %
                        (type(self).__name__, name))
@@ -342,7 +343,7 @@ class GPTObject(object):
 
   def Update(self, **dargs):
     """Applies multiple values in current object."""
-    for name, value in dargs.iteritems():
+    for name, value in iteritems(dargs):
       setattr(self, name, value)
 
   def Zero(self):
@@ -389,7 +390,7 @@ class GPT(object):
   }
   TYPE_GUID_FROM_NAME = dict(
       ('efi' if v.startswith('EFI') else v.lower().split()[-1], k)
-      for k, v in TYPE_GUID_MAP.iteritems())
+      for k, v in iteritems(TYPE_GUID_MAP))
   TYPE_GUID_UNUSED = TYPE_GUID_FROM_NAME['unused']
   TYPE_GUID_CHROMEOS_KERNEL = TYPE_GUID_FROM_NAME['kernel']
   TYPE_GUID_LIST_BOOTABLE = [
@@ -958,7 +959,7 @@ class GPTCommands(object):
   def DefineArgs(self, parser):
     """Defines all available commands to an argparser subparsers instance."""
     subparsers = parser.add_subparsers(help='Sub-command help.', dest='command')
-    for name, instance in sorted(self.commands.iteritems()):
+    for name, instance in sorted(iteritems(self.commands)):
       parser = subparsers.add_parser(
           name, description=instance.__doc__,
           formatter_class=argparse.RawDescriptionHelpFormatter,

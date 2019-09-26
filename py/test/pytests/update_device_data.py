@@ -157,6 +157,8 @@ import Queue
 import logging
 import re
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
 from cros.factory.test import i18n
@@ -309,7 +311,7 @@ class UpdateDeviceData(test_case.TestCase):
 
     if self.args.config_name:
       fields += [(k, v, None, None) for k, v in
-                 device_data.LoadConfig(self.args.config_name).iteritems()]
+                 iteritems(device_data.LoadConfig(self.args.config_name))]
 
     if self.args.fields:
       fields += self.args.fields

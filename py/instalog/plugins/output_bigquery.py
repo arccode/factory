@@ -26,6 +26,8 @@ import datetime
 import os
 import time
 
+from six import iteritems
+
 # pylint: disable=import-error, no-name-in-module
 from google.cloud import bigquery
 from google.cloud import exceptions
@@ -158,7 +160,7 @@ class OutputBigQuery(plugin_base.OutputPlugin):
 
   def UploadAttachments(self, event):
     """Uploads attachments in an event to Google Cloud Storage."""
-    for att_id, att_path in event.attachments.iteritems():
+    for att_id, att_path in iteritems(event.attachments):
       target_filename = file_utils.SHA1InHex(att_path)
       target_dir = self.args.gcs_target_dir.strip('/')
       target_path = '/%s/%s' % (target_dir, target_filename)

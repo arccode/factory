@@ -21,6 +21,8 @@ The above two use cases can be written to a more simple form (in LaTeX syntax):
 Above two formulas are implemented in `transformer.py`.
 """
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import type_utils
 
@@ -43,7 +45,7 @@ class BOM(object):
     self.image_id = image_id
     self.components = {}
 
-    for comp_cls, comp_names in components.iteritems():
+    for comp_cls, comp_names in iteritems(components):
       self.SetComponent(comp_cls, comp_names)
 
   def SetComponent(self, comp_cls, comp_names):

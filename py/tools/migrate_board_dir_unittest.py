@@ -14,6 +14,7 @@ import tempfile
 import unittest
 
 import mox
+from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import migrate_board_dir
@@ -30,7 +31,7 @@ def CheckFileContent(path_contents_dict):
         'path2', content2'} indicating the expected content for each file.
         A special content 'linkto: source' means a symlink pointing to source.
   """
-  for path, expected_content in path_contents_dict.iteritems():
+  for path, expected_content in iteritems(path_contents_dict):
     if expected_content.startswith('linkto:'):
       expected_linkto = expected_content.split(':')[1].strip()
       actual_linkto = os.readlink(path)
@@ -53,7 +54,7 @@ def CreateFileWithContent(path_contents_dict):
         A special content 'linkto: source' means creating a symlink pointing
         to source.
   """
-  for path, content in path_contents_dict.iteritems():
+  for path, content in iteritems(path_contents_dict):
     if not os.path.exists(os.path.dirname(path)):
       os.makedirs(os.path.dirname(path))
 

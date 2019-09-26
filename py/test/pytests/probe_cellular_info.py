@@ -11,6 +11,8 @@ import logging
 import re
 import unittest
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
@@ -47,10 +49,10 @@ class ProbeCellularInfoTest(unittest.TestCase):
 
     event_log.Log('cellular_info', modem_status_stdout=output, **data)
     testlog.LogParam('modem_status_stdout', output)
-    for k, v in data.iteritems():
+    for k, v in iteritems(data):
       testlog.LogParam(k, v)
 
-    missing = set(k for k, v in data.iteritems() if v is None)
+    missing = set(k for k, v in iteritems(data) if v is None)
     self.assertFalse(
         missing,
         "Missing elements in 'modem status' output: %s" % sorted(missing))
@@ -58,4 +60,4 @@ class ProbeCellularInfoTest(unittest.TestCase):
     logging.info('Probed data: %s', data)
     device_data.UpdateDeviceData({
         device_data.JoinKeys(device_data.KEY_COMPONENT, 'cellular', name): value
-        for name, value in data.iteritems()})
+        for name, value in iteritems(data)})

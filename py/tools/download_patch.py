@@ -17,6 +17,8 @@ import os
 import subprocess
 import sys
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils import cros_board_utils
@@ -163,7 +165,7 @@ def TopologicalSort(changes):
 
   # sort CLs in topological order
   def walk(d):
-    for k, v in d.iteritems():
+    for k, v in iteritems(d):
       yield {
           'url': v['url'],
           'fetch': v['fetch'],

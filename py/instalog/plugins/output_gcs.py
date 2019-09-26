@@ -8,6 +8,8 @@
 
 from __future__ import print_function
 
+from six import iteritems
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog.utils.arg_utils import Arg
@@ -102,7 +104,7 @@ class OutputCloudStorage(plugin_base.OutputPlugin):
 
   def UploadEvent(self, event):
     """Uploads attachments of given event."""
-    for att_id, att_path in event.attachments.iteritems():
+    for att_id, att_path in iteritems(event.attachments):
       target_filename = (file_utils.SHA1InHex(att_path) if self.args.use_sha1
                          else att_id)
       target_path = '/%s/%s' % (self.target_dir, target_filename)

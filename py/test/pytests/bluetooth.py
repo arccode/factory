@@ -83,6 +83,8 @@ import sys
 import threading
 import time
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
@@ -656,7 +658,7 @@ class BluetoothTest(test_case.TestCase):
         return devices
 
       filtered_devices = {}
-      for mac, props in devices.iteritems():
+      for mac, props in iteritems(devices):
         if 'Name' not in props:
           logging.warning('Device %s: %s does not have "Name" property.',
                           mac, props)
@@ -677,7 +679,7 @@ class BluetoothTest(test_case.TestCase):
         devices: A dict. Keys are mac addresses and values are dicts of
           properties.
       """
-      for mac, props in devices.iteritems():
+      for mac, props in iteritems(devices):
         if 'RSSI' not in props:
           logging.warning('Device %s: %s does not have "RSSI" property.',
                           mac, props)
@@ -704,7 +706,7 @@ class BluetoothTest(test_case.TestCase):
         devices = bluetooth_manager.ScanDevices(adapter, timeout_secs)
 
       logging.info('Found %d device(s).', len(devices))
-      for mac, props in devices.iteritems():
+      for mac, props in iteritems(devices):
         try:
           logging.info('Device found: %s. Name: %s, RSSI: %d',
                        mac, props['Name'], props['RSSI'])
@@ -727,7 +729,7 @@ class BluetoothTest(test_case.TestCase):
 
     # Calculates maximum average RSSI.
     max_average_rssi_mac, max_average_rssi = None, -sys.float_info.max
-    for mac, rssis in candidate_rssis.iteritems():
+    for mac, rssis in iteritems(candidate_rssis):
       average_rssi = float(sum(rssis)) / len(rssis)
       logging.info('Device %s has average RSSI: %f', mac, average_rssi)
       event_log.Log('avg_rssi', mac=mac, average_rssi=average_rssi)
@@ -858,7 +860,7 @@ class BluetoothTest(test_case.TestCase):
         devices = bluetooth_manager.ScanDevices(adapter,
                                                 timeout_secs=timeout_secs,
                                                 match_address=mac_to_scan)
-      for mac, props in devices.iteritems():
+      for mac, props in iteritems(devices):
         if mac == mac_to_scan and 'RSSI' in props:
           session.console.info('RSSI of count %d: %.2f', i, props['RSSI'])
           rssis.append(props['RSSI'])

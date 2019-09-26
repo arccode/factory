@@ -1,3 +1,4 @@
 jsonrpclib==0.1.7
 PyYAML==3.12
 requests==2.13.0
+six==1.12.0

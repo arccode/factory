@@ -10,6 +10,8 @@ import cgi
 import logging
 import string
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import translation
 
@@ -74,9 +76,9 @@ def StringFormat(_format_string, **kwargs):
   _format_string = translation.Translated(_format_string)
 
   kwargs = {name: translation.Translated(val, translate=False)
-            for name, val in kwargs.iteritems()}
-  for locale, format_str in _format_string.iteritems():
-    format_args = {name: val[locale] for name, val in kwargs.iteritems()}
+            for name, val in iteritems(kwargs)}
+  for locale, format_str in iteritems(_format_string):
+    format_args = {name: val[locale] for name, val in iteritems(kwargs)}
     ret[locale] = _FORMATTER.vformat(format_str, [], format_args)
   return ret
 
@@ -102,4 +104,4 @@ def HTMLEscape(text):
   Returns:
     The new translation dict with all values HTML-escaped.
   """
-  return {locale: cgi.escape(value) for locale, value in text.iteritems()}
+  return {locale: cgi.escape(value) for locale, value in iteritems(text)}

@@ -11,6 +11,7 @@ import re
 import threading
 import uuid
 
+from six import iteritems
 import yaml
 
 import factory_common  # pylint: disable=unused-import
@@ -123,7 +124,7 @@ class ChromeOSBluetoothManager(BluetoothManager):
     path_prefix = adapter.object_path
     bus = dbus.SystemBus()
     remote_objects = self._manager.GetManagedObjects()
-    for path, ifaces in remote_objects.iteritems():
+    for path, ifaces in iteritems(remote_objects):
       if path.startswith(path_prefix):
         device = ifaces.get(DEVICE_INTERFACE)
         if device and str(device['Address']) == mac_addr:
@@ -309,7 +310,7 @@ class ChromeOSBluetoothManager(BluetoothManager):
     objects = self._manager.GetManagedObjects()
     bus = dbus.SystemBus()
     adapters = []
-    for path, interfaces in objects.iteritems():
+    for path, interfaces in iteritems(objects):
       adapter = interfaces.get(ADAPTER_INTERFACE)
       if adapter is None:
         continue
@@ -412,7 +413,7 @@ class ChromeOSBluetoothManager(BluetoothManager):
     result = {}
     path_prefix = adapter.object_path
     remote_objects = self._manager.GetManagedObjects()
-    for path, ifaces in remote_objects.iteritems():
+    for path, ifaces in iteritems(remote_objects):
       if path.startswith(path_prefix):
         device = ifaces.get(DEVICE_INTERFACE)
         if device and "Address" in device:
@@ -512,7 +513,7 @@ class ChromeOSBluetoothManager(BluetoothManager):
       if DEVICE_INTERFACE not in interfaces:
         return
       properties = interfaces[DEVICE_INTERFACE]
-      for key, value in properties.iteritems():
+      for key, value in iteritems(properties):
         logging.debug('%s : %s', key, value)
 
       if path in devices:

@@ -19,6 +19,7 @@ import logging
 import time
 import uuid
 
+from six import iteritems
 from twisted.internet import reactor
 
 
@@ -139,10 +140,10 @@ class DownloadSlotsManager(object):
 
   def _RemoveExpiredSession(self):
     now = time.time()
-    self.slots = {identity: t for identity, t in self.slots.iteritems()
+    self.slots = {identity: t for identity, t in iteritems(self.slots)
                   if now - t < _SLOT_ALIVE_TIME}
     self.wait_queue = collections.OrderedDict(
-        (identity, t) for identity, t in self.wait_queue.iteritems()
+        (identity, t) for identity, t in iteritems(self.wait_queue)
         if now - t < _SLOT_ALIVE_TIME)
     self._CheckAvailableSlot()
 

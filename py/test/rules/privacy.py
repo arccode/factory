@@ -7,6 +7,8 @@
 
 import copy
 
+from six import iteritems
+
 BLACKLIST_KEYS = [
     'ubind_attribute',
     'gbind_attribute',
@@ -34,7 +36,7 @@ def FilterDict(data):
   if isinstance(data, (list, set)):
     ret = [FilterDict(x) for x in data]
   elif isinstance(data, dict):
-    for k, v in ret.iteritems():
+    for k, v in iteritems(ret):
       if v is None:
         continue
       if str(k) in BLACKLIST_KEYS:

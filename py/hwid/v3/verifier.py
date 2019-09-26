@@ -17,6 +17,8 @@ import collections
 import logging
 import re
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
 from cros.factory.test.rules import phase
@@ -42,7 +44,7 @@ def VerifyComponentStatus(database, bom, mode, current_phase=None):
   Raises:
     HWIDException if verification fails.
   """
-  for comp_cls, comp_names in bom.components.iteritems():
+  for comp_cls, comp_names in iteritems(bom.components):
     for comp_name in comp_names:
       status = database.GetComponents(comp_cls)[comp_name].status
       if status == common.COMPONENT_STATUS.supported:
@@ -153,7 +155,7 @@ def VerifyBOM(database, decoded_bom, probed_bom):
         num_comps[comp] -= 1
 
     results = [[comp] * num_comp
-               for comp, num_comp in num_comps.iteritems() if num_comp > 0]
+               for comp, num_comp in iteritems(num_comps) if num_comp > 0]
     return sorted(sum(results, []))
 
   # We only verify the components listed in the pattern.

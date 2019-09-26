@@ -110,6 +110,8 @@ import re
 import subprocess
 import threading
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
@@ -434,7 +436,7 @@ class RemovableStorageTest(test_case.TestCase):
         'if': ifile, 'of': ofile, 'seek': seek, 'skip': skip,
         'bs': bs, 'count': count, 'conv': conv
     }
-    for key, value in args.iteritems():
+    for key, value in iteritems(args):
       if value:
         cmd.append('%s=%s' % (key, value))
     return cmd

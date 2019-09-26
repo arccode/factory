@@ -11,9 +11,11 @@ import logging
 import os
 import traceback
 
+# pylint: disable=import-error, no-name-in-module
 from google.appengine.api.app_identity import app_identity
 from google.appengine.api import mail
 from google.appengine.api import taskqueue
+from six import iteritems
 import urllib3  # pylint: disable=import-error
 import webapp2  # pylint: disable=import-error
 import yaml
@@ -123,7 +125,7 @@ class RefreshHandler(webapp2.RequestHandler):
     """
 
     db_lists = collections.defaultdict(list)
-    for model, board in self.board_mapping.iteritems():
+    for model, board in iteritems(self.board_mapping):
       hwid_data = self.hwid_manager.GetBoardDataFromCache(model)
       if hwid_data is not None:
         db_lists[board].append(hwid_data.database)
@@ -210,7 +212,7 @@ class RefreshHandler(webapp2.RequestHandler):
     reviewers = self.hwid_manager.GetCLReviewers()
     ccs = self.hwid_manager.GetCLCCs()
     new_git_files = []
-    for filepath, filecontent in new_files.iteritems():
+    for filepath, filecontent in iteritems(new_files):
       new_git_files.append((
           os.path.join(prefix, filepath), GIT_NORMAL_FILE_MODE, filecontent))
 
@@ -294,7 +296,7 @@ class RefreshHandler(webapp2.RequestHandler):
 
     db_lists = self.GetPayloadDBLists()
 
-    for board, db_list in db_lists.iteritems():
+    for board, db_list in iteritems(db_lists):
       try:
         new_files = vpg_module.GenerateVerificationPayload(db_list)
       except vpg_module.GenerateVerificationPayloadError as ex:
@@ -345,5 +347,5 @@ class RefreshHandler(webapp2.RequestHandler):
     commit_id, payload_hash_mapping = self.UpdatePayloads()
     if commit_id:
       self.hwid_manager.SetLatestHWIDMasterCommit(commit_id)
-    for board, payload_hash in payload_hash_mapping.iteritems():
+    for board, payload_hash in iteritems(payload_hash_mapping):
       self.hwid_manager.SetLatestPayloadHash(board, payload_hash)

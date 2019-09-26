@@ -8,6 +8,8 @@ import collections
 import copy
 import re
 
+from six import iteritems
+
 # pylint: disable=import-error, no-name-in-module
 from google.protobuf import text_format
 import hardware_verifier_pb2
@@ -280,9 +282,9 @@ def GenerateVerificationPayload(dbs):
   for db in dbs:
     model_prefix = db.project.lower()
     probe_config_data = {}
-    for hwid_comp_category, ps_gens in ps_generators.iteritems():
+    for hwid_comp_category, ps_gens in iteritems(ps_generators):
       comps = db.GetComponents(hwid_comp_category, include_default=False)
-      for comp_name, comp_info in comps.iteritems():
+      for comp_name, comp_info in iteritems(comps):
         unique_comp_name = model_prefix + '_' + comp_name
         if comp_info.status == hwid_common.COMPONENT_STATUS.duplicate:
           continue
@@ -313,7 +315,7 @@ def GenerateVerificationPayload(dbs):
               (hwid_comp_category, comp_info))
 
       # Append the generic probe statements.
-      for comp_category, ps_info in GENERIC_PROBE_STATEMENTS.iteritems():
+      for comp_category, ps_info in iteritems(GENERIC_PROBE_STATEMENTS):
         _AppendProbeStatement(probe_config_data, comp_category,
                               GENERIC_COMPONENT_NAME, ps_info.probe_statement)
     probe_config_pathname = 'runtime_probe/%s/probe_config.json' % model_prefix
@@ -322,7 +324,7 @@ def GenerateVerificationPayload(dbs):
   hw_verification_spec.component_infos.sort(
       key=lambda ci: (ci.component_category, ci.component_uuid))
   # Append the whitelists in the verification spec.
-  for comp_category, ps_info in GENERIC_PROBE_STATEMENTS.iteritems():
+  for comp_category, ps_info in iteritems(GENERIC_PROBE_STATEMENTS):
     hw_verification_spec.generic_component_value_whitelists.add(
         component_category=comp_category, field_names=ps_info.whitelist_fields)
   ret_files['hw_verification_spec.prototxt'] = text_format.MessageToString(
@@ -366,7 +368,7 @@ def main():
   logging.info('Generate the verification payload data.')
   results = GenerateVerificationPayload(dbs)
 
-  for pathname, content in results.iteritems():
+  for pathname, content in iteritems(results):
     logging.info('Output the verification payload file (%s).', pathname)
     fullpath = os.path.join(args.output_dir, pathname)
     file_utils.TryMakeDirs(os.path.dirname(fullpath))

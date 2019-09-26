@@ -7,6 +7,8 @@ import os
 import tempfile
 import unittest
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import mmc
 from cros.factory.utils import file_utils
@@ -26,7 +28,7 @@ class MMCFunctionTest(unittest.TestCase):
     real_path = self.my_root + real_path
 
     file_utils.TryMakeDirs(real_path)
-    for key, value in values.iteritems():
+    for key, value in iteritems(values):
       file_utils.WriteFile(os.path.join(real_path, key), value)
 
     link_name = os.path.join(

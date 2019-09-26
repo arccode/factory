@@ -51,6 +51,8 @@ arguemnt description for the details)::
 
 import functools
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.gooftool import common as gooftool_common
@@ -77,7 +79,7 @@ class CheckCr50FirmwareBoardIDTest(test_case.TestCase):
           'either an integer or a string.  If the value is a string, '
           'the value can be either the hex code of the board ID flags or %s.' %
           ', '.join('%s for %08x' % (k, v)
-                    for k, v in _PREDEFINED_PHASES.iteritems()),
+                    for k, v in iteritems(_PREDEFINED_PHASES)),
           default=None),
   ]
 

@@ -9,9 +9,10 @@ import math
 import re
 import uuid
 
-# For unittest purpose. Then mock module can change six.moves.input function
-# TODO(kerker) Removed after py3 upgrade complete
+# For unittest purpose. Then mock module can change six.moves.input function.
+# TODO(kerker) Remove after py3 upgrade complete.
 import six
+from six import iteritems
 from six import itervalues
 
 import factory_common  # pylint: disable=unused-import
@@ -300,7 +301,7 @@ class DatabaseBuilder(object):
     """
     def _IsSubset(subset, superset):
       return all([subset.get(key) == value
-                  for key, value in superset.iteritems()])
+                  for key, value in iteritems(superset)])
 
     # Only add the unique component to the database.
     # For example, if the given probed values are
@@ -341,7 +342,7 @@ class DatabaseBuilder(object):
     """
     # Add extra components.
     existed_comp_classes = self.database.GetComponentClasses()
-    for comp_cls, probed_comps in probed_results.iteritems():
+    for comp_cls, probed_comps in iteritems(probed_results):
       if comp_cls not in existed_comp_classes:
         # We only need the probe values here.
         probed_values = [probed_comp['values'] for probed_comp in probed_comps]
@@ -374,7 +375,7 @@ class DatabaseBuilder(object):
         common.OPERATION_MODE.normal, True)
 
     if mismatched_probed_results:
-      for comp_cls, probed_comps in mismatched_probed_results.iteritems():
+      for comp_cls, probed_comps in iteritems(mismatched_probed_results):
         self._AddComponents(
             comp_cls, [probed_comp['values'] for probed_comp in probed_comps])
 
@@ -425,7 +426,7 @@ class DatabaseBuilder(object):
 
       for comps in itervalues(self.database.GetEncodedField(field_name)):
         if all(comp_names == bom.components[comp_cls]
-               for comp_cls, comp_names in comps.iteritems()):
+               for comp_cls, comp_names in iteritems(comps)):
           break
 
       else:
@@ -507,7 +508,7 @@ class DatabaseBuilder(object):
         handled_encoded_fields.add(field_name)
 
       # Put the priority components.
-      for comp_cls, bit_length in PRIORITY_COMPS.iteritems():
+      for comp_cls, bit_length in iteritems(PRIORITY_COMPS):
         if comp_cls in handled_comp_classes:
           continue
 

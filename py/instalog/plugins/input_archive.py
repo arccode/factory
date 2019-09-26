@@ -31,6 +31,8 @@ import glob
 import os
 import tarfile
 
+from six import iteritems
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import plugin_base
@@ -100,7 +102,7 @@ class InputArchive(plugin_base.InputPlugin):
     with open(path, 'r') as f:
       for line in f:
         event = self.ParseEvent(path, line)
-        for att_id, att_path in event.attachments.iteritems():
+        for att_id, att_path in iteritems(event.attachments):
           event.attachments[att_id] = os.path.join(event_dir, att_path)
         events.append(event)
       self.info('Parsed %d events', len(events))

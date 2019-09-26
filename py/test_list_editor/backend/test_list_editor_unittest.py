@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 import mock
+from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test_list_editor.backend import common
@@ -31,7 +32,7 @@ _FAKE_REPO_SCHEMA = {
 
 
 def _CreateDirectories(path, schema):
-  for k, v in schema.iteritems():
+  for k, v in iteritems(schema):
     new_path = os.path.join(path, k)
     os.makedirs(new_path)
     _CreateDirectories(new_path, v)

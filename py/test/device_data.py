@@ -116,6 +116,8 @@ import collections
 import logging
 import os
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 # pylint: disable=wildcard-import,unused-wildcard-import
 from cros.factory.test.device_data_constants import *
@@ -243,7 +245,7 @@ def VerifyDeviceData(device_data):
   Raises:
     `ValueError` if the device data is invalid.
   """
-  for key, value in device_data.iteritems():
+  for key, value in iteritems(device_data):
     if key.startswith(JoinKeys(KEY_COMPONENT, 'has_')):
       if not (isinstance(value, bool) or isinstance(value, int)):
         raise ValueError('Values in the "component" domain should be in type '
@@ -326,7 +328,7 @@ def UpdateSerialNumbers(dict_):
   assert isinstance(dict_, dict)
   new_dict = {}
   keys_to_delete = []
-  for key, value in dict_.iteritems():
+  for key, value in iteritems(dict_):
     if value:
       new_dict[_GetSerialNumberName(key)] = value
     else:
@@ -352,7 +354,7 @@ def FlattenData(data, parent=''):
     A flattened dict.
   """
   items = []
-  for k, v in data.iteritems():
+  for k, v in iteritems(data):
     new_key = JoinKeys(parent, k) if parent else k
     if isinstance(v, collections.Mapping):
       items.extend(FlattenData(v, new_key).items())
@@ -402,7 +404,7 @@ def UpdateDeviceDataFromVPD(key_map, vpd_data):
   for section in [NAME_RO, NAME_RW]:
     if section in key_map:
       vpd_section = vpd_data.get(section, {})
-      for rule in key_map[section].iteritems():
+      for rule in iteritems(key_map[section]):
         for vpd_key in vpd_section:
           if _MatchKey(rule, vpd_key):
             data_key = _DeriveDeviceDataKey(rule, vpd_key)

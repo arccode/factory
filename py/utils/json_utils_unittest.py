@@ -9,6 +9,8 @@
 import os
 import unittest
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
@@ -28,7 +30,7 @@ class _TestCaseBase(unittest.TestCase):
     elif isinstance(a, dict):
       self.assertIsInstance(b, dict)
       self.assertEqual(len(a), len(b))
-      for key, value in a.iteritems():
+      for key, value in iteritems(a):
         self.assertJSONObjEqual(value, b[key])
     else:
       self.assertIs(type(a), type(b))

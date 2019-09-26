@@ -20,6 +20,7 @@ import logging
 import os
 import uuid
 
+from six import iteritems
 from twisted.internet import defer
 from twisted.internet import protocol
 from twisted.internet import reactor
@@ -165,7 +166,7 @@ class ServiceProcess(protocol.ProcessProtocol):
       raise ValueError('Found unknown config keys: %s' %
                        ','.join(config_keys - all_keys))
 
-    for key, value in config_dict.iteritems():
+    for key, value in iteritems(config_dict):
       if isinstance(self.config[key], list):
         if not isinstance(value, list):
           raise ValueError('Config %s should be a list' % key)
@@ -525,7 +526,7 @@ def GetServiceSchemata():
     The JSON schema of field 'service' in Umpire config.
   """
   properties = {}
-  for name, module in _SERVICE_MAP.iteritems():
+  for name, module in iteritems(_SERVICE_MAP):
     module_path = os.path.dirname(os.path.realpath(module.__file__))
     config_path = os.path.join(module_path, "%s_config.schema.json" % name)
     properties[name] = copy.deepcopy(_COMMON_SERVICE_SCHEMA)

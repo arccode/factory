@@ -8,6 +8,8 @@ import collections
 import logging
 import os
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
@@ -222,7 +224,7 @@ def EnumerateHWID(database, image_id=None, status='supported', comps=None,
                      '"released", "all", but got %r.' % status)
 
   def _IsComponentsSetValid(comps):
-    for comp_cls, comp_names in comps.iteritems():
+    for comp_cls, comp_names in iteritems(comps):
       comp_names = type_utils.MakeList(comp_names)
       if (comp_cls in limited_comps and
           sorted(list(limited_comps[comp_cls])) != sorted(comp_names)):
@@ -255,15 +257,15 @@ def EnumerateHWID(database, image_id=None, status='supported', comps=None,
           combinations, i + 1, selected_combinations)
 
   combinations = []
-  for field_name, bit_length in database.GetEncodedFieldsBitLength(
-      image_id).iteritems():
+  for field_name, bit_length in iteritems(database.GetEncodedFieldsBitLength(
+      image_id)):
     max_index = (1 << bit_length) - 1
     last_combinations = []
-    for index, comps_set in database.GetEncodedField(field_name).iteritems():
+    for index, comps_set in iteritems(database.GetEncodedField(field_name)):
       if index <= max_index and _IsComponentsSetValid(comps_set):
         last_combinations.append(
             {comp_cls: type_utils.MakeList(comp_names)
-             for comp_cls, comp_names in comps_set.iteritems()})
+             for comp_cls, comp_names in iteritems(comps_set)})
 
     if not last_combinations:
       return {}

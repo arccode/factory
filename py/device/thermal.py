@@ -14,6 +14,8 @@ import re
 import struct
 import time
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 
@@ -162,7 +164,7 @@ class CoreTempSensors(ThermalSensorSource):
 
   def GetMainSensorName(self):
     """Returns the sensor name of main (first package) coretemp node."""
-    for name, path in self.GetSensors().iteritems():
+    for name, path in iteritems(self.GetSensors()):
       if 'coretemp.0' in path and path.endswith('temp1_input'):
         return name
     return None
@@ -196,7 +198,7 @@ class ThermalZoneSensors(ThermalSensorSource):
 
   def GetMainSensorName(self):
     """Returns the main thermal zone (zone0) name."""
-    for name, path in self.GetSensors().iteritems():
+    for name, path in iteritems(self.GetSensors()):
       if path == '/sys/class/thermal/thermal_zone0/temp':
         return name
     return None
@@ -250,7 +252,7 @@ class ECToolTemperatureSensors(ThermalSensorSource):
 
     # Remap ID to cached names.
     return dict((name, self._ConvertRawValue(raw_values.get(sensor_id)))
-                for name, sensor_id in self.GetSensors().iteritems())
+                for name, sensor_id in iteritems(self.GetSensors()))
 
   def GetCriticalValue(self, sensor):
     raise NotImplementedError

@@ -6,6 +6,7 @@
 
 import collections
 
+from six import iteritems
 import yaml
 
 
@@ -49,7 +50,7 @@ def ParseMappingAsOrderedDict(enable=True,
     enable: if enable is True, load and dump yaml as OrderedDict.
   """
   def DictRepresenter(dumper, data):
-    return dumper.represent_dict(data.iteritems())
+    return dumper.represent_dict(iteritems(data))
 
   def OrderedDictRepresenter(dumper, data):
     return dumper.represent_object(data)

@@ -11,6 +11,7 @@ import collections
 import logging
 import os
 
+from six import iteritems
 
 # Stub for mockability.
 _Open = open
@@ -148,7 +149,7 @@ def GetMaxStatefulPartitionUsage():
   logging.debug('stateful usage: %s', stateful_usage)
 
   max_partition, max_usage_type, max_usage = None, None, 0
-  for partition, usage in stateful_usage.iteritems():
+  for partition, usage in iteritems(stateful_usage):
     larger_usage = max(usage.bytes_used_pct, usage.inodes_used_pct)
     larger_usage_type = (
         'bytes'

@@ -19,6 +19,8 @@ import re
 import threading
 import time
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import type_utils
 
@@ -88,7 +90,7 @@ class Context(object):
   """
 
   def __init__(self, **kwargs):
-    for key, value in kwargs.iteritems():
+    for key, value in iteritems(kwargs):
       setattr(self, key, value)
 
 

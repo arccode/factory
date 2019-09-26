@@ -8,6 +8,8 @@ import datetime
 import inspect
 import traceback
 
+from six import iteritems
+
 from .utils import time_utils
 
 
@@ -87,7 +89,7 @@ def FlattenAttrs(node, path=u'', allow_types=None, ignore_keys=None):
 
     # Dict node.
     if isinstance(node, dict):
-      for key, value in node.iteritems():
+      for key, value in iteritems(node):
         if key in ignore_keys:
           continue
         for ret in FlattenAttrs(

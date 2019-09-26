@@ -22,6 +22,7 @@ import logging
 import os
 import tarfile
 
+from six import iteritems
 
 RSRC_FILES = '*.rsrc'
 
@@ -107,7 +108,7 @@ def CreateAllResources(args):
   rc_groups = {name: list(paths) for name, paths in itertools.groupby(
       rc_files, GetResourceName)}
   logging.debug('rc_groups: %r', rc_groups)
-  for resource, input_list in rc_groups.iteritems():
+  for resource, input_list in iteritems(rc_groups):
     CreateResource(resource, input_list, args)
 
 

@@ -13,6 +13,8 @@ phase is PVT or PVT_DOGFOOD.
 
 import hashlib
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.hwid.v3 import common
@@ -76,7 +78,7 @@ class VerifyComponentTest(test_case.TestCase):
          '{}'.format(self.args.max_mismatch)]))
     self.perfect_match_results = self._GetPerfectMatchProbeResult()
     self.component_data = {k[4:]: int(v) for k, v in
-                           device_data.GetDeviceData('component').iteritems()
+                           iteritems(device_data.GetDeviceData('component'))
                            if k.startswith('has_')}
 
     self._VerifyNumMismatch()
@@ -103,7 +105,7 @@ class VerifyComponentTest(test_case.TestCase):
     def _ExtractInfoToName(comp_info):
       return [comp['name'] for comp in comp_info]
 
-    for comp_cls, correct_num in self.component_data.iteritems():
+    for comp_cls, correct_num in iteritems(self.component_data):
       comp_info = self.perfect_match_results.get(comp_cls, [])
       actual_num = len(comp_info)
       if correct_num != actual_num:
@@ -112,7 +114,7 @@ class VerifyComponentTest(test_case.TestCase):
 
     # The number of component should be _NUMBER_NOT_IN_DEVICE_DATA
     # when the component is not in device data.
-    for comp_cls, comp_info in self.perfect_match_results.iteritems():
+    for comp_cls, comp_info in iteritems(self.perfect_match_results):
       if comp_cls not in self.component_data:
         actual_num = len(comp_info)
         if actual_num != _NUMBER_NOT_IN_DEVICE_DATA:
@@ -122,7 +124,7 @@ class VerifyComponentTest(test_case.TestCase):
 
   def _VerifyNotSupported(self):
     if self._CheckPhase():
-      for comp_cls, comp_info in self.perfect_match_results.iteritems():
+      for comp_cls, comp_info in iteritems(self.perfect_match_results):
         for comp_item in comp_info:
           status = comp_item['information']['status']
           if status != common.COMPONENT_STATUS.supported:
@@ -143,7 +145,7 @@ class VerifyComponentTest(test_case.TestCase):
 
   def _GetPerfectMatchProbeResult(self):
     res = {}
-    for comp_cls, comp_info in self.probed_results.iteritems():
+    for comp_cls, comp_info in iteritems(self.probed_results):
       res[comp_cls] = [item for item in comp_info if item['perfect_match']]
 
     return res

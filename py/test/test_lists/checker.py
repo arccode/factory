@@ -7,6 +7,7 @@ import ast
 import copy
 import inspect
 
+from six import iteritems
 from six import itervalues
 
 import factory_common  # pylint: disable=unused-import
@@ -256,7 +257,7 @@ class Checker(object):
 
     resolved_args = {}
 
-    for key, value in test.dargs.iteritems():
+    for key, value in iteritems(test.dargs):
       try:
         tmp_dict = test_list.ResolveTestArgs(
             {key: value}, locals_=test.locals_,

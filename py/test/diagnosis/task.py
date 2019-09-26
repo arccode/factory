@@ -21,6 +21,8 @@ import subprocess
 import threading
 import time
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.diagnosis import common
 from cros.factory.utils import process_utils
@@ -506,7 +508,7 @@ def _ParseCommandLine(command, input_values):
   dollar_star = ''
   dollar_at = ''
   splitter = ''
-  for (key, value) in input_values.iteritems():
+  for key, value in iteritems(input_values):
     value.replace('"', '\\"')
     dollar_star += splitter + value
     dollar_at += splitter + '"' + value + '"'

@@ -12,6 +12,7 @@ import signal
 import sys
 
 import jsonrpclib
+from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils import network_utils
@@ -264,7 +265,7 @@ def StartDHCPManager(interfaces=None,
       'on_del': on_del}
 
   # remove None to use default value
-  kargs = {k: v for (k, v) in kargs.iteritems() if v is not None}
+  kargs = {k: v for k, v in iteritems(kargs) if v is not None}
 
   manager = DHCPManager(**kargs)
   manager.StartDHCP()

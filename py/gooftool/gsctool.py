@@ -4,6 +4,8 @@
 
 import re
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import common as gooftool_common
 from cros.factory.utils import type_utils
@@ -106,10 +108,10 @@ class GSCTool(object):
     translated_kwargs = {}
     for line in cmd_result.stdout.splitlines():
       line = line.strip()
-      for field_name, attr_name in fields.iteritems():
+      for field_name, attr_name in iteritems(fields):
         if line.startswith(field_name + '='):
           translated_kwargs[attr_name] = line[len(field_name) + 1:]
-    missing_fields = [field_name for field_name, attr_name in fields.iteritems()
+    missing_fields = [field_name for field_name, attr_name in iteritems(fields)
                       if attr_name not in translated_kwargs]
     if missing_fields:
       raise GSCToolError('%r Field(s) are missing, gsctool stdout=%r' %

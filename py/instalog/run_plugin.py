@@ -18,6 +18,8 @@ import sys
 import tempfile
 import time
 
+from six import iteritems
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import log_utils
@@ -265,7 +267,7 @@ class PluginRunner(plugin_sandbox.CoreAPI, log_utils.LoggerMixin):
     self.debug('Emit %d events: %s', len(events), events)
     for event in events:
       # Move attachments to a temporary directory to simulate buffer.
-      for att_id, att_path in event.attachments.iteritems():
+      for att_id, att_path in iteritems(event.attachments):
         # Use a filename that contains the original one for clarity.
         tmp_path = file_utils.CreateTemporaryFile(
             prefix=os.path.basename(att_path), dir=self._att_dir)

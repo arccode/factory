@@ -16,6 +16,8 @@ import filecmp
 import logging
 import time
 
+from six import iteritems
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import json_utils
 from instalog import plugin_base
@@ -147,7 +149,7 @@ class Event(json_utils.Serializable):
       return False
     if not len(self.attachments) == len(other.attachments):
       return False
-    for att_id, att_path in self.attachments.iteritems():
+    for att_id, att_path in iteritems(self.attachments):
       if att_id not in other.attachments:
         return False
       other_path = other.attachments[att_id]
@@ -185,7 +187,7 @@ class Event(json_utils.Serializable):
 
   def iteritems(self):
     """Implements iteritems function."""
-    return self.payload.iteritems()
+    return iteritems(self.payload)
 
   def setdefault(self, key, default):
     """Implements setdefault function."""

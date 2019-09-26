@@ -4,6 +4,8 @@
 
 import logging
 
+from six import iteritems
+
 from . import type_utils
 from .process_utils import CheckOutput
 from .process_utils import OpenDevNull
@@ -123,6 +125,6 @@ class ServiceManager(object):
   def RestoreServices(self):
     '''Restores the services affected in SetupServices back to their original
     states.'''
-    for service, status in self.original_status_map.iteritems():
+    for service, status in iteritems(self.original_status_map):
       SetServiceStatus(service, status, self.dut)
     self.original_status_map.clear()

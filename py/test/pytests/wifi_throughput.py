@@ -90,6 +90,7 @@ import subprocess
 import sys
 import time
 
+from six import iteritems
 from six import reraise as raise_
 
 import factory_common  # pylint: disable=unused-import
@@ -1009,7 +1010,7 @@ class WiFiThroughput(test_case.TestCase):
 
     # Check for any failures and report an aggregation.
     all_failures = []
-    for ssid, ap_log in self.log['test'].iteritems():
+    for ssid, ap_log in iteritems(self.log['test']):
       for error_msg in ap_log['failures']:
         all_failures.append((ssid, error_msg))
     if all_failures:

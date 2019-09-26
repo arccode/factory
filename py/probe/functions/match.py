@@ -4,6 +4,8 @@
 
 import re
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
 from cros.factory.utils.arg_utils import Arg
@@ -109,7 +111,7 @@ class MatchFunction(function.Function):
     self.is_dict = isinstance(self.args.rule, dict)
     if self.is_dict:
       self.rule = {key: self.ConstructRule(value)
-                   for key, value in self.args.rule.iteritems()}
+                   for key, value in iteritems(self.args.rule)}
     else:
       self.rule = self.ConstructRule(self.args.rule)
 
@@ -125,7 +127,7 @@ class MatchFunction(function.Function):
       return len(item) == 1 and _Match(self.rule, item.values()[0])
     else:
       return all([key in item and _Match(rule, item[key])
-                  for key, rule in self.rule.iteritems()])
+                  for key, rule in iteritems(self.rule)])
 
   @classmethod
   def ConstructRule(cls, rule):

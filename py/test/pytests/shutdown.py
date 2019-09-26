@@ -49,6 +49,8 @@ import os
 import re
 import time
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
@@ -233,7 +235,7 @@ class ShutdownTest(test_case.TestCase):
     def LogAndEndTest(status, error_msg, **kw):
       event_log.Log('rebooted', status=status, error_msg=error_msg, **kw)
       testlog.LogParam('status', status)
-      for k, v in kw.iteritems():
+      for k, v in iteritems(kw):
         testlog.LogParam(k, v)
       logging.info('Rebooted: status=%s, %s', status,
                    (('error_msg=%s' % error_msg) if error_msg else None))

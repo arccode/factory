@@ -114,6 +114,8 @@ from __future__ import print_function
 
 import datetime
 
+from six import iteritems
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import plugin_base
@@ -174,12 +176,12 @@ class InputEventlogFileVSWR(input_eventlog_file.InputEventlogFile):
     test_run['parameters'] = {}
 
     test_run['series'] = {}
-    for antenna, measurements in dct['test']['traces'].iteritems():
+    for antenna, measurements in iteritems(dct['test']['traces']):
       test_run['series'][antenna] = {}
       test_run['series'][antenna]['keyUnit'] = 'MHz'
       test_run['series'][antenna]['valueUnit'] = 'dB'
       test_run['series'][antenna]['data'] = []
-      for freq, db in measurements.iteritems():
+      for freq, db in iteritems(measurements):
         test_run['series'][antenna]['data'].append({})
         test_run['series'][antenna]['data'][-1]['key'] = freq
         test_run['series'][antenna]['data'][-1]['numericValue'] = db

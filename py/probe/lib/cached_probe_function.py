@@ -6,6 +6,7 @@ import glob
 import logging
 import os
 
+from six import iteritems
 from six import itervalues
 
 import factory_common  # pylint: disable=unused-import
@@ -81,7 +82,7 @@ class CachedProbeFunction(probe_function.ProbeFunction):
       elif isinstance(probed_data, list):
         probed_data = {cls.DUMMY_CATEGORY: probed_data}
       cls._CACHED_DEVICES = {k: v if isinstance(v, list) else [v]
-                             for k, v in probed_data.iteritems()}
+                             for k, v in iteritems(probed_data)}
 
 
 class LazyCachedProbeFunction(probe_function.ProbeFunction):

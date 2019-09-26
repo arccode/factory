@@ -38,9 +38,10 @@ try:
 except ImportError:
   pass
 
-# For unittest purpose. Then mock module can change six.moves.input function
-# TODO(kerker) Removed after py3 upgrade complete
+# For unittest purpose. Then mock module can change six.moves.input function.
+# TODO(kerker) Remove after py3 upgrade complete.
 import six
+from six import iteritems
 
 # This file needs to run on various environments, for example a fresh Ubuntu
 # that does not have Chromium OS source tree nor chroot. So we do want to
@@ -425,7 +426,7 @@ class CrosPayloadUtils(object):
       metadata = json.load(f)
       component_versions = {
           component: resource.get(PAYLOAD_SUBTYPE_VERSION, '<unknown>')
-          for component, resource in metadata.iteritems()}
+          for component, resource in iteritems(metadata)}
       # Make sure that there are no unknown components
       for component in component_versions:
         assert component in PAYLOAD_COMPONENTS, (
@@ -1158,7 +1159,7 @@ class RMABoardResourceVersions(object):
   __slots__ = ['board', 'install_shim'] + PAYLOAD_COMPONENTS
 
   def __init__(self, **kargs):
-    for component, version in kargs.iteritems():
+    for component, version in iteritems(kargs):
       assert component in self.__slots__, 'Unknown component "%s"' % component
       setattr(self, component, version)
 
@@ -1239,7 +1240,7 @@ class UserInput(object):
     for i, option in enumerate(options_list, 1):
       print_with_split_line(
           '(%d)%s%s' % (i, ' ' if single_line_option else '\n', option))
-    for key, option in options_dict.iteritems():
+    for key, option in iteritems(options_dict):
       print_with_split_line(
           '(%s)%s%s' % (key, ' ' if single_line_option else '\n', option))
 
@@ -1914,7 +1915,7 @@ class ChromeOSFactoryBundle(object):
         with open(json_path) as f:
           metadata = json.load(f)
           for resource in metadata.values():
-            for subtype, payload in resource.iteritems():
+            for subtype, payload in iteritems(resource):
               if subtype == PAYLOAD_SUBTYPE_VERSION:
                 continue
               path = os.path.join(payloads_dir, payload)
@@ -2103,7 +2104,7 @@ class ChromeOSFactoryBundle(object):
         board_map[entry.board].append(entry)
 
       selected_entries = set()
-      for board_name, board_entries in board_map.iteritems():
+      for board_name, board_entries in iteritems(board_map):
         if len(board_entries) == 1 or auto_select:
           selected = len(board_entries) - 1
         else:
@@ -2149,7 +2150,7 @@ class ChromeOSFactoryBundle(object):
     """Replace payloads in an RMA shim."""
 
     replaced_payloads = {
-        component: payload for component, payload in kargs.iteritems()
+        component: payload for component, payload in iteritems(kargs)
         if payload is not None}
     if not replaced_payloads:
       print('Nothing to replace.')
@@ -2170,7 +2171,7 @@ class ChromeOSFactoryBundle(object):
     with CrosPayloadUtils.TempPayloadsDir() as temp_dir:
       CrosPayloadUtils.CopyComponentsInImage(image, board, [], temp_dir)
       json_path = CrosPayloadUtils.GetJSONPath(temp_dir, board)
-      for component, payload in replaced_payloads.iteritems():
+      for component, payload in iteritems(replaced_payloads):
         CrosPayloadUtils.ReplaceComponent(json_path, component, payload)
       CrosPayloadUtils.ReplaceComponentsInImage(image, board, temp_dir)
 
@@ -2207,7 +2208,7 @@ class ChromeOSFactoryBundle(object):
       targets = {'main': 'bios.bin', 'ec': 'ec.bin'}
       # TODO(hungte) Read VERSION.signer for signing keys.
       results = {}
-      for target, image in targets.iteritems():
+      for target, image in iteritems(targets):
         image_path = os.path.join(extract_dir, image)
         if not os.path.exists(image_path):
           continue
@@ -3376,7 +3377,7 @@ class EditLSBCommand(SubCommand):
           SPLIT_LINE])
       options_list = [arg.__doc__.splitlines()[0] for arg in args]
       options_dict = {
-          k: v.__doc__.splitlines()[0] for k, v in kargs.iteritems()}
+          k: v.__doc__.splitlines()[0] for k, v in iteritems(kargs)}
 
       selected = UserInput.Select(title, options_list, options_dict)
 
@@ -3608,7 +3609,7 @@ class EditToolkitConfigCommand(SubCommand):
 
       options_list = [arg.__doc__.splitlines()[0] for arg in args]
       options_dict = {
-          k: v.__doc__.splitlines()[0] for k, v in kargs.iteritems()}
+          k: v.__doc__.splitlines()[0] for k, v in iteritems(kargs)}
 
       selected = UserInput.Select(title, options_list, options_dict)
 

@@ -19,6 +19,8 @@ import os
 import socket
 import time
 
+from six import iteritems
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import log_utils
 from instalog import plugin_base
@@ -213,7 +215,7 @@ class OutputSocketSender(log_utils.LoggerMixin):
     serialized_event = event.Serialize()
     total_bytes += self.SendField(serialized_event)
     self.SendInt(len(attachments))
-    for att_id, att_path in attachments.iteritems():
+    for att_id, att_path in iteritems(attachments):
       total_bytes += self.SendAttachment(att_id, att_path)
     return total_bytes
 

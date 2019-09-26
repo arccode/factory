@@ -5,6 +5,7 @@
 """A collective of webapp-related functions."""
 
 import Cookie
+from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
@@ -42,5 +43,5 @@ def ParseDUTHeader(header):
   if invalid_keys:
     raise ValueError('Invalid key(s): %r' % invalid_keys)
 
-  return {k: v.value for k, v in dut_info.iteritems()
+  return {k: v.value for k, v in iteritems(dut_info)
           if k not in common.LEGACY_DUT_INFO_KEYS}

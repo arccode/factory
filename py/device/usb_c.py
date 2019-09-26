@@ -5,6 +5,8 @@
 import logging
 import re
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 
@@ -110,7 +112,7 @@ class USBTypeC(types.DeviceComponent):
         'state': <state>
     """
     response = self._CallPD(['usbpd', '%d' % port])
-    for pd_version, re_pattern in self.USB_PD_INFO_RE_ALL.iteritems():
+    for pd_version, re_pattern in iteritems(self.USB_PD_INFO_RE_ALL):
       match = re_pattern.match(response)
       if match:
         status = dict(

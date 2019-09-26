@@ -25,6 +25,7 @@ import logging
 import math
 
 import numpy as np
+from six import iteritems
 from six import itervalues
 
 import factory_common  # pylint: disable=unused-import
@@ -79,7 +80,7 @@ class AccelerometersLidAngleTest(test_case.TestCase):
     in the w3 spec: http://www.w3.org/TR/orientation-event/#description.
     """
     cal_data = {}
-    for location, accelerometer_controller in self.accelerometers.iteritems():
+    for location, accelerometer_controller in iteritems(self.accelerometers):
       try:
         cal_data[location] = accelerometer_controller.GetData(
             self.args.capture_count, self.args.sample_rate_hz)

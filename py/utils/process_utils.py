@@ -19,6 +19,7 @@ import threading
 import time
 import traceback
 
+from six import iteritems
 
 try:
   PIPE = subprocess.PIPE
@@ -472,19 +473,19 @@ def RedirectStandardStreams(stdin=None, stdout=None, stderr=None):
              within the context.
   """
   args = {'stdin': stdin, 'stdout': stdout, 'stderr': stderr}
-  redirect_streams = dict((k, v) for k, v in args.iteritems() if v is not None)
+  redirect_streams = dict((k, v) for k, v in iteritems(args) if v is not None)
   old_streams = dict((k, sys.__dict__[k]) for k in redirect_streams)
 
-  for k, v in redirect_streams.iteritems():
+  for k, v in iteritems(redirect_streams):
     sys.__dict__[k] = v
 
   yield
 
-  changed = dict((k, sys.__dict__[k]) for (k, v) in redirect_streams.iteritems()
+  changed = dict((k, sys.__dict__[k]) for k, v in iteritems(redirect_streams)
                  if v is not sys.__dict__[k])
   if changed:
     raise IOError('Unexpected standard stream redirections: %r' % changed)
-  for k, v in old_streams.iteritems():
+  for k, v in iteritems(old_streams):
     sys.__dict__[k] = v
 
 

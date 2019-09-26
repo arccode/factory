@@ -15,6 +15,7 @@ import tempfile
 import unittest
 
 import mock
+from six import iteritems
 
 import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
@@ -107,7 +108,7 @@ class TestOutputClassify(unittest.TestCase):
       self.assertEqual(event2, datatypes.Event.Deserialize(lines[0]))
 
   def ChangeRelativePath(self, event, base_dir):
-    for att_id, relative_path in event.attachments.iteritems():
+    for att_id, relative_path in iteritems(event.attachments):
       event.attachments[att_id] = os.path.join(
           base_dir, relative_path)
 

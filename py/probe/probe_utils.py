@@ -8,6 +8,8 @@ from __future__ import print_function
 
 import logging
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import common
 from cros.factory.utils import config_utils
@@ -33,7 +35,7 @@ def Probe(probe_statement, comps=None, approx_match=False, max_mismatch=0):
     if comp_cls not in comps:
       continue
     results[comp_cls] = []
-    for comp_name, statement in probe_statement[comp_cls].iteritems():
+    for comp_name, statement in iteritems(probe_statement[comp_cls]):
       logging.info('Probe %s: %s', comp_cls, comp_name)
 
       for probed_values in common.EvaluateStatement(statement,

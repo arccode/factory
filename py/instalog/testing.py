@@ -14,6 +14,8 @@ import os
 import shutil
 import tempfile
 
+from six import iteritems
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog import plugin_sandbox
@@ -60,7 +62,7 @@ class MockCore(plugin_sandbox.CoreAPI):
     del plugin
     for event in events:
       # Move attachments to a temporary directory to simulate buffer.
-      for att_id, att_path in event.attachments.iteritems():
+      for att_id, att_path in iteritems(event.attachments):
         # Use a filename that contains the original one for clarity.
         tmp_path = file_utils.CreateTemporaryFile(
             prefix=os.path.basename(att_path) + '_', dir=self._att_dir)

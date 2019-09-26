@@ -69,6 +69,8 @@ import logging
 import os
 import time
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths
@@ -277,7 +279,7 @@ class RFGraphyteTest(test_case.TestCase):
                 name='result', value=result_value,
                 min=_ConvertToNumber(data['lower_bound']),
                 max=_ConvertToNumber(data['upper_bound']))
-            for k, v in parameters.iteritems():
+            for k, v in iteritems(parameters):
               testlog.LogParam(k, v)
 
 

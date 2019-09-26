@@ -8,6 +8,7 @@ import logging
 import numbers
 import os
 
+from six import iteritems
 from six import iterkeys
 
 import factory_common  # pylint: disable=unused-import
@@ -107,7 +108,7 @@ class RPC(object):
           return False
       return True
 
-    for filepath, content in requests.iteritems():
+    for filepath, content in iteritems(requests):
       if IsForbidden(filepath):
         raise RuntimeError('Writing to %r is disallowed.' % filepath)
       file_utils.WriteFile(filepath, content)

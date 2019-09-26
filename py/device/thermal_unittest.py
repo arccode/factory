@@ -14,6 +14,7 @@ import os.path
 import unittest
 
 import mox
+from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import thermal
@@ -110,7 +111,7 @@ class CoreTempSensorTest(unittest.TestCase):
         '0/temp1_input': '52000',
         '0/temp2_input': '37000',
         '1/hwmon/hwmon0/temp1_input': '47000'}
-    for suffix, value in values.iteritems():
+    for suffix, value in iteritems(values):
       self.board.ReadFile(
           _CORETEMP_PREFIX + suffix).InAnyOrder().AndReturn(value)
     self.mox.ReplayAll()

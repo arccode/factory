@@ -27,6 +27,7 @@ import unittest
 import xmlrpclib
 
 import requests  # pylint: disable=import-error
+from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
@@ -344,7 +345,7 @@ class UmpireRPCTest(UmpireDockerTestCase):
                       if bundle['id'] == 'umpire_test')
     new_payload = self.proxy.GetPayloadsDict(new_bundle['payloads'])
 
-    for resource_type, resource in resources.iteritems():
+    for resource_type, resource in iteritems(resources):
       self.assertTrue(
           os.path.exists(os.path.join(HOST_RESOURCE_DIR, resource)))
       self.assertEqual(new_payload[resource_type]['file'], resource)

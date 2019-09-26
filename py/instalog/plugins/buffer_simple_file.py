@@ -15,6 +15,8 @@ from __future__ import print_function
 import os
 import shutil
 
+from six import iteritems
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog.plugins import buffer_file_common
@@ -93,7 +95,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
         # Step 1: Copy attachments.
         source_paths = []
         for event in events:
-          for att_id, att_path in event.attachments.iteritems():
+          for att_id, att_path in iteritems(event.attachments):
             source_paths.append(att_path)
             event.attachments[att_id] = os.path.join(
                 tmp_dir, att_path.replace('/', '_'))

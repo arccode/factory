@@ -22,6 +22,7 @@ import tempfile
 import threading
 import time
 
+from six import iteritems
 from six import itervalues
 
 import factory_common  # pylint: disable=unused-import
@@ -346,7 +347,7 @@ class RunTests(object):
     for pid in self._running_proc:
       os.kill(pid, signal.SIGINT)
     time.sleep(1)
-    for pid, (proc, unused_test_name) in self._running_proc.iteritems():
+    for pid, (proc, unused_test_name) in iteritems(self._running_proc):
       if os.waitpid(pid, os.WNOHANG)[0] == 0:
         # Test still alive, kill with SIGKILL
         os.kill(pid, signal.SIGKILL)

@@ -64,6 +64,7 @@ To write a calibration data value to RO VPD::
   }
 """
 
+from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -105,25 +106,25 @@ class WriteDeviceDataToVPD(test_case.TestCase):
     else:
       data['ro'] = {
           vpd_name: device_data.GetDeviceData(data_key)
-          for vpd_name, data_key in (self.args.ro_key_map or {}).iteritems()
+          for vpd_name, data_key in iteritems((self.args.ro_key_map or {}))
       }
       data['rw'] = {
           vpd_name: device_data.GetDeviceData(data_key)
-          for vpd_name, data_key in (self.args.rw_key_map or {}).iteritems()
+          for vpd_name, data_key in iteritems((self.args.rw_key_map or {}))
       }
 
-    missing_keys = [k for section in data for k, v in data[section].iteritems()
+    missing_keys = [k for section in data for k, v in iteritems(data[section])
                     if v is None]
     if missing_keys:
       self.FailTask('Missing device data keys: %r' % sorted(missing_keys))
 
-    for section, entries in data.iteritems():
+    for section, entries in iteritems(data):
       self.ui.SetState(
           _('Writing device data to {vpd_section} VPD...',
             vpd_section=section.upper()))
       if not entries:
         continue
       # Normalize boolean and integer types to strings.
-      output = dict((k, str(v)) for k, v in entries.iteritems())
+      output = dict((k, str(v)) for k, v in iteritems(entries))
       vpd = getattr(self.dut.vpd, section)
       vpd.Update(output)

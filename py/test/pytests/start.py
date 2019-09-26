@@ -48,6 +48,8 @@ toolkit is properly installed::
 import logging
 import os
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
@@ -128,6 +130,6 @@ class StartTest(test_case.TestCase):
 
   def InitializeSharedData(self):
     self.ui.SetState(_('Initialize some shared data...'))
-    for key, value in self.args.init_shared_data.iteritems():
+    for key, value in iteritems(self.args.init_shared_data):
       session.console.debug('DataShelfSetValue[%s] = "%s"', key, value)
       state.DataShelfSetValue(key, value)

@@ -14,6 +14,8 @@ from __future__ import print_function
 import json
 import os
 
+from six import iteritems
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import plugin_base
@@ -32,7 +34,7 @@ class InputTestlogFile(input_log_file.InputLogFile):
     #                 (b) Import testlog and use FromJSON directly.
     attachments = {}
     if 'attachments' in data:
-      for att_id, att_data in data['attachments'].iteritems():
+      for att_id, att_data in iteritems(data['attachments']):
         # Only add the attachment if the path exists.
         if os.path.isfile(att_data['path']):
           attachments[att_id] = att_data['path']

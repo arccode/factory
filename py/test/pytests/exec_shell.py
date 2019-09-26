@@ -113,6 +113,8 @@ import StringIO
 import subprocess
 import time
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
@@ -203,7 +205,7 @@ class ExecShell(test_case.TestCase):
     threads = [
         process_utils.StartDaemonThread(
             target=self.UpdateOutput, args=(handle, name, output))
-        for name, handle in handles.iteritems()
+        for name, handle in iteritems(handles)
     ]
 
     process.wait()

@@ -14,6 +14,7 @@ import os
 import shutil
 import sys
 
+from six import iteritems
 from six import iterkeys
 
 import factory_common  # pylint: disable=unused-import
@@ -382,7 +383,7 @@ def EnumerateHWIDWrapper(options):
     for k in sorted(iterkeys(hwids)):
       Output(k)
   else:
-    for k, v in sorted(hwids.iteritems()):
+    for k, v in sorted(iteritems(hwids)):
       Output('%s: %s' % (k, v))
 
 

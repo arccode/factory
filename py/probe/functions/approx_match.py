@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import match
 from cros.factory.utils.arg_utils import Arg
@@ -68,12 +70,12 @@ class ApproxMatchFunction(match.MatchFunction):
       matched = len(item) == 1 and _Match(self.rule, item.values()[0])
       matched = {list(item)[0]: matched}
       matched_rule = {key: {'result': value, 'info': self.args.rule}
-                      for key, value in matched.iteritems()}
+                      for key, value in iteritems(matched)}
     else:
       matched = {key: key in item and _Match(rule, item[key])
-                 for key, rule in self.rule.iteritems()}
+                 for key, rule in iteritems(self.rule)}
       matched_rule = {key: {'result': value, 'info': self.args.rule[key]}
-                      for key, value in matched.iteritems()}
+                      for key, value in iteritems(matched)}
     return (all(matched.values()), sum(matched.values()), matched_rule, item)
 
   def ApproxMatchFilter(self, match_results):

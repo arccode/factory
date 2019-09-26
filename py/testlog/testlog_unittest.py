@@ -16,6 +16,8 @@ import tempfile
 import time
 import unittest
 
+from six import iteritems
+
 from testlog_pkg import testlog
 from testlog_pkg import testlog_utils
 from testlog_pkg.utils import file_utils
@@ -407,7 +409,7 @@ class TestlogEventTest(TestlogTestBase):
         description=DESCRIPTION)
     # Examine the result
     paths = set()
-    for att_name, att_dict in event['attachments'].iteritems():
+    for att_name, att_dict in iteritems(event['attachments']):
       description = att_dict['description']
       self.assertEqual(DESCRIPTION, description)
       path = att_dict['path']
@@ -514,7 +516,7 @@ class TestlogEventTest(TestlogTestBase):
                         'numericValue': 30.5,
                         'expectedMaximum': 31}]}})
     paths = set()
-    for att_name, att_dict in event['attachments'].iteritems():
+    for att_name, att_dict in iteritems(event['attachments']):
       path = att_dict['path']
       text = open(path, 'r').read()
       self.assertEqual(CONTENT, text)

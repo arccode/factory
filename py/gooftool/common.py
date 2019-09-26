@@ -11,6 +11,8 @@ import re
 from subprocess import PIPE
 from subprocess import Popen
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils import sys_utils
@@ -271,7 +273,7 @@ class Util(object):
       device = self.GetPrimaryDevicePath()
 
     curr_attrs = self.GetCgptAttributes()
-    for k, v in attrs.iteritems():
+    for k, v in iteritems(attrs):
       if curr_attrs.get(k) == v:
         continue
       if not self.shell('cgpt add %s -i %s -A %s' % (device, k, v)).success:

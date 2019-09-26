@@ -9,6 +9,7 @@ Decides whether or not a plugin should process an Event.
 
 import logging
 
+from six import iteritems
 
 # Name of the key used to specify the rule type in the config dictionary.
 _RULE_TYPE_KEY = 'rule'
@@ -139,7 +140,7 @@ class HistoryRule(Rule):
       logging.debug('%s: %r', position, process_stage)
 
       valid = True
-      for key, operation in self.args.iteritems():
+      for key, operation in iteritems(self.args):
         # Special case for the 'position' key.
         if key == 'position':
           lhs = position
@@ -175,7 +176,7 @@ class TestlogRule(Rule):
 
   def MatchEvent(self, event):
     """Checks whether the provided event matches this rule."""
-    for key, operation in self.args.iteritems():
+    for key, operation in iteritems(self.args):
       lhs = event.get(key, None)
       if not lhs:
         logging.debug('The %s is not in the event', key)

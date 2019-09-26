@@ -9,6 +9,8 @@ import os
 import re
 import subprocess
 
+from six import iteritems
+
 from . import process_utils
 from . import sys_utils
 from . import type_utils
@@ -193,7 +195,7 @@ class BuildBoard(object):
           'arm': 'arm',
           'aarch64': 'arm64'
       }
-      for key, value in machine_arch_map.iteritems():
+      for key, value in iteritems(machine_arch_map):
         if uname_machine.startswith(key):
           return value
       return None

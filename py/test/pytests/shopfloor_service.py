@@ -81,6 +81,8 @@ import logging
 import pprint
 import threading
 
+from six import iteritems
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
@@ -178,7 +180,7 @@ class ShopfloorService(test_case.TestCase):
   def UpdateAutoResults(self, method, result, args):
     """Updates auto values (based on method) to results."""
     auto_values = self.METHODS[method].auto_values
-    for k, v in auto_values.iteritems():
+    for k, v in iteritems(auto_values):
       result[k.format(*args)] = v
 
   def UpdateDeviceData(self, data):
@@ -188,16 +190,16 @@ class ShopfloorService(test_case.TestCase):
     illegal_keys = [k for k in data if k.partition('.')[0] not in prefixes]
     if illegal_keys:
       raise ValueError('Invalid response keys: %r' % illegal_keys)
-    keys_to_delete = [k for k, v in data.iteritems() if v is None]
+    keys_to_delete = [k for k, v in iteritems(data) if v is None]
     device_data.DeleteDeviceData(keys_to_delete)
-    data = dict((k, v) for k, v in data.iteritems() if k not in keys_to_delete)
+    data = dict((k, v) for k, v in iteritems(data) if k not in keys_to_delete)
     device_data.UpdateDeviceData(data)
 
   @staticmethod
   def FilterDict(data):
     """Returns a dict with privacy data filtered."""
     result = shelve_utils.DictShelfView(shelve_utils.InMemoryShelf())
-    for k, v in data.iteritems():
+    for k, v in iteritems(data):
       result.SetValue(k, v)
     if not result.GetKeys():
       return {}

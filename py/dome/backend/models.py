@@ -29,6 +29,7 @@ import xmlrpclib
 import django
 import rest_framework.exceptions
 import rest_framework.status
+from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common as umpire_common
@@ -235,7 +236,7 @@ class DomeConfig(django.db.models.Model):
         self.DeleteTFTPContainer()
 
     # update attributes assigned in kwargs
-    for attr, value in kwargs.iteritems():
+    for attr, value in iteritems(kwargs):
       if hasattr(self, attr):
         setattr(self, attr, value)
     self.save()
@@ -545,7 +546,7 @@ class Project(django.db.models.Model):
       project.MapNetbootResourceToTFTP(kwargs['netboot_bundle'])
 
     # update attributes assigned in kwargs
-    for attr, value in kwargs.iteritems():
+    for attr, value in iteritems(kwargs):
       if hasattr(project, attr):
         setattr(project, attr, value)
     project.save()
@@ -746,7 +747,7 @@ class Bundle(object):
 
     # update resources
     if resources is not None:
-      for resource_key, resource in resources.iteritems():
+      for resource_key, resource in iteritems(resources):
         Bundle._UpdateResource(project_name, bundle['id'], resource_key,
                                resource['file_id'])
 
