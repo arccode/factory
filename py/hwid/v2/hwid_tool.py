@@ -27,7 +27,7 @@ from cros.factory.hwid.v2.yaml_datastore import YamlDatastore
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import Command
 from cros.factory.utils.argparse_utils import ParseCmdline
-from cros.factory.utils.argparse_utils import verbosity_cmd_arg
+from cros.factory.utils.argparse_utils import VERBOSITY_CMD_ARG
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error
@@ -1887,7 +1887,7 @@ def Main():
              default=DEFAULT_HWID_DATA_PATH),
       CmdArg('-l', '--log', metavar='PATH',
              help='Write logs to this file.'),
-      verbosity_cmd_arg)
+      VERBOSITY_CMD_ARG)
   SetupLogging(config.verbosity, config.log)
   hw_db = HardwareDb(config.data_path)
   try:

@@ -231,10 +231,11 @@ def GetImportList(filename, module_name):
         # if import failed at any point, make some educated guess on whether
         # the last part is a module or method.
         # This can happen for external library dependency.
-        if import_item[0].isupper():
-          import_is_module = False
-        else:
-          import_is_module = True
+        # We assume that module should be name in 'snake_case'.
+        # Therefore, if import_item[0] starts with uppercase (likely to be
+        # functions or constants), underscore (private / protected members) or
+        # '*' (wildcard import), "import_is_module" will be False.
+        import_is_module = import_item[0].islower()
 
       if import_is_module:
         final_module = final_module + '.' + import_item

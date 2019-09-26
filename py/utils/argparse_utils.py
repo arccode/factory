@@ -73,7 +73,7 @@ class VerbosityAction(argparse.Action):
     setattr(namespace, self.dest, logging_level)
 
 
-verbosity_cmd_arg = CmdArg(
+VERBOSITY_CMD_ARG = CmdArg(
     '-v', '--verbosity', choices='01234', default=logging.WARNING,
     action=VerbosityAction)
 

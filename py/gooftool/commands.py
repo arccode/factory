@@ -39,7 +39,7 @@ from cros.factory.test import state
 from cros.factory.utils import argparse_utils
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import ParseCmdline
-from cros.factory.utils.argparse_utils import verbosity_cmd_arg
+from cros.factory.utils.argparse_utils import VERBOSITY_CMD_ARG
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
@@ -838,7 +838,7 @@ def main():
       CmdArg('--phase', default=None,
              help=('override phase for phase checking (defaults to the current '
                    'as returned by the "factory phase" command)')),
-      verbosity_cmd_arg)
+      VERBOSITY_CMD_ARG)
   SetupLogging(options.verbosity, options.log)
   event_log.SetGlobalLoggerDefaultPrefix('gooftool')
   event_log.GetGlobalLogger().suppress = options.suppress_event_logs
