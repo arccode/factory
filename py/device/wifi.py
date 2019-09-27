@@ -50,6 +50,7 @@ class WiFi(types.DeviceComponent):
       r'BSS ([:\w]*)\W*\(on \w*\)( -- associated)?\r?\n')
   _WLAN_NAME_PATTERNS = ['wlan*', 'mlan*']
   _RE_WIPHY = re.compile(r'wiphy (\d+)')
+  _RE_LAST_SEEN = re.compile(r'(\d+) ms ago$')
 
   # Shortcut to access exception object.
   WiFiError = WiFiError
@@ -259,7 +260,9 @@ class WiFi(types.DeviceComponent):
           ap.channel = int(value)
 
         elif key == 'last seen':
-          ap.last_seen = int(value.partition(' ms ago')[0])
+          matched = self._RE_LAST_SEEN.match(value)
+          if matched:
+            ap.last_seen = int(matched.group(1))
 
     # If no encryption type was encountered, but encryption is in place, the AP
     # uses WEP encryption.
