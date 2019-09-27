@@ -7,7 +7,7 @@
 import codecs
 import fnmatch
 import glob
-import httplib
+import http.client
 import logging
 import os
 import random
@@ -171,7 +171,7 @@ class TimeoutXMLRPCTransport(xmlrpclib.Transport):
     self.timeout = timeout
 
   def make_connection(self, host):
-    conn = httplib.HTTPConnection(host, timeout=self.timeout)
+    conn = http.client.HTTPConnection(host, timeout=self.timeout)
     return conn
 
 

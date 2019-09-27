@@ -4,7 +4,7 @@
 
 import datetime
 import hashlib
-import httplib
+import http.client
 import logging
 import os
 import time
@@ -280,7 +280,7 @@ def GetCommitId(git_url_prefix, project, branch, auth_cookie):
   except urllib3.exceptions.HTTPError:
     raise GitUtilException('Invalid url %r' % (git_url,))
 
-  if r.status != httplib.OK:
+  if r.status != http.client.OK:
     raise GitUtilException('Request unsuccessfully with code %s' %
                            (r.status,))
 
@@ -314,6 +314,6 @@ def AbandonCL(review_host, auth_cookie, change_id):
   pool_manager = PoolManager(ca_certs=certifi.where())
   pool_manager.headers['Cookie'] = auth_cookie
   fp = pool_manager.urlopen(method='POST', url=git_url)
-  if fp.status != httplib.OK:
+  if fp.status != http.client.OK:
     logging.error('HTTP Status: %d', fp.status)
     raise GitUtilException('Abandon failed for change id: %r' % (change_id,))

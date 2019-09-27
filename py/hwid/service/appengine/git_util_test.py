@@ -6,7 +6,7 @@
 """Tests for cros.factory.hwid.service.appengine.git_util"""
 
 import datetime
-import httplib
+import http.client
 import unittest
 
 # pylint: disable=import-error, no-name-in-module
@@ -105,20 +105,20 @@ class GitUtilTest(unittest.TestCase):
     instance = mocked_poolmanager.return_value  # pool_manager instance
     error_responses = [
         # 400 error
-        mock.MagicMock(status=httplib.BAD_REQUEST, data=''),
+        mock.MagicMock(status=http.client.BAD_REQUEST, data=''),
         # invalid json
-        mock.MagicMock(status=httplib.OK, data=(
+        mock.MagicMock(status=http.client.OK, data=(
             ")]}'\n"
             '\n'
             '  "revision": "0123456789abcdef0123456789abcdef01234567"\n'
             '}\n')),
         # no magic line
-        mock.MagicMock(status=httplib.OK, data=(
+        mock.MagicMock(status=http.client.OK, data=(
             '{\n'
             '  "revision": "0123456789abcdef0123456789abcdef01234567"\n'
             '}\n')),
         # no "revision" field
-        mock.MagicMock(status=httplib.OK, data=(
+        mock.MagicMock(status=http.client.OK, data=(
             ")]}'\n"
             '{\n'
             '  "no_revision": "0123456789abcdef0123456789abcdef01234567"\n'

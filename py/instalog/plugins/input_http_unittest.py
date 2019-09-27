@@ -8,7 +8,7 @@
 
 from __future__ import print_function
 
-import httplib
+import http.client
 import logging
 import os
 import Queue
@@ -234,7 +234,7 @@ class TestInputHTTP(unittest.TestCase):
       self.assertEqual(att, f.read())
 
   def testHTTPlibEvent(self):
-    client = httplib.HTTPConnection('localhost', self.port, timeout=180)
+    client = http.client.HTTPConnection('localhost', self.port, timeout=180)
     event = datatypes.Event({'AA': 'BB'}, {'att_id': 'att'})
     att = os.urandom(1024)  # 1kb data
     params = urllib.urlencode({'event': datatypes.Event.Serialize(event),

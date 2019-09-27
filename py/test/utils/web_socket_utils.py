@@ -6,7 +6,7 @@
 
 import base64
 import hashlib
-import httplib
+import http.client
 import logging
 
 
@@ -46,7 +46,7 @@ def WebSocketHandshake(request):
     send_error('Unsupported WebSocket version %s' % version)
     return False
 
-  request.send_response(httplib.SWITCHING_PROTOCOLS)
+  request.send_response(http.client.SWITCHING_PROTOCOLS)
   request.send_header('Upgrade', 'websocket')
   request.send_header('Connection', 'Upgrade')
   request.send_header(
