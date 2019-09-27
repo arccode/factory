@@ -25,7 +25,6 @@ from cros.factory.gooftool import gsctool as gsctool_module
 from cros.factory.gooftool import vpd
 from cros.factory.gooftool import vpd_data
 from cros.factory.gooftool import wipe
-from cros.factory.hwid.v2 import hwid_tool
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test.l10n import regions
@@ -52,19 +51,12 @@ class Gooftool(object):
   """
   # TODO(andycheng): refactor all other functions in gooftool.py to this.
 
-  def __init__(self, hwid_version=2,
-               hardware_db=None, component_db=None,
-               project=None, hwdb_path=None):
+  def __init__(self, hwid_version=3, project=None, hwdb_path=None):
     """Constructor.
 
     Args:
-      hwid_version: The HWID version to operate on. Currently there are only two
-        options: 2 or 3.
-      hardware_db: The hardware db to use. If not specified, the one in
-        hwid_tool.DEFAULT_HWID_DATA_PATH is used.
-      component_db: The component db to use for both component names and
-        component classes lookup. If not specified,
-        hardware_db.component.db is used.
+      hwid_version: The HWID version to operate on. Currently there is only one
+        option: 3.
       project: A string indicating which project-specific component database to
         load. If not specified, the project name will be detected with
         cros.factory.hwid.ProbeProject(). Used for HWID v3 only.
@@ -73,12 +65,7 @@ class Gooftool(object):
         be used.  Used for HWID v3 only.
     """
     self._hwid_version = hwid_version
-    if hwid_version == 2:
-      self._hardware_db = (
-          hardware_db or
-          hwid_tool.HardwareDb(hwid_tool.DEFAULT_HWID_DATA_PATH))
-      self._db_creator = lambda: component_db or self._hardware_db.comp_db
-    elif hwid_version == 3:
+    if hwid_version == 3:
       self._project = project or hwid_utils.ProbeProject()
       self._hwdb_path = hwdb_path or hwid_utils.GetDefaultDataPath()
       self._db_creator = lambda: Database.LoadFile(
