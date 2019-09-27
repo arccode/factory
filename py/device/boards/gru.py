@@ -26,4 +26,3 @@ class GruBoard(chromeos.ChromeOSBoard):
   @types.DeviceProperty
   def power(self):
     return GruPower(self)
-
