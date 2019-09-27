@@ -9,6 +9,8 @@ import logging
 import re
 import subprocess
 
+from six import with_metaclass
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import config_utils
 from cros.factory.utils import type_utils
@@ -37,9 +39,7 @@ AudioDeviceType = type_utils.Enum(
     list(InputDevices) + list(OutputDevices))
 
 
-class BaseConfigManager(object):
-  __metaclass__ = abc.ABCMeta
-
+class BaseConfigManager(with_metaclass(abc.ABCMeta, object)):
   @abc.abstractmethod
   def Initialize(self, card='0'):
     """Initialize card device.

@@ -14,6 +14,8 @@ import json
 import logging
 import traceback
 
+from six import with_metaclass
+
 
 # This is ISO 8601 format of date/time/datetime. If you want to change this,
 # you have to also change the FastStringParseDate/Time/Datetime function
@@ -152,7 +154,7 @@ class SerializableMeta(type):
     return cls
 
 
-class Serializable(object):
+class Serializable(with_metaclass(SerializableMeta, object)):
   """Superclass to allow object serialization and deserialization.
 
   Usage (note order of the classes in the inheritance list):
@@ -169,8 +171,6 @@ class Serializable(object):
       def FromDict(self, dct):
         return MyClass(dct['my_data'])
   """
-
-  __metaclass__ = SerializableMeta
 
   def Serialize(self):
     """Serializes this object to a JSON string."""

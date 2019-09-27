@@ -13,6 +13,7 @@ import logging
 import os
 
 from six import iteritems
+from six import with_metaclass
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import i18n
@@ -389,10 +390,8 @@ class FactoryTestList(test_object_module.FactoryTest):
       return json.dumps(self.ToTestListConfig(recursive=False), sort_keys=True)
 
 
-class ITestList(object):
+class ITestList(with_metaclass(abc.ABCMeta, object)):
   """An interface of test list object."""
-
-  __metaclass__ = abc.ABCMeta
 
   # Declare instance variables to make __setattr__ happy.
   _checker = None

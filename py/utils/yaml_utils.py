@@ -7,6 +7,7 @@
 import collections
 
 from six import iteritems
+from six import with_metaclass
 import yaml
 
 
@@ -19,9 +20,7 @@ class BaseYAMLTagHandlerMetaclass(type):
     super(BaseYAMLTagHandlerMetaclass, cls).__init__(*args, **kwargs)
 
 
-class BaseYAMLTagHandler(object):
-  __metaclass__ = BaseYAMLTagHandlerMetaclass
-
+class BaseYAMLTagHandler(with_metaclass(BaseYAMLTagHandlerMetaclass, object)):
   YAML_TAG = None
   TARGET_CLASS = None
   LOADER = yaml.Loader

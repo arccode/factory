@@ -13,6 +13,8 @@ import tempfile
 import threading
 import time
 
+from six import with_metaclass
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 from cros.factory.test import state
@@ -327,9 +329,7 @@ class SSHLink(types.DeviceLink):
                                 timeout_secs=timeout_secs,
                                 poll_interval_secs=interval_secs)
 
-  class ControlMasterWatcher(object):
-    __metaclass__ = type_utils.Singleton
-
+  class ControlMasterWatcher(with_metaclass(type_utils.Singleton, object)):
     def __init__(self, link_instance):
       assert isinstance(link_instance, SSHLink)
 

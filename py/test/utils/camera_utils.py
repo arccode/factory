@@ -14,6 +14,8 @@ import re
 import string
 import tempfile
 
+from six import with_metaclass
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -88,9 +90,8 @@ def ReadImageFile(filename):
 
 
 # TODO(yllin): Support device interface for Readers.
-class CameraReaderBase(object):
+class CameraReaderBase(with_metaclass(abc.ABCMeta, object)):
   """Abstract camera reader."""
-  __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
   def EnableCamera(self, **kwargs):

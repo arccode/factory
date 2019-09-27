@@ -17,6 +17,7 @@ import abc
 import time
 
 import serial
+from six import with_metaclass
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils import serial_utils
@@ -26,9 +27,8 @@ class FixtureConnectionError(Exception):
   pass
 
 
-class FixtureConnection(object):
+class FixtureConnection(with_metaclass(abc.ABCMeta, object)):
   """Abstract fixture connection."""
-  __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
   def Connect(self):

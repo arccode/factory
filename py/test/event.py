@@ -19,6 +19,7 @@ import time
 import traceback
 
 from six import iteritems
+from six import with_metaclass
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
@@ -300,9 +301,7 @@ class EventServer(SocketServer.ThreadingUnixStreamServer):
         q.put(message)
 
 
-class EventClientBase(object):
-  __metaclass__ = abc.ABCMeta
-
+class EventClientBase(with_metaclass(abc.ABCMeta, object)):
   """A client used to post and receive messages from an event server.
 
   All events sent through this class must be subclasses of Event. It

@@ -7,6 +7,8 @@
 import abc
 import logging
 
+from six import with_metaclass
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import config_manager
 from cros.factory.device import types
@@ -27,9 +29,7 @@ DEFAULT_HEADPHONE_JACK_NAMES = ['Headphone Jack', 'Headset Jack']
 DEFAULT_MIC_JACK_NAMES = ['Mic Jack'] + DEFAULT_HEADPHONE_JACK_NAMES
 
 
-class BaseMixerController(object):
-  __metaclass__ = abc.ABCMeta
-
+class BaseMixerController(with_metaclass(abc.ABCMeta, object)):
   def __init__(self, device):
     self._device = device
     self._restore_mixer_control_stack = []
