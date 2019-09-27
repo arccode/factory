@@ -27,7 +27,7 @@ import argparse
 import ast
 import cgi
 import collections
-import HTMLParser
+import html.parser
 import json
 import os
 import re
@@ -157,7 +157,7 @@ VOID_ELEMENTS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
                  'track', 'wbr']
 
 
-class HTMLMessageParser(HTMLParser.HTMLParser, object):
+class HTMLMessageParser(html.parser.HTMLParser, object):
   # pylint: disable=abstract-method
   def __init__(self, html_tags):
     super(HTMLMessageParser, self).__init__()
