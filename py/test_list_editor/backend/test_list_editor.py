@@ -7,7 +7,6 @@ import argparse
 import http.server
 import logging
 import os
-import SimpleHTTPServer
 
 # TODO(youcheng): Bundle non-standard libraries.
 from jsonrpclib import SimpleJSONRPCServer
@@ -24,7 +23,7 @@ class Server(object):
 
   class HTTPRequestHandler(
       SimpleJSONRPCServer.SimpleJSONRPCRequestHandler,
-      SimpleHTTPServer.SimpleHTTPRequestHandler):
+      http.server.SimpleHTTPRequestHandler):
 
     def end_headers(self):
       if self.command == 'POST':

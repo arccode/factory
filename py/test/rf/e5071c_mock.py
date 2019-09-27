@@ -16,10 +16,10 @@ offical manual or online help:
 """
 
 import argparse
+import http.server
 import logging
 import os
 import re
-import SimpleHTTPServer
 import socketserver
 import threading
 
@@ -291,7 +291,7 @@ def ServeHttpScreenshot():
 
   # Starts a simple http server to serve for screenshot.
   httpd = socketserver.TCPServer(('0.0.0.0', 80),
-                                 SimpleHTTPServer.SimpleHTTPRequestHandler)
+                                 http.server.SimpleHTTPRequestHandler)
   httpd_thread = threading.Thread(target=httpd.serve_forever)
   httpd_thread.daemon = True
   httpd_thread.start()
