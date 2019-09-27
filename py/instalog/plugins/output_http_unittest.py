@@ -6,8 +6,8 @@
 
 from __future__ import print_function
 
-import BaseHTTPServer
 import cgi
+import http.server
 import logging
 import os
 import Queue
@@ -64,11 +64,11 @@ class TestOutputHTTP(unittest.TestCase):
   def testMultiEvent(self):
     q = Queue.Queue()
 
-    class MyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+    class MyHandler(http.server.BaseHTTPRequestHandler):
       def __init__(self, request, client_address, server):
         self._max_bytes = 100 * 1024 * 1024  # 100mb
-        BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request,
-                                                       client_address, server)
+        http.server.BaseHTTPRequestHandler.__init__(self, request,
+                                                    client_address, server)
 
       def _SendResponse(self, status_code, resp_reason):
         """Responds status code, reason and Maximum-Bytes header to client."""

@@ -4,7 +4,7 @@
 # found in the LICENSE file.
 
 import argparse
-import BaseHTTPServer
+import http.server
 import logging
 import os
 import SimpleHTTPServer
@@ -30,7 +30,7 @@ class Server(object):
       if self.command == 'POST':
         # Allow CORS for front-end development.
         self.send_header('Access-Control-Allow-Origin', '*')
-      BaseHTTPServer.BaseHTTPRequestHandler.end_headers(self)
+      http.server.BaseHTTPRequestHandler.end_headers(self)
 
   def __init__(self, port, dirs):
     self.port = port

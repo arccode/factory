@@ -27,8 +27,8 @@ $ curl -i -X POST \
 
 from __future__ import print_function
 
-import BaseHTTPServer
 import cgi
+import http.server
 import logging
 import shutil
 import tempfile
@@ -97,7 +97,7 @@ class InstalogFieldStorage(cgi.FieldStorage):
         'wb', prefix=self.name + '_', dir=self.tmp_dir, delete=False)
 
 
-class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
+class HTTPHandler(http.server.BaseHTTPRequestHandler, log_utils.LoggerMixin):
   """Processes HTTP request and responses."""
 
   def __init__(self, request, client_address, server):
@@ -109,8 +109,8 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     self._enable_multi_event = False
     self.content_length = 0
     self.client_node_id = 'NoNodeID'
-    BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, request,
-                                                   client_address, server)
+    http.server.BaseHTTPRequestHandler.__init__(self, request, client_address,
+                                                server)
 
   def _SendResponse(self, status_code, resp_reason):
     """Responds status code, reason and Maximum-Bytes header to client."""
@@ -271,7 +271,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
                  self.client_node_id, self.client_address[0], format % args)
 
 
-class ThreadedHTTPServer(BaseHTTPServer.HTTPServer, log_utils.LoggerMixin):
+class ThreadedHTTPServer(http.server.HTTPServer, log_utils.LoggerMixin):
   """HTTP server that handles requests in separate threads."""
 
   def __init__(self, logger_name, *args, **kwargs):
@@ -279,7 +279,7 @@ class ThreadedHTTPServer(BaseHTTPServer.HTTPServer, log_utils.LoggerMixin):
     self.context = None
     self._threads = set()
     self._handle_request_thread = threading.Thread(target=self.serve_forever)
-    BaseHTTPServer.HTTPServer.__init__(self, *args, **kwargs)
+    http.server.HTTPServer.__init__(self, *args, **kwargs)
 
   def get_request(self):
     """Overrides get_request to set socket timeout"""

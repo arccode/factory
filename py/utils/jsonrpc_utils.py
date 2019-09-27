@@ -6,7 +6,7 @@
 
 from __future__ import print_function
 
-from BaseHTTPServer import BaseHTTPRequestHandler
+import http.server
 import inspect
 import threading
 import uuid
@@ -88,7 +88,7 @@ def GetJSONRPCCallerIP():
   """
   for st in inspect.stack():
     caller = st[0].f_locals.get('self', None)
-    if caller and isinstance(caller, BaseHTTPRequestHandler):
+    if caller and isinstance(caller, http.server.BaseHTTPRequestHandler):
       return caller.client_address[0]
 
   raise RuntimeError('no BaseHTTPRequestHandler found in stack')
