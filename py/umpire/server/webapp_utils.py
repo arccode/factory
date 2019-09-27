@@ -4,7 +4,8 @@
 
 """A collective of webapp-related functions."""
 
-import Cookie
+import http.cookies
+
 from six import iteritems
 
 from cros.factory.umpire import common
@@ -36,7 +37,7 @@ def ParseDUTHeader(header):
       return True
     return False
 
-  dut_info = Cookie.SimpleCookie()
+  dut_info = http.cookies.SimpleCookie()
   dut_info.load(header)
   invalid_keys = [key for key in dut_info if not ValidKey(key)]
   if invalid_keys:
