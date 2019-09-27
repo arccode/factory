@@ -15,7 +15,7 @@ from __future__ import division
 from __future__ import print_function
 
 import codecs
-import ConfigParser
+import configparser
 import logging
 import os
 import re
@@ -69,7 +69,7 @@ class TSConfig(object):
     if not os.path.isfile(config_filepath):
       raise Error('The config file does not exist: ' + config_filepath)
 
-    self.parser = ConfigParser.ConfigParser()
+    self.parser = configparser.ConfigParser()
     try:
       with open(config_filepath) as f:
         self.parser.readfp(f)
