@@ -9,6 +9,7 @@ import tempfile
 import unittest
 
 import mock
+from six import assertCountEqual
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.lib import cached_probe_function
@@ -131,6 +132,7 @@ class GlobPathCachedProbeFunctionTest(unittest.TestCase):
           raise Exception()
         if re.match(r'^dev[0-9]+$', name):
           return {'name': os.path.basename(os.path.realpath(dir_path))}
+        return None
 
     self.Function = Function
 
@@ -138,8 +140,10 @@ class GlobPathCachedProbeFunctionTest(unittest.TestCase):
     func = self.Function()
 
     result = func()
-    self.assertItemsEqual(
-        result, self._GenerateExpectedProbedResults(['dev1', 'dev2', 'dev6']))
+    assertCountEqual(
+        self,
+        result,
+        self._GenerateExpectedProbedResults(['dev1', 'dev2', 'dev6']))
 
   def testInvalidDirPath(self):
     func = self.Function(dir_path='aabbcc')

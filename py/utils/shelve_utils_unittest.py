@@ -11,6 +11,8 @@ import shutil
 import tempfile
 import unittest
 
+from six import assertCountEqual
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import shelve_utils
 
@@ -118,11 +120,11 @@ class DictShelveViewTest(unittest.TestCase):
     self.shelf_view.SetValue('a', 0)
     self.shelf_view.SetValue('a.b', 1)
     self.shelf_view.SetValue('a.b.c', 2)
-    self.assertItemsEqual(['a.b.c'], self.shelf_view.GetKeys())
+    assertCountEqual(self, ['a.b.c'], self.shelf_view.GetKeys())
 
   def testGetKeys(self):
     self.shelf_view.SetValue('a.b', {'c': 1, 'd': 2})
-    self.assertItemsEqual(['a.b.c', 'a.b.d'], self.shelf_view.GetKeys())
+    assertCountEqual(self, ['a.b.c', 'a.b.d'], self.shelf_view.GetKeys())
 
   def testDeleteKeys(self):
     # delete everything
@@ -150,11 +152,11 @@ class DictShelveViewTest(unittest.TestCase):
     self.shelf_view.SetValue('a.b', 1)
     with self.assertRaises(KeyError):
       self.shelf_view.DeleteKeys(['a', 'a.b.c'])
-    self.assertItemsEqual([], self.shelf_view.GetKeys())
+    assertCountEqual(self, [], self.shelf_view.GetKeys())
 
   def testGetChildren(self):
     self.shelf_view.SetValue('', {'a': 1, 'b': {'c': 2, 'd': 3}})
-    self.assertItemsEqual(self.shelf_view.GetChildren(''), ['a', 'b'])
+    assertCountEqual(self, self.shelf_view.GetChildren(''), ['a', 'b'])
 
 
 class DictKeyUnittest(unittest.TestCase):

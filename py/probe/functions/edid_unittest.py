@@ -7,6 +7,7 @@ import binascii
 import unittest
 
 import mock
+from six import assertCountEqual
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import edid
@@ -71,15 +72,15 @@ class EDIDFunctionTest(unittest.TestCase):
   @mock.patch('glob.glob', side_effect=_FakeFunc(FAKE_PATHS))
   def testNormal(self, *unused_mocks):
     result = edid.EDIDFunction()()
-    self.assertItemsEqual(result, self.FAKE_OUTPUTS)
+    assertCountEqual(self, result, self.FAKE_OUTPUTS)
 
     for i in xrange(2):
       for j in xrange(2):
         result = edid.EDIDFunction(path=self.FAKE_PATHS[i][j])()
-        self.assertItemsEqual(result, [self.FAKE_OUTPUTS[i + j]])
+        assertCountEqual(self, result, [self.FAKE_OUTPUTS[i + j]])
 
     result = edid.EDIDFunction(path='22')()
-    self.assertItemsEqual(result, [self.FAKE_OUTPUTS[2]])
+    assertCountEqual(self, result, [self.FAKE_OUTPUTS[2]])
 
 
 if __name__ == '__main__':

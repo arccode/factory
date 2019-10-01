@@ -6,6 +6,8 @@
 import os
 import unittest
 
+from six import assertCountEqual
+
 # pylint: disable=import-error, no-name-in-module
 from google.protobuf import json_format
 from google.protobuf import text_format
@@ -154,7 +156,8 @@ class GenerateVerificationPayloadTest(unittest.TestCase):
     hw_verificaiontion_spec = hardware_verifier_pb2.HwVerificationSpec()
     text_format.Parse(files['hw_verification_spec.prototxt'],
                       hw_verificaiontion_spec)
-    self.assertItemsEqual(
+    assertCountEqual(
+        self,
         json_format.MessageToDict(hw_verificaiontion_spec,
                                   including_default_value_fields=True,
                                   use_integers_for_enums=True),

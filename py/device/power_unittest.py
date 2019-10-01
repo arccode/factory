@@ -14,6 +14,7 @@ import textwrap
 import unittest
 
 import mock
+from six import assertCountEqual
 from six import assertRaisesRegex
 
 import factory_common  # pylint: disable=unused-import
@@ -227,8 +228,10 @@ class ECToolPowerInfoTest(unittest.TestCase):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_EC_BATTERY_READ)
     # pylint: disable=protected-access
-    self.assertItemsEqual(['0x03', 'AC_PRESENT', 'BATT_PRESENT', 'CHARGING'],
-                          self.power._GetECToolBatteryFlags())
+    assertCountEqual(
+        self,
+        ['0x03', 'AC_PRESENT', 'BATT_PRESENT', 'CHARGING'],
+        self.power._GetECToolBatteryFlags())
 
   def testGetECToolBatteryAttribute(self):
     self.board.CallOutput = mock.MagicMock(

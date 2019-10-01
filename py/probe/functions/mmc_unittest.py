@@ -7,6 +7,7 @@ import os
 import tempfile
 import unittest
 
+from six import assertCountEqual
 from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
@@ -49,10 +50,10 @@ class MMCFunctionTest(unittest.TestCase):
     self._CreateMMCDevice('mmc3', '/sys/devices/mmc3', values3)
 
     func = mmc.MMCFunction()
-    self.assertItemsEqual(func(), self._AddExtraFields([values1, values2]))
+    assertCountEqual(self, func(), self._AddExtraFields([values1, values2]))
 
     func = mmc.MMCFunction(dir_path=self.my_root + '/sys/devices/mmc1')
-    self.assertItemsEqual(func(), self._AddExtraFields([values1]))
+    assertCountEqual(self, func(), self._AddExtraFields([values1]))
 
   def _AddExtraFields(self, values):
     for value in values:

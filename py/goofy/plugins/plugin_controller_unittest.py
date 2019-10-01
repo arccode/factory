@@ -9,6 +9,7 @@ import os
 import unittest
 
 import mock
+from six import assertCountEqual
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import goofy
@@ -39,11 +40,15 @@ class PluginControllerTest(unittest.TestCase):
 
   def testInit(self):
     controller = self.CreateController()
-    self.assertItemsEqual(list(controller._plugins), [self.BASE_PLUGIN_MODULE])
-    self.assertItemsEqual(controller._frontend_configs, [{
-        'url': '/plugin/mock_plugin_mock_plugin/mock_plugin.html',
-        'location': 'testlist'
-    }])
+    assertCountEqual(
+        self,
+        list(controller._plugins),
+        [self.BASE_PLUGIN_MODULE])
+    assertCountEqual(
+        self,
+        controller._frontend_configs,
+        [{'url': '/plugin/mock_plugin_mock_plugin/mock_plugin.html',
+          'location': 'testlist'}])
     self._goofy.goofy_server.RegisterPath.assert_called_once_with(
         '/plugin/mock_plugin_mock_plugin',
         os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR,
@@ -52,7 +57,10 @@ class PluginControllerTest(unittest.TestCase):
   def testInitError(self):
     self._config['plugins']['not_exist_plugin.NotExistPlugin'] = {}
     controller = self.CreateController()
-    self.assertItemsEqual(list(controller._plugins), [self.BASE_PLUGIN_MODULE])
+    assertCountEqual(
+        self,
+        list(controller._plugins),
+        [self.BASE_PLUGIN_MODULE])
 
   def testStartAllPlugins(self):
     mock_plugin = mock.Mock(plugin.Plugin)

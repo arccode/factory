@@ -8,6 +8,8 @@ import shutil
 import tempfile
 import unittest
 
+from six import assertCountEqual
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import state
 
@@ -46,7 +48,7 @@ class FactoryStateTest(unittest.TestCase):
     for test in test_paths:
       self.state.UpdateTestState(test)
 
-    self.assertItemsEqual(test_paths, self.state.GetTestPaths())
+    assertCountEqual(self, test_paths, self.state.GetTestPaths())
 
   def testGetTestStates(self):
     self.state.UpdateTestState('a', status=state.TestState.PASSED)

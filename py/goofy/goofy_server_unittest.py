@@ -10,6 +10,7 @@ import unittest
 import urllib2
 
 from jsonrpclib import jsonrpc
+from six import assertCountEqual
 from six import assertRaisesRegex
 
 import factory_common  # pylint: disable=unused-import
@@ -180,7 +181,8 @@ class GoofyServerTest(unittest.TestCase):
   def testGoofyServerRPC(self):
     proxy = jsonrpc.ServerProxy(
         'http://%s:%d/' % (net_utils.LOCALHOST, self.port))
-    self.assertItemsEqual(
+    assertCountEqual(
+        self,
         ['URLForData',
          'URLForFile',
          'RegisterPath',

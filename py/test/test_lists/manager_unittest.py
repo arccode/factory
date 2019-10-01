@@ -12,6 +12,7 @@ import tempfile
 import unittest
 
 import mock
+from six import assertCountEqual
 from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
@@ -120,16 +121,19 @@ class TestListLoaderTest(unittest.TestCase):
     self.assertEqual(dict, type(resolved_test_args['f']))
 
   def testListTestListIDs(self):
-    self.assertItemsEqual(
+    assertCountEqual(
+        self,
         ['a', 'b', 'base', 'locals', 'override_args', 'flatten_group',
          'skipped_waived_tests', 'invalid'],
         self.loader.FindTestLists())
 
   def testBuildAllTestLists(self):
     test_lists, unused_error = self.manager.BuildAllTestLists()
-    self.assertItemsEqual(
+    assertCountEqual(
+        self,
         ['a', 'b', 'locals', 'override_args', 'flatten_group',
-         'skipped_waived_tests'], test_lists)
+         'skipped_waived_tests'],
+        test_lists)
 
   def testChildActionOnFailure(self):
     """Test if `child_action_on_failure` is properly propagated."""

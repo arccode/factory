@@ -14,6 +14,7 @@ import os.path
 import unittest
 
 import mox
+from six import assertCountEqual
 from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
@@ -249,16 +250,20 @@ class ThermalTest(unittest.TestCase):
     self.board.ReadFile(self.coretemp1crit_path).AndReturn('104000')
     self.mox.ReplayAll()
     self.assertEqual(self.thermal.GetMainSensorName(), 'coretemp.0 Package 0')
-    self.assertItemsEqual(self.thermal.GetAllSensorNames(),
-                          ['coretemp.0 Package 0', 'ectool ECInternal'])
+    assertCountEqual(
+        self,
+        self.thermal.GetAllSensorNames(),
+        ['coretemp.0 Package 0', 'ectool ECInternal'])
     self.assertEqual(self.thermal.GetTemperature(), 37)
     self.assertEqual(
         self.thermal.GetTemperature(self.thermal.GetMainSensorName()), 38)
     self.assertEqual(
         self.thermal.GetTemperature('ectool ECInternal'), 59)
-    self.assertItemsEqual(self.thermal.GetAllTemperatures(),
-                          {'coretemp.0 Package 0': 34,
-                           'ectool ECInternal': 58})
+    assertCountEqual(
+        self,
+        self.thermal.GetAllTemperatures(),
+        {'coretemp.0 Package 0': 34,
+         'ectool ECInternal': 58})
     self.assertEqual(
         self.thermal.GetCriticalTemperature('coretemp.0 Package 0'), 104)
     self.mox.VerifyAll()

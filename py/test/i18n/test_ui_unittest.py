@@ -7,6 +7,8 @@
 import re
 import unittest
 
+from six import assertCountEqual
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import test_ui
 from cros.factory.test.i18n import translation
@@ -16,7 +18,7 @@ from cros.factory.test.i18n import unittest_test_case
 class TestUITest(unittest_test_case.I18nTestCase):
 
   def AssertSpansEqual(self, spans, html):
-    self.assertItemsEqual(re.findall('<span.*?</span>', html), spans)
+    assertCountEqual(self, re.findall('<span.*?</span>', html), spans)
 
   def testMakeI18nLabel(self):
     self.AssertSpansEqual(

@@ -9,6 +9,8 @@ import shutil
 import tempfile
 import unittest
 
+from six import assertCountEqual
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import install_symlinks
 
@@ -30,7 +32,7 @@ class TestInstallSymlinks(unittest.TestCase):
         install_symlinks.InstallSymlinks(
             '../foo', self.tmpdir, install_symlinks.MODE_FULL,
             symlinks=FAKE_SYMLINKS))
-    self.assertItemsEqual(['fullbin', 'minibin'], os.listdir(self.tmpdir))
+    assertCountEqual(self, ['fullbin', 'minibin'], os.listdir(self.tmpdir))
     self.assertEqual('../foo/fullbin',
                      os.readlink(os.path.join(self.tmpdir, 'fullbin')))
     self.assertEqual('../foo/minibin',
@@ -42,7 +44,7 @@ class TestInstallSymlinks(unittest.TestCase):
         install_symlinks.InstallSymlinks(
             '../foo.par', self.tmpdir, install_symlinks.MODE_FULL,
             symlinks=FAKE_SYMLINKS))
-    self.assertItemsEqual(['fullbin', 'minibin'], os.listdir(self.tmpdir))
+    assertCountEqual(self, ['fullbin', 'minibin'], os.listdir(self.tmpdir))
     self.assertEqual('../foo.par',
                      os.readlink(os.path.join(self.tmpdir, 'fullbin')))
     self.assertEqual('../foo.par',
@@ -57,7 +59,7 @@ class TestInstallSymlinks(unittest.TestCase):
     install_symlinks.InstallSymlinks(
         '../foo', self.tmpdir, install_symlinks.MODE_MINI,
         symlinks=FAKE_SYMLINKS)
-    self.assertItemsEqual(['minibin'], os.listdir(self.tmpdir))
+    assertCountEqual(self, ['minibin'], os.listdir(self.tmpdir))
     self.assertEqual('../foo/minibin',
                      os.readlink(os.path.join(self.tmpdir, 'minibin')))
 

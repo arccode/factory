@@ -19,6 +19,7 @@ import time
 import unittest
 
 import mock
+from six import assertCountEqual
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import image_tool
@@ -221,10 +222,12 @@ class ImageToolTest(unittest.TestCase):
     self.assertTrue(os.path.exists(bundle_name))
     contents = subprocess.check_output('tar -xvf %s' % bundle_name, shell=True)
     contents = [line.split()[-1] for line in contents.splitlines()]
-    self.assertItemsEqual(contents, [
-        './', './README.md', './factory_shim/', './factory_shim/image.bin',
-        './release_image/', './release_image/image.bin', './test_image/',
-        './test_image/image.bin', './toolkit/', './toolkit/toolkit.run'])
+    assertCountEqual(
+        self,
+        contents,
+        ['./', './README.md', './factory_shim/', './factory_shim/image.bin',
+         './release_image/', './release_image/image.bin', './test_image/',
+         './test_image/image.bin', './toolkit/', './toolkit/toolkit.run'])
 
 
 class UserInputTest(unittest.TestCase):

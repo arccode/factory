@@ -7,6 +7,7 @@ import os
 import tempfile
 import unittest
 
+from six import assertCountEqual
 from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
@@ -51,10 +52,10 @@ class PCIFunctionTest(unittest.TestCase):
     self._CreatePCIDevice('dev3', '/sys/devices/pci1/xxxx', values3)
 
     func = pci.PCIFunction()
-    self.assertItemsEqual(func(), self._AddExtraFields([values1, values2]))
+    assertCountEqual(self, func(), self._AddExtraFields([values1, values2]))
 
     func = pci.PCIFunction(dir_path=self.my_root + '/sys/devices/pci1/xxyy')
-    self.assertItemsEqual(func(), self._AddExtraFields([values1]))
+    assertCountEqual(self, func(), self._AddExtraFields([values1]))
 
   def _AddExtraFields(self, values):
     for value in values:

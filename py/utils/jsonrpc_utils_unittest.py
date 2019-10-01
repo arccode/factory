@@ -17,6 +17,7 @@ import unittest
 import jsonrpclib
 from jsonrpclib import jsonrpc
 from jsonrpclib import SimpleJSONRPCServer
+from six import assertCountEqual
 from six import assertRaisesRegex
 
 import factory_common  # pylint: disable=unused-import
@@ -136,7 +137,8 @@ class MultiPathJSONRPCServerTest(unittest.TestCase):
 
   def testServer(self):
     def _CheckListMethods(methods, proxy):
-      self.assertItemsEqual(
+      assertCountEqual(
+          self,
           methods + [u'system.listMethods',
                      u'system.methodHelp',
                      u'system.methodSignature'],

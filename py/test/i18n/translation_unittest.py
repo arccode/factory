@@ -6,6 +6,7 @@
 
 import unittest
 
+from six import assertCountEqual
 from six import assertRaisesRegex
 
 import factory_common  # pylint: disable=unused-import
@@ -72,14 +73,15 @@ class TranslationTest(unittest_test_case.I18nTestCase):
                      }))
 
   def testGetAllTranslations(self):
-    self.assertItemsEqual([
-        {'en-US': 'text 1', 'zh-CN': 'text-1'},
-        {'en-US': 'text 2', 'zh-CN': 'text-2'},
-        {
-            'en-US': 'format string {str1} {str2} [{val1:05}]',
-            'zh-CN': '<{val1:05}>-{str2}-{str1}-format-string'
-        }
-    ], translation.GetAllTranslations())
+    assertCountEqual(
+        self,
+        [{'en-US': 'text 1', 'zh-CN': 'text-1'},
+         {'en-US': 'text 2', 'zh-CN': 'text-2'},
+         {
+             'en-US': 'format string {str1} {str2} [{val1:05}]',
+             'zh-CN': '<{val1:05}>-{str2}-{str1}-format-string'
+         }],
+        translation.GetAllTranslations())
 
 if __name__ == '__main__':
   unittest.main()
