@@ -11,6 +11,8 @@ from StringIO import StringIO
 import tempfile
 import unittest
 
+from six import assertRegex
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.tools import audit_source_hashes
@@ -34,7 +36,8 @@ class AuditSourceHashesTest(unittest.TestCase):
     self.assertRaisesRegexp(
         SystemExit, '^1$',
         audit_source_hashes.main, [bad_report], out)
-    self.assertRegexpMatches(
+    assertRegex(
+        self,
         out.getvalue(),
         r'(?s).+AuditException: Unable to read events from report.+'
         r'\(tar returned 2\).+'
@@ -80,7 +83,8 @@ class AuditSourceHashesTest(unittest.TestCase):
       out = StringIO()
       self.assertRaisesRegexp(SystemExit, '^1$',
                               audit_source_hashes.main, [log_path], out)
-      self.assertRegexpMatches(
+      assertRegex(
+          self,
           out.getvalue(),
           r'In sample .+:\n'
           r'- tools/audit_source_hashes_unittest\.py: hash mismatch '
@@ -135,7 +139,8 @@ class FakeSourceTreeTest(unittest.TestCase):
     self.assertRaisesRegexp(
         SystemExit, '^1$', audit_source_hashes.main,
         ['-g', golden_source, self.py2], out)
-    self.assertRegexpMatches(
+    assertRegex(
+        self,
         out.getvalue(),
         r'In sample .+:\n'
         r'- b\.py: missing from sample\n'

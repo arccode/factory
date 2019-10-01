@@ -17,6 +17,8 @@ Before running this test, modem carrier should be set to Generic UMTS.
 import logging
 import re
 
+from six import assertRegex
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
@@ -95,7 +97,7 @@ class ProbeSIMCardTest(test_case.TestCase):
         output = self.GetModemStatus()
 
     logging.info(output)
-    self.assertRegexpMatches(output, sim_re, fail_string)
+    assertRegex(self, output, sim_re, fail_string)
 
   def WaitForSIMCard(self, sim_re):
     while True:

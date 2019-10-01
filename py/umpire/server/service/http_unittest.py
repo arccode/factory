@@ -8,6 +8,8 @@ import os
 import subprocess
 import unittest
 
+from six import assertRegex
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import config as umpire_config
 from cros.factory.umpire.server.service import http
@@ -39,7 +41,8 @@ class HTTPServiceTest(unittest.TestCase):
     config_path = http.HTTPService.GenerateNginxConfig(
         umpire_config_dict, self.env)
 
-    self.assertRegexpMatches(
+    assertRegex(
+        self,
         config_path,
         os.path.join(self.env.config_dir, 'nginx_#[0-9a-f]{32}#.conf'))
 

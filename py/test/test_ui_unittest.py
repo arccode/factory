@@ -15,6 +15,7 @@ import sys
 import unittest
 
 import mock
+from six import assertRegex
 from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
@@ -163,8 +164,8 @@ class EventLoopTest(EventLoopTestBase):
     self.event_loop.AddEventHandler('type1', _Handler)
     self._MockNewEvent(_EventType.TEST_UI_EVENT, subtype='type1', data='data')
     self.mock_logging.warn.assert_called_once()
-    self.assertRegexpMatches(self.mock_logging.warn.call_args[0][0],
-                             r'The handler .* takes too long to finish')
+    assertRegex(self, self.mock_logging.warn.call_args[0][0],
+                r'The handler .* takes too long to finish')
 
   def testCatchException(self):
     self.assertEqual('foo', self.event_loop.CatchException(lambda: 'foo')())
@@ -997,7 +998,7 @@ class StandardUITest(UITestBase):
       try:
         next(iterable)
       except type_utils.TestFailure as e:
-        self.assertRegexpMatches(str(e), r'^Timed out')
+        assertRegex(self, str(e), r'^Timed out')
         break
 
       self.AssertEventsPosted(
