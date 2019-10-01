@@ -7,6 +7,8 @@ import logging
 import os
 import unittest
 
+from six import assertRaisesRegex
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rf.tools.csv_reader import ReadCsv
 from cros.factory.test.rf.tools.csv_reader import ReadCsvAsDict
@@ -33,12 +35,12 @@ class CsvReaderTest(unittest.TestCase):
     self.assertEqual(ReadSingleCell(''), None)
     self.assertEqual(ReadSingleCell('[1, 4, 7]'), [1, 4, 7])
     self.assertEqual(ReadSingleCell('[1, 4, 7]'), [1, 4, 7])
-    self.assertRaisesRegexp(
-        NameError, 'name .* is not defined',
-        ReadSingleCell, 'invalid_syntax')
-    self.assertRaisesRegexp(
-        ValueError, 'Failed to load external',
-        ReadSingleCell, "CsvLink('not_exist_file.csv')")
+    assertRaisesRegex(
+        self, NameError, 'name .* is not defined', ReadSingleCell,
+        'invalid_syntax')
+    assertRaisesRegex(
+        self, ValueError, 'Failed to load external', ReadSingleCell,
+        "CsvLink('not_exist_file.csv')")
 
   def testReadCsvAsADict(self):
     loaded_dict = ReadCsvAsDict(
@@ -46,13 +48,13 @@ class CsvReaderTest(unittest.TestCase):
     self.assertEqual(loaded_dict, self.dict_expected)
 
   def testReadCsvAsADictInvalidColumns(self):
-    self.assertRaisesRegexp(
-        ValueError, 'Columns format is not a dict', ReadCsvAsDict,
+    assertRaisesRegex(
+        self, ValueError, 'Columns format is not a dict', ReadCsvAsDict,
         os.path.join(self.testdata_path, 'dict_invalid_column.csv'))
 
   def testReadCsvAsADictDuplicatedKey(self):
-    self.assertRaisesRegexp(
-        ValueError, 'Duplicated key', ReadCsvAsDict,
+    assertRaisesRegex(
+        self, ValueError, 'Duplicated key', ReadCsvAsDict,
         os.path.join(self.testdata_path, 'dict_duplicated_key.csv'))
 
   def testReadCsvAsListOfDict(self):
@@ -61,8 +63,8 @@ class CsvReaderTest(unittest.TestCase):
     self.assertEqual(loaded_list, self.list_expected)
 
   def testReadCsvAsListOfDictDuplicatedColumn(self):
-    self.assertRaisesRegexp(
-        ValueError, 'Duplicated column', ReadCsvAsListOfDict,
+    assertRaisesRegex(
+        self, ValueError, 'Duplicated column', ReadCsvAsListOfDict,
         os.path.join(self.testdata_path, 'list_of_dict_duplicated_column.csv'))
 
   def testReadCsv(self):

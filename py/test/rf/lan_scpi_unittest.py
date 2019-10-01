@@ -16,6 +16,8 @@ import SocketServer
 import threading
 import unittest
 
+from six import assertRaisesRegex
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rf import lan_scpi
 from cros.factory.utils import net_utils
@@ -119,8 +121,8 @@ class LanScpiTest(unittest.TestCase):
     MockServerHandler.AddLookup(b'*OPC?', self.NORMAL_OPC_RESPONSE)
 
     self._StartTest()
-    self.assertRaisesRegexp(lan_scpi.Error, 'Undefined header',
-                            self.lan_scpi.Send, TEST_COMMAND)
+    assertRaisesRegex(self, lan_scpi.Error, 'Undefined header',
+                      self.lan_scpi.Send, TEST_COMMAND)
 
   def testQuery(self):
     TEST_COMMAND = b'FETCh?'
@@ -143,8 +145,8 @@ class LanScpiTest(unittest.TestCase):
     MockServerHandler.AddLookup(b'SYST:ERR?', None)
 
     self._StartTest()
-    self.assertRaisesRegexp(type_utils.TimeoutError, 'Timeout',
-                            self.lan_scpi.Query, TEST_COMMAND)
+    assertRaisesRegex(self, type_utils.TimeoutError, 'Timeout',
+                      self.lan_scpi.Query, TEST_COMMAND)
 
   def setUp(self):
     self._AddInitialLookup()

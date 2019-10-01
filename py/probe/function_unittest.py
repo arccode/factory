@@ -5,6 +5,8 @@
 
 import unittest
 
+from six import assertRaisesRegex
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
 from cros.factory.probe.lib import probe_function
@@ -30,21 +32,21 @@ class InterpretFunctionTest(unittest.TestCase):
     self.assertEqual(func.args.value, 'bar')
 
   def testWrongFunction(self):
-    with self.assertRaisesRegexp(
-        function.FunctionException,
+    with assertRaisesRegex(
+        self, function.FunctionException,
         'Function "NOT_EXISTED" is not registered.'):
       function.InterpretFunction({'NOT_EXISTED': {}})
 
   def testWrongArgument(self):
-    with self.assertRaisesRegexp(
-        function.FunctionException,
+    with assertRaisesRegex(
+        self, function.FunctionException,
         'Invalid argument: .* should be string or dict.'):
       function.InterpretFunction({'mock': ['key', 'foo']})
-    with self.assertRaisesRegexp(
-        arg_utils.ArgError, 'Required argument value not specified'):
+    with assertRaisesRegex(
+        self, arg_utils.ArgError, 'Required argument value not specified'):
       function.InterpretFunction({'mock': {'key': 'foo'}})
-    with self.assertRaisesRegexp(
-        arg_utils.ArgError, r"Extra arguments \['extra'\]"):
+    with assertRaisesRegex(
+        self, arg_utils.ArgError, r"Extra arguments \['extra'\]"):
       function.InterpretFunction(
           {'mock': {'key': 'foo', 'value': 'FOO', 'extra': 'lala'}})
 
@@ -58,8 +60,8 @@ class InterpretFunctionTest(unittest.TestCase):
         pass
     function.RegisterFunction('mock', MockFunction, force=True)
 
-    with self.assertRaisesRegexp(
-        function.FunctionException,
+    with assertRaisesRegex(
+        self, function.FunctionException,
         r"Function .* requires more than one argument: \['key1', 'key2'\]"):
       function.InterpretFunction({'mock': 'foo'})
 
@@ -92,7 +94,7 @@ class UtilTest(unittest.TestCase):
     self.assertIsNone(function.LoadFunctions())
 
   def testRegisterFunction(self):
-    with self.assertRaisesRegexp(function.FunctionException, ''):
+    with assertRaisesRegex(self, function.FunctionException, ''):
       function.RegisterFunction('object', object)
 
   def testRegisterTwice(self):
@@ -100,8 +102,9 @@ class UtilTest(unittest.TestCase):
       def Apply(self, data):
         pass
     function.RegisterFunction('TEST', TestFunction)
-    with self.assertRaisesRegexp(
-        function.FunctionException, 'Function "TEST" is already registered.'):
+    with assertRaisesRegex(
+        self, function.FunctionException,
+        'Function "TEST" is already registered.'):
       function.RegisterFunction('TEST', TestFunction)
 
 

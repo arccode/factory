@@ -7,6 +7,8 @@
 import re
 import unittest
 
+from six import assertRaisesRegex
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import string_utils
 from cros.factory.test.i18n import translation
@@ -78,10 +80,10 @@ class StringUtilsTest(unittest_test_case.I18nTestCase):
             'format string {str1} {str2} [{val1:05}]',
             str1='text 1', str2=translation.Translation('text 2'), val1=42))
 
-    self.assertRaisesRegexp(ValueError, "doesn't contain the default locale",
-                            string_utils.StringFormat, {'zh-CN': 'a'})
-    self.assertRaisesRegexp(ValueError, "doesn't contain the default locale",
-                            string_utils.StringFormat, '{s}', s={'zh-CN': 'a'})
+    assertRaisesRegex(self, ValueError, "doesn't contain the default locale",
+                      string_utils.StringFormat, {'zh-CN': 'a'})
+    assertRaisesRegex(self, ValueError, "doesn't contain the default locale",
+                      string_utils.StringFormat, '{s}', s={'zh-CN': 'a'})
     self.assertEqual(
         {'en-US': '[?]', 'zh-CN': '[?]'},
         string_utils.StringFormat('{str}'))

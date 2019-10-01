@@ -9,6 +9,8 @@ import json
 import os
 import unittest
 
+from six import assertRaisesRegex
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import config
@@ -130,8 +132,8 @@ class ValidateResourcesTest(unittest.TestCase):
   def testFileNotFound(self):
     # Resources in the second bundle are not presented.
     self.conf['active_bundle_id'] = 'test2'
-    self.assertRaisesRegexp(common.UmpireError, 'NOT FOUND.+hwid.404.gz',
-                            config.ValidateResources, self.conf, self.env)
+    assertRaisesRegex(self, common.UmpireError, 'NOT FOUND.+hwid.404.gz',
+                      config.ValidateResources, self.conf, self.env)
 
 
 if __name__ == '__main__':

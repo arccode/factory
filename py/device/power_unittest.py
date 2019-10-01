@@ -14,6 +14,7 @@ import textwrap
 import unittest
 
 import mock
+from six import assertRaisesRegex
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -275,8 +276,8 @@ class ECToolPowerInfoTest(unittest.TestCase):
         Port 3: SRC
         """)
     self.board.CheckOutput = mock.MagicMock(return_value=_USB_PD_POWER_INFO)
-    self.assertRaisesRegexp(self.power.Error, 'unexpected PD state',
-                            self.power.GetUSBPDPowerInfo)
+    assertRaisesRegex(self, self.power.Error, 'unexpected PD state',
+                      self.power.GetUSBPDPowerInfo)
 
   def testUSBPDPowerInfoIncorrectSNKOutput(self):
     _USB_PD_POWER_INFO = textwrap.dedent("""
@@ -285,8 +286,8 @@ class ECToolPowerInfoTest(unittest.TestCase):
         Port 2: SRC
         """)
     self.board.CheckOutput = mock.MagicMock(return_value=_USB_PD_POWER_INFO)
-    self.assertRaisesRegexp(self.power.Error, 'unexpected output for SNK',
-                            self.power.GetUSBPDPowerInfo)
+    assertRaisesRegex(self, self.power.Error, 'unexpected output for SNK',
+                      self.power.GetUSBPDPowerInfo)
 
 
 class PowerDaemonPowerInfoTest(unittest.TestCase):

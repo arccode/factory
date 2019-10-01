@@ -9,6 +9,7 @@ import logging
 import unittest
 
 import mock
+from six import assertRaisesRegex
 from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
@@ -143,8 +144,8 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.mock_dut.link.IsReady.return_value = False
 
     self.test.setUp()
-    self.assertRaisesRegexp(type_utils.TestFailure, 'DUT is not connected',
-                            self.test.runTest)
+    assertRaisesRegex(self, type_utils.TestFailure, 'DUT is not connected',
+                      self.test.runTest)
 
 
 if __name__ == '__main__':

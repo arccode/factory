@@ -11,6 +11,7 @@ from __future__ import print_function
 import unittest
 
 import mox
+from six import assertRaisesRegex
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import led as led_module
@@ -88,12 +89,12 @@ class LEDTest(unittest.TestCase):
     self.board.CallOutput(['ectool', 'led', 'battery', 'query'])
     self.mox.ReplayAll()
     led = led_module.LED(self.board)
-    with self.assertRaisesRegexp(ValueError, 'Invalid color'):
+    with assertRaisesRegex(self, ValueError, 'Invalid color'):
       led.SetColor('invalid color')
-    with self.assertRaisesRegexp(TypeError, 'Invalid brightness'):
+    with assertRaisesRegex(self, TypeError, 'Invalid brightness'):
       led.SetColor(led.Color.RED, brightness='1')
-    with self.assertRaisesRegexp(ValueError,
-                                 r'brightness \(255\) out-of-range'):
+    with assertRaisesRegex(self, ValueError,
+                           r'brightness \(255\) out-of-range'):
       led.SetColor(led.Color.RED, brightness=255)
 
   def testSetColorUnsupportedBoard(self):
@@ -103,7 +104,7 @@ class LEDTest(unittest.TestCase):
         led_module.LED.Error(msg))
     self.mox.ReplayAll()
     led = led_module.LED(self.board)
-    with self.assertRaisesRegexp(types.DeviceException, msg):
+    with assertRaisesRegex(self, types.DeviceException, msg):
       led.SetColor(led.Color.RED, brightness=None)
     self.mox.VerifyAll()
 

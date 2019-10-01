@@ -11,6 +11,7 @@ from StringIO import StringIO
 import tempfile
 import unittest
 
+from six import assertRaisesRegex
 from six import assertRegex
 
 import factory_common  # pylint: disable=unused-import
@@ -33,9 +34,8 @@ class AuditSourceHashesTest(unittest.TestCase):
     out = StringIO()
     bad_report = os.path.join(self.tmpdir, 'bad_report.tar.xz')
     file_utils.TouchFile(bad_report)
-    self.assertRaisesRegexp(
-        SystemExit, '^1$',
-        audit_source_hashes.main, [bad_report], out)
+    assertRaisesRegex(
+        self, SystemExit, '^1$', audit_source_hashes.main, [bad_report], out)
     assertRegex(
         self,
         out.getvalue(),
@@ -49,8 +49,8 @@ class AuditSourceHashesTest(unittest.TestCase):
 
     This is comparing the tree to itself, so it should succeed."""
     out = StringIO()
-    self.assertRaisesRegexp(
-        SystemExit, '^0$', audit_source_hashes.main,
+    assertRaisesRegex(
+        self, SystemExit, '^0$', audit_source_hashes.main,
         [os.path.join(paths.FACTORY_DIR, 'py')], out)
     self.assertEqual('PASSED (1/1 samples passed).\n', out.getvalue())
 
@@ -67,9 +67,9 @@ class AuditSourceHashesTest(unittest.TestCase):
     # We should find the event in this log.  Check that it works.
     event_log_path = os.path.join(self.tmpdir, 'state', 'events', 'events')
     out = StringIO()
-    self.assertRaisesRegexp(
-        SystemExit, '^0$',
-        audit_source_hashes.main, [event_log_path], out)
+    assertRaisesRegex(
+        self, SystemExit, '^0$', audit_source_hashes.main, [event_log_path],
+        out)
 
     # Change the hash of this source file in the event log entry.  It
     # should fail now.
@@ -81,8 +81,8 @@ class AuditSourceHashesTest(unittest.TestCase):
 
     def AssertMismatch(log_path):
       out = StringIO()
-      self.assertRaisesRegexp(SystemExit, '^1$',
-                              audit_source_hashes.main, [log_path], out)
+      assertRaisesRegex(
+          self, SystemExit, '^1$', audit_source_hashes.main, [log_path], out)
       assertRegex(
           self,
           out.getvalue(),
@@ -136,8 +136,8 @@ class FakeSourceTreeTest(unittest.TestCase):
     """Asserts that golden_source and py2 have the expected mismatches."""
     out = StringIO()
     self._ModifyTree()
-    self.assertRaisesRegexp(
-        SystemExit, '^1$', audit_source_hashes.main,
+    assertRaisesRegex(
+        self, SystemExit, '^1$', audit_source_hashes.main,
         ['-g', golden_source, self.py2], out)
     assertRegex(
         self,
@@ -152,8 +152,8 @@ class FakeSourceTreeTest(unittest.TestCase):
   def testMatches(self):
     """Tests that py matches py2."""
     out = StringIO()
-    self.assertRaisesRegexp(
-        SystemExit, '^0$', audit_source_hashes.main,
+    assertRaisesRegex(
+        self, SystemExit, '^0$', audit_source_hashes.main,
         ['-g', self.py, self.py2], out)
     self.assertEqual('PASSED (1/1 samples passed).\n', out.getvalue())
 

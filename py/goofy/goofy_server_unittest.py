@@ -10,6 +10,7 @@ import unittest
 import urllib2
 
 from jsonrpclib import jsonrpc
+from six import assertRaisesRegex
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import goofy_server
@@ -228,7 +229,7 @@ class GoofyServerTest(unittest.TestCase):
           'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, url))
 
   def testURLNotFound(self):
-    with self.assertRaisesRegexp(urllib2.HTTPError, '404: Not Found'):
+    with assertRaisesRegex(self, urllib2.HTTPError, '404: Not Found'):
       response = urllib2.urlopen(
           'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, '/not_exists'))
       response.close()

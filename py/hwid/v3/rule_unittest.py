@@ -5,6 +5,8 @@
 
 import unittest
 
+from six import assertRaisesRegex
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.rule import Context
 from cros.factory.hwid.v3.rule import GetContext
@@ -42,14 +44,14 @@ class HWIDRuleTest(unittest.TestCase):
                 when='StrLen() > 3',
                 evaluate='AssertStrLen(6)',
                 otherwise='AssertStrLen(8)')
-    self.assertRaisesRegexp(
-        RuleException, r'ERROR: Assertion error', rule.Evaluate, self.context)
+    assertRaisesRegex(self, RuleException, r'ERROR: Assertion error',
+                      rule.Evaluate, self.context)
     rule = Rule(name='foobar2',
                 when='StrLen() > 6',
                 evaluate='AssertStrLen(6)',
                 otherwise='AssertStrLen(8)')
-    self.assertRaisesRegexp(
-        RuleException, r'ERROR: Assertion error', rule.Evaluate, self.context)
+    assertRaisesRegex(self, RuleException, r'ERROR: Assertion error',
+                      rule.Evaluate, self.context)
 
   def testValue(self):
     self.assertTrue(Value('foo').Matches('foo'))
@@ -59,9 +61,8 @@ class HWIDRuleTest(unittest.TestCase):
 
   def testEvaluateOnce(self):
     self.assertEqual(5, Rule.EvaluateOnce('StrLen()', self.context))
-    self.assertRaisesRegexp(
-        RuleException, r'ERROR: Assertion error',
-        Rule.EvaluateOnce, 'AssertStrLen(6)', self.context)
+    assertRaisesRegex(self, RuleException, r'ERROR: Assertion error',
+                      Rule.EvaluateOnce, 'AssertStrLen(6)', self.context)
 
 if __name__ == '__main__':
   unittest.main()

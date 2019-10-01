@@ -13,6 +13,7 @@ import tempfile
 import unittest
 
 import gnupg
+from six import assertRaisesRegex
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.dkps import dkps
@@ -121,7 +122,7 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
         'sample_filter.py')
 
     # Test add duplicate project.
-    with self.assertRaisesRegexp(ValueError, 'already exists'):
+    with assertRaisesRegex(self, ValueError, 'already exists'):
       self.dkps.AddProject(
           'TestProject', self.uploader_public_key_file_path,
           self.requester_public_key_file_path, 'sample_parser.py',

@@ -16,6 +16,7 @@ import tempfile
 import time
 import unittest
 
+from six import assertRaisesRegex
 from six import iteritems
 
 from testlog_pkg import testlog
@@ -116,14 +117,14 @@ class TestlogTest(TestlogTestBase):
 class TestlogEventTest(TestlogTestBase):
 
   def testDisallowInitializeFakeEventClasses(self):
-    with self.assertRaisesRegexp(
-        testlog_utils.TestlogError, 'initialize directly'):
+    with assertRaisesRegex(
+        self, testlog_utils.TestlogError, 'initialize directly'):
       testlog.EventBase()
-    with self.assertRaisesRegexp(
-        testlog_utils.TestlogError, 'initialize directly'):
+    with assertRaisesRegex(
+        self, testlog_utils.TestlogError, 'initialize directly'):
       testlog.Event()
-    with self.assertRaisesRegexp(
-        testlog_utils.TestlogError, 'initialize directly'):
+    with assertRaisesRegex(
+        self, testlog_utils.TestlogError, 'initialize directly'):
       testlog._StationBase()  # pylint: disable=protected-access
 
   def testEventSerializeUnserialize(self):
@@ -158,17 +159,16 @@ class TestlogEventTest(TestlogTestBase):
     event = testlog.StationInit()
     event['failureMessage'] = 'Missed fields'
     event['apiVersion'] = '0.21'
-    with self.assertRaisesRegexp(
-        testlog_utils.TestlogError,
+    with assertRaisesRegex(
+        self, testlog_utils.TestlogError,
         'Missing fields: \\[\'count\', \'success\', \'uuid\', \'time\'\\]'):
       event.CheckIsValid()
 
     event = self._GetSampleTestRunEvent()
     event['apiVersion'] = '0.05'
 
-    with self.assertRaisesRegexp(
-        testlog_utils.TestlogError,
-        'Invalid Testlog API version: 0.05'):
+    with assertRaisesRegex(
+        self, testlog_utils.TestlogError, 'Invalid Testlog API version: 0.05'):
       event.CheckIsValid()
 
     event['apiVersion'] = '0.21'
@@ -176,8 +176,8 @@ class TestlogEventTest(TestlogTestBase):
     event['attachments'] = {'key': 'att_key1',
                             'value': {'path': '/path/to/file',
                                       'mimeType': 'text/plain'}}
-    with self.assertRaisesRegexp(
-        testlog_utils.TestlogError,
+    with assertRaisesRegex(
+        self, testlog_utils.TestlogError,
         r"Missing fields: \['serialNumbers'\]"):
       event.CheckIsValid()
 
@@ -190,8 +190,8 @@ class TestlogEventTest(TestlogTestBase):
       event.LogParam('B', 2)
     event.CheckIsValid()
     event['parameters']['A']['data'].append({'numericValue': 3})
-    with self.assertRaisesRegexp(
-        testlog_utils.TestlogError,
+    with assertRaisesRegex(
+        self, testlog_utils.TestlogError,
         r'The parameters length in the group\(GROUP\) are not the same'):
       event.CheckIsValid()
 
@@ -225,12 +225,12 @@ class TestlogEventTest(TestlogTestBase):
   def testParameters(self):
     event = testlog.StationTestRun()
     group_checker = event.GroupParam('GG', ['num', 'text'])
-    with self.assertRaisesRegexp(
-        ValueError,
+    with assertRaisesRegex(
+        self, ValueError,
         r'The grouped parameter should be used in the GroupChecker'):
       event.LogParam(name='num', value=3388)
-    with self.assertRaisesRegexp(
-        ValueError,
+    with assertRaisesRegex(
+        self, ValueError,
         r'The grouped parameter should be used in the GroupChecker'):
       event.LogParam(name='text', value='unittest')
 
@@ -240,8 +240,8 @@ class TestlogEventTest(TestlogTestBase):
       event.LogParam(name='num', value=3388)
     event.LogParam(name='list', value=[1, 2, 3])
 
-    with self.assertRaisesRegexp(
-        ValueError,
+    with assertRaisesRegex(
+        self, ValueError,
         r'parameter\(text\) should not have data before grouping'):
       # pylint: disable=unused-variable
       invalid_group_checker = event.GroupParam('GG', ['text', 'what'])
@@ -311,10 +311,10 @@ class TestlogEventTest(TestlogTestBase):
                         {'serializedValue': '{"1": 2, "3": [4]}'}]}}}),
         event)
 
-    with self.assertRaisesRegexp(ValueError, 'is not a numeric'):
+    with assertRaisesRegex(self, ValueError, 'is not a numeric'):
       event.CheckNumericParam(name='oops', value='yoha')
 
-    with self.assertRaisesRegexp(ValueError, 'is not a text'):
+    with assertRaisesRegex(self, ValueError, 'is not a text'):
       event.CheckTextParam(name='oops', value=30)
 
     self.assertTrue(
@@ -335,8 +335,8 @@ class TestlogEventTest(TestlogTestBase):
         event.CheckTextParam(
             name='Regex4', value='--Hello world--', regex='H.*d'))
 
-    with self.assertRaisesRegexp(
-        ValueError,
+    with assertRaisesRegex(
+        self, ValueError,
         r'The parameters length in the group\(GG\) are not the same'):
       with group_checker:
         event.LogParam(name='num', value=3388)
@@ -369,27 +369,27 @@ class TestlogEventTest(TestlogTestBase):
         description=DESCRIPTION)
     # Missing mime_type
     file_to_attach = CreateTextFile()
-    with self.assertRaisesRegexp(ValueError, 'mime'):
+    with assertRaisesRegex(self, ValueError, 'mime'):
       event.AttachFile(
           path=os.path.realpath(file_to_attach),
           name='text1',
           mime_type=None)
     # mime_type with incorrect format
-    with self.assertRaisesRegexp(ValueError, 'mime'):
+    with assertRaisesRegex(self, ValueError, 'mime'):
       event.AttachFile(
           path=os.path.realpath(file_to_attach),
           name='text1',
           mime_type='wrong_mime_format')
     # Incorret path
     file_to_attach = CreateTextFile()
-    with self.assertRaisesRegexp(ValueError, 'find file'):
+    with assertRaisesRegex(self, ValueError, 'find file'):
       event.AttachFile(
           path=os.path.realpath(file_to_attach) + 'abcd',
           name='text1',
           mime_type='text/plain')
     # Duplicate name
     file_to_attach = CreateTextFile()
-    with self.assertRaisesRegexp(ValueError, 'duplicated'):
+    with assertRaisesRegex(self, ValueError, 'duplicated'):
       event.AttachFile(
           path=os.path.realpath(file_to_attach),
           name='text1',
@@ -541,8 +541,8 @@ class TestlogEventTest(TestlogTestBase):
         'status': 'PASS',
         'startTime': SAMPLE_DATETIME_FLOAT,
     }
-    with self.assertRaisesRegexp(testlog_utils.TestlogError,
-                                 'Empty dict is invalid'):
+    with assertRaisesRegex(
+        self, testlog_utils.TestlogError, 'Empty dict is invalid'):
       _unused_invalid_event = testlog.EventBase.FromDict(example_dict)
     del example_dict['arguments']
     _unused_valid_event = testlog.EventBase.FromDict(example_dict)

@@ -7,6 +7,8 @@
 
 import unittest
 
+from six import assertRaisesRegex
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.cros_board_utils import BuildBoard
 from cros.factory.utils.cros_board_utils import BuildBoardException
@@ -31,10 +33,10 @@ class BuildBoardTest(unittest.TestCase):
              short_name='link', gsutil_name='link'),
         BuildBoard('link').__dict__)
 
-    self.assertRaisesRegexp(BuildBoardException, 'Unknown board',
-                            BuildBoard, 'notarealboard')
-    self.assertRaisesRegexp(BuildBoardException, 'Multiple board names',
-                            BuildBoard, 'he')
+    assertRaisesRegex(
+        self, BuildBoardException, 'Unknown board', BuildBoard, 'notarealboard')
+    assertRaisesRegex(
+        self, BuildBoardException, 'Multiple board names', BuildBoard, 'he')
 
   def testBoardArch(self):
     self.assertEqual('arm', BuildBoard('beaglebone').arch)

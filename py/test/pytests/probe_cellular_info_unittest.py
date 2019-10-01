@@ -11,6 +11,7 @@ Requested data are probed, written to the event log, and saved to device data.
 import unittest
 
 import mox
+from six import assertRaisesRegex
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
@@ -142,8 +143,8 @@ Modem /org/chromium/ModemManager/Gobi/1:
     self.mox.ReplayAll()
 
     self.test.args = Args(*self.test.ARGS).Parse({})
-    self.assertRaisesRegexp(AssertionError, r"Missing elements.+: \['imei'\]",
-                            self.test.runTest)
+    assertRaisesRegex(self, AssertionError, r"Missing elements.+: \['imei'\]",
+                      self.test.runTest)
 
   def testBlankIMEI(self):
     stdout = """
@@ -164,8 +165,8 @@ Modem /org/chromium/ModemManager/Gobi/1:
     self.mox.ReplayAll()
 
     self.test.args = Args(*self.test.ARGS).Parse({})
-    self.assertRaisesRegexp(AssertionError, r"Missing elements.+: \['imei'\]",
-                            self.test.runTest)
+    assertRaisesRegex(self, AssertionError, r"Missing elements.+: \['imei'\]",
+                      self.test.runTest)
 
 
 if __name__ == '__main__':

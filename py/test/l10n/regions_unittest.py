@@ -14,6 +14,8 @@ import logging
 import os
 import unittest
 
+from six import assertRaisesRegex
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.l10n import regions
 
@@ -36,13 +38,14 @@ class RegionTest(unittest.TestCase):
                       missing))
 
   def testBadLanguage(self):
-    self.assertRaisesRegexp(
-        AssertionError, "Language code 'en-us' does not match", regions.Region,
-        'us', 'xkb:us::eng', 'America/Los_Angeles', 'en-us', 'ANSI')
+    assertRaisesRegex(
+        self, AssertionError, "Language code 'en-us' does not match",
+        regions.Region, 'us', 'xkb:us::eng', 'America/Los_Angeles', 'en-us',
+        'ANSI')
 
   def testBadKeyboard(self):
-    self.assertRaisesRegexp(
-        AssertionError, "Keyboard pattern 'xkb:us::' does not match",
+    assertRaisesRegex(
+        self, AssertionError, "Keyboard pattern 'xkb:us::' does not match",
         regions.Region, 'us', 'xkb:us::', 'America/Los_Angeles', 'en-US',
         'ANSI')
 
@@ -96,9 +99,10 @@ class RegionTest(unittest.TestCase):
     # Modify the second copy.
     region_list[1].keyboards = ['f']
     # Not OK anymore!
-    self.assertRaisesRegexp(
-        regions.RegionException, "Conflicting definitions for region 'a':",
-        regions._ConsolidateRegions, region_list)
+    assertRaisesRegex(
+        self, regions.RegionException,
+        "Conflicting definitions for region 'a':", regions._ConsolidateRegions,
+        region_list)
 
 
 if __name__ == '__main__':

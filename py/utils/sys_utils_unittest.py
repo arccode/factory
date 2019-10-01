@@ -14,6 +14,7 @@ import tempfile
 import unittest
 
 import mox
+from six import assertRaisesRegex
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -59,8 +60,8 @@ class GetInterruptsTest(unittest.TestCase):
     file_utils.ReadLines('/proc/interrupts').AndReturn(None)
     self.mox.ReplayAll()
 
-    self.assertRaisesRegexp(
-        OSError, r'Unable to read /proc/interrupts',
+    assertRaisesRegex(
+        self, OSError, r'Unable to read /proc/interrupts',
         sys_utils.GetInterrupts)
 
 

@@ -19,6 +19,7 @@ import time
 import unittest
 
 import mock
+from six import assertRaisesRegex
 
 import instalog_common  # pylint: disable=unused-import
 from instalog import log_utils
@@ -317,7 +318,7 @@ class TestPluginSandbox(unittest.TestCase):
 
   def testInvalidCoreAPI(self):
     """Tests that a sandbox passed an invalid CoreAPI object will complain."""
-    with self.assertRaisesRegexp(TypeError, 'Invalid CoreAPI object'):
+    with assertRaisesRegex(self, TypeError, 'Invalid CoreAPI object'):
       plugin_sandbox.PluginSandbox('plugin_id', core_api=True)
 
 

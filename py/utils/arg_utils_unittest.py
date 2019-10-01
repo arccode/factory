@@ -6,6 +6,7 @@
 
 import unittest
 
+from six import assertRaisesRegex
 from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
@@ -92,9 +93,9 @@ class ArgsTest(unittest.TestCase):
          'int_typed': 3,
          'enum_typed': 'a'},
         self.Parse(dict(required='x', int_typed=3, enum_typed='a')))
-    self.assertRaisesRegexp(ValueError,
-                            r'Argument enum_typed should have type \(Enum',
-                            self.Parse, dict(required='x', enum_typed='c'))
+    assertRaisesRegex(self, ValueError,
+                      r'Argument enum_typed should have type \(Enum',
+                      self.Parse, dict(required='x', enum_typed='c'))
 
   def testIntOrString(self):
     for value in (3, 'x'):

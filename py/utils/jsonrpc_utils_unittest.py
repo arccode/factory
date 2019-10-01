@@ -17,6 +17,7 @@ import unittest
 import jsonrpclib
 from jsonrpclib import jsonrpc
 from jsonrpclib import SimpleJSONRPCServer
+from six import assertRaisesRegex
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import jsonrpc_utils
@@ -176,15 +177,16 @@ class MultiPathJSONRPCServerTest(unittest.TestCase):
   def testURLNotFound(self):
     proxy = jsonrpc.ServerProxy(
         'http://%s:%d/not_exists' % (net_utils.LOCALHOST, self.port))
-    self.assertRaisesRegexp(
-        jsonrpclib.ProtocolError, 'Not Found', proxy.Func)
+    assertRaisesRegex(
+        self, jsonrpclib.ProtocolError, 'Not Found', proxy.Func)
 
   def testRPCException(self):
     self._SetInstance('/', self.RPCInstance())
     proxy = jsonrpc.ServerProxy(
         'http://%s:%d/' % (net_utils.LOCALHOST, self.port))
-    self.assertRaisesRegexp(
-        jsonrpc.ProtocolError, 'RuntimeError: Something Wrong', proxy.Error)
+    assertRaisesRegex(
+        self, jsonrpc.ProtocolError, 'RuntimeError: Something Wrong',
+        proxy.Error)
 
   def tearDown(self):
     self.server.shutdown()

@@ -27,6 +27,8 @@ import tempfile
 import textwrap
 import unittest
 
+from six import assertRaisesRegex
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import log_utils
 from instalog import plugin_base
@@ -61,7 +63,7 @@ class TestPluginLoader(unittest.TestCase):
 
   def testInvalidPluginAPI(self):
     """Tests that a loader passed an invalid PluginAPI object will complain."""
-    with self.assertRaisesRegexp(TypeError, 'Invalid PluginAPI object'):
+    with assertRaisesRegex(self, TypeError, 'Invalid PluginAPI object'):
       plugin_loader.PluginLoader('plugin_id', plugin_api=True)
 
   def testGetSuperclass(self):
@@ -116,8 +118,8 @@ class TestPluginLoader(unittest.TestCase):
     # Should fail with incorrect superclass=OutputPlugin.
     pl = plugin_loader.PluginLoader(pname, pname, plugin_base.OutputPlugin,
                                     {}, plugin_api=None, _plugin_prefix='')
-    with self.assertRaisesRegexp(
-        plugin_base.LoadPluginError, r'contains 0 plugin classes'):
+    with assertRaisesRegex(
+        self, plugin_base.LoadPluginError, r'contains 0 plugin classes'):
       pl.Create()
 
   def testLoadOutput(self):
@@ -139,16 +141,16 @@ class TestPluginLoader(unittest.TestCase):
     # Should fail with incorrect superclass=InputPlugin.
     pl = plugin_loader.PluginLoader(pname, pname, plugin_base.InputPlugin,
                                     {}, plugin_api=None, _plugin_prefix='')
-    with self.assertRaisesRegexp(
-        plugin_base.LoadPluginError, r'contains 0 plugin classes'):
+    with assertRaisesRegex(
+        self, plugin_base.LoadPluginError, r'contains 0 plugin classes'):
       pl.Create()
 
   def testSyntaxError(self):
     """Tests loading a plugin with a syntax error."""
     pname = self._createPluginFile('/')
     pl = plugin_loader.PluginLoader(pname, pname, _plugin_prefix='')
-    with self.assertRaisesRegexp(
-        plugin_base.LoadPluginError, r'SyntaxError: invalid syntax'):
+    with assertRaisesRegex(
+        self, plugin_base.LoadPluginError, r'SyntaxError: invalid syntax'):
       pl.Create()
 
   def testRuntimeInitArgsError(self):
@@ -162,8 +164,8 @@ class TestPluginLoader(unittest.TestCase):
             pass
         ''')
     pl = plugin_loader.PluginLoader(pname, pname, _plugin_prefix='')
-    with self.assertRaisesRegexp(
-        plugin_base.LoadPluginError, r'TypeError: __init__\(\) takes'):
+    with assertRaisesRegex(
+        self, plugin_base.LoadPluginError, r'TypeError: __init__\(\) takes'):
       pl.Create()
 
   def testRuntimeInitMethodError(self):
@@ -177,8 +179,9 @@ class TestPluginLoader(unittest.TestCase):
             1 / 0
         ''')
     pl = plugin_loader.PluginLoader(pname, pname, _plugin_prefix='')
-    with self.assertRaisesRegexp(
-        plugin_base.LoadPluginError, r'ZeroDivisionError: integer division'):
+    with assertRaisesRegex(
+        self, plugin_base.LoadPluginError,
+        r'ZeroDivisionError: integer division'):
       pl.Create()
 
   def testArgsInvalidError(self):
@@ -195,8 +198,8 @@ class TestPluginLoader(unittest.TestCase):
         ''')
     # Invalid, since `explode` is a required argument.
     pl = plugin_loader.PluginLoader(pname, _plugin_prefix='')
-    with self.assertRaisesRegexp(
-        plugin_base.LoadPluginError,
+    with assertRaisesRegex(
+        self, plugin_base.LoadPluginError,
         r'Error parsing arguments: Required argument explode'):
       pl.Create()
 

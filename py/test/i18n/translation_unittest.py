@@ -6,6 +6,8 @@
 
 import unittest
 
+from six import assertRaisesRegex
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import translation
 from cros.factory.test.i18n import unittest_test_case
@@ -57,12 +59,10 @@ class TranslationTest(unittest_test_case.I18nTestCase):
                          {'en-US': 'text 1'}, translate=False))
 
   def testTranslatedNoDefaultLocale(self):
-    self.assertRaisesRegexp(
-        ValueError, "doesn't contain the default locale",
-        translation.Translated, {'zh-CN': 'zh'})
-    self.assertRaisesRegexp(
-        ValueError, "doesn't contain the default locale",
-        translation.Translated, {'zh-CN': 'zh'}, translate=False)
+    assertRaisesRegex(self, ValueError, "doesn't contain the default locale",
+                      translation.Translated, {'zh-CN': 'zh'})
+    assertRaisesRegex(self, ValueError, "doesn't contain the default locale",
+                      translation.Translated, {'zh-CN': 'zh'}, translate=False)
 
   def testTranslatedUnicode(self):
     self.assertEqual({'en-US': 'en', 'zh-CN': u'\u4e2d\u6587'},
