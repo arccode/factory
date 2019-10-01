@@ -119,7 +119,11 @@ ignored-classes=Event,Obj,RegCode,hashlib
 
 # List of modules to ignore when checking imports. These modules are used by
 # Dome, which runs in docker and these modules doesn't exist in chroot.
-ignored-modules=django,django.db,rest_framework
+ignored-modules=
+    django,
+    django.db,
+    rest_framework,
+    distutils,  # known issue: https://github.com/PyCQA/pylint/issues/73
 
 # When zope mode is activated, add a predefined set of Zope acquired attributes
 # to generated-members.
