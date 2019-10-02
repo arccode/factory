@@ -209,14 +209,15 @@ class ExtDisplayTest(test_case.TestCase):
 
   def CheckVideo(self, args):
     self.ui.BindStandardFailKeys()
-    self.SetMainDisplay(False)
+    original, target = self.VerifyDisplayConfig()
+    self.SetMainDisplay(target)
     try:
       if self._fixture:
         self.CheckVideoFixture(args)
       else:
         self.CheckVideoManual(args)
     finally:
-      self.SetMainDisplay(True)
+      self.SetMainDisplay(original)
 
   def CheckVideoManual(self, args):
     pass_digit = random.randrange(10)
@@ -263,40 +264,61 @@ class ExtDisplayTest(test_case.TestCase):
               'Failed to see screen on external display after %d retries.' %
               retry_times)
 
-  def SetMainDisplay(self, to_internal):
-    """Sets the main display.
+  def VerifyDisplayConfig(self):
+    """Check display configuration.
 
-    If there are two displays, this method can switch main display based on
-    recover_original. If there is only one display, it returns if the only
-    display is an external display (e.g. on a chromebox).
+    Verifies that the currently connected external displays is a valid
+    configuration. We may have:
+    - 1 internal, 1 external (e.g. chromebook)
+    - 1 external (e.g. chromebox)
+    - 2 external (e.g. chromebox)
 
-    Args:
-      to_internal: Set the internal display to the main display or not.
+    Returns:
+      (current, target): current and target display ids.
     """
     display_info = state.GetInstance().DeviceGetDisplayInfo()
-    if len(display_info) == 1:
-      # Fail the test if we see only one display and it's the internal one.
-      if display_info[0]['isInternal']:
-        self.FailTask('Fail to detect external display')
-      return
 
-    # In regular case, we assume and only accept to find 2 displays, one
-    # internal and one external.
-    self.assertEqual(len(display_info), 2,
-                     'At most 1 external display is allowed.')
-    self.assertNotEqual(display_info[0]['isInternal'],
-                        display_info[1]['isInternal'],
-                        'Should be 1 internal and 1 external display.')
-    if display_info[0]['isInternal']:
-      internal_display_id = display_info[0]['id']
-      external_display_id = display_info[1]['id']
+    # Sort the current displays
+    primary = []
+    other = []
+    internal = []
+    external = []
+    for info in display_info:
+      if info['isInternal']:
+        internal.append(info)
+      else:
+        external.append(info)
+
+      if info['isPrimary']:
+        primary.append(info)
+      else:
+        other.append(info)
+
+    self.assertEqual(len(primary), 1, "invalid number of primary displays")
+    current = primary[0]['id']
+
+    # Test for a valid configuration
+    config = (len(internal), len(external))
+    if config == (1, 1):
+      target = external[0]['id']
+    elif config == (0, 1):
+      target = external[0]['id']
+    elif config == (0, 2):
+      # Select non-primary display
+      target = other[0]['id']
     else:
-      internal_display_id = display_info[1]['id']
-      external_display_id = display_info[0]['id']
-    primary_display_id = (internal_display_id
-                          if to_internal else external_display_id)
+      self.FailTask('Invalid display count: %d internal %d external' % config)
 
-    err = state.GetInstance().DeviceSetDisplayProperties(primary_display_id,
+    return (current, target)
+
+  def SetMainDisplay(self, display_id):
+    """Sets the main display.
+
+    Args:
+      target_id: id of target display.
+    """
+
+    err = state.GetInstance().DeviceSetDisplayProperties(display_id,
                                                          {'isPrimary': True})
     self.assertIsNone(err, 'Failed to set the main display: %s' % err)
 
