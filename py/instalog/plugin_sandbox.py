@@ -17,6 +17,8 @@ import sys
 import threading
 import time
 
+from six import reraise as raise_
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import flow_policy
@@ -237,7 +239,7 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
       new_exc = plugin_base.PluginCallError(
           'Plugin call for %s unexpectedly failed: %s'
           % (self.plugin_id, exc_message))
-      raise new_exc.__class__, new_exc, tb
+      raise_(new_exc.__class__, new_exc, tb)
     return ret
 
 
@@ -393,6 +395,8 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
       # Check to see if the flushing target has been surpassed.
       current_count, unused_total_count = self.GetProgress()
       return current_count >= flushing_target
+
+    return None
 
   def Pause(self, sync=False):
     """Pauses the plugin."""

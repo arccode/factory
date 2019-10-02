@@ -90,6 +90,8 @@ import subprocess
 import sys
 import time
 
+from six import reraise as raise_
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import CalledProcessError
 from cros.factory.device import device_utils
@@ -512,7 +514,7 @@ class _ServiceTest(object):
       exc_message = '%s: %s' % (exc.__class__.__name__, str(exc))
       new_exc = self._TestException('Unable to connect to %s: %s'
                                     % (ssid, exc_message))
-      raise new_exc.__class__, new_exc, tb
+      raise_(new_exc.__class__, new_exc, tb)
     else:
       return 'Successfully connected to %s' % ssid
 

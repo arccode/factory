@@ -16,6 +16,8 @@ import inspect
 import logging
 import sys
 
+from six import reraise as raise_
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import plugin_base
 from instalog.utils import arg_utils
@@ -92,7 +94,7 @@ class PluginLoader(object):
     new_exc = plugin_base.LoadPluginError(
         'Plugin %s encountered an error loading: %s'
         % (self.plugin_id, exc_message))
-    raise new_exc.__class__, new_exc, tb
+    raise_(new_exc.__class__, new_exc, tb)
 
   def _GetPossibleModuleNames(self):
     if not self._possible_module_names:
@@ -126,9 +128,9 @@ class PluginLoader(object):
           # __import__ would silently ignore and pass a reference to the old
           # module, but reload throws an ImportError.
           return reload(sys.modules[search_name])
-        else:
-          __import__(search_name)
-          return sys.modules[search_name]
+
+        __import__(search_name)
+        return sys.modules[search_name]
       except ImportError as e:
         if e.message.startswith('No module named'):
           continue
