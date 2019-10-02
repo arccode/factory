@@ -1,0 +1,1 @@
+../tools/factory_bug.py

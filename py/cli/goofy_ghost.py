@@ -1,0 +1,1 @@
+../tools/goofy_ghost/goofy_ghost.py

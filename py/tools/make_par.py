@@ -244,6 +244,8 @@ def main(argv=None):
     # Zip 'em up!
     factory_par = os.path.join(tmp, 'factory.par')
 
+    # We are not using '--symlinks' because python archive doesn't support
+    # symlinks in ZIP file.
     Spawn(['zip', '-qr', factory_par, '.'],
           check_call=True, log=True, cwd=par_build)
 

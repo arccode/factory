@@ -73,7 +73,7 @@ class MakePARTest(unittest.TestCase):
           ignore_stdout=True, ignore_stderr=True, call=True)
 
     # Patch the usage string in the unzipped file.
-    make_par_path = os.path.join(self.tmp, 'cros', 'factory', 'tools',
+    make_par_path = os.path.join(self.tmp, 'cros', 'factory', 'cli',
                                  'make_par.py')
     modified_usage = 'BOOYAH'
     with open(make_par_path, 'r') as f:

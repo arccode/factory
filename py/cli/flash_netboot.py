@@ -1,0 +1,1 @@
+../tools/flash_netboot.py

@@ -1,0 +1,1 @@
+../tools/install_symlinks.py

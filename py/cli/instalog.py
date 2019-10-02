@@ -1,0 +1,1 @@
+../instalog/__main__.py

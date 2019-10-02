@@ -1,0 +1,1 @@
+../tools/finalize_bundle.py

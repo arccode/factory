@@ -1,0 +1,1 @@
+../tools/merge_logs.py

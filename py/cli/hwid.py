@@ -1,0 +1,1 @@
+../hwid/v3/hwid_cmdline.py
