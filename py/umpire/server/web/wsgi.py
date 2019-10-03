@@ -13,7 +13,6 @@ import time
 from six import iteritems
 from twisted.web import http
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import type_utils
 
 

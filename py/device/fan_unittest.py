@@ -14,7 +14,6 @@ import unittest
 
 import mox
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import fan
 from cros.factory.device import types
 

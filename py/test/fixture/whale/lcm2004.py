@@ -4,7 +4,6 @@
 
 """Provides interfaces to initialize and control LCM2004."""
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import bft_fixture as bft
 
 # shortcut

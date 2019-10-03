@@ -51,7 +51,6 @@ to draw a line from left-top to left-bottom::
 
 import threading
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test.i18n import _
 from cros.factory.test import state

@@ -18,7 +18,6 @@ from twisted.trial import unittest
 from twisted.web import server
 from twisted.web import xmlrpc
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import daemon
 from cros.factory.umpire.server import rpc_dut

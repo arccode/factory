@@ -12,7 +12,6 @@ import os
 from six import iteritems
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import bft_fixture as bft
 from cros.factory.test.fixture.whale import color_sensor
 from cros.factory.test.fixture.whale import keyboard_emulator

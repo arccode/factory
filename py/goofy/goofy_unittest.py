@@ -27,7 +27,6 @@ from six import itervalues
 from six.moves import xrange
 from ws4py.client import WebSocketBaseClient
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import info as device_info
 from cros.factory.goofy import goofy
 from cros.factory.goofy.goofy import Goofy

@@ -5,7 +5,6 @@
 from six import iteritems
 from six import itervalues
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.rule import Context

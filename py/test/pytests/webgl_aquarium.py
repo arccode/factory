@@ -8,7 +8,6 @@ from __future__ import division
 
 import time
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 

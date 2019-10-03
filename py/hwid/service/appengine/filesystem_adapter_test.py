@@ -8,7 +8,6 @@ import unittest
 
 import cloudstorage  # pylint: disable=import-error
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine import appengine_test_base
 from cros.factory.hwid.service.appengine import filesystem_adapter
 

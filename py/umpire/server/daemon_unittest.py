@@ -19,7 +19,6 @@ from twisted.web import client
 from twisted.web import http_headers
 from twisted.web import xmlrpc
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import daemon
 from cros.factory.umpire.server import umpire_env

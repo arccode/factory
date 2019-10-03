@@ -11,7 +11,6 @@ from rest_framework import permissions as drf_permissions
 
 from backend import common
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import net_utils
 
 

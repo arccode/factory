@@ -40,8 +40,6 @@ project. To do so:
    file :samp:`private-overlays/overlay-{xxx}-private/chromeos-base/factory-board/files/py/device/boards/{xxx}.py`
    containing the following::
 
-     import factory_common  # pylint: disable=W0611
-
      from cros.factory.device.boards import chromeos
      from cros.factory.device import types
      from cros.factory.utils import type_utils

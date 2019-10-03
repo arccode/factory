@@ -10,7 +10,6 @@ from __future__ import print_function
 import logging
 import re
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 from cros.factory.utils.type_utils import Enum
 

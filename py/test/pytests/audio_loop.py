@@ -153,7 +153,6 @@ from six import viewitems
 from six import viewvalues
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import base
 from cros.factory.device import device_utils
 from cros.factory.test import session

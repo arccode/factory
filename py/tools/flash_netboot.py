@@ -22,7 +22,6 @@ import subprocess
 import sys
 import time
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.file_utils import UnopenedTemporaryFile
 from cros.factory.utils.process_utils import Spawn
 

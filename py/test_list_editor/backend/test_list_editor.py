@@ -12,7 +12,6 @@ import SimpleHTTPServer
 # TODO(youcheng): Bundle non-standard libraries.
 from jsonrpclib import SimpleJSONRPCServer
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test.i18n import translation
 from cros.factory.test.test_lists import test_list_common

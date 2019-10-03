@@ -12,7 +12,6 @@ from google.protobuf import text_format
 import hardware_verifier_pb2
 import runtime_probe_pb2
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common as hwid_common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import rule as hwid_rule

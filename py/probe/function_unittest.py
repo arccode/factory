@@ -7,7 +7,6 @@ import unittest
 
 from six import assertRaisesRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
 from cros.factory.probe.lib import probe_function
 from cros.factory.utils import arg_utils

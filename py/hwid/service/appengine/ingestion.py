@@ -21,7 +21,6 @@ import webapp2  # pylint: disable=import-error
 import yaml
 
 # pylint: disable=import-error
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import filesystem_adapter
 from cros.factory.hwid.service.appengine import git_util

@@ -67,7 +67,6 @@ import subprocess
 import tempfile
 import time
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _

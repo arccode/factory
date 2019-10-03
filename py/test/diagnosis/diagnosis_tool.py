@@ -23,7 +23,6 @@ import threading
 
 import yaml
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.diagnosis import common
 from cros.factory.test.diagnosis import sanitizer
 from cros.factory.test.diagnosis import task

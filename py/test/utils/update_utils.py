@@ -32,7 +32,6 @@ import json
 import logging
 import urllib2
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import server_proxy
 from cros.factory.umpire.client import umpire_client

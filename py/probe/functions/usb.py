@@ -5,7 +5,6 @@
 import os
 import re
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import sysfs
 from cros.factory.probe.lib import cached_probe_function
 

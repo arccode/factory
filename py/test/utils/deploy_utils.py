@@ -7,7 +7,6 @@ import pipes
 import subprocess
 import tempfile
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils

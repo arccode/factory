@@ -10,7 +10,6 @@ This module provides accessing camera devices.
 import os
 import re
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import camera
 from cros.factory.test.utils.camera_utils import CameraDevice
 from cros.factory.test.utils.camera_utils import CameraError

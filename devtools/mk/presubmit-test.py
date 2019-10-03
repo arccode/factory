@@ -54,7 +54,7 @@ def CheckDome(files):
 
 def CheckPytestDoc(files):
   all_pytests = json.loads(
-      subprocess.check_output(['py/tools/list_pytests.py']))
+      subprocess.check_output(['bin/list_pytests']))
   white_list = ['py/test/pytests/' + pytest for pytest in all_pytests]
   pytests = [file_path for file_path in files if file_path in white_list]
   if not pytests:

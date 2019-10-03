@@ -51,7 +51,6 @@ import time
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.

@@ -27,7 +27,6 @@ import time
 
 import yaml
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
 from cros.factory.test.rules import phase
 from cros.factory.test import state

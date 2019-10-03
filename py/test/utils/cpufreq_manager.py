@@ -8,7 +8,6 @@ import re
 import subprocess
 import traceback
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
 from cros.factory.utils import service_utils
 

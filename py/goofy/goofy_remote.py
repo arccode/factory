@@ -13,7 +13,6 @@ import pipes
 import re
 import sys
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import manager

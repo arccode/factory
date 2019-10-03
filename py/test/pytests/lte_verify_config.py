@@ -25,7 +25,6 @@ Usage example::
 
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rf import modem
 from cros.factory.test import session
 from cros.factory.utils.arg_utils import Arg

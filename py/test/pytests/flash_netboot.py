@@ -49,7 +49,6 @@ To flash netboot firmware from a special location::
 
 import logging
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.tools import flash_netboot

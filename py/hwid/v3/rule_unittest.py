@@ -7,7 +7,6 @@ import unittest
 
 from six import assertRaisesRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.rule import Context
 from cros.factory.hwid.v3.rule import GetContext
 from cros.factory.hwid.v3.rule import GetLogger

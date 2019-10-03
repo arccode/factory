@@ -4,7 +4,6 @@
 
 import collections
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 

@@ -14,7 +14,6 @@ import uuid
 from six import iteritems
 import yaml
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device.bluetooth import BluetoothManager
 from cros.factory.device.bluetooth import BluetoothManagerException
 from cros.factory.device import device_utils

@@ -10,7 +10,6 @@ import os
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
 from cros.factory.probe.functions.approx_match import ApproxMatchFunction
 from cros.factory.probe.functions.match import MatchFunction

@@ -5,7 +5,6 @@
 import re
 import subprocess
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import common as gooftool_common
 
 

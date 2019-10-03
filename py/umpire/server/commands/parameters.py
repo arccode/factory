@@ -10,7 +10,6 @@ See Parameters for detail.
 import logging
 import os
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import utils
 from cros.factory.utils import file_utils

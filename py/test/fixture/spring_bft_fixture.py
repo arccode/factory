@@ -6,7 +6,6 @@ import logging
 
 import serial
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.utils import serial_utils
 

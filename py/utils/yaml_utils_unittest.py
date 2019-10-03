@@ -8,7 +8,6 @@ import unittest
 
 import yaml
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import yaml_utils
 
 

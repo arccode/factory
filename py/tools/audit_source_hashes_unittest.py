@@ -14,7 +14,6 @@ import unittest
 from six import assertRaisesRegex
 from six import assertRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.tools import audit_source_hashes
 from cros.factory.utils import file_utils

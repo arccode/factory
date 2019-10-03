@@ -11,7 +11,6 @@ import copy
 import json
 import os
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server.commands import deploy
 from cros.factory.umpire.server import config as umpire_config

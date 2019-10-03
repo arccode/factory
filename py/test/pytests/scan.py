@@ -51,7 +51,6 @@ from __future__ import print_function
 import logging
 import re
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
 from cros.factory.test import event as test_event

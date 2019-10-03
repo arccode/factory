@@ -13,7 +13,6 @@ from __future__ import print_function
 
 import copy
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.utils import json_utils

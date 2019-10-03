@@ -11,7 +11,6 @@ to/from JSON strings or JSON files.
 import json
 import os
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import type_utils
 
 

@@ -61,7 +61,6 @@ One can also pass parameters to the classes specified in `robot_fixture` and
 
 import logging
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import session
 from cros.factory.test.fixture import utils as fixture_utils

@@ -9,7 +9,6 @@ import hashlib
 import httplib
 import logging
 
-import factory_common  # pylint: disable=unused-import
 
 from cros.factory.external import ws4py
 

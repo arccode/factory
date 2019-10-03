@@ -11,7 +11,6 @@ import logging
 import os
 import xmlrpclib
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.fixture.dolphin import plankton_hdmi

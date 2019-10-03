@@ -13,7 +13,6 @@ import unittest
 import mox
 from six import assertRaisesRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
 from cros.factory.test import event_log
 from cros.factory.test.pytests import probe_cellular_info

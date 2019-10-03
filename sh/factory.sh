@@ -15,4 +15,4 @@ if [ -s "${BOARD_SETUP_SCRIPT}" ]; then
   . "${BOARD_SETUP_SCRIPT}"
 fi
 
-"${FACTORY_DIR}/py/tools/factory.py" "$@"
+"${FACTORY_DIR}/bin/factory_env" "${FACTORY_DIR}/py/tools/factory.py" "$@"

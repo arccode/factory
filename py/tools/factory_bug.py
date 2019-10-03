@@ -18,7 +18,6 @@ import shutil
 import sys
 import tempfile
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths as env_paths
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn

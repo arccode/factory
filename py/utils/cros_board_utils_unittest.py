@@ -9,7 +9,6 @@ import unittest
 
 from six import assertRaisesRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.cros_board_utils import BuildBoard
 from cros.factory.utils.cros_board_utils import BuildBoardException
 

@@ -9,7 +9,6 @@
 import logging
 import posixpath  # Assume most linux devices will be running POSIX os.
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 from cros.factory.device import ambient_light_sensor
 from cros.factory.device.audio import utils as audio_utils

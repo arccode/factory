@@ -4,7 +4,6 @@
 
 """This is a factory test to check the brightness of LCD backlight or LEDs."""
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test import test_case

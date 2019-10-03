@@ -7,7 +7,6 @@ import unittest
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.test_lists import checker
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import arg_utils

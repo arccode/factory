@@ -33,7 +33,6 @@ To verify and set modem access level to 0::
 
 import re
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import test_case
 from cros.factory.test.utils import serial_utils
 

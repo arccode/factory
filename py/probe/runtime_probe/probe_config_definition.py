@@ -6,7 +6,6 @@
 
 import re
 
-import factory_common  # pylint:disable=unused-import
 from cros.factory.probe.runtime_probe import probe_config_types
 
 

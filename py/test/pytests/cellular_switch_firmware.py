@@ -7,7 +7,6 @@
 This test will first check current firmware and switch if necessary.
 """
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
 from cros.factory.test.rf import cellular
 from cros.factory.test import test_case

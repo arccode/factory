@@ -7,7 +7,6 @@
 This module provides accessing camera devices.
 """
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 from cros.factory.test.utils.camera_utils import CameraDevice
 from cros.factory.test.utils.camera_utils import CVCameraReader

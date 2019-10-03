@@ -17,7 +17,6 @@ import unittest
 
 import mox
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils.process_utils import CheckOutput

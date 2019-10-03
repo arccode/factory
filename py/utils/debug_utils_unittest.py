@@ -9,7 +9,6 @@
 import logging
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import debug_utils
 
 

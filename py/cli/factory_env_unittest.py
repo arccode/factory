@@ -7,7 +7,6 @@
 import os
 import unittest
 
-import factory_common
 from cros.factory.cli import factory_env
 from cros.factory.utils import process_utils
 

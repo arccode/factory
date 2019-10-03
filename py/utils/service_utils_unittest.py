@@ -9,7 +9,6 @@ import unittest
 import mox
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import service_utils
 from cros.factory.utils.service_utils import Status
 

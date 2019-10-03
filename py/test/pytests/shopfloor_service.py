@@ -83,7 +83,6 @@ import threading
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
 from cros.factory.test.i18n import _

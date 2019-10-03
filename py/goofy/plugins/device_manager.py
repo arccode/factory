@@ -13,7 +13,6 @@ import subprocess
 import time
 from xml.sax import saxutils
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.i18n import _
 from cros.factory.utils import file_utils

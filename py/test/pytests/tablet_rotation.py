@@ -119,7 +119,6 @@ the test::
 
 import random
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test import state

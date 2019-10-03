@@ -9,7 +9,6 @@ import unittest
 import mock
 import serial
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture.robot import six_dof_calibration_robot
 
 Robot = six_dof_calibration_robot.SixDoFCalibrationRobot

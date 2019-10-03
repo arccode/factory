@@ -8,7 +8,6 @@ import unittest
 
 import mock
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.tools.cpu_usage_monitor import CPUUsageMonitor
 
 MOCK_TOP_OUTPUT = \

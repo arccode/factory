@@ -6,7 +6,6 @@ import functools
 import logging
 import os
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 

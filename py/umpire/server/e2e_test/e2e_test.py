@@ -30,7 +30,6 @@ import requests  # pylint: disable=import-error
 from six import assertRegex
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils

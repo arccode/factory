@@ -6,7 +6,6 @@
 import logging
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rf.tools import csv_writer
 from cros.factory.utils import file_utils
 

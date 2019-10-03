@@ -7,7 +7,6 @@
 import sys
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import Command
 from cros.factory.utils.argparse_utils import ParseCmdline

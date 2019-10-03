@@ -11,7 +11,6 @@ import logging
 import os
 import sys
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import process_utils

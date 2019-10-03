@@ -13,7 +13,6 @@ from subprocess import Popen
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error

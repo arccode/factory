@@ -11,7 +11,6 @@ import unittest
 import mock
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test_list_editor.backend import common
 from cros.factory.test_list_editor.backend import test_list_editor
 

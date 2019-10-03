@@ -4,7 +4,6 @@
 
 import copy
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
 
 

@@ -7,7 +7,6 @@
 import logging
 
 # pylint: disable=import-error
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import \
     verification_payload_generator as vpg_module

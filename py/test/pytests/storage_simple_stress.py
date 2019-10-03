@@ -62,7 +62,6 @@ import unittest
 
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sys_utils

@@ -21,7 +21,6 @@ import unittest
 import mock
 from six import assertCountEqual
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import image_tool
 from cros.factory.utils import process_utils
 

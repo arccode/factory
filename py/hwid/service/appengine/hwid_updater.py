@@ -4,7 +4,6 @@
 
 """Updater for HWID configs."""
 
-import factory_common  # pylint: disable=unused-import
 from cros.chromeoshwid import update_checksum
 
 

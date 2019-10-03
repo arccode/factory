@@ -13,7 +13,6 @@ import os
 import signal
 import sys
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import session
 from cros.factory.test.state import TestState

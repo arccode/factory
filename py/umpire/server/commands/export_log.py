@@ -11,7 +11,6 @@ import datetime
 import os
 import shutil
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.utils import process_utils
 

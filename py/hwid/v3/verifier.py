@@ -19,7 +19,6 @@ import re
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
 from cros.factory.test.rules import phase
 from cros.factory.hwid.v3.configless_fields import ConfiglessFields

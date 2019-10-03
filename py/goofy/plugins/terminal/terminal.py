@@ -16,7 +16,6 @@ import threading
 
 from ws4py.websocket import WebSocket
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.utils.web_socket_utils import WebSocketHandshake
 from cros.factory.utils import type_utils

@@ -18,7 +18,6 @@ import mock
 from six import assertRegex
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import session
 
 UUID_RE = re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'

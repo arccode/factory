@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device.boards import chromeos
 from cros.factory.device import power
 from cros.factory.device import types

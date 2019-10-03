@@ -10,7 +10,6 @@ import os
 import pprint
 import socket
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server.service import umpire_service
 
 from cros.factory.external import yaml

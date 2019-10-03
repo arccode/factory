@@ -17,7 +17,6 @@ import sys
 
 from six.moves import input
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.proto import reg_code_pb2

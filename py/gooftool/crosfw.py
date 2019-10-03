@@ -19,7 +19,6 @@ import os
 import re
 import tempfile
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import common
 from cros.factory.utils import fmap
 

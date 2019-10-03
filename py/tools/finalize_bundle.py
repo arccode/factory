@@ -24,7 +24,6 @@ import urlparse
 from six import iteritems
 import yaml
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import get_version
 from cros.factory.tools import gsutil
 from cros.factory.utils import cros_board_utils

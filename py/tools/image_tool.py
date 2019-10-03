@@ -49,7 +49,6 @@ from six import iteritems
 # prevent introducing more cros.factory dependency except very few special
 # modules (pygpt, fmap, netboot_firmware_settings).
 # Please don't add more cros.factory modules.
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import fmap
 from cros.factory.utils import pygpt
 from cros.factory.tools import netboot_firmware_settings

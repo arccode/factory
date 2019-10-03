@@ -8,7 +8,6 @@ import unittest
 import mock
 from six import assertCountEqual
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import camera_cros
 
 

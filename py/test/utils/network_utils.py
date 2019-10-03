@@ -15,7 +15,6 @@ import time
 
 from six import PY2
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils

@@ -102,7 +102,6 @@ WSDL, prefix ``wsdl:``, or make sure your URL ends with ``wsdl``, for example
 To verify the server is working properly, use the ``webservice_utils`` module:
 
 ```py
-  import factory_common
   from cros.factory.utils import webservice_utils
 
   url = 'jsonrpc:http://192.168.0.1:8090'
@@ -119,7 +118,6 @@ shopfloor service URL and use ``webservice_utils`` to verify. For example:
 
 ```py
   import xmlrpclib
-  import factory_common
   from cros.factory.utils import webservice_utils
 
   # Assume your real shopfloor service is here, and all its input and output

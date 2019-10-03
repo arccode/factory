@@ -15,7 +15,6 @@ import subprocess
 import sys
 import time
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture.whale import serial_server
 
 # server address

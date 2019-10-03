@@ -7,7 +7,6 @@
 import os.path
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import validator
 from cros.factory.hwid.v3.database import Database
 

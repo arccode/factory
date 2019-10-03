@@ -26,7 +26,6 @@ from six import iteritems
 from six import itervalues
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils

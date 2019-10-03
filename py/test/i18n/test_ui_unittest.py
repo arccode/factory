@@ -9,7 +9,6 @@ import unittest
 
 from six import assertCountEqual
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import test_ui
 from cros.factory.test.i18n import translation
 from cros.factory.test.i18n import unittest_test_case

@@ -112,7 +112,6 @@ If seeing unexpected touch events in `evtest`, here are some thoughts:
 4. Flash touchscreen firmware to a different version. Maybe it's too sensitive.
 """
 
-import factory_common  # pylint: disable=unused-import
 # pylint: disable=no-name-in-module
 from cros.factory.external.evdev import ecodes
 from cros.factory.test import test_case

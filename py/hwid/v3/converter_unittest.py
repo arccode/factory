@@ -8,7 +8,6 @@ import unittest
 
 import mock
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import converter
 from cros.factory.hwid.v3.database import Database
 from cros.factory.utils import json_utils

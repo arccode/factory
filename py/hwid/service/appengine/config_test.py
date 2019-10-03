@@ -7,7 +7,6 @@
 import os
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine import filesystem_adapter
 from cros.factory.hwid.service.appengine import hwid_manager
 

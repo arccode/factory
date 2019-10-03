@@ -17,7 +17,6 @@ import sys
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import image_tool
 
 

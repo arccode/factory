@@ -67,7 +67,6 @@ To ask OP to confirm sku information, add this in test list::
 
 import logging
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
 from cros.factory.test import test_case

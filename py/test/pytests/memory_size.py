@@ -78,7 +78,6 @@ difference up to 300MB::
 
 import re
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case

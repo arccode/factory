@@ -11,7 +11,6 @@ import unittest
 import mock
 import redis
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine import memcache_adaptor
 
 

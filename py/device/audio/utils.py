@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import alsa
 from cros.factory.device.audio import tinyalsa
 from cros.factory.utils import type_utils

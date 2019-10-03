@@ -4,7 +4,6 @@
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import match
 from cros.factory.utils.arg_utils import Arg
 

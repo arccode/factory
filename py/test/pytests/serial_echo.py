@@ -21,7 +21,6 @@ import unittest
 
 import serial
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils import serial_utils
 from cros.factory.utils.arg_utils import Arg
 

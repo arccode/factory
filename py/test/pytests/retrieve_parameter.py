@@ -74,7 +74,6 @@ The JSON config with main pytest can be::
 import logging
 import tarfile
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import server_proxy
 from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg

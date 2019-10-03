@@ -18,7 +18,6 @@ from protorpc import message_types
 from protorpc import messages
 from protorpc import remote
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import goldeneye_ingestion
 from cros.factory.hwid.service.appengine import hwid_api_messages

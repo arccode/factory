@@ -5,7 +5,6 @@
 
 """This is a factory test to test keyboard backlight."""
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
 from cros.factory.test import test_ui

@@ -11,7 +11,6 @@ import unittest
 import mock
 from six import assertCountEqual
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import goofy
 from cros.factory.goofy import goofy_server
 from cros.factory.goofy.plugins import plugin

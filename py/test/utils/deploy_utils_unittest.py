@@ -7,7 +7,6 @@ import unittest
 
 import mock
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device.boards import chromeos
 from cros.factory.device import types
 from cros.factory.test.utils import deploy_utils

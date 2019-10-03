@@ -18,7 +18,6 @@ import subprocess
 import sys
 import tempfile
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.process_utils import SpawnOutput
@@ -57,7 +56,7 @@ par="$(readlink -f $0)"
 # The directory this par file is in.
 dir="$(dirname "$par")"
 
-if [ -e $dir/factory_common.py ]; then
+if [ -e $dir/expanded ]; then
   # The .par file has been expanded.  Print a warning and use the expanded
   # file.
   echo WARNING: factory.par has been unzipped. Using the unzipped files. >& 2
@@ -177,7 +176,6 @@ def main(argv=None):
       rsync_args += ['--exclude', '*_unittest.py', '--exclude', 'testdata']
 
     rsync_args += [
-        '--exclude', 'factory_common.py*',
         '--exclude', '*.pyo',  # pyo will discard assert.
         '--include' if args.compiled else '--exclude', '*.pyc',
         '--include', '*.py']
@@ -234,9 +232,8 @@ def main(argv=None):
     open(os.path.join(cros_dir, '__init__.py'), 'w')
     open(os.path.join(cros_dir, 'factory', '__init__.py'), 'w')
 
-    # Add an empty factory_common file (since many scripts import
-    # factory_common).
-    open(os.path.join(par_build, 'factory_common.py'), 'w')
+    # Indicate that whether the .par file is expanded or not.
+    open(os.path.join(par_build, 'expanded'), 'w')
 
     if args.compiled:
       Spawn(['python2', '-m', 'compileall', par_build], check_call=True)

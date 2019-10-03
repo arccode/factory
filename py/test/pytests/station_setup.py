@@ -43,7 +43,6 @@ in test list::
   }
 """
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import state
 from cros.factory.test import test_case
 

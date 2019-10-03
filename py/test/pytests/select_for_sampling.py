@@ -49,7 +49,6 @@ import hashlib
 import logging
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.testlog import testlog

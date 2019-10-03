@@ -6,7 +6,6 @@ import logging
 import os
 import re
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.lib import cached_probe_function
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg

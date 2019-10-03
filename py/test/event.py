@@ -21,7 +21,6 @@ import traceback
 from six import iteritems
 from six import with_metaclass
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import time_utils

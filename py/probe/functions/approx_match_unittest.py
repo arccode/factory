@@ -7,7 +7,6 @@ import unittest
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions.approx_match import ApproxMatchFunction
 
 

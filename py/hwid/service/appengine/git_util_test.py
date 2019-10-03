@@ -14,7 +14,6 @@ from dulwich.objects import Tree
 import mock
 from six import assertRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine import git_util
 
 

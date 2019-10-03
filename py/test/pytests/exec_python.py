@@ -40,7 +40,6 @@ A test that always pass::
 import logging
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.arg_utils import Arg
 
 

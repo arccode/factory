@@ -8,7 +8,6 @@ import os
 import shelve
 import threading
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.utils import debug_utils

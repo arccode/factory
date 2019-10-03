@@ -18,7 +18,6 @@ import threading
 import time
 import uuid
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test import event as test_event
 from cros.factory.test.i18n import _

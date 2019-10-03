@@ -11,7 +11,6 @@ import unittest
 import mock
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database

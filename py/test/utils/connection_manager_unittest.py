@@ -12,7 +12,6 @@ import unittest
 import dbus
 import mox
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils import connection_manager
 from cros.factory.utils.net_utils import WLAN
 

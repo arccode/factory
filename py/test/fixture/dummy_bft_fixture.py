@@ -4,7 +4,6 @@
 
 import time
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import session
 

@@ -33,10 +33,6 @@ CONFIG_RULES = r'rules'
 CONFIG_GROUP_PATTERN = re.compile(r'^<([^<>].*)>$')
 
 
-# known import files that would manipulate sys.path.
-# TODO(pihsun): Move this to the rule file.
-PATH_MANIPULATE_IMPORTS = ['factory_common', 'instalog_common']
-
 FACTORY_DIR = os.path.abspath(os.path.join(__file__, '..', '..', '..'))
 PY_BASE_DIR = os.path.join(FACTORY_DIR, 'py')
 PY_PKG_BASE_DIR = os.path.join(FACTORY_DIR, 'py_pkg', 'cros', 'factory')
@@ -191,11 +187,6 @@ def GetImportList(filename, module_name):
       # Although import a.b.c brings a, a.b, a.b.c into namespace, we assume
       # that the code meant to only depends on a.b.c.
       import_list.append(module)
-
-      # import items in PATH_MANIPULATE_IMPORTS would change sys.path.
-      if module in PATH_MANIPULATE_IMPORTS:
-        current_sys_path = GetSysPathInDir(
-            file_dir, 'sys.path = %r\nimport %s' % (current_sys_path, module))
     else:
       # from x.y.z import foo
       # Try to import x.y.z to see if foo is a method or a module.

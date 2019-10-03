@@ -4,7 +4,6 @@
 
 import os
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.probe import probe_utils

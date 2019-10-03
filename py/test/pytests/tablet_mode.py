@@ -8,7 +8,6 @@ Currently, it check that the lid switch is not triggered and tablet mode event
 is triggered and in correct state.
 """
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
 from cros.factory.test import test_ui

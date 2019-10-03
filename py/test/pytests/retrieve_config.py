@@ -68,7 +68,6 @@ import threading
 import time
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import session
 from cros.factory.test import server_proxy
 from cros.factory.test.utils import media_utils

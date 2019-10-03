@@ -19,7 +19,6 @@ import unittest
 import mox
 from six import assertRaisesRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool import core

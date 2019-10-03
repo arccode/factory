@@ -30,7 +30,6 @@ different timing, add "Cr50WriteWhitelabelFlags" test item to your test group.
 import functools
 import logging
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.gooftool import common as gooftool_common
 from cros.factory.gooftool import cros_config as cros_config_module

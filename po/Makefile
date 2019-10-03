@@ -6,7 +6,7 @@ MK_DIR := ../devtools/mk
 include $(MK_DIR)/common.mk
 
 GETTEXT = $(MK_DIR)/pygettext.py
-LIST_PYTESTS = ../py/tools/list_pytests.py
+LIST_PYTESTS = ../bin/list_pytests
 MSGFMT = msgfmt
 MSGMERGE = msgmerge
 MSGCAT = msgcat

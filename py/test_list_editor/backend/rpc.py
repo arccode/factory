@@ -11,7 +11,6 @@ import os
 from six import iteritems
 from six import iterkeys
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import i18n
 from cros.factory.test.test_lists import test_list_common
 from cros.factory.test.utils import pytest_utils

@@ -8,7 +8,6 @@ import pipes
 import shutil
 import subprocess
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 
 

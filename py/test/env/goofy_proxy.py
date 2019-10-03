@@ -4,7 +4,6 @@
 
 from jsonrpclib import jsonrpc
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import net_utils
 
 # Default address and port that goofy server will bind on.

@@ -6,7 +6,6 @@
 import os
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import probe

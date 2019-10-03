@@ -17,7 +17,6 @@ import urlparse
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server.commands import parameters
 from cros.factory.umpire.server import config

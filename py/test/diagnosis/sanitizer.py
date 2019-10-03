@@ -8,7 +8,6 @@ import collections
 import copy
 import re
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.diagnosis import common
 from cros.factory.utils import process_utils
 

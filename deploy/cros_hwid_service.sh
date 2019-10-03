@@ -122,7 +122,6 @@ do_deploy() {
     ln -fs "${APPENGINE_DIR}/${file}" "${TEMP_DIR}"
   done
   ln -fs "${FACTORY_DIR}/py_pkg/cros" "${TEMP_DIR}"
-  ln -fs "${FACTORY_DIR}/py_pkg/cros/factory/factory_common.py" "${TEMP_DIR}"
 
   local endpoints_version="$(get_latest_endpoint_config_version \
     "${GCP_PROJECT}")"
@@ -175,7 +174,7 @@ do_test() {
   # Runs all executables in the test folder.
   for test_exec in $(find "${TEST_DIR}" -executable -type f); do
     echo Running "${test_exec}"
-    "${test_exec}"
+    "${FACTORY_DIR}/bin/factory_env" "${test_exec}"
   done
 }
 

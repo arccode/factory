@@ -8,8 +8,6 @@ import os
 import shutil
 import tempfile
 
-import factory_common  # pylint: disable=unused-import
-
 from cros.factory.external import pyudev
 
 # udev constants

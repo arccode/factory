@@ -18,7 +18,6 @@ from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
 from SimpleXMLRPCServer import SimpleXMLRPCServer
 import time
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture.dolphin import dolphin_bft_fixture
 from cros.factory.test.fixture.dolphin import plankton_hdmi
 from cros.factory.utils import file_utils

@@ -16,7 +16,6 @@ from six import iteritems
 from six import itervalues
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import probe

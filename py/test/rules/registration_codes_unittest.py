@@ -11,7 +11,6 @@ import unittest
 from six import assertRaisesRegex
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.proto import reg_code_pb2
 from cros.factory.test.rules.registration_codes import (
     CheckLegacyRegistrationCode)

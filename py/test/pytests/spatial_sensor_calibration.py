@@ -22,7 +22,6 @@ The step for calibration is as follows:
 4) Save them in VPD.
 """
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils

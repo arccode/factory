@@ -21,7 +21,6 @@ from urlparse import urlparse
 import mox
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import state

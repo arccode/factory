@@ -11,7 +11,6 @@ import unittest
 
 import mock
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import info
 from cros.factory.device import memory
 from cros.factory.device import temp

@@ -9,7 +9,6 @@ import stat
 import subprocess
 import sys
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server.service import umpire_service
 
 

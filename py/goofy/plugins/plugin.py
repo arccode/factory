@@ -7,7 +7,6 @@ import inspect
 import logging
 import uuid
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import debug_utils
 from cros.factory.utils import type_utils
 

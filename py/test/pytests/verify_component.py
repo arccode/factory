@@ -15,7 +15,6 @@ import hashlib
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.hwid.v3 import common
 from cros.factory.test import device_data

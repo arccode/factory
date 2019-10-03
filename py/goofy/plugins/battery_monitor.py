@@ -6,7 +6,6 @@
 import logging
 import os
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.goofy.plugins import periodic_plugin
 from cros.factory.utils import log_utils

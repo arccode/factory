@@ -25,7 +25,6 @@ from twisted.internet import defer
 from twisted.internet import protocol
 from twisted.internet import reactor
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import utils
 from cros.factory.utils import file_utils

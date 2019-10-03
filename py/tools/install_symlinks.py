@@ -17,7 +17,6 @@ import sys
 
 import yaml
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.schema import Dict

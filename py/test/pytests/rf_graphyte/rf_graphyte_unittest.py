@@ -13,7 +13,6 @@ import unittest
 
 import mock
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.pytests.rf_graphyte import rf_graphyte
 
 

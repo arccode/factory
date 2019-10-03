@@ -16,7 +16,6 @@ from PIL import Image
 from PIL import ImageChops
 from PIL import ImageDraw
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test.i18n import _

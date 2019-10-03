@@ -11,7 +11,6 @@ import unittest
 import endpoints
 import mock
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import hwid_api
 from cros.factory.hwid.service.appengine import hwid_api_messages

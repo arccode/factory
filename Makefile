@@ -279,14 +279,15 @@ toolkit: $(WEBGL_AQUARIUM_DIR) resource par
 	fi
 	# TODO(hungte) Figure out a way to get repo status in OUTOFTREE_BUILD.
 	$(if $(OUTOFTREE_BUILD),,$(if $(BOARD),\
-	  py/toolkit/print_repo_status.py -b $(BOARD) \
+	  bin/factory_env py/toolkit/print_repo_status.py -b $(BOARD) \
 	    >$(TOOLKIT_TEMP_DIR)/REPO_STATUS))
 	# Install factory test enabled flag.
 	touch $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/enabled
 	chmod -R go=rX $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)
-	$(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/py/toolkit/installer.py \
-	  --pack-into $(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME) \
-	  --version "$(BOARD) Factory Toolkit $(TOOLKIT_VERSION)"
+	$(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/bin/factory_env \
+	  $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/py/toolkit/installer.py \
+	    --pack-into $(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME) \
+	    --version "$(BOARD) Factory Toolkit $(TOOLKIT_VERSION)"
 
 # Creates build/doc and build/doc.zip, containing the factory SDK docs.
 doc:

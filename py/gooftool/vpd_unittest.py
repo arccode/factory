@@ -7,7 +7,6 @@ import unittest
 
 import mock
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import common
 from cros.factory.gooftool import vpd
 from cros.factory.utils import type_utils

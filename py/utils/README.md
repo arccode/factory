@@ -6,7 +6,6 @@ use both inside and outside of `cros.factory` code.
 For factory code, utils should be imported under the usual
 namespace:
 
-    import factory_common
     from cros.factory.utils import file_utils
 
 For non-factory code located in this repository, suggested use is

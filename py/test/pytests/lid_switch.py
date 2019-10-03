@@ -8,7 +8,6 @@ import datetime
 import os
 import time
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.
 # See LidSwitchTest.setUp() for more detail.

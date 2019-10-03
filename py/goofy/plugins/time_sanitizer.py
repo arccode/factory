@@ -6,7 +6,6 @@
 import logging
 import threading
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.tools import time_sanitizer
 from cros.factory.utils import net_utils

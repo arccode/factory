@@ -31,7 +31,6 @@ import copy
 import fcntl
 import struct
 
-import factory_common  # pylint: disable=unused-import
 
 # pylint: disable=no-name-in-module
 from cros.factory.external.evdev import ecodes

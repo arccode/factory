@@ -25,7 +25,6 @@ import xmlrpclib
 from six import iteritems
 import yaml
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.diagnosis.diagnosis_tool import DiagnosisToolRPC
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event

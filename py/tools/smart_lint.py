@@ -12,7 +12,6 @@ import os
 import re
 import sys
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import cros_board_utils
 from cros.factory.utils.process_utils import CheckOutput
 from cros.factory.utils.process_utils import Spawn

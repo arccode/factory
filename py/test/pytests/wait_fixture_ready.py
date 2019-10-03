@@ -16,7 +16,6 @@ Depends on how to connect to the fixture, it can be SSH or ADB or something
 else.
 """
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg

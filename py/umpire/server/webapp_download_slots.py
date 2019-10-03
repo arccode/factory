@@ -10,7 +10,6 @@ HTTP GET.
 
 import logging
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import download_slots_manager
 from cros.factory.umpire.server.web import wsgi
 from cros.factory.umpire.server import webapp_utils

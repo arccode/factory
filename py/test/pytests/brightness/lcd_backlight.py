@@ -5,7 +5,6 @@
 """This is a factory test to check the functionality of LCD backlight module.
 """
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.pytests.brightness import brightness

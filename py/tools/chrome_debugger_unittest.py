@@ -14,7 +14,6 @@ import urllib2
 import mock
 from ws4py.client.threadedclient import WebSocketClient
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import chrome_debugger
 
 

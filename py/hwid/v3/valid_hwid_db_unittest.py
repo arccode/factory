@@ -29,7 +29,6 @@ import sys
 import traceback
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import validator

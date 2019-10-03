@@ -16,7 +16,6 @@ import unittest
 
 from six import assertRaisesRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.l10n import regions
 
 

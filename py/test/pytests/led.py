@@ -8,7 +8,6 @@ or SMT fixture confirm LED functionality."""
 import logging
 import random
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device import led as led_module
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.

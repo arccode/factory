@@ -26,7 +26,6 @@ import threading
 
 from jsonrpclib import jsonclass
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import goofy_proxy
 from cros.factory.test.env import paths
 from cros.factory.test.utils.selector_utils import DataShelfSelector

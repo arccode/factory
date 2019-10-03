@@ -5,7 +5,6 @@
 
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import common
 from cros.factory.probe import function
 from cros.factory.utils.arg_utils import Arg

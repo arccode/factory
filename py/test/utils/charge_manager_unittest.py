@@ -11,7 +11,6 @@ import unittest
 
 import mox
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device.power import Power
 from cros.factory.test.utils import charge_manager
 

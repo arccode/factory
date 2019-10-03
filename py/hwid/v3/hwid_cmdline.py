@@ -17,7 +17,6 @@ import sys
 from six import iteritems
 from six import iterkeys
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import converter
 from cros.factory.hwid.v3.database import Database

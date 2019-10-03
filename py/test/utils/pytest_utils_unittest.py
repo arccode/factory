@@ -12,7 +12,6 @@ import unittest
 
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils.pytest_utils import LoadPytestModule
 from cros.factory.utils import file_utils
 

@@ -20,7 +20,6 @@ from six import iteritems
 from six import reraise as raise_
 import yaml
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Util
 from cros.factory.gooftool import cros_config as cros_config_module

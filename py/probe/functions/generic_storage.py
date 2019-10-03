@@ -10,7 +10,6 @@ import re
 import string  # pylint: disable=deprecated-module
 import struct
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import file as file_module
 from cros.factory.probe.functions import sysfs
 from cros.factory.probe.lib import cached_probe_function

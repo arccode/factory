@@ -88,7 +88,6 @@ In the fixture side, it should do something like this:
 
 import os
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test import test_case

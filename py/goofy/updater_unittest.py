@@ -8,7 +8,6 @@ import unittest
 
 import mox
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import updater
 from cros.factory.test import server_proxy
 from cros.factory.test import session

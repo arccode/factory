@@ -4,7 +4,6 @@
 
 """Umpired RPC command class."""
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server.commands import deploy
 from cros.factory.umpire.server.commands import export_log

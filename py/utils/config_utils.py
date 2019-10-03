@@ -16,7 +16,6 @@ Usage:
 
  # test.py ------------------------------------------------------------------
 
- import factory_common
  from cros.factory.utils import config_utils
 
  # This example will load test.json and validate using test.schema.json.

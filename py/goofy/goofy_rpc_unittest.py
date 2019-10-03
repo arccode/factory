@@ -10,7 +10,6 @@ import unittest
 
 import mox
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import goofy
 from cros.factory.goofy import goofy_rpc
 from cros.factory.test.env import paths

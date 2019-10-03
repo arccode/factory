@@ -10,7 +10,6 @@ import unittest
 
 import mock
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import test_list_common
 from cros.factory.test_list_editor.backend import rpc

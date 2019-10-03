@@ -46,7 +46,6 @@ To sync with tolerance time set to 3 seconds::
 import datetime
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import session
 from cros.factory.test.utils import time_utils as test_time_utils

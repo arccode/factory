@@ -6,7 +6,6 @@ import collections
 
 import six
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import shelve_utils
 
 

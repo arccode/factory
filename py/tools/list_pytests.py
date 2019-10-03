@@ -14,7 +14,6 @@ import argparse
 import json
 import os
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import test_object
 from cros.factory.test.utils import pytest_utils

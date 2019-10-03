@@ -6,7 +6,6 @@
 
 import os
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.umpire.server.service import umpire_service
 

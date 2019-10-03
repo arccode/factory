@@ -17,7 +17,6 @@ from six.moves import xrange
 from google.cloud import storage  # pylint: disable=import-error, no-name-in-module
 from google.protobuf import text_format
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
 from cros.factory.bundle_creator.docker import config  # pylint: disable=no-name-in-module
 

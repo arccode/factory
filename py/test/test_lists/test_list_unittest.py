@@ -5,7 +5,6 @@
 
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager
 from cros.factory.test.test_lists import test_list as test_list_module

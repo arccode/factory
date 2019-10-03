@@ -17,7 +17,6 @@ import mox
 from six import assertCountEqual
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import thermal
 from cros.factory.device import types
 

@@ -6,7 +6,6 @@
 
 from __future__ import print_function
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import translation
 from cros.factory.utils import arg_utils
 

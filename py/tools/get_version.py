@@ -10,7 +10,6 @@ import logging
 import os
 import re
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import fmap

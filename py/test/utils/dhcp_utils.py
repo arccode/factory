@@ -14,7 +14,6 @@ import sys
 import jsonrpclib
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils import network_utils
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import net_utils

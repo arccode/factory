@@ -17,7 +17,6 @@ from yaml import constructor
 from yaml import nodes
 from yaml import resolver
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import rule
 from cros.factory.test.l10n import regions

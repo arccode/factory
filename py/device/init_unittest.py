@@ -10,7 +10,6 @@ import unittest
 
 import mock
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device.init import FactoryInit
 from cros.factory.device.storage import Storage
 from cros.factory.device import types

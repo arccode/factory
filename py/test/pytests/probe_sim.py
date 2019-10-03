@@ -19,7 +19,6 @@ import re
 
 from six import assertRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case

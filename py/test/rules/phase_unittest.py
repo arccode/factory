@@ -11,7 +11,6 @@ import unittest
 
 from six import assertRaisesRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.phase import Phase
 from cros.factory.test.rules.phase import PHASE_NAMES

@@ -15,7 +15,6 @@ import os
 import unittest
 import hashlib
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test.env import paths

@@ -113,7 +113,6 @@ import threading
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
 from cros.factory.test import session

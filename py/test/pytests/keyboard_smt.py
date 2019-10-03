@@ -11,7 +11,6 @@ fixture to send out signals to simulate key presses on the key sequence.
 
 from __future__ import print_function
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import session
 from cros.factory.test import test_case

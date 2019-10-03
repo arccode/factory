@@ -16,7 +16,6 @@ from uuid import uuid4
 
 from jsonrpclib import SimpleJSONRPCServer
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils

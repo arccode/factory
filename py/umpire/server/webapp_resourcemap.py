@@ -10,7 +10,6 @@ The class handles
 
 import logging
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server.web import wsgi
 from cros.factory.utils import type_utils
 

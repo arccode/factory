@@ -67,7 +67,6 @@ Please refer to station_based.test_list.json and STATION_BASED.md about how to
 do station based testing.
 """
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
 from cros.factory.test import session

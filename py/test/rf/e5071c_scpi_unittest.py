@@ -12,7 +12,6 @@ extend the test coverage as well.
 """
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rf.e5071c_scpi import CheckTraceValid
 from cros.factory.test.rf.e5071c_scpi import Interpolate
 

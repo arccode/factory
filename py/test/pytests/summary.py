@@ -85,7 +85,6 @@ To always prompt but only pass if all previous tests in same group passed
 import itertools
 import logging
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _

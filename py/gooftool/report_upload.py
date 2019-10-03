@@ -15,7 +15,6 @@ import urllib
 import urlparse
 import xmlrpclib
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.common import Shell
 from cros.factory.utils import file_utils
 from cros.factory.utils.type_utils import Error

@@ -11,7 +11,6 @@ import unittest
 
 from six import assertCountEqual
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import install_symlinks
 
 

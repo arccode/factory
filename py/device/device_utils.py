@@ -12,7 +12,6 @@ import os
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import config_utils
 
 

@@ -26,7 +26,6 @@ import StringIO
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function as probe_function
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import manager

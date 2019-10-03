@@ -11,7 +11,6 @@ import unittest
 import mock
 import serial
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import arduino
 
 _DEFAULT_DRIVER = 'cdc_acm'

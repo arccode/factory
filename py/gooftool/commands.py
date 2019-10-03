@@ -26,7 +26,6 @@ import xmlrpclib
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.common import ExecFactoryPar
 from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool.core import Gooftool

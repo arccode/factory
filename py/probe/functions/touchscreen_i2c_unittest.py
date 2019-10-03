@@ -10,7 +10,6 @@ import unittest
 from six import assertCountEqual
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import touchscreen_i2c
 from cros.factory.utils import file_utils
 

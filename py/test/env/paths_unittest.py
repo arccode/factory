@@ -9,7 +9,6 @@ import unittest
 import mock
 from six import assertRaisesRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 
 class GetFactoryPythonArchivePathUnittest(unittest.TestCase):

@@ -13,7 +13,6 @@ import unittest
 
 import mox
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.utils import serial_utils
 
 from cros.factory.external import serial

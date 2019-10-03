@@ -8,7 +8,6 @@ import logging
 import time
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.utils.arg_utils import Arg
 

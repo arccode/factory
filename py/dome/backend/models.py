@@ -31,7 +31,6 @@ import rest_framework.exceptions
 import rest_framework.status
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common as umpire_common
 from cros.factory.umpire.server import resource as umpire_resource
 from cros.factory.umpire.server.service import umpire_service

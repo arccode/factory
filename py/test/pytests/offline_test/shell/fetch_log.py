@@ -12,7 +12,6 @@ import unittest
 import xmlrpclib
 import zipfile
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.pytests.offline_test.shell import common
 from cros.factory.test import server_proxy

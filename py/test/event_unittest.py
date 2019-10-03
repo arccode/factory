@@ -8,7 +8,6 @@ import threading
 import time
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils

@@ -8,7 +8,6 @@ import shutil
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import file as file_module
 from cros.factory.utils import file_utils
 

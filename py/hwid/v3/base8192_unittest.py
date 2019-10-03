@@ -5,7 +5,6 @@
 
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.base8192 import Base8192
 
 

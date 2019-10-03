@@ -149,7 +149,7 @@ def main(argv=None):
       '-m', '--module', dest='modules', action='append', default=[],
       help='include given module with main (which can be a command).')
   parser.add_argument(
-      '--extra_init', default='factory_common',
+      '--extra_init',
       help=('extra init-like file to create in each module directory. '
             'default: %(default)s'))
   parser.add_argument(

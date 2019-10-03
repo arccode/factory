@@ -16,7 +16,6 @@ import re
 import tempfile
 import time
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import base
 
 # Configuration file is put under overlay directory and it can be customized

@@ -11,7 +11,6 @@ import unittest
 import mock
 
 # pylint: disable=import-error
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine import hwid_validator
 from cros.factory.hwid.service.appengine import verification_payload_generator
 from cros.factory.hwid.v3 import validator as v3_validator

@@ -4,7 +4,6 @@
 
 import datetime
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 try:
   from cros.factory.goofy.plugins import plugin_controller

@@ -118,7 +118,6 @@ import os
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 # pylint: disable=wildcard-import,unused-wildcard-import
 from cros.factory.test.device_data_constants import *
 from cros.factory.test import event

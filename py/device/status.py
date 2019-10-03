@@ -12,7 +12,6 @@ import copy
 import functools
 import logging
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 
 from cros.factory.external import netifaces

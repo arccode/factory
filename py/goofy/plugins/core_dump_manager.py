@@ -3,7 +3,6 @@
 # found in the LICENSE file.
 
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import periodic_plugin
 from cros.factory.test.utils import core_dump_manager
 from cros.factory.utils import debug_utils

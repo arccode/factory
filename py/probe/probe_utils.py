@@ -10,7 +10,6 @@ import logging
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import common
 from cros.factory.utils import config_utils
 

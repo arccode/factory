@@ -7,7 +7,6 @@
 
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine import hwid_util
 
 EXAMPLE_MEMORY_STRING1 = 'dram_micron_1g_dimm2'

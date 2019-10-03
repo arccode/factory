@@ -7,7 +7,6 @@
 import os
 import shutil
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.utils import file_utils
 

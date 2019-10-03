@@ -95,7 +95,6 @@ import re
 from six import iteritems
 from six import itervalues
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test.l10n import regions
 from cros.factory.test import session

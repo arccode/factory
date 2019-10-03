@@ -4,7 +4,6 @@
 
 import logging
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture.robot import robot
 
 from cros.factory.external import serial

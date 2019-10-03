@@ -3,7 +3,6 @@
 # found in the LICENSE file.
 
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.utils.cpufreq_manager import CpufreqManager
 from cros.factory.utils import type_utils

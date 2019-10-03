@@ -10,7 +10,6 @@ import unittest
 import mock
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import test_list_iterator
 from cros.factory.test import state
 from cros.factory.test.test_lists import manager

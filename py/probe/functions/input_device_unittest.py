@@ -7,7 +7,6 @@ import os
 import textwrap
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import input_device
 from cros.factory.utils import file_utils
 

@@ -62,7 +62,6 @@ import unittest
 
 import numpy
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.testlog import testlog
 from cros.factory.test.utils import fpmcu_utils

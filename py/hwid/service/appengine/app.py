@@ -7,7 +7,6 @@
 import endpoints  # pylint: disable=import-error
 import webapp2  # pylint: disable=import-error
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine import goldeneye_ingestion
 from cros.factory.hwid.service.appengine import hwid_api
 from cros.factory.hwid.service.appengine import ingestion

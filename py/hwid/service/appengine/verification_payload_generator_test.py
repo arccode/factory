@@ -13,7 +13,6 @@ from google.protobuf import json_format
 from google.protobuf import text_format
 import hardware_verifier_pb2
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine import verification_payload_generator
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import rule as hwid_rule

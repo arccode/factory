@@ -23,7 +23,6 @@ from twisted.web import server
 from twisted.web import wsgi
 from twisted.web import xmlrpc
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.umpire.server import utils

@@ -4,7 +4,6 @@
 
 """Common classes and values for HWID v3 framework."""
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import type_utils
 
 

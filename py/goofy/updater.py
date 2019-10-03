@@ -8,7 +8,6 @@ import os
 import shutil
 import uuid
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test import server_proxy
 from cros.factory.test import session

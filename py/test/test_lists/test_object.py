@@ -16,7 +16,6 @@ import json
 import logging
 import re
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import translation

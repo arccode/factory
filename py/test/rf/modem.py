@@ -9,7 +9,6 @@ import re
 
 import serial
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import type_utils
 
 _COMMAND_RETRY_TIMES = 5

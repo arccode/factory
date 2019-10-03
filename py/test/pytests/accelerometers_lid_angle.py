@@ -30,7 +30,6 @@ import numpy as np
 from six import iteritems
 from six import itervalues
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _

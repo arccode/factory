@@ -12,7 +12,6 @@ import string
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.i18n import translation
 
 

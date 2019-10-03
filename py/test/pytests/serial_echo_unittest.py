@@ -10,7 +10,6 @@ import mox
 from mox import IgnoreArg
 import serial
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.pytests import serial_echo
 from cros.factory.test.utils import serial_utils
 from cros.factory.utils.arg_utils import Args

@@ -16,7 +16,6 @@ import unittest
 import mox
 from six import assertRaisesRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn

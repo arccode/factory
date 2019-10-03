@@ -7,7 +7,6 @@ import logging
 
 import six
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import state
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.test_lists import test_object

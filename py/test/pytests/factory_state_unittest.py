@@ -13,7 +13,6 @@ import mock
 from six import assertCountEqual
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import goofy_server
 from cros.factory.test.pytests import factory_state
 from cros.factory.test import state

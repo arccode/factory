@@ -50,7 +50,6 @@ import logging
 
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test import session
 from cros.factory.test.i18n import _

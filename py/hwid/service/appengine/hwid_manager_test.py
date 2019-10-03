@@ -10,7 +10,6 @@ import unittest
 import mock
 from mock import patch
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine import appengine_test_base
 from cros.factory.hwid.service.appengine import filesystem_adapter
 from cros.factory.hwid.service.appengine import hwid_manager

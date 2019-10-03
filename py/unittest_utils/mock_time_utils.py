@@ -11,7 +11,6 @@ import time
 
 import mock
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 

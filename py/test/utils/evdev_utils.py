@@ -6,7 +6,6 @@ from __future__ import print_function
 
 import asyncore
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import process_utils
 
 from cros.factory.external import evdev

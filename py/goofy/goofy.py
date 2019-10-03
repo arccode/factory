@@ -22,7 +22,6 @@ from xmlrpclib import Binary
 from six import iteritems
 from six import itervalues
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.goofy import goofy_server

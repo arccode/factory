@@ -7,7 +7,6 @@ from distutils import sysconfig
 import logging
 import os
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import process_utils
 
 DEFAULT_ETC_ISSUE = """

@@ -44,7 +44,6 @@ from __future__ import print_function
 
 import re
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.goofy.plugins import plugin_controller
 from cros.factory.test import session

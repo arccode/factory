@@ -12,7 +12,6 @@ import unittest
 
 import mock
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event as test_event
 from cros.factory.test import test_case
 from cros.factory.test import test_ui

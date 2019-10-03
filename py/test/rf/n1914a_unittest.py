@@ -18,7 +18,6 @@ import SocketServer
 import threading
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rf.n1914a import N1914A
 from cros.factory.utils import net_utils
 

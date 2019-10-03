@@ -24,7 +24,6 @@ import mock
 from six.moves import xrange
 import yaml
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log
 from cros.factory.test import session
 from cros.factory.utils import file_utils

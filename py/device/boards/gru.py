@@ -4,7 +4,6 @@
 
 import logging
 
-import factory_common  # pylint: disable=W0611
 from cros.factory.device.boards import chromeos
 from cros.factory.device import types
 from cros.factory.device import power

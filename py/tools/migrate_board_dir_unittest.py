@@ -16,7 +16,6 @@ import unittest
 import mock
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import migrate_board_dir
 from cros.factory.tools.migrate_board_dir import MigrateBoardException
 from cros.factory.tools.migrate_board_dir import ReplacePattern

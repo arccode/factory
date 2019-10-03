@@ -49,7 +49,6 @@ To update fingerprint firmware with a specified image in the station
 
 import logging
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test import session
 from cros.factory.test import test_case

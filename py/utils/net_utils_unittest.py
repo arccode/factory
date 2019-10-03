@@ -17,7 +17,6 @@ import unittest
 import mock
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 

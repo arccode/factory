@@ -8,7 +8,6 @@ import logging
 import re
 import struct
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.proto import reg_code_pb2
 from cros.factory.proto.reg_code_pb2 import RegCode
 from cros.factory.utils import type_utils

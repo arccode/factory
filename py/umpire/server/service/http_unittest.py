@@ -10,7 +10,6 @@ import unittest
 
 from six import assertRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import config as umpire_config
 from cros.factory.umpire.server.service import http
 from cros.factory.umpire.server import umpire_env

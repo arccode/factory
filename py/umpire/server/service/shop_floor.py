@@ -8,7 +8,6 @@ The proxy is current implemented in server/dut_rpc.py so this service is now
 simply a dummy implementation for holding config.
 """
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server.service import umpire_service
 
 

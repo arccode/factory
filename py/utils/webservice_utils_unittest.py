@@ -7,7 +7,6 @@
 import json
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import webservice_utils

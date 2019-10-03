@@ -13,7 +13,6 @@ from jsonrpclib import jsonrpc
 from six import assertCountEqual
 from six import assertRaisesRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy import goofy_server
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils

@@ -12,7 +12,6 @@ import os
 import re
 import shutil
 
-import factory_common   # pylint: disable=unused-import
 from cros.factory.utils import cros_board_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils

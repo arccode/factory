@@ -11,7 +11,6 @@ import zipimport
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.test_lists import checker as checker_module
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.test_lists import test_list_common

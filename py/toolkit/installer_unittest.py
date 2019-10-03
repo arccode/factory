@@ -14,7 +14,6 @@ import shutil
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.toolkit import installer
 
 

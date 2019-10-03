@@ -99,7 +99,6 @@ import threading
 
 import yaml
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device.links import ssh
 from cros.factory.test import device_data

@@ -22,7 +22,6 @@ from dulwich.repo import MemoryRepo as _MemoryRepo
 import urllib3.exceptions
 from urllib3 import PoolManager
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import json_utils
 
 

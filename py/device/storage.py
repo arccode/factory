@@ -11,7 +11,6 @@ import subprocess
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 from cros.factory.utils import process_utils
 

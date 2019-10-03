@@ -14,7 +14,6 @@ import itertools
 import logging
 import urllib
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rf import agilent_scpi
 from cros.factory.test.rf import lan_scpi
 from cros.factory.utils import type_utils

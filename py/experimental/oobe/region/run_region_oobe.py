@@ -7,7 +7,6 @@
 import argparse
 import logging
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.l10n.regions import REGIONS
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils.process_utils import Spawn

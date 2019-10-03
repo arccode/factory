@@ -4,7 +4,6 @@
 
 """This is a factory test to check the LED brightness."""
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import led as led_module
 from cros.factory.test.pytests.brightness import brightness
 from cros.factory.utils import arg_utils

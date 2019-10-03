@@ -6,7 +6,6 @@ import re
 
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import common as gooftool_common
 from cros.factory.utils import type_utils
 

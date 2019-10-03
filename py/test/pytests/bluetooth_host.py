@@ -12,7 +12,6 @@ import collections
 import os
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.device import types
 from cros.factory.test import session

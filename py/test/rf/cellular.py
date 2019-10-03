@@ -8,7 +8,6 @@ import logging
 import re
 import subprocess
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rf.modem import Modem
 from cros.factory.test import session
 from cros.factory.utils import process_utils

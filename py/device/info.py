@@ -12,7 +12,6 @@ import logging
 import os
 import re
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import device_data

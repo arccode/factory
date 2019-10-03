@@ -17,7 +17,6 @@ import time
 from six import iteritems
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture.whale import keyboard_emulator
 from cros.factory.test.fixture.whale import serial_client
 from cros.factory.test.fixture.whale import servo_client

@@ -17,7 +17,6 @@ import sys
 
 from six.moves import input
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.tools import install_symlinks
 from cros.factory.utils import file_utils

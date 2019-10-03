@@ -4,7 +4,6 @@
 
 """ChromeOS family boards."""
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device.audio import utils as audio_utils
 from cros.factory.device.boards import linux
 from cros.factory.device.chromeos import bluetooth

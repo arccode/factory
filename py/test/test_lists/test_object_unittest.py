@@ -11,7 +11,6 @@
 import os
 import unittest
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.test_lists import test_object
 
 

@@ -10,7 +10,6 @@ import inspect
 from six import iteritems
 from six import itervalues
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.utils import pytest_utils
 from cros.factory.utils import arg_utils

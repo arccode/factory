@@ -13,7 +13,6 @@ import os
 import re
 import sys
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import umpire_env
 from cros.factory.utils import json_utils
 

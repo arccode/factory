@@ -8,6 +8,7 @@ import logging
 import os
 import shelve
 import shutil
+import sys
 
 from . import file_utils
 from . import process_utils
@@ -29,13 +30,17 @@ def IsShelfValid(shelf):
   Returns:
     True if valid, False if not valid.
   """
+  env = dict(os.environ)
+  env['PYTHONPATH'] = ':'.join(sys.path)
+
   process = process_utils.Spawn(['python2', '-c',
-                                 'import factory_common, shelve, sys; '
+                                 'import shelve, sys; '
                                  'shelve.open(sys.argv[1], "r").items(); '
                                  r'print "\nSHELF OK"',
                                  os.path.realpath(shelf)],
                                 cwd=os.path.dirname(__file__), call=True,
-                                log=True, read_stdout=True, read_stderr=True)
+                                log=True, read_stdout=True, read_stderr=True,
+                                env=env)
   if process.returncode == 0 and process.stdout_data.endswith('SHELF OK\n'):
     return True
 

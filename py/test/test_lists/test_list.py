@@ -15,7 +15,6 @@ import os
 from six import iteritems
 from six import with_metaclass
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test import i18n
 from cros.factory.test.i18n import translation
 from cros.factory.test.rules import phase

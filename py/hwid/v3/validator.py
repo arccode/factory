@@ -6,8 +6,6 @@
 
 from six import iteritems
 
-# pylint: disable=import-error
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import bom
 from cros.factory.hwid.v3 import verify_db_pattern

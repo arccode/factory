@@ -7,7 +7,6 @@ import logging
 import os
 import pkgutil
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import arg_utils
 
 

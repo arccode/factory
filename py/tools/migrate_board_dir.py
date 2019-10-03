@@ -14,7 +14,6 @@ import re
 import shutil
 import sys
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.file_utils import UnopenedTemporaryFile
 
 

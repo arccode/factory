@@ -5,7 +5,6 @@
 
 import logging
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import periodic_plugin
 from cros.factory.test import event_log
 from cros.factory.tools import disk_space

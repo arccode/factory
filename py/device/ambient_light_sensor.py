@@ -6,7 +6,6 @@
 import logging
 import os
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import sensor_utils
 from cros.factory.device import types
 

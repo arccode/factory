@@ -13,7 +13,6 @@ import unittest
 import mox
 from six import assertRaisesRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import led as led_module
 from cros.factory.device import types
 

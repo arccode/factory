@@ -10,7 +10,6 @@ import glob
 import logging
 import os
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import daemon
 from cros.factory.umpire.server import migrate
 from cros.factory.umpire.server import rpc_cli

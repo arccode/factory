@@ -89,10 +89,6 @@ Import lines are organized in 3 categories:
 * Third-party modules, e.g. `import jsonlibrpc`
 * ChromeOS Factory modules
 
-`import factory_common  # pylint: disable=unused-import` injects
-`cros.factory` namespace, so the following `from cros.factory....` lines could
-work.
-
 ### Implementation
 
 All pytests are a python class inherits [`test_case.TestCase`](../test_case.py),

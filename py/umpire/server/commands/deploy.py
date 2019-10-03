@@ -13,7 +13,6 @@ import logging
 
 from twisted.python import failure as twisted_failure
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.umpire.server import config as umpire_config
 from cros.factory.utils import file_utils

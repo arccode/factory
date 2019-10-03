@@ -18,7 +18,6 @@ import unittest
 import requests
 
 # pylint: disable=import-error
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils

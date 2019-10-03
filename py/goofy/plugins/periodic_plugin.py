@@ -5,7 +5,6 @@
 
 import threading
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.goofy.plugins import plugin
 from cros.factory.utils import debug_utils
 from cros.factory.utils import process_utils

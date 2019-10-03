@@ -9,7 +9,6 @@ import unittest
 from six import assertRaisesRegex
 from six import iteritems
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.arg_utils import Args
 from cros.factory.utils.type_utils import Enum

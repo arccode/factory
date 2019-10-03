@@ -7,7 +7,6 @@
 import ast
 import logging
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import bft_fixture as bft
 
 # shortcut

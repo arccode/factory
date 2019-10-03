@@ -94,7 +94,6 @@ import time
 from six import iteritems
 from six import reraise as raise_
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import CalledProcessError
 from cros.factory.device import device_utils
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.

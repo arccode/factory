@@ -146,7 +146,6 @@ import time
 import numpy as np
 from six.moves import xrange
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import ambient_light_sensor
 from cros.factory.device import device_utils
 from cros.factory.test import session

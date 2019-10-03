@@ -54,7 +54,6 @@ To test USBPD 45W plugged on usbpd port 0::
 
 import numbers
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _

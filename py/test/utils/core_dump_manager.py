@@ -6,7 +6,6 @@ import glob
 import logging
 import os
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import sys_utils
 
 DEFAULT_CRASH_PATH = '/var/factory/crash'

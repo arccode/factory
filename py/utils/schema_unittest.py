@@ -8,7 +8,6 @@ import unittest
 
 from six import assertRaisesRegex
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.schema import AnyOf
 from cros.factory.utils.schema import Dict
 from cros.factory.utils.schema import FixedDict

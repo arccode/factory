@@ -17,7 +17,6 @@ from six import iteritems
 # pylint: disable=import-error, no-name-in-module
 from google.appengine.ext import db
 
-import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.service.appengine import memcache_adaptor
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
