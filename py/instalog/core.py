@@ -14,7 +14,6 @@ import _strptime  # pylint: disable=unused-import
 
 from six import iteritems
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import flow_policy
 from cros.factory.instalog import json_utils
 from cros.factory.instalog import plugin_base

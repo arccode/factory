@@ -29,7 +29,6 @@ import unittest
 
 from six import assertRaisesRegex
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import log_utils
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog import plugin_loader
@@ -88,7 +87,6 @@ class TestPluginLoader(unittest.TestCase):
     """Tests that self.superclass gets set correctly after Create()."""
     pname = self._createPluginFile(
         '''\
-        import instalog_common  # pylint: disable=unused-import
         from cros.factory.instalog import plugin_base
         class OutputTest(plugin_base.OutputPlugin):
           pass
@@ -102,7 +100,6 @@ class TestPluginLoader(unittest.TestCase):
     """Tests getting an instance of an InputPlugin from a module."""
     pname = self._createPluginFile(
         '''\
-        import instalog_common  # pylint: disable=unused-import
         from cros.factory.instalog import plugin_base
         class InputTest(plugin_base.InputPlugin):
           pass
@@ -126,7 +123,6 @@ class TestPluginLoader(unittest.TestCase):
     """Tests getting an instance of an OutputPlugin from a module."""
     pname = self._createPluginFile(
         '''\
-        import instalog_common  # pylint: disable=unused-import
         from cros.factory.instalog import plugin_base
         class OutputTest(plugin_base.OutputPlugin):
           pass
@@ -157,7 +153,6 @@ class TestPluginLoader(unittest.TestCase):
     """Tests loading a plugin with a runtime error: __init__ args."""
     pname = self._createPluginFile(
         '''\
-        import instalog_common  # pylint: disable=unused-import
         from cros.factory.instalog import plugin_base
         class InputTest(plugin_base.InputPlugin):
           def __init__(self):
@@ -172,7 +167,6 @@ class TestPluginLoader(unittest.TestCase):
     """Tests loading a plugin with a runtime error: within __init__."""
     pname = self._createPluginFile(
         '''\
-        import instalog_common  # pylint: disable=unused-import
         from cros.factory.instalog import plugin_base
         class InputTest(plugin_base.InputPlugin):
           def __init__(self, *args, **kwargs):
@@ -188,7 +182,6 @@ class TestPluginLoader(unittest.TestCase):
     """Tests providing invalid arguments to a plugin."""
     pname = self._createPluginFile(
         '''\
-        import instalog_common  # pylint: disable=unused-import
         from cros.factory.instalog import plugin_base
         from cros.factory.instalog.utils.arg_utils import Arg
         class InputTest(plugin_base.InputPlugin):
@@ -207,7 +200,6 @@ class TestPluginLoader(unittest.TestCase):
     """Tests providing valid arguments to a plugin."""
     pname = self._createPluginFile(
         '''\
-        import instalog_common  # pylint: disable=unused-import
         from cros.factory.instalog import plugin_base
         from cros.factory.instalog.utils.arg_utils import Arg
         class InputTest(plugin_base.InputPlugin):

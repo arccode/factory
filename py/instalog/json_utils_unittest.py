@@ -14,7 +14,6 @@ import unittest
 
 from six import assertRaisesRegex
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import json_utils
 from cros.factory.instalog import log_utils
 

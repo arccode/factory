@@ -16,8 +16,8 @@ import unittest
 
 import gnupg
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import datatypes
+from cros.factory.instalog import instalog_common
 from cros.factory.instalog import log_utils
 from cros.factory.instalog import plugin_sandbox
 from cros.factory.instalog import testing

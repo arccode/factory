@@ -6,8 +6,6 @@
 
 import logging
 
-import instalog_common  # pylint:disable=unused-import
-
 from cros.factory.instalog.external import gnupg
 
 

@@ -13,7 +13,6 @@ from __future__ import print_function
 
 import datetime
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins.input_drm_screencap import drm

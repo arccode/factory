@@ -10,7 +10,6 @@ from __future__ import print_function
 
 from six import iteritems
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.utils.arg_utils import Arg
 from cros.factory.instalog.utils import file_utils

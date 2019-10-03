@@ -34,7 +34,6 @@ from google.cloud import bigquery
 from google.cloud import exceptions
 from google.oauth2 import service_account
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.utils.arg_utils import Arg
 from cros.factory.instalog.utils import file_utils

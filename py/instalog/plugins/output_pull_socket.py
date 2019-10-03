@@ -17,7 +17,6 @@ from __future__ import print_function
 from six.moves import xrange
 import socket
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import output_socket
 from cros.factory.instalog.plugins import socket_common

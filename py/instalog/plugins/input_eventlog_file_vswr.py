@@ -116,7 +116,6 @@ import datetime
 
 from six import iteritems
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import input_eventlog_file

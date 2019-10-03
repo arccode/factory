@@ -26,7 +26,6 @@ import Queue
 
 import zlib
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import log_utils
 from cros.factory.instalog import plugin_base

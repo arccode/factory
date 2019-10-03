@@ -19,7 +19,6 @@ import time
 
 from six import reraise as raise_
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import flow_policy
 from cros.factory.instalog import json_utils

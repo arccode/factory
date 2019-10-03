@@ -11,7 +11,6 @@ A sample output plugin that writes events to stdout.
 
 from __future__ import print_function
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.utils.arg_utils import Arg
 

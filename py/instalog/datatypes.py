@@ -19,7 +19,6 @@ import time
 import six
 from six import iteritems
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import json_utils
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.utils import time_utils

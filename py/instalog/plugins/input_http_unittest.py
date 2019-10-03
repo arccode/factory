@@ -20,7 +20,6 @@ import urllib
 
 import requests
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import log_utils
 from cros.factory.instalog import plugin_sandbox

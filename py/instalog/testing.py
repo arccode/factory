@@ -16,7 +16,6 @@ import tempfile
 
 from six import iteritems
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog import plugin_sandbox
 from cros.factory.instalog.utils import file_utils

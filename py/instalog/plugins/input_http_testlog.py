@@ -57,7 +57,6 @@ import time
 
 from six import iterkeys
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import input_http
 from cros.factory.instalog.plugins import testlog_common

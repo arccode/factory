@@ -20,7 +20,6 @@ from six import iteritems
 # pylint: disable=import-error, no-name-in-module
 from google.cloud.bigquery.schema import SchemaField
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import output_bigquery
 from cros.factory.instalog.utils import time_utils

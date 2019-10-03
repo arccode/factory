@@ -22,7 +22,6 @@ import time
 
 from six import iteritems
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import log_utils
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import socket_common

@@ -11,7 +11,6 @@ from __future__ import print_function
 import logging
 import unittest
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import flow_policy
 from cros.factory.instalog import log_utils

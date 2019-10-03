@@ -17,7 +17,6 @@ import shutil
 
 from six import iteritems
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import buffer_file_common
 from cros.factory.instalog.utils.arg_utils import Arg

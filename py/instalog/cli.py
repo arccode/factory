@@ -14,9 +14,9 @@ import signal
 import sys
 import tarfile
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import core
 from cros.factory.instalog import daemon_utils
+from cros.factory.instalog import instalog_common
 from cros.factory.instalog import log_utils
 from cros.factory.instalog.utils import file_utils
 from cros.factory.instalog.utils import sync_utils

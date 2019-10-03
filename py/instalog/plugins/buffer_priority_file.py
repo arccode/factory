@@ -27,7 +27,6 @@ import shutil
 from six import iteritems
 from six.moves import xrange
 
-import instalog_common  # pylint: disable=unused-import
 from cros.factory.instalog import json_utils
 from cros.factory.instalog import lock_utils
 from cros.factory.instalog import log_utils
