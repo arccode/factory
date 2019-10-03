@@ -136,6 +136,8 @@ import logging
 import threading
 import time
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.gooftool import commands

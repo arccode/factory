@@ -9,6 +9,7 @@ import logging
 import os
 import re
 
+from six.moves import xrange
 from twisted.internet import defer
 from twisted.internet import reactor
 from twisted.trial import unittest

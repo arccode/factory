@@ -15,6 +15,8 @@ import ctypes
 import mmap
 import os
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 
 from cros.factory.external import PIL

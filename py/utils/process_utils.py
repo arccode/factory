@@ -20,6 +20,8 @@ import time
 import traceback
 
 from six import iteritems
+from six.moves import xrange
+
 
 try:
   PIPE = subprocess.PIPE

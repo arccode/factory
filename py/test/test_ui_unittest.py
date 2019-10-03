@@ -17,6 +17,7 @@ import unittest
 import mock
 from six import assertRegex
 from six import iteritems
+from six.moves import xrange
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event as test_event

@@ -15,6 +15,8 @@ import signal
 import threading
 import time
 
+from six.moves import xrange
+
 from . import thread_utils
 from . import time_utils
 from . import type_utils

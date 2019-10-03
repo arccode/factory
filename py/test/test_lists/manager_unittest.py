@@ -14,6 +14,7 @@ import unittest
 import mock
 from six import assertCountEqual
 from six import iteritems
+from six.moves import xrange
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import device_data

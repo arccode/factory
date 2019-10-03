@@ -15,6 +15,8 @@ from __future__ import print_function
 import argparse
 import os
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils.cros_board_utils import BuildBoard
 from cros.factory.utils.process_utils import CheckOutput

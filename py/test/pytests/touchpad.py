@@ -48,6 +48,8 @@ If you want to change the time limit to 100 seconds::
 
 import logging
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.external import evdev
 from cros.factory.test import session

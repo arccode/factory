@@ -25,6 +25,7 @@ import time
 import xmlrpclib
 
 from six import iteritems
+from six.moves import xrange
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.common import ExecFactoryPar

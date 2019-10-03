@@ -24,6 +24,7 @@ use the args attribute to access the attribute values.
 """
 
 from six import iteritems
+from six.moves import xrange
 
 from .type_utils import Enum
 

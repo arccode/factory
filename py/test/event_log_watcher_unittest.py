@@ -11,6 +11,7 @@ import time
 import unittest
 
 import mox
+from six.moves import xrange
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log

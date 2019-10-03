@@ -11,6 +11,7 @@ import re
 import struct
 import time
 
+from six.moves import xrange
 from six import viewitems
 
 import factory_common  # pylint: disable=unused-import

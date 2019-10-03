@@ -40,6 +40,8 @@ import sys
 import uuid
 
 from six import iteritems
+from six.moves import xrange
+
 
 class StructError(Exception):
   """Exceptions in packing and unpacking from/to struct fields."""

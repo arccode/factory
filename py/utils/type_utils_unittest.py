@@ -7,6 +7,8 @@
 
 import unittest
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import type_utils
 

@@ -25,6 +25,7 @@ import os
 import shutil
 
 from six import iteritems
+from six.moves import xrange
 
 import instalog_common  # pylint: disable=unused-import
 from instalog import json_utils

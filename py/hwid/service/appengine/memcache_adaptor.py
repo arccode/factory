@@ -7,6 +7,8 @@
 import cPickle
 import logging
 
+from six.moves import xrange
+
 # pylint: disable=import-error, no-name-in-module
 from google.appengine.api import memcache
 

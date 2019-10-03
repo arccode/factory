@@ -10,6 +10,8 @@ See https://chromium-review.googlesource.com/989530 for more details.
 import os
 import shutil
 
+from six.moves import xrange
+
 
 _OLD_BUFFER_DIR = '/var/db/factory/umpire/umpire_data/instalog/data/buffer'
 

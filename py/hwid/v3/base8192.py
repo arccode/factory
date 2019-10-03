@@ -9,6 +9,7 @@ from __future__ import print_function
 
 import argparse
 
+from six.moves import xrange
 from zlib import crc32
 
 import factory_common  # pylint: disable=unused-import

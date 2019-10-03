@@ -21,6 +21,7 @@ import unittest
 import uuid
 
 import mock
+from six.moves import xrange
 import yaml
 
 import factory_common  # pylint: disable=unused-import

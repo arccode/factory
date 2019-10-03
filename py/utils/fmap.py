@@ -30,6 +30,7 @@ import logging
 import struct
 import sys
 
+from six.moves import xrange
 
 # constants imported from lib/fmap.h
 FMAP_SIGNATURE = '__FMAP__'

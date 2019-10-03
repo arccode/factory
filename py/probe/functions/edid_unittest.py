@@ -8,6 +8,7 @@ import unittest
 
 import mock
 from six import assertCountEqual
+from six.moves import xrange
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe.functions import edid

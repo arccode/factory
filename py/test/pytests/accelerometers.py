@@ -55,6 +55,8 @@ You can also change the limits of each axis to loose the criteria::
 from six import iteritems
 from six import viewkeys
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import accelerometer
 from cros.factory.device import device_utils

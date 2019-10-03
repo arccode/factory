@@ -12,6 +12,8 @@ import string
 import subprocess
 import yaml
 
+from six.moves import xrange
+
 from google.cloud import storage  # pylint: disable=import-error, no-name-in-module
 from google.protobuf import text_format
 

@@ -13,6 +13,8 @@ from __future__ import division
 
 import struct
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rf import agilent_scpi
 from cros.factory.test.rf import lan_scpi

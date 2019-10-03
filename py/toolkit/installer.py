@@ -24,6 +24,7 @@ import tempfile
 import time
 
 from six.moves import input
+from six.moves import xrange
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths

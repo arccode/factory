@@ -8,6 +8,8 @@ import logging
 import struct
 import time
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import types
 

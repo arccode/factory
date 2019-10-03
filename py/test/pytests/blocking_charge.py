@@ -83,6 +83,8 @@ charging, add this in test list::
 import logging
 import os
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths

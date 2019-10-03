@@ -19,6 +19,8 @@ import shutil
 import subprocess
 import sys
 
+from six.moves import xrange
+
 
 DATE_FORMAT = '%Y%m%d%H%M%S'
 HASH_FILE_READ_BLOCK_SIZE = 1024 * 64  # 64kb

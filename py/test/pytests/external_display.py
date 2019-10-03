@@ -71,6 +71,8 @@ import collections
 import logging
 import random
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture

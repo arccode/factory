@@ -27,6 +27,8 @@ from __future__ import division
 import logging
 import time
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _

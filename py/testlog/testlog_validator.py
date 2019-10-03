@@ -10,6 +10,8 @@ import pprint
 import re
 import shutil
 
+from six.moves import xrange
+
 from .utils import time_utils
 
 

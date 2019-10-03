@@ -23,6 +23,8 @@ import SimpleHTTPServer
 import SocketServer
 import threading
 
+from six.moves import xrange
+
 from scpi_mock import MockServerHandler
 from scpi_mock import MockTestServer
 

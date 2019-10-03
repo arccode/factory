@@ -18,6 +18,8 @@ import subprocess
 import time
 import xmlrpclib
 
+from six.moves import xrange
+
 from . import file_utils
 from . import process_utils
 from .type_utils import Error

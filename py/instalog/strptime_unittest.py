@@ -28,6 +28,8 @@ import threading
 import time
 import unittest
 
+from six.moves import xrange
+
 
 error = False
 

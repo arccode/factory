@@ -42,6 +42,8 @@ To run this sample code with default arguments, add this in test list::
 import logging
 import unittest
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.testlog import testlog

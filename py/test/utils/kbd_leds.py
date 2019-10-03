@@ -13,6 +13,8 @@ import os
 import sys
 import threading
 
+from six.moves import xrange
+
 
 # Constants from /usr/include/linux/kd.h.
 KDSETLED = 0x4B32

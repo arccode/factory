@@ -8,6 +8,8 @@ import collections
 import threading
 import time
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event
 from cros.factory.test.i18n import _

@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from six.moves import xrange
+
 
 class Option(object):
   """Utility class for generating and manipulating HTML option tag.

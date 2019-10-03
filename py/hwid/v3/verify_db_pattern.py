@@ -24,6 +24,7 @@ import subprocess
 import unittest
 
 from six import itervalues
+from six.moves import xrange
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common

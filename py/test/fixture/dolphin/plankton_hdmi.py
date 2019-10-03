@@ -19,6 +19,8 @@ import re
 import threading
 import time
 
+from six.moves import xrange
+
 
 class PlanktonHDMIException(Exception):
   pass

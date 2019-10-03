@@ -61,6 +61,8 @@ To test volume down button (using ``evdev``) 3 times in 10 seconds::
 import logging
 import time
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.external import evdev

@@ -45,6 +45,8 @@ and the encoded string.
 
 import re
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import base32
 from cros.factory.hwid.v3 import base8192

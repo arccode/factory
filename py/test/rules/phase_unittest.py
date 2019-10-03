@@ -10,6 +10,7 @@ import tempfile
 import unittest
 
 from six import assertRaisesRegex
+from six.moves import xrange
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rules import phase

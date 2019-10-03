@@ -14,6 +14,7 @@ See socket_common.py for protocol definition.
 
 from __future__ import print_function
 
+from six.moves import xrange
 import socket
 
 import instalog_common  # pylint: disable=unused-import

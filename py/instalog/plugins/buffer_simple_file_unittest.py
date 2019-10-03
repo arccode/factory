@@ -40,6 +40,8 @@ import threading
 import time
 import unittest
 
+from six.moves import xrange
+
 import instalog_common  # pylint: disable=unused-import
 from instalog import datatypes
 from instalog import log_utils

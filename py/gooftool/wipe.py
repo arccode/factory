@@ -15,6 +15,8 @@ import tempfile
 import textwrap
 import time
 
+from six.moves import xrange
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool import chroot
 from cros.factory.gooftool.common import ExecFactoryPar
