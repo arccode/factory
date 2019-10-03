@@ -14,7 +14,7 @@ import unittest
 import mock
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import log_utils
+from cros.factory.instalog import log_utils
 
 
 class LoggerMixinTest(unittest.TestCase):

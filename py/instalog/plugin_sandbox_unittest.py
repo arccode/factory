@@ -22,9 +22,9 @@ import mock
 from six import assertRaisesRegex
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import log_utils
-from instalog import plugin_base
-from instalog import plugin_sandbox
+from cros.factory.instalog import log_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog import plugin_sandbox
 
 
 class WellBehavedInput(plugin_base.InputPlugin):

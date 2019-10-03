@@ -83,11 +83,11 @@ import zlib
 from six import iteritems
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import datatypes
-from instalog import lock_utils
-from instalog import log_utils
-from instalog import plugin_base
-from instalog.utils import file_utils
+from cros.factory.instalog import datatypes
+from cros.factory.instalog import lock_utils
+from cros.factory.instalog import log_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog.utils import file_utils
 
 
 # The number of bytes to buffer when retrieving events from a file.

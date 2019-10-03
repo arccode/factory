@@ -10,8 +10,8 @@ import json
 from six import iteritems
 
 import instalog_common  # pylint:disable=unused-import
-from instalog import json_utils
-from instalog.utils import time_utils
+from cros.factory.instalog import json_utils
+from cros.factory.instalog.utils import time_utils
 
 
 def From0_1to0_21(event):

@@ -8,7 +8,7 @@ import logging
 
 import instalog_common  # pylint:disable=unused-import
 
-from instalog.external import gnupg
+from cros.factory.instalog.external import gnupg
 
 
 DEFAULT_PORT = 8899

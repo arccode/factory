@@ -20,11 +20,11 @@ import sys
 from six import reraise as raise_
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import plugin_base
-from instalog.utils import arg_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog.utils import arg_utils
 
 
-_DEFAULT_PLUGIN_PREFIX = 'instalog.plugins.'
+_DEFAULT_PLUGIN_PREFIX = 'cros.factory.instalog.plugins.'
 
 
 class PluginLoader(object):

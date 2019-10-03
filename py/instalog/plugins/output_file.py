@@ -28,10 +28,10 @@ import shutil
 from six import iteritems
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import plugin_base
-from instalog.utils.arg_utils import Arg
-from instalog.utils import file_utils
-from instalog.utils import time_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog.utils.arg_utils import Arg
+from cros.factory.instalog.utils import file_utils
+from cros.factory.instalog.utils import time_utils
 
 
 _PROCESS_MESSAGE_INTERVAL = 60  # 60sec

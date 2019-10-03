@@ -18,11 +18,11 @@ import unittest
 import mock
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import datatypes
-from instalog import json_utils
-from instalog import log_utils
-from instalog import plugin_base
-from instalog.utils import time_utils
+from cros.factory.instalog import datatypes
+from cros.factory.instalog import json_utils
+from cros.factory.instalog import log_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog.utils import time_utils
 
 
 class RuntimeBound(object):

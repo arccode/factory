@@ -23,10 +23,10 @@ import time
 from six import iteritems
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import log_utils
-from instalog import plugin_base
-from instalog.plugins import socket_common
-from instalog.utils.arg_utils import Arg
+from cros.factory.instalog import log_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog.plugins import socket_common
+from cros.factory.instalog.utils.arg_utils import Arg
 
 
 _DEFAULT_BATCH_SIZE = 500

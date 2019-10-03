@@ -14,11 +14,11 @@ from __future__ import print_function
 import datetime
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import datatypes
-from instalog import plugin_base
-from instalog.plugins.input_drm_screencap import drm
-from instalog.utils.arg_utils import Arg
-from instalog.utils import file_utils
+from cros.factory.instalog import datatypes
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog.plugins.input_drm_screencap import drm
+from cros.factory.instalog.utils.arg_utils import Arg
+from cros.factory.instalog.utils import file_utils
 
 
 _DEFAULT_INTERVAL = 60

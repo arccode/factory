@@ -15,13 +15,13 @@ import _strptime  # pylint: disable=unused-import
 from six import iteritems
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import flow_policy
-from instalog import json_utils
-from instalog import plugin_base
-from instalog import plugin_sandbox
+from cros.factory.instalog import flow_policy
+from cros.factory.instalog import json_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog import plugin_sandbox
 
 # pylint: disable=no-name-in-module
-from instalog.external.jsonrpclib import SimpleJSONRPCServer
+from cros.factory.instalog.external.jsonrpclib import SimpleJSONRPCServer
 
 
 # Possible daemon states.

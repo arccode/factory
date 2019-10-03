@@ -12,9 +12,9 @@ import logging
 import unittest
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import datatypes
-from instalog import flow_policy
-from instalog import log_utils
+from cros.factory.instalog import datatypes
+from cros.factory.instalog import flow_policy
+from cros.factory.instalog import log_utils
 
 
 _SAMPLE_TIME = 629467932.000012

@@ -43,13 +43,13 @@ import unittest
 from six.moves import xrange
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import datatypes
-from instalog import log_utils
-from instalog import plugin_base
+from cros.factory.instalog import datatypes
+from cros.factory.instalog import log_utils
+from cros.factory.instalog import plugin_base
 # pylint: disable=no-name-in-module
-from instalog.plugins import buffer_file_common
-from instalog.plugins import buffer_simple_file
-from instalog.utils import file_utils
+from cros.factory.instalog.plugins import buffer_file_common
+from cros.factory.instalog.plugins import buffer_simple_file
+from cros.factory.instalog.utils import file_utils
 
 # pylint: disable=protected-access
 

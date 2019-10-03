@@ -30,9 +30,9 @@ import unittest
 from six import assertRaisesRegex
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import log_utils
-from instalog import plugin_base
-from instalog import plugin_loader
+from cros.factory.instalog import log_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog import plugin_loader
 
 
 # pylint: disable=protected-access
@@ -89,7 +89,7 @@ class TestPluginLoader(unittest.TestCase):
     pname = self._createPluginFile(
         '''\
         import instalog_common  # pylint: disable=unused-import
-        from instalog import plugin_base
+        from cros.factory.instalog import plugin_base
         class OutputTest(plugin_base.OutputPlugin):
           pass
         ''')
@@ -103,7 +103,7 @@ class TestPluginLoader(unittest.TestCase):
     pname = self._createPluginFile(
         '''\
         import instalog_common  # pylint: disable=unused-import
-        from instalog import plugin_base
+        from cros.factory.instalog import plugin_base
         class InputTest(plugin_base.InputPlugin):
           pass
         ''')
@@ -127,7 +127,7 @@ class TestPluginLoader(unittest.TestCase):
     pname = self._createPluginFile(
         '''\
         import instalog_common  # pylint: disable=unused-import
-        from instalog import plugin_base
+        from cros.factory.instalog import plugin_base
         class OutputTest(plugin_base.OutputPlugin):
           pass
         ''')
@@ -158,7 +158,7 @@ class TestPluginLoader(unittest.TestCase):
     pname = self._createPluginFile(
         '''\
         import instalog_common  # pylint: disable=unused-import
-        from instalog import plugin_base
+        from cros.factory.instalog import plugin_base
         class InputTest(plugin_base.InputPlugin):
           def __init__(self):
             pass
@@ -173,7 +173,7 @@ class TestPluginLoader(unittest.TestCase):
     pname = self._createPluginFile(
         '''\
         import instalog_common  # pylint: disable=unused-import
-        from instalog import plugin_base
+        from cros.factory.instalog import plugin_base
         class InputTest(plugin_base.InputPlugin):
           def __init__(self, *args, **kwargs):
             1 / 0
@@ -189,8 +189,8 @@ class TestPluginLoader(unittest.TestCase):
     pname = self._createPluginFile(
         '''\
         import instalog_common  # pylint: disable=unused-import
-        from instalog import plugin_base
-        from instalog.utils.arg_utils import Arg
+        from cros.factory.instalog import plugin_base
+        from cros.factory.instalog.utils.arg_utils import Arg
         class InputTest(plugin_base.InputPlugin):
           ARGS = [
             Arg('explode', bool, 'True if device is expected to explode'),
@@ -208,8 +208,8 @@ class TestPluginLoader(unittest.TestCase):
     pname = self._createPluginFile(
         '''\
         import instalog_common  # pylint: disable=unused-import
-        from instalog import plugin_base
-        from instalog.utils.arg_utils import Arg
+        from cros.factory.instalog import plugin_base
+        from cros.factory.instalog.utils.arg_utils import Arg
         class InputTest(plugin_base.InputPlugin):
           ARGS = [
             Arg('explode', bool, 'True if device is expected to explode'),

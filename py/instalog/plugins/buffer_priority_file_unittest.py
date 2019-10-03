@@ -17,10 +17,10 @@ import threading
 import unittest
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import datatypes
-from instalog import log_utils
-from instalog.plugins import buffer_priority_file
-from instalog.utils import file_utils
+from cros.factory.instalog import datatypes
+from cros.factory.instalog import log_utils
+from cros.factory.instalog.plugins import buffer_priority_file
+from cros.factory.instalog.utils import file_utils
 
 
 # pylint: disable=protected-access

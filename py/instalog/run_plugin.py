@@ -21,12 +21,12 @@ import time
 from six import iteritems
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import datatypes
-from instalog import log_utils
-from instalog import plugin_base
-from instalog import plugin_sandbox
-from instalog.utils import file_utils
-from instalog.utils import time_utils
+from cros.factory.instalog import datatypes
+from cros.factory.instalog import log_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog import plugin_sandbox
+from cros.factory.instalog.utils import file_utils
+from cros.factory.instalog.utils import time_utils
 
 
 # If Ctrl+C is hit two times in this time interval, a Stop signal will be sent

@@ -18,10 +18,10 @@ from six.moves import xrange
 import socket
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import plugin_base
-from instalog.plugins import input_socket
-from instalog.plugins import socket_common
-from instalog.utils.arg_utils import Arg
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog.plugins import input_socket
+from cros.factory.instalog.plugins import socket_common
+from cros.factory.instalog.utils.arg_utils import Arg
 
 
 _CONNECT_INTERVAL = 1

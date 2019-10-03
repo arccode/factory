@@ -20,9 +20,9 @@ import six
 from six import iteritems
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import json_utils
-from instalog import plugin_base
-from instalog.utils import time_utils
+from cros.factory.instalog import json_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog.utils import time_utils
 
 
 class ProcessStage(json_utils.Serializable):

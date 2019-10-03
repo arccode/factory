@@ -17,9 +17,9 @@ import tempfile
 from six import iteritems
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import plugin_base
-from instalog import plugin_sandbox
-from instalog.utils import file_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog import plugin_sandbox
+from cros.factory.instalog.utils import file_utils
 
 
 class MockCore(plugin_sandbox.CoreAPI):

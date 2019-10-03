@@ -30,11 +30,11 @@ import shutil
 import tarfile
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import plugin_base
-from instalog.plugins import output_file
-from instalog.utils import arg_utils
-from instalog.utils.arg_utils import Arg
-from instalog.utils import file_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog.plugins import output_file
+from cros.factory.instalog.utils import arg_utils
+from cros.factory.instalog.utils.arg_utils import Arg
+from cros.factory.instalog.utils import file_utils
 
 
 class OutputArchive(output_file.OutputFile):
@@ -82,7 +82,7 @@ class OutputArchive(output_file.OutputFile):
         raise ValueError('If "enable_gcs" is True, "key_path" and '
                          '"gcs_target_dir" must be provided')
 
-      from instalog.utils import gcs_utils
+      from cros.factory.instalog.utils import gcs_utils
       self._gcs = gcs_utils.CloudStorage(self.args.key_path)
 
   def ProcessEvents(self, base_dir):

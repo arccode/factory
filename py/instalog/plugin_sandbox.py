@@ -20,17 +20,17 @@ import time
 from six import reraise as raise_
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import datatypes
-from instalog import flow_policy
-from instalog import json_utils
-from instalog import log_utils
-from instalog import plugin_base
-from instalog import plugin_loader
-from instalog.utils import debug_utils
-from instalog.utils import file_utils
-from instalog.utils import sync_utils
-from instalog.utils import time_utils
-from instalog.utils import type_utils
+from cros.factory.instalog import datatypes
+from cros.factory.instalog import flow_policy
+from cros.factory.instalog import json_utils
+from cros.factory.instalog import log_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog import plugin_loader
+from cros.factory.instalog.utils import debug_utils
+from cros.factory.instalog.utils import file_utils
+from cros.factory.instalog.utils import sync_utils
+from cros.factory.instalog.utils import time_utils
+from cros.factory.instalog.utils import type_utils
 
 
 # The maximum number of unexpected accesses to store for debugging purposes.

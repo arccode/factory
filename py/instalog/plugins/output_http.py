@@ -20,14 +20,14 @@ import requests
 from six import iteritems
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import datatypes
-from instalog import plugin_base
-from instalog.plugins import http_common
-from instalog.utils.arg_utils import Arg
-from instalog.utils import file_utils
-from instalog.utils import time_utils
+from cros.factory.instalog import datatypes
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog.plugins import http_common
+from cros.factory.instalog.utils.arg_utils import Arg
+from cros.factory.instalog.utils import file_utils
+from cros.factory.instalog.utils import time_utils
 
-from instalog.external import gnupg
+from cros.factory.instalog.external import gnupg
 
 
 _DEFAULT_BATCH_SIZE = 1024

@@ -18,11 +18,11 @@ import mock
 from six import iteritems
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import datatypes
-from instalog import log_utils
-from instalog import plugin_sandbox
-from instalog.plugins import output_file
-from instalog import testing
+from cros.factory.instalog import datatypes
+from cros.factory.instalog import log_utils
+from cros.factory.instalog import plugin_sandbox
+from cros.factory.instalog.plugins import output_file
+from cros.factory.instalog import testing
 
 
 EVENT_FILE_NAME = output_file.EVENT_FILE_NAME

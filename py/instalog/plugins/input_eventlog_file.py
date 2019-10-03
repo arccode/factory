@@ -14,11 +14,11 @@ from __future__ import print_function
 import logging
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import datatypes
-from instalog import plugin_base
-from instalog.plugins import input_log_file
+from cros.factory.instalog import datatypes
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog.plugins import input_log_file
 
-from instalog.external import yaml
+from cros.factory.instalog.external import yaml
 
 
 _EVENT_HEAD = 'EVENT: '

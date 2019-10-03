@@ -58,13 +58,13 @@ import time
 from six import iterkeys
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import plugin_base
-from instalog.plugins import input_http
-from instalog.plugins import testlog_common
-from instalog.testlog import testlog
-from instalog.utils import arg_utils
-from instalog.utils.arg_utils import Arg
-from instalog.utils import log_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog.plugins import input_http
+from cros.factory.instalog.plugins import testlog_common
+from cros.factory.instalog.testlog import testlog
+from cros.factory.instalog.utils import arg_utils
+from cros.factory.instalog.utils.arg_utils import Arg
+from cros.factory.instalog.utils import log_utils
 
 
 class InputHTTPTestlog(input_http.InputHTTP):

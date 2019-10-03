@@ -15,9 +15,9 @@ import sys
 import time
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import log_utils
-from instalog.utils import arg_utils
-from instalog.utils import time_utils
+from cros.factory.instalog import log_utils
+from cros.factory.instalog.utils import arg_utils
+from cros.factory.instalog.utils import time_utils
 
 
 class LoadPluginError(Exception):
@@ -385,5 +385,5 @@ def main():
   # pylint: disable=protected-access
   frame_info = inspect.getframeinfo(sys._getframe(1))
   plugin_type = os.path.splitext(os.path.basename(frame_info[0]))[0]
-  from instalog import run_plugin
+  from cros.factory.instalog import run_plugin
   run_plugin.main(plugin_type)

@@ -21,9 +21,9 @@ from six import iteritems
 from google.cloud.bigquery.schema import SchemaField
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import plugin_base
-from instalog.plugins import output_bigquery
-from instalog.utils import time_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog.plugins import output_bigquery
+from cros.factory.instalog.utils import time_utils
 
 
 class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):

@@ -28,13 +28,13 @@ from six import iteritems
 from six.moves import xrange
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import json_utils
-from instalog import lock_utils
-from instalog import log_utils
-from instalog import plugin_base
-from instalog.plugins import buffer_file_common
-from instalog.utils.arg_utils import Arg
-from instalog.utils import file_utils
+from cros.factory.instalog import json_utils
+from cros.factory.instalog import lock_utils
+from cros.factory.instalog import log_utils
+from cros.factory.instalog import plugin_base
+from cros.factory.instalog.plugins import buffer_file_common
+from cros.factory.instalog.utils.arg_utils import Arg
+from cros.factory.instalog.utils import file_utils
 
 
 _PRIORITY_LEVEL = 4

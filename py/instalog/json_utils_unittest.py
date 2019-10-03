@@ -15,8 +15,8 @@ import unittest
 from six import assertRaisesRegex
 
 import instalog_common  # pylint: disable=unused-import
-from instalog import json_utils
-from instalog import log_utils
+from cros.factory.instalog import json_utils
+from cros.factory.instalog import log_utils
 
 
 _SAMPLE_DATETIME = datetime.datetime(1989, 12, 12, 12, 12, 12, 120)
