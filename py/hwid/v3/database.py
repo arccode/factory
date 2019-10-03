@@ -530,7 +530,7 @@ class ImageId(_NamedNumber):
   ```
   """
   PART_TAG = 'image_id'
-  NUMBER_RANGE = range(1 << common.IMAGE_ID_BIT_LENGTH)
+  NUMBER_RANGE = list(range(1 << common.IMAGE_ID_BIT_LENGTH))
   NUMBER_TAG = 'image id'
   NAME_TAG = 'image name'
 
@@ -660,8 +660,9 @@ class EncodedFields(object):
           'encoded field',
           key_type=schema.Scalar(
               'index number', int,
-              range(1024)),  # range(1024) is just a big enough range to denote
-                             # that index numbers are non-negative integers.
+              # list(range(1024)) is just a big enough range to denote
+              # that index numbers are non-negative integers.
+              list(range(1024))),
           value_type=schema.Dict(
               'components',
               key_type=schema.Scalar('component class', str),
@@ -833,8 +834,8 @@ class EncodedFields(object):
       return None
     elif len(data) == 1:
       return data[0]
-    else:
-      return sorted(data)
+
+    return sorted(data)
 
   @classmethod
   def _StandardlizeList(cls, data):
@@ -1240,7 +1241,8 @@ class Pattern(object):
                   schema.Dict(
                       'pattern field',
                       key_type=schema.Scalar('encoded index', str),
-                      value_type=schema.Scalar('bit offset', int, range(128)),
+                      value_type=schema.Scalar('bit offset', int,
+                                               list(range(128))),
                       min_size=1,
                       max_size=1))}),
       min_length=1)

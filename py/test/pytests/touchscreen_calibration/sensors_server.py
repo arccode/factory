@@ -48,8 +48,8 @@ def SshCommand(ip, cmd, output=True):
   cmd_str = ' '.join(remote_args)
   if output:
     return utils.SimpleSystemOutput(cmd_str)
-  else:
-    return utils.IsSuccessful(utils.SimpleSystem(cmd_str))
+
+  return utils.IsSuccessful(utils.SimpleSystem(cmd_str))
 
 
 def ScpCommand(ip, filename, remote_path):
@@ -266,9 +266,9 @@ class SensorServiceSamus(BaseSensorService):
     if not os.path.isfile(target):
       self.log.error('The target does not exist: %s' % target)
       return False
-    else:
-      cmd_make_symlink = 'ln -s -f %s %s' % (target, link_name)
-      return utils.IsSuccessful(utils.SimpleSystem(cmd_make_symlink))
+
+    cmd_make_symlink = 'ln -s -f %s %s' % (target, link_name)
+    return utils.IsSuccessful(utils.SimpleSystem(cmd_make_symlink))
 
   def _TouchFileUpdate(self, config_filename, link_name, update_fw=True):
     """Update touch firmware or configuraiton per update_fw flag."""
@@ -521,7 +521,7 @@ class SensorServiceRyu(BaseSensorService):
     Returns:
       True if the sensor data are legitimate.
     """
-    touched_cols = range(self.num_cols)
+    touched_cols = list(range(self.num_cols))
     return super(SensorServiceRyu, self)._VerifyDeltasTouched(data,
                                                               touched_cols)
 

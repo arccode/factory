@@ -55,7 +55,8 @@ class SpringPower(power.Power):
     Raises:
       self.Error if any register is not available.
     """
-    regs = range(0, 0x1d) + range(0x20, 0x24) + [0x2f] + range(0x3c, 0x40)
+    regs = list(range(0, 0x1d)) + list(range(0x20, 0x24)) + [0x2f] +\
+        list(range(0x3c, 0x40))
     try:
       ret = dict((reg, self._device.ec.I2CRead(0, 0x16, reg)) for reg in regs)
     except Exception as e:

@@ -127,7 +127,7 @@ class BootSequenceTest(unittest.TestCase):
 
     # After we sort, should be numbers [1, len(values)].
     values.sort()
-    self.assertEqual(range(len(values)), values)
+    self.assertEqual(list(range(len(values))), values)
     return values
 
   def testThreadsWithSleep(self):

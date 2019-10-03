@@ -193,14 +193,14 @@ class I2CFunction(probe_function.ProbeFunction):
     """Returns a list that contains all buses."""
     cmd = 'i2cdetect -l | wc -l'
     count = subprocess.check_output(cmd, shell=True)
-    ap_bus = list(map(str, range(int(count))))
+    ap_bus = list(map(str, list(range(int(count)))))
     # TODO(akahuang): Find a way to get all EC I2C busses.
-    ec_bus = range(5)
+    ec_bus = list(range(5))
     return ap_bus + [EC_BUS_PREFIX + str(bus) for bus in ec_bus]
 
   def GetAddrList(self):
     """Returns a list that contains all address."""
-    return range(ADDR_START, ADDR_END + 1)
+    return list(range(ADDR_START, ADDR_END + 1))
 
   def ProbeI2C(self, bus, addr):
     """Probes to see if there is an I2C device in the address of the bus.
