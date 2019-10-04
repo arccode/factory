@@ -181,7 +181,7 @@ main() {
       factory_main 2>&1 | tee -a "${log_file}"
       ;;
     * )
-      log "Unknown mode: ${mode}." | tee "${log_file}"
+      log "Unknown mode: ${mode}." | tee -a "${log_file}"
       exit 1
       ;;
   esac
