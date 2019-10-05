@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-08-15 16:43+CST\n"
+"PO-Revision-Date: 2019-11-05 19:40+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -3158,16 +3158,17 @@ msgstr "Chuyển sang ăng-ten {antenna} ..."
 
 #: ../py/test/pytests/wireless_antenna.py
 #: ../py/test/pytests/wireless_radiotap.py
+msgid "Checking frequencies..."
+msgstr "Kiểm tra tần số..."
+
+#: ../py/test/pytests/wireless_antenna.py
+#: ../py/test/pytests/wireless_radiotap.py
 msgid "Press space to start scanning."
 msgstr "Bấm phím trống để bắt đầu quét"
 
 #: ../py/test/pytests/wireless_radiotap.py
 msgid "Switching to AP {ap}..."
 msgstr "đổi cắt đến {ap}..."
-
-#: ../py/test/pytests/wireless_radiotap.py
-msgid "Checking frequencies..."
-msgstr "Kiểm tra tần số..."
 
 #: ../py/test/pytests/write_device_data_to_vpd.py
 msgid "Writing device data to {vpd_section} VPD..."

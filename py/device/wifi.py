@@ -896,3 +896,10 @@ class Connection(object):
     self._DisconnectAP()
 
     yield  # We have disconnected.
+
+class ServiceSpec(type_utils.Obj):
+  def __init__(self, ssid, freq, password):
+    super(ServiceSpec, self).__init__(ssid=ssid, freq=freq, password=password)
+
+  def __hash__(self):
+    return hash((self.ssid, self.freq, self.password))
