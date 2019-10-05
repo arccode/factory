@@ -909,3 +909,35 @@ class ServiceSpec(type_utils.Obj):
 
   def __hash__(self):
     return hash((self.ssid, self.freq, self.password))
+
+class WiFiChip(object):
+  """WiFiChip is an abstaction of a signal data collection."""
+
+  def __init__(self, device, interface, phy_name):
+    self._device = device
+    self._interface = interface
+    self._phy_name = phy_name
+
+  def ScanSignal(self, service, antenna, scan_count):
+    """Collects strength of signals.
+
+    This may collect multiple signal at the same time.
+
+    For example, "iw scan" with frequency specified can collect all signals from
+    that frequency. Another example is by decoding radiotap packages and get
+    signals of all antennas of an access point at once.
+
+    Attributes:
+      service: The service object, which contains information to identify an AP.
+      antenna: The antenna that used to scan.
+      scan_count: An integer. Number of scans to get average signal strength.
+    """
+    raise NotImplementedError
+
+  def GetAverageSignal(self, service, antenna):
+    """Get the average signal strength of (service, antenna)."""
+    raise NotImplementedError
+
+  def Destroy(self):
+    """Restore wifi to initial state."""
+    raise NotImplementedError
