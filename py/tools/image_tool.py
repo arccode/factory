@@ -101,7 +101,8 @@ PREFLASH_COMPONENTS = ['release_image', 'test_image', 'toolkit', 'hwid']
 # Components for cros_payload.
 PAYLOAD_COMPONENTS = [
     'release_image', 'test_image',
-    'toolkit', 'firmware', 'hwid', 'complete', 'toolkit_config', 'lsb_factory']
+    'toolkit', 'firmware', 'hwid', 'complete', 'toolkit_config', 'lsb_factory',
+    'description']
 # Payload types
 PAYLOAD_TYPE_TOOLKIT = 'toolkit'
 PAYLOAD_TYPE_TOOLKIT_CONFIG = 'toolkit_config'
@@ -1364,7 +1365,7 @@ class ChromeOSFactoryBundle(object):
   def __init__(self, temp_dir, board, release_image, test_image, toolkit,
                factory_shim=None, enable_firmware=True, firmware=None,
                hwid=None, complete=None, netboot=None, toolkit_config=None,
-               setup_dir=None, server_url=None):
+               description=None, setup_dir=None, server_url=None):
     self._temp_dir = temp_dir
     # Member data will be looked up by getattr so we don't prefix with '_'.
     self._board = board
@@ -1380,6 +1381,7 @@ class ChromeOSFactoryBundle(object):
     self.toolkit_config = toolkit_config
     # Always get lsb_factory from factory shim.
     self._lsb_factory = None
+    self.description = description
     self.setup_dir = setup_dir
     self.server_url = server_url
 
@@ -1475,6 +1477,11 @@ class ChromeOSFactoryBundle(object):
         default='-toolkit/*.json',
         type=ArgTypes.GlobPath,
         help='path to a config file to override test list constants')
+    parser.AddArgument(
+        (cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
+        '--description', dest='description',
+        default='-description/*.txt', type=ArgTypes.GlobPath,
+        help='path to a plain text description file')
     parser.AddArgument(
         (cls.RMA, cls.BUNDLE),
         '--no-firmware',
@@ -2771,7 +2778,8 @@ class CreateRMAImageCommmand(SubCommand):
           firmware=self.args.firmware,
           hwid=self.args.hwid,
           complete=self.args.complete,
-          toolkit_config=self.args.toolkit_config)
+          toolkit_config=self.args.toolkit_config,
+          description=self.args.description)
       bundle.CreateRMAImage(self.args.output,
                             active_test_list=self.args.active_test_list)
       ChromeOSFactoryBundle.ShowRMAImage(output)

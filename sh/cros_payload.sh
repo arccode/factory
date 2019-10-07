@@ -31,7 +31,8 @@
 
 # Constants
 COMPONENTS_ALL="test_image release_image toolkit hwid firmware complete \
-netboot_kernel netboot_firmware netboot_cmdline toolkit_config lsb_factory"
+netboot_kernel netboot_firmware netboot_cmdline toolkit_config lsb_factory \
+description"
 
 # A variable for the file name of tracking temp files.
 TMP_OBJECTS=""
@@ -717,6 +718,11 @@ for k in j:
     lsb_factory)
       local temp="$(md5sum "${file}")"
       echo "${temp%% *}"
+      ;;
+    description)
+      local temp="$(md5sum "${file}")"
+      echo "${temp%% *}"
+      ;;
   esac
 }
 
@@ -788,7 +794,7 @@ cmd_add() {
       add_image_component "${json_path}" "${component}" "${file}"
       ;;
     toolkit | hwid | firmware | complete | netboot_* | toolkit_config | \
-        lsb_factory)
+        lsb_factory | description)
       file="$(get_uncompressed_file "${file}")"
       add_file_component "${json_path}" "${component}" "${file}"
       ;;
@@ -1070,7 +1076,7 @@ install_components() {
           "${dest}" "${json_file}" "${component}"
         ;;
       toolkit | hwid | firmware | complete | *_image.* | netboot_* | \
-          toolkit_config | lsb_factory)
+          toolkit_config | lsb_factory | description)
         install_payload "file" "${json_url}" \
           "${dest}" "${json_file}" "${component}"
         ;;
