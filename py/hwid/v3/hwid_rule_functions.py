@@ -6,6 +6,7 @@
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.common import HWIDException
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3.rule import GetContext
 from cros.factory.hwid.v3.rule import RuleFunction
 from cros.factory.hwid.v3.rule import Value
@@ -162,8 +163,17 @@ def GetDeviceInfo(key, default=None):
   """
   if default is not None:
     return GetContext().device_info.get(key, default)
-  else:
-    return GetContext().device_info[key]
+  return GetContext().device_info[key]
+
+
+@RuleFunction([])
+def GetBrandCode():
+  """A wrapper method to get the DUT's brand code.
+
+  Returns:
+    The brand code in lowercase.
+  """
+  return hwid_utils.ProbeBrandCode()
 
 
 @RuleFunction(['vpd'])
