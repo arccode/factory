@@ -59,7 +59,7 @@ _MIN_SUSPEND_MARGIN_SECS = 5
 
 _MESSAGES = '/var/log/messages'
 
-_KERNEL_DEBUG_WAKEUP_SOURCES = '/sys/kernel/debug/wakeup_sources'
+_WAKEUP_PATH = '/sys/class/wakeup'
 _KERNEL_DEBUG_SUSPEND_STATS = '/sys/kernel/debug/suspend_stats'
 _MAX_EARLY_RESUME_RETRY_COUNT = 3
 
@@ -104,7 +104,7 @@ class SuspendResumeTest(test_case.TestCase):
           default=True)]
 
   def setUp(self):
-    self.assertTrue(os.path.exists(_KERNEL_DEBUG_WAKEUP_SOURCES),
+    self.assertTrue(os.path.exists(_WAKEUP_PATH),
                     'wakeup_sources file not found.')
     self.assertTrue(os.path.exists(_KERNEL_DEBUG_SUSPEND_STATS),
                     'suspend_stats file not found.')
@@ -129,6 +129,7 @@ class SuspendResumeTest(test_case.TestCase):
 
     self.done = False
     self.wakeup_count = ''
+    self.wakeup_source_event_count = {}
     self.start_time = 0
     self.resume_at = 0
     self.attempted_wake_extensions = 0
@@ -166,27 +167,34 @@ class SuspendResumeTest(test_case.TestCase):
     # Clear any active wake alarms
     self._SetWakealarm('0')
 
-  def _GetIgnoredWakeupSourceCount(self):
-    """Return the recorded wakeup count for the ignored wakeup source."""
-    if not self.args.ignore_wakeup_source:
-      return None
+  def _GetWakeupSourceCounts(self):
+    """Return snapshot of current event counts.
 
-    with open(_KERNEL_DEBUG_WAKEUP_SOURCES, 'r') as f:
-      # The output has the format of:
-      #
-      # name active_count event_count wakeup_count expire_count active_since \
-      #   total_time max_time last_change prevent_suspend_time
-      # mmc2:0001:1 0 0 0 0 0 00 33154 0
-      # ...
-      #
-      # We want to get the 'wakeup_count' column
-      for line in f.readlines()[1:]:
-        parts = line.split()
-        if parts[0] == self.args.ignore_wakeup_source:
-          return int(parts[3])
+    Returns:
+      Dictionary, key is sysfs path and value is its event_count.
+    """
+    wakeup_sources = [os.path.join(_WAKEUP_PATH, name)
+                      for name in os.listdir(_WAKEUP_PATH)]
+    return {wakeup_source: int(file_utils.ReadFile(os.path.join(wakeup_source,
+                                                                'event_count')))
+            for wakeup_source in wakeup_sources}
 
-      raise RuntimeError('Ignore wakeup source %s not found' %
-                         self.args.ignore_wakeup_source)
+  def _GetPossibleWakeupSources(self):
+    """Return all possible wakeup sources that may cause the wake.
+
+    After writing to self.wakeup_count, the event count of any wakeup source
+    which tries to wake up the device will increase.
+
+    Returns:
+      Dictionary, key is sysfs path and value is its name.
+    """
+    wake_sources = {}
+    current_wakeup_source_event_count = self._GetWakeupSourceCounts()
+    for wakeup_source, event_count in current_wakeup_source_event_count.items():
+      if self.wakeup_source_event_count[wakeup_source] != event_count:
+        name = file_utils.ReadFile(os.path.join(wakeup_source, 'name')).strip()
+        wake_sources.update({wakeup_source: name})
+    return wake_sources
 
   def _MonitorWakealarm(self):
     """Start and extend the wakealarm as needed for the main thread."""
@@ -232,7 +240,7 @@ class SuspendResumeTest(test_case.TestCase):
     # Explicitly sync the filesystem
     process_utils.Spawn(['sync'], check_call=True, log_stderr_on_error=True)
 
-    prev_suspend_ignore_count = self._GetIgnoredWakeupSourceCount()
+    self.wakeup_source_event_count = self._GetWakeupSourceCounts()
     logging.info('Suspending at %d.', self._ReadCurrentTime())
 
     try:
@@ -259,7 +267,8 @@ class SuspendResumeTest(test_case.TestCase):
     except IOError as err:
       if err.errno == errno.EBUSY:
         logging.info('Early wake event when attempting suspend.')
-        if prev_suspend_ignore_count != self._GetIgnoredWakeupSourceCount():
+        wake_source = self._GetPossibleWakeupSources()
+        if self.args.ignore_wakeup_source in wake_source:
           if retry_count == _MAX_EARLY_RESUME_RETRY_COUNT:
             raise RuntimeError('Maximum re-suspend retry exceeded for '
                                'ignored wakeup source %s' %
@@ -272,8 +281,9 @@ class SuspendResumeTest(test_case.TestCase):
           self._Suspend(retry_count + 1)
           return
         else:
-          raise IOError('EBUSY: Early wake event when attempting suspend: %s' %
-                        debug_utils.FormatExceptionOnly())
+          raise IOError('EBUSY: Early wake event when attempting suspend: %s, '
+                        'source=%s' %
+                        (debug_utils.FormatExceptionOnly(), wake_source))
       else:
         raise IOError('Failed to write to /sys/power/state: %s' %
                       debug_utils.FormatExceptionOnly())
@@ -433,8 +443,7 @@ class SuspendResumeTest(test_case.TestCase):
         'iflag=skip_bytes,count_bytes', messages_start, len(messages))
 
     # Find the wake source
-    match = re.search('active wakeup source: (.+)', messages)
-    wake_source = match.group(1) if match else None
+    wake_source = self._GetPossibleWakeupSources()
     logging.info('Wakeup source: %s.', wake_source or 'unknown')
 
     self.messages = messages
