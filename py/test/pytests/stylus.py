@@ -75,11 +75,11 @@ class StylusMonitor(touch_monitor.SingleTouchMonitor):
   @sync_utils.Synchronized
   def OnMove(self):
     """See SingleTouchMonitor.OnMove."""
-    state = self.GetState()
-    if state.keys[evdev.ecodes.BTN_TOUCH]:
+    cur_state = self.GetState()
+    if cur_state.keys[evdev.ecodes.BTN_TOUCH]:
       # Instead of directly call JavaScript function 'handler' here, we buffer
       # the events to reduce the latency from CallJSFunction.
-      self._buffer.append([state.x, state.y])
+      self._buffer.append([cur_state.x, cur_state.y])
 
   @sync_utils.Synchronized
   def Flush(self):
@@ -92,7 +92,8 @@ class StylusTest(test_case.TestCase):
   """Stylus factory test."""
 
   ARGS = [
-      Arg('device_filter', (int, str), 'Stylus input event id or evdev name.',
+      Arg('device_filter', (int, str, list), 'Stylus input event id, evdev '
+          'name, or evdev events.',
           default=None),
       Arg('error_margin', int,
           'Maximum tolerable distance to the diagonal line (in pixel).',
@@ -126,8 +127,13 @@ class StylusTest(test_case.TestCase):
   ]
 
   def setUp(self):
-    self._device = evdev_utils.FindDevice(self.args.device_filter,
-                                          evdev_utils.IsStylusDevice)
+    filters = [evdev_utils.IsStylusDevice]
+    if isinstance(self.args.device_filter, list):
+      filters += self.args.device_filter
+    else:
+      filters += [self.args.device_filter]
+
+    self._device = evdev_utils.FindDevice(*filters)
     self._monitor = None
     self._dispatcher = None
     self._daemon = None

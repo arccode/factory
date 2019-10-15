@@ -20,6 +20,21 @@ def GetDevices():
   """
   return [evdev.InputDevice(d) for d in evdev.list_devices()]
 
+def FilterEvdevEcodes(dev, cnf):
+  """Check if the capabilities of the device satisfy that of the CNF
+
+  Args:
+    dev: evdev.InputDevice
+    cnf: list of lists of evdev.ecodes
+
+  Returns:
+    True if dev satisfies cnf
+  """
+  caps = set(dev.capabilities().get(evdev.ecodes.EV_KEY, []))
+  for clause in cnf:
+    if set(clause) & caps == set():
+      return False
+  return True
 
 def IsLidEventDevice(dev):
   """Check if a device is with EV_SW and SW_LID capabilities.
@@ -102,11 +117,10 @@ def IsStylusDevice(dev):
   Returns:
     True if dev is a stylus device.
   """
-  keycaps = dev.capabilities().get(evdev.ecodes.EV_KEY, [])
-  return bool(set(keycaps) & set([
+  return FilterEvdevEcodes(dev, [[
       evdev.ecodes.BTN_STYLUS,
       evdev.ecodes.BTN_STYLUS2,
-      evdev.ecodes.BTN_TOOL_PEN]))
+      evdev.ecodes.BTN_TOOL_PEN]])
 
 
 def IsTouchpadDevice(dev):
@@ -164,7 +178,11 @@ def FindDevice(*args):
     if isinstance(item, int):
       dev_filter = lambda dev: dev.fn == '/dev/input/event%d' % item
     elif isinstance(item, str):
-      dev_filter = lambda dev: item in dev.name
+      if item in evdev.ecodes.__dict__:
+        dev_filter = lambda dev: FilterEvdevEcodes(
+            dev, [[evdev.ecodes.__dict__[item]]])
+      else:
+        dev_filter = lambda dev: item in dev.name
     elif callable(item):
       dev_filter = item
     else:
