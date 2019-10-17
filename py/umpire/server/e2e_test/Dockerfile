@@ -11,6 +11,7 @@ MAINTAINER Pi-Hsun Shih <pihsun@google.com>
 ARG server_dir="/usr/local/factory"
 ARG umpire_dir="${server_dir}/py/umpire"
 ENV umpire_dir="${umpire_dir}"
+ENV PYTHONPATH="${server_dir}/py_pkg"
 
 # rsync: Used in e2e_test.py
 # sudo: Used in cros_docker.sh.

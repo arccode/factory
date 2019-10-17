@@ -45,7 +45,7 @@ RUN gcloud auth activate-service-account --key-file=/service_account.json && \
     gsutil cp "${TOOLKIT}" /tmp/factory.zip
 RUN unzip -o /tmp/factory.zip toolkit/install_factory_toolkit.run -d /tmp
 RUN /tmp/toolkit/install_factory_toolkit.run -- --non-cros --yes
-ENV PYTHONPATH=/usr/local/factory/py
+ENV PYTHONPATH=/usr/local/factory/py_pkg
 ENV GOOGLE_APPLICATION_CREDENTIALS=/service_account.json
 
 # set user name for finalize_bundle

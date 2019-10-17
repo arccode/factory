@@ -36,6 +36,7 @@ ADD factory/build/hwid/protobuf_out "${workdir}/protobuf_out"
 
 ENV PYTHONPATH="${workdir}/lib:"\
 "${workdir}/google-cloud-sdk/platform/google_appengine:"\
-"${workdir}/protobuf_out"
+"${workdir}/protobuf_out:"\
+"${workdir}/cros/factory/py_pkg"
 
 CMD redis-server & bash

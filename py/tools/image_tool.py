@@ -49,6 +49,9 @@ from six import iteritems
 # prevent introducing more cros.factory dependency except very few special
 # modules (pygpt, fmap, netboot_firmware_settings).
 # Please don't add more cros.factory modules.
+# TODO(kerker) Find a way to remove this in future
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.realpath(__file__)))), 'py_pkg'))
 from cros.factory.utils import fmap
 from cros.factory.utils import pygpt
 from cros.factory.tools import netboot_firmware_settings

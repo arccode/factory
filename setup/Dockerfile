@@ -6,7 +6,8 @@ FROM alpine:3.4
 MAINTAINER Mao Huang <littlecvr@google.com>
 
 # need to explicitly assign PYTHONPATH for uwsgi
-ENV PYTHONPATH="/usr/local/lib/python2.7/site-packages"
+ENV PYTHONPATH="/usr/local/lib/python2.7/site-packages:\
+/usr/local/factory/py_pkg"
 
 ARG server_dir="/usr/local/factory"
 ARG dome_dir="${server_dir}/py/dome"
