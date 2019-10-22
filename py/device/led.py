@@ -128,3 +128,12 @@ class BatteryPowerAdapterLED(LED):
 class LeftRightLED(LED):
   """Devices with only Left and Right LEDs (modern Chromebooks with 2 TypeC)."""
   Index = Enum([LED.CrOSIndexes.LEFT, LED.CrOSIndexes.RIGHT])
+
+
+class LeftRightPowerLED(LED):
+  """Devices with Left, Right and Power LEDs.
+
+     Modern convertible Chromebooks with 2 TypeC and power button with LED.
+  """
+  Index = Enum([LED.CrOSIndexes.LEFT, LED.CrOSIndexes.RIGHT,
+                LED.CrOSIndexes.POWER])
