@@ -9,6 +9,9 @@ import math
 import re
 import uuid
 
+# For unittest purpose. Then mock module can change six.moves.input function
+# TODO(kerker) Removed after py3 upgrade complete
+import six
 from six import itervalues
 
 import factory_common  # pylint: disable=unused-import
@@ -112,7 +115,7 @@ def PromptAndAsk(question_str, default_answer=True):
     default_answer: the default answer of the question.
   """
   hint_str = ' [Y/n] ' if default_answer else ' [y/N] '
-  input_str = raw_input(question_str + hint_str)
+  input_str = six.moves.input(question_str + hint_str)
   if input_str and input_str[0].lower() in ['y', 'n']:
     ret = input_str[0].lower() == 'y'
   else:

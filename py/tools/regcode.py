@@ -15,6 +15,8 @@ import logging
 import random
 import sys
 
+from six.moves import input
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.hwid.v3 import hwid_utils
@@ -52,7 +54,7 @@ def Decode(options):
 def GenerateDummy(options):
   print ('*** This may be used only to generate a code for testing, '
          'not for a real device.')
-  yes_no = raw_input('*** Are you OK with that? (yes/no) ')
+  yes_no = input('*** Are you OK with that? (yes/no) ')
   if yes_no != 'yes':
     print('Aborting.')
     sys.exit(1)

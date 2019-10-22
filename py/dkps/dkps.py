@@ -23,6 +23,7 @@ import sqlite3
 import textwrap
 
 import gnupg
+from six.moves import input
 
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -711,7 +712,7 @@ def main():
     message = (
         'This action will remove all projects and keys information and is NOT '
         'recoverable! Are you sure? (y/N)')
-    answer = raw_input(textwrap.fill(message, 80) + ' ')
+    answer = input(textwrap.fill(message, 80) + ' ')
     if answer.lower() != 'y' and answer.lower() != 'yes':
       print('OK, nothing will be removed.')
     else:

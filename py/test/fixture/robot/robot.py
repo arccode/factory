@@ -29,6 +29,8 @@ import argparse
 import json
 import logging
 
+from six.moves import input
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.fixture import utils as fixture_utils
 
@@ -110,7 +112,7 @@ def main(class_name, robot_params):
   robot.Connect()
 
   while True:
-    cmd = raw_input('What now> ').strip().split()
+    cmd = input('What now> ').strip().split()
     try:
       cmd_arg = cmd_parser.parse_args(cmd)
       if cmd_arg.command == 'motor':

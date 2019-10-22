@@ -23,6 +23,8 @@ import sys
 import tempfile
 import time
 
+from six.moves import input
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import test_list_common
@@ -511,7 +513,7 @@ def main():
     print(installer.WarningMessage(args.dest if patch_test_image else None))
 
     if not args.yes:
-      answer = raw_input('*** Continue? [y/N] ')
+      answer = input('*** Continue? [y/N] ')
       if not answer or answer[0] not in 'yY':
         sys.exit('Aborting.')
 
