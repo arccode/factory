@@ -124,7 +124,7 @@ class MatchFunction(function.Function):
       return matcher(value)
 
     if not self.is_dict:
-      return len(item) == 1 and _Match(self.rule, item.values()[0])
+      return len(item) == 1 and _Match(self.rule, next(iter(item.values())))
     else:
       return all([key in item and _Match(rule, item[key])
                   for key, rule in iteritems(self.rule)])

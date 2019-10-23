@@ -366,7 +366,7 @@ class TouchscreenCalibration(test_case.TestCase):
     session.console.info('bb_status: %s', bb_status)
     session.console.info('shopfloor_status: %s', shopfloor_status)
     self.ui.CallJSFunction('setHostNetworkStatus',
-                           str(self.host_ip_dict.values()))
+                           str(list(self.host_ip_dict.values())))
     self.ui.CallJSFunction('setBBNetworkStatus', bb_status)
     self.ui.CallJSFunction('setShopfloorNetworkStatus', shopfloor_status)
 

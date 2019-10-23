@@ -91,7 +91,7 @@ class ChromeOSCamera(camera.Camera):
         raise CameraError('Multiple cameras are found')
       elif not self._index_mapping:
         raise CameraError('No camera is found')
-      return self._index_mapping.values()[0]
+      return next(iter(self._index_mapping.values()))
 
     if facing not in self._index_mapping:
       raise CameraError('No %s camera is found' % facing)

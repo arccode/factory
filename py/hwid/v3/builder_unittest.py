@@ -206,7 +206,8 @@ class DatabaseBuilderTest(unittest.TestCase):
         sorted([{'value': '1'}, {'value': '2'}, {'value': '3'}]))
 
     self.assertIn({'comp_cls_1': sorted(['comp_1_1', '3'])},
-                  db.database.GetEncodedField('comp_cls_1_field').values())
+                  list(db.database.GetEncodedField('comp_cls_1_field')
+                       .values()))
 
   @mock.patch('cros.factory.hwid.v3.builder.PromptAndAsk')
   def testUpdateByProbedResultsMissingEssentialComponents(self,
@@ -217,7 +218,8 @@ class DatabaseBuilderTest(unittest.TestCase):
     db.UpdateByProbedResults({}, {}, {}, image_name='NEW_IMAGE')
     for comp_cls in builder.ESSENTIAL_COMPS:
       self.assertIn({comp_cls: []},
-                    db.database.GetEncodedField(comp_cls + '_field').values())
+                    list(db.database.GetEncodedField(comp_cls + '_field')
+                         .values()))
 
     # If the user answer "Y", the default component will be added if no null
     # component is recorded.
@@ -230,7 +232,8 @@ class DatabaseBuilderTest(unittest.TestCase):
         continue
       self.assertIn(comp_cls + '_default', db.database.GetComponents(comp_cls))
       self.assertIn({comp_cls: [comp_cls + '_default']},
-                    db.database.GetEncodedField(comp_cls + '_field').values())
+                    list(db.database.GetEncodedField(comp_cls + '_field')
+                         .values()))
 
   @mock.patch('cros.factory.hwid.v3.builder.PromptAndAsk', return_value=False)
   def testUpdateByProbedResultsUpdateEncodedFieldsAndPatternCorrectly(

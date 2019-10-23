@@ -124,7 +124,7 @@ class TestEvent(unittest.TestCase):
     event = datatypes.Event(payload)
     self.assertEqual(event.payload, payload)
     self.assertEqual(event.keys(), list(payload))
-    self.assertEqual(event.values(), payload.values())
+    self.assertEqual(event.values(), list(payload.values()))
     self.assertEqual(event['a'], payload['a'])
     self.assertEqual(event['b'], payload['b'])
     self.assertTrue(repr(payload) in repr(event))

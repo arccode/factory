@@ -341,7 +341,7 @@ class FactoryTestList(test_object_module.FactoryTest):
 
   def GetAllTests(self):
     """Returns all FactoryTest objects."""
-    return self.path_map.values()
+    return list(self.path_map.values())
 
   def GetStateMap(self):
     """Returns a map of all FactoryTest objects to their TestStates."""

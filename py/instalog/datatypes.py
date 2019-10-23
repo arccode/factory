@@ -183,7 +183,7 @@ class Event(json_utils.Serializable):
 
   def values(self):
     """Implements dict values function."""
-    return self.payload.values()
+    return list(self.payload.values())
 
   def iteritems(self):
     """Implements iteritems function."""

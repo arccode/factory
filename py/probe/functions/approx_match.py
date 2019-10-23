@@ -67,7 +67,7 @@ class ApproxMatchFunction(match.MatchFunction):
       return matcher(value)
 
     if not self.is_dict:
-      matched = len(item) == 1 and _Match(self.rule, item.values()[0])
+      matched = len(item) == 1 and _Match(self.rule, next(iter(item.values())))
       matched = {list(item)[0]: matched}
       matched_rule = {key: {'result': value, 'info': self.args.rule}
                       for key, value in iteritems(matched)}

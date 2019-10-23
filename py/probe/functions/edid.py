@@ -278,7 +278,7 @@ class EDIDFunction(probe_function.ProbeFunction):
     self.MayInitCachedData()
 
     if not self.args.path:
-      return self.identity_to_edid.values()
+      return list(self.identity_to_edid.values())
 
     if self.args.path in self.path_to_identity:
       return self.identity_to_edid[self.path_to_identity[self.args.path]]

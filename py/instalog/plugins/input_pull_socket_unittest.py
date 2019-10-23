@@ -155,7 +155,7 @@ class TestInputPullSocket(unittest.TestCase):
     self.assertEqual({}, event_list[0].payload)
     self.assertEqual(1, len(event_list[0].attachments))
     self.assertEqual('my_attachment', list(event_list[0].attachments)[0])
-    with open(event_list[0].attachments.values()[0]) as f:
+    with open(next(iter(event_list[0].attachments.values()))) as f:
       self.assertEqual('XXXXXXXXXX', f.read())
 
 

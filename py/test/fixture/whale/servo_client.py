@@ -70,8 +70,9 @@ PLANKTON_FEEDBACK = AttrDict(
     dict(('FB%d' % i, 'plankton_fb%d' % i) for i in range(1, 9)))
 
 # Tuple of Whale's latchless feedback
-WHALE_FEEDBACKS = tuple(set(FIXTURE_FEEDBACK.values() +
-                            PLANKTON_FEEDBACK.values()))
+# pylint: disable=dict-values-not-iterating
+WHALE_FEEDBACKS = tuple(set(FIXTURE_FEEDBACK.values()).
+                        union(PLANKTON_FEEDBACK.values()))
 
 # A dip switch to enable debug mode. Can get its value ('on'/'off').
 WHALE_DEBUG_MODE_EN = 'whale_debug_mode_en'

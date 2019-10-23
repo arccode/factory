@@ -114,6 +114,7 @@ class UpdateKernel(unittest.TestCase):
       factory_tool.CheckCall(['gooftool', 'verify_release_channel',
                               '--enforced_release_channels', 'dev'])
       # verify firmware is dev key
+      # pylint: disable=dict-values-not-iterating
       probed_keys = chromeos_firmware.ChromeosFirmwareFunction.ProbeDevices(
           chromeos_firmware.FIELDS.firmware_keys).values()
       fw_keys = [key.split('#')[1] for key in probed_keys]

@@ -181,7 +181,7 @@ class PluginController(object):
 
   def GetPluginMenuItems(self):
     """Returns a list all plugins menu items."""
-    return self._menu_items.values()
+    return list(self._menu_items.values())
 
   def GetFrontendConfigs(self):
     """Returns a list of configs of all plugin's UI."""

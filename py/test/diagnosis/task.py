@@ -111,7 +111,7 @@ class Task(object):
 
   @property
   def inputs(self):
-    return self._inputs.values()
+    return list(self._inputs.values())
 
   @property
   def state(self):

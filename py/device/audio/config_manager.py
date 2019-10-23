@@ -475,6 +475,7 @@ class UCMConfigManager(BaseConfigManager):
         card = m.group(1)
         card_name = m.group(2)
         ucm_config_dir = _GetUCMConfigDir(card_name)
+        # pylint: disable=dict-values-not-iterating
         if ucm_config_dir and ucm_config_dir not in card_map.values():
           card_map[card] = ucm_config_dir
     return card_map

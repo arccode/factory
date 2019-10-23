@@ -93,7 +93,7 @@ def _DetermineComponentName(comp_cls, value):
 
   # General components.
   if len(value) == 1:
-    return FilterSpecialCharacter(str(value.values()[0]))
+    return FilterSpecialCharacter(str(next(iter(value.values()))))
   try:
     return '%s_%smb_%s' % (value['part'], value['size'], value['slot'])
   except KeyError:
