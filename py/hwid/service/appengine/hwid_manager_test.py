@@ -182,15 +182,15 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
     manager = self._GetManager()
 
     self.assertIn(('audio_codec', {'max98095'}),
-                  manager.GetComponents('CHROMEBOOK', None).items())
+                  list(manager.GetComponents('CHROMEBOOK', None).items()))
     self.assertIn(('cellular', {'novatel_e396_3g'}),
-                  manager.GetComponents('CHROMEBOOK', None).items())
+                  list(manager.GetComponents('CHROMEBOOK', None).items()))
     self.assertIn(('keyboard', {'kbd_us', 'kbd_gb'}),
-                  manager.GetComponents('CHROMEBOOK', None).items())
+                  list(manager.GetComponents('CHROMEBOOK', None).items()))
     self.assertIn(('volatile_a', {'test_volatile'}),
-                  manager.GetComponents('CHROMEBOOK', None).items())
+                  list(manager.GetComponents('CHROMEBOOK', None).items()))
     self.assertIn(('ro_main_firmware_0', set(['mv2#volatile_hash#test_bios'])),
-                  manager.GetComponents('CHROMEBOOK', None).items())
+                  list(manager.GetComponents('CHROMEBOOK', None).items()))
 
   def testCache(self):
     """Test that caching limits the number of files read to one."""
@@ -543,12 +543,15 @@ class HwidV2DataTest(unittest.TestCase):
     """Tests fetching all components for a board."""
     components = self.data.GetComponents('CHROMEBOOK')
 
-    self.assertIn(('audio_codec', set(['max98095'])), components.items())
-    self.assertIn(('cellular', set(['novatel_e396_3g'])), components.items())
-    self.assertIn(('keyboard', set(['kbd_us', 'kbd_gb'])), components.items())
-    self.assertIn(('volatile_a', set(['test_volatile'])), components.items())
+    self.assertIn(('audio_codec', set(['max98095'])), list(components.items()))
+    self.assertIn(('cellular', set(['novatel_e396_3g'])),
+                  list(components.items()))
+    self.assertIn(('keyboard', set(['kbd_us', 'kbd_gb'])),
+                  list(components.items()))
+    self.assertIn(('volatile_a', set(['test_volatile'])),
+                  list(components.items()))
     self.assertIn(('ro_main_firmware_0', set(['mv2#volatile_hash#test_bios'])),
-                  components.items())
+                  list(components.items()))
 
     self.assertRaises(hwid_manager.BoardMismatchError,
                       self.data.GetComponentClasses, 'NOTCHROMEBOOK HWID')

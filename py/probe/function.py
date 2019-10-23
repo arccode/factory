@@ -106,7 +106,7 @@ def InterpretFunction(func_expression):
   if len(func_expression) != 1:
     raise FunctionException(
         'Function expression %s should only contain 1 item.' % func_expression)
-  func_name, kwargs = func_expression.items()[0]
+  func_name, kwargs = next(iter(func_expression.items()))
   if func_name not in _function_map:
     raise FunctionException('Function "%s" is not registered.' % func_name)
 
