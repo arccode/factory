@@ -15,7 +15,6 @@ import inspect
 import logging
 import re
 import SocketServer
-import types
 
 
 class MockTestServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -39,7 +38,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
   def AddLookup(cls, input_line, response):
     # Check if the response is one of the known types.
     is_known_types = False
-    if isinstance(response, (types.StringType, type(None))):
+    if isinstance(response, (bytes, type(None))):
       is_known_types = True
     elif inspect.isfunction(response) or inspect.ismethod(response):
       is_known_types = True
@@ -65,7 +64,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
         if inspect.isfunction(response) or inspect.ismethod(response):
           response = response(line)
 
-        if isinstance(response, types.StringType):
+        if isinstance(response, bytes):
           self.wfile.write(response)
         elif isinstance(response, type(None)):
           pass
