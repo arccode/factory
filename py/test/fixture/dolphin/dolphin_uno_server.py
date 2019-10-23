@@ -14,9 +14,8 @@ import argparse
 import glob
 import logging
 import os
-from SimpleXMLRPCServer import SimpleXMLRPCRequestHandler
-from SimpleXMLRPCServer import SimpleXMLRPCServer
 import time
+import xmlrpc.server
 
 from cros.factory.test.fixture.dolphin import dolphin_bft_fixture
 from cros.factory.test.fixture.dolphin import plankton_hdmi
@@ -39,14 +38,14 @@ DOLPHIN_RAIDEN_CONF = {
     'product_id': '500c'}
 
 
-class DolphinXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
+class DolphinXMLRPCRequestHandler(xmlrpc.server.SimpleXMLRPCRequestHandler):
   """XMLRPC request handler for Dolphin Uno server.
 
-  During the response of SimpleXMLRPCRequestHandler, it will try to obtain
-  client's domain name among network for logging. Since Dolphin Uno system is
-  just exclusive network and no DNS server, this step will take a long time and
-  drag down overall efficiency. By fixing that, we derive this class and
-  override the method to do without requesting domain name.
+  During the response of xmlrpc.server.SimpleXMLRPCRequestHandler, it will try
+  to obtain client's domain name among network for logging. Since Dolphin Uno
+  system is just exclusive network and no DNS server, this step will take a
+  long time and drag down overall efficiency. By fixing that, we derive this
+  class and override the method to do without requesting domain name.
   """
   def address_string(self):
     """Return the client address formatted for logging.
@@ -155,9 +154,10 @@ def main():
 
   logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO)
 
-  server = SimpleXMLRPCServer((args.addr, args.port),
-                              requestHandler=DolphinXMLRPCRequestHandler,
-                              allow_none=True)
+  server = xmlrpc.server.SimpleXMLRPCServer(
+      (args.addr, args.port),
+      requestHandler=DolphinXMLRPCRequestHandler,
+      allow_none=True)
   server.register_introspection_functions()
 
   if args.dolphin:

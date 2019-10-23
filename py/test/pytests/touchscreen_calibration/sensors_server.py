@@ -19,9 +19,9 @@ import configparser
 import logging
 import os
 import re
-import SimpleXMLRPCServer
 import sys
 import time
+import xmlrpc.server
 
 import touchscreen_calibration_utils as utils
 
@@ -671,7 +671,7 @@ def RunXMLRPCSysfsServer(addr, board, log=logging):
       utils.EnableDestinationPort(port)
       log.info('The destination port %d is enabled.' % port)
 
-    server = SimpleXMLRPCServer.SimpleXMLRPCServer(addr)
+    server = xmlrpc.server.SimpleXMLRPCServer(addr)
     # Set allow_dotted_names=True since SensorService has an object,
     board_sensors = GetSensorServiceClass(board)
     # i.e. kernel_module, as its member. This flag helps register

@@ -10,10 +10,10 @@ from __future__ import print_function
 import argparse
 import logging
 import os
-import SimpleXMLRPCServer
 import subprocess
 import sys
 import time
+import xmlrpc.server
 
 from cros.factory.test.fixture.whale import serial_server
 
@@ -105,7 +105,7 @@ def RealMain():
   logger = logging.getLogger(os.path.basename(sys.argv[0]))
   logger.info('Start')
 
-  server = SimpleXMLRPCServer.SimpleXMLRPCServer(
+  server = xmlrpc.server.SimpleXMLRPCServer(
       (args.host, args.port),
       allow_none=True)
 

@@ -18,9 +18,9 @@ import logging
 import logging.config
 import os
 import shutil
-import SimpleXMLRPCServer
 import sqlite3
 import textwrap
+import xmlrpc.server
 
 import gnupg
 from six.moves import input
@@ -478,14 +478,14 @@ class DRMKeysProvisioningServer(object):
       ip: IP to bind.
       port: port to bind.
     """
-    class Server(SimpleXMLRPCServer.SimpleXMLRPCServer):
+    class Server(xmlrpc.server.SimpleXMLRPCServer):
       def _dispatch(self, method, params):
         # Catch exceptions and log them. Without this, SimpleXMLRPCServer simply
         # output the error message to stdout, and we won't be able to see what
         # happened in the log file.
         logging.info('%s called', method)
         try:
-          result = SimpleXMLRPCServer.SimpleXMLRPCServer._dispatch(
+          result = xmlrpc.server.SimpleXMLRPCServer._dispatch(
               self, method, params)
           return result
         except BaseException as e:

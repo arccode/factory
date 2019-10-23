@@ -8,11 +8,11 @@
 
 from __future__ import print_function
 
-import SimpleXMLRPCServer
 import socket
 import threading
 import time
 import unittest
+import xmlrpc.server
 
 import mock
 from six.moves import xrange
@@ -29,7 +29,7 @@ class TimeoutXMLRPCTest(unittest.TestCase):
 
   def setUp(self):
     self.port = net_utils.FindUnusedTCPPort()
-    self.server = SimpleXMLRPCServer.SimpleXMLRPCServer(
+    self.server = xmlrpc.server.SimpleXMLRPCServer(
         (net_utils.LOCALHOST, self.port),
         allow_none=True)
     self.server.register_function(time.sleep)

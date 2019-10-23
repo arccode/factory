@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 import logging
-import SimpleXMLRPCServer
+import xmlrpc.server
 
 # port for the listening the RPC call
 INTERACTIVE_RPC_SERVER_PORT = 7601
@@ -17,7 +17,7 @@ class GenericInteractiveRpcServer(object):
   def __init__(self, port):
     self._message = 'Initialing RPC Server'
     logging.info('Start DUT server.')
-    server = SimpleXMLRPCServer.SimpleXMLRPCServer(
+    server = xmlrpc.server.SimpleXMLRPCServer(
         ('0.0.0.0', port), allow_none=True)
     server.register_introspection_functions()
     server.register_function(self.GetStatus)
