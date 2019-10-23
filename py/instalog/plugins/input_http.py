@@ -29,16 +29,12 @@ from __future__ import print_function
 
 import cgi
 import http.server
+from io import StringIO
 import logging
 import shutil
 import tempfile
 import threading
 import time
-
-try:
-  import cStringIO as StringIO
-except ImportError:
-  import StringIO
 
 from six import iteritems
 
@@ -49,7 +45,6 @@ from cros.factory.instalog.plugins import http_common
 from cros.factory.instalog.utils.arg_utils import Arg
 from cros.factory.instalog.utils import file_utils
 from cros.factory.instalog.utils import net_utils
-
 from cros.factory.instalog.external import gnupg
 
 
@@ -90,7 +85,7 @@ class InstalogFieldStorage(cgi.FieldStorage):
     there won't be system calls for creating or deleting files (and no fd used).
     """
     if not self.name or self.name == 'event':
-      return StringIO.StringIO()
+      return StringIO()
 
     # Save attachments.
     return tempfile.NamedTemporaryFile(

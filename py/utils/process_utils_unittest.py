@@ -6,7 +6,7 @@
 
 from __future__ import print_function
 
-import cStringIO
+from io import StringIO
 import logging
 from logging import handlers
 import os
@@ -226,7 +226,7 @@ class TerminateOrKillProcessTest(unittest.TestCase):
 class TestRedirectStdout(unittest.TestCase):
   def setUp(self):
     self.saved_stdout = sys.stdout
-    self.mock_stdout = cStringIO.StringIO()
+    self.mock_stdout = StringIO()
     sys.stdout = self.mock_stdout
 
   def tearDown(self):
