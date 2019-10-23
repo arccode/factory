@@ -39,7 +39,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
   def AddLookup(cls, input_line, response):
     # Check if the response is one of the known types.
     is_known_types = False
-    if isinstance(response, (types.StringType, types.NoneType)):
+    if isinstance(response, (types.StringType, type(None))):
       is_known_types = True
     elif inspect.isfunction(response) or inspect.ismethod(response):
       is_known_types = True
@@ -67,7 +67,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
 
         if isinstance(response, types.StringType):
           self.wfile.write(response)
-        elif isinstance(response, types.NoneType):
+        elif isinstance(response, type(None)):
           pass
         # Only the first match will be used.
         break
