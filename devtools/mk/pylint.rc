@@ -31,7 +31,9 @@
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
 # multiple times.
-enable=dict-keys-not-iterating
+enable=
+    deprecated-itertools-function,
+    dict-keys-not-iterating,
 
 # Disable the message, report, category or checker with the given id(s). You
 # can either give multiple identifier separated by comma (,) or put this option

@@ -10,6 +10,9 @@ import itertools
 import re
 import sys
 
+from six.moves import zip
+
+
 MAX_TIMESTAMP = datetime.datetime(datetime.MAXYEAR, 12, 31)
 
 # Recognizable timestamp formats.
@@ -111,8 +114,8 @@ def main():
   reader = [TimestampedFileReader(f) for f in args.file]
 
   while True:
-    ts, idx = min(itertools.izip([r.GetTimestamp() for r in reader],
-                                 itertools.count()))
+    ts, idx = min(zip([r.GetTimestamp() for r in reader],
+                      itertools.count()))
     if ts == MAX_TIMESTAMP:
       break
     args.output.write(str(idx) + '> ' + reader[idx].GetNextLine())
