@@ -52,9 +52,7 @@ kill_tree() {
 clear_vpd() {
   local region
 
-  # $* may contain spaces so we cannot quote it.
-  # shellcheck disable=SC2048
-  for region in $*; do
+  for region in "$@"; do
     echo "Clearing ${region} VPD region..."
     vpd -i "${region}_VPD" -O
   done
@@ -62,14 +60,12 @@ clear_vpd() {
 
 clear_data() {
   local data
-  if [ -z "$*" ]; then
+  if [ $# -eq 0 ] ; then
     return
   fi
 
   echo "Clear data: $*"
-  # $* may contain spaces so we cannot quote it.
-  # shellcheck disable=SC2048
-  for data in $*; do
+  for data in "$@"; do
     rm -rf "${data}"
     mkdir -p "${data}"
   done
@@ -81,20 +77,21 @@ stop_services() {
   # factory process recycled after we've been killing bits of it. Also because we
   # need two jobs (factory and ui) both restarted.
 
-  # $* may contain spaces so we cannot quote it.
-  # shellcheck disable=SC2048
-  for service in $*; do
+  for service in "$@"; do
     (status "${service}" | grep -q 'stop/waiting') || stop "${service}"
   done
 }
 
 stop_session() {
-  local goofy_control_pid="$(pgrep goofy_control)"
-  local sec
+  local goofy_control_pid
+  goofy_control_pid="$(pgrep goofy_control)"
 
   printf "Attempt to stop gracefully... "
   # save pids in case their parents die and they are orphaned
-  local all_pids="$(kill_tree TERM "${goofy_control_pid}")"
+  local all_pids
+  all_pids="$(kill_tree TERM "${goofy_control_pid}")"
+
+  local sec
   for sec in 3 2 1; do
     printf "%s " "${sec}"
     sleep 1
@@ -107,9 +104,9 @@ stop_session() {
 }
 
 main() {
-  local data=""
-  local vpd=""
-  local services="factory"
+  local data=()
+  local vpd=()
+  local services=("factory")
   local chrome_url="http://localhost:4012"
 
   while [ $# -gt 0 ]; do
@@ -117,27 +114,27 @@ main() {
     shift
     case "${opt}" in
       -l | log )
-        data="${data} ${FACTORY_BASE}/log"
+        data+=("${FACTORY_BASE}/log")
         ;;
       -s | state )
-        data="${data} ${FACTORY_BASE}/state"
+        data+=("${FACTORY_BASE}/state")
         ;;
       -t | tests )
-        data="${data} ${FACTORY_BASE}/tests"
+        data+=("${FACTORY_BASE}/tests")
         ;;
       -r | run )
-        data="${data} /run/factory"
+        data+=("/run/factory")
         ;;
       -a | all )
-        data="${data} ${FACTORY_BASE}/log ${FACTORY_BASE}/state"
-        data="${data} ${FACTORY_BASE}/tests /run/factory"
+        data+=("${FACTORY_BASE}/log" "${FACTORY_BASE}/state"
+        "${FACTORY_BASE}/tests" "/run/factory")
         ;;
       -c | chrome )
         chrome_url=""
-        services="${services} ui"
+        services+=("ui")
         ;;
       -d | vpd )
-        vpd="${vpd} RO RW"
+        vpd+=("RO" "RW")
         ;;
       -h | help )
         usage_help
@@ -156,9 +153,10 @@ main() {
   fi
 
   stop_session
-  stop_services "${services}"
-  clear_data "${data}"
-  clear_vpd "${vpd}"
+  stop_services "${services[@]}"
+  clear_data "${data[@]}"
+  clear_vpd "${vpd[@]}"
+
 
   echo "Restarting factory session..."
   start factory
