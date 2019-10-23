@@ -555,7 +555,7 @@ class Goofy(object):
 
     while True:
       try:
-        path = self.test_list_iterator.next()
+        path = next(self.test_list_iterator)
         test = self.test_list.LookupPath(path)
       except StopIteration:
         logging.info('no next test, stop running')

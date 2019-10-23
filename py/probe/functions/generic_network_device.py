@@ -84,7 +84,7 @@ class NetworkDevices(object):
             if ' ' in line and line.split()[0] in ['Interface', 'type']]
     i = iter(data)
     return [Obj(devtype='wifi', path='/sys/class/net/%s/device' % name)
-            for name in i if i.next() == iw_type]
+            for name in i if next(i) == iw_type]
 
   @classmethod
   def _GetFlimflamDevices(cls):

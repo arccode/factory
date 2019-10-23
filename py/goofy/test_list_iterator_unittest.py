@@ -100,7 +100,7 @@ class TestListIteratorTest(unittest.TestCase):
     try:
       with self.assertRaises(StopIteration):
         for unused_i in xrange(max_iteration):
-          test_path = iterator.next()
+          test_path = next(iterator)
           actual_sequence.append(test_path)
           test = test_list.LookupPath(test_path)
           if run_test(test_path, device_data):
@@ -200,11 +200,11 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     test_list = self._SetStubStateInstance(test_list)
     iterator = test_list_iterator.TestListIterator(
         root=test_list, test_list=test_list)
-    self.assertEqual('test:G.G.a', iterator.next())
-    self.assertEqual('test:G.G.a', iterator.next())
+    self.assertEqual('test:G.G.a', next(iterator))
+    self.assertEqual('test:G.G.a', next(iterator))
     iterator.Stop('test:G.G')
-    self.assertEqual('test:G.H.a', iterator.next())
-    self.assertEqual('test:G.H.a', iterator.next())
+    self.assertEqual('test:G.H.a', next(iterator))
+    self.assertEqual('test:G.H.a', next(iterator))
 
   def testNext(self):
     self._AssertTestSequence(
@@ -252,7 +252,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     actual_sequence = []
 
     for unused_i in xrange(3):
-      test_path = iterator.next()
+      test_path = next(iterator)
       actual_sequence.append(test_path)
       test = test_list.LookupPath(test_path)
       test.UpdateState(status=state.TestState.PASSED)
@@ -285,7 +285,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
     with self.assertRaises(StopIteration):
       for unused_i in xrange(10):
-        test_path = iterator.next()
+        test_path = next(iterator)
         actual_sequence.append(test_path)
         test = test_list.LookupPath(test_path)
         test.UpdateState(status=state.TestState.PASSED)
@@ -301,7 +301,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
 
     with self.assertRaises(StopIteration):
       for unused_i in xrange(10):
-        test_path = iterator.next()
+        test_path = next(iterator)
         # Get() shall return the same value as previous next()
         for unused_j in xrange(2):
           self.assertEqual(test_path, iterator.Get())

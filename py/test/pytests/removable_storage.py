@@ -274,7 +274,7 @@ class RemovableStorageTest(test_case.TestCase):
 
   def AdvanceGenerator(self):
     try:
-      self._next_event = self._main_test_generator.next()
+      self._next_event = next(self._main_test_generator)
     except StopIteration:
       self.PassTask()
 

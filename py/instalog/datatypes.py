@@ -16,6 +16,7 @@ import filecmp
 import logging
 import time
 
+import six
 from six import iteritems
 
 import instalog_common  # pylint: disable=unused-import
@@ -226,6 +227,8 @@ class EventStream(object):
     self._plugin_api = plugin_api
     self._count = 0
 
+  # TODO(kerker) remove pylint disable after py3 upgrade complete
+  # pylint: disable=non-iterator-returned
   def __iter__(self):
     return self.iter()
 
@@ -284,7 +287,8 @@ class EventStream(object):
     return self._plugin_api.EventStreamAbort(self._plugin, self)
 
 
-class EventStreamIterator(object):
+# TODO(kerker) : Inherit from object after py3 upgrade complete
+class EventStreamIterator(six.Iterator):
   """Iterator to get events out of an EventStream.
 
   Properties:
@@ -325,11 +329,13 @@ class EventStreamIterator(object):
     self._current_count = 0
     self._start = time_utils.MonotonicTime()
 
+  # TODO(kerker) remove pylint disable after py3 upgrade complete
+  # pylint: disable=non-iterator-returned
   def __iter__(self):
     """Returns self for special __iter__ function."""
     return self
 
-  def next(self):
+  def __next__(self):
     """Returns next event from the EventStream.
 
     Raises:

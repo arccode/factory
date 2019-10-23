@@ -128,7 +128,7 @@ class TestEvent(unittest.TestCase):
     self.assertEqual(event['a'], payload['a'])
     self.assertEqual(event['b'], payload['b'])
     self.assertTrue(repr(payload) in repr(event))
-    self.assertEqual(('a', 1), iteritems(event).next())
+    self.assertEqual(('a', 1), next(iteritems(event)))
     with self.assertRaises(AttributeError):
       self.assertTrue(event.__d__)
     event.setdefault('a', 2)
@@ -265,27 +265,27 @@ class TestEventStreamIterator(unittest.TestCase):
   def testTimeoutSmallerThanInterval(self):
     """Tests correct behaviour when timeout is smaller than interval."""
     with RuntimeBound(max=0.5), self.assertRaises(StopIteration):
-      self.event_stream.iter(
-          blocking=True, timeout=0.1, interval=1).next()
+      next(self.event_stream.iter(
+          blocking=True, timeout=0.1, interval=1))
 
   def testWaitRetryLoop(self):
     """Stress tests wait-retry loop."""
     with RuntimeBound(min=0.5), self.assertRaises(StopIteration):
-      self.event_stream.iter(
-          blocking=True, timeout=0.5, interval=0.00001).next()
+      next(self.event_stream.iter(
+          blocking=True, timeout=0.5, interval=0.00001))
     with RuntimeBound(min=0.5), self.assertRaises(StopIteration):
-      self.event_stream.iter(timeout=0.5, interval=0.00001).next()
+      next(self.event_stream.iter(timeout=0.5, interval=0.00001))
 
   def testNonBlockingWithoutEvent(self):
     """Tests non-blocking operations with no events in the queue."""
     with RuntimeBound(max=0.1), self.assertRaises(StopIteration):
-      self.event_stream.iter(blocking=False, timeout=1, count=5).next()
+      next(self.event_stream.iter(blocking=False, timeout=1, count=5))
     with RuntimeBound(max=0.1), self.assertRaises(StopIteration):
-      self.event_stream.iter(blocking=False, count=5).next()
+      next(self.event_stream.iter(blocking=False, count=5))
     with RuntimeBound(max=0.1), self.assertRaises(StopIteration):
-      self.event_stream.iter(blocking=False, timeout=1).next()
+      next(self.event_stream.iter(blocking=False, timeout=1))
     with RuntimeBound(max=0.1), self.assertRaises(StopIteration):
-      self.event_stream.iter(blocking=False).next()
+      next(self.event_stream.iter(blocking=False))
 
   def testNonBlockingWithEvent(self):
     """Tests non-blocking operations with finite events in the queue."""

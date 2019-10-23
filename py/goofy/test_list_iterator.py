@@ -5,6 +5,8 @@
 
 import logging
 
+import six
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import state
 from cros.factory.test.test_lists import test_list as test_list_module
@@ -49,7 +51,8 @@ class PickableFrame(object):
     self.locals = {}
 
 
-class TestListIterator(object):
+# TODO(kerker) : Inherit from object after py3 upgrade complete
+class TestListIterator(six.Iterator):
   """An iterator of test list.
 
   https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/test/test_lists/TEST_LIST.md
@@ -169,7 +172,7 @@ class TestListIterator(object):
   def Top(self):
     return self.stack[-1]
 
-  def next(self):
+  def __next__(self):
     """Returns path to the test that should start now.
 
     The returned test could be a leaf factory test (factory test that does not
@@ -195,12 +198,12 @@ class TestListIterator(object):
 
     if returncode == self.RETURN_CODE.POP_FRAME:
       self.Pop()
-      return self.next()
+      return next(self)
     if returncode == self.RETURN_CODE.NEW_FRAME:
       self.Push(value)
-      return self.next()
+      return next(self)
     if returncode == self.RETURN_CODE.CONTINUE:
-      return self.next()
+      return next(self)
     if returncode == self.RETURN_CODE.RETURN:
       return value
     raise AssertionError

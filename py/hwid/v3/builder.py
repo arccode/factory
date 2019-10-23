@@ -490,7 +490,7 @@ class DatabaseBuilder(object):
     if not self.database.GetEncodedFieldsBitLength():
       # Put the essential field first, and align the 5-3-5 bit field.
       bit_iter = itertools.cycle([5, 3, 5])
-      bit_iter.next()  # Skip the first field, which is for image_id.
+      next(bit_iter)  # Skip the first field, which is for image_id.
       for comp_cls in ESSENTIAL_COMPS:
         if comp_cls in handled_comp_classes:
           continue
@@ -500,7 +500,7 @@ class DatabaseBuilder(object):
         bit_length = 0
         min_bit_length = max(_GetMinBitLength(field_name), 1)
         while bit_length < min_bit_length:
-          bit_length += bit_iter.next()
+          bit_length += next(bit_iter)
         self.database.AppendEncodedFieldBit(field_name, bit_length)
 
         handled_comp_classes |= set(
