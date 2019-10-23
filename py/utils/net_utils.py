@@ -17,7 +17,7 @@ import socketserver
 import struct
 import subprocess
 import time
-import xmlrpclib
+import xmlrpc.client
 
 from six.moves import xrange
 
@@ -163,11 +163,11 @@ def Ifconfig(devname, enable, sleep_time_secs=1):
   time.sleep(sleep_time_secs)
 
 
-class TimeoutXMLRPCTransport(xmlrpclib.Transport):
+class TimeoutXMLRPCTransport(xmlrpc.client.Transport):
   """Transport subclass supporting timeout."""
 
   def __init__(self, timeout=DEFAULT_TIMEOUT, *args, **kwargs):
-    xmlrpclib.Transport.__init__(self, *args, **kwargs)
+    xmlrpc.client.Transport.__init__(self, *args, **kwargs)
     self.timeout = timeout
 
   def make_connection(self, host):
@@ -175,14 +175,14 @@ class TimeoutXMLRPCTransport(xmlrpclib.Transport):
     return conn
 
 
-class TimeoutXMLRPCServerProxy(xmlrpclib.ServerProxy):
+class TimeoutXMLRPCServerProxy(xmlrpc.client.ServerProxy):
   """XML/RPC ServerProxy supporting timeout."""
 
   def __init__(self, uri, timeout=10, *args, **kwargs):
     if timeout:
       kwargs['transport'] = TimeoutXMLRPCTransport(
           timeout=timeout)
-    xmlrpclib.ServerProxy.__init__(self, uri, *args, **kwargs)
+    xmlrpc.client.ServerProxy.__init__(self, uri, *args, **kwargs)
 
 
 def FindUsableEthDevice(raise_exception=False,

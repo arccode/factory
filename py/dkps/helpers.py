@@ -26,7 +26,7 @@ import os
 import shutil
 import tempfile
 import uuid
-import xmlrpclib
+import xmlrpc.client
 
 import gnupg
 
@@ -75,7 +75,7 @@ class BaseHelper(object):
     # Create RPC server object.
     self.server_ip = server_ip
     self.server_port = server_port
-    self.dkps = xmlrpclib.ServerProxy(
+    self.dkps = xmlrpc.client.ServerProxy(
         'http://%s:%s' % (self.server_ip, self.server_port))
 
   def __del__(self):

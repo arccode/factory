@@ -11,12 +11,12 @@ import logging
 import os
 import shutil
 import time
-import xmlrpclib
+import xmlrpc.client
 
 from twisted.internet import reactor
 from twisted.trial import unittest
 from twisted.web import server
-from twisted.web import xmlrpc
+from twisted.web import xmlrpc as twisted_xmlrpc
 
 from cros.factory.umpire import common
 from cros.factory.umpire.server import daemon
@@ -45,7 +45,7 @@ class DUTRPCTest(unittest.TestCase):
     shutil.copy(TESTCONFIG, self.env.active_config_file)
 
     self.env.LoadConfig()
-    self.proxy = xmlrpc.Proxy(
+    self.proxy = twisted_xmlrpc.Proxy(
         'http://%s:%d' % (net_utils.LOCALHOST, TEST_RPC_PORT),
         allowNone=True)
     self.daemon = daemon.UmpireDaemon(self.env)
@@ -126,8 +126,8 @@ class DUTRPCTest(unittest.TestCase):
         self.assertIn(name, report_path)
       return True
 
-    d = self.Call('UploadReport', 'serial1234', xmlrpclib.Binary('content'),
-                  'rpt_name5678', 'stage90')
+    d = self.Call('UploadReport', 'serial1234',
+                  xmlrpc.client.Binary(b'content'), 'rpt_name5678', 'stage90')
     d.addCallback(CheckTrue)
     d.addCallback(lambda _: CheckReport(
         'content', namestrings=['serial1234', 'rpt_name5678', 'stage90',

@@ -7,15 +7,15 @@
 
 import logging
 import time
-import xmlrpclib
+import xmlrpc.client
 
 from twisted.internet import defer
 from twisted.python import failure
 from twisted.python import reflect
-from twisted.web import xmlrpc
+from twisted.web import xmlrpc as twisted_xmlrpc
 
 
-class XMLRPCContainer(xmlrpc.XMLRPC, object):
+class XMLRPCContainer(twisted_xmlrpc.XMLRPC, object):
   """XMLRPC resource wrapper.
 
   This class binds RPC objects' methods to XML RPC call.
@@ -25,15 +25,15 @@ class XMLRPCContainer(xmlrpc.XMLRPC, object):
   """
 
   def __init__(self):
-    """Constructs Twisted xmlrpc.XMLRPC resource."""
+    """Constructs Twisted twisted_xmlrpc.XMLRPC resource."""
     super(XMLRPCContainer, self).__init__(allowNone=True)
     self.handlers = {}
 
   def listProcedures(self):
     """Lists XMLRPC procedure names.
 
-    Derived from xmlrpc.XMLRPC resource class. XMLRPC introspection calls
-    this method to get list of procedure name string.
+    Derived from twisted_xmlrpc.XMLRPC resource class. XMLRPC introspection
+    calls this method to get list of procedure name string.
     """
     return list(self.handlers)
 
@@ -41,20 +41,21 @@ class XMLRPCContainer(xmlrpc.XMLRPC, object):
   def lookupProcedure(self, procedure_path):
     """Searches RPC procedure by name.
 
-    Derived from xmlrpc.XMLRPC resource class. Twisted translates the XMLRPC
-    to procedure call through this method.
+    Derived from twisted_xmlrpc.XMLRPC resource class. Twisted translates the
+    XMLRPC to procedure call through this method.
 
     Args:
       procedure_path: procedure name string.
 
     Returns:
       Callable when function name is in the map. Or
-      xmlrpc.NoSuchFunction(xmlrpc_code, message) when procedure not found.
+      twisted_xmlrpc.NoSuchFunction(xmlrpc_code, message) when procedure not
+      found.
     """
     # Let base class process sub-handlers.
     try:
       return super(XMLRPCContainer, self).lookupProcedure(procedure_path)
-    except xmlrpc.NoSuchFunction:
+    except twisted_xmlrpc.NoSuchFunction:
       pass
 
     try:
@@ -78,12 +79,12 @@ class XMLRPCContainer(xmlrpc.XMLRPC, object):
                      class_name, method_name, duration, error_message)
         return result
 
-      @xmlrpc.withRequest
+      @twisted_xmlrpc.withRequest
       def _WrapProcedure(request, *args, **kwargs):
         """Catches and logs exception when calling RPC method.
 
         Returns:
-          Procedure return value or xmlrpc.Fault when exception caught.
+          Procedure return value or twisted_xmlrpc.Fault when exception caught.
         """
         start_time = time.time()
         result = None
@@ -92,13 +93,14 @@ class XMLRPCContainer(xmlrpc.XMLRPC, object):
         else:
           result = defer.maybeDeferred(method, *args, **kwargs)
         result.addBoth(lambda result: _LogRPCCall(request, result, start_time))
-        result.addErrback(lambda failure: xmlrpc.Fault(
-            xmlrpclib.APPLICATION_ERROR, failure.getTraceback()))
+        result.addErrback(lambda failure: twisted_xmlrpc.Fault(
+            xmlrpc.client.APPLICATION_ERROR, failure.getTraceback()))
         return result
 
       return _WrapProcedure
     except KeyError:
-      raise xmlrpc.NoSuchFunction(xmlrpclib.METHOD_NOT_FOUND, procedure_path)
+      raise twisted_xmlrpc.NoSuchFunction(xmlrpc.client.METHOD_NOT_FOUND,
+                                          procedure_path)
 
   def AddHandler(self, rpc_object):
     """Adds Umpire RPC object to this XMLRPC resource.

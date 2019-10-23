@@ -10,7 +10,7 @@ from __future__ import print_function
 import argparse
 import logging
 import sys
-import xmlrpclib
+import xmlrpc.client
 
 from cros.factory.test.fixture.whale.host import dolphin_server
 from cros.factory.utils import type_utils
@@ -39,10 +39,10 @@ class SerialClient(object):
     Args:
       host: Name or IP address of serial server host.
       tcp_port: TCP port on which serial server is listening on.
-      verbose: Enables verbose messaging across xmlrpclib.ServerProxy.
+      verbose: Enables verbose messaging across xmlrpc.client.ServerProxy.
     """
     remote = 'http://%s:%s' % (host, tcp_port)
-    self._server = xmlrpclib.ServerProxy(remote, verbose=verbose)
+    self._server = xmlrpc.client.ServerProxy(remote, verbose=verbose)
 
   def Send(self, serial_index, command):
     """Sends a command through serial server.

@@ -24,7 +24,7 @@ import subprocess
 import tempfile
 import time
 import traceback
-import xmlrpclib
+import xmlrpc.client
 
 import django
 import rest_framework.exceptions
@@ -137,7 +137,7 @@ def UploadedFile(temporary_uploaded_file_id):
 def GetUmpireServerFromPort(port):
   host = net_utils.GetDockerHostIP()
   url = 'http://%s:%d' % (host, port + UMPIRE_RPC_PORT_OFFSET)
-  return xmlrpclib.ServerProxy(url, allow_none=True)
+  return xmlrpc.client.ServerProxy(url, allow_none=True)
 
 
 def GetUmpireServer(project_name):
@@ -352,7 +352,7 @@ class Project(django.db.models.Model):
     logger.info('Deploying Umpire config')
     try:
       umpire_server.Deploy(new_config_path)
-    except xmlrpclib.Fault as e:
+    except xmlrpc.client.Fault as e:
       logger.error(
           'Deploying failed. Error message from Umpire: %r', e.faultString)
       raise DomeServerException(detail=e.faultString)
@@ -387,8 +387,8 @@ class Project(django.db.models.Model):
       except socket.error:
         # The server is not ready yet.
         pass
-      except xmlrpclib.Fault as e:
-        if e.faultCode == xmlrpclib.METHOD_NOT_FOUND:
+      except xmlrpc.client.Fault as e:
+        if e.faultCode == xmlrpc.client.METHOD_NOT_FOUND:
           # Assume that this is an umpire server before the GetVersion is
           # introduced.
           version = 0
@@ -581,7 +581,7 @@ class Resource(object):
             bundle_name, resource_type, resource_filepath)
         resource_file = open(resource_filepath, 'r')
         return resource_file
-      except xmlrpclib.Fault as e:
+      except xmlrpc.client.Fault as e:
         logger.error(
             'Downloading failed. Error message from Umpire: %r', e.faultString)
         raise DomeServerException(detail=e.faultString)
@@ -796,7 +796,7 @@ class Bundle(object):
     with UploadedFile(resource_file_id) as p:
       try:
         umpire_server.Update([(type_name, p)], bundle_name)
-      except xmlrpclib.Fault as e:
+      except xmlrpc.client.Fault as e:
         raise DomeServerException(detail=e.faultString)
 
   @staticmethod
@@ -819,7 +819,7 @@ class Bundle(object):
     with UploadedFile(bundle_file_id) as p:
       try:
         umpire_server.ImportBundle(p, bundle_name, bundle_note)
-      except xmlrpclib.Fault as e:
+      except xmlrpc.client.Fault as e:
         if 'already in use' in e.faultString:
           raise DomeClientException(
               detail='Bundle "%s" already exists' % bundle_name,
@@ -901,7 +901,7 @@ class ParameterComponent(object):
         component = umpire_server.UpdateParameterComponent(
             id, dir_id, name, using_ver)
       return ParameterComponent(**component)
-    except xmlrpclib.Fault as e:
+    except xmlrpc.client.Fault as e:
       raise DomeServerException(detail=e.faultString)
     return None
 
@@ -930,7 +930,7 @@ class Log(object):
                                               compress_params['start_date'],
                                               compress_params['end_date']))
       return response
-    except xmlrpclib.Fault as e:
+    except xmlrpc.client.Fault as e:
       logger.error(
           'Downloading failed. Error message from Umpire: %r', e.faultString)
       raise DomeServerException(detail=e.faultString)

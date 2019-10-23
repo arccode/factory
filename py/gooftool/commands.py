@@ -22,7 +22,7 @@ import sys
 from tempfile import gettempdir
 import threading
 import time
-import xmlrpclib
+import xmlrpc.client
 
 from six import iteritems
 
@@ -628,11 +628,11 @@ def CreateReportArchiveBlob(*args, **kwargs):
     See CreateReportArchive.
 
   Returns:
-    An xmlrpclib.Binary object containing a .tar.xz file.
+    An xmlrpc.client.Binary object containing a .tar.xz file.
   """
   report_archive = CreateReportArchive(*args, **kwargs)
   try:
-    return xmlrpclib.Binary(file_utils.ReadFile(report_archive))
+    return xmlrpc.client.Binary(file_utils.ReadFile(report_archive))
   finally:
     os.unlink(report_archive)
 

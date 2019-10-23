@@ -21,14 +21,14 @@ For what functions are available on factory server, please check
 """
 
 import logging
-import xmlrpclib
+import xmlrpc.client
 
 from cros.factory.test import event
 from cros.factory.utils import config_utils
 from cros.factory.utils import net_utils
 
 
-Fault = xmlrpclib.Fault
+Fault = xmlrpc.client.Fault
 
 FACTORY_SERVER_CONFIG_NAME = 'factory_server'
 CONFIG_KEY_URL = 'server_url'

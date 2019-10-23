@@ -9,7 +9,7 @@ from __future__ import print_function
 import copy
 import logging
 import time
-import xmlrpclib
+import xmlrpc.client
 
 import serial
 
@@ -87,7 +87,7 @@ class SerialServer(object):
     try:
       read_data = conn.Receive(num_bytes)
       logging.debug('Received: %s', read_data)
-      return xmlrpclib.Binary(read_data)
+      return xmlrpc.client.Binary(read_data)
     except serial.SerialTimeoutException as e:
       raise SerialServerError('Serial index %d receive fail: %s' %
                               (serial_index, e))

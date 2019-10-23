@@ -24,7 +24,7 @@ import shutil
 import subprocess
 import time
 import unittest
-import xmlrpclib
+import xmlrpc.client
 
 import requests  # pylint: disable=import-error
 from six import assertRegex
@@ -95,7 +95,7 @@ class UmpireDockerTestCase(unittest.TestCase):
     del cls  # Unused.
     def UmpireReady():
       try:
-        proxy = xmlrpclib.ServerProxy(RPC_ADDR_BASE)
+        proxy = xmlrpc.client.ServerProxy(RPC_ADDR_BASE)
         # Wait until the initial config is deployed.
         return not proxy.IsDeploying()
       except Exception:
@@ -138,14 +138,14 @@ class UmpireDockerTestCase(unittest.TestCase):
   @contextlib.contextmanager
   def assertRPCRaises(self,
                       exception=None,
-                      fault_code=xmlrpclib.APPLICATION_ERROR):
+                      fault_code=xmlrpc.client.APPLICATION_ERROR):
     """Assert that an RPC call raised exception.
 
     Args:
       exception: Substring that should be in returned exception string.
       fault_code: Expected faultCode for XML RPC.
     """
-    with self.assertRaises(xmlrpclib.Fault) as cm:
+    with self.assertRaises(xmlrpc.client.Fault) as cm:
       yield
     self.assertEqual(fault_code, cm.exception.faultCode)
     if exception:
@@ -200,7 +200,7 @@ class UmpireRPCTest(UmpireDockerTestCase):
   """Tests for Umpire RPC."""
   def setUp(self):
     super(UmpireRPCTest, self).setUp()
-    self.proxy = xmlrpclib.ServerProxy(RPC_ADDR_BASE)
+    self.proxy = xmlrpc.client.ServerProxy(RPC_ADDR_BASE)
     self.default_config = json.loads(
         self.ReadConfigTestdata('umpire_default.json'))
     # Deploy an empty default config.
@@ -218,7 +218,7 @@ class UmpireRPCTest(UmpireDockerTestCase):
     self.assertIn('IsDeploying', self.proxy.system.listMethods())
 
   def testEndingSlashInProxyAddress(self):
-    proxy = xmlrpclib.ServerProxy(RPC_ADDR_BASE + '/')
+    proxy = xmlrpc.client.ServerProxy(RPC_ADDR_BASE + '/')
     self.assertIn('IsDeploying', proxy.system.listMethods())
 
   def testGetActiveConfig(self):
@@ -361,7 +361,7 @@ class UmpireHTTPTest(UmpireDockerTestCase):
   """Tests for Umpire http features."""
   def setUp(self):
     super(UmpireHTTPTest, self).setUp()
-    self.proxy = xmlrpclib.ServerProxy(RPC_ADDR_BASE)
+    self.proxy = xmlrpc.client.ServerProxy(RPC_ADDR_BASE)
 
   def testReverseProxy(self):
     to_deploy_config = file_utils.ReadFile(
@@ -380,14 +380,14 @@ class RPCDUTTest(UmpireDockerTestCase):
   """Tests for Umpire DUT RPC."""
   def setUp(self):
     super(RPCDUTTest, self).setUp()
-    self.proxy = xmlrpclib.ServerProxy(ADDR_BASE)
+    self.proxy = xmlrpc.client.ServerProxy(ADDR_BASE)
 
   def testPing(self):
     version = self.proxy.Ping()
     self.assertEqual({'version': 3, 'project': UMPIRE_PROJECT_NAME}, version)
 
   def testEndingSlashInProxyAddress(self):
-    proxy = xmlrpclib.ServerProxy(ADDR_BASE + '/')
+    proxy = xmlrpc.client.ServerProxy(ADDR_BASE + '/')
     self.assertEqual({'version': 3, 'project': UMPIRE_PROJECT_NAME},
                      proxy.Ping())
 
@@ -396,7 +396,7 @@ class RPCDUTTest(UmpireDockerTestCase):
     self.assertAlmostEqual(t, time.time(), delta=1)
 
   def testAlternateURL(self):
-    proxy = xmlrpclib.ServerProxy('%s/umpire' % ADDR_BASE)
+    proxy = xmlrpc.client.ServerProxy('%s/umpire' % ADDR_BASE)
     version = proxy.Ping()
     self.assertEqual({'version': 3, 'project': UMPIRE_PROJECT_NAME}, version)
 

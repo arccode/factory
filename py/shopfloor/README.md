@@ -83,9 +83,10 @@ An example implementation of Shopfloor Service in Python can be found
 An example for how to access Shopfloor Service in Python:
 
 ```py
-  import xmlrpclib
+  # python 3 only
+  import xmlrpc.client
 
-  service = xmlrpclib.ServerProxy('http://localhost:8090', allow_none=True)
+  service = xmlrpc.client.ServerProxy('http://localhost:8090', allow_none=True)
   print('Service Version: %s' % service.GetVersion())
 
   service.NotifyStart({'serials.mlb_serial_number': '123'}, 'SMT')
@@ -117,13 +118,15 @@ all input arguments and return value. To do that, prefix a ``json:`` in your
 shopfloor service URL and use ``webservice_utils`` to verify. For example:
 
 ```py
-  import xmlrpclib
+  # python 3 only
+  import xmlrpc.client
+
   from cros.factory.utils import webservice_utils
 
   # Assume your real shopfloor service is here, and all its input and output
   # must be JSON strings:
   real_url = 'http://192.168.0.1:8090'
-  proxy = xmlrpclib.ServerProxy(real_url)
+  proxy = xmlrpc.client.ServerProxy(real_url)
 
   # The input is a JSON string. The output is also JSON, for example
   # '{"vpd.ro.region": "us"}'

@@ -6,7 +6,7 @@ import contextlib
 import errno
 import json
 import os
-import xmlrpclib
+import xmlrpc.client
 
 import mock
 import rest_framework.status
@@ -153,7 +153,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
                         'shutil.copy',
                         'shutil.rmtree',
                         'os.chmod',
-                        'xmlrpclib.ServerProxy']
+                        'xmlrpc.client.ServerProxy']
 
     self.patchers = []
     self.mocks = {}
@@ -169,7 +169,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
     def MockUmpireGetActiveConfig():
       """Mock the GetActiveConfig() call because it's used so often."""
       add_config_from_blob_mock = (
-          self.mocks['xmlrpclib.ServerProxy']().AddConfigFromBlob)
+          self.mocks['xmlrpc.client.ServerProxy']().AddConfigFromBlob)
 
       # Emulate Umpire to some extend: if new config has been uploaded, return
       # it; otherwise, return the default config.
@@ -185,11 +185,11 @@ class DomeAPITest(rest_framework.test.APITestCase):
       with TestData(file_name) as c:
         return c
 
-    self.mocks['xmlrpclib.ServerProxy']().GetActiveConfig = (
+    self.mocks['xmlrpc.client.ServerProxy']().GetActiveConfig = (
         mock.MagicMock(side_effect=MockUmpireGetActiveConfig))
-    self.mocks['xmlrpclib.ServerProxy']().GetPayloadsDict = (
+    self.mocks['xmlrpc.client.ServerProxy']().GetPayloadsDict = (
         mock.MagicMock(side_effect=MockUmpireGetPayloadsDict))
-    self.mocks['xmlrpclib.ServerProxy']().GetVersion = (
+    self.mocks['xmlrpc.client.ServerProxy']().GetVersion = (
         mock.MagicMock(return_value=self.MOCK_UMPIRE_VERSION))
 
   def tearDown(self):
@@ -372,7 +372,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
                              'version': RESOURCE_VERSION}
 
     # mock Umpire AddResource() call
-    self.mocks['xmlrpclib.ServerProxy']().AddPayload = mock.MagicMock(
+    self.mocks['xmlrpc.client.ServerProxy']().AddPayload = mock.MagicMock(
         return_value={RESOURCE_TYPE: EXPECTED_RETURN_VALUE})
 
     response = self._CreateResource(self.PROJECT_WITH_UMPIRE_NAME,
@@ -383,7 +383,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
     self.assertJSONEqual(response.content, EXPECTED_RETURN_VALUE)
 
     # make sure AddResource() is called
-    self.mocks['xmlrpclib.ServerProxy']().AddPayload.assert_called_with(
+    self.mocks['xmlrpc.client.ServerProxy']().AddPayload.assert_called_with(
         mock.ANY, RESOURCE_TYPE)
 
   def testUploadResourceToNonExistingProject(self):
@@ -487,8 +487,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
   def testUploadBundle(self):
     with TestData(
         'umpire_config-uploaded.json', deserialize=False) as config_str:
-      self.mocks['xmlrpclib.ServerProxy']().GetActiveConfig = mock.MagicMock(
-          return_value=config_str)
+      self.mocks['xmlrpc.client.ServerProxy']().GetActiveConfig =\
+          mock.MagicMock(return_value=config_str)
 
     with TestData('new_bundle.json') as b:
       bundle = b
@@ -497,14 +497,14 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
     self.assertEqual(response.status_code,
                      rest_framework.status.HTTP_201_CREATED)
-    self.mocks['xmlrpclib.ServerProxy']().ImportBundle.assert_called_once()
+    self.mocks['xmlrpc.client.ServerProxy']().ImportBundle.assert_called_once()
 
   def testUploadBundleThatAlreadyExists(self):
     BUNDLE_NAME = 'existing_bundle'
     BUNDLE_NOTE = 'existing_bundle_note'
 
-    self.mocks['xmlrpclib.ServerProxy']().ImportBundle = mock.MagicMock(
-        side_effect=xmlrpclib.Fault(
+    self.mocks['xmlrpc.client.ServerProxy']().ImportBundle = mock.MagicMock(
+        side_effect=xmlrpc.client.Fault(
             -32500,  # application error, doesn't matter actually
             "UmpireError: bundle_id: '%s' already in use" % BUNDLE_NAME))
 
@@ -519,8 +519,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
     BUNDLE_NAME = 'doomed_bundle'
     BUNDLE_NOTE = 'doomed bundle'
 
-    self.mocks['xmlrpclib.ServerProxy']().ImportBundle = mock.MagicMock(
-        side_effect=xmlrpclib.Fault(
+    self.mocks['xmlrpc.client.ServerProxy']().ImportBundle = mock.MagicMock(
+        side_effect=xmlrpc.client.Fault(
             -32500,  # application error, doesn't matter actually
             'UmpireError: Unknown error'))
 
@@ -556,7 +556,7 @@ class DomeAPITest(rest_framework.test.APITestCase):
       self.assertEqual(c, self._GetUploadedConfig(0))
 
     # just make sure Update() is called
-    self.mocks['xmlrpclib.ServerProxy']().Update.assert_called_once()
+    self.mocks['xmlrpc.client.ServerProxy']().Update.assert_called_once()
 
   def _ActivateBundle(self, project_name, bundle_name):
     return self.client.put('/projects/%s/bundles/%s/' % (project_name,
@@ -620,7 +620,8 @@ class DomeAPITest(rest_framework.test.APITestCase):
 
   def _GetUploadedConfig(self, index):
     call_args_list = (
-        self.mocks['xmlrpclib.ServerProxy']().AddConfigFromBlob.call_args_list)
+        self.mocks['xmlrpc.client.ServerProxy']().AddConfigFromBlob\
+            .call_args_list)
     args, unused_kwargs = call_args_list[index]
     config_str = args[0]  # the 1st argument of AddConfigFromBlob()
     return json.loads(config_str)

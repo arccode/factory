@@ -10,7 +10,7 @@ import re
 import StringIO
 import threading
 import time
-import xmlrpclib
+import xmlrpc.client
 
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
@@ -45,7 +45,7 @@ class Error(Exception):
 def _CreateXMLRPCSensorsClient(addr=('localhost', 8000)):
   """A helper function to create the xmlrpc client for sensors data."""
   url = 'http://%s:%s' % addr
-  proxy = xmlrpclib.ServerProxy(url)
+  proxy = xmlrpc.client.ServerProxy(url)
   return proxy
 
 

@@ -10,7 +10,7 @@ from __future__ import print_function
 import contextlib
 import logging
 import os
-import xmlrpclib
+import xmlrpc.client
 
 from PIL import Image
 from PIL import ImageChops
@@ -55,7 +55,8 @@ class Chameleon(object):
   }
 
   def __init__(self, hostname, port):
-    self.chameleond = xmlrpclib.ServerProxy('http://%s:%s' % (hostname, port))
+    self.chameleond = xmlrpc.client.ServerProxy('http://%s:%s' %
+                                                (hostname, port))
 
   def Reset(self):
     """Resets the Chameleon board."""
@@ -87,7 +88,7 @@ class Chameleon(object):
     Returns:
       The ID of the created EDID instance.
     """
-    return self.chameleond.CreateEdid(xmlrpclib.Binary(edid))
+    return self.chameleond.CreateEdid(xmlrpc.client.Binary(edid))
 
   def ApplyEdid(self, port, edid_id):
     """Applies the given EDID on the port.

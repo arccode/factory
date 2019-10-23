@@ -8,7 +8,7 @@ import copy
 import logging
 import re
 import time
-import xmlrpclib
+import xmlrpc.client
 
 import serial
 
@@ -149,7 +149,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
       try:
         remote = 'http://%s:%s' % (
             port_params['dolphin_host'], port_params['dolphin_port'])
-        self._plankton_conn = xmlrpclib.ServerProxy(
+        self._plankton_conn = xmlrpc.client.ServerProxy(
             remote, verbose=False, allow_none=True)
         self._use_proxy = True
         self._usb_c_index = port_params['usb_c_index']

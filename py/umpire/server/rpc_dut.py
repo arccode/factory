@@ -10,10 +10,10 @@ import os
 import shutil
 import tarfile
 import time
-import xmlrpclib
+import xmlrpc.client
 
 from twisted.internet import threads
-from twisted.web import xmlrpc
+from twisted.web import xmlrpc as twisted_xmlrpc
 
 from cros.factory.umpire import common
 from cros.factory.umpire.server import umpire_env
@@ -23,20 +23,20 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import webservice_utils
 
 
-def Fault(message, reason=xmlrpclib.INVALID_METHOD_PARAMS):
+def Fault(message, reason=xmlrpc.client.INVALID_METHOD_PARAMS):
   """Instantiates an XMLRPC Fault() object.
 
-  xmlrpc.Fault() notifies the RPC client that remote function was terminated
-  incorrectly.
+  twisted_xmlrpc.Fault() notifies the RPC client that remote function was
+  terminated incorrectly.
   """
-  return xmlrpc.Fault(reason, message)
+  return twisted_xmlrpc.Fault(reason, message)
 
 
 def GetServerIpPortFromRequest(request, env):
   server_host = request.requestHeaders.getRawHeaders('host')[0]
   server_ip, unused_sep, server_port = server_host.partition(':')
 
-  # The Host HTTP header do contains port when using xmlrpclib.ServerProxy,
+  # The Host HTTP header do contains port when using xmlrpc.client.ServerProxy,
   # but it doesn't contains port when using twisted.web.xmlrpc.Proxy.
   # Since currently the only places that use twisted.web.xmlrpc.Proxy are
   # all inside unittests, and the returned url is not used in unittests, we
@@ -125,7 +125,7 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
     if not os.path.isfile(abspath):
       raise ValueError('File does not exist or it is not a file')
 
-    return xmlrpc.Binary(file_utils.ReadFile(abspath))
+    return twisted_xmlrpc.Binary(file_utils.ReadFile(abspath))
 
   @umpire_rpc.RPCCall
   def GetParameters(self, namespace=None, name=None):
@@ -155,10 +155,10 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
       for arcname, path in abspaths:
         tar.add(path, arcname=arcname)
       tar.close()
-      return xmlrpc.Binary(file_utils.ReadFile(tar_path))
+      return twisted_xmlrpc.Binary(file_utils.ReadFile(tar_path))
 
   @umpire_rpc.RPCCall
-  @xmlrpc.withRequest
+  @twisted_xmlrpc.withRequest
   def GetCROSPayloadURL(self, request, x_umpire_dut):
     """Gets cros_payload JSON file URL of the matched bundle.
 
@@ -268,7 +268,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
 
   def _UnwrapBlob(self, blob):
     """Unwraps a blob object."""
-    return blob.data if isinstance(blob, xmlrpclib.Binary) else blob
+    return blob.data if isinstance(blob, xmlrpc.client.Binary) else blob
 
   def _Now(self):
     """Gets current time."""
@@ -339,8 +339,8 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
 
     Raises:
       ValueError if serial is invalid, or other exceptions defined by individual
-      modules. Note this will be converted to xmlrpclib.Fault when being used as
-      a XML-RPC server module.
+      modules. Note this will be converted to xmlrpc.client.Fault when being
+      used as a XML-RPC server module.
     """
     opt_name = ('-' + report_name) if report_name else ''
     file_name = '{stage}{opt_name}-{serial}-{gmtime}.rpt.xz'.format(
@@ -424,7 +424,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
     return d
 
   @umpire_rpc.RPCCall
-  @xmlrpc.withRequest
+  @twisted_xmlrpc.withRequest
   def GetFactoryLogPort(self, request):
     """Fetches system logs rsync port."""
     unused_server_ip, server_port = GetServerIpPortFromRequest(

@@ -17,7 +17,7 @@ import threading
 import time
 import traceback
 import uuid
-from xmlrpclib import Binary
+import xmlrpc.client
 
 from six import iteritems
 from six import itervalues
@@ -1410,7 +1410,7 @@ class Goofy(object):
         proxy = server_proxy.GetServerProxy()
         proxy.UploadEvent(
             chunk.log_name + '.' + event_log.GetReimageId(),
-            Binary(chunk.chunk))
+            xmlrpc.client.Binary(chunk.chunk))
         logging.info(
             'Successfully synced %s in %.03f s',
             description, time.time() - start_time)

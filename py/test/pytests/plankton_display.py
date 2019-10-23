@@ -9,7 +9,7 @@ output to verify.
 
 import logging
 import os
-import xmlrpclib
+import xmlrpc.client
 
 from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture
@@ -91,7 +91,7 @@ class PlanktonDisplayTest(test_case.TestCase):
     self._verify_locally = not self.args.dp_verify_server
     if self.args.dp_verify_server:
       # allow_none is necessary as most of the methods return None.
-      self._verify_server = xmlrpclib.ServerProxy(
+      self._verify_server = xmlrpc.client.ServerProxy(
           self.args.dp_verify_server, allow_none=True)
     else:
       uvc_video_index = (None if self.args.uvc_video_dev_index < 0 else

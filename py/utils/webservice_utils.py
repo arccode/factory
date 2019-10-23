@@ -6,7 +6,7 @@
 
 import json
 import logging
-import xmlrpclib
+import xmlrpc.client
 
 # This is a top level helper so it can't use cros.factory.external.
 try:
@@ -27,7 +27,7 @@ except ImportError:
 try:
   from twisted.internet import defer
   from twisted.internet import threads
-  from twisted.web import xmlrpc
+  from twisted.web import xmlrpc as twisted_xmlrpc
   HAVE_TWISTED = True
 except ImportError:
   HAVE_TWISTED = False
@@ -99,7 +99,7 @@ class XMLRPCProxy(WebServiceProxy):
     self._url = url
 
   def callRemote(self, method, *args, **kargs):
-    proxy = xmlrpclib.ServerProxy(self._url, allow_none=True)
+    proxy = xmlrpc.client.ServerProxy(self._url, allow_none=True)
     return getattr(proxy, method)(*args, **kargs)
 
 
@@ -111,7 +111,7 @@ class TwistedXMLRPCProxy(WebServiceProxy):
     self._url = url
 
   def callRemote(self, method, *args, **kargs):
-    proxy = xmlrpc.Proxy(self._url, allowNone=True)
+    proxy = twisted_xmlrpc.Proxy(self._url, allowNone=True)
     return proxy.callRemote(method, *args, **kargs)
 
 

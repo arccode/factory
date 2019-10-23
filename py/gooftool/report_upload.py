@@ -13,7 +13,7 @@ import sys
 import time
 import urllib
 import urlparse
-import xmlrpclib
+import xmlrpc.client
 
 from cros.factory.gooftool.common import Shell
 from cros.factory.utils import file_utils
@@ -82,8 +82,9 @@ def ShopFloorUpload(source_path, remote_spec, stage,
   (server_url, _, serial_number) = remote_spec.partition('#')
   logging.debug('ShopFloorUpload: [%s].UploadReport(%s, %s)',
                 server_url, serial_number, source_path)
-  instance = xmlrpclib.ServerProxy(server_url, allow_none=True, verbose=False)
-  blob = xmlrpclib.Binary(file_utils.ReadFile(source_path))
+  instance = xmlrpc.client.ServerProxy(server_url, allow_none=True,
+                                       verbose=False)
+  blob = xmlrpc.client.Binary(file_utils.ReadFile(source_path))
   cmd_result = Shell('mosys platform model')
   model = ''
   if cmd_result.status == 0:
@@ -94,7 +95,7 @@ def ShopFloorUpload(source_path, remote_spec, stage,
     try:
       instance.UploadReport(serial_number, blob, option_name, stage)
       return True
-    except xmlrpclib.Fault as err:
+    except xmlrpc.client.Fault as err:
       result['message'] = 'Remote server fault #%d: %s' % (err.faultCode,
                                                            err.faultString)
       result['abort'] = True

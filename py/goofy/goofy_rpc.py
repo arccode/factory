@@ -20,7 +20,7 @@ import re
 import tempfile
 import time
 import uuid
-import xmlrpclib
+import xmlrpc.client
 
 from six import iteritems
 import yaml
@@ -288,7 +288,7 @@ class GoofyRPC(object):
       server_proxy.GetServerProxy(
           timeout=UPLOAD_FACTORY_LOGS_TIMEOUT_SECS).SaveAuxLog(
               os.path.basename(output_file),
-              xmlrpclib.Binary(data))
+              xmlrpc.client.Binary(data))
       return {'name': os.path.basename(output_file),
               'size': os.path.getsize(output_file),
               'key': archive_key}
