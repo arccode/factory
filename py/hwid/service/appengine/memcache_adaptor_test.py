@@ -5,7 +5,7 @@
 
 """Tests for memcache_adaptor."""
 
-import cPickle
+import pickle
 import unittest
 
 import mock
@@ -40,7 +40,7 @@ class MemcacheAdaptorTest(unittest.TestCase):
     self.assertEqual(0, len(chunks))
 
   @mock.patch.object(redis.Redis, 'mset')
-  @mock.patch.object(cPickle, 'dumps', return_value='aabb')
+  @mock.patch.object(pickle, 'dumps', return_value='aabb')
   def testPut(self, mock_pickle, mock_redis_mset):
     memcache_adaptor.MEMCACHE_CHUNKSIZE = 4
     data = ['aa', 'bb']
@@ -63,7 +63,7 @@ class MemcacheAdaptorTest(unittest.TestCase):
 
   @mock.patch.object(redis.Redis, 'mget',
                      return_value=['yy', 'zz'])
-  @mock.patch.object(cPickle, 'loads', return_value='pickle_return')
+  @mock.patch.object(pickle, 'loads', return_value='pickle_return')
   def testGet(self, mock_pickle, mock_redis_mget):
     memcache_adaptor.MAX_NUMBER_CHUNKS = 2
 

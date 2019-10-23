@@ -6,10 +6,10 @@
 
 from __future__ import print_function
 
-import cPickle as pickle
 import inspect
 import logging
 import os
+import pickle
 import signal
 import sys
 

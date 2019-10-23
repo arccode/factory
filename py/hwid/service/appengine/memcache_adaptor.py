@@ -4,9 +4,9 @@
 
 """A connector to memcache that deals with the 1M data size limitiation."""
 
-import cPickle
 import logging
 import os
+import pickle
 
 import redis
 from six.moves import xrange
@@ -61,7 +61,7 @@ class MemcacheAdaptor(object):
 
   def Put(self, key, value):
     """Store an object too large to fit directly into memcache."""
-    serialized_value = cPickle.dumps(value, PICKLE_PROTOCOL_VERSION)
+    serialized_value = pickle.dumps(value, PICKLE_PROTOCOL_VERSION)
 
     chunks = self.BreakIntoChunks(key, serialized_value)
     if len(chunks) > MAX_NUMBER_CHUNKS:
@@ -79,4 +79,4 @@ class MemcacheAdaptor(object):
     if not serialized_data:
       logging.debug('Memcache no data found %s', key)
       return None
-    return cPickle.loads(serialized_data)
+    return pickle.loads(serialized_data)

@@ -32,9 +32,9 @@ See https://crbug.com/733545, https://chromium-review.googlesource.com/c/603507
 for discussions.
 """
 
-import cPickle as pickle
 import logging
 import os
+import pickle
 from Queue import Queue
 import subprocess
 

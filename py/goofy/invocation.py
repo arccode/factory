@@ -6,9 +6,9 @@
 
 from __future__ import print_function
 
-import cPickle as pickle
 import logging
 import os
+import pickle
 import signal
 import sys
 import tempfile

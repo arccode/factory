@@ -3,11 +3,11 @@
 # found in the LICENSE file.
 
 import abc
-import cPickle as pickle
 import errno
 import json
 import logging
 import os
+import pickle
 import Queue
 import select
 import socket

@@ -12,9 +12,9 @@ from __future__ import print_function
 
 import argparse
 import ast
-import cPickle as pickle
 import logging
 import os
+import pickle
 import sys
 
 from cros.factory.device import device_utils

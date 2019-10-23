@@ -18,9 +18,9 @@ The `state` provides two different data set using shelve_utils.DictShelfView:
 
 from __future__ import print_function
 
-import cPickle as pickle
 import logging
 import os
+import pickle
 import shutil
 import threading
 
