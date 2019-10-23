@@ -28,6 +28,7 @@ usage_help() {
       -t | tests:   clear test data ($FACTORY_BASE/tests)
       -r | run:     clear run data (/run/factory)
       -a | all:     clear all of the above data
+      -S | stop:    only stop the service, don't respawn
       -d | vpd:     clear VPD
       -c | chrome:  restart Chrome (UI)
       -h | help:    this help screen
@@ -107,6 +108,7 @@ main() {
   local data=()
   local vpd=()
   local services=("factory")
+  local restart_factory=true
   local chrome_url="http://localhost:4012"
 
   while [ $# -gt 0 ]; do
@@ -115,6 +117,10 @@ main() {
     case "${opt}" in
       -l | log )
         data+=("${FACTORY_BASE}/log")
+        ;;
+      -S | stop )
+        restart_factory=false
+        chrome_url=""
         ;;
       -s | state )
         data+=("${FACTORY_BASE}/state")
@@ -157,8 +163,24 @@ main() {
   clear_data "${data[@]}"
   clear_vpd "${vpd[@]}"
 
+  # 'factory' service will also start 'ui' services internally, but if we don't
+  # want to restart 'factory', we need to start 'ui' services by ourselves.
+  local restart_services=()
+  if [[ "${restart_factory}" == "true" ]]; then
+    restart_services+=("factory")
+  else
+    # restart the services other than 'factory'
+    restart_services+=("${services[@]}")
+    for i in "${!restart_services[@]}"; do
+      if [[ "${restart_services[i]}" == "factory" ]]; then
+        unset 'restart_services[i]'
+      fi
+    done
+  fi
 
-  echo "Restarting factory session..."
-  start factory
+  if (( "${#restart_services[@]}" )); then
+    echo "Restarting" "${restart_services[@]}" "services..."
+    start "${restart_services[@]}"
+  fi
 }
 main "$@"
