@@ -12,6 +12,7 @@ loaded.  Beware.
 
 from __future__ import print_function
 
+import imp
 import inspect
 import logging
 import sys
@@ -127,7 +128,7 @@ class PluginLoader(object):
           # Why?  In the case that the file no longer exists on re-import,
           # __import__ would silently ignore and pass a reference to the old
           # module, but reload throws an ImportError.
-          return reload(sys.modules[search_name])
+          return imp.reload(sys.modules[search_name])
 
         __import__(search_name)
         return sys.modules[search_name]
