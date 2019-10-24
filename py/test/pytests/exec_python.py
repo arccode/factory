@@ -52,5 +52,5 @@ class ExecPythonTest(unittest.TestCase):
 
   def runTest(self):
     logging.info("Executing Python script: '''%s'''", self.args.script)
-    exec self.args.script in {'test_info': self.test_info}, {}
+    exec(self.args.script, {'test_info': self.test_info}, {})
     logging.info('Script succeeded')
