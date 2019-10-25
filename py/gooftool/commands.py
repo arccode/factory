@@ -37,7 +37,6 @@ from cros.factory.test.env import paths
 from cros.factory.test import event_log
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
-from cros.factory.test import state
 from cros.factory.utils import argparse_utils
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import ParseCmdline
@@ -592,12 +591,6 @@ def CreateReportArchive(device_sn=None, add_file=None):
   Returns:
     Path to the archive.
   """
-  # Flush Testlog data to DATA_TESTLOG_DIR before creating a report archive.
-  result, reason = state.GetInstance().FlushTestlog(
-      uplink=False, local=True, timeout=10)
-  if not result:
-    logging.warning('Failed to flush testlog data: %s', reason)
-
   def NormalizeAsFileName(token):
     return re.sub(r'\W+', '', token).strip()
 
@@ -611,7 +604,6 @@ def CreateReportArchive(device_sn=None, add_file=None):
   # Intentionally ignoring dotfiles in EVENT_LOG_DIR.
   tar_cmd = 'cd %s ; tar cJf %s *' % (event_log.EVENT_LOG_DIR, target_path)
   tar_cmd += ' %s' % paths.FACTORY_LOG_PATH
-  tar_cmd += ' %s' % paths.DATA_TESTLOG_DIR
   if add_file:
     for f in add_file:
       # Require absolute paths since the tar command may change the
