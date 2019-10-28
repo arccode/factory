@@ -234,7 +234,8 @@ class Testlog(object):
       # If we are in a subsession, use the UUID as testRunId.
       if self.in_subsession:
         station_message['testRunId'] = self.uuid
-      return self.primary_json.Log(station_message)
+      self.primary_json.Log(station_message)
+
     CapturePythonLogging(
         callback=AnnotateAndLog, level=level)
     logging.info('Testlog(%s) is capturing logging at level %s',
@@ -607,7 +608,6 @@ class JSONLogFile(file_utils.FileLockContextManager):
       os.fsync(self.file.fileno())
 
     self._thread_data.in_log = False
-    return line
 
 
 def CapturePythonLogging(callback, level=logging.DEBUG):
@@ -672,9 +672,8 @@ class TestlogLogHandler(logging.Handler):
 
     self._thread_data.in_emit = True
     event = self.format(record)
-    result = self._callback(event)
+    self._callback(event)
     self._thread_data.in_emit = False
-    return result
 
 
 class LogFormatter(logging.Formatter):
@@ -749,8 +748,7 @@ class EventBase(object):
     """Equals operator."""
     if isinstance(other, self.__class__):
       return self._data == other._data  # pylint: disable=protected-access
-    else:
-      return False
+    return False
 
   def __ne__(self, other):
     """Not equals operator."""
@@ -1001,7 +999,7 @@ class _GroupChecker(object):
   def __exit__(self, exc_type, exc_value, traceback):
     # If an exception occurs, we don't want to suppress it.
     if traceback:
-      return False
+      return
 
     if self.event.in_group != self.name:
       raise ValueError('This should not happen! Exit the wrong group!')
