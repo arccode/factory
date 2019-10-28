@@ -7,6 +7,7 @@
 from __future__ import print_function
 
 import argparse
+import json
 import logging
 import os
 import signal
@@ -144,6 +145,7 @@ class InstalogCLI(object):
       if os.path.exists(path):
         logging.info('Config file found at %s', path)
         return path
+    return None
 
   def _CheckDataDir(self, config):
     data_dir = config['instalog']['data_dir']
@@ -235,7 +237,7 @@ class InstalogCLI(object):
   def Flush(self, plugin_id, timeout):
     """Flushes the given plugin with given timeout."""
     success, value = self._core.Flush(plugin_id, timeout)
-    print(value)
+    print(json.dumps(value))
     if not success:
       sys.exit(1)
 

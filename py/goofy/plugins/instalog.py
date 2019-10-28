@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import json
 import logging
 import os
 import urlparse
@@ -30,6 +31,10 @@ _TESTLOG_JSON_MAX_BYTES = 10 * 1024 * 1024  # 10mb
 
 class Instalog(plugin.Plugin):
   """Run Instalog as a Goofy plugin."""
+
+  INPUT_TESTLOG_ID = 'testlog_json'
+  OUTPUT_UPLOAD_ID = 'output_uplink'
+  OUTPUT_FILE_ID = 'output_local'
 
   def __init__(self, goofy, uplink_hostname, uplink_port,
                uplink_use_factory_server):
@@ -114,9 +119,9 @@ class Instalog(plugin.Plugin):
             },
         },
         'input': {
-            'testlog_json': {
+            self.INPUT_TESTLOG_ID: {
                 'plugin': 'input_testlog_file',
-                'targets': 'output_uplink',
+                'targets': self.OUTPUT_UPLOAD_ID,
                 'args': {
                     'path': testlog_json_path,
                     'max_bytes': _TESTLOG_JSON_MAX_BYTES,
@@ -124,7 +129,7 @@ class Instalog(plugin.Plugin):
             },
         },
         'output': {
-            'output_uplink': {
+            self.OUTPUT_UPLOAD_ID: {
                 'plugin': 'output_http',
                 'args': {
                     'hostname': self._uplink_hostname,
@@ -132,7 +137,7 @@ class Instalog(plugin.Plugin):
                     'url_path': 'instalog'
                 },
             },
-            'output_local': {
+            self.OUTPUT_FILE_ID: {
                 'plugin': 'output_file',
                 'args': {
                     'interval': 10,
@@ -143,7 +148,7 @@ class Instalog(plugin.Plugin):
         },
     }
     if not self._uplink_enable:
-      del config['output']['output_uplink']
+      del config['output'][self.OUTPUT_UPLOAD_ID]
 
     logging.info('Instalog: Saving config YAML to: %s', self._config_path)
     with open(self._config_path, 'w') as f:
@@ -156,7 +161,7 @@ class Instalog(plugin.Plugin):
       A tuple of (success, last_seq_processed, result_string).
     """
     p = self._RunCommand(
-        ['inspect', 'testlog_json', '.last_event.seq'], read_stdout=True)
+        ['inspect', self.INPUT_TESTLOG_ID, '.last_event.seq'], read_stdout=True)
     out = p.stdout_data.rstrip()
     if p.returncode == 1:
       return False, None, out
@@ -175,7 +180,15 @@ class Instalog(plugin.Plugin):
       timeout: Time to wait before returning with failure.
 
     Returns:
-      A tuple of (success, result_string).
+      A tuple, where the first element is a boolean to represent success or not,
+      and the second element is a dictionary with the following format:
+        {
+            plugin_id: {
+                'result': 'success|timeout|error (...)',
+                'completed_count': ...,
+                'total_count': ...
+            }, ...
+        }.
     """
     if timeout is None:
       timeout = _DEFAULT_FLUSH_TIMEOUT
@@ -193,9 +206,16 @@ class Instalog(plugin.Plugin):
     success, last_seq_processed, msg = self._GetLastSeqProcessed()
     if not success:
       logging.error('FlushInput: Error encountered: %s', msg)
-      return False, msg
-    return (last_seq_processed >= last_seq_output,
-            '(%d / %d events)' % (last_seq_processed, last_seq_output))
+      return False, {self.INPUT_TESTLOG_ID: {
+          'result': 'error (%s)' % msg,
+          'completed_count': -1, 'total_count': -1}}
+    if last_seq_processed < last_seq_output:
+      return False, {self.INPUT_TESTLOG_ID: {
+          'result': 'timeout', 'completed_count': last_seq_processed,
+          'total_count': last_seq_output}}
+    return True, {self.INPUT_TESTLOG_ID: {
+        'result': 'success', 'completed_count': last_seq_processed,
+        'total_count': last_seq_output}}
 
   def FlushOutput(self, uplink=True, local=True, timeout=None):
     """Flushes Instalog's output plugin(s).
@@ -206,23 +226,34 @@ class Instalog(plugin.Plugin):
       timeout: Time to wait before returning with failure.
 
     Returns:
-      A tuple of (result, output) of the first failed plugin.
+      A tuple, where the first element is a boolean to represent success or not,
+      and the second element is a dictionary with the following format:
+        {
+            plugin_id: {
+                'result': 'success|timeout|error (...)',
+                'completed_count': ...,
+                'total_count': ...
+            }, ...
+        }.
     """
+    result = {}
     if timeout is None:
       timeout = _DEFAULT_FLUSH_TIMEOUT
     if uplink and self._uplink_enable:
       p = self._RunCommand(
-          ['flush', 'output_uplink', '--timeout', str(timeout)],
+          ['flush', self.OUTPUT_UPLOAD_ID, '--timeout', str(timeout)],
           read_stdout=True)
+      result[self.OUTPUT_UPLOAD_ID] = json.loads(p.stdout_data.rstrip())
       if p.returncode != 0:
-        return False, 'output_uplink: ' + p.stdout_data.rstrip()
+        return False, json.dumps(result)
     if local:
       p = self._RunCommand(
-          ['flush', 'output_local', '--timeout', str(timeout)],
+          ['flush', self.OUTPUT_FILE_ID, '--timeout', str(timeout)],
           read_stdout=True)
+      result[self.OUTPUT_FILE_ID] = json.loads(p.stdout_data.rstrip())
       if p.returncode != 0:
-        return False, 'output_local: ' + p.stdout_data.rstrip()
-    return True, 'Success'
+        return False, result
+    return True, result
 
   def _RunCommand(self, args, verbose=False, **kwargs):
     """Runs an Instalog command using its CLI."""

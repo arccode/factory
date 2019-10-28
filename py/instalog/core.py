@@ -6,11 +6,11 @@ from __future__ import print_function
 
 # Fix for bug b/30904731: Import _strptime manually.  Otherwise,
 # threads may initially raise the exception `AttributeError: _strptime`.
-import _strptime  # pylint: disable=unused-import
 import logging
 import os
 import threading
 import time
+import _strptime  # pylint: disable=unused-import
 
 import instalog_common  # pylint: disable=unused-import
 from instalog import flow_policy
@@ -302,22 +302,32 @@ class Instalog(plugin_sandbox.CoreAPI):
                        % (json_path, e.message))
 
   def Flush(self, plugin_id, timeout):
+    """Flushes the given plugin with given timeout.
+
+    Args:
+      plugin_id: See plugin_sandbox.PluginSandbox.
+      timeout: Seconds to wait for flushing the plugin.
+
+    Returns:
+      A tuple, where the first element is a boolean to represent success or not,
+      and the second element is a dictionary contains 'result',
+      'completed_count' and 'total_count'.
+    """
     with self._rpc_lock:
       if plugin_id not in self._plugins:
-        return False, 'Plugin `%s\' not found' % plugin_id
+        return False, {'result': 'error (Plugin does not exist)',
+                       'completed_count': -1, 'total_count': -1}
       plugin = self._plugins[plugin_id]
       if plugin.GetSuperclass() is not plugin_base.OutputPlugin:
-        return False, ('Only output plugins can be flushed (tried: `%s\')'
-                       % plugin_id)
-      if plugin.Flush(timeout, True):
+        return False, {'result': 'error (Plugin is not output plugin)',
+                       'completed_count': -1, 'total_count': -1}
+      if not plugin.Flush(timeout, True):
         progress = plugin.GetProgress()
-        return True, ('Flushed `%s\' successfully (%d / %d events)'
-                      % (plugin_id, progress[0], progress[1]))
-      else:
-        progress = plugin.GetProgress()
-        return False, ('Flush for `%s\' failed within the specified timeout '
-                       '(%d / %d events)'
-                       % (plugin_id, progress[0], progress[1]))
+        return False, {'result': 'timeout', 'completed_count': progress[0],
+                       'total_count': progress[1]}
+      progress = plugin.GetProgress()
+      return True, {'result': 'success', 'completed_count': progress[0],
+                    'total_count': progress[1]}
 
   def GetAllProgress(self, details=0):
     return self._buffer.CallPlugin('ListConsumers', details)
