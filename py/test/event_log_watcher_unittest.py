@@ -137,7 +137,7 @@ class EventLogWatcherTest(unittest.TestCase):
 
     # Manually truncate db file.
     with open(self.db, 'w') as f:
-      os.ftruncate(file.fileno(f), 10)
+      os.ftruncate(f.fileno(), 10)
 
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db)
     self.assertEqual(watcher.GetEventLog(MOCK_LOG_NAME(0)), None)

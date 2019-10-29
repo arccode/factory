@@ -304,7 +304,7 @@ def TouchFile(path):
   Args:
     path: The path to touch.
   """
-  with file(path, 'a'):
+  with open(path, 'a'):
     os.utime(path, None)
 
 
