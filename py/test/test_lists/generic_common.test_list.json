@@ -492,6 +492,7 @@
       "inherit": "FlattenGroup",
       "subtests": [
         "StationEndSyncFactoryServer",
+        "Barrier",
         "ShopfloorNotifyEnd",
         "Barrier",
         "WriteDeviceDataToVPD"
@@ -507,6 +508,7 @@
       "inherit": "FlattenGroup",
       "subtests": [
         "SyncFactoryServer",
+        "Barrier",
         "ShopfloorNotifyStart"
       ]
     },
