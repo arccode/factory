@@ -22,43 +22,43 @@ def SetupLookupTable():
   AddLookup = MockServerHandler.AddLookup
 
   # Responses for normal commands
-  NORMAL_ERR_RESPONSE = '+0,"No error"\n'
-  NORMAL_ESR_REGISTER = '+0\n'
-  NORMAL_OPC_RESPONSE = '+1\n'
-  AddLookup(r'\*CLS', None)
-  AddLookup(r'\*OPC\?', NORMAL_OPC_RESPONSE)
-  AddLookup(r'\*ESR\?', NORMAL_ESR_REGISTER)
-  AddLookup(r'SYST:ERR\?', NORMAL_ERR_RESPONSE)
+  NORMAL_ERR_RESPONSE = b'+0,"No error"\n'
+  NORMAL_ESR_REGISTER = b'+0\n'
+  NORMAL_OPC_RESPONSE = b'+1\n'
+  AddLookup(br'\*CLS', None)
+  AddLookup(br'\*OPC\?', NORMAL_OPC_RESPONSE)
+  AddLookup(br'\*ESR\?', NORMAL_ESR_REGISTER)
+  AddLookup(br'SYST:ERR\?', NORMAL_ERR_RESPONSE)
   # Identification
-  MODEL_NAME = 'Agilent Technologies,N1914A,MY50001187,A2.01.06\n'
-  MOCK_MAC_ADDRESS = '"00:30:d3:20:54:64"\n'
-  AddLookup(r'\*IDN\?', MODEL_NAME)
-  AddLookup(r'SYST:COMM:LAN:MAC\?', MOCK_MAC_ADDRESS)
+  MODEL_NAME = b'Agilent Technologies,N1914A,MY50001187,A2.01.06\n'
+  MOCK_MAC_ADDRESS = b'"00:30:d3:20:54:64"\n'
+  AddLookup(br'\*IDN\?', MODEL_NAME)
+  AddLookup(br'SYST:COMM:LAN:MAC\?', MOCK_MAC_ADDRESS)
   # Measurement format related command
-  AddLookup(r'FORM ASCii', None)
-  AddLookup(r'FORM REAL', None)
+  AddLookup(br'FORM ASCii', None)
+  AddLookup(br'FORM REAL', None)
   # Measurement speed related command
-  AddLookup(r'SENSe\d:MRATe NORMal', None)
-  AddLookup(r'SENSe\d:MRATe DOUBle', None)
-  AddLookup(r'SENSe\d:MRATe FAST', None)
+  AddLookup(br'SENSe\d:MRATe NORMal', None)
+  AddLookup(br'SENSe\d:MRATe DOUBle', None)
+  AddLookup(br'SENSe\d:MRATe FAST', None)
   # Trigger related command
-  AddLookup(r'TRIGger\d:SOURce IMMediate', None)
-  AddLookup(r'INITiate\d:CONTinuous ON', None)
+  AddLookup(br'TRIGger\d:SOURce IMMediate', None)
+  AddLookup(br'INITiate\d:CONTinuous ON', None)
   # Range related command
-  AddLookup(r'SENSe\d:POWer:AC:RANGe:AUTO \d', None)
-  AddLookup(r'SENSe\d:POWer:AC:RANGe \d', None)
+  AddLookup(br'SENSe\d:POWer:AC:RANGe:AUTO \d', None)
+  AddLookup(br'SENSe\d:POWer:AC:RANGe \d', None)
   # Frequency related command
-  AddLookup(r'SENSe\d:FREQuency [\d\.]+', None)
+  AddLookup(br'SENSe\d:FREQuency [\d\.]+', None)
   # Average related command
-  AddLookup(r'SENSe\d:AVERage:STATe \d', None)
-  AddLookup(r'SENSe\d:AVERage:COUNt \d', None)
+  AddLookup(br'SENSe\d:AVERage:STATe \d', None)
+  AddLookup(br'SENSe\d:AVERage:COUNt \d', None)
   # Fetch command in binary format
   # FETCH_EXPECTED_RESPONSE is the IEEE 754 64 bit floating
   # point representation of -65.05119874255999
-  FETCH_EXPECTED_RESPONSE = str(bytearray([192, 80, 67, 70, 215, 23, 57, 14]))
-  AddLookup(r'FETCh\d?', FETCH_EXPECTED_RESPONSE + '\n')
+  FETCH_EXPECTED_RESPONSE = bytes(bytearray([192, 80, 67, 70, 215, 23, 57, 14]))
+  AddLookup(br'FETCh\d?', FETCH_EXPECTED_RESPONSE + b'\n')
   # Other command
-  AddLookup(r'SENSe\d:CORRection:GAIN\d:STATe \d', None)
+  AddLookup(br'SENSe\d:CORRection:GAIN\d:STATe \d', None)
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)

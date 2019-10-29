@@ -36,22 +36,22 @@ class E5601CMock(object):
   _trace_map = {}
 
   # regular expression of SCPI command
-  RE_SET_TRIGGER_CONTINUOUS = r':INIT.*(\d):CONT.* (ON|OFF)$'
-  RE_TRIGGER_IMMEDIATEDLY = r':INIT.*(\d):IMM.*$'
-  RE_SET_SWEEP_TYPE = r':SENS:SWE.*:TYPE (SEGM.*|LIN.*)$'
-  RE_GET_SWEEP_TYPE = r':SENS:SWE.*:TYPE\?$'
-  RE_SET_SWEEP_SEGMENT = r':SENS:SEGM.*:DATA (.*)$'
-  RE_GET_SWEEP_SEGMENT = r':SENS:SEGM.*:DATA\?$'
-  RE_GET_X_AXIS = r':CALC.*:SEL.*:DATA:XAX.*\?$'
-  RE_SET_TRACE_COUNT = r':CALC:PAR:COUN.* (.*)$'
-  RE_GET_TRACE_COUNT = r':CALC:PAR:COUN.*\?$'
-  RE_SET_TRACE_CONFIG = r':CALC:PAR.*(\d):DEF.* [Ss](\d)(\d)$'
-  RE_GET_TRACE_CONFIG = r':CALC:PAR.*(\d):DEF.*\?$'
-  RE_GET_TRACE = r':CALC:TRACE(\d):DATA:FDAT\?$'
-  RE_SAVE_SCREENSHOT = r':MMEM.*:STOR.*:IMAG.* (.*)$'
-  RE_SET_MARKER = r':CALC.*([\d]+):SEL.*:MARK.*([\d]+):X (.*)$'
-  RE_SET_FREQ_START = r':SENS:FREQ:STAR.* (.*)$'
-  RE_SET_FREQ_STOP = r':SENS:FREQ:STOP (.*)$'
+  RE_SET_TRIGGER_CONTINUOUS = br':INIT.*(\d):CONT.* (ON|OFF)$'
+  RE_TRIGGER_IMMEDIATEDLY = br':INIT.*(\d):IMM.*$'
+  RE_SET_SWEEP_TYPE = br':SENS:SWE.*:TYPE (SEGM.*|LIN.*)$'
+  RE_GET_SWEEP_TYPE = br':SENS:SWE.*:TYPE\?$'
+  RE_SET_SWEEP_SEGMENT = br':SENS:SEGM.*:DATA (.*)$'
+  RE_GET_SWEEP_SEGMENT = br':SENS:SEGM.*:DATA\?$'
+  RE_GET_X_AXIS = br':CALC.*:SEL.*:DATA:XAX.*\?$'
+  RE_SET_TRACE_COUNT = br':CALC:PAR:COUN.* (.*)$'
+  RE_GET_TRACE_COUNT = br':CALC:PAR:COUN.*\?$'
+  RE_SET_TRACE_CONFIG = br':CALC:PAR.*(\d):DEF.* [Ss](\d)(\d)$'
+  RE_GET_TRACE_CONFIG = br':CALC:PAR.*(\d):DEF.*\?$'
+  RE_GET_TRACE = br':CALC:TRACE(\d):DATA:FDAT\?$'
+  RE_SAVE_SCREENSHOT = br':MMEM.*:STOR.*:IMAG.* (.*)$'
+  RE_SET_MARKER = br':CALC.*([\d]+):SEL.*:MARK.*([\d]+):X (.*)$'
+  RE_SET_FREQ_START = br':SENS:FREQ:STAR.* (.*)$'
+  RE_SET_FREQ_STOP = br':SENS:FREQ:STOP (.*)$'
 
   # Constants
   SWEEP_SEGMENT_PREFIX = ['5', '0', '0', '0', '0', '0']
@@ -228,16 +228,16 @@ class E5601CMock(object):
     AddLookup = MockServerHandler.AddLookup
 
     # Identification
-    MODEL_NAME = 'Agilent Technologies,E5071C,MY99999999,A.09.30\n'
-    AddLookup(r'\*IDN\?$', MODEL_NAME)
+    MODEL_NAME = b'Agilent Technologies,E5071C,MY99999999,A.09.30\n'
+    AddLookup(br'\*IDN\?$', MODEL_NAME)
     # Error codes related responses
-    AddLookup(r'\*CLS$', None)
-    NORMAL_ESR_REGISTER = '+0\n'
-    AddLookup(r'\*ESR\?$', NORMAL_ESR_REGISTER)
-    NORMAL_ERR_RESPONSE = '+0,"No error"\n'
-    AddLookup(r'SYST:ERR\?$', NORMAL_ERR_RESPONSE)
-    NORMAL_OPC_RESPONSE = '+1\n'
-    AddLookup(r'\*OPC\?$', NORMAL_OPC_RESPONSE)
+    AddLookup(br'\*CLS$', None)
+    NORMAL_ESR_REGISTER = b'+0\n'
+    AddLookup(br'\*ESR\?$', NORMAL_ESR_REGISTER)
+    NORMAL_ERR_RESPONSE = b'+0,"No error"\n'
+    AddLookup(br'SYST:ERR\?$', NORMAL_ERR_RESPONSE)
+    NORMAL_OPC_RESPONSE = b'+1\n'
+    AddLookup(br'\*OPC\?$', NORMAL_OPC_RESPONSE)
 
     # Trigger related
     AddLookup(cls.RE_SET_TRIGGER_CONTINUOUS, cls.SetTriggerContinuous)

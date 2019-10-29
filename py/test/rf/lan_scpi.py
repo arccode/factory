@@ -98,7 +98,7 @@ class LANSCPI(object):
 
     # Give equipment time to warm up if required so.
     time.sleep(self.delay)
-    self.id = self.Query('*IDN?')
+    self.id = self.Query(b'*IDN?')
 
   def Close(self):
     self.logger.info('Destroying')
@@ -124,28 +124,28 @@ class LANSCPI(object):
       wait: If True, issues an *OPC? command after the final
           command to block until all commands have completed.
     """
-    if isinstance(commands, str):
+    if isinstance(commands, bytes):
       self.Send([commands], wait)
       return
 
-    self._WriteLine('*CLS')
+    self._WriteLine(b'*CLS')
     for command in commands:
       if command[-1] == '?':
         raise Error('Called Send with query %r' % command)
       self._WriteLine(command)
-      self._WriteLine('SYST:ERR?')
+      self._WriteLine(b'SYST:ERR?')
 
     errors = []
     error_id = None
     error_msg = None
     for command in commands:
       ret = self._ReadLine()
-      if ret != '+0,"No error"':
+      if ret != b'+0,"No error"':
         errors.append('Issuing command %r: %r' % (command, ret))
       if not error_id:
         # We don't have an error ID for the exception yet;
         # try to parse the SCPI error.
-        match = re.match(r'^([-+]?\d+),"(.+)"$', ret)
+        match = re.match(br'^([-+]?\d+),"(.+)"$', ret)
         if match:
           error_id = int(match.group(1))
           error_msg = match.group(2)
@@ -154,7 +154,7 @@ class LANSCPI(object):
       raise Error('; '.join(errors), error_id, error_msg)
 
     if wait:
-      self._WriteLine('*OPC?')
+      self._WriteLine(b'*OPC?')
       ret = self._ReadLine()
       if int(ret) != 1:
         raise Error('Expected 1 after *OPC? but got %r' % ret)
@@ -170,13 +170,13 @@ class LANSCPI(object):
           file, or any other function that accepts a single string
           argument.
     """
-    if '?' not in command:
+    if b'?' not in command:
       raise Error('Called Query with non-query %r' % command)
-    self._WriteLine('*CLS')
+    self._WriteLine(b'*CLS')
     self._WriteLine(command)
 
-    self._WriteLine('*ESR?')
-    self._WriteLine('SYST:ERR?')
+    self._WriteLine(b'*ESR?')
+    self._WriteLine(b'SYST:ERR?')
 
     line1 = self._ReadLine()
     line2 = self._ReadLine()
@@ -184,12 +184,12 @@ class LANSCPI(object):
     # register.  On failure, line1 is the status register and line2
     # is the error string.  We do this to make sure that we can
     # detect an unknown header rather than just waiting forever.
-    if ',' in line2:
+    if b',' in line2:
       raise Error('Error issuing command %r: %r' % (command, line2))
 
     # Success!  Get SYST:ERR, which should be +0
     line3 = self._ReadLine()
-    if line3 != '+0,"No error"':
+    if line3 != b'+0,"No error"':
       raise Error('Error issuing command %r: %r' % (command, line3))
 
     if formatter:
@@ -212,7 +212,7 @@ class LANSCPI(object):
           file, or any other function that accepts a single string
           argument.
     """
-    if '?' not in command:
+    if b'?' not in command:
       raise Error('Called Query with non-query %r' % command)
     self._WriteLine(command)
     line1 = self._ReadBinary(expected_length)
@@ -233,7 +233,7 @@ class LANSCPI(object):
         self.logger.debug('[ (waiting)')
       ch = self.rfile.read(1)
 
-      if ch == '#':
+      if ch == b'#':
         # Binary format, which is:
         #
         # 1. A pound sign
@@ -253,18 +253,18 @@ class LANSCPI(object):
         length = int(self.rfile.read(length_length))
         ret = self.rfile.read(length)
         ch = self.rfile.read(1)
-        if ch != '\n':
+        if ch != b'\n':
           raise Error('Expected newline at end of binary data')
 
         if self.logger.isEnabledFor(logging.DEBUG):
           self.logger.debug('[binary %r', _TruncateForLogging(ret))
         return ret
-      elif ch == '\n':
+      elif ch == b'\n':
         # Empty line
         self.logger.debug('[empty')
-        return ''
+        return b''
       else:
-        ret = ch + self.rfile.readline().rstrip('\n')
+        ret = ch + self.rfile.readline().rstrip(b'\n')
         if self.logger.isEnabledFor(logging.DEBUG):
           self.logger.debug('[ %s', _TruncateForLogging(ret))
         return ret
@@ -276,16 +276,16 @@ class LANSCPI(object):
         self.logger.debug('[ (waiting)')
       ret = self.rfile.read(expected_length)
       ch = self.rfile.read(1)
-      if ch != '\n':
+      if ch != b'\n':
         raise Error('Expected newline at end of binary data')
       return ret
 
   def _WriteLine(self, command):
     """Writes a single line."""
-    if '\n' in command:
+    if b'\n' in command:
       raise Error('Newline in command: %r' % command)
     self.logger.debug('] %s', command)
-    self.wfile.write(command + '\n')
+    self.wfile.write(command + b'\n')
 
 
 #

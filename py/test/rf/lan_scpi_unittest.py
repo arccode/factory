@@ -50,7 +50,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
 
   def handle(self):
     while True:
-      line = self.rfile.readline().rstrip('\n')
+      line = self.rfile.readline().rstrip(b'\n')
       if not line:
         break
       expected_input, output = self.lookup.pop(0)
@@ -63,18 +63,18 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
 
 
 class LanScpiTest(unittest.TestCase):
-  EXPECTED_MODEL = 'Agilent Technologies,N1914A,MY50001187,A2.01.06'
-  NORMAL_ERR_RESPONSE = '+0,"No error"\n'
-  NORMAL_ESR_REGISTER = '+0\n'
-  NORMAL_OPC_RESPONSE = '+1\n'
+  EXPECTED_MODEL = b'Agilent Technologies,N1914A,MY50001187,A2.01.06'
+  NORMAL_ERR_RESPONSE = b'+0,"No error"\n'
+  NORMAL_ESR_REGISTER = b'+0\n'
+  NORMAL_OPC_RESPONSE = b'+1\n'
 
   def _AddInitialLookup(self):
     """Adds necessary lookup for every connection."""
     MockServerHandler.ResetLookup()
-    MockServerHandler.AddLookup('*CLS', None)
-    MockServerHandler.AddLookup('*IDN?', self.EXPECTED_MODEL + '\n')
-    MockServerHandler.AddLookup('*ESR?', self.NORMAL_ESR_REGISTER)
-    MockServerHandler.AddLookup('SYST:ERR?', self.NORMAL_ERR_RESPONSE)
+    MockServerHandler.AddLookup(b'*CLS', None)
+    MockServerHandler.AddLookup(b'*IDN?', self.EXPECTED_MODEL + b'\n')
+    MockServerHandler.AddLookup(b'*ESR?', self.NORMAL_ESR_REGISTER)
+    MockServerHandler.AddLookup(b'SYST:ERR?', self.NORMAL_ERR_RESPONSE)
 
   def _StartMockServer(self):
     """Starts a thread for the mock equipment."""
@@ -101,46 +101,46 @@ class LanScpiTest(unittest.TestCase):
 
   def testSend(self):
     # Setup the mock equipment.
-    TEST_COMMAND = 'SENSe1:AVERage:STATE 0'
-    MockServerHandler.AddLookup('*CLS', None)
+    TEST_COMMAND = b'SENSe1:AVERage:STATE 0'
+    MockServerHandler.AddLookup(b'*CLS', None)
     MockServerHandler.AddLookup(TEST_COMMAND, None)
-    MockServerHandler.AddLookup('SYST:ERR?', self.NORMAL_ERR_RESPONSE)
-    MockServerHandler.AddLookup('*OPC?', self.NORMAL_OPC_RESPONSE)
+    MockServerHandler.AddLookup(b'SYST:ERR?', self.NORMAL_ERR_RESPONSE)
+    MockServerHandler.AddLookup(b'*OPC?', self.NORMAL_OPC_RESPONSE)
 
     self._StartTest()
     self.lan_scpi.Send(TEST_COMMAND)
 
   def testSendWrongCommand(self):
-    TEST_COMMAND = 'CC'
-    UNKNOWN_COMMAND_RESPONSE = '-113,"Undefined header;CC<Err>$<NL>"\n'
-    MockServerHandler.AddLookup('*CLS', None)
+    TEST_COMMAND = b'CC'
+    UNKNOWN_COMMAND_RESPONSE = b'-113,"Undefined header;CC<Err>$<NL>"\n'
+    MockServerHandler.AddLookup(b'*CLS', None)
     MockServerHandler.AddLookup(TEST_COMMAND, None)
-    MockServerHandler.AddLookup('SYST:ERR?', UNKNOWN_COMMAND_RESPONSE)
-    MockServerHandler.AddLookup('*OPC?', self.NORMAL_OPC_RESPONSE)
+    MockServerHandler.AddLookup(b'SYST:ERR?', UNKNOWN_COMMAND_RESPONSE)
+    MockServerHandler.AddLookup(b'*OPC?', self.NORMAL_OPC_RESPONSE)
 
     self._StartTest()
     self.assertRaisesRegexp(lan_scpi.Error, 'Undefined header',
                             self.lan_scpi.Send, TEST_COMMAND)
 
   def testQuery(self):
-    TEST_COMMAND = 'FETCh?'
-    MockServerHandler.AddLookup('*CLS', None)
-    MockServerHandler.AddLookup(TEST_COMMAND, '33333\n')
-    MockServerHandler.AddLookup('*ESR?', self.NORMAL_ESR_REGISTER)
-    MockServerHandler.AddLookup('SYST:ERR?', self.NORMAL_ERR_RESPONSE)
+    TEST_COMMAND = b'FETCh?'
+    MockServerHandler.AddLookup(b'*CLS', None)
+    MockServerHandler.AddLookup(TEST_COMMAND, b'33333\n')
+    MockServerHandler.AddLookup(b'*ESR?', self.NORMAL_ESR_REGISTER)
+    MockServerHandler.AddLookup(b'SYST:ERR?', self.NORMAL_ERR_RESPONSE)
 
     self._StartTest()
     self.lan_scpi.Query(TEST_COMMAND)
 
   def testQueryTimeout(self):
     # Setup the mock equipment.
-    TEST_COMMAND = 'FETCh?'
+    TEST_COMMAND = b'FETCh?'
     self._AddInitialLookup()
-    MockServerHandler.AddLookup('*CLS', None)
+    MockServerHandler.AddLookup(b'*CLS', None)
     # Intensionally mute the output to trigger timeout
-    MockServerHandler.AddLookup(TEST_COMMAND, '3333')
-    MockServerHandler.AddLookup('*ESR?', None)
-    MockServerHandler.AddLookup('SYST:ERR?', None)
+    MockServerHandler.AddLookup(TEST_COMMAND, b'3333')
+    MockServerHandler.AddLookup(b'*ESR?', None)
+    MockServerHandler.AddLookup(b'SYST:ERR?', None)
 
     self._StartTest()
     self.assertRaisesRegexp(type_utils.TimeoutError, 'Timeout',
