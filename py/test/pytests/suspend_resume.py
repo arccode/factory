@@ -20,6 +20,7 @@ Will fail if device wakes too early, or if unexpected reboot (or crash) found.
 Dependency
 ----------
 - rtc's ``wakealarm`` entry in ``sysfs``.
+- ``check_powerd_config`` if the argument ``suspend_type`` is not set.
 
 Note that the rtc sysfs entry may vary from device to device, so the test_list
 must define the path to the correct sysfs entry for the specific device, the
@@ -46,6 +47,7 @@ import threading
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
+from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test import test_case
 from cros.factory.testlog import testlog
@@ -92,8 +94,10 @@ class SuspendResumeTest(test_case.TestCase):
           default='/sys/class/rtc/rtc0/since_epoch'),
       Arg('wakeup_count_path', str, 'Path to the wakeup_count file',
           default='/sys/power/wakeup_count'),
-      Arg('suspend_type', str, 'Suspend type',
-          default='mem'),
+      Arg('suspend_type', str,
+          'Suspend type.  The default is to use ``freeze`` if the platform '
+          'supports it, or ``mem`` for other cases.',
+          default=None),
       Arg('ignore_wakeup_source', str, 'Wakeup source to ignore',
           default=None),
       Arg('early_resume_retry_wait_secs', int,
@@ -128,6 +132,7 @@ class SuspendResumeTest(test_case.TestCase):
     self.ui.ToggleTemplateClass('font-large', True)
 
     self.done = False
+    self.suspend_type = None
     self.wakeup_count = ''
     self.wakeup_source_event_count = {}
     self.start_time = 0
@@ -262,8 +267,8 @@ class SuspendResumeTest(test_case.TestCase):
     try:
       # Suspend to memory. The write could fail with EBUSY if another wakeup
       # event occurred since the last write to /sys/power/wakeup_count.
-      logging.info('Writing "%s" to /sys/power/state.', self.args.suspend_type)
-      file_utils.WriteFile('/sys/power/state', self.args.suspend_type)
+      logging.info('Writing "%s" to /sys/power/state.', self.suspend_type)
+      file_utils.WriteFile('/sys/power/state', self.suspend_type)
     except IOError as err:
       if err.errno == errno.EBUSY:
         logging.info('Early wake event when attempting suspend.')
@@ -449,7 +454,20 @@ class SuspendResumeTest(test_case.TestCase):
     self.messages = messages
     return wake_source
 
+  def _ResolveSuspendType(self):
+    if self.args.suspend_type:
+      self.suspend_type = self.args.suspend_type
+    else:
+      logging.info(
+          'Suspend type is not specified, auto-detect the supported one.')
+      retcode = process_utils.Spawn(
+          ['check_powerd_config', '--suspend_to_idle'], log=True,
+          call=True).returncode
+      self.suspend_type = 'freeze' if retcode == 0 else 'mem'
+      session.console.info('Set the suspend type to %r.', self.suspend_type)
+
   def runTest(self):
+    self._ResolveSuspendType()
     self.initial_suspend_count = self._ReadSuspendCount()
     logging.info('The initial suspend count is %d.', self.initial_suspend_count)
 
