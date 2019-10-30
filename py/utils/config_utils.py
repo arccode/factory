@@ -513,7 +513,7 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
       except Exception as e:
         # Only get the `message` property of the exception to prevent
         # from dumping whole schema data in the log.
-        raise ConfigInvalidError(e.message, raw_config_list.CollectDepend())
+        raise ConfigInvalidError(str(e), raw_config_list.CollectDepend())
 
     else:
       logger('Configuration schema <%s> not validated because jsonschema '

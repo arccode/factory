@@ -501,5 +501,5 @@ if __name__ == '__main__':
   except KeyboardInterrupt:
     sys.exit(0)
   except gpio_utils.GpioManagerError as e:
-    sys.stderr.write(e.message + '\n')
+    sys.stderr.write(str(e) + '\n')
     sys.exit(1)

@@ -127,7 +127,7 @@ def main():
   except KeyboardInterrupt:
     sys.exit(0)
   except serial_server.SerialServerError as e:
-    sys.stderr.write('Error: ' + e.message)
+    sys.stderr.write('Error: ' + str(e))
     sys.exit(1)
 
 

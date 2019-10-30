@@ -97,7 +97,7 @@ def _RunPytestRaw(pytest, args, dut_options):
     arg_spec = getattr(test, 'ARGS', [])
     test.args = Args(*arg_spec).Parse(args or {})
   except Exception as e:
-    return (False, e.message)
+    return (False, str(e))
 
   # Run the test and return the result.
   result = pytest_utils.RunTestCase(test)

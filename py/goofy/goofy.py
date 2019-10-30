@@ -1117,7 +1117,7 @@ class Goofy(object):
         logging.info('Active test list: %s', self.test_list.test_list_id)
       except type_utils.TestListError as e:
         logging.exception('Invalid active test list: %s', active_test_list)
-        startup_errors.append(e.message)
+        startup_errors.append(str(e))
 
       # Show all startup errors.
       if startup_errors:

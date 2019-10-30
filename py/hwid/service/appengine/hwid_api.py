@@ -318,8 +318,8 @@ class HwidApi(remote.Service):
     try:
       self._hwid_validator.Validate(request.hwidConfigContents)
     except hwid_validator.ValidationError as e:
-      logging.exception('ValidationError: %r', e.message)
-      return hwid_api_messages.ValidateConfigResponse(errorMessage=e.message)
+      logging.exception('ValidationError: %r', str(e))
+      return hwid_api_messages.ValidateConfigResponse(errorMessage=str(e))
 
     return hwid_api_messages.ValidateConfigResponse()
 
@@ -347,9 +347,9 @@ class HwidApi(remote.Service):
       self._hwid_validator.ValidateChange(updated_contents,
                                           request.prevHwidConfigContents)
     except hwid_validator.ValidationError as e:
-      logging.exception('ValidationError: %r', e.message)
+      logging.exception('ValidationError: %r', str(e))
       return hwid_api_messages.ValidateConfigAndUpdateChecksumResponse(
-          errorMessage=e.message)
+          errorMessage=str(e))
 
     return hwid_api_messages.ValidateConfigAndUpdateChecksumResponse(
         newHwidConfigContents=updated_contents)

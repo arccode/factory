@@ -78,7 +78,7 @@ class E2ETest(unittest.TestCase):
             f.write(json.dumps({'expect': expecting_output, 'got': r}))
             failed_tests.append((test['name'], f.name))
       except Exception as e:
-        logging.exception('Unknown failure at %s: %s', test['name'], e.message)
+        logging.exception('Unknown failure at %s: %s', test['name'], str(e))
         failed_tests.append(test['name'])
 
     logging.info('[%d/%d] Passed',

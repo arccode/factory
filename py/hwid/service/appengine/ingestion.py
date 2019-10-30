@@ -298,7 +298,7 @@ class RefreshHandler(webapp2.RequestHandler):
       try:
         new_files = vpg_module.GenerateVerificationPayload(db_list)
       except vpg_module.GenerateVerificationPayloadError as ex:
-        logging.error('Generate Payload fail: %s', ex.message)
+        logging.error('Generate Payload fail: %s', str(ex))
         mail.send_mail(
             sender='ChromeOS HW Checker Bot <{}>'.format(self.hw_checker_mail),
             to=self.hw_checker_mail,

@@ -243,7 +243,7 @@ class ALSFixture(test_case.TestCase):
       self.als_controller = self.dut.ambient_light_sensor.GetController()
     except Exception as e:
       self._LogFailure(FAIL_ALS_NOT_FOUND,
-                       'Error getting ALS controller: %s' % e.message)
+                       'Error getting ALS controller: %s' % str(e))
       raise
 
     # Loads config.
@@ -253,7 +253,7 @@ class ALSFixture(test_case.TestCase):
         raise ValueError('No available configuration.')
       self._LogConfig()
     except Exception as e:
-      logging.exception('Error logging config file: %s', e.message)
+      logging.exception('Error logging config file: %s', str(e))
       raise
 
     self.read_delay = self.config['read_delay']
@@ -279,7 +279,7 @@ class ALSFixture(test_case.TestCase):
           fixture_conn=self.fixture_conn, fixture_cmd=self.args.chamber_cmd)
     except Exception as e:
       self._LogFailure(FAIL_CHAMBER_ERROR,
-                       'Error setting up ALS chamber: %s' % e.message)
+                       'Error setting up ALS chamber: %s' % str(e))
 
     self.all_sampled_lux = []  # mean of sampled lux for each light
     self.scale_factor = None  # value of calibrated scale factor
@@ -323,7 +323,7 @@ class ALSFixture(test_case.TestCase):
         self.als_controller.CleanUpCalibrationValues()
     except Exception as e:
       self._LogFailure(FAIL_ALS_CLEAN, 'Error cleaning up calibration values:'
-                       ' %s' % e.message)
+                       ' %s' % str(e))
       raise
 
     while True:
@@ -337,7 +337,7 @@ class ALSFixture(test_case.TestCase):
         self._SampleALS(light_name)
       except Exception as e:
         self._LogFailure(FAIL_ALS_SAMPLE, 'Error sampling lighting %d %s: %s' %
-                         (self.light_index, light_name, e.message))
+                         (self.light_index, light_name, str(e)))
         raise
 
     try:
@@ -345,7 +345,7 @@ class ALSFixture(test_case.TestCase):
       self._CheckALSOrdering()
     except Exception as e:
       self._LogFailure(FAIL_ALS_ORDER,
-                       'Error checking als ordering: %s' % e.message)
+                       'Error checking als ordering: %s' % str(e))
       raise
 
 
@@ -354,7 +354,7 @@ class ALSFixture(test_case.TestCase):
       self._CalculateCalibCoef()
     except Exception as e:
       self._LogFailure(FAIL_ALS_CALC, 'Error calculating calibration'
-                       ' coefficient: %s' % e.message)
+                       ' coefficient: %s' % str(e))
       raise
 
     try:
@@ -362,7 +362,7 @@ class ALSFixture(test_case.TestCase):
       self._SaveCalibCoefToVPD()
     except Exception as e:
       self._LogFailure(FAIL_ALS_VPD, 'Error setting calibration'
-                       ' coefficient to VPD: %s' % e.message)
+                       ' coefficient to VPD: %s' % str(e))
       raise
 
     try:
@@ -372,7 +372,7 @@ class ALSFixture(test_case.TestCase):
       self._ValidateALS(light_name)
     except Exception as e:
       self._LogFailure(FAIL_ALS_VALID,
-                       'Error validating calibrated ALS: %s' % e.message)
+                       'Error validating calibrated ALS: %s' % str(e))
       raise
 
   def _OnU2SInsertion(self, device):
@@ -411,7 +411,7 @@ class ALSFixture(test_case.TestCase):
       self.chamber.Connect()
     except Exception as e:
       self._LogFailure(FAIL_CHAMBER_ERROR, 'Error initializing the ALS fixture:'
-                       ' %s' % e.message)
+                       ' %s' % str(e))
       raise
     self._Log('Test fixture successfully initialized.')
 
@@ -423,7 +423,7 @@ class ALSFixture(test_case.TestCase):
       self.chamber.SetLight(light)
     except Exception as e:
       self._LogFailure(FAIL_CHAMBER_ERROR,
-                       'Error commanding ALS chamber: %s' % e.message)
+                       'Error commanding ALS chamber: %s' % str(e))
       raise
     self.Sleep(self.config['light_delay'])
 
@@ -450,7 +450,7 @@ class ALSFixture(test_case.TestCase):
           testlog.LogParam('elapsed', elapsed_time)
           self._Log('%r: %r' % (elapsed_time, buf[-1]))
     except ambient_light_sensor.AmbientLightSensorException as e:
-      logging.exception('Error reading ALS value: %s', e.message)
+      logging.exception('Error reading ALS value: %s', str(e))
       raise
     return float(np.mean(buf))
 
@@ -582,7 +582,7 @@ class ALSFixture(test_case.TestCase):
         self._ALSTest()
 
     except Exception as e:
-      fail_msg = e.message
+      fail_msg = str(e)
       self._ShowTestStatus(
           i18n.NoTranslation('ALS: FAIL %r' % fail_msg), style='color-bad')
       self.fail('Test ALS failed - %r.' % fail_msg)

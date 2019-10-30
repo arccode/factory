@@ -299,7 +299,7 @@ class Instalog(plugin_sandbox.CoreAPI):
             json_utils.WalkJSONPath(json_path, store_data))
       except Exception as e:
         return False, ('Error on inspect with JSON path `%s\': %s'
-                       % (json_path, e.message))
+                       % (json_path, str(e)))
 
   def Flush(self, plugin_id, timeout):
     """Flushes the given plugin with given timeout.

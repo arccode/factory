@@ -996,7 +996,7 @@ class StandardUITest(UITestBase):
       try:
         next(iterable)
       except type_utils.TestFailure as e:
-        self.assertRegexpMatches(e.message, r'^Timed out')
+        self.assertRegexpMatches(str(e), r'^Timed out')
         break
 
       self.AssertEventsPosted(

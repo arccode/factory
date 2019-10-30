@@ -406,10 +406,10 @@ class _ServiceTest(object):
                                ap_config.ssid, fn.__name__, status)
       except self._TestException as e:
         logging.exception('Failed to run %s(**kwargs=%s)', fn.__name__, kwargs)
-        e.message = '[%s] FAIL [%s] %s' % (
-            ap_config.ssid, fn.__name__, e.message)
-        self._log['failures'].append(e.message)
-        session.console.error(e.message)
+        message = '[%s] FAIL [%s] %s' % (
+            ap_config.ssid, fn.__name__, str(e))
+        self._log['failures'].append(message)
+        session.console.error(message)
         if abort:
           raise
 

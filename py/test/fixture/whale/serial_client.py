@@ -181,7 +181,7 @@ def main():
   except KeyboardInterrupt:
     sys.exit(0)
   except SerialClientError as e:
-    sys.stderr.write(e.message + '\n')
+    sys.stderr.write(str(e) + '\n')
     sys.exit(1)
 
 

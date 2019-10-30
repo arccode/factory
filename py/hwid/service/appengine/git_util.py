@@ -294,7 +294,7 @@ def GetCommitId(git_url_prefix, project, branch, auth_cookie):
   try:
     commit_hash = branch_info['revision']
   except KeyError as ex:
-    raise GitUtilException('KeyError: %r' % ex.message)
+    raise GitUtilException('KeyError: %r' % str(ex))
 
   return commit_hash
 

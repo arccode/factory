@@ -60,7 +60,7 @@ def PullTask():
     response_proto = factorybundle_pb2.WorkerResult()
     response_proto.status = factorybundle_pb2.WorkerResult.FAILED
     response_proto.original_request.MergeFrom(request_proto)
-    response_proto.error_message = e.message
+    response_proto.error_message = str(e)
     ResponseResult(tasks, response_proto)
 
 

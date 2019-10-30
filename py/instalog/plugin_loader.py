@@ -132,7 +132,7 @@ class PluginLoader(object):
         __import__(search_name)
         return sys.modules[search_name]
       except ImportError as e:
-        if e.message.startswith('No module named'):
+        if str(e).startswith('No module named'):
           continue
         # Any other ImportError problem.
         self._ReportException()
@@ -219,6 +219,6 @@ class PluginLoader(object):
       return plugin_class(self.config, self._logger.name, self._store,
                           self._plugin_api)
     except arg_utils.ArgError as e:
-      self._ReportException('Error parsing arguments: %s' % e.message)
+      self._ReportException('Error parsing arguments: %s' % str(e))
     except Exception:
       self._ReportException()

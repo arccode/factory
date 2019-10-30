@@ -175,7 +175,7 @@ class RetrieveConfig(unittest.TestCase):
       logging.info('Saved config to %s.', self.config_save_path)
     except Exception as e:
       logging.exception('Failed to retrieve config from factory server.')
-      raise RetrieveConfigException(e.message)
+      raise RetrieveConfigException(str(e))
 
   def _RetrieveConfigFromUSB(self):
     """Loads json config from USB drive."""
@@ -206,7 +206,7 @@ class RetrieveConfig(unittest.TestCase):
       except IOError as e:
         logging.error('Failed to copy file %s to %s, %r', pathname,
                       self.config_save_path, e)
-        raise RetrieveConfigException(e.message)
+        raise RetrieveConfigException(str(e))
 
   def _OnUSBInsertion(self, device):
     self.usb_dev_path = device.device_node

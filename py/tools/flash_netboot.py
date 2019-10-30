@@ -131,7 +131,7 @@ def main():
   try:
     netboot_flasher = FlashNetboot(args.image)
   except ValueError as e:
-    parser.error(e.message)
+    parser.error(str(e))
 
   sys.stdout.write(netboot_flasher.WarningMessage())
 

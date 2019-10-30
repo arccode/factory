@@ -218,7 +218,7 @@ class FinalizeBundle(object):
                      'toolkit', 'test_image', 'release_image', 'firmware',
                      'hwid', 'has_firmware'])
     except ValueError as e:
-      logging.error(e.message)
+      logging.error(str(e))
       raise FinalizeBundleException(
           'Invalid manifest content. '
           'Please refer to setup/BUNDLE.md (https://goo.gl/pM1pxo)')

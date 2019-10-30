@@ -39,7 +39,7 @@ class HwidValidator(object):
       database.Database.LoadData(
           hwid_config_contents, expected_checksum=expected_checksum)
     except HWIDException as e:
-      raise ValidationError(e.message)
+      raise ValidationError(str(e))
 
   def ValidateChange(self, hwid_config_contents, prev_hwid_config_contents):
     """Validates a HWID config change.
@@ -72,10 +72,10 @@ class HwidValidator(object):
       verify_db_pattern.HWIDDBsPatternTest.VerifyParsedDatabasePattern(
           prev_db, db)
     except HWIDException as e:
-      raise ValidationError(e.message)
+      raise ValidationError(str(e))
 
     if db.project in CONFIG.board_mapping:
       try:
         vpg_module.GenerateVerificationPayload([db])
       except vpg_module.GenerateVerificationPayloadError as e:
-        raise ValidationError(e.message)
+        raise ValidationError(str(e))
