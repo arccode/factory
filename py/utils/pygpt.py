@@ -71,7 +71,7 @@ class StructField(object):
 
 class UTF16StructField(StructField):
   """A field in UTF encoded string."""
-  __slots__ = ['encoding', 'max_length']
+  __slots__ = ['max_length']
   encoding = 'utf-16-le'
 
   def __init__(self, max_length, name):
