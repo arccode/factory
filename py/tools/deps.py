@@ -294,7 +294,7 @@ def LoadRules(path):
       return 3
 
   return sorted(rules.items(),
-                key=lambda (k, unused_v): (RulePriority(k), k),
+                key=lambda k_v: (RulePriority(k_v[0]), k_v[0]),
                 reverse=True)
 
 
