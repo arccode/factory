@@ -65,6 +65,11 @@ FS_TYPE_CROS_ROOTFS = 'ext2'
 PATH_CROS_FIRMWARE_UPDATER = '/usr/sbin/chromeos-firmwareupdate'
 # Relative path of lsb-factory in factory installer.
 PATH_LSB_FACTORY = os.path.join('dev_image', 'etc', 'lsb-factory')
+# Preflash disk image default board name.
+PREFLASH_DEFAULT_BOARD = 'preflash'
+# Relative path of payload metadata in a preflash disk image.
+PATH_PREFLASH_PAYLOADS_JSON = os.path.join(
+    'dev_image', 'etc', '%s.json' % PREFLASH_DEFAULT_BOARD)
 # The name of folder must match /etc/init/cros-payloads.conf.
 DIR_CROS_PAYLOADS = 'cros_payloads'
 # Relative path of RMA image metadata.
@@ -87,6 +92,8 @@ MEGABYTE = 1048576
 GIGABYTE_STORAGE = 1000000000
 # Default size of each disk block (or sector).
 DEFAULT_BLOCK_SIZE = pygpt.GPT.DEFAULT_BLOCK_SIZE
+# Components for preflash image.
+PREFLASH_COMPONENTS = ['release_image', 'test_image', 'toolkit', 'hwid']
 # Components for cros_payload.
 PAYLOAD_COMPONENTS = [
     'release_image', 'test_image',
@@ -1734,7 +1741,26 @@ class ChromeOSFactoryBundle(object):
     logging.debug('Add /etc/lsb-factory if not exists.')
     with part.Mount(rw=True) as stateful:
       Sudo(['touch', os.path.join(stateful, PATH_LSB_FACTORY)], check=False)
+      Sudo(['cp', '-pf', json_path,
+            os.path.join(stateful, PATH_PREFLASH_PAYLOADS_JSON)], check=False)
     return new_size
+
+  @staticmethod
+  def ShowDiskImage(image):
+    """Show the content of a disk image."""
+    gpt = GPT.LoadFromFile(image)
+    stateful_part = gpt.GetPartition(PART_CROS_STATEFUL)
+    with stateful_part.Mount() as stateful:
+      json_path = os.path.join(stateful, PATH_PREFLASH_PAYLOADS_JSON)
+      if not os.path.exists(json_path):
+        raise RuntimeError('Cannot find json file %s.' % json_path)
+      versions = CrosPayloadUtils.GetComponentVersions(json_path)
+
+      print(SPLIT_LINE)
+      max_len = max([len(c) for c in PREFLASH_COMPONENTS])
+      for component in PREFLASH_COMPONENTS:
+        print('%-*s: %s' % (max_len, component, versions.get(component, None)))
+      print(SPLIT_LINE)
 
   def CreateRMAImage(self, output, src_payloads_dir=None,
                      active_test_list=None):
@@ -2114,7 +2140,7 @@ class ChromeOSFactoryBundle(object):
     replaced_payloads = {
         component: payload for component, payload in kargs.iteritems()
         if payload is not None}
-    if len(replaced_payloads) == 0:
+    if not replaced_payloads:
       print('Nothing to replace.')
       return
 
@@ -2669,7 +2695,7 @@ class CreatePreflashImageCommand(SubCommand):
     with SysUtils.TempDirectory(prefix='diskimg_') as temp_dir:
       bundle = ChromeOSFactoryBundle(
           temp_dir=temp_dir,
-          board='default',
+          board=PREFLASH_DEFAULT_BOARD,
           release_image=self.args.release_image,
           test_image=self.args.test_image,
           toolkit=self.args.toolkit,
@@ -2682,6 +2708,20 @@ class CreatePreflashImageCommand(SubCommand):
           self.args.stateful_free_space, self.args.verbose)
     print('OK: Generated pre-flash disk image at %s [%s G]' % (
         self.args.output, new_size / GIGABYTE_STORAGE))
+
+
+class ShowPreflashImageCommand(SubCommand):
+  """Show the content of a disk image."""
+  name = 'preflash-show'
+
+  def Init(self):
+    self.subparser.add_argument(
+        '-i', '--image', required=True,
+        type=ArgTypes.ExistsPath,
+        help='Path to input preflash image.')
+
+  def Run(self):
+    ChromeOSFactoryBundle.ShowDiskImage(self.args.image)
 
 
 class CreateRMAImageCommmand(SubCommand):

@@ -9,6 +9,7 @@ from __future__ import print_function
 
 import argparse
 import inspect
+import json
 import os
 import shutil
 import subprocess
@@ -209,6 +210,11 @@ class ImageToolTest(unittest.TestCase):
     self.assertEqual(open('tag.1').read().strip(), 'test_image')
     self.assertEqual(open('tag.3').read().strip(), 'test_image')
     self.assertEqual(open('tag.5').read().strip(), 'release_image')
+    image_tool.Partition('disk.bin', 1).CopyFile(
+        image_tool.PATH_PREFLASH_PAYLOADS_JSON, 'preflash.json')
+    with open('preflash.json') as f:
+      data = json.load(f)
+    self.assertEqual(data['toolkit']['version'], u'Toolkit Version 1.0')
 
     self.ImageTool('bundle', '--no-firmware', '--timestamp', '20180101')
     bundle_name = 'factory_bundle_test_20180101_proto.tar.bz2'
