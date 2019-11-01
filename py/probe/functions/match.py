@@ -116,7 +116,7 @@ class MatchFunction(function.Function):
       self.rule = self.ConstructRule(self.args.rule)
 
   def Apply(self, data):
-    results = filter(self.Match, data)
+    results = list(filter(self.Match, data))
     return [{'values': res} for res in results]
 
   def Match(self, item):

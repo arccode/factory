@@ -396,7 +396,7 @@ def KillProcessTree(process, caption):
           os.kill(pid, sig)
         except OSError:
           pass
-      pids = filter(IsProcessAlive, pids)
+      pids = list(filter(IsProcessAlive, pids))
       if not pids:
         return
       time.sleep(0.2)  # Sleep 200 ms and try again

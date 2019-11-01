@@ -99,7 +99,7 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
 
     matched_file = glob.glob(glob_pathname)
     # Only return files.
-    matched_file = filter(os.path.isfile, matched_file)
+    matched_file = list(filter(os.path.isfile, matched_file))
     return [os.path.relpath(x, parameters_dir) for x in matched_file]
 
   @umpire_rpc.RPCCall

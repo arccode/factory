@@ -145,7 +145,7 @@ class ValidHWIDDBsTest(unittest.TestCase):
     exception_list = pool.map(
         _CheckProject, [(project_name, projects_info[project_name], hwid_dir)
                         for project_name in projects])
-    exception_list = filter(None, exception_list)
+    exception_list = list(filter(None, exception_list))
 
     if exception_list:
       error_msg = []

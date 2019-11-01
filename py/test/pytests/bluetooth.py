@@ -618,7 +618,7 @@ class BluetoothTest(test_case.TestCase):
     bluetooth_manager = self.dut.bluetooth
     adapter = bluetooth_manager.GetFirstAdapter(self.host_mac)
     devices = bluetooth_manager.GetAllDevices(adapter).values()
-    devices_to_unpair = filter(_ShouldUnpairDevice, devices)
+    devices_to_unpair = list(filter(_ShouldUnpairDevice, devices))
     logging.info('Unpairing %d device(s)', len(devices_to_unpair))
     for device_to_unpair in devices_to_unpair:
       address = device_to_unpair['Address']
@@ -791,7 +791,7 @@ class BluetoothTest(test_case.TestCase):
       bluetooth_manager = self.dut.bluetooth
       adapter = bluetooth_manager.GetFirstAdapter(self.host_mac)
       devices = bluetooth_manager.GetAllDevices(adapter).values()
-      connected_devices = filter(_ConnectedDevice, devices)
+      connected_devices = list(filter(_ConnectedDevice, devices))
       logging.info('Connected and paired %d device(s)', len(connected_devices))
       return not connected_devices
 

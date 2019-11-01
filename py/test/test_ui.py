@@ -291,9 +291,10 @@ class UI(object):
     base = os.path.splitext(py_script)[0]
 
     # Find and register the static directory, if any.
-    static_dirs = filter(os.path.exists,
-                         [base + '_static',
-                          os.path.join(os.path.dirname(py_script), 'static')])
+    static_dirs = list(filter(os.path.exists,
+                              [base + '_static',
+                               os.path.join(os.path.dirname(py_script),
+                                            'static')]))
     if len(static_dirs) > 1:
       raise type_utils.TestFailure(
           'Cannot have both of %s - delete one!' % static_dirs)

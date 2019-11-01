@@ -187,7 +187,7 @@ def FindDevice(*args):
       dev_filter = item
     else:
       raise ValueError('Invalid argument %r' % item)
-    candidates = filter(dev_filter, candidates)
+    candidates = list(filter(dev_filter, candidates))
 
   if len(candidates) == 1:
     return candidates[0]

@@ -269,7 +269,7 @@ class FactoryTestList(test_object_module.FactoryTest):
     """
     super(FactoryTestList, self).__init__(_root=True, subtests=subtests)
     self.state_instance = state_instance
-    self.subtests = filter(None, type_utils.FlattenList(subtests))
+    self.subtests = list(filter(None, type_utils.FlattenList(subtests)))
     self.path_map = {}
     self.root = self
     self.test_list_id = test_list_id

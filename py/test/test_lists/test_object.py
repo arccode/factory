@@ -180,8 +180,8 @@ class FactoryTest(object):
     """
     self.pytest_name = pytest_name
 
-    self.subtests = filter(None, type_utils.FlattenList(subtests or []))
-    assert len(filter(None, [pytest_name, subtests])) <= 1, (
+    self.subtests = list(filter(None, type_utils.FlattenList(subtests or [])))
+    assert len(list(filter(None, [pytest_name, subtests]))) <= 1, (
         'Only one of pytest_name and subtests can be specified')
 
     # The next test under its parent, this value will be updated by
