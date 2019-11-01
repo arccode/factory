@@ -4,6 +4,8 @@
 
 """Verifies the integrity of the root partition."""
 
+from __future__ import division
+
 import logging
 import os
 import re
@@ -113,9 +115,9 @@ class VerifyRootPartitionTest(test_case.TestCase):
           if not count:
             break
           bytes_read += count
-          pct_done = float(bytes_read) / bytes_to_read
+          pct_done = bytes_read / bytes_to_read
           message = 'Read {:.1f} MiB ({:.1%}) of {}'.format(
-              bytes_read / 1024. / 1024., pct_done, self.args.root_device)
+              bytes_read / 1024 / 1024, pct_done, self.args.root_device)
           logging.info(message)
           self.ui.SetState(message)
           self.ui.SetProgress(bytes_read)

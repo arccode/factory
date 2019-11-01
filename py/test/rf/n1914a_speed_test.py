@@ -9,6 +9,8 @@ Because N1914A supports various of sensors, this performance measuring
 tool is aimed to better understand the accuracy and speed of different
 configuration/ sensor combination.
 """
+
+from __future__ import division
 from __future__ import print_function
 
 import argparse
@@ -58,5 +60,5 @@ if __name__ == '__main__':
   # Printing the result.
   for mode_name, _ in modes:
     print('Mode[%8s]:  %8.2f reading/sec, last measurment=%10.7f dBm.' % (
-        mode_name, args.iteration / float(time_elapsed[mode_name]),
+        mode_name, args.iteration / time_elapsed[mode_name],
         last_measurment[mode_name]))

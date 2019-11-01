@@ -739,7 +739,7 @@ def GetUnusedIPV4RangeCIDR(preferred_prefix_bits=24, exclude_ip_prefix=None,
         start = max(start + step,
                     int(occupied_list[occupied_list_idx].SelectIP(-1)) + 1)
         if start % step != 0:
-          start = ((start / step) + 1) * step
+          start = (start // step + 1) * step
 
   raise RuntimeError('can not find unused IP range')
 

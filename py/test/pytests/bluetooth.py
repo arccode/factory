@@ -74,6 +74,8 @@ To pair, connect with, and disconnect with the bluetooth input device::
   }
 """
 
+from __future__ import division
+
 import contextlib
 import glob
 import logging
@@ -730,7 +732,7 @@ class BluetoothTest(test_case.TestCase):
     # Calculates maximum average RSSI.
     max_average_rssi_mac, max_average_rssi = None, -sys.float_info.max
     for mac, rssis in iteritems(candidate_rssis):
-      average_rssi = float(sum(rssis)) / len(rssis)
+      average_rssi = sum(rssis) / len(rssis)
       logging.info('Device %s has average RSSI: %f', mac, average_rssi)
       event_log.Log('avg_rssi', mac=mac, average_rssi=average_rssi)
       with self.group_checker:
@@ -870,7 +872,7 @@ class BluetoothTest(test_case.TestCase):
           'DetectRSSIofTargetMAC: Fail to get RSSI from device %s.' %
           mac_to_scan)
 
-    average_rssi = float(sum(rssis)) / len(rssis)
+    average_rssi = sum(rssis) / len(rssis)
     state.DataShelfSetValue(input_device_rssi_key, average_rssi)
     logging.info('RSSIs at MAC %s: %s', mac_to_scan, rssis)
     session.console.info('Average RSSI: %.2f', average_rssi)

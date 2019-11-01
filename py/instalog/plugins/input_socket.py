@@ -12,6 +12,7 @@ See socket_common.py for protocol definition.
 See input_socket_unittest.py for reference examples.
 """
 
+from __future__ import division
 from __future__ import print_function
 
 import hashlib

@@ -55,6 +55,7 @@ To run this test on DUT, add a test item in the test list::
   }
 """
 
+from __future__ import division
 from __future__ import print_function
 
 import collections

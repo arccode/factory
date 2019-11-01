@@ -64,6 +64,8 @@ Test 20V charge without checking the input current::
 
 """
 
+from __future__ import division
+
 import logging
 
 import factory_common  # pylint: disable=unused-import

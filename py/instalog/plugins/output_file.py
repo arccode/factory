@@ -19,6 +19,7 @@ The structure of data:
       ...
 """
 
+from __future__ import division
 from __future__ import print_function
 
 import os
@@ -155,8 +156,8 @@ class OutputFile(plugin_base.OutputPlugin):
           if (time_now - time_last) >= _PROCESS_MESSAGE_INTERVAL:
             time_last = time_now
             self.info('Currently at %.2f%% of %.2fMB before processing',
-                      100.0 * total_size / self.args.threshold_size,
-                      self.args.threshold_size / 1024.0 / 1024)
+                      100 * total_size / self.args.threshold_size,
+                      self.args.threshold_size / 1024 / 1024)
           if total_size >= self.args.threshold_size:
             break
 

@@ -9,6 +9,7 @@
 Sends events to input HTTP plugin.
 """
 
+from __future__ import division
 from __future__ import print_function
 
 import logging

@@ -11,6 +11,7 @@ Note: this module does not have any dependency on factory stuffs so that
       it could be run as a pure server e.g. on a Beagle Bone.
 """
 
+from __future__ import division
 from __future__ import print_function
 
 import ConfigParser
@@ -144,7 +145,7 @@ class BaseSensorService(object):
     failed_sensors = []
     min_value = float('inf')
     max_value = float('-inf')
-    mean = (float(sum([sum(row_data) for row_data in data])) /
+    mean = (sum([sum(row_data) for row_data in data]) /
             sum([len(row_data) for row_data in data]))
     max_row_number = len(data) - 1
     max_col_number = len(data[0]) - 1

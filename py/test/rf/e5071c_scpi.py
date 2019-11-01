@@ -7,6 +7,8 @@
 
 # TODO(itspeter): write unittest and verify it on a real E5071C
 
+from __future__ import division
+
 import bisect
 import itertools
 import logging
@@ -85,8 +87,8 @@ def Interpolate(x_values, y_values, x_position):
     return y_values[right_index]
 
   # Interpolate the value according to the x_position
-  delta_interval = (float(x_position - x_values[right_index - 1]) /
-                    float(x_values[right_index] - x_values[right_index - 1]))
+  delta_interval = ((x_position - x_values[right_index - 1]) /
+                    (x_values[right_index] - x_values[right_index - 1]))
   return (y_values[right_index - 1] +
           (y_values[right_index] - y_values[right_index - 1]) * delta_interval)
 

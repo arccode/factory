@@ -4,6 +4,7 @@
 
 """A factory test that utilizes Chameleon to do automated display testing."""
 
+from __future__ import division
 from __future__ import print_function
 
 import contextlib
@@ -312,8 +313,8 @@ class ChameleonDisplayTest(test_case.TestCase):
     with open(self.image_template_file, 'w') as output:
       with open(image_template) as f:
         output.write(f.read().format(
-            scale_width=float(width) / self.IMAGE_TEMPLATE_WIDTH,
-            scale_height=float(height) / self.IMAGE_TEMPLATE_HEIGHT))
+            scale_width=width / self.IMAGE_TEMPLATE_WIDTH,
+            scale_height=height / self.IMAGE_TEMPLATE_HEIGHT))
 
     tab_id = self.goofy_rpc.DeviceQueryTabs(window_id)[0]['id']
     url = 'http://%s:%s%s' % (

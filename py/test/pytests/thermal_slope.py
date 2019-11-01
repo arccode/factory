@@ -32,6 +32,8 @@ u"""Determines how fast the processor heats/cools.
    fails.
 """
 
+from __future__ import division
+
 import logging
 import time
 import unittest
@@ -235,7 +237,7 @@ class ThermalSlopeTest(unittest.TestCase):
       one_core_temp, one_core_power_w, one_core_duration_secs = RunStage(
           'one_core', self.args.duration_secs)
 
-    slope = (float(one_core_temp - base_temp) /
+    slope = ((one_core_temp - base_temp) /
              (one_core_power_w - base_power_w) /
              one_core_duration_secs)
     # Always use session.console for this one, since we're done and

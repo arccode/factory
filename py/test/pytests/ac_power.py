@@ -189,7 +189,7 @@ class ACPowerTest(test_case.TestCase):
       for info in usbpd_power_infos:
         if info.id != port:
           continue
-        power_watt = info.voltage * info.current / 1000000
+        power_watt = info.voltage * info.current // 1000000
         self.UpdateACPower(power_watt, power_min, power_max)
         result = testlog.CheckNumericParam(
             'usbpdpower', power_watt, min=power_min, max=power_max)

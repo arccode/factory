@@ -102,6 +102,7 @@ If this test can not properly find the device with a specific sysfs_path, try:
   "/sys" as prefix to get the full path.
 """
 
+from __future__ import division
 from __future__ import print_function
 
 import logging
@@ -485,8 +486,8 @@ class RemovableStorageTest(test_case.TestCase):
     bytes_to_operate = block_count * self.args.block_size
     # Determine the range in which the random block is selected
     random_head = ((_SKIP_HEAD_SECTOR * _SECTOR_SIZE +
-                    self.args.block_size - 1) / self.args.block_size)
-    random_tail = ((dev_size - _SKIP_TAIL_SECTOR * _SECTOR_SIZE) /
+                    self.args.block_size - 1) // self.args.block_size)
+    random_tail = ((dev_size - _SKIP_TAIL_SECTOR * _SECTOR_SIZE) //
                    self.args.block_size - block_count)
 
     if random_tail < random_head:
@@ -659,7 +660,7 @@ class RemovableStorageTest(test_case.TestCase):
       return
     dev_path = self._target_device
     # Set partition size to 128 MB or (dev_size / 2) MB
-    partition_size = min(128, (self._device_size / 2) / (1024 * 1024))
+    partition_size = min(128, (self._device_size // 2) // (1024 * 1024))
     if partition_size < _MIN_PARTITION_SIZE_MB:
       self.FailTask('The size on %s device %s is too small (only %d bytes) for '
                     'partition test.' % (self.args.media, dev_path,

@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import division
 from __future__ import print_function
 
 import argparse
@@ -109,7 +110,7 @@ def GetUsedPercentage(avail, total):
   """
   if avail == total == 0:
     return 0.0
-  return 100 - 100.0 * avail / total
+  return 100 - 100 * avail / total
 
 
 def GetPartitionUsage(vfs_info):

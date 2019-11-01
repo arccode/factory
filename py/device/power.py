@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import division
+
 import collections
 import logging
 import re
@@ -354,7 +356,7 @@ class SysfsPowerInfoMixin(PowerInfoMixinBase):
     """See PowerInfoMixinBase.GetCharge"""
     charge_now = self.GetBatteryAttribute('charge_now')
     if charge_now:
-      return int(charge_now) / 1000
+      return int(charge_now) // 1000
     else:
       return None
 
@@ -362,7 +364,7 @@ class SysfsPowerInfoMixin(PowerInfoMixinBase):
     """See PowerInfoMixinBase.GetChargeFull"""
     charge_full = self.GetBatteryAttribute('charge_full')
     if charge_full:
-      return int(charge_full) / 1000
+      return int(charge_full) // 1000
     else:
       return None
 
@@ -378,7 +380,7 @@ class SysfsPowerInfoMixin(PowerInfoMixinBase):
 
     if float(full) <= 0:
       return None  # Something wrong with the battery
-    charge_pct = float(now) * 100.0 / float(full)
+    charge_pct = float(now) * 100 / float(full)
     if get_float:
       return charge_pct
     else:
@@ -399,7 +401,7 @@ class SysfsPowerInfoMixin(PowerInfoMixinBase):
 
     if float(design_capacity) <= 0:
       return None  # Something wrong with the battery
-    return 100 - (round(float(capacity) * 100 / float(design_capacity)))
+    return 100 - (round(capacity * 100 / float(design_capacity)))
 
   def GetChargeState(self):
     """See PowerInfoMixinBase.GetChargeState"""
@@ -426,7 +428,7 @@ class SysfsPowerInfoMixin(PowerInfoMixinBase):
     current = self.GetBatteryAttribute('current_now')
     if current is None:
       raise self.Error('Cannot find %s/current_now' % self._battery_path)
-    current_ma = abs(int(current)) / 1000
+    current_ma = abs(int(current)) // 1000
     return current_ma if charging else -current_ma
 
   def GetBatteryDesignCapacity(self):
@@ -435,14 +437,14 @@ class SysfsPowerInfoMixin(PowerInfoMixinBase):
     if design_capacity is None:
       raise self.Error('Design capacity not found.')
     try:
-      return int(design_capacity) / 1000
+      return int(design_capacity) // 1000
     except Exception as e:
       raise self.Error('Unable to get battery design capacity: %s' % e)
 
   def GetBatteryVoltage(self):
     """See PowerInfoMixinBase.GetBatteryVoltage"""
     voltage = self.GetBatteryAttribute('voltage_now')
-    return int(voltage) / 1000
+    return int(voltage) // 1000
 
   def GetBatteryCycleCount(self):
     """See PowerInfoMixinBase.GetBatteryCycleCount"""
@@ -503,7 +505,7 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
 
   def GetChargePct(self, get_float=False):
     """See PowerInfoMixinBase.GetChargePct"""
-    charge_pct = self.GetCharge() * 100.0 / self.GetChargeFull()
+    charge_pct = self.GetCharge() * 100 / self.GetChargeFull()
     if get_float:
       return charge_pct
     else:
@@ -515,7 +517,7 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
     design_capacity = self.GetBatteryDesignCapacity()
     if design_capacity <= 0:
       return None  # Something wrong with the battery
-    return 100 - round(capacity * 100.0 / design_capacity)
+    return 100 - round(capacity * 100 / design_capacity)
 
   def GetChargeState(self):
     """See PowerInfoMixinBase.GetWearPct"""
@@ -665,7 +667,7 @@ class PowerDaemonPowerInfoMixin(PowerInfoMixinBase):
     design_capacity = self.GetBatteryDesignCapacity()
     if design_capacity <= 0:
       return None  # Something wrong with the battery
-    return 100 - round(capacity * 100.0 / design_capacity)
+    return 100 - round(capacity * 100 / design_capacity)
 
   def GetChargeState(self):
     """See PowerInfoMixinBase.GetChargeState"""

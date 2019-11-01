@@ -4,6 +4,8 @@
 
 """WebGL performance test that executes a set of WebGL operations."""
 
+from __future__ import division
+
 import time
 
 import factory_common  # pylint: disable=unused-import

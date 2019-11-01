@@ -523,7 +523,7 @@ class AudioQualityTest(test_case.TestCase):
       table = []
       # Record the maximum column_number, to add sufficient 'nan' to the end of
       # list if the spaces in the end of line are stripped.
-      column_number = max([len(line) / 12 + 1 for line in lines[1:]])
+      column_number = max([len(line) // 12 + 1 for line in lines[1:]])
       for line in lines[1:]:
         x = []
         for i in range(column_number):

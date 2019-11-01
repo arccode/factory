@@ -434,7 +434,7 @@ class GPT(object):
       part_entry_size = struct.calcsize(PART_FORMAT)
       parts_lba = cls.DEFAULT_PARTITIONS_LBA + pad_blocks
       parts_bytes = part_entries * part_entry_size
-      parts_blocks = parts_bytes / block_size
+      parts_blocks = parts_bytes // block_size
       if parts_bytes % block_size:
         parts_blocks += 1
       # CRC32 and PartitionsCRC32 must be updated later explicitly.
@@ -443,9 +443,9 @@ class GPT(object):
           Revision=cls.DEFAULT_REVISION,
           HeaderSize=struct.calcsize(FORMAT),
           CurrentLBA=1,
-          BackupLBA=size / block_size - 1,
+          BackupLBA=size // block_size - 1,
           FirstUsableLBA=parts_lba + parts_blocks,
-          LastUsableLBA=size / block_size - parts_blocks - parts_lba,
+          LastUsableLBA=size // block_size - parts_blocks - parts_lba,
           DiskGUID=GUID.Random(),
           PartitionEntriesStartingLBA=parts_lba,
           PartitionEntriesNumber=part_entries,
@@ -642,7 +642,7 @@ class GPT(object):
     if header is None:
       header = self.header
     size = header.PartitionEntrySize * header.PartitionEntriesNumber
-    blocks = size / self.block_size
+    blocks = size // self.block_size
     if size % self.block_size:
       blocks += 1
     return blocks
@@ -689,10 +689,10 @@ class GPT(object):
     if new_size % self.block_size:
       raise GPTError(
           'New file size %d is not valid for image files.' % new_size)
-    new_blocks = new_size / self.block_size
+    new_blocks = new_size // self.block_size
     if old_size != new_size:
       logging.warn('Image size (%d, LBA=%d) changed from %d (LBA=%d).',
-                   new_size, new_blocks, old_size, old_size / self.block_size)
+                   new_size, new_blocks, old_size, old_size // self.block_size)
     else:
       logging.info('Image size (%d, LBA=%d) not changed.',
                    new_size, new_blocks)
@@ -856,7 +856,7 @@ class GPT(object):
     if create:
       legacy_sectors = min(
           0x100000000,
-          GPT.GetImageSize(image.name) / cls.DEFAULT_BLOCK_SIZE) - 1
+          GPT.GetImageSize(image.name) // cls.DEFAULT_BLOCK_SIZE) - 1
       # Partition 0 must have have the fixed CHS with number of sectors
       # (calculated as legacy_sectors later).
       part0 = ('00000200eeffffff01000000'.decode('hex') +

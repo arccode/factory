@@ -10,7 +10,7 @@ Run "image_tool help" for more info and a list of subcommands.
 To add a subcommand, just add a new SubCommand subclass to this file.
 """
 
-
+from __future__ import division
 from __future__ import print_function
 
 import argparse
@@ -284,7 +284,7 @@ class SysUtils(object):
     """Copy partial contents from one file to another file, like 'dd'."""
     with open(src_path, 'rb') as src:
       if verbose is None:
-        verbose = count / buffer_size > 5
+        verbose = count // buffer_size > 5
       with open(dest_path, 'r+b') as dest:
         fd = dest.fileno()
         src.seek(src_offset)
@@ -301,7 +301,7 @@ class SysUtils(object):
             if sys.stderr.isatty():
               width = 5
               sys.stderr.write(
-                  '%*.1f%%%s' % (width, (1 - float(remains) / count) * 100,
+                  '%*.1f%%%s' % (width, (1 - remains / count) * 100,
                                  '\b' * (width + 1)))
             else:
               sys.stderr.write('.')
@@ -607,7 +607,7 @@ class CrosPayloadUtils(object):
           image, PART_CROS_STATEFUL, new_payloads_size - remain_size + margin)
 
     # Move the added payloads to stateful partition.
-    print('Moving payloads (%dM)...' % (new_payloads_size / MEGABYTE))
+    print('Moving payloads (%dM)...' % (new_payloads_size // MEGABYTE))
     with Partition(image, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
       Sudo(['chown', '-R', 'root:root', new_payloads_dir])
       Sudo(['rsync', '-a', new_payloads_dir, stateful])
@@ -850,14 +850,14 @@ class GPT(pygpt.GPT):
           raise RuntimeError('Failed ensuring file system integrity (e2fsck).')
         args = ['resize2fs', '-f', raw_part]
         if new_size:
-          args.append('%sM' % (new_size / MEGABYTE))
+          args.append('%sM' % (new_size // MEGABYTE))
         Sudo(args)
         real_size = self._ParseExtFileSystemSize(raw_part)
         logging.debug(
             '%s (%s) file system resized from %s (%sM) to %s (%sM), req = %s M',
-            self, self.size, old_size, old_size / MEGABYTE,
-            real_size, real_size / MEGABYTE,
-            new_size / MEGABYTE if new_size else '(ALL)')
+            self, self.size, old_size, old_size // MEGABYTE,
+            real_size, real_size // MEGABYTE,
+            new_size // MEGABYTE if new_size else '(ALL)')
       return real_size
 
     def Copy(self, dest, check_equal=True, sync=False, verbose=False):
@@ -911,7 +911,7 @@ def ExpandPartition(image, number, size):
   old_size = gpt.GetSize()
   new_size = old_size + Aligned(int(size * 1.05), part.block_size)
   print('Changing size: %d M => %d M' %
-        (old_size / MEGABYTE, new_size / MEGABYTE))
+        (old_size // MEGABYTE, new_size // MEGABYTE))
 
   Shell(['truncate', '-s', str(new_size), image])
   gpt.Resize(new_size)
@@ -934,7 +934,7 @@ def ShrinkPartition(image, number, size):
   """
   gpt = GPT.LoadFromFile(image)
   part = gpt.GetPartition(number)
-  reduced_size = (size / part.block_size) * part.block_size
+  reduced_size = (size // part.block_size) * part.block_size
   # Check that the partition is the last partition.
   if part.IsUnused() or gpt.GetMaxUsedLBA() > part.LastLBA:
     raise RuntimeError('Cannot expand partition %d; '
@@ -946,7 +946,7 @@ def ShrinkPartition(image, number, size):
   old_size = gpt.GetSize()
   new_size = old_size - reduced_size
   print('Changing size: %d M => %d M' %
-        (old_size / MEGABYTE, new_size / MEGABYTE))
+        (old_size // MEGABYTE, new_size // MEGABYTE))
 
   part.ResizeFileSystem(part.size - reduced_size)
   Shell(['truncate', '-s', str(new_size), image])
@@ -1703,7 +1703,7 @@ class ChromeOSFactoryBundle(object):
     """
     new_size = sectors * sector_size
     print('Initialize disk image in %s*%s bytes [%s G]' %
-          (sectors, sector_size, new_size / GIGABYTE_STORAGE))
+          (sectors, sector_size, new_size // GIGABYTE_STORAGE))
     pmbr_path = self.GetPMBR(self.release_image)
 
     # TODO(hungte) Support block device as output, and support 'preserve'.
@@ -1836,7 +1836,7 @@ class ChromeOSFactoryBundle(object):
           json_path, PAYLOAD_TYPE_LSB_FACTORY, lsb_file.name)
 
     payloads_size = SysUtils.GetDiskUsage(payloads_dir)
-    print('cros_payloads size: %s M' % (payloads_size / MEGABYTE))
+    print('cros_payloads size: %s M' % (payloads_size // MEGABYTE))
 
     shutil.copyfile(self.factory_shim, output)
     ExpandPartition(output, PART_CROS_STATEFUL, payloads_size)
@@ -1995,7 +1995,7 @@ class ChromeOSFactoryBundle(object):
     # pad_blocks hold header and partition tables, in front and end of image.
     new_size = (data_blocks + pad_blocks * 2) * block_size
 
-    logging.info('Creating new image file as %s M...', new_size / MEGABYTE)
+    logging.info('Creating new image file as %s M...', new_size // MEGABYTE)
     Shell(['truncate', '-s', '0', output])
     Shell(['truncate', '-s', str(new_size), output])
 
@@ -2669,11 +2669,11 @@ class ResizeFileSystemCommand(SubCommand):
     if new_size > part.size:
       raise RuntimeError(
           'Requested size (%s MB) larger than %s partition (%s MB).' % (
-              new_size / MEGABYTE, part, part.size / MEGABYTE))
+              new_size // MEGABYTE, part, part.size // MEGABYTE))
 
     new_size = part.ResizeFileSystem(new_size)
     print('OK: %s file system has been resized from %s to %s MB.' %
-          (part, curr_size / MEGABYTE, new_size / MEGABYTE))
+          (part, curr_size // MEGABYTE, new_size // MEGABYTE))
 
 
 class CreatePreflashImageCommand(SubCommand):
@@ -2719,7 +2719,7 @@ class CreatePreflashImageCommand(SubCommand):
           self.args.output, self.args.sectors, self.args.sector_size,
           self.args.stateful_free_space, self.args.verbose)
     print('OK: Generated pre-flash disk image at %s [%s G]' % (
-        self.args.output, new_size / GIGABYTE_STORAGE))
+        self.args.output, new_size // GIGABYTE_STORAGE))
 
 
 class ShowPreflashImageCommand(SubCommand):
@@ -3112,7 +3112,7 @@ class CreateDockerImageCommand(SubCommand):
     # test images.
     try:
       pv = '%s -s %s' % (SysUtils.FindCommand('pv'),
-                         os.path.getsize(image) / 3 * 2)
+                         os.path.getsize(image) // 3 * 2)
     except Exception:
       pv = 'cat'
 

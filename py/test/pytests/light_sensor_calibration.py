@@ -136,6 +136,7 @@ If you found the calibrated coefficients are skewd:
 1. This is probably you don't calibrate the light chamber recently.
 """
 
+from __future__ import division
 
 from collections import namedtuple
 import json

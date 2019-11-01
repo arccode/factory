@@ -21,6 +21,8 @@ Usage examples::
     }
 """
 
+from __future__ import division
+
 import logging
 import math
 

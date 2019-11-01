@@ -57,6 +57,8 @@ or netboot.  You can find different ways to install images at here:
 https://chromium.googlesource.com/chromiumos/platform/factory/+/master#Imaging-methods
 """
 
+from __future__ import division
+
 from collections import namedtuple
 import logging
 import re
@@ -177,7 +179,7 @@ class BadBlocksTest(test_case.TestCase):
     first_block = 0
     sector_size = 1024
     if self.args.mode == _TestModes.file:
-      last_block = self.args.max_bytes / sector_size
+      last_block = self.args.max_bytes // sector_size
       logging.info('Using a generated file at %s, size %dB, sector size %dB, '
                    'last block %d.', self.args.device_path, self.args.max_bytes,
                    sector_size, last_block)
@@ -192,7 +194,7 @@ class BadBlocksTest(test_case.TestCase):
       if self.args.device_path.startswith('/dev/'):
         partitions = sys_utils.PartitionManager(self.args.device_path, self.dut)
         sector_size = partitions.GetSectorSize()
-      last_block = self.args.max_bytes / sector_size
+      last_block = self.args.max_bytes // sector_size
       logging.info('Using an existing file at %s, size %dB, sector size %dB, '
                    'last block %d.', self.args.device_path, self.args.max_bytes,
                    sector_size, last_block)
@@ -224,12 +226,12 @@ class BadBlocksTest(test_case.TestCase):
                        (fs_block_size, sector_size))
 
       first_unused_sector = (fs_first_block + fs_block_count) * (
-          fs_block_size / sector_size)
+          fs_block_size // sector_size)
       first_block = first_unused_sector + start_sector
       sectors_to_test = sector_count - first_unused_sector
       if self.args.max_bytes:
         sectors_to_test = min(sectors_to_test,
-                              self.args.max_bytes / sector_size)
+                              self.args.max_bytes // sector_size)
       last_block = first_block + sectors_to_test - 1
 
       logging.info(', '.join(
@@ -265,7 +267,7 @@ class BadBlocksTest(test_case.TestCase):
 
     test_size_mb = '%.1f MiB' % (
         (params.last_block - params.first_block + 1) *
-        params.sector_size / 1024. ** 2)
+        params.sector_size / 1024 ** 2)
 
     self.ui.SetInstruction(
         _('Testing {test_size_mb} region of storage',
@@ -349,9 +351,8 @@ class BadBlocksTest(test_case.TestCase):
           if match:
             # The percentage reported is actually the percentage until the last
             # block; convert it to an offset within the current phase.
-            block_offset = (
-                float(match.group(1)) / 100) * (params.last_block + 1)
-            fraction_within_phase = (block_offset - params.first_block) / float(
+            block_offset = (match.group(1) / 100) * (params.last_block + 1)
+            fraction_within_phase = (block_offset - params.first_block) / (
                 params.last_block + 1 - params.first_block)
             self.ui.SetHTML(line[match.end():], id='bb-progress')
             line = line[:match.start()].strip()  # Remove percentage from status

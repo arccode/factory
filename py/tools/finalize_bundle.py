@@ -5,6 +5,7 @@
 
 """Tools to finalize a factory bundle."""
 
+from __future__ import division
 from __future__ import print_function
 
 import argparse
@@ -748,9 +749,9 @@ class FinalizeBundle(object):
       vitals.append((
           'Stateful partition size',
           '%d MiB (%d MiB free = %d%% free)' % (
-              stateful_total_bytes / 1024 / 1024,
-              stateful_free_bytes / 1024 / 1024,
-              int(stateful_free_bytes * 100.0 / stateful_total_bytes))))
+              stateful_total_bytes // 1024 // 1024,
+              stateful_free_bytes // 1024 // 1024,
+              stateful_free_bytes * 100 // stateful_total_bytes)))
       vitals.append((
           'Stateful partition inodes',
           '%d nodes (%d free)' % (stat.f_files, stat.f_ffree)))
@@ -824,7 +825,7 @@ class FinalizeBundle(object):
               log=True, check_call=True)
       logging.info(
           'Created %s (%.1f GiB).',
-          output_file, os.path.getsize(output_file) / (1024. * 1024. * 1024.))
+          output_file, os.path.getsize(output_file) / (1024 * 1024 * 1024))
 
     logging.info('The README file (%s) has been updated.  Make sure to check '
                  'that it is correct!', self.readme_path)

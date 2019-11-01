@@ -22,6 +22,7 @@ In mode A, the steps are:
    [target_rpm - error_margin, target_rpm + error_margin].
 """
 
+from __future__ import division
 
 import logging
 import time
@@ -34,8 +35,7 @@ from cros.factory.utils.arg_utils import Arg
 
 
 def _Average(numbers):
-  # Use 0.0 as the first term to sum to make sum a floating point.
-  return sum(numbers, 0.0) / len(numbers)
+  return sum(numbers, 0) / len(numbers)
 
 
 class FanSpeedTest(test_case.TestCase):
@@ -125,7 +125,7 @@ class FanSpeedTest(test_case.TestCase):
 
     num_samples = self.args.num_samples_to_use
     total_samples = len(ith_fan_samples[0])
-    if num_samples > total_samples / 2:
+    if num_samples > total_samples // 2:
       logging.error('Insufficient #samples to get average fan speed. '
                     'Use latest one instead.')
       num_samples = 1

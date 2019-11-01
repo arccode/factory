@@ -212,7 +212,7 @@ class iio_generic(object):
         if count == samples:
           break
     if param == 'mean':
-      return sum(buffers) / len(buffers)
+      return sum(buffers) // len(buffers)
     elif param == 'max':
       return max(buffers)
     elif param == 'min':
@@ -343,7 +343,7 @@ class LightSensorTest(test_case.TestCase):
           current_iter_remained -= 1
           if not current_iter_remained:
             self.ui.SetHTML('PASSED', id='result%d' % idx)
-            mean_val = cumulative_val / self._iter_req_per_subtest
+            mean_val = cumulative_val // self._iter_req_per_subtest
             logging.info('Passed subtest "%s" with mean value %d.', name,
                          mean_val)
             break

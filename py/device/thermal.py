@@ -7,6 +7,7 @@
 This module reports readings from system thermal sensors and power usage.
 """
 
+from __future__ import division
 from __future__ import print_function
 
 import logging
@@ -160,7 +161,7 @@ class CoreTempSensors(ThermalSensorSource):
 
   def _ConvertRawValue(self, value):
     """Converts coretemp raw values (milli-Celsius) into Celsius."""
-    return int(value.strip()) / 1000
+    return int(value.strip()) // 1000
 
   def GetMainSensorName(self):
     """Returns the sensor name of main (first package) coretemp node."""
@@ -194,7 +195,7 @@ class ThermalZoneSensors(ThermalSensorSource):
 
   def _ConvertRawValue(self, value):
     """Converts thermal zone raw values (milli-Celsius) to Celsius."""
-    return int(value.strip()) / 1000
+    return int(value.strip()) // 1000
 
   def GetMainSensorName(self):
     """Returns the main thermal zone (zone0) name."""

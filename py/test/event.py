@@ -395,8 +395,8 @@ class EventClientBase(object):
     if len(message) > _MAX_MESSAGE_SIZE:
       logging.error('Message too large (%d bytes): event type = %s, '
                     'truncated message: %s', len(message), event.type,
-                    message[:_MAX_MESSAGE_SIZE/20] + '\n\n...SKIPED...\n\n' +
-                    message[-_MAX_MESSAGE_SIZE/20:])
+                    message[:_MAX_MESSAGE_SIZE // 20] + '\n\n...SKIPED...\n\n' +
+                    message[-_MAX_MESSAGE_SIZE // 20:])
       raise IOError('Message too large (%d bytes)' % len(message))
     self.socket.sendall(message)
 

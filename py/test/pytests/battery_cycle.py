@@ -10,6 +10,7 @@ cycling the battery between a minimum charge (e.g., 5%) and a maximum
 charge (e.g., 95%).  Cycle times are logged to event logs.
 """
 
+from __future__ import division
 
 import collections
 import logging
@@ -227,7 +228,7 @@ class BatteryCycleTest(test_case.TestCase):
                        self.args.num_cycles)
           return
 
-        duration_hours = (time.time() - self.start_time) / (60. * 60.)
+        duration_hours = (time.time() - self.start_time) / (60 * 60)
         if (self.args.max_duration_hours and
             duration_hours >= self.args.max_duration_hours):
           logging.info('Ran for %s hours.  Success.', duration_hours)

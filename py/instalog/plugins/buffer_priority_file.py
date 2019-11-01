@@ -16,6 +16,7 @@ plugin has many consumers of simple file buffer.
 Since this is a priority multi-file-based buffer plugin, it doesn't guarantee
 the order of its events."""
 
+from __future__ import division
 from __future__ import print_function
 
 import itertools

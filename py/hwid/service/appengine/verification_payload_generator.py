@@ -110,7 +110,7 @@ def _GetHexStrRegexp(num_bits=None):
     return re.compile('0x[0-9a-f]+$', flags=re.IGNORECASE)
 
   assert num_bits % 8 == 0
-  return re.compile('0x[0-9a-f]{%d}$' % (num_bits / 4), flags=re.IGNORECASE)
+  return re.compile('0x[0-9a-f]{%d}$' % (num_bits // 4), flags=re.IGNORECASE)
 
 
 _NUMBER_REGEXP = re.compile('[0-9]+$')

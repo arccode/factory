@@ -25,6 +25,8 @@ Quick Start:
   device.ungrab()
 """
 
+from __future__ import division
+
 import copy
 import fcntl
 import struct
@@ -62,7 +64,7 @@ class TouchMonitorBase(object):
       # This function calls ioctl with EVIOCGKEY request, which returns a bit
       # array. Each bit represents if a corresponding key is pressed or not.
       KEY_CNT = 0x2ff + 1  # Defined in <uapi/linux/input-event-codes.h>.
-      nbytes = (KEY_CNT + 7) / 8
+      nbytes = (KEY_CNT + 7) // 8
       # Defined in <uapi/linux/input.h>.
       EVIOCGKEY = (2 << 30) | (ord('E') << 8) | 0x18 | (nbytes << 16)
       in_buf = '\0' * nbytes
@@ -95,7 +97,7 @@ class TouchMonitorBase(object):
     # [0, 1].
     absinfo = self._absinfos[abs_event_code]
     offset = absinfo.min
-    scale = 1 / float(absinfo.max - absinfo.min)
+    scale = 1 / (absinfo.max - absinfo.min)
     return lambda value: min(max(0.0, (value - offset) * scale), 1.0)
 
   @property

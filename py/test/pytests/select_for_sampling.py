@@ -43,6 +43,8 @@ To select about 20% of the devices, and mark using 'run_audio' key::
   }
 """
 
+from __future__ import division
+
 import hashlib
 import logging
 import unittest
@@ -74,7 +76,7 @@ class SelectForSamplingTest(unittest.TestCase):
     value = int(digest, 16)
 
     max_value = 16 ** len(digest)
-    fraction = value * 1.0 / max_value
+    fraction = value / max_value
 
     selected = fraction < self.args.rate
 

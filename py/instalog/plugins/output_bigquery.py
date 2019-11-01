@@ -20,6 +20,7 @@ Partitioned table updates limits:
 ( Source: https://cloud.google.com/bigquery/quotas )
 """
 
+from __future__ import division
 from __future__ import print_function
 
 import datetime

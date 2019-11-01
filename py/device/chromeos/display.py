@@ -113,7 +113,7 @@ class ChromeOSDisplay(display.LinuxDisplay):
     if downscale:
       def Downscale(p):
         """Downscale the given pixel from PC-scale to TV-scale."""
-        return (p - 128) * 110 / 128 + 126
+        return (p - 128) * 110 // 128 + 126
 
       image = Image.eval(image, Downscale)
 

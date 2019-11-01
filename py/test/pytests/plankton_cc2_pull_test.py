@@ -9,6 +9,8 @@ USB type-C CC2 functionailty. Note that during pull-high test USB type-C port
 should be disconnected.
 """
 
+from __future__ import division
+
 import logging
 
 import factory_common  # pylint: disable=unused-import
@@ -68,7 +70,7 @@ class PlanktonCC2PullTest(test_case.TestCase):
 
     self._whale_fixture.SetDeviceEngaged(self._pull_gpio, engage=True)
 
-    disconnect_half_secs = float(self.args.disconnect_secs) / 2
+    disconnect_half_secs = self.args.disconnect_secs / 2
     if self.args.disconnect_manually:
       # Ask operator to manually un-plug USB type-C cable
       self.ui.SetState(

@@ -99,7 +99,7 @@ _DEFAULT_TARGET_CHARGE = 78
 
 
 def FormatTime(seconds):
-  return '%d:%02d:%02d' % (seconds / 3600, (seconds / 60) % 60, seconds % 60)
+  return '%d:%02d:%02d' % (seconds // 3600, (seconds // 60) % 60, seconds % 60)
 
 
 def MakeChargeTextLabel(start, current, target, elapsed, remaining):
@@ -199,7 +199,7 @@ class ChargerTest(test_case.TestCase):
       if elapsed % 300 == 0:
         logging.info('Battery level is %d%% after %d minutes',
                      charge,
-                     elapsed / 60)
+                     elapsed // 60)
       self.Sleep(1)
 
     event_log.Log('failed_to_charge', charge=charge, target=target_charge,

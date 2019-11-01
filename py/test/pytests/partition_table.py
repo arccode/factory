@@ -47,6 +47,7 @@ by::
   }
 """
 
+from __future__ import division
 
 import logging
 import os
@@ -93,7 +94,7 @@ class PartitionTableTest(test_case.TestCase):
     device_size = 512 * int(
         self.dut.ReadFile('/sys/class/block/%s/size' % os.path.basename(dev)))
 
-    pct_used = end_sector * sector_size * 100.0 / device_size
+    pct_used = end_sector * sector_size * 100 / device_size
 
     logging.info(
         'start_sector=%d, sector_count=%d, end_sector=%d, device_size=%d',

@@ -11,6 +11,7 @@ Transmits events to an input socket plugin running on another Instalog node.
 See socket_common.py for protocol definition.
 """
 
+from __future__ import division
 from __future__ import print_function
 
 import hashlib

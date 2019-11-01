@@ -57,12 +57,12 @@ class TestlogUtilsTest(unittest.TestCase):
 
   def testJSONHandlerExceptionAndTraceback(self):
     try:
-      1 / 0
+      1 // 0
     except Exception:
       _, ex, tb = sys.exc_info()
       # pylint: disable=protected-access
       output = testlog_utils.JSONHandler(tb)
-      self.assertTrue('1 / 0' in output)
+      self.assertTrue('1 // 0' in output)
       output = testlog_utils.JSONHandler(ex)
       self.assertTrue(output.startswith('Exception: '))
 

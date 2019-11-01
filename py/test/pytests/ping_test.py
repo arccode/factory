@@ -63,6 +63,7 @@ checks the successful pings are >= 70% overall::
   }
 """
 
+from __future__ import division
 from __future__ import print_function
 
 import logging
@@ -104,7 +105,7 @@ class PingTest(test_case.TestCase):
 
   def _CheckSuccessPercentage(self, success_count, total_count, title=''):
     """Checks the percentage of successful pings is within the range."""
-    success_percentage = (float(success_count) / total_count) * 100
+    success_percentage = (success_count / total_count) * 100
     if success_percentage < self.args.ping_success_percent:
       self.FailTask(
           'Failed to meet ping success percentage: %.2f%% (expected: %d%%).' % (

@@ -206,7 +206,7 @@ class _ConfiglessFieldGetter(object):
       return 0
     size_mb = sum(int(self._db.GetComponents('dram')[comp].values['size'])
                   for comp in self._bom.components['dram'])
-    return size_mb / 1024
+    return size_mb // 1024
 
   @property
   def storage(self):
@@ -218,7 +218,7 @@ class _ConfiglessFieldGetter(object):
     sectors = sum(int(self._db.GetComponents('storage')[comp].values['sectors'])
                   for comp in self._bom.components['storage'])
     # Assume sector size is 512 bytes
-    return sectors / 2 / 1024 / 1024
+    return sectors // 2 // 1024 // 1024
 
   @property
   def version(self):

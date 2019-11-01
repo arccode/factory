@@ -500,7 +500,7 @@ class FileHashTest(unittest.TestCase):
         f.seek(0)
 
         # Test with 2 blocks.
-        block_size = len(self.test_string) / 2 + 1
+        block_size = len(self.test_string) // 2 + 1
         two_ret = file_utils.FileHash(
             self.temp_file, 'md5', block_size=block_size).hexdigest()
         m_file.read.assert_has_calls([mock.call(block_size)] * 3)

@@ -299,7 +299,7 @@ def BINARY_FLOATS(binary_string):
   if len(binary_string) % 4:
     raise Error('Binary float data contains %d bytes '
                 '(not a multiple of 4)' % len(binary_string))
-  return struct.unpack('>' + 'f' * (len(binary_string) / 4), binary_string)
+  return struct.unpack('>' + 'f' * (len(binary_string) // 4), binary_string)
 
 
 def BINARY_FLOATS_WITH_LENGTH(expected_length):

@@ -37,7 +37,7 @@ class I2CSlave(types.DeviceComponent):
     """Encodes a register address in big endian."""
     if self._reg_width == 0:
       return ''
-    return struct.pack('>I', address)[-(self._reg_width / 8):]
+    return struct.pack('>I', address)[-(self._reg_width // 8):]
 
   def WriteRead(self, write_data, read_count=None):
     """Implements hdctools wr_rd() interface.

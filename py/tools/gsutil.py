@@ -4,6 +4,8 @@
 
 """A tool for gsutil."""
 
+from __future__ import division
+
 from distutils import version
 import logging
 import os
@@ -257,7 +259,7 @@ class GSUtil(object):
     cached_path = os.path.join(cache_dir, uri.replace('/', '!'))
     if os.path.exists(cached_path):
       logging.info('Using cached %s (%.1f MiB)',
-                   uri, os.path.getsize(cached_path) / (1024. * 1024.))
+                   uri, os.path.getsize(cached_path) / (1024 * 1024))
       return cached_path
 
     in_progress_path = cached_path + '.INPROGRESS'
