@@ -16,7 +16,6 @@ import hashlib
 import json
 import os
 import shutil
-import string
 import subprocess
 import sys
 
@@ -68,7 +67,7 @@ def RunQuery(args):
       '    attachment.key LIKE "%%%s%%" AND',
       '    time >= TIMESTAMP("%s") AND',
       '    time < TIMESTAMP("%s")']
-  query_statement = string.join(query_statement_words, '\n')
+  query_statement = '\n'.join(query_statement_words)
   query = query_statement % (
       DATE_FORMAT, args.serial_number_key, PROJECT_ID, args.dataset_id,
       args.attachment_key, args.start_date, args.end_date)
