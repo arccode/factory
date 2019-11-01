@@ -135,7 +135,7 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
              probe=False, var='/var', usr_local='/usr/local', etc='/etc'):
   """Saves dmesg and relevant log files to a new archive in output_dir.
 
-  The archive will be named factory_bug.<description>.<timestamp>.tar.bz2,
+  The archive will be named factory_bug.<description>.<timestamp>.zip,
   where description is the 'description' argument (if provided).
 
   Args:
@@ -152,17 +152,17 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
   filename = 'factory_bug.'
   if archive_id:
     filename += archive_id.replace('/', '') + '.'
-  filename += '%s.tar.bz2' % time_utils.TimeString(time_separator='_',
-                                                   milliseconds=False)
+  filename += '%s.zip' % time_utils.TimeString(time_separator='_',
+                                               milliseconds=False)
 
   output_file = os.path.join(output_dir, filename)
 
   if sys_utils.InChroot():
-    # Just save a dummy tarball.
+    # Just save a dummy zip.
     with file_utils.TempDirectory() as d:
       open(os.path.join(os.path.join(d, 'dummy-factory-bug')), 'w').close()
-      Spawn(['tar', 'cfj', output_file, '-C', d, 'dummy-factory-bug'],
-            check_call=True)
+      Spawn(['zip', os.path.join(d, output_file),
+             os.path.join(d, 'dummy-factory-bug')], check_call=True)
     return output_file
 
   tmp = tempfile.mkdtemp(prefix='factory_bug.')
@@ -197,7 +197,7 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
               stdout=f, stderr=f, call=True)
       files += ['ec_console']
 
-    # Cannot tar an unseekable file, need to manually copy it instead.
+    # Cannot zip an unseekable file, need to manually copy it instead.
     with open(os.path.join(tmp, 'bios_log'), 'w') as f:
       Spawn(['cat', '/sys/firmware/log'], stdout=f, call=True)
       files += ['bios_log']
@@ -222,6 +222,26 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
             '/sys/fs/pstore',
         ]], [])
 
+    # Add an additional file to support android bug tool
+    abt_file = 'abt.txt'
+    with open(os.path.join(tmp, abt_file), 'w') as fp:
+      os.chdir(tmp)
+      for path_name in files:
+        if os.path.isdir(path_name):
+          file_list = []
+          for root_path, _, log_files in os.walk(path_name):
+            file_list += [os.path.join(root_path, log_file)
+                          for log_file in log_files]
+        else:
+          file_list = [path_name]
+        for log_file in file_list:
+          if os.path.exists(log_file):
+            fp.write('%s=<multi-line>\n' % log_file)
+            fp.write('---------- START ----------\n')
+            fp.write(file_utils.ReadFile(log_file))
+            fp.write('---------- END ----------\n')
+    files += [abt_file]
+
     # Name of Chrome data directory within the state directory.
     chrome_data_dir_name = 'chrome-data-dir'
 
@@ -235,19 +255,16 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
 
     file_utils.TryMakeDirs(os.path.dirname(output_file))
     logging.info('Saving %s to %s...', files, output_file)
-    compress_method = ['tar', 'cfj', output_file]
-    compressor = file_utils.GetCompressor('bz2')
-    if compressor is not None:
-      compress_method = ['tar', '-I', compressor, '-cf', output_file]
-    process = Spawn(compress_method + exclude_files + files,
+    compress_method = ['zip', output_file]
+    process = Spawn(compress_method + exclude_files + ['-r'] + files,
                     cwd=tmp, call=True,
                     ignore_stdout=True,
                     read_stderr=True)
     # 0 = successful termination
     # 1 = non-fatal errors like "some files differ"
     if process.returncode not in [0, 1]:
-      logging.error('tar stderr:\n%s', process.stderr_data)
-      raise IOError('tar process failed with returncode %d' %
+      logging.error('zip stderr:\n%s', process.stderr_data)
+      raise IOError('zip process failed with returncode %d' %
                     process.returncode)
 
     return output_file
