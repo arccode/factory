@@ -512,7 +512,7 @@ class SensorServiceRyu(BaseSensorService):
       else:
         values = line.split()
         if len(values) == self.num_cols:
-          out_data.append(map(int, values))
+          out_data.append(list(map(int, values)))
     return out_data
 
   def VerifyDeltasTouched(self, data):

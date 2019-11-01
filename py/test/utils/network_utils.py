@@ -299,5 +299,5 @@ def GetDHCPInterfaceBlacklist(blacklist_file=None):
                                   'dhcp_interface_blacklist')
   if os.path.exists(blacklist_file):
     with open(blacklist_file) as f:
-      return map(str.strip, f.readlines())
+      return list(map(str.strip, f.readlines()))
   return []

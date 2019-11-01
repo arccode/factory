@@ -334,7 +334,7 @@ class Toybox(types.DeviceComponent):
     mem = raw_output[1].split()[1:]
     cache = raw_output[2].split()[2:]
     swap = raw_output[3].split()[1:]
-    return self.MEM_FREE_TUPLE(*map(int, mem + cache + swap))
+    return self.MEM_FREE_TUPLE(*list(map(int, mem + cache + swap)))
 
   def freeramdisk(self, *args, **kargs):
     raise NotImplementedError

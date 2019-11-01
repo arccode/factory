@@ -180,7 +180,7 @@ class JSONProxyFilter(WebServiceProxy):
       raise TypeError(
           'Keyword arguments (%r) not allowed for web service method: %s.' %
           (kargs, method))
-    result = self._proxy.callRemote(method, *map(json.dumps, args))
+    result = self._proxy.callRemote(method, *list(map(json.dumps, args)))
     if HAVE_TWISTED and isinstance(result, defer.Deferred):
       return result.addCallback(json.loads)
     return json.loads(result)

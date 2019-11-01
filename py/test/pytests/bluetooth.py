@@ -892,7 +892,7 @@ class BluetoothTest(test_case.TestCase):
               ' exp: [%.2f, %.2f]' % (average_rssi_lower_threshold,
                                       average_rssi_upper_threshold))
     data = ('Average RSSI: %.2f %s  (%s)\n' %
-            (average_rssi, map(int, rssis), status))
+            (average_rssi, list(map(int, rssis)), status))
     _AppendLog(self.log_tmp_file, data)
 
     if fail_msg:

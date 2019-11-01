@@ -265,7 +265,7 @@ class VSWR(test_case.TestCase):
 
     # TODO(littlecvr): Name is not right.
     ports = list(measurement_sequence)
-    traces = self._ena.GetTraces(map(_PortName, ports))
+    traces = self._ena.GetTraces(list(map(_PortName, ports)))
     trace = self._SerializeTraces(traces)
 
     self.test_passed = True

@@ -92,5 +92,5 @@ class GlobPathFunction(probe_function.ProbeFunction):
   def Probe(self):
     paths = glob.glob(self.args.pathname)
     if self.args.filename_only:
-      paths = map(os.path.basename, paths)
+      paths = list(map(os.path.basename, paths))
     return [{self.args.key: path} for path in paths]

@@ -376,7 +376,7 @@ def KillProcessTree(process, caption):
 
     def add_children(pid):
       pids.append(pid)
-      map(add_children, children.get(pid, []))
+      list(map(add_children, children.get(pid, [])))
     add_children(root)
     # Reverse the list to first kill children then parents.
     # Note reversed(pids) will return an iterator instead of real list, so

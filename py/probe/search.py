@@ -45,7 +45,8 @@ def GenerateProbeStatement(comp_cls):
                 comp_cls, func_expression)
   results = function.InterpretFunction(func_expression)()
   if results:
-    results = map(dict, set(frozenset(result.items()) for result in results))
+    results = list(map(
+        dict, set(frozenset(result.items()) for result in results)))
     for result in results:
       comp_name = builder.DetermineComponentName(
           comp_cls, result, list(statement[comp_cls]))

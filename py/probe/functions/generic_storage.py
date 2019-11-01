@@ -117,7 +117,7 @@ def GetStorageFirmwareVersion(node_path):
       # According to b/35513546, 'CS's in firmware version of SanDisk are
       # equivalent to '11's.
       cooked_version = re.sub('^CS', '11', cooked_version)
-    return CookVersion(map(ord, cooked_version))
+    return CookVersion(list(map(ord, cooked_version)))
   return None
 
 class GenericStorageFunction(cached_probe_function.CachedProbeFunction):

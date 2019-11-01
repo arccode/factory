@@ -59,8 +59,8 @@ class ApproxMatchFunction(match.MatchFunction):
           default=1)]
 
   def Apply(self, data):
-    match_results = self.ApproxMatchFilter(map(self.Match, data))
-    return map(self.GenerateResult, match_results)
+    match_results = self.ApproxMatchFilter(list(map(self.Match, data)))
+    return list(map(self.GenerateResult, match_results))
 
   def Match(self, item):
     def _Match(matcher, value):

@@ -298,7 +298,7 @@ def ParseGraphyteArguments(test_item):
       pass
     return value_str
 
-  items = map(_ConvertDataType, test_item.split(' '))
+  items = list(map(_ConvertDataType, test_item.split(' ')))
   common_fields = ['rf_type', 'component_name', 'test_type', 'center_freq']
   if items[0] == 'WLAN':
     extra_fields = ['standard', 'data_rate', 'bandwidth', 'chain_mask']

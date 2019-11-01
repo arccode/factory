@@ -165,12 +165,13 @@ class SystemStatus(types.DeviceComponent):
 
   @StatusProperty
   def load_avg(self):
-    return map(float, self._device.ReadFile('/proc/loadavg').split()[0:3])
+    return list(map(
+        float, self._device.ReadFile('/proc/loadavg').split()[0:3]))
 
   @StatusProperty
   def cpu(self):
-    return map(int,
-               self._device.ReadFile('/proc/stat').splitlines()[0].split()[1:])
+    return list(map(
+        int, self._device.ReadFile('/proc/stat').splitlines()[0].split()[1:]))
 
   @StatusProperty
   def ips(self):

@@ -40,7 +40,7 @@ def main():
   pytest_list = pytest_utils.GetPytestList(options.base_dir)
 
   if options.label:
-    pytest_list = map(_ToI18nLabel, pytest_list)
+    pytest_list = list(map(_ToI18nLabel, pytest_list))
 
   print(json.dumps(pytest_list))
 
