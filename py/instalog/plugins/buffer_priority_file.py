@@ -330,12 +330,12 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
             consumers_dict['%s(%d-%d)' % (name, pri_level, file_num)] = (
                 progress_dict[name][pri_level][file_num])
         progress_dict[name][pri_level] = tuple(
-            map(sum, zip(*progress_dict[name][pri_level].values())))
+            map(sum, list(zip(*progress_dict[name][pri_level].values()))))
         if details == 1:
           consumers_dict['%s(%d)' % (name, pri_level)] = (
               progress_dict[name][pri_level])
       progress_dict[name] = tuple(
-          map(sum, zip(*progress_dict[name].values())))
+          map(sum, list(zip(*progress_dict[name].values()))))
       if details <= 0:
         consumers_dict[name] = progress_dict[name]
     return consumers_dict

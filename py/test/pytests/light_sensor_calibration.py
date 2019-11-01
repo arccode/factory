@@ -531,7 +531,7 @@ class ALSFixture(test_case.TestCase):
 
     def ScaleFactor(xs, ys):
       base = (xs[0], ys[0])
-      samples = zip(xs[1:], ys[1:])
+      samples = list(zip(xs[1:], ys[1:]))
       return float(np.mean([Slope(base, s) for s in samples]))
 
     self.scale_factor = ScaleFactor(self.all_sampled_lux,

@@ -392,8 +392,8 @@ class DRMKeysProvisioningServer(object):
           'INSERT INTO drm_keys ('
           '    project_name, drm_key_hash, encrypted_drm_key) '
           'VALUES (?, ?, ?)',
-          zip([project['name']] * len(encrypted_serialized_drm_key_list),
-              drm_key_hash_list, encrypted_serialized_drm_key_list))
+          list(zip([project['name']] * len(encrypted_serialized_drm_key_list),
+                   drm_key_hash_list, encrypted_serialized_drm_key_list)))
 
   def AvailableKeyCount(self, requester_signature):
     """Queries the number of remaining keys.

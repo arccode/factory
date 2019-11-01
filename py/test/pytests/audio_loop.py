@@ -776,7 +776,7 @@ class AudioLoopTest(test_case.TestCase):
   def FailTest(self):
     """Fails test."""
     session.console.info('Test results for each output volumes: %r',
-                         zip(self._output_volumes, self._test_results))
+                         list(zip(self._output_volumes, self._test_results)))
     self.FailTask('; '.join(self._test_message))
 
   def CheckDongleStatus(self):
