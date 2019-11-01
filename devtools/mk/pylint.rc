@@ -33,7 +33,33 @@
 # multiple times.
 enable=
     deprecated-itertools-function,
+    deprecated-string-function,
+    dict-items-not-iterating,
+    dict-iter-method,
     dict-keys-not-iterating,
+    dict-values-not-iterating,
+    dict-view-method,
+    cmp-builtin,
+    cmp-method,
+    exception-message-attribute,
+    file-builtin,
+    filter-builtin-not-iterating,
+    long-builtin,
+    long-suffix,
+    map-builtin-not-iterating,
+    metaclass-assignment,
+    next-method-called,
+    next-method-defined,
+    old-division,
+    old-raise-syntax,
+    parameter-unpacking,
+    print-statement,
+    range-builtin-not-iterating,
+    raw_input-builtin,
+    reload-builtin,
+    using-cmp-argument,
+    xrange-builtin,
+    zip-builtin-not-iterating,
 
 # Disable the message, report, category or checker with the given id(s). You
 # can either give multiple identifier separated by comma (,) or put this option
