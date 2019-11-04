@@ -4,6 +4,7 @@
 
 from __future__ import print_function
 
+import codecs
 from collections import namedtuple
 from contextlib import contextmanager
 import datetime
@@ -762,13 +763,14 @@ class Gooftool(object):
                                 log=False).stdout.strip()
 
     with scrub_exceptions('Error validating device secret'):
-      secret_bytes = secret.decode('hex')
+      secret_bytes = codecs.decode(secret, 'hex')
       if len(secret_bytes) != 32:
         raise Error
 
     with scrub_exceptions('Error writing device secret to VPD'):
       self._vpd.UpdateData(
-          {'stable_device_secret_DO_NOT_SHARE': secret_bytes.encode('hex')},
+          {'stable_device_secret_DO_NOT_SHARE': codecs.encode(secret_bytes,
+                                                              'hex')},
           partition=vpd.VPD_READONLY_PARTITION_NAME)
 
   def Cr50SetSnBits(self):
@@ -890,9 +892,9 @@ class Gooftool(object):
         raise Error('Failed to get boardID with gsctool command: %r' % e)
 
       RLZ = self._util.shell(['mosys', 'platform', 'brand']).stdout.strip()
-      if RLZ == '':
+      if RLZ == b'':
         raise Error('RLZ code is empty.')
-      if board_id.type != int(RLZ.encode('hex'), 16):
+      if board_id.type != int(codecs.encode(RLZ, 'hex'), 16):
         raise Error('RLZ does not match Board ID.')
 
       try:

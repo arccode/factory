@@ -8,10 +8,13 @@ Utilities with more complex functionalities and required interaction with other
 system components.
 """
 
+import codecs
 import logging
 from multiprocessing import pool
 import os
 import time
+
+from six import PY2
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
@@ -286,8 +289,13 @@ def GetDHCPBootParameters(interface):
         dhcp = dpkt.dhcp.DHCP(udp.data)
 
         if dhcp['siaddr'] != 0 and dhcp['file'].strip('\x00'):
-          ip = '.'.join([str(ord(x)) for x in
-                         ('%x' % dhcp['siaddr']).decode('hex')])
+          # TODO(kerker) Remove when py3 upgrade complete
+          if PY2:
+            # pylint: disable=invalid-str-codec
+            ip = '.'.join([str(ord(x)) for x in
+                           ('%x' % dhcp['siaddr']).decode('hex')])
+          else:
+            ip = '.'.join([str(x) for x in dhcp['siaddr'].to_bytes(4, 'big')])
           return (ip, dhcp['file'].strip('\x00'), dhcp['sname'].strip('\x00'))
 
   return None

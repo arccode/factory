@@ -14,6 +14,7 @@ Note: this module does not have any dependency on factory stuffs so that
 from __future__ import division
 from __future__ import print_function
 
+import codecs
 import ConfigParser
 import logging
 import os
@@ -347,7 +348,7 @@ class SensorServiceSamus(BaseSensorService):
       the list of raw sensor values
     """
     debugfs = '%s/%s' % (self.debugfs, category)
-    with open(debugfs) as f:
+    with open(debugfs, 'rb') as f:
       # The debug fs content is composed of num_rows, where each row
       # contains (num_cols * 2) bytes of num_cols consecutive sensor values.
       num_bytes_per_row = self.num_cols * 2
@@ -357,8 +358,9 @@ class SensorServiceSamus(BaseSensorService):
         values = []
         for i in range(self.num_cols):
           # Correct endianness
-          s = row_data[i * 2 + 1] + row_data[i * 2]
-          val = int(s.encode('hex'), 16)
+          s = row_data[i * 2 : i * 2 + 2][::-1]
+          # TODO(kerker) Use int.from_bytes(s, 'big', signed=True) in py3
+          val = int(codecs.encode(s, 'hex'), 16)
           # Correct signed value
           if val > 32768:
             val = val - 65535

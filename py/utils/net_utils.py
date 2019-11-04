@@ -4,6 +4,7 @@
 
 """Networking-related utilities."""
 
+import codecs
 import fnmatch
 import glob
 import httplib
@@ -74,7 +75,8 @@ class IP(object):
 
   def __int__(self):
     """Convert IP string to integer representation."""
-    return int(socket.inet_pton(self.family, self._ip).encode('hex'), 16)
+    return int(codecs.encode(socket.inet_pton(self.family, self._ip), 'hex'),
+               16)
 
   def __str__(self):
     return self._ip

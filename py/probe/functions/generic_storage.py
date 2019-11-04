@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import codecs
 import glob
 import logging
 import os
@@ -73,7 +74,8 @@ def CookVersion(raw_version):
     version += ' (%s)' % ascii
   else:
     # Try to decode it as a 64-bit little-endian integer.
-    version += ' (%s)' % struct.unpack_from('<q', version.decode('hex'))
+    version += ' (%s)' % struct.unpack_from('<q', codecs.decode(version,
+                                                                'hex'))
   return version
 
 def GetStorageFirmwareVersion(node_path):

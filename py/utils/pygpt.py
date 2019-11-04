@@ -30,6 +30,7 @@ from __future__ import print_function
 
 import argparse
 import binascii
+import codecs
 import itertools
 import logging
 import os
@@ -861,7 +862,7 @@ class GPT(object):
           GPT.GetImageSize(image.name) // cls.DEFAULT_BLOCK_SIZE) - 1
       # Partition 0 must have have the fixed CHS with number of sectors
       # (calculated as legacy_sectors later).
-      part0 = ('00000200eeffffff01000000'.decode('hex') +
+      part0 = (codecs.decode('00000200eeffffff01000000', 'hex') +
                struct.pack('<I', legacy_sectors))
       # Partition 1~3 should be all zero.
       part1 = '\x00' * 16

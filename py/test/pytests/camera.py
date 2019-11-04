@@ -117,6 +117,7 @@ don't show the image::
 """
 
 
+import codecs
 import numbers
 import os
 import Queue
@@ -240,7 +241,7 @@ class CameraTest(test_case.TestCase):
         # postprocessing on JavaScript.
         blob_path = self.RunJSPromiseBlocking(
             'cameraTest.grabFrameAndTransmitBack()')
-        blob = file_utils.ReadFile(blob_path).decode('base64')
+        blob = codecs.decode(file_utils.ReadFile(blob_path), 'base64')
         os.unlink(blob_path)
         return cv2.imdecode(
             np.fromstring(blob, dtype=np.uint8), cv2.CV_LOAD_IMAGE_COLOR)
@@ -337,7 +338,8 @@ class CameraTest(test_case.TestCase):
           # data.
           self.ui.CallJSFunction(
               'showImage',
-              'data:image/jpeg;base64,' + img_buffer.read().encode('base64'))
+              'data:image/jpeg;base64,' + codecs.encode(img_buffer.read(),
+                                                        'base64'))
         except AttributeError:
           # The websocket is closed because test has passed/failed.
           return
