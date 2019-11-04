@@ -44,6 +44,7 @@ enable=
     exception-message-attribute,
     file-builtin,
     filter-builtin-not-iterating,
+    invalid-str-codec,
     long-builtin,
     long-suffix,
     map-builtin-not-iterating,
