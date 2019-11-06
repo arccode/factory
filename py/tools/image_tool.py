@@ -3290,7 +3290,7 @@ class EditLSBCommand(SubCommand):
 
     All options are defined in src/platform/factory/sh/cutoff/options.sh
     """
-    answer = self._DoOptions(
+    self._DoOptions(
         'Select cutoff method', 'CUTOFF_METHOD',
         ['shutdown', 'reboot', 'battery_cutoff', 'ectool_cutoff',
          'ec_hibernate'])
@@ -3520,29 +3520,28 @@ class EditToolkitConfigCommand(SubCommand):
     """
     subconfig_key = TOOLKIT_SUBCONFIG_CUTOFF
     self.config_wip = {}
-    answer = self._DoOptions(
+    self._DoOptions(
         'Select cutoff method', 'CUTOFF_METHOD',
         ['shutdown', 'reboot', 'battery_cutoff', 'ectool_cutoff',
          'ec_hibernate'])
-    if answer.endswith('cutoff'):
-      self._DoOptions(
-          'Select cutoff AC state', 'CUTOFF_AC_STATE',
-          ['remove_ac', 'connect_ac'])
-      answer = self._DoOptionalNumber(
-          'Minimum allowed battery percentage', 'CUTOFF_BATTERY_MIN_PERCENTAGE',
-          0, 100)
-      self._DoOptionalNumber(
-          'Maximum allowed battery percentage', 'CUTOFF_BATTERY_MAX_PERCENTAGE',
-          answer or 0, 100)
-      answer = self._DoOptionalNumber(
-          'Minimum allowed battery voltage (mA)', 'CUTOFF_BATTERY_MIN_VOLTAGE',
-          None, None)
-      self._DoOptionalNumber(
-          'Maximum allowed battery voltage (mA)', 'CUTOFF_BATTERY_MAX_VOLTAGE',
-          answer, None)
-      self._DoURL(
-          'Chrome OS Factory Server or Shopfloor Service for OQC ReFinalize',
-          ['SHOPFLOOR_URL'])
+    self._DoOptions(
+        'Select cutoff AC state', 'CUTOFF_AC_STATE',
+        ['none', 'remove_ac', 'connect_ac'])
+    answer = self._DoOptionalNumber(
+        'Minimum allowed battery percentage', 'CUTOFF_BATTERY_MIN_PERCENTAGE',
+        0, 100)
+    self._DoOptionalNumber(
+        'Maximum allowed battery percentage', 'CUTOFF_BATTERY_MAX_PERCENTAGE',
+        answer or 0, 100)
+    answer = self._DoOptionalNumber(
+        'Minimum allowed battery voltage (mA)', 'CUTOFF_BATTERY_MIN_VOLTAGE',
+        None, None)
+    self._DoOptionalNumber(
+        'Maximum allowed battery voltage (mA)', 'CUTOFF_BATTERY_MAX_VOLTAGE',
+        answer, None)
+    self._DoURL(
+        'Chrome OS Factory Server or Shopfloor Service for OQC ReFinalize',
+        ['SHOPFLOOR_URL'])
     self.toolkit_config[subconfig_key] = self.config_wip
 
   def DoMenu(self, *args, **kargs):
