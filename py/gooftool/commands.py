@@ -56,6 +56,7 @@ from cros.factory.utils.type_utils import Error
 
 _global_gooftool = None
 _gooftool_lock = threading.Lock()
+_has_fpmcu = None
 
 
 def GetGooftool(options):
@@ -71,6 +72,24 @@ def GetGooftool(options):
 
   return _global_gooftool
 
+def HasFpmcu():
+  global _has_fpmcu  # pylint: disable=global-statement
+
+  if _has_fpmcu is None:
+    FPMCU_PATH = '/dev/cros_fp'
+    has_fpmcu_path = os.path.exists(FPMCU_PATH)
+    has_cros_config_fpmcu = False
+    if Shell(['cros_config', '/fingerprint', 'board']):
+      has_cros_config_fpmcu = True
+
+    if has_fpmcu_path is False and has_cros_config_fpmcu is True:
+      raise Error('FPMCU found in cros_config but missing in %s.' % FPMCU_PATH)
+    elif has_fpmcu_path is True and has_cros_config_fpmcu is False:
+      raise Error('FPMCU found in %s but missing in cros_config.' % FPMCU_PATH)
+
+    _has_fpmcu = has_fpmcu_path
+
+  return _has_fpmcu
 
 def Command(cmd_name, *args, **kwargs):
   """Decorator for commands in gooftool.
@@ -243,14 +262,6 @@ _no_ectool_cmd_arg = CmdArg(
 _no_generate_mfg_date_cmd_arg = CmdArg(
     '--no_generate_mfg_date', action='store_false', dest='generate_mfg_date',
     help='Do not generate manufacturing date nor write mfg_date into VPD.')
-
-_has_fpmcu_cmd_arg = CmdArg(
-    '--has_fpmcu', action='store_true', default=None,
-    help='Force execution of fpmcu related commands.')
-
-_no_fpmcu_cmd_arg = CmdArg(
-    '--no_fpmcu', action='store_false', default=None, dest='has_fpmcu',
-    help='Skip fpmcu related commands.')
 
 
 @Command(
@@ -738,9 +749,7 @@ def UploadReport(options):
          _rlz_embargo_end_date_offset_cmd_arg,
          _waive_list_cmd_arg,
          _skip_list_cmd_arg,
-         _no_generate_mfg_date_cmd_arg,
-         _has_fpmcu_cmd_arg,
-         _no_fpmcu_cmd_arg)
+         _no_generate_mfg_date_cmd_arg)
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.
 
@@ -840,20 +849,14 @@ def GetFirmwareHash(options):
     raise Error('File does not exist: %s' % options.file)
 
 
-@Command('fpmcu_initialize_entropy',
-         _has_fpmcu_cmd_arg,
-         _no_fpmcu_cmd_arg)
+@Command('fpmcu_initialize_entropy')
 def FpmcuInitializeEntropy(options):
   """Initialze entropy of FPMCU."""
-  fpmcu_exists = os.path.exists('/dev/cros_fp')
-  if options.has_fpmcu is None:
-    options.has_fpmcu = fpmcu_exists
-  if options.has_fpmcu:
-    if not fpmcu_exists:
-      raise Error('FPS not found on device.')
+
+  if HasFpmcu():
     GetGooftool(options).FpmcuInitializeEntropy()
-  elif fpmcu_exists:
-    logging.warning('FPS found. Entropy initialization skipped.')
+  else:
+    logging.info('No FPS on this board.')
 
 
 def main():
