@@ -553,7 +553,7 @@ class FinalizeBundle:
     # firmware updater.
     with file_utils.TempDirectory() as temp_dir:
       Spawn(['sh', os.path.join(firmware_dir, updaters[0]),
-             '--sb_extract', temp_dir], log=True, check_call=True)
+             '--unpack', temp_dir], log=True, check_call=True)
 
       for root, unused_dirs, files in os.walk(temp_dir):
         for filename in files:

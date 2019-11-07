@@ -2247,7 +2247,7 @@ class ChromeOSFactoryBundle:
       return {}
 
     with SysUtils.TempDirectory() as extract_dir:
-      Shell([updater, '--sb_extract', extract_dir], silent=True)
+      Shell([updater, '--unpack', extract_dir], silent=True)
       targets = {'main': 'bios.bin', 'ec': 'ec.bin'}
       # TODO(hungte) Read VERSION.signer for signing keys.
       results = {}
