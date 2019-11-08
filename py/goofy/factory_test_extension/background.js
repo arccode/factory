@@ -33,6 +33,11 @@ chrome.runtime.onMessageExternal.addListener(
             request.args.tab_id, request.args.update_info,
             (tab) => sendResponse(tab));
         return true;
+      } else if (request.name === 'TakeScreenshot') {
+        chrome.tabs.captureVisibleTab(
+            chrome.windows.WINDOW_ID_CURRENT, {format: 'png'},
+            (url) => sendResponse({content : url, save_file : true}));
+        return true;
       } else {  // Delegate the rest of the RPC calls to the kiosk app.
         chrome.runtime.sendMessage(KIOSK_APP_ID, request, sendResponse);
         return true;

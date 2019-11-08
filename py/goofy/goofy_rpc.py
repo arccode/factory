@@ -8,6 +8,7 @@
 from __future__ import print_function
 
 import argparse
+import base64
 import glob
 import inspect
 import json
@@ -25,7 +26,6 @@ from six import iteritems
 import yaml
 
 import factory_common  # pylint: disable=unused-import
-from cros.factory.device import device_utils
 from cros.factory.test.diagnosis.diagnosis_tool import DiagnosisToolRPC
 from cros.factory.test.env import paths
 from cros.factory.test.event import Event
@@ -535,30 +535,6 @@ class GoofyRPC(object):
       # complain to the caller.
       raise GoofyRPCException('Factory did not restart as expected')
 
-  def DeviceTakeScreenshot(self, output_file=None):
-    """Takes screenshots of all the connected ports on the device.
-
-    Args:
-      output_file: The output file path to store the captured image file.
-          If not given, screenshots are saved to:
-
-            /var/log/screenshot_<TIME>-<PORT>.png
-
-          If a file path is given, screenshots are saved to:
-
-            <file path base>-<PORT>.<file path extension>
-    """
-    if not output_file:
-      output_filename = ('/var/log/screenshot_%s-%%s.png' %
-                         time.strftime('%Y%m%d-%H%M%S'))
-    else:
-      output_filename = '%s-%%s%s' % os.path.splitext(output_file)
-
-    display = device_utils.CreateDUTInterface().display
-    for port_id, port_info in iteritems(display.GetPortInfo()):
-      if port_info.connected:
-        display.CaptureFramebuffer(port_id).save(output_filename % port_id)
-
   def CallExtension(self, name, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS,
                     **kwargs):
     """Invokes a RPC call to Factory Test Chrome Extension.
@@ -588,6 +564,32 @@ class GoofyRPC(object):
     if result is None:
       raise type_utils.TimeoutError('Failed calling Extension RPC <%r>' % name)
     return result.args
+
+  def DeviceTakeScreenshot(self, output_file=None,
+                           timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
+    """Takes screenshots of all the connected ports on the device.
+
+    Args:
+      output_file: The output file path to store the captured image file.
+          If not given, screenshots are saved to:
+
+            /var/log/screenshot_<TIME>.png
+
+          If a file path is given, screenshots are saved to:
+
+            <file path base>.<file path extension>
+    """
+
+    if not output_file:
+      output_filename = ('/var/log/screenshot_%s.png' %
+                         time.strftime('%Y%m%d-%H%M%S'))
+    else:
+      output_filename = '%s' % output_file
+
+    tmp_file = self.CallExtension('TakeScreenshot', timeout=timeout)
+    image = base64.b64decode(file_utils.ReadFile(tmp_file).split(',')[1])
+    file_utils.WriteFile(output_filename, image)
+    file_utils.TryUnlink(tmp_file)
 
   def DeviceGetDisplayInfo(self, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Returns display information on the device (by calling extension RPC).

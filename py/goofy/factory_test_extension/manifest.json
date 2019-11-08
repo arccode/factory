@@ -15,6 +15,7 @@
   ],
   "permissions": [
     "debugger",
-    "tabs"
+    "tabs",
+    "<all_urls>"
   ]
 }

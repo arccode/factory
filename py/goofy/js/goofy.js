@@ -3202,11 +3202,19 @@ cros.factory.Goofy = class {
         if (!message.is_response) {
           window.chrome.runtime.sendMessage(
               cros.factory.EXTENSION_ID,
-              {name: message.name, args: message.args}, (...args) => {
+              {name: message.name, args: message.args}, async (...args) => {
                 // If an error occurs while connecting to the extension, this
                 // function would be called without arguments. In this case we
                 // should ignore this result.
                 if (args.length === 1) {
+                  // The web socket has size limit 65536 bytes. Thus we save
+                  // a temporary file and then send the url back, instead of
+                  // sending the base64-encoded string.
+                  if (args[0]['save_file']) {
+                    const path = await this.sendRpc('UploadTemporaryFile',
+                                                    args[0].content);
+                    args[0] = path;
+                  }
                   this.sendEvent(messageType, {
                     name: message.name,
                     rpc_id: message.rpc_id,
