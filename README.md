@@ -294,7 +294,7 @@ and boot with it, select Install when you see a menu and proceed.
 If the Netboot firmware `image.net.bin` is available, flash the that to main
 (AP) SPI firmware and just boot. You will need to setup the network environment
 (details to be provided in future) so it can download a special kernel and then
-run same installer as [Boot from USB](#Boot-from-USB]. For more details, please
+run same installer as [Boot from USB](#Boot-from-USB). For more details, please
 refer to [Netboot Setup](./setup/NETBOOT.md).
 
 ### Pre-Installation (Copy Machine)
