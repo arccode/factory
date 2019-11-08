@@ -475,7 +475,13 @@ class WiFiChromeOS(WiFi):
     # TODO(kitching): Figure out a better way of either (a) disabling these
     # services temporarily, or (b) using Chrome OS's Shill to make the
     # connection.
-    self._device.Call('stop wpasupplicant && sleep 0.5')
+    service = 'wpasupplicant'
+    return_code = self._device.Call(['stop', service])
+    if return_code == 0:
+      logging.warning('Service %s does not stop before NewConnection. Add '
+                      '"exclusive_resources": ["NETWORK"] to testlist if you '
+                      'want to revive %s after test.', service, service)
+      time.sleep(0.5)
     return Connection(*args, **kwargs)
 
 

@@ -31,7 +31,7 @@ class ConnectionManager(plugin.Plugin):
           list or empty string (blocks nothing), or None (don't override).
     """
 
-    super(ConnectionManager, self).__init__(goofy)
+    super(ConnectionManager, self).__init__(goofy, [plugin.RESOURCE.NETWORK])
     converted_wlans = [net_utils.WLAN(**wlan) for wlan in wlans]
     if shuffle_wlans:
       random.shuffle(converted_wlans)
@@ -67,5 +67,6 @@ class ConnectionManager(plugin.Plugin):
   def SetStaticIP(self, *args, **kwargs):
     try:
       self._connection_manager.SetStaticIP(*args, **kwargs)
+      return None
     except connection_manager.ConnectionManagerException as e:
       return e.error_code
