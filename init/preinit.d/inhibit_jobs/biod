@@ -1,0 +1,2 @@
+Since biod communicates with the FPMCU, we don't want biod running in factory
+environment, otherwise it may interfere with fingerprint factory tests.

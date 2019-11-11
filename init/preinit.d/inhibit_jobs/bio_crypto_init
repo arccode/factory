@@ -1,0 +1,1 @@
+We don't need bio_crypto_init in factory environment.
