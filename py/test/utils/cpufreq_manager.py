@@ -2,9 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import glob
 import logging
 import os
+import re
 import subprocess
 import traceback
 
@@ -30,8 +30,11 @@ class CpufreqManager(object):
   enabled = None
   """Whether cpufreq services are currently enabled (or None if unknown)."""
 
-  cpufreq_path_glob = '/sys/devices/system/cpu/cpu*/cpufreq'
-  """Path glob to the cpufreq directories."""
+  cpuX_cpufreq_path = '/sys/devices/system/cpu/cpu%d/cpufreq'
+  """Path to the cpufreq directory of the Xth CPU."""
+
+  cpu_online_path = '/sys/devices/system/cpu/online'
+  """Path to the list of online CPUs."""
 
   cpu_speed_hz = None
   """CPU speed when cpufreq services are disabled if not None, but this is not
@@ -63,10 +66,20 @@ class CpufreqManager(object):
       # CPU to run in full speed.
       governor = 'powersave' if enabled else 'performance'
       cpu_speed_hz = None if enabled else self.cpu_speed_hz
+      success = True
+      exception = None
+      try:
+        online_CPUs = self._GetOnlineCPUs()
+      except Exception:
+        online_CPUs = []
+        success = False
+        logging.exception('Unable to get online CPUs.')
+        exception = traceback.format_exc()
 
       logging.info('cpufreq: setting thermal_service_status=%s, governor=%s, '
-                   'cpu_speed_hz=%s, retry_count=%d',
-                   thermal_service_status, governor, cpu_speed_hz, retry_count)
+                   'cpu_speed_hz=%s, retry_count=%d, online_CPUs=%r.',
+                   thermal_service_status, governor, cpu_speed_hz, retry_count,
+                   online_CPUs)
 
       for service in self._GetThermalService():
         try:
@@ -79,10 +92,9 @@ class CpufreqManager(object):
           if current_service_status != thermal_service_status:
             service_utils.SetServiceStatus(service, thermal_service_status)
 
-      success = True
-      exception = None
-      for path in glob.glob(self.cpufreq_path_glob):
+      for index in online_CPUs:
         try:
+          path = self.cpuX_cpufreq_path % index
           file_utils.WriteFile(os.path.join(path, 'scaling_governor'), governor)
           if cpu_speed_hz:
             file_utils.WriteFile(
@@ -127,3 +139,17 @@ class CpufreqManager(object):
                    exist_services)
 
     return exist_services
+
+  def _GetOnlineCPUs(self):
+    """Get a list of online CPUs.
+
+    The content in self.cpu_online_path is in linux bitmap output format %*pbl.
+    For example, 0x0779 in that format is "0,3-6,8-10".
+    """
+    online_string = file_utils.ReadFile(self.cpu_online_path)
+    online_list = []
+    for matched in re.finditer(r'(\d+)(?:-(\d+))?(?:,|$)', online_string):
+      lower_bound = int(matched.group(1))
+      upper_bound = int(matched.group(2)) if matched.group(2) else lower_bound
+      online_list += list(range(lower_bound, upper_bound+1))
+    return online_list
