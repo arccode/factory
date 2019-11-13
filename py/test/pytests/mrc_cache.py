@@ -6,7 +6,7 @@
 
 Description
 -----------
-The test either request memory retraining on next boot (if ``mode`` is
+The test either request memory re-training on next boot (if ``mode`` is
 ``'create'``), or verify the mrc cache trained (if ``mode`` is ``'verify'``).
 
 Test Procedure
@@ -51,31 +51,53 @@ from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.file_utils import UnopenedTemporaryFile
 
+ARCH_TO_FMAP = {
+    'x86': 'RECOVERY_MRC_CACHE',
+    'arm': 'RW_DDR_TRAINING',
+}
+
 class MrcCacheTest(unittest.TestCase):
   ARGS = [
       Arg('mode', str,
           'Specify the phase of the test, valid values are:\n'
           '- "create": request memory retraining on next boot.\n'
-          '- "verify": verify the mrc cache created by previous step.\n')]
+          '- "verify": verify the mrc cache created by previous step.\n'),
+      Arg('fmap_name', str,
+          'Specify the FMAP section name used for memory training. '
+          'Essentially this is passed to flashrom as part of "-i" option. '
+          'e.g. "RECOVERY_MRC_CACHE" for x86 and "RW_DDR_TRAINING" for ARM.',
+          default=None)
+      ]
 
   def Create(self):
-    # check RECOVERY_MRC_CACHE exists
-    self.dut.CheckCall('flashrom -p host -r /dev/null -i RECOVERY_MRC_CACHE')
-    # erase old RECOVERY_MRC_CACHE
-    self.dut.CheckCall('flashrom -p host -E -i RECOVERY_MRC_CACHE')
-    # request to retrain memory
+    # check section existence
+    self.dut.CheckCall('flashrom -p host -r /dev/null -i %s' %
+                       self.args.fmap_name)
+    # erase old section
+    self.dut.CheckCall('flashrom -p host -E -i %s' % self.args.fmap_name)
+    # request to re-train memory
     self.dut.CheckCall('crossystem recovery_request=0xC4')
 
   def Verify(self):
     with UnopenedTemporaryFile() as f:
-      self.dut.CheckCall('flashrom -p host -r /dev/null '
-                         '-i RECOVERY_MRC_CACHE:%s' % f)
+      self.dut.CheckCall('flashrom -p host -r /dev/null -i %s:%s' %
+                         (self.args.fmap_name, f))
       self.dut.CheckCall('futility validate_rec_mrc %s' % f)
+
+  def CheckArch(self):
+    return self.dut.CheckOutput('crossystem arch')
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
+    if self.args.fmap_name is None:
+      arch = self.CheckArch()
+      if arch in ARCH_TO_FMAP:
+        self.args.fmap_name = ARCH_TO_FMAP[arch]
+      else:
+        self.fail('Need to specify FMAP name for unknown platform %s' % arch)
+
     if self.args.mode == 'create':
       self.Create()
     elif self.args.mode == 'verify':
