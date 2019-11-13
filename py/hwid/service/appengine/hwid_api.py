@@ -77,6 +77,7 @@ class HwidApi(remote.Service):
     for regexp in KNOWN_BAD_SUBSTR:
       if re.search(regexp, hwid):
         return 'No metadata present for the requested board: %s' % hwid
+    return ''
 
   @HWIDAPI(
       hwid_api_messages.BoardsRequest,
@@ -370,7 +371,8 @@ class HwidApi(remote.Service):
     # If you add any labels to the list of returned labels, also add to
     # the list of possible labels
     possible_labels = [
-        'sku', 'phase', 'touchscreen', 'touchpad', 'variant', 'stylus'
+        'sku', 'phase', 'touchscreen', 'touchpad', 'variant', 'stylus',
+        'hwid_component'
     ]
 
     error = self._FastFailKnownBadHwid(request.hwid)
@@ -417,6 +419,18 @@ class HwidApi(remote.Service):
         component_value = hwid_util.GetComponentValueFromBom(bom, component)
         if component_value and component_value[0]:
           labels.append(hwid_api_messages.DUTLabel(name=component, value=None))
+
+    # cros labels in host_info store, which will be used in tast tests of
+    # runtime probe
+    hwid_components = [
+        'battery',
+        'storage',
+    ]
+    for cls in hwid_components:
+      for component in bom.GetComponents(cls):
+        if component.name:
+          labels.append(hwid_api_messages.DUTLabel(
+              name="hwid_component", value=component.cls + '/' + component.name))
 
     if set([label.name for label in labels]) - set(possible_labels):
       return hwid_api_messages.DUTLabelResponse(
