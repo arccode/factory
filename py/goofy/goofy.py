@@ -412,7 +412,7 @@ class Goofy(object):
     # Make this shutdown test the next test to run.  This is to continue on
     # post-shutdown verification in the shutdown step.
     if not tests_after_shutdown:
-      goofy_error = 'TESTS_AFTER_SHTUDOWN is not set'
+      goofy_error = 'TESTS_AFTER_SHUTDOWN is not set'
       self.state_instance.DataShelfSetValue(
           TESTS_AFTER_SHUTDOWN, TestListIterator(test))
     else:
