@@ -1,186 +1,195 @@
-<html>
-  <head>
-    <script src="/js/templates.js" defer></script>
-    <link rel="import" href="/test_views.html">
-  </head>
-  <body>
-    <template id="test-template">
-      <style>
-        #info-container {
-          display: flex;
-          width: 100%;
-          height: 100%;
-          flex-flow: column;
-          padding: 0 8px;
-          box-sizing: border-box;
-        }
+<template id="test-view">
+  <style>
+    :host {
+      flex: 1;
+      display: flex;
+      flex-flow: column;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+  <slot></slot>
+</template>
+<template id="test-views-container">
+  <style id="extra-style">
+  </style>
+  <slot></slot>
+</template>
+<template id="test-template">
+  <style>
+    #info-container {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      flex-flow: column;
+      padding: 0 8px;
+      box-sizing: border-box;
+    }
 
-        #title-container {
-          all: initial;
-          flex: none;
-          font-size: 2rem;
-          font-weight: bold;
-          padding-left: 0.5rem;
-          margin: 4px 0;
-        }
+    #title-container {
+      all: initial;
+      flex: none;
+      font-size: 2rem;
+      font-weight: bold;
+      padding-left: 0.5rem;
+      margin: 4px 0;
+    }
 
-        #prompt-container {
-          all: initial;
-          flex: none;
-          background-color: var(--template-background-color, white);
-          display: flex;
-          padding: 0 8px;
-          font-size: 1rem;
-        }
+    #prompt-container {
+      all: initial;
+      flex: none;
+      background-color: var(--template-background-color, white);
+      display: flex;
+      padding: 0 8px;
+      font-size: 1rem;
+    }
 
-        #instruction {
-          font-size: 1.5em;
-          flex: 3;
-        }
+    #instruction {
+      font-size: 1.5em;
+      flex: 3;
+    }
 
-        #progress-container {
-          flex: 1;
-        }
+    #progress-container {
+      flex: 1;
+    }
 
-        #progress-bar-container {
-          display: none;
-          margin: 0.2em;
-        }
+    #progress-bar-container {
+      display: none;
+      margin: 0.2em;
+    }
 
-        #progress-bar-container.show {
-          display: flex;
-        }
+    #progress-bar-container.show {
+      display: flex;
+    }
 
-        #progress-bar {
-          flex: 1;
-          height: 1.5em;
-          position: relative;
-          border: 1px solid #949dad;
-          background: white;
-          overflow: hidden;
-          margin-left: 0.3em;
-        }
+    #progress-bar {
+      flex: 1;
+      height: 1.5em;
+      position: relative;
+      border: 1px solid #949dad;
+      background: white;
+      overflow: hidden;
+      margin-left: 0.3em;
+    }
 
-        #progress-bar-indicator {
-          position: absolute;
-          top: 0;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          z-index: 1;
-          width: fit-content;
-          height: fit-content;
-          margin: auto;
-        }
+    #progress-bar-indicator {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 1;
+      width: fit-content;
+      height: fit-content;
+      margin: auto;
+    }
 
-        .progress-bar-thumb {
-          background: #d4e4ff;
-          height: 100%;
-        }
+    .progress-bar-thumb {
+      background: #d4e4ff;
+      height: 100%;
+    }
 
-        #timer-container {
-          display: none;
-          text-align: right;
-          margin: 0.2em;
-        }
+    #timer-container {
+      display: none;
+      text-align: right;
+      margin: 0.2em;
+    }
 
-        #timer-container.show {
-          display: block;
-        }
+    #timer-container.show {
+      display: block;
+    }
 
-        #timer {
-          display: inline-block;
-          font-weight: bold;
-          font-size: 1.5em;
-        }
+    #timer {
+      display: inline-block;
+      font-weight: bold;
+      font-size: 1.5em;
+    }
 
-        #state-container {
-          padding: 1rem;
-          background-color: var(--template-background-color, white);
-          flex: 1;
-          display: flex;
-          flex-flow: column;
-          position: relative;
-        }
+    #state-container {
+      padding: 1rem;
+      background-color: var(--template-background-color, white);
+      flex: 1;
+      display: flex;
+      flex-flow: column;
+      position: relative;
+    }
 
-        #button-container {
-          all: initial;
-          flex: none;
-          display: flex;
-          min-height: min-content;
-          max-height: 3rem;
-          height: 10vh;
-          margin: 4px 0;
-        }
+    #button-container {
+      all: initial;
+      flex: none;
+      display: flex;
+      min-height: min-content;
+      max-height: 3rem;
+      height: 10vh;
+      margin: 4px 0;
+    }
 
-        #button-container > button, ::slotted(button[slot="extra-button"]) {
-          max-width: 8ch;
-          min-height: min-content;
-          padding: 0;
-          border: 0;
-          font-size: 1rem;
-          line-height: 1;
-        }
+    #button-container > button, ::slotted(button[slot="extra-button"]) {
+      max-width: 8ch;
+      min-height: min-content;
+      padding: 0;
+      border: 0;
+      font-size: 1rem;
+      line-height: 1;
+    }
 
-        #extra-button-container {
-          display: flex;
-          flex: 1;
-        }
+    #extra-button-container {
+      display: flex;
+      flex: 1;
+    }
 
-        #button-mark-failed.disable-abort {
-          display: none;
-        }
+    #button-mark-failed.disable-abort {
+      display: none;
+    }
 
-        :host-context(.goofy-engineering-mode) #button-mark-failed.disable-abort {
-          display: block;
-        }
+    :host-context(.goofy-engineering-mode) #button-mark-failed.disable-abort {
+      display: block;
+    }
 
-        ::slotted(button[slot="extra-button"]) {
-          margin-right: 4px;
-          flex: 1 1 100%;
-        }
+    ::slotted(button[slot="extra-button"]) {
+      margin-right: 4px;
+      flex: 1 1 100%;
+    }
 
-        ::slotted(span.inline) {
-          display: inline;
-        }
-      </style>
-      <div id="info-container">
-        <div id="title-container">
-          <slot name="title"></slot>
+    ::slotted(span.inline) {
+      display: inline;
+    }
+  </style>
+  <div id="info-container">
+    <div id="title-container">
+      <slot name="title"></slot>
+    </div>
+    <div id="prompt-container">
+      <div id="instruction">
+        <slot name="instruction"></slot>
+      </div>
+      <div id="progress-container">
+        <div id="timer-container">
+          <i18n-label>Time remaining: </i18n-label>
+          <div id="timer"></div>
         </div>
-        <div id="prompt-container">
-          <div id="instruction">
-            <slot name="instruction"></slot>
+        <div id="progress-bar-container">
+          <i18n-label>Test Progress:</i18n-label>
+          <div id="progress-bar">
+            <div id="progress-bar-indicator"></div>
           </div>
-          <div id="progress-container">
-            <div id="timer-container">
-              <i18n-label>Time remaining: </i18n-label>
-              <div id="timer"></div>
-            </div>
-            <div id="progress-bar-container">
-              <i18n-label>Test Progress:</i18n-label>
-              <div id="progress-bar">
-                <div id="progress-bar-indicator"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <test-views-container id="state-container" view="main">
-          <test-view id="main">
-            <slot></slot>
-          </test-view>
-          <slot name="extra-views">
-          </slot>
-        </test-views-container>
-        <div id="button-container">
-          <div id="extra-button-container">
-            <slot name="extra-button"></slot>
-          </div>
-          <button id="button-mark-failed">
-            <i18n-label>Mark Failed</i18n-label>
-          </button>
         </div>
       </div>
-    </template>
-  </body>
-</html>
+    </div>
+    <test-views-container id="state-container" view="main">
+      <test-view id="main">
+        <slot></slot>
+      </test-view>
+      <slot name="extra-views">
+      </slot>
+    </test-views-container>
+    <div id="button-container">
+      <div id="extra-button-container">
+        <slot name="extra-button"></slot>
+      </div>
+      <button id="button-mark-failed">
+        <i18n-label>Mark Failed</i18n-label>
+      </button>
+    </div>
+  </div>
+</template>

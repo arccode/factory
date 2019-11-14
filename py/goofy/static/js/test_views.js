@@ -4,7 +4,7 @@
 
 (() => {
   /**
-   * The document (test_views.html) that contains the <template>.
+   * The document (templates.html) that contains the <template>.
    * This need to be get in the first pass when the script is run, and not in
    * the class methods.
    * @type {!Document}

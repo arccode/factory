@@ -3160,16 +3160,14 @@ cros.factory.Goofy = class {
          */ (untypedMessage);
         const invocation = this.invocations.get(message.invocation);
         if (invocation) {
-          invocation.loaded = invocation.loaded.then(() => {
+          invocation.loaded = invocation.loaded.then(async () => {
             const doc = invocation.iframe.contentDocument;
-            const link = doc.createElement('link');
-            link.rel = 'import';
-            link.href = message.url;
-            doc.head.appendChild(link);
-            return new Promise((resolve, reject) => {
-              link.onload = resolve;
-              link.onerror = reject;
-            });
+            const response = await fetch(message.url);
+            const html = await response.text();
+            const fragment = cros.factory.utils.createFragmentFromHTML(
+                html, goog.asserts.assert(doc));
+
+            doc.head.appendChild(fragment);
           });
         }
         break;
