@@ -51,6 +51,7 @@ enable=
     metaclass-assignment,
     next-method-called,
     next-method-defined,
+    nonzero-method,
     old-division,
     old-raise-syntax,
     parameter-unpacking,
