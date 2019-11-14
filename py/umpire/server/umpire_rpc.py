@@ -5,6 +5,9 @@
 """Umpire RPC base class."""
 
 
+import six
+
+
 def RPCCall(method):
   """Enables the method to be Umpire RPC function.
 
@@ -37,7 +40,7 @@ class UmpireRPC(object):
     self.env = daemon.env
 
   @RPCCall
-  def __nonzero__(self):
+  def __bool__(self):
     """Truth value testing.
 
     It is used for handling request issued when client side performs truth
@@ -50,3 +53,7 @@ class UmpireRPC(object):
       True
     """
     return True
+
+  # TODO(kerker) : remove it after py3 upgrade complete
+  if six.PY2:
+    __nonzero__ = __bool__

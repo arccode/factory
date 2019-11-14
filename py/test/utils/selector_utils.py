@@ -4,6 +4,8 @@
 
 import collections
 
+import six
+
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import shelve_utils
 
@@ -71,8 +73,12 @@ class ISelector(object):
   def Get(self, default=_DEFAULT_NOT_SET):
     raise NotImplementedError
 
-  def __nonzero__(self):
+  def __bool__(self):
     return bool(self.Get(default=False))
+
+  # TODO(kerker) : remove it after py3 upgrade complete
+  if six.PY2:
+    __nonzero__ = __bool__
 
 
 class DataShelfSelector(ISelector):
