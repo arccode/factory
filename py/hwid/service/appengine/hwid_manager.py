@@ -388,7 +388,7 @@ class HwidManager(object):
     q = CLNotification.all()
     q.filter('notification_type =', 'reviewer')
     reviewers = []
-    for notification in q.run():
+    for notification in list(q.run()):
       reviewers.append(notification.email.encode('utf-8'))
     return reviewers
 
@@ -396,7 +396,7 @@ class HwidManager(object):
     q = CLNotification.all()
     q.filter('notification_type =', 'cc')
     ccs = []
-    for notification in q.run():
+    for notification in list(q.run()):
       ccs.append(notification.email.encode('utf-8'))
     return ccs
 
@@ -541,7 +541,7 @@ class HwidManager(object):
     files_to_create = new_files - old_files
 
     q = HwidMetadata.all()
-    for hwid_metadata in q.run():
+    for hwid_metadata in list(q.run()):
       if hwid_metadata.path in files_to_delete:
         hwid_metadata.delete()
         self._fs_adapter.DeleteFile(self._LivePath(hwid_metadata.path))
@@ -563,12 +563,8 @@ class HwidManager(object):
   def ReloadMemcacheCacheFromFiles(self):
     """For every known board, load its info into the cache."""
     q = HwidMetadata.all()
-    metadata_list = []
 
-    for metadata in q.run():
-      metadata_list.append(metadata)
-
-    for metadata in metadata_list:
+    for metadata in list(q.run()):
       try:
         self._memcache_adaptor.Put(metadata.board, self._LoadHwidFile(metadata))
       except Exception:  # pylint: disable=broad-except
