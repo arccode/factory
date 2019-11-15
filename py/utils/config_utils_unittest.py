@@ -133,7 +133,7 @@ class ConfigUtilsTest(unittest.TestCase):
   def testLoadConfigStringType(self):
     config = config_utils.LoadConfig(
         'testdata/config_utils_unittest', convert_to_str=False)
-    self.assertEqual(type(config['sample_str']), unicode)
+    self.assertEqual(type(config['sample_str']), str)
 
     config = config_utils.LoadConfig(
         'testdata/config_utils_unittest', convert_to_str=True)

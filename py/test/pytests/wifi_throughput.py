@@ -705,7 +705,7 @@ class WiFiThroughput(test_case.TestCase):
   # Arguments that can only be applied to each WiFi service connection.  These
   # will be checked as key-values in the test's "service" argument (see below).
   _SERVICE_ARGS = [
-      Arg('ssid', (str, unicode), 'SSID of WiFi service.'),
+      Arg('ssid', str, 'SSID of WiFi service.'),
       Arg('password', str, 'Password of WiFi service.', default=None)
   ]
 

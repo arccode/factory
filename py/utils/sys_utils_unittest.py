@@ -204,7 +204,7 @@ class GetPartitionsTest(unittest.TestCase):
 
     partitions = sys_utils.GetPartitions()
     for p in partitions:
-      print(unicode(p))
+      print(str(p))
 
     read_lines_mock.assert_called_once_with('/proc/partitions')
 

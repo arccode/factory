@@ -160,7 +160,6 @@ CustomDumper.add_multi_representer(dict, CustomDumper.represent_dict)
 CustomDumper.add_multi_representer(list, CustomDumper.represent_list)
 CustomDumper.add_multi_representer(str, CustomDumper.represent_str)
 CustomDumper.add_multi_representer(tuple, CustomDumper.represent_list)
-CustomDumper.add_multi_representer(unicode, CustomDumper.represent_unicode)
 # Add customized representer for the rests, output its attributes as a dict.
 CustomDumper.add_multi_representer(object, YamlObjectRepresenter)
 

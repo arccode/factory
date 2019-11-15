@@ -41,7 +41,7 @@ class ChecksumError(Exception):
 class InputSocket(plugin_base.InputPlugin):
 
   ARGS = [
-      Arg('hostname', (str, unicode), 'Hostname that server should bind to.',
+      Arg('hostname', str, 'Hostname that server should bind to.',
           default=_DEFAULT_HOSTNAME),
       Arg('port', int, 'Port that server should bind to.',
           default=socket_common.DEFAULT_PORT)

@@ -34,7 +34,7 @@ class InputTime(plugin_base.InputPlugin):
           default=_DEFAULT_INTERVAL),
       Arg('num_events', int, 'Number of events to produce on every interval.',
           default=_DEFAULT_NUM_EVENTS),
-      Arg('event_name', (str, unicode), 'Name of the event.',
+      Arg('event_name', str, 'Name of the event.',
           default=_DEFAULT_EVENT_NAME),
       Arg('num_attachments', int, 'Number of files to attach to each event.',
           default=_DEFAULT_NUM_ATTACHMENTS),

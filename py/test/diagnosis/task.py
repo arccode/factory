@@ -164,7 +164,7 @@ class Task(object):
     """
     ret = {}
     for var_id in self._inputs:
-      js_var_id = unicode(str(var_id))
+      js_var_id = str(var_id)
       if js_var_id not in input_values:
         ret[var_id] = ''
       else:

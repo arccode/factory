@@ -39,7 +39,7 @@ class OutputPullSocket(plugin_base.OutputPlugin):
           default=_DEFAULT_BATCH_SIZE),
       Arg('timeout', (int, float), 'Timeout to transmit without full batch.',
           default=_DEFAULT_TIMEOUT),
-      Arg('hostname', (str, unicode), 'Hostname that server should bind to.',
+      Arg('hostname', str, 'Hostname that server should bind to.',
           default=_DEFAULT_HOSTNAME),
       Arg('port', int, 'Port that server should bind to.',
           default=socket_common.DEFAULT_PULL_PORT)

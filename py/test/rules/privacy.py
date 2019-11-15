@@ -40,7 +40,7 @@ def FilterDict(data):
       if v is None:
         continue
       if str(k) in BLACKLIST_KEYS:
-        if isinstance(v, (str, unicode)):
+        if isinstance(v, str):
           ret[k] = '<redacted %d chars>' % len(v)
         else:
           ret[k] = '<redacted type %s>' % v.__class__.__name__

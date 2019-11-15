@@ -36,7 +36,7 @@ class LidSwitchTest(test_case.TestCase):
   ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.',
           default=_DEFAULT_TIMEOUT),
-      Arg('ok_audio_path', (str, unicode),
+      Arg('ok_audio_path', str,
           'Path to the OK audio file which is played after detecting lid close'
           'signal. Defaults to play ok_*.ogg in /sounds.',
           default=None),

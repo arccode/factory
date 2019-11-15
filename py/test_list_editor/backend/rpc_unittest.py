@@ -20,7 +20,7 @@ from cros.factory.utils import type_utils
 
 class _FakePytest(object):
   ARGS = [
-      Arg('x', (bool, int, unicode, long, float, str), 'xxx', default=None),
+      Arg('x', (bool, int, long, float, str), 'xxx', default=None),
       Arg(
           'y',
           (numbers.Integral,

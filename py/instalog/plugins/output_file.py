@@ -68,7 +68,7 @@ class OutputFile(plugin_base.OutputPlugin):
       Arg('threshold_size', int,
           'If the total_size bigger than threshold_size, process these events.',
           default=_DEFAULT_THRESHOLD_SIZE),
-      Arg('target_dir', (str, unicode),
+      Arg('target_dir', str,
           'The directory in which to store files.  Uses the plugin\'s data '
           'directory by default.',
           default=None),

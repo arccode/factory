@@ -12,10 +12,10 @@ import logging
 def DecodeUTF8(data):
   """Decodes data as UTF-8, replacing any bad characters.
 
-  If data is not str type, returns as-is.
+  If data is not bytes type, returns as-is.
   """
-  if isinstance(data, str):
-    return unicode(data, encoding='utf-8', errors='replace')
+  if isinstance(data, bytes):
+    return data.decode('utf-8', errors='replace')
   return data
 
 

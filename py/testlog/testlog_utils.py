@@ -93,12 +93,12 @@ def FlattenAttrs(node, path=u'', allow_types=None, ignore_keys=None):
         if key in ignore_keys:
           continue
         for ret in FlattenAttrs(
-            value, path + unicode(key), allow_types, ignore_keys):
+            value, path + str(key), allow_types, ignore_keys):
           yield ret
 
     # List-like node.
     else:
       for i, item in enumerate(node):
         for ret in FlattenAttrs(
-            item, path + unicode(i), allow_types, ignore_keys):
+            item, path + str(i), allow_types, ignore_keys):
           yield ret

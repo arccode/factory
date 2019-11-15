@@ -14,8 +14,9 @@ See socket_common.py for protocol definition.
 
 from __future__ import print_function
 
-from six.moves import xrange
 import socket
+
+from six.moves import xrange
 
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import input_socket
@@ -38,7 +39,7 @@ class ChecksumError(Exception):
 class InputPullSocket(plugin_base.InputPlugin):
 
   ARGS = [
-      Arg('hostname', (str, unicode), 'Hostname that server should bind to.'),
+      Arg('hostname', str, 'Hostname that server should bind to.'),
       Arg('port', int, 'Port that server should bind to.',
           default=socket_common.DEFAULT_PULL_PORT)
   ]

@@ -45,7 +45,7 @@ _DEFAULT_MAX_BYTES = 0  # truncating disabled
 class InputLogFile(plugin_base.InputPlugin):
 
   ARGS = [
-      Arg('path', (str, unicode),
+      Arg('path', str,
           'Path to the set of log files on disk.  Uses glob syntax.'),
       Arg('new_file_poll_interval', (int, float),
           'Interval in seconds to check for new paths that match the glob.',

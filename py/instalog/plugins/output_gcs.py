@@ -27,9 +27,9 @@ class OutputCloudStorage(plugin_base.OutputPlugin):
           'When attachments are encountered, events are re-emitted right '
           'after upload.',
           default=_DEFAULT_INTERVAL),
-      Arg('key_path', (str, unicode),
+      Arg('key_path', str,
           'Path to Cloud Storage service account JSON key file.'),
-      Arg('target_dir', (str, unicode),
+      Arg('target_dir', str,
           'Path to the target bucket and directory on Google Cloud.'),
       Arg('use_sha1', bool,
           'Use the attachment\'s SHA1 hex-encoded hash as its filename.  '

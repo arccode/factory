@@ -319,7 +319,7 @@ class ThreadedHTTPServer(http.server.HTTPServer, log_utils.LoggerMixin):
 class InputHTTP(plugin_base.InputPlugin):
 
   ARGS = [
-      Arg('hostname', (str, unicode),
+      Arg('hostname', str,
           'Hostname that server should bind to.',
           default=_DEFAULT_HOSTNAME),
       Arg('port', int,
@@ -331,7 +331,7 @@ class InputHTTP(plugin_base.InputPlugin):
       Arg('enable_gnupg', bool,
           'Enable to use GnuPG.',
           default=False),
-      Arg('gnupg_home', (str, unicode),
+      Arg('gnupg_home', str,
           'The home directory of GnuPG.',
           default=None),
   ]

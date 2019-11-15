@@ -266,7 +266,7 @@ class BluetoothTest(test_case.TestCase):
       Arg('stop_charging', bool,
           'Prompt the user to stop charging the base.',
           default=False),
-      Arg('base_enclosure_serial_number', unicode,
+      Arg('base_enclosure_serial_number', str,
           'The base enclosure serial number.',
           default=None),
       Arg('battery_log', str,

@@ -492,7 +492,7 @@ def UnicodeToString(obj):
   elif isinstance(obj, dict):
     return dict((UnicodeToString(k), UnicodeToString(v))
                 for k, v in iteritems(obj))
-  elif isinstance(obj, unicode):
+  elif isinstance(obj, str):
     return obj.encode('utf-8')
   elif isinstance(obj, tuple):
     return tuple(UnicodeToString(x) for x in obj)

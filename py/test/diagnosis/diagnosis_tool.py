@@ -405,7 +405,7 @@ def _TaskPathToId(path):
   Returns:
     id of the task.
   """
-  return unicode('<joiner>'.join(path))
+  return '<joiner>'.join(path)
 
 
 def _GetMenuAndTaskConfigs(config):

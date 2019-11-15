@@ -48,10 +48,10 @@ class OutputArchive(output_file.OutputFile):
               'Whether or not to upload the archive to Google Cloud Storage.  '
               'False by default.',
               default=False),
-          Arg('key_path', (str, unicode),
+          Arg('key_path', str,
               'Path to Cloud Storage service account JSON key file.',
               default=None),
-          Arg('gcs_target_dir', (str, unicode),
+          Arg('gcs_target_dir', str,
               'Path to the target bucket and directory on Google Cloud '
               'Storage.',
               default=None),

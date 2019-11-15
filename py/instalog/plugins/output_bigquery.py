@@ -62,13 +62,13 @@ class OutputBigQuery(plugin_base.OutputPlugin):
       Arg('batch_size', int,
           'How many events to queue before transmitting.',
           default=_DEFAULT_BATCH_SIZE),
-      Arg('key_path', (str, unicode),
+      Arg('key_path', str,
           'Path to BigQuery/CloudStorage service account JSON key file.'),
-      Arg('gcs_target_dir', (str, unicode),
+      Arg('gcs_target_dir', str,
           'Path to the target bucket and directory on Google Cloud Storage.'),
-      Arg('project_id', (str, unicode), 'Google Cloud project ID.'),
-      Arg('dataset_id', (str, unicode), 'BigQuery dataset ID.'),
-      Arg('table_id', (str, unicode), 'BigQuery target table name.')
+      Arg('project_id', str, 'Google Cloud project ID.'),
+      Arg('dataset_id', str, 'BigQuery dataset ID.'),
+      Arg('table_id', str, 'BigQuery target table name.')
   ]
 
   def __init__(self, *args, **kwargs):

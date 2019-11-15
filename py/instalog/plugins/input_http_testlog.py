@@ -71,7 +71,7 @@ class InputHTTPTestlog(input_http.InputHTTP):
   ARGS = arg_utils.MergeArgs(
       input_http.InputHTTP.ARGS,
       [
-          Arg('log_level_threshold', (str, unicode, int, float),
+          Arg('log_level_threshold', (str, int, float),
               'The logLevel threshold for all message events.',
               default=logging.NOTSET)
       ]

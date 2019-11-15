@@ -287,8 +287,8 @@ def ParseJSONTestList(filename, options):
   messages = []
 
   def RecursiveFindMessages(obj):
-    # json.load strings are always unicode.
-    if isinstance(obj, unicode):
+    # json.load strings are always str.
+    if isinstance(obj, str):
       for prefix in prefixes:
         if obj.startswith(prefix):
           messages.append(obj[len(prefix):])
@@ -303,7 +303,7 @@ def ParseJSONTestList(filename, options):
       # If key is label, assume that value is a i18n message.
       if 'label' in obj:
         value = obj['label']
-        if isinstance(value, unicode) and not any(
+        if isinstance(value, str) and not any(
             value.startswith(prefix) for prefix in prefixes):
           messages.append(value)
 

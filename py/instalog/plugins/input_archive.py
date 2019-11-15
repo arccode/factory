@@ -42,7 +42,7 @@ from cros.factory.instalog.utils import file_utils
 class InputArchive(plugin_base.InputPlugin):
 
   ARGS = [
-      Arg('path', (str, unicode),
+      Arg('path', str,
           'Path to the set of archives on disk.  Uses glob syntax.  '
           'e.g. "/path/to/InstalogEvents_*.tar.gz"'),
   ]
