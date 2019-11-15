@@ -140,12 +140,15 @@ class DisplayTest(test_case.TestCase):
           '\n'.join('  * ``"%s"``' % x for x in _ALL_ITEMS),
           default=['solid-gray-170', 'solid-gray-127', 'solid-gray-63',
                    'solid-red', 'solid-green', 'solid-blue']),
-      Arg('idle_timeout',
-          int,
+      Arg('idle_timeout', int,
           'If given, the test would be start automatically, run for '
           'idle_timeout seconds, and pass itself. '
           'Note that items should contain exactly one item in this mode.',
-          default=None)
+          default=None),
+      Arg('quick_display', bool,
+          'If set to true, the next item will be shown automatically on '
+          'enter pressed i.e. no additional space needed to toggle screen.',
+          default=True)
   ]
 
   def setUp(self):
@@ -217,6 +220,8 @@ class DisplayTest(test_case.TestCase):
       self.frontend_proxy.JudgeSubTest(True)
       # If the next subtest will be in fullscreen mode, checked should be True
       self.checked = self.fullscreen
+      if self.args.quick_display and not self.fullscreen:
+        self.ToggleFullscreen()
 
   def OnFailPressed(self, event):
     """Fails the subtest only if self.checked is True."""
