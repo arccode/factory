@@ -18,7 +18,7 @@ import threading
 import unittest
 import urllib.parse
 
-import mox
+from mox3 import mox
 from six.moves import xrange
 
 from cros.factory.test import server_proxy

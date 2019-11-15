@@ -12,7 +12,7 @@ import logging
 import os
 import re
 
-import mox
+from mox3 import mox
 from twisted.internet import reactor
 from twisted.trial import unittest
 from twisted.web import server

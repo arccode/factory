@@ -11,7 +11,7 @@
 import logging
 import unittest
 
-import mox
+from mox3 import mox
 
 from cros.factory.device import device_types
 from cros.factory.device import fan

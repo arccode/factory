@@ -21,8 +21,7 @@ import time
 import traceback
 import unittest
 
-import mox
-from mox import IgnoreArg
+from mox3 import mox
 from six import itervalues
 from six.moves import xrange
 from ws4py.client import WebSocketBaseClient
@@ -67,7 +66,7 @@ def MockPytest(name, test_state, exc_repr, func=None):
     return process_utils.Spawn(['true'], stdout=subprocess.PIPE)
 
   prespawner.Prespawner.spawn(
-      IgnoreArg(), IgnoreArg()).WithSideEffects(SideEffect)
+      mox.IgnoreArg(), mox.IgnoreArg()).WithSideEffects(SideEffect)
 
 
 class GoofyTest(unittest.TestCase):
@@ -173,12 +172,14 @@ class GoofyTest(unittest.TestCase):
       server.RegisterPath('/',
                           os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR,
                                        'goofy/static')).InAnyOrder()
-      server.RegisterData('/index.html', 'text/html', IgnoreArg()).InAnyOrder()
+      server.RegisterData('/index.html', 'text/html',
+                          mox.IgnoreArg()).InAnyOrder()
       server.AddRPCInstance(goofy_proxy.STATE_URL, self.state).InAnyOrder()
-      server.AddHTTPGetHandler('/event', IgnoreArg()).InAnyOrder()
+      server.AddHTTPGetHandler('/event', mox.IgnoreArg()).InAnyOrder()
       server.RegisterData('/js/goofy-translations.js', 'application/javascript',
-                          IgnoreArg()).InAnyOrder()
-      server.RegisterData('/css/i18n.css', 'text/css', IgnoreArg()).InAnyOrder()
+                          mox.IgnoreArg()).InAnyOrder()
+      server.RegisterData('/css/i18n.css', 'text/css',
+                          mox.IgnoreArg()).InAnyOrder()
 
     if self.test_list:
       test_list = manager.BuildTestListForUnittest(

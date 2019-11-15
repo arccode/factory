@@ -16,7 +16,7 @@ from tempfile import NamedTemporaryFile
 import time
 import unittest
 
-import mox
+from mox3 import mox
 from six import assertRaisesRegex
 
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
