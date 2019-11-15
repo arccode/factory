@@ -57,7 +57,6 @@ add this in test list::
 """
 
 import logging
-import re
 import sys
 import unittest
 
@@ -66,6 +65,7 @@ import numpy
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.testlog import testlog
+from cros.factory.test.utils import fpmcu_utils
 from cros.factory.utils import type_utils
 from cros.factory.utils.arg_utils import Arg
 
@@ -116,36 +116,16 @@ class FingerprintTest(unittest.TestCase):
           default=5),
   ]
 
-  # Select the Fingerprint MCU cros_ec device
-  CROS_FP_ARG = "--name=cros_fp"
   # MKBP index for Fingerprint sensor event
   EC_MKBP_EVENT_FINGERPRINT = '5'
 
-  # Regular expression for parsing ectool output.
-  RO_VERSION_RE = re.compile(r'^RO version:\s*(\S+)\s*$', re.MULTILINE)
-  RW_VERSION_RE = re.compile(r'^RW version:\s*(\S+)\s*$', re.MULTILINE)
-  FPINFO_MODEL_RE = re.compile(
-      r'^Fingerprint sensor:\s+vendor.+model\s+(\S+)\s+version', re.MULTILINE)
-  FPINFO_ERRORS_RE = re.compile(r'^Error flags:\s*(\S*)$', re.MULTILINE)
-
-  def MCUCommand(self, command, *args):
-    """Execute a host command on the fingerprint MCU
-
-    Args:
-      command: the name of the ectool command.
-
-    Returns:
-      Command text output.
-    """
-    cmdline = ['ectool', self.CROS_FP_ARG, command] + list(args)
-    result = self._dut.CallOutput(cmdline)
-    return result.strip() if result is not None else ''
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
+    self._fpmcu = fpmcu_utils.FpmcuDevice(self._dut)
 
   def tearDown(self):
-    self.MCUCommand('fpmode', 'reset')
+    self._fpmcu.FpmcuCommand('fpmode', 'reset')
 
   def IsDetectZone(self, x, y):
     for x1, y1, x2, y2 in self.args.detect_zones:
@@ -187,11 +167,12 @@ class FingerprintTest(unittest.TestCase):
     full_name = 'Inv. checkerboard' if inverted else 'Checkerboard'
     short_name = 'icb' if inverted else 'cb'
     # trigger the checkerboard test pattern and capture it
-    self.MCUCommand('fpmode', 'capture', 'pattern1' if inverted else 'pattern0')
+    self._fpmcu.FpmcuCommand('fpmode', 'capture',
+                             'pattern1' if inverted else 'pattern0')
     # wait for the end of capture (or timeout after 500 ms)
-    self.MCUCommand('waitevent', self.EC_MKBP_EVENT_FINGERPRINT, '500')
+    self._fpmcu.FpmcuCommand('waitevent', self.EC_MKBP_EVENT_FINGERPRINT, '500')
     # retrieve the resulting image as a PNM
-    pnm = self.MCUCommand('fpframe')
+    pnm = self._fpmcu.FpmcuCommand('fpframe')
 
     pixel_lines = self.CheckPnmAndExtractPixels(pnm)
     # Build arrays of black and white pixels (aka Type-1 / Type-2)
@@ -293,11 +274,11 @@ class FingerprintTest(unittest.TestCase):
   def ResetPixelTest(self):
     # reset the sensor and leave it in reset state then capture the single
     # frame.
-    self.MCUCommand('fpmode', 'capture', 'test_reset')
+    self._fpmcu.FpmcuCommand('fpmode', 'capture', 'test_reset')
     # wait for the end of capture (or timeout after 500 ms)
-    self.MCUCommand('waitevent', self.EC_MKBP_EVENT_FINGERPRINT, '500')
+    self._fpmcu.FpmcuCommand('waitevent', self.EC_MKBP_EVENT_FINGERPRINT, '500')
     # retrieve the resulting image as a PNM
-    pnm = self.MCUCommand('fpframe')
+    pnm = self._fpmcu.FpmcuCommand('fpframe')
 
     pixel_lines = self.CheckPnmAndExtractPixels(pnm)
     # Compute median value and the deviation of every pixels per column.
@@ -327,29 +308,13 @@ class FingerprintTest(unittest.TestCase):
 
   def runTest(self):
     # Verify communication with the FPMCU
-    fw_version = self.MCUCommand("version")
-    match_ro = self.RO_VERSION_RE.search(fw_version)
-    match_rw = self.RW_VERSION_RE.search(fw_version)
-    self.assertTrue(match_ro is not None and match_rw is not None,
-                    'Unable to retrieve FPMCU version (%s)' % (fw_version))
-    if match_ro and match_rw:
-      logging.info("FPMCU version RO %s RW %s",
-                   match_ro.group(1), match_rw.group(1))
+    ro_ver, rw_ver = self._fpmcu.GetFpmcuFirmwareVersion()
+    self.assertTrue(ro_ver is not None and rw_ver is not None,
+                    'Unable to retrieve FPMCU version')
+    logging.info("FPMCU version RO %s RW %s", ro_ver, rw_ver)
 
-    # Retrieve the sensor identifiers and defects detected by the MCU
-    info = self.MCUCommand('fpinfo')
-    match_model = self.FPINFO_MODEL_RE.search(info)
-    self.assertIsNotNone(match_model,
-                         'Unable to retrieve Sensor info (%s)' % (info))
-    logging.info('ectool fpinfo:\n%s\n', info)
-    model = int(match_model.group(1), 16)
-    match_errors = self.FPINFO_ERRORS_RE.search(info)
-    self.assertIsNotNone(match_errors,
-                         'Unable to retrieve Sensor error flags (%s)' % (info))
-    flags = match_errors.group(1) if match_errors else ''
-
-    self.assertEqual(flags, '',
-                     'Sensor failure: %s' % (flags))
+    # Retrieve the sensor identifier
+    model = self._fpmcu.GetSensorId()
     expected_hwid = type_utils.MakeList(self.args.sensor_hwid or [])
     testlog.UpdateParam(
         name='sensor_hwid', description='Sensor Hardware ID register')
@@ -364,10 +329,11 @@ class FingerprintTest(unittest.TestCase):
 
     if self.args.rubber_finger_present:
       # Test sensor image quality
-      self.MCUCommand('fpmode', 'capture', 'qual')
+      self._fpmcu.FpmcuCommand('fpmode', 'capture', 'qual')
       # wait for the end of capture (or timeout after 5s)
-      self.MCUCommand('waitevent', self.EC_MKBP_EVENT_FINGERPRINT, '5000')
-      img = self.MCUCommand('fpframe', 'raw')
+      self._fpmcu.FpmcuCommand('waitevent',
+                               self.EC_MKBP_EVENT_FINGERPRINT, '5000')
+      img = self._fpmcu.FpmcuCommand('fpframe', 'raw')
       # record the raw image file for quality evaluation
       testlog.AttachContent(
           content=img,
