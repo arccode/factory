@@ -96,7 +96,8 @@ class Scalar(BaseType):
 
   def __init__(self, label, element_type, choices=None):
     super(Scalar, self).__init__(label)
-    if getattr(element_type, '__iter__', None):
+    if getattr(element_type, '__iter__', None) and element_type not in (
+        str, bytes):
       raise SchemaException(
           'element_type %r of Scalar %r is not a scalar type' % (element_type,
                                                                  label))
