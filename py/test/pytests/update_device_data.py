@@ -217,7 +217,7 @@ class DataEntry(object):
     if isinstance(value, bool) and value_check is None:
       value_check = [True, False]
 
-    if isinstance(value_check, basestring):
+    if isinstance(value_check, str):
       self.re_checker = re.compile(value_check)
     elif isinstance(value_check, list):
       self.value_check = value_check
@@ -245,7 +245,7 @@ class DataEntry(object):
     elif isinstance(self.value_check, list):
       self.codes = [str(v) for v in self.value_check]
       self.options = [
-          '%d - %s' % (i + 1, v) if isinstance(v, basestring) else str(v)
+          '%d - %s' % (i + 1, v) if isinstance(v, str) else str(v)
           for i, v in enumerate(self.value_check)]
 
   def GetInputList(self):
@@ -291,7 +291,7 @@ class UpdateDeviceData(test_case.TestCase):
           'Set to False to silently updating all values. Otherwise each value '
           'will be prompted before set into Device Data.',
           default=True),
-      Arg('config_name', basestring,
+      Arg('config_name', str,
           'A JSON config name to load representing the device data to update.',
           default=None),
       Arg('fields', list,
@@ -318,7 +318,7 @@ class UpdateDeviceData(test_case.TestCase):
     # Syntax sugar: If the sequence was replaced by a simple string, consider
     # that as data_key only.
     self.entries = [
-        DataEntry(args) if isinstance(args, basestring) else DataEntry(*args)
+        DataEntry(args) if isinstance(args, str) else DataEntry(*args)
         for args in fields
     ]
 

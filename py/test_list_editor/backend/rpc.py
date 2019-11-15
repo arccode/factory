@@ -34,7 +34,7 @@ def _NormalizedArgType(t):
     return _BASIC_ARG_TYPE.INT
   if issubclass(t, numbers.Number):
     return _BASIC_ARG_TYPE.FLOAT
-  if issubclass(t, basestring):
+  if issubclass(t, str):
     return _BASIC_ARG_TYPE.STR
   if issubclass(t, collections.Sequence):
     return _BASIC_ARG_TYPE.LIST

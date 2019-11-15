@@ -323,7 +323,7 @@ class FactoryState(object):
   def DataShelfDeleteKeys(self, keys, optional=False):
     """Delete data with keys on top layer."""
     # In case there's only one single key.
-    if isinstance(keys, basestring):
+    if isinstance(keys, str):
       keys = [keys]
     self.layers[-1].data_shelf.DeleteKeys(keys, optional=optional)
 

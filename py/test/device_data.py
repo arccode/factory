@@ -180,7 +180,7 @@ def GetDeviceData(key, default=None):
     Associated value if key exists in device data, otherwise the value specified
     by default. Defaults to None.
   """
-  if not isinstance(key, basestring):
+  if not isinstance(key, str):
     raise KeyError('key must be a string')
 
   return _GetInstance()[key].Get(default)
@@ -220,7 +220,7 @@ def DeleteDeviceData(delete_keys, optional=False):
   Returns:
     The updated dictionary.
   """
-  if isinstance(delete_keys, basestring):
+  if isinstance(delete_keys, str):
     delete_keys = [delete_keys]
   logging.info('Deleting device data: %s', delete_keys)
 

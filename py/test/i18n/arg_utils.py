@@ -34,5 +34,5 @@ def I18nArg(name, help_msg, default=arg_utils._DEFAULT_NOT_SET):
     The ``arg_utils.Arg`` object.
   """
   return arg_utils.Arg(
-      name, (basestring, dict), help_msg, default=default,
+      name, (str, dict), help_msg, default=default,
       _transform=lambda s: None if s is None else translation.Translated(s))

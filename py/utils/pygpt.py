@@ -330,7 +330,7 @@ class GPTObject(object):
     fmt = self.GetStructFormat()
     if source is None:
       source = '\x00' * struct.calcsize(fmt)
-    if not isinstance(source, basestring):
+    if not isinstance(source, str):
       return self.Unpack(source.read(struct.calcsize(fmt)))
     for f, value in zip(self.FIELDS, struct.unpack(fmt, source)):
       setattr(self, f.name, f.Unpack(value))
@@ -573,7 +573,7 @@ class GPT(object):
     Args:
       image: a string as file path or a file-like object to read from.
     """
-    if isinstance(image, basestring):
+    if isinstance(image, str):
       with open(image, 'rb') as f:
         return cls.LoadFromFile(f)
 
@@ -849,7 +849,7 @@ class GPT(object):
     Returns:
       The written PMBR structure.
     """
-    if isinstance(image, basestring):
+    if isinstance(image, str):
       with open(image, 'rb+') as f:
         return cls.WriteProtectiveMBR(f, create, bootcode, boot_guid)
 
@@ -900,7 +900,7 @@ class GPT(object):
     Args:
       image: a string as file path or a file-like object to write into.
     """
-    if isinstance(image, basestring):
+    if isinstance(image, str):
       with open(image, 'rb+') as f:
         return self.WriteToFile(f)
 
@@ -1621,7 +1621,7 @@ def main():
     code = commands.Execute(args)
     if isinstance(code, int):
       sys.exit(code)
-    elif isinstance(code, basestring):
+    elif isinstance(code, str):
       print('OK: %s' % code)
   except Exception as e:
     if args.verbose or args.debug:

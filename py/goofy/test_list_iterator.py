@@ -142,7 +142,7 @@ class TestListIterator(six.Iterator):
 
     if isinstance(root, test_object.FactoryTest):
       self.Push(root.path)
-    elif isinstance(root, basestring):
+    elif isinstance(root, str):
       self.Push(root)
     elif isinstance(root, test_list_module.ITestList):
       self.Push(root.path)
@@ -248,7 +248,7 @@ class TestListIterator(six.Iterator):
     if subtree_root is None:
       subtree_root = ''
 
-    if isinstance(subtree_root, basestring):
+    if isinstance(subtree_root, str):
       subtree_root = self.test_list.LookupPath(subtree_root)
 
     while self.stack:

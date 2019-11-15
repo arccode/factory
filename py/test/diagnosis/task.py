@@ -445,7 +445,7 @@ class _CommandStep(_Step):
     """
     if expected_output is None:
       return return_code == 0
-    elif isinstance(expected_output, basestring):
+    elif isinstance(expected_output, str):
       return stdout_text == expected_output
     elif isinstance(expected_output, list):
       (regexp, flags) = tuple(expected_output)

@@ -83,7 +83,7 @@ class Toybox(device_types.DeviceComponent):
         yield provider
 
       for arg in filter(None, args):
-        if isinstance(arg, basestring):
+        if isinstance(arg, str):
           yield arg
         else:
           for sub_arg in arg:
@@ -223,7 +223,7 @@ class Toybox(device_types.DeviceComponent):
       The output (from stdout) data.
     """
     valid_conv = ['notrunc', 'noerror', 'sync', 'fsync']
-    if isinstance(conv, basestring):
+    if isinstance(conv, str):
       conv = conv.split(',')
     assert not conv or set(conv).issubset(valid_conv), (
         'dd using toybox does not support "conf=%s"')
@@ -491,7 +491,7 @@ class Toybox(device_types.DeviceComponent):
     args = (options, fs_type, mount_all, fake_it, read_only, verbose)
     option_str = ''
     if options:
-      if isinstance(options, basestring):
+      if isinstance(options, str):
         option_str = options
       else:
         option_str = ','.join(options)

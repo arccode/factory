@@ -237,7 +237,7 @@ class ExecShell(test_case.TestCase):
     assert not self.args.attachment_name or self._dut.link.IsLocal(), (
         'Argument attachment_name currently needs to run on local DUT.')
 
-    if isinstance(self.args.commands, basestring):
+    if isinstance(self.args.commands, str):
       self._commands = [self.args.commands]
     else:
       self._commands = self.args.commands
@@ -264,7 +264,7 @@ class ExecShell(test_case.TestCase):
         self._dut.CheckCall(['mkdir', '-p', cwd])
 
     for command in self._commands:
-      assert isinstance(command, basestring), (
+      assert isinstance(command, str), (
           'Temporary attachment_path needs string type commands')
 
       result = self.RunCommand(cwd, command)

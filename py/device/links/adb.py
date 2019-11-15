@@ -108,7 +108,7 @@ class ADBLink(device_types.DeviceLink):
 
     # Convert list-style commands to single string because we need to run
     # multiple commands in same session (and needs shell=True).
-    if not isinstance(command, basestring):
+    if not isinstance(command, str):
       command = ' '.join(pipes.quote(param) for param in command)
     if cwd:
       command = 'cd %s ; %s' % (pipes.quote(cwd), command)

@@ -169,7 +169,7 @@ class SSHLink(device_types.DeviceLink):
     if options:
       if isinstance(options, list):
         scp_options += options
-      elif isinstance(options, basestring):
+      elif isinstance(options, str):
         scp_options.append(options)
       else:
         raise ValueError('options must be a list or string (got %r)' % options)
@@ -241,7 +241,7 @@ class SSHLink(device_types.DeviceLink):
     """See DeviceLink.Shell"""
     remote_sig, options = self._signature(False)
 
-    if not isinstance(command, basestring):
+    if not isinstance(command, str):
       command = ' '.join(map(pipes.quote, command))
     if cwd:
       command = 'cd %s ; %s' % (pipes.quote(cwd), command)

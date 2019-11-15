@@ -58,7 +58,7 @@ _TEST_OBJECT_KEY_ORDER = [
 
 
 def RecursiveFormatTestObject(test_obj):
-  if isinstance(test_obj, basestring):
+  if isinstance(test_obj, str):
     return test_obj
 
   test_obj = ReorderDictKey(test_obj, _TEST_OBJECT_KEY_ORDER)

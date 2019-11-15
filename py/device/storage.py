@@ -62,7 +62,7 @@ class Storage(device_types.DeviceComponent):
     """
     assert isinstance(data, dict), '%r is not a dict object' % data
 
-    invalid_keys = [k for k in data if not isinstance(k, basestring)]
+    invalid_keys = [k for k in data if not isinstance(k, str)]
     if invalid_keys:
       logging.warning('Invalid keys: %r (keys can only be string)',
                       invalid_keys)

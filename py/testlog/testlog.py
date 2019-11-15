@@ -1033,7 +1033,7 @@ class StationStatus(_StationBase):
 
   def _ValidatorSerialNumberWrapper(*args, **kwargs):
     # pylint: disable=no-method-argument
-    SCHEMA = schema.Optional(schema.Scalar('serialNumbers.value', basestring))
+    SCHEMA = schema.Optional(schema.Scalar('serialNumbers.value', str))
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.Dict(*args, **kwargs)
 
@@ -1043,22 +1043,22 @@ class StationStatus(_StationBase):
         'data',
         items={},
         optional_items={
-            'status': schema.Scalar('status', basestring, ['PASS', 'FAIL']),
+            'status': schema.Scalar('status', str, ['PASS', 'FAIL']),
             'numericValue': StationStatus._NumericSchema('numericValue'),
             'expectedMinimum': StationStatus._NumericSchema('expectedMinimum'),
             'expectedMaximum': StationStatus._NumericSchema('expectedMaximum'),
-            'textValue': schema.Scalar('textValue', basestring),
-            'expectedRegex': schema.Scalar('expectedRegex', basestring),
-            'serializedValue': schema.Scalar('serializedValue', basestring)
+            'textValue': schema.Scalar('textValue', str),
+            'expectedRegex': schema.Scalar('expectedRegex', str),
+            'serializedValue': schema.Scalar('serializedValue', str)
         }))
     SCHEMA = schema.FixedDict(
         'parameters.value',
         items={},
         optional_items={
-            'description': schema.Scalar('description', basestring),
-            'group': schema.Scalar('group', basestring),
-            'valueUnit': schema.Scalar('valueUnit', basestring),
-            'type': schema.Scalar('type', basestring, list(PARAM_TYPE)),
+            'description': schema.Scalar('description', str),
+            'group': schema.Scalar('group', str),
+            'valueUnit': schema.Scalar('valueUnit', str),
+            'type': schema.Scalar('type', str, list(PARAM_TYPE)),
             'data': DATA_SCHEMA})
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.Dict(*args, **kwargs)
@@ -1077,7 +1077,7 @@ class StationStatus(_StationBase):
   def _CreateParamValueDict(value, min_val=None, max_val=None, regex=None):
     """Checks types and returns a dict that aligns with Testlog Playbook."""
     value_dict = {}
-    if isinstance(value, basestring):
+    if isinstance(value, str):
       value_dict['textValue'] = value
       if min_val is not None or max_val is not None:
         raise ValueError('This should not happen!')
@@ -1146,7 +1146,7 @@ class StationStatus(_StationBase):
 
     We use re.search to perform the check.
     """
-    if not isinstance(value, basestring):
+    if not isinstance(value, str):
       raise ValueError('%r is not a text' % value)
     value_dict = StationStatus._CreateParamValueDict(value, regex=regex)
 
@@ -1175,7 +1175,7 @@ class StationStatus(_StationBase):
 
   def GroupParam(self, name, param_list):
     """Groups a list of parameters."""
-    if not isinstance(name, basestring) or not name:
+    if not isinstance(name, str) or not name:
       raise ValueError('name(%r) should be a string and not empty' % name)
     if not isinstance(param_list, list) or not param_list:
       raise ValueError('param_list(%r) should be a list and not empty' %
@@ -1292,9 +1292,9 @@ class StationTestRun(StationStatus):
     # pylint: disable=no-method-argument
     SCHEMA = schema.FixedDict(
         'arguments.value',
-        items={'value': schema.Scalar('value', basestring)},
+        items={'value': schema.Scalar('value', str)},
         optional_items={
-            'description': schema.Scalar('description', basestring)})
+            'description': schema.Scalar('description', str)})
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.Dict(*args, **kwargs)
 
@@ -1302,8 +1302,8 @@ class StationTestRun(StationStatus):
     # pylint: disable=no-method-argument
     SCHEMA = schema.FixedDict(
         'failures.value',
-        items={'code': schema.Scalar('code', basestring),
-               'details': schema.Scalar('details', basestring)})
+        items={'code': schema.Scalar('code', str),
+               'details': schema.Scalar('details', str)})
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.List(*args, **kwargs)
 
@@ -1311,10 +1311,10 @@ class StationTestRun(StationStatus):
     # pylint: disable=no-method-argument
     SCHEMA = schema.FixedDict(
         'attachments.value',
-        items={'path': schema.Scalar('path', basestring),
-               'mimeType': schema.Scalar('mimeType', basestring)},
+        items={'path': schema.Scalar('path', str),
+               'mimeType': schema.Scalar('mimeType', str)},
         optional_items={
-            'description': schema.Scalar('description', basestring)})
+            'description': schema.Scalar('description', str)})
     kwargs['schema'] = SCHEMA
     return testlog_validator.Validator.Dict(*args, **kwargs)
 
@@ -1375,9 +1375,9 @@ class StationTestRun(StationStatus):
     # Get the numeric code unified into hex format.
     if isinstance(code, (int, long)):
       code = '0x%x' % code
-    if not isinstance(code, basestring):
+    if not isinstance(code, str):
       raise ValueError('code(%r) should be a string or an integer' % code)
-    if not isinstance(details, basestring):
+    if not isinstance(details, str):
       raise ValueError('details(%r) should be a string' % details)
     self['failures'] = {'code': code, 'details': details}
     return self

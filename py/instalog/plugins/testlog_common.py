@@ -16,7 +16,7 @@ from cros.factory.instalog.utils import time_utils
 def From0_1to0_21(event):
   """Upgrades the event format from Testlog API 0.1 to Testlog API 0.21 ."""
   def DateTimeToUnixTimestamp(obj):
-    if isinstance(obj, basestring):
+    if isinstance(obj, str):
       obj = datetime.datetime.strptime(obj, json_utils.FORMAT_DATETIME)
 
     if isinstance(obj, datetime.datetime):

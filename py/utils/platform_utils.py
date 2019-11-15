@@ -44,7 +44,7 @@ def Provider(api_name, systems):
     api_name: A string for API name.
     systems: A list of supported platform systems.
   """
-  assert not isinstance(systems, basestring), "systems must be list."
+  assert not isinstance(systems, str), "systems must be list."
   if api_name not in _PROVIDER_MAP:
     _PROVIDER_MAP[api_name] = {}
   def ProviderDecorator(func):

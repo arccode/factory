@@ -31,7 +31,7 @@ class SafeFormatter(string.Formatter):
     return super(SafeFormatter, self).parse(format_string)
 
   def get_value(self, key, args, kwargs):
-    if isinstance(key, basestring):
+    if isinstance(key, str):
       if not key:
         self.Warn('Using positional argument {} is not supported,'
                   ' use named argument instead.')

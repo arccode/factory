@@ -141,7 +141,7 @@ class SystemInterface(object):
       logger = logging.info if log is True else log
       logger('%s Running: %r', type(self), command)
 
-    if not isinstance(command, basestring):
+    if not isinstance(command, str):
       command = ' '.join(pipes.quote(param) for param in command)
     return subprocess.Popen(command, cwd=cwd, shell=True, close_fds=True,
                             stdin=stdin, stdout=stdout, stderr=stderr)

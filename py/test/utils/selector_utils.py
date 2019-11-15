@@ -91,7 +91,7 @@ class DataShelfSelector(ISelector):
 
     Args:
       :type proxy: FactoryState
-      :type key: basestring
+      :type key: str
     """
     self._proxy = proxy
     self._key = key

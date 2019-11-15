@@ -61,8 +61,8 @@ def _SanitizeTask(config):
     A sanitized task element.
   """
   _SanitizeDefaultValueAndType(config, [
-      (common.TOKEN.NAME, '', basestring),
-      (common.TOKEN.DESCRIPTION, '', basestring)])
+      (common.TOKEN.NAME, '', str),
+      (common.TOKEN.DESCRIPTION, '', str)])
   try:
     if common.TOKEN.STEPS in config:
       if not isinstance(config[common.TOKEN.STEPS], list):
@@ -161,8 +161,8 @@ def _SanitizeInput(config):
   """
   try:
     _SanitizeDefaultValueAndType(config, [
-        (common.TOKEN.PROMPT, '', basestring),
-        (common.TOKEN.HELP, '', basestring),
+        (common.TOKEN.PROMPT, '', str),
+        (common.TOKEN.HELP, '', str),
         (common.TOKEN.VAR_ID, None, (type(None), int))])
     config_type = config[common.TOKEN.TYPE].lower()
     if (config_type == common.INPUT_TYPE.NUMBER or
@@ -195,7 +195,7 @@ def _SanitizeInputNumberAndSlider(ref):
   for key in [common.TOKEN.MIN, common.TOKEN.MAX, common.TOKEN.STEP]:
     if isinstance(ref[key], (int, float)):
       pass
-    elif isinstance(ref[key], basestring) and ref[key].startswith('!'):
+    elif isinstance(ref[key], str) and ref[key].startswith('!'):
       ref[key] = _GetCommandOutput(ref[key][1:], float, 'float')
     else:
       raise common.FormatError(
@@ -203,14 +203,14 @@ def _SanitizeInputNumberAndSlider(ref):
   _SanitizeDefaultValueAndType(ref, [
       (common.TOKEN.VALUE, ref[common.TOKEN.MIN], (int, float)),
       (common.TOKEN.ROUND, 0, (int, float)),
-      (common.TOKEN.UNIT, '', basestring)])
+      (common.TOKEN.UNIT, '', str)])
 
 
 def _SanitizeInputChoices(ref):
   key = common.TOKEN.CHOICES
   if isinstance(ref[key], list):
     pass
-  elif isinstance(ref[key], basestring) and ref[key].startswith('!'):
+  elif isinstance(ref[key], str) and ref[key].startswith('!'):
     ref[key] = _GetCommandOutput(ref[key][1:], lambda x: re.split(' |\t|\n', x))
   else:
     raise common.FormatError(
@@ -233,15 +233,15 @@ def _SanitizeInputBool(ref):
 
 def _SanitizeInputFile(ref):
   _SanitizeDefaultValueAndType(ref, [
-      (common.TOKEN.PATTERN, _DEFAULT_INPUT_FILE_PATTERN, basestring),
-      (common.TOKEN.FILE_TYPE, _DEFAULT_INPUT_FILE_TYPE, basestring)])
+      (common.TOKEN.PATTERN, _DEFAULT_INPUT_FILE_PATTERN, str),
+      (common.TOKEN.FILE_TYPE, _DEFAULT_INPUT_FILE_TYPE, str)])
 
 
 def _SanitizeInputString(ref):
   _SanitizeDefaultValueAndType(ref, [
-      (common.TOKEN.VALUE, '', basestring),
+      (common.TOKEN.VALUE, '', str),
       (common.TOKEN.REGEXP, None, (type(None), list)),
-      (common.TOKEN.HINT, '', basestring)])
+      (common.TOKEN.HINT, '', str)])
   if isinstance(ref[common.TOKEN.REGEXP], list):
     _SanitizeRegExp(ref[common.TOKEN.REGEXP], common.TOKEN.REGEXP)
 
@@ -284,10 +284,10 @@ def _SanitizeStep(config):
   """
   found = 0
   if common.TOKEN.CONFIRM in config:
-    if not isinstance(config[common.TOKEN.CONFIRM], basestring):
+    if not isinstance(config[common.TOKEN.CONFIRM], str):
       raise common.FormatError('A confirm content must be a string')
     _SanitizeDefaultValueAndType(config, [
-        (common.TOKEN.TITLE, _DEFAULT_CONFIRM_TITLE, basestring),
+        (common.TOKEN.TITLE, _DEFAULT_CONFIRM_TITLE, str),
         (common.TOKEN.OPTIONS, list(_DEFAULT_CONFIRM_OPTIONS), list),
         (common.TOKEN.TIMEOUT, list(_DEFAULT_CONFIRM_TIMEOUT),
          (list, type(None)))])
@@ -301,13 +301,13 @@ def _SanitizeStep(config):
     found += 1
   for key in (
       x for x in [common.TOKEN.COMMAND, common.TOKEN.FINALLY] if x in config):
-    if not isinstance(config[key], basestring):
+    if not isinstance(config[key], str):
       raise common.FormatError('A linux shell command must be a string')
     _SanitizeDefaultValueAndType(config, [
         (common.TOKEN.TERMINATE_TIMEOUT, None, (int, type(None))),
         (common.TOKEN.TERMINATING_TIMEOUT, None, (int, type(None))),
-        (common.TOKEN.EXPECTED_OUTPUT, None, (type(None), basestring, list)),
-        (common.TOKEN.ERROR_MESSAGE, None, (type(None), basestring))])
+        (common.TOKEN.EXPECTED_OUTPUT, None, (type(None), str, list)),
+        (common.TOKEN.ERROR_MESSAGE, None, (type(None), str))])
     if isinstance(config[common.TOKEN.EXPECTED_OUTPUT], list):
       _SanitizeRegExp(config[common.TOKEN.EXPECTED_OUTPUT],
                       common.TOKEN.EXPECTED_OUTPUT)
@@ -369,7 +369,7 @@ def _SanitizeRegExp(lst, key_name):
     lst: A list to be checked.
     key_name: The key name in the dict (For the error message).
   """
-  if not (len(lst) in (1, 2) and all(isinstance(x, basestring) for x in lst)):
+  if not (len(lst) in (1, 2) and all(isinstance(x, str) for x in lst)):
     raise common.FormatError(
         'Value of %r is not a valid regular expression: %s' % (key_name, lst))
   if len(lst) == 1:

@@ -325,7 +325,7 @@ class DictShelfView(object):
       self._AddCache(key)
 
   def _AddCache(self, key):
-    assert isinstance(key, basestring)
+    assert isinstance(key, str)
     if key:
       parent, tail = DictKey.Split(key)
       self._AddCache(parent)
@@ -383,7 +383,7 @@ class DictKey(object):
   @staticmethod
   def IsAncestor(a, b):
     """Returns True if `a` is an ancestor of `b` or `a` == `b`"""
-    if not isinstance(a, basestring) or not isinstance(b, basestring):
+    if not isinstance(a, str) or not isinstance(b, str):
       raise ValueError('`a` and `b` must be strings')
     return (not a) or (a == b) or b.startswith(a + '.')
 

@@ -120,7 +120,7 @@ def MakeList(value):
     otherwise, a list contains only one element.
   """
   if (isinstance(value, collections.Iterable) and
-      not isinstance(value, basestring)):
+      not isinstance(value, str)):
     return list(value)
   return [value]
 
@@ -137,7 +137,7 @@ def MakeTuple(value):
   """
   def ShouldExpand(v):
     return (isinstance(v, collections.Iterable) and
-            not isinstance(v, basestring))
+            not isinstance(v, str))
 
   def Expand(v):
     return tuple(Expand(e) if ShouldExpand(e) else e for e in v)
@@ -155,7 +155,7 @@ def MakeSet(value):
     otherwise, a set contains only one element.
   """
   if (isinstance(value, collections.Iterable) and
-      not isinstance(value, basestring)):
+      not isinstance(value, str)):
     return set(value)
   return set([value])
 
@@ -186,7 +186,7 @@ def GetDict(data, key_path, default_value=None):
     key_path: A list of keys, or one simple string delimited by dot.
     default_value: The value to return if key_path does not exist.
   """
-  if isinstance(key_path, basestring):
+  if isinstance(key_path, str):
     key_path = key_path.split('.')
   for key in key_path:
     if key not in data:

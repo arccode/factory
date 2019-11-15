@@ -32,7 +32,7 @@ class AndroidBoard(linux.LinuxBoard):
 
     # To make sure TMPDIR is applied on all sub commands (for instance, "a; b"
     # or "(a; b)" we want to make sure the command is quoted before invocation.
-    if not isinstance(command, basestring):
+    if not isinstance(command, str):
       command = ' '.join(pipes.quote(param) for param in command)
 
     command = ['TMPDIR=%s' % self.TMPDIR, 'sh', '-c', command]

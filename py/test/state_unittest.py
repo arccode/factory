@@ -178,7 +178,7 @@ class FactoryStateTest(unittest.TestCase):
     layer.data_shelf.SetValue('', data)
 
     serialized_data = layer.Dumps(True, True)
-    self.assertTrue(isinstance(serialized_data, basestring))
+    self.assertTrue(isinstance(serialized_data, str))
 
     layer = state.FactoryStateLayer()
     layer.Loads(serialized_data)

@@ -126,7 +126,7 @@ class KeyboardTest(test_case.TestCase):
       Arg('allow_multi_keys', bool, 'Allow multiple keys pressed '
           'simultaneously. (Less strictly checking '
           'with shorter cycle time)', default=False),
-      Arg('layout', basestring,
+      Arg('layout', str,
           'Use specified layout other than derived from VPD. '
           'If None, the layout from the VPD is used.',
           default=None),

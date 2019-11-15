@@ -157,7 +157,7 @@ class Checker(object):
       return
 
     for value in itervalues(args):
-      if isinstance(value, basestring):
+      if isinstance(value, str):
         if value.startswith(_EVALUATE_PREFIX):
           self.AssertValidEval(value[len(_EVALUATE_PREFIX):])
       else:
@@ -176,7 +176,7 @@ class Checker(object):
       - "device" (a short cut for `state_proxy.data_shelf.device`)
 
     Args:
-      :type expression: basestring
+      :type expression: str
     """
     return self._AssertValidExpression(
         expression, self._EVAL_VALID_IDENTIFIERS)
@@ -204,7 +204,7 @@ class Checker(object):
     Collected free variables must be a subset of `valid_identifiers`.
 
     Args:
-      :type expression: basestring
+      :type expression: str
       :type valid_identifiers: set
     """
     try:

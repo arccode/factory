@@ -185,7 +185,7 @@ class SysUtils(object):
       sudo: Execute the command with sudo if needed.
       output: Returns the output from command (check_call).
     """
-    if not isinstance(commands, basestring):
+    if not isinstance(commands, str):
       commands = ' '.join(pipes.quote(arg) for arg in commands)
     kargs['shell'] = True
 
@@ -422,7 +422,7 @@ class CrosPayloadUtils(object):
     if not os.path.exists(json_path):
       logging.warning('Cannot find %s', json_path)
       return
-    if isinstance(components, basestring):
+    if isinstance(components, str):
       components = [components]
     Sudo([cls.GetProgramPath(), 'install_optional' if optional else 'install',
           json_path, dest] + components,
@@ -574,7 +574,7 @@ class CrosPayloadUtils(object):
       boards: board name, or a list of board names.
       new_payloads_dir: directory containing the new payload files.
     """
-    if isinstance(boards, basestring):
+    if isinstance(boards, str):
       boards = [boards]
 
     with Partition(image, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
@@ -760,7 +760,7 @@ class GPT(pygpt.GPT):
           pass
 
       options = options or []
-      if isinstance(options, basestring):
+      if isinstance(options, str):
         options = [options]
       options = ['rw' if rw else 'ro'] + options
 

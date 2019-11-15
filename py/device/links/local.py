@@ -51,7 +51,7 @@ class LocalLink(device_types.DeviceLink):
     # Android only has /system/bin/sh) then calling Popen may give you 'No such
     # file or directory' error.
 
-    if not isinstance(command, basestring):
+    if not isinstance(command, str):
       command = ' '.join(pipes.quote(param) for param in command)
 
     if self._shell_path:

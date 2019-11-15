@@ -87,7 +87,7 @@ class TestlogUtilsTest(unittest.TestCase):
     flattened = dict(testlog_utils.FlattenAttrs(data, allow_types=[int]))
     self.assertEqual(1, flattened['a'])
     self.assertEqual(repr(now), flattened['b'])
-    self.assertIsInstance(flattened['b'], basestring)
+    self.assertIsInstance(flattened['b'], str)
 
 if __name__ == '__main__':
   logging.basicConfig(

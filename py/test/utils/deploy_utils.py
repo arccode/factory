@@ -124,7 +124,7 @@ class FactoryPythonArchive(FactoryTools):
 
   def DryRun(self, command):
     """Returns the command that will be executed."""
-    if isinstance(command, basestring):
+    if isinstance(command, str):
       command = 'sh ' + self.remote_factory_par + ' ' + command
     else:
       command = ['sh', self.remote_factory_par] + command
@@ -166,7 +166,7 @@ class FactoryBin(FactoryTools):
 
   def DryRun(self, command):
     """Returns the command that will be executed."""
-    if not isinstance(command, basestring):
+    if not isinstance(command, str):
       command = ' '.join(map(pipes.quote, command))
 
     command = 'PATH=%s:$PATH %s' % (os.path.join(paths.FACTORY_DIR, 'bin'),

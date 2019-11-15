@@ -120,7 +120,7 @@ class BatteryCurrentTest(test_case.TestCase):
 
   def _CheckUSBPDInfoArg(self, info):
     if len(info) == 5:
-      check_types = (int, basestring, basestring, int, int)
+      check_types = (int, str, str, int, int)
     elif len(info) == 3:
       check_types = (int, int, int)
     else:

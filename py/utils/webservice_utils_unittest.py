@@ -46,7 +46,7 @@ class WebServiceUtilsTest(unittest.TestCase):
     return dict_arg
 
   def _JSONGetDeviceInfo(self, str_arg):
-    self.assertTrue(isinstance(str_arg, basestring))
+    self.assertTrue(isinstance(str_arg, str))
     return json.dumps(self._GetDeviceInfo(json.loads(str_arg)))
 
   def tearDown(self):

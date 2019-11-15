@@ -42,9 +42,9 @@ class Validator(object):
 
   @staticmethod
   def String(inst, key, value):
-    if not isinstance(value, basestring):
+    if not isinstance(value, str):
       raise ValueError(
-          'key[%s] accepts type of basestring. Not %r '
+          'key[%s] accepts type of str. Not %r '
           'Please convert before assign' % (key, type(value)))
     Validator.Object(inst, key, value)
 
@@ -69,9 +69,9 @@ class Validator(object):
           'Validator.Dict accepts value in form of {%r:..., %r:...}, not %s' % (
               'key', 'value', pprint.pformat(value)))
 
-    if not isinstance(value['key'], basestring):
+    if not isinstance(value['key'], str):
       raise ValueError(
-          'The key of %s accepts type of basestring. Not %r '
+          'The key of %s accepts type of str. Not %r '
           'Please convert before assign' % (key, type(value['key'])))
 
     if schema:
@@ -123,7 +123,7 @@ class Validator(object):
     if not os.path.exists(source_path):
       raise ValueError('not able to find file %s' % source_path)
     mime_type = value[MIME_TYPE]
-    if not isinstance(mime_type, basestring) or (
+    if not isinstance(mime_type, str) or (
         not re.match(r'^[-\+\w]+/[-\+\w]+$', mime_type)):
       raise ValueError('mimeType(%r) is incorrect for file %s' % (
           mime_type, source_path))

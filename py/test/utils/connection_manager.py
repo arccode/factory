@@ -273,7 +273,7 @@ class ConnectionManager(object):
     if mtu is not None:
       config['Mtu'] = dbus.Int32(mtu)
     if name_servers is not None:
-      if isinstance(name_servers, basestring):
+      if isinstance(name_servers, str):
         name_servers = [name_servers]
       config['NameServers'] = dbus.Array(name_servers, signature='s')
 

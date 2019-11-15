@@ -88,7 +88,7 @@ class PlatformSKUModelTest(test_case.TestCase):
   """A test to confirm and set SKU and model information."""
 
   ARGS = [
-      Arg('config_name', basestring,
+      Arg('config_name', str,
           'Name of JSON config to load for setting device data.', default=None),
   ]
 

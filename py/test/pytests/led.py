@@ -81,7 +81,7 @@ class LEDTest(test_case.TestCase):
     self._SetAllLED(LEDColor.OFF)
 
     # Transform the colors to a list of [led_name, color].
-    self.colors = [[None, item] if isinstance(item, basestring) else item
+    self.colors = [[None, item] if isinstance(item, str) else item
                    for item in self.args.colors]
 
     # Shuffle the colors for interactive challenge, so operators can't guess

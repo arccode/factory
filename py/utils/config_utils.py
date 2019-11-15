@@ -673,7 +673,7 @@ def _LoadRawConfigList(config_name, config_dirs, allow_inherit,
 
   if allow_inherit and isinstance(config, dict) and _INHERIT_KEY in config:
     parents = config[_INHERIT_KEY]
-    if isinstance(parents, basestring):
+    if isinstance(parents, str):
       parents = [parents]
 
     # Ignore if 'inherit' is not a list of parent names.

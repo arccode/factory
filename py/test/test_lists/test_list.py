@@ -52,7 +52,7 @@ def MayTranslate(obj, force=False):
   """
   if isinstance(obj, dict):
     return obj
-  if not isinstance(obj, basestring):
+  if not isinstance(obj, str):
     raise TypeError('not a string')
   if obj.startswith(TRANSLATE_PREFIX):
     return i18n.Translated(obj[len(TRANSLATE_PREFIX):])
@@ -451,7 +451,7 @@ class ITestList(with_metaclass(abc.ABCMeta, object)):
     def ConvertToBasicType(value):
       if isinstance(value, collections.Mapping):
         return {k: ConvertToBasicType(v) for k, v in iteritems(value)}
-      elif isinstance(value, basestring):
+      elif isinstance(value, str):
         return value
       elif isinstance(value, (list, tuple)):
         return type(value)(ConvertToBasicType(v) for v in value)
@@ -465,12 +465,12 @@ class ITestList(with_metaclass(abc.ABCMeta, object)):
                 for k, v in iteritems(value)}
 
       if isinstance(value, collections.Sequence):
-        if not isinstance(value, basestring):
+        if not isinstance(value, str):
           return [
               ResolveArg('%s[%d]' % (key, i), v) for i, v in enumerate(value)
           ]
 
-      if not isinstance(value, basestring):
+      if not isinstance(value, str):
         return value
 
       if value.startswith(EVALUATE_PREFIX):
@@ -597,7 +597,7 @@ class ITestList(with_metaclass(abc.ABCMeta, object)):
 
     If anything went wrong, `default` will be returned.
     """
-    if not isinstance(run_if, basestring):
+    if not isinstance(run_if, str):
       # run_if is not a function, not a string, just return default value
       return default
 
@@ -809,7 +809,7 @@ class TestList(ITestList):
 
     # check if expressions are valid.
     self._checker.AssertValidArgs(kwargs['dargs'])
-    if 'run_if' in kwargs and isinstance(kwargs['run_if'], basestring):
+    if 'run_if' in kwargs and isinstance(kwargs['run_if'], str):
       self._checker.AssertValidRunIf(kwargs['run_if'])
 
     return getattr(test_object_module, class_name)(**kwargs)
@@ -826,7 +826,7 @@ class TestList(ITestList):
     # syntactic sugar: if a test_object is just a string, it's equivalent to
     # {"inherit": string}, e.g.:
     #   "test_object" === {"inherit": "test_object"}
-    if isinstance(test_object, basestring):
+    if isinstance(test_object, str):
       resolved = self.ResolveTestObject({'inherit': test_object},
                                         test_object_name, cache)
       return resolved

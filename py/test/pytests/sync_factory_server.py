@@ -203,7 +203,7 @@ class SyncFactoryServer(test_case.TestCase):
       Arg('report_serial_number_name', str,
           'Name of serial number to use for report file name to use.',
           default=None),
-      Arg('server_url', (basestring, dict),
+      Arg('server_url', (str, dict),
           'Set and keep new factory server URL.',
           default=None),
   ]

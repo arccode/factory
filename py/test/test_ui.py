@@ -268,7 +268,7 @@ def EnsureI18n(labels):
   def _Transform(label):
     if isinstance(label, dict):
       return i18n_test_ui.MakeI18nLabel(label)
-    if isinstance(label, basestring):
+    if isinstance(label, str):
       return label
     return str(label)
   return ''.join(_Transform(label) for label in labels)

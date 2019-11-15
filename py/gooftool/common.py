@@ -31,7 +31,7 @@ def Shell(cmd, stdin=None, log=True, sys_interface=None):
     stdin: String that will be passed as stdin to the command.
     log: log command and result.
   """
-  if not isinstance(cmd, basestring):
+  if not isinstance(cmd, str):
     cmd = ' '.join(pipes.quote(param) for param in cmd)
   if sys_interface is None:
     process = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
