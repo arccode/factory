@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-11-06 15:18+CST\n"
+"PO-Revision-Date: 2019-11-21 14:03+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -1063,6 +1063,11 @@ msgid "{seconds} seconds"
 msgstr "{seconds}giây"
 
 #: ../py/goofy/static/templates.html
+#: ../py/test/pytests/countdown_static/countdown.html
+msgid "Elapsed time:"
+msgstr "Thời gian trải qua："
+
+#: ../py/goofy/static/templates.html
 msgid "Time remaining:"
 msgstr "Thời gian còn lại: "
 
@@ -1662,10 +1667,6 @@ msgstr "Hướng máy về phía{direction}"
 #: ../py/test/pytests/tablet_rotation_static/tablet_rotation.html
 msgid "Success!"
 msgstr "Thành công"
-
-#: ../py/test/pytests/countdown_static/countdown.html
-msgid "Elapsed time:"
-msgstr "Thời gian trải qua："
 
 #: ../py/test/pytests/countdown_static/countdown.html
 msgid "Remaining time:"

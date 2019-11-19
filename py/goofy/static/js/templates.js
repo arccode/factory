@@ -98,6 +98,8 @@
       this.progressBar = null;
       this.progressTotal = 0;
       this.progressNow = 0;
+      this.startTime = Date.now();
+      this.startElapsedTimer();
     }
 
     /**
@@ -211,23 +213,37 @@
 
     /**
      * Set the value of timer.
-     * Show the timer if it's not shown.
-     * Also set values of all elements with class 'timer-div'.
+     * Show the timer if forceShow is set.
+     * Also set values of all elements with class `${name}-div`.
      * @param {number} value the remaining time.
+     * @param {string=} name the name of the timer.
+     * @param {boolean=} forceShow
      */
-    setTimerValue(value) {
-      this.shadowRoot.querySelector('#timer-container').classList.add('show');
-      this.shadowRoot.querySelector('#timer').innerText = value.toFixed(0);
-      for (const element of this.querySelectorAll('.timer-div')) {
+    setTimerValue(value, name = 'timer', forceShow = true) {
+      if (forceShow) {
+        this.showTimer(name);
+      }
+      this.shadowRoot.querySelector(`#${name}`).innerText = value.toFixed(0);
+      for (const element of this.querySelectorAll(`.${name}-div`)) {
         element.innerText = value.toFixed(0);
       }
     }
 
     /**
-     * Hide the timer.
+     * Show the timer.
+     * @param {string=} name the name of the timer.
      */
-    hideTimer() {
-      this.shadowRoot.querySelector('#timer-container')
+    showTimer(name = 'timer') {
+      this.shadowRoot.querySelector(`#${name}-container`)
+          .classList.add('show');
+    }
+
+    /**
+     * Hide the timer.
+     * @param {string=} name the name of the timer.
+     */
+    hideTimer(name = 'timer') {
+      this.shadowRoot.querySelector(`#${name}-container`)
           .classList.remove('show');
     }
 
@@ -238,6 +254,15 @@
     setView(view) {
       this.shadowRoot.querySelector('#state-container')
           .setAttribute('view', view);
+    }
+
+    async startElapsedTimer() {
+      this.showTimer('elapsed-timer');
+      while (true) {
+        this.setTimerValue(((Date.now() - this.startTime) / 1000),
+                           'elapsed-timer', false);
+        await cros.factory.utils.delay(500);
+      }
     }
   }
   window.customElements.define('test-template', TestTemplate);

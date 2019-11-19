@@ -79,6 +79,7 @@ Status = collections.namedtuple('Status', ['temperatures', 'fan_rpm'])
 class CountDownTest(test_case.TestCase):
   """A countdown test that monitors and logs various system status."""
 
+  ui_class = test_ui.UI
   ARGS = [
       Arg('duration_secs', int, 'Duration of time to countdown.'),
       Arg('log_interval', int,

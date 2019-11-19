@@ -687,9 +687,15 @@ class StandardUI(UI):
     """
     self.CallJSFunction('window.template.setTimerValue', value)
 
-  def HideTimer(self):
-    """Hide the timer."""
-    self.CallJSFunction('window.template.hideTimer')
+  def HideTimer(self, name='timer'):
+    """Hide the timer.
+
+    Args:
+      name: the name of the timer to hide. If the name is "timer" then it hides
+        the countdown timer. If the name is "elapsed-timer" then it hides the
+        elapsed timer.
+    """
+    self.CallJSFunction('window.template.hideTimer', name)
 
   def SetView(self, view):
     """Set the view of the template.

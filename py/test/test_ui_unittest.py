@@ -912,7 +912,7 @@ class StandardUITest(UITestBase):
 
     self.AssertEventsPosted(
         self._import_template_event,
-        self._RunJSEvent('window.template.hideTimer()'))
+        self._RunJSEvent('window.template.hideTimer("timer")'))
 
   def testSetView(self):
     self._ui.SetView('view')
@@ -955,7 +955,8 @@ class StandardUITest(UITestBase):
               _TIMEOUT - self._timeline.GetTime())))
       self._timeline.AdvanceTime(1)
 
-    self.AssertEventsPosted(self._RunJSEvent('window.template.hideTimer()'))
+    self.AssertEventsPosted(self._RunJSEvent(
+        'window.template.hideTimer("timer")'))
     _handler.assert_called_once()
 
   def testStartCountdownTimerStopEvent(self):
@@ -982,7 +983,8 @@ class StandardUITest(UITestBase):
       if self._timeline.GetTime() >= _STOP_TIME:
         stop_event.set()
 
-    self.AssertEventsPosted(self._RunJSEvent('window.template.hideTimer()'))
+    self.AssertEventsPosted(self._RunJSEvent(
+        'window.template.hideTimer("timer")'))
     _handler.assert_not_called()
 
   def testStartFailingCountdownTimer(self):

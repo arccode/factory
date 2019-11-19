@@ -89,17 +89,17 @@
       height: 100%;
     }
 
-    #timer-container {
+    .timer-container {
       display: none;
       text-align: right;
       margin: 0.2em;
     }
 
-    #timer-container.show {
+    .timer-container.show {
       display: block;
     }
 
-    #timer {
+    .timer {
       display: inline-block;
       font-weight: bold;
       font-size: 1.5em;
@@ -164,9 +164,13 @@
         <slot name="instruction"></slot>
       </div>
       <div id="progress-container">
-        <div id="timer-container">
+        <div class="timer-container" id="elapsed-timer-container">
+          <i18n-label>Elapsed time:</i18n-label>
+          <div class="timer" id="elapsed-timer"></div>
+        </div>
+        <div class="timer-container" id="timer-container">
           <i18n-label>Time remaining: </i18n-label>
-          <div id="timer"></div>
+          <div class="timer" id="timer"></div>
         </div>
         <div id="progress-bar-container">
           <i18n-label>Test Progress:</i18n-label>
