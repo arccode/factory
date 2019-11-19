@@ -131,7 +131,7 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
 
     # Start the server.
     self.server_process = subprocess.Popen(
-        ['python', os.path.join(SCRIPT_DIR, 'dkps.py'),
+        ['python2', os.path.join(SCRIPT_DIR, 'dkps.py'),
          '--log_file_path', self.log_file_path,
          '--database_file_path', self.database_file_path,
          '--gnupg_homedir', self.server_gnupg_homedir,
@@ -197,7 +197,7 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
   def _CallHelper(self, client_key_file_path, command, extra_args=None):
     extra_args = extra_args if extra_args else []
     return subprocess.check_output(
-        ['python', os.path.join(SCRIPT_DIR, 'helpers.py'),
+        ['python2', os.path.join(SCRIPT_DIR, 'helpers.py'),
          '--server_ip', 'localhost',
          '--server_port', str(self.port),
          '--client_key_file_path', client_key_file_path,

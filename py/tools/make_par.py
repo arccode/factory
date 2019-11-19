@@ -237,7 +237,7 @@ def main(argv=None):
     open(os.path.join(par_build, 'factory_common.py'), 'w')
 
     if args.compiled:
-      Spawn(['python', '-m', 'compileall', par_build], check_call=True)
+      Spawn(['python2', '-m', 'compileall', par_build], check_call=True)
 
     # Zip 'em up!
     factory_par = os.path.join(tmp, 'factory.par')

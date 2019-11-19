@@ -54,5 +54,5 @@ ENV USER bundle_creator
 COPY . /usr/local/factory/py/bundle_creator/
 
 CMD gcloud auth activate-service-account --key-file=/service_account.json && \
-    python /usr/local/factory/py/bundle_creator/docker/worker.py
+    python2 /usr/local/factory/py/bundle_creator/docker/worker.py
 

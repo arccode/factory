@@ -627,7 +627,7 @@ class TestlogE2ETest(TestlogTestBase):
     # Go with env_additions['TESTLOG']
     logging.info(IN_TAG)
     p = subprocess.Popen(
-        ['python', os.path.abspath(__file__),
+        ['python2', os.path.abspath(__file__),
          'SimulatedTestInAnotherProcess'],
         env=env_additions)
     p.wait()

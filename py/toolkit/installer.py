@@ -360,7 +360,7 @@ def PackFactoryToolkit(src_root, output_path, initial_version):
            # We have to explicitly execute python instead of directly execute
            # INSTALLER_PATH because files under INSTALLER_PATH may not be
            # executable.
-           'env', 'python', INSTALLER_PATH, '--in-exe']
+           'env', 'python2', INSTALLER_PATH, '--in-exe']
     Spawn(cmd, check_call=True, log=True)
   with file_utils.TempDirectory() as tmp_dir:
     version_path = os.path.join(tmp_dir, VERSION_PATH)

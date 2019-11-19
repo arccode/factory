@@ -40,7 +40,7 @@ CSS_SOURCES = \
 CSS_SOURCE_PATHS = $(addprefix $(CLOSURE_LIB_DIR)/closure/,$(CSS_SOURCES))
 
 CLOSURE_BUILD = \
-    python $(CLOSURE_LIB_DIR)/closure/bin/build/closurebuilder.py \
+    python2 $(CLOSURE_LIB_DIR)/closure/bin/build/closurebuilder.py \
     --root $(CLOSURE_LIB_DIR) \
     --root ../js \
     -n cros.factory.Goofy \
