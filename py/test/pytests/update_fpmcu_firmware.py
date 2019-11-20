@@ -23,7 +23,7 @@ Dependency
 ----------
 - DUT link must be ready before running this test.
 - `flash_fp_mcu` (from ec-utils-test package) on DUT.
-- `crossystem` and `cros_config` on DUT.
+- `futility`, `crossystem`, and `cros_config` on DUT.
 - FPMCU firmware image must be prepared.
 - Hardware write-protection must be disabled (`crossystem wpsw_cur` returns 0).
 
@@ -72,9 +72,6 @@ class UpdateFpmcuFirmwareTest(test_case.TestCase):
           default=None),
       Arg('from_release', bool, 'Find the firmware from release rootfs.',
           default=True),
-      Arg('expected_version', str,
-          'The expected firmware version after firmware update is done.',
-          default=None)
   ]
 
   ui_class = test_ui.ScrollableLogUI
@@ -84,7 +81,6 @@ class UpdateFpmcuFirmwareTest(test_case.TestCase):
     self._fpmcu = fpmcu_utils.FpmcuDevice(self._dut)
 
   def runTest(self):
-    """Update FPMCU firmware."""
     # Before updating FPMCU firmware, HWWP must be disabled.
     if self._dut.CallOutput(['crossystem', 'wpsw_cur']).strip() != '0':
       raise Error('Hardware write protection is enabled.')
@@ -124,27 +120,38 @@ class UpdateFpmcuFirmwareTest(test_case.TestCase):
           self.UpdateFpmcuFirmware(dut_temp_file)
 
   def UpdateFpmcuFirmware(self, firmware_file):
+    """Update FPMCU firmware by `flash_fp_mcu`."""
     flash_cmd = [FLASHTOOL, firmware_file]
     old_ro_ver, old_rw_ver = self._fpmcu.GetFpmcuFirmwareVersion()
-    new_fw_bin = os.path.basename(firmware_file)
+    bin_ro_ver, bin_rw_ver = self.GetFirmwareVersionFromFile(firmware_file)
 
-    logging.info('Current FPMCU RO: %s RW: %s', old_ro_ver, old_rw_ver)
-    logging.info('Ready to update FPMCU firmware with %s.', new_fw_bin)
+    logging.info('Current FPMCU RO: %s, RW: %s', old_ro_ver, old_rw_ver)
+    logging.info('Ready to update FPMCU firmware to RO: %s, RW: %s.',
+                 bin_ro_ver, bin_rw_ver)
 
     session.console.debug(self._dut.CallOutput(flash_cmd))
     new_ro_ver, new_rw_ver = self._fpmcu.GetFpmcuFirmwareVersion()
-    self.assertEqual(new_ro_ver, new_rw_ver,
-                     'New FPMCU RO: %s does not match RW: %s.'
-                     % (new_ro_ver, new_rw_ver))
 
-    expected_version = self.args.expected_version
+    self.assertEqual(new_ro_ver, bin_ro_ver,
+                     'New FPMCU RO: %s does not match the expected RO: %s.'
+                     % (new_rw_ver, bin_ro_ver))
+    self.assertEqual(new_rw_ver, bin_rw_ver,
+                     'New FPMCU RW: %s does not match the expected RW: %s.'
+                     % (new_rw_ver, bin_rw_ver))
 
-    # If expected_version is not specified, we assume firmware version is the
-    # same as the firmware binary filename (excluding extension).
-    if expected_version is None:
-      match_version = re.search(r'(\S*).bin', new_fw_bin)
-      expected_version = match_version.group(1) if match_version else ''
+  def GetFirmwareVersionFromFile(self, firmware_file):
+    """Read RO and RW FW version from the FW binary file."""
+    ro_ver = self.ReadFmapArea(firmware_file, "RO_FRID")
+    rw_ver = self.ReadFmapArea(firmware_file, "RW_FWID")
+    return (ro_ver, rw_ver)
 
-    self.assertEqual(new_rw_ver, expected_version,
-                     'New FPMCU RW: %s does not match the expected version: %s.'
-                     % (new_rw_ver, expected_version))
+  def ReadFmapArea(self, firmware_file, area_name):
+    """Read fmap from a specified area_name."""
+    get_fmap_cmd = ["futility", "dump_fmap", "-p", firmware_file, area_name]
+    get_fmap_output = self._dut.CheckOutput(get_fmap_cmd)
+    if not get_fmap_output:
+      raise Error('Fmap area name might be wrong?')
+    unused_name, offset, size = get_fmap_output.split()
+    get_ro_ver_cmd = ["dd", "bs=1", "skip=%s" % offset,
+                      "count=%s" % size, "if=%s" % firmware_file]
+    return self._dut.CheckOutput(get_ro_ver_cmd).strip('\x00')
