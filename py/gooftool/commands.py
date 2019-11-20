@@ -81,7 +81,7 @@ def HasFpmcu():
     FPMCU_PATH = '/dev/cros_fp'
     has_fpmcu_path = os.path.exists(FPMCU_PATH)
     has_cros_config_fpmcu = False
-    if Shell(['cros_config', '/fingerprint', 'board']):
+    if Shell(['cros_config', '/fingerprint', 'board']).success:
       has_cros_config_fpmcu = True
 
     if has_fpmcu_path is False and has_cros_config_fpmcu is True:
