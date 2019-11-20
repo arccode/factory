@@ -158,13 +158,19 @@ class Flashrom(object):
   def EnableWriteProtection(self, offset, size):
     """Enables write protection by specified range."""
     self._InvokeCommand('--wp-range 0x%06X 0x%06X --wp-enable' % (offset, size))
+    result = self.GetWriteProtectionStatus()
+    if ((not result.enabled) or (result.offset != offset) or
+        (result.size != size)):
+      raise IOError('Failed to enabled write protection.')
+
     # Try to verify write protection by attempting to disable it.
     self._InvokeCommand('--wp-disable --wp-range 0 0', ignore_status=True)
     # Verify the results
     result = self.GetWriteProtectionStatus()
     if ((not result.enabled) or (result.offset != offset) or
         (result.size != size)):
-      raise IOError('Failed to enabled write protection.')
+      raise IOError('Software write protection can be disabled. Please make '
+                    'sure hardware write protection is enabled.')
 
   def DisableWriteProtection(self):
     """Tries to Disable whole write protection range and status."""
