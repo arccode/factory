@@ -3208,7 +3208,7 @@ cros.factory.Goofy = class {
                   // The web socket has size limit 65536 bytes. Thus we save
                   // a temporary file and then send the url back, instead of
                   // sending the base64-encoded string.
-                  if (args[0]['save_file']) {
+                  if (args[0] && args[0]['save_file']) {
                     const path = await this.sendRpc('UploadTemporaryFile',
                                                     args[0].content);
                     args[0] = path;
