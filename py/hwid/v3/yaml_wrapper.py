@@ -137,17 +137,16 @@ class _RegionField(dict):
   def __init__(self, region_names=None):
     if region_names is None:
       self._is_legacy_style = True
-      region_names = [code for code in regions.LEGACY_REGIONS_LIST
-                      if code in regions.REGIONS]
-
+      fields_dict = dict(
+          (i, {'region': code}) for (i, code) in
+          enumerate(regions.LEGACY_REGIONS_LIST, 1) if code in regions.REGIONS)
     else:
       self._is_legacy_style = False
-
-    # The numeric ids of valid regions start from 1.
-    # crbug.com/624257: If no explicit regions defined, populate with only the
-    # legacy list.
-    fields_dict = dict(
-        (i + 1, {'region': n}) for i, n in enumerate(region_names))
+      # The numeric ids of valid regions start from 1.
+      # crbug.com/624257: If no explicit regions defined, populate with only the
+      # legacy list.
+      fields_dict = dict(
+          (i, {'region': n}) for i, n in enumerate(region_names, 1))
 
     # 0 is a reserved field and is set to {region: []}, so that previous HWIDs
     # which do not have region encoded will not return a bogus region component

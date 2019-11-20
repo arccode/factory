@@ -21,6 +21,8 @@ class ParseRegionFieldUnittest(unittest.TestCase):
     doc = 'foo: !region_field'
     decoded = yaml.load(doc)
     self.assertEqual({'region': 'us'}, decoded['foo'][29])
+    self.assertEqual({'region': 'sa'}, decoded['foo'][128])
+    self.assertFalse(127 in decoded['foo'])  # region 'zw' is not confirmed yet.
     self.assertTrue(decoded['foo'].is_legacy_style)
 
     # "no" should not be parsed as "false" (boolean) here.
