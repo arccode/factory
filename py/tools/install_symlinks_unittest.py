@@ -51,14 +51,12 @@ class TestInstallSymlinks(unittest.TestCase):
                      os.readlink(os.path.join(self.tmpdir, 'minibin')))
 
   def testInstallMini(self):
-    self.assertEqual(
-        ['minibin'],
-        install_symlinks.InstallSymlinks(
-            '../foo', self.tmpdir, install_symlinks.MODE_MINI,
-            symlinks=FAKE_SYMLINKS))
-    install_symlinks.InstallSymlinks(
-        '../foo', self.tmpdir, install_symlinks.MODE_MINI,
-        symlinks=FAKE_SYMLINKS)
+    self.assertEqual(['minibin'],
+                     install_symlinks.InstallSymlinks(
+                         '../foo',
+                         self.tmpdir,
+                         install_symlinks.MODE_MINI,
+                         symlinks=FAKE_SYMLINKS))
     assertCountEqual(self, ['minibin'], os.listdir(self.tmpdir))
     self.assertEqual('../foo/minibin',
                      os.readlink(os.path.join(self.tmpdir, 'minibin')))
