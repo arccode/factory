@@ -131,8 +131,41 @@ def HasEC():
   return has_ec
 
 
+def GenerateDRAMCalibrationLog(tmp_dir):
+  dram_logs = [
+      'DRAMK_LOG',          # Plain text logs for devices with huge output in
+                            # memory training, for example Kukui.
+      'RO_DDR_TRAINING',    # On ARM devices that training data is unlikely to
+                            # change and used by both recovery and normal boot,
+                            # for example Trogdor.
+      'RW_DDR_TRAINING',    # On ARM devices that may retrain due to aging, for
+                            # example Kukui.
+      'RECOVERY_MRC_CACHE', # On most X86 devices, for recovery boot.
+      'RW_MRC_CACHE',       # On most x86 devices, for normal boot.
+  ]
+  with file_utils.UnopenedTemporaryFile() as bios_bin:
+    Spawn(['flashrom', '-p', 'host', '-r', bios_bin],
+          check_call=True, ignore_stdout=True, ignore_stderr=True)
+    Spawn(['dump_fmap', '-x', bios_bin] + dram_logs,
+          check_call=True, ignore_stdout=True, ignore_stderr=True, cwd=tmp_dir)
+
+  # Special case of trimming DRAMK_LOG. DRAMK_LOG is a readable file with some
+  # noise appended, like this: TEXT + 0x00 + (0xff)*N
+  dramk_path = os.path.join(tmp_dir, 'DRAMK_LOG')
+  if os.path.isfile(dramk_path):
+    with open(dramk_path, 'r+') as f:
+      data = f.read()
+      f.seek(0)
+      f.write(data.strip('\xff').strip('\x00'))
+      f.truncate()
+
+  return [log for log in dram_logs
+          if os.path.isfile(os.path.join(tmp_dir, log))]
+
+
 def SaveLogs(output_dir, include_network_log=False, archive_id=None,
-             probe=False, var='/var', usr_local='/usr/local', etc='/etc'):
+             probe=False, dram=False,
+             var='/var', usr_local='/usr/local', etc='/etc'):
   """Saves dmesg and relevant log files to a new archive in output_dir.
 
   The archive will be named factory_bug.<description>.<timestamp>.zip,
@@ -241,6 +274,10 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
             fp.write(file_utils.ReadFile(log_file))
             fp.write('---------- END ----------\n')
     files += [abt_file]
+
+    # DRAM logs are unreadable, so put it here to avoid abt.txt include them.
+    if dram:
+      files += GenerateDRAMCalibrationLog(tmp)
 
     # Name of Chrome data directory within the state directory.
     chrome_data_dir_name = 'chrome-data-dir'
@@ -352,6 +389,8 @@ def main():
                             'differentiate archives'))
   parser.add_argument('--probe', action='store_true',
                       help=('include probe result in the logs'))
+  parser.add_argument('--dram', action='store_true',
+                      help=('include DRAM calibration info in the logs'))
   args = parser.parse_args()
 
   paths = {}
@@ -408,7 +447,7 @@ def main():
     with (MountUSB() if args.usb else
           DummyContext(MountUSBInfo(None, args.output_dir, False))) as mount:
       output_file = SaveLogs(
-          mount.mount_point, args.net, args.id, args.probe, **paths)
+          mount.mount_point, args.net, args.id, args.probe, args.dram, **paths)
       logging.info('Wrote %s (%d bytes)',
                    output_file, os.path.getsize(output_file))
 
