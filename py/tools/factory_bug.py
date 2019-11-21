@@ -83,7 +83,7 @@ def MountUSB(read_only=False):
   # drive first, then each individual partition
   tried = []
   for usb_device in usb_devices:
-    for suffix in [''] + [str(x) for x in xrange(1, 10)]:
+    for suffix in [''] + [str(x) for x in range(1, 10)]:
       mount_dir = tempfile.mkdtemp(
           prefix='usb_mount.%s%s.' % (usb_device, suffix))
       dev = '/dev/%s%s' % (usb_device, suffix)
@@ -131,6 +131,19 @@ def HasEC():
   return has_ec
 
 
+def AppendLogToABT(abt_file, log_file):
+  for f in [abt_file, log_file]:
+    if not os.path.isfile(f):
+      logging.error('%s is not a valid file.', f)
+      return
+
+  with open(abt_file, 'a') as f:
+    f.write('%s=<multi-line>\n' % log_file)
+    f.write('---------- START ----------\n')
+    f.write(file_utils.ReadFile(log_file))
+    f.write('---------- END ----------\n')
+
+
 def GenerateDRAMCalibrationLog(tmp_dir):
   dram_logs = [
       'DRAMK_LOG',          # Plain text logs for devices with huge output in
@@ -151,9 +164,9 @@ def GenerateDRAMCalibrationLog(tmp_dir):
 
   # Special case of trimming DRAMK_LOG. DRAMK_LOG is a readable file with some
   # noise appended, like this: TEXT + 0x00 + (0xff)*N
-  dramk_path = os.path.join(tmp_dir, 'DRAMK_LOG')
-  if os.path.isfile(dramk_path):
-    with open(dramk_path, 'r+') as f:
+  dramk_file = os.path.join(tmp_dir, 'DRAMK_LOG')
+  if os.path.isfile(dramk_file):
+    with open(dramk_file, 'r+') as f:
       data = f.read()
       f.seek(0)
       f.write(data.strip('\xff').strip('\x00'))
@@ -256,28 +269,32 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
         ]], [])
 
     # Add an additional file to support android bug tool
-    abt_file = 'abt.txt'
-    with open(os.path.join(tmp, abt_file), 'w') as fp:
-      os.chdir(tmp)
-      for path_name in files:
-        if os.path.isdir(path_name):
-          file_list = []
-          for root_path, _, log_files in os.walk(path_name):
-            file_list += [os.path.join(root_path, log_file)
-                          for log_file in log_files]
-        else:
-          file_list = [path_name]
-        for log_file in file_list:
-          if os.path.exists(log_file):
-            fp.write('%s=<multi-line>\n' % log_file)
-            fp.write('---------- START ----------\n')
-            fp.write(file_utils.ReadFile(log_file))
-            fp.write('---------- END ----------\n')
-    files += [abt_file]
+    abt_name = 'abt.txt'
+    abt_file = os.path.join(tmp, abt_name)
+    file_utils.TouchFile(abt_file)
+
+    # Traverse through logs and append to abt file
+    for path_name in files:
+      path_name = os.path.join(tmp, path_name)
+      if os.path.isdir(path_name):
+        file_list = []
+        for root_path, _, log_files in os.walk(path_name):
+          file_list += [os.path.join(root_path, log_file)
+                        for log_file in log_files]
+      else:
+        file_list = [path_name]
+
+      for log_file in file_list:
+        AppendLogToABT(abt_file, log_file)
+
+    files += [abt_name]
 
     # DRAM logs are unreadable, so put it here to avoid abt.txt include them.
     if dram:
       files += GenerateDRAMCalibrationLog(tmp)
+      # Manually add trimmed DRAMK_LOG into abt file
+      if 'DRAMK_LOG' in files:
+        AppendLogToABT(abt_file, os.path.join(tmp, 'DRAMK_LOG'))
 
     # Name of Chrome data directory within the state directory.
     chrome_data_dir_name = 'chrome-data-dir'
