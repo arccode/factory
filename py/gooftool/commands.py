@@ -253,7 +253,7 @@ _skip_list_cmd_arg = CmdArg(
          'e.g. "gooftool verify --skip_list verify_tpm clear_gbb_flags".')
 
 _rlz_embargo_end_date_offset_cmd_arg = CmdArg(
-    '--embargo_offset', type=int, default=7, choices=xrange(7, 15),
+    '--embargo_offset', type=int, default=7, choices=list(range(7, 15)),
     help='Change the offset of embargo end date, cannot less than 7 days or '
          'more than 14 days.')
 
@@ -664,7 +664,7 @@ def CreateReportArchive(device_sn=None, add_file=None):
 _upload_method_cmd_arg = CmdArg(
     '--upload_method', metavar='METHOD:PARAM',
     help=('How to perform the upload.  METHOD should be one of '
-          '{ftp, shopfloor, ftps, cpfe}.'))
+          '{ftp, shopfloor, ftps, cpfe, smb}.'))
 _upload_max_retry_times_arg = CmdArg(
     '--upload_max_retry_times', type=int, default=0,
     help='Number of tries to upload. 0 to retry infinitely.')
@@ -726,6 +726,12 @@ def UploadReport(options):
                              max_retry_times=options.upload_max_retry_times,
                              retry_interval=retry_interval,
                              allow_fail=options.upload_allow_fail)
+  elif method == 'smb':
+    # param should be in form: <dest_path>.
+    report_upload.SmbUpload(target_path, 'smb:' + param,
+                            max_retry_times=options.upload_max_retry_times,
+                            retry_interval=retry_interval,
+                            allow_fail=options.upload_allow_fail)
   else:
     raise Error('unknown report upload method %r' % method)
 

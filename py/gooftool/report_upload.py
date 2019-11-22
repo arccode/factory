@@ -228,7 +228,7 @@ def FtpUpload(source_path, ftp_url,
   """Uploads the source file to a FTP url.
 
     source_path: File to upload.
-    ftp_url: A ftp url in ftp://user@pass:host:port/path format.
+    ftp_url: A ftp url in ftp://user:pass@host:port/path format.
     max_retry_times: Number of tries to upload (0 to retry infinitely).
     retry_interval: Duration (in seconds) between each retry.
     retry_timeout: Connection timeout (in seconds).
@@ -298,3 +298,91 @@ def FtpUpload(source_path, ftp_url,
     logging.debug('FtpUpload: upload complete.')
     ftp.quit()
     logging.info('FtpUpload: successfully uploaded to %s', ftp_url)
+
+def SmbUpload(source_path, smb_url,
+              max_retry_times=DEFAULT_MAX_RETRY_TIMES,
+              retry_interval=DEFAULT_RETRY_INTERVAL,
+              allow_fail=False):
+  """Uploads the source file to a SMB url.
+
+    source_path: File to upload.
+    smb_url: A smb url in smb://user:pass@host:port/share_name/path format.
+    max_retry_times: Number of tries to upload (0 to retry infinitely).
+    retry_interval: Duration (in seconds) between each retry.
+    retry_timeout: Connection timeout (in seconds).
+    allow_fail: Do not raise exception when upload fails.
+
+  Raises:
+    GFTError: When input url is invalid, or if network issue without retry.
+  """
+  # scheme: smb, netloc: user:pass@host:port, path: /...
+  url_struct = urlparse.urlparse(smb_url)
+  regexp = '(([^:]*)(:([^@]*))?@)?([^:]*)(:(.*))?'
+  tokens = re.match(regexp, url_struct.netloc)
+  userid = tokens.group(2)
+  passwd = tokens.group(4)
+  host = tokens.group(5)
+  port = tokens.group(7)
+
+  # Check and specify default parameters
+  if not host:
+    raise Error('SmbUpload: invalid smb url: %s. Missing host.' % smb_url)
+  if not userid:
+    userid = ''
+  if not passwd:
+    passwd = ''
+
+  # Parse destination path: According to RFC1738, 3.2.2,
+  # Starting with %2F means absolute path, otherwise relative.
+  unquote_path = urllib.unquote(url_struct.path)
+  if unquote_path[0] != '/':
+    raise Error('SmbUpload: invalid smb url: %s. Missing share name.' % smb_url)
+  try:
+    share_name, path = unquote_path[1:].split('/', 1)
+  except ValueError:
+    raise Error('SmbUpload: invalid smb url: %s. Missing dest path.' % smb_url)
+
+  source_name = os.path.split(source_path)[1]
+  dest_name = os.path.split(path)[1]
+  logging.debug('source name: %s, dest_name: (/%s) %s -> %s',
+                source_name, share_name, path, dest_name)
+  if source_name and (not dest_name):
+    path = os.path.join(path, source_name)
+
+  cmd = ['smbclient', '//%s/%s' % (host, share_name),
+         '-s', '/dev/null',
+         '-U', '%s%%%s' % (userid, passwd),
+         '-c', 'put %s %s' % (source_path, path),
+         '-E']
+  if port:
+    cmd += ['-p', port]
+
+  def SmbCallback(result):
+    cmd_result = Shell(cmd)
+    abort = False
+    message = None
+    return_value = False
+    if cmd_result.success:
+      return_value = True
+    else:
+      message = '#%d %s' % (cmd_result.status, cmd_result.stderr
+                            if cmd_result.stderr else cmd_result.stdout)
+      if cmd_result.status != 0:
+        abort = True
+
+    logging.debug('SmbCallback: original response: %s',
+                  ' '.join(cmd_result.stdout.splitlines()))
+    result['abort'] = abort
+    result['message'] = message
+    return return_value
+
+  try:
+    RetryCommand(SmbCallback, 'SmbUpload',
+                 max_retry_times=max_retry_times, interval=retry_interval)
+  except RetryError:
+    if allow_fail:
+      logging.info('SmbUpload: skip uploading to: %s', smb_url)
+    else:
+      raise Error('SmbUpload: fail to upload to: %s' % smb_url)
+  else:
+    logging.info('SmbUpload: successfully uploaded to %s', smb_url)
