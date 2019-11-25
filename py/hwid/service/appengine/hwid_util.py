@@ -4,71 +4,26 @@
 """Utility functions that help processing hwid and BOM's."""
 
 from collections import defaultdict
-from collections import OrderedDict
 import logging
-import re
+
+import factory_common  # pylint: disable=unused-import
+from cros.factory.hwid.v3 import bom as v3_bom
 
 
 class HWIDUtilException(Exception):
   pass
 
 
-class _RamSize(object):
-  """Handle memory size labels."""
-  _UNITS = OrderedDict([
-      ('', 1), ('K', 1 << 10), ('M', 1 << 20), ('G', 1 << 30)])
-  # Possible ram strings:
-  # dram_micron_1g_dimm2, hynix_2gb_dimm0, 2x2GB_DDR3_1600,
-  # K4EBE304EB_EGCF_8gb, H9HCNNN8KUMLHR_1gb_slot2
-  _RE = re.compile(r'(^|_)(\d+X)?(\d+)([KMG])B?($|_)')
-
-  def __init__(self, ram_size_str=None, byte_count=None):
-    super(_RamSize, self).__init__()
-    if byte_count is not None:
-      self.byte_count = byte_count
-      return
-    matches = _RamSize._RE.findall(ram_size_str.upper())
-    if not matches:
-      logging.exception('Unable to process dram format %s', ram_size_str)
-      raise HWIDUtilException('Invalid DRAM: %s' % ram_size_str)
-    # Use the latest match as the ram size, since most ram strings
-    # put the ram size at the end.
-    # For example: Samsung_4G_M471A5644EB0-CRC_2048mb_1
-    size_re = matches[-1]
-    multiplier = int(size_re[1][:-1]) if size_re[1] else 1
-    self.byte_count = multiplier * int(
-        size_re[2]) * _RamSize._UNITS[size_re[3]]
-
-  def __add__(self, rhs):
-    assert isinstance(rhs, _RamSize)
-    return _RamSize(byte_count=self.byte_count + rhs.byte_count)
-
-  def __iadd__(self, rhs):
-    assert isinstance(rhs, _RamSize)
-    self.byte_count += rhs.byte_count
-    return self
-
-  def __mul__(self, rhs):
-    assert isinstance(rhs, int)
-    return _RamSize(byte_count=self.byte_count * rhs)
-
-  def __rmul__(self, lhs):
-    return _RamSize.__mul__(self, lhs)
-
-  def __str__(self):
-    if self.byte_count == 0:
-      return '0B'
-    for key, value in reversed(list(_RamSize._UNITS.items())):
-      if self.byte_count % value == 0:
-        return str(int(self.byte_count // value)) + key + 'B'
-    raise ValueError('Cannot represent byte_count %s.', self.byte_count)
-
-
 def GetTotalRamFromHwidData(drams):
   """Convert a list of DRAM string into a total number of bytes integer."""
-  total_ram = _RamSize(byte_count=0)
+  # v3_bom.RamSize is compatible with HWIDv2
+  total_ram = v3_bom.RamSize(byte_count=0)
   for dram in drams:
-    total_ram += _RamSize(dram)
+    try:
+      ram_size = v3_bom.RamSize(dram)
+    except ValueError as ex:
+      raise HWIDUtilException(str(ex))
+    total_ram += ram_size
   return str(total_ram), total_ram.byte_count
 
 
