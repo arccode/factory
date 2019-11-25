@@ -143,7 +143,6 @@ class ShutdownTest(test_case.TestCase):
     self.ui.SetTitle(
         _('Shutdown Test ({operation})', operation=self.operation_label))
     self.goofy = state.GetInstance()
-    self.test = self.test_info.ReadTestList().LookupPath(self.test_info.path)
     self.test_state = self.goofy.GetTestState(self.test_info.path)
     self.remaining_time = 0
 
@@ -162,7 +161,7 @@ class ShutdownTest(test_case.TestCase):
         'delay_secs': self.args.delay_secs,
         'operation': self.args.operation,
         'iteration': iteration,
-        'iterations': self.test.iterations,
+        'iterations': self.test_state.iterations,
         'wait_shutdown_secs': self.args.wait_shutdown_secs,
     }
 
@@ -273,7 +272,7 @@ class ShutdownTest(test_case.TestCase):
                          time_utils.TimeString(now))),
           duration=(now - last_shutdown_time))
       logging.info(self.dut.GetStartupMessages())
-    elif self.test_state.shutdown_count > self.test.iterations:
+    elif self.test_state.shutdown_count > self.test_state.iterations:
       # Shut down too many times
       LogAndEndTest(status=state.TestState.FAILED,
                     error_msg=('Too many shutdowns (count=%s)' %

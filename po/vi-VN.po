@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-11-28 16:19+CST\n"
+"PO-Revision-Date: 2019-12-04 19:30+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -636,6 +636,10 @@ msgid "Factory tests stopped"
 msgstr "Kiểm tra nhà máy đã ngừng"
 
 #: ../py/goofy/js/goofy.js
+msgid "{label} ({iterations} times)"
+msgstr "{label} ({iterations} lần)"
+
+#: ../py/goofy/js/goofy.js
 msgid ""
 "An error occurred while starting the factory test system\n"
 "Factory testing cannot proceed."
@@ -654,6 +658,34 @@ msgstr ""
 #: ../py/goofy/js/goofy.js
 msgid "Language"
 msgstr "Ngôn ngữ"
+
+#: ../py/goofy/js/goofy.js
+msgid "Iterations"
+msgstr "Lặp lại nhiều lần"
+
+#: ../py/goofy/js/goofy.js
+msgid "Retries"
+msgstr "Số lần lặp lại nếu thất bại"
+
+#: ../py/goofy/js/goofy.js
+msgid "Set iterations and retries of test \"{test}\""
+msgstr "Đặt số lần lặp lại cho {test}"
+
+#: ../py/goofy/js/goofy.js
+msgid "Iterations must be a positive integer or -1."
+msgstr "Lặp lại phải là một số nguyên dương hoặc -1."
+
+#: ../py/goofy/js/goofy.js
+msgid "Retries must be a positive integer, 0, or -1."
+msgstr "Retries phải là một số nguyên dương, 0 hoặc -1."
+
+#: ../py/goofy/js/goofy.js
+msgid ""
+"Iterations or retries is too large.\n"
+"Please use -1 to represent infinity."
+msgstr ""
+"Lặp lại hoặc thử lại là quá lớn.\n"
+"Vui lòng sử dụng -1 để thể hiện vô hạn."
 
 #: ../py/goofy/js/goofy.js
 msgid "Press OK to shutdown"
@@ -730,6 +762,14 @@ msgstr "Xóa trạng thái của thử nghiệm {test}"
 #: ../py/goofy/js/goofy.js
 msgid "Run {count} untested tests in \"{test}\""
 msgstr "Thực thi {count} kiểm tra chưa được kiểm tra trong {test}"
+
+#: ../py/goofy/js/goofy.js
+msgid "Set {count} tests in \"{test}\" to run multiple times"
+msgstr "Đặt các bài kiểm tra {count} trong 「{test}」 để chạy nhiều lần"
+
+#: ../py/goofy/js/goofy.js
+msgid "Set test \"{test}\" to run multiple times"
+msgstr "Đặt kiểm tra 「{test}」 để chạy nhiều lần"
 
 #: ../py/goofy/js/goofy.js
 msgid "Stop all tests"
@@ -3549,10 +3589,6 @@ msgstr "Các thử nghiệm trạm mẫu"
 #: ../py/test/test_lists/test_object.py
 msgid "Test Group"
 msgstr "Nhóm thử nghiệm"
-
-#: ../py/test/test_lists/test_object.py
-msgid "{label} ({iterations} times)"
-msgstr "{label} ({iterations} lần)"
 
 #: ../py/test/test_ui.py
 msgid "Press Enter to pass."

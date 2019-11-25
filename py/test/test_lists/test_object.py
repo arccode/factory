@@ -235,20 +235,11 @@ class FactoryTest(object):
     self.path = ''
     self.parent = None
     self.root = None
-    if iterations == -1:
-      self.iterations = float('inf')
-    else:
-      self.iterations = iterations
-      assert isinstance(self.iterations, int) and self.iterations > 0, (
-          'In test %s, Iterations must be a positive integer, not %r' % (
-              self.path, self.iterations))
-    if retries == -1:
-      self.retries = float('inf')
-    else:
-      self.retries = retries
-      assert isinstance(self.retries, int) and self.retries >= 0, (
-          'In test %s, Retries must be a positive integer or 0, not %r' % (
-              self.path, self.retries))
+    self.iterations = None
+    self.retries = None
+    self.SetIterationsAndRetries(iterations, retries)
+    self.default_iterations = self.iterations
+    self.default_retries = self.retries
 
     if allow_reboot is not None:
       self.allow_reboot = allow_reboot
@@ -271,11 +262,6 @@ class FactoryTest(object):
         label = _('Test Group')
 
     self.label = i18n.Translated(label)
-    if iterations > 1:
-      self.label = _(
-          '{label} ({iterations} times)',
-          label=self.label,
-          iterations=iterations)
 
     if _root:
       self.id = None
@@ -290,6 +276,19 @@ class FactoryTest(object):
           'id %r does not match regexp %s' % (
               self.id, ID_REGEXP.pattern))
       # Note that we check ID uniqueness in _init.
+
+  def SetIterationsAndRetries(self, iterations, retries):
+    """Sets iterations and retries if both input are valid."""
+    if not isinstance(iterations, int) or iterations == 0 or iterations < -1:
+      raise ValueError(
+          'In test %s, Iterations must be a positive integer or -1, not %r' % (
+              self.path, iterations))
+    if not isinstance(retries, int) or retries < -1:
+      raise ValueError(
+          'In test %s, Retries must be a positive integer, 0, or -1, not %r' % (
+              self.path, retries))
+    self.iterations = float('inf') if iterations == -1 else iterations
+    self.retries = float('inf') if retries == -1 else retries
 
   @staticmethod
   def PytestNameToLabel(pytest_name):
@@ -364,8 +363,7 @@ class FactoryTest(object):
     if recursive:
       return json.dumps(self.ToStruct(recursive=True), indent=2,
                         separators=(',', ': '))
-    else:
-      return json.dumps(self.ToStruct(recursive=False))
+    return json.dumps(self.ToStruct(recursive=False))
 
   def _init(self, prefix, path_map):
     """Recursively assigns paths to this node and its children.

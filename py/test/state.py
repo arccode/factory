@@ -461,7 +461,7 @@ class TestState(object):
 
   def __init__(self, status=UNTESTED, count=0, error_msg=None,
                shutdown_count=0, invocation=None, iterations_left=0,
-               retries_left=0):
+               retries_left=0, iterations=None, retries=None):
     self.status = status
     self.count = count
     self.error_msg = error_msg
@@ -469,6 +469,8 @@ class TestState(object):
     self.invocation = invocation
     self.iterations_left = iterations_left
     self.retries_left = retries_left
+    self.iterations = iterations
+    self.retries = retries
 
   def __repr__(self):
     return type_utils.StdRepr(self)
@@ -476,8 +478,8 @@ class TestState(object):
   def Update(self, status=None, increment_count=0, error_msg=None,
              shutdown_count=None, increment_shutdown_count=0,
              invocation=None,
-             decrement_iterations_left=0, iterations_left=None,
-             decrement_retries_left=0, retries_left=None):
+             decrement_iterations_left=0, iterations_left=None, iterations=None,
+             decrement_retries_left=0, retries_left=None, retries=None):
     """Updates the state of a test.
 
     Args:
@@ -494,6 +496,8 @@ class TestState(object):
           The case retries_left = -1 means the test had already used the first
           try and all the retries.
       decrement_retries_left: An amount by which to decrement retries_left.
+      iterations: If non-None, the new iterations of the test.
+      retries: If non-None, the new retries of the test.
 
     Returns:
       True if anything was changed.
@@ -510,6 +514,10 @@ class TestState(object):
       self.iterations_left = iterations_left
     if retries_left is not None:
       self.retries_left = retries_left
+    if iterations is not None:
+      self.iterations = iterations
+    if retries is not None:
+      self.retries = retries
 
     if invocation is not None:
       self.invocation = invocation
@@ -530,9 +538,8 @@ class TestState(object):
   def FromDictOrObject(cls, obj):
     if isinstance(obj, dict):
       return TestState(**obj)
-    else:
-      assert isinstance(obj, TestState), type(obj)
-      return obj
+    assert isinstance(obj, TestState), type(obj)
+    return obj
 
   def __eq__(self, other):
     return all(getattr(self, attr) == getattr(other, attr)
@@ -540,7 +547,7 @@ class TestState(object):
 
   def ToStruct(self):
     result = dict(self.__dict__)
-    for key in ['retries_left', 'iterations_left']:
+    for key in ['retries_left', 'iterations_left', 'retries', 'iterations']:
       if result[key] == float('inf'):
         result[key] = -1
     return result

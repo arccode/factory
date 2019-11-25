@@ -165,7 +165,8 @@ cros.factory.HistoryEntry;
  * TestState object in an event or RPC response.
  * @typedef {{status: string, skip: boolean, count: number,
  *     error_msg: string, invocation: ?string, iterations_left: number,
- *     retries_left: number, shutdown_count: number}}
+ *     iterations: number, retries_left: number, retries: number,
+ *     shutdown_count: number}}
  */
 cros.factory.TestState;
 
@@ -697,6 +698,12 @@ cros.factory.Goofy = class {
     this.engineeringModeDialog = null;
 
     /**
+     * Itertions and retries prompt dialog.
+     * @type {?goog.ui.Dialog}
+     */
+    this.iterationsAndRetriesDialog = null;
+
+    /**
      * Force shutdown prompt dialog.
      * @type {?goog.ui.Dialog}
      */
@@ -812,6 +819,26 @@ cros.factory.Goofy = class {
        * @type {?cros.factory.DiagnosisTool}
        */
       this.diagnosisTool = new cros.factory.DiagnosisTool(this);
+    }
+  }
+
+  /**
+   * Gets the test label of a test.
+   * @param {!cros.factory.TestListEntry} test
+   * @return {!cros.factory.i18n.TranslationDict}
+   */
+  static getTestLabel(test) {
+    const state = test.state;
+    if (state.iterations === -1) {
+      return _(
+        '{label} ({iterations} times)',
+        { label: test.label, iterations: Number.POSITIVE_INFINITY });
+    } else if (state.iterations > 1) {
+      return _(
+        '{label} ({iterations} times)',
+        { label: test.label, iterations: state.iterations });
+    } else {
+      return test.label;
     }
   }
 
@@ -1550,6 +1577,90 @@ cros.factory.Goofy = class {
   }
 
   /**
+   * Prompts to set iterations and retries.
+   */
+  showIterationsAndRetriesDialog(path) {
+    if (this.iterationsAndRetriesDialog) {
+      this.iterationsAndRetriesDialog.setVisible(false);
+      this.iterationsAndRetriesDialog.dispose();
+      this.iterationsAndRetriesDialog = null;
+    }
+    const rows = [];
+    rows.push(goog.html.SafeHtml.create('tr', {}, [
+      goog.html.SafeHtml.create(
+        'th', {}, cros.factory.i18n.i18nLabel('Iterations')),
+      goog.html.SafeHtml.create(
+        'td', {},
+        goog.html.SafeHtml.create('input', {
+          id: 'goofy-iterations',
+          value: '1'
+        }))
+    ]));
+    rows.push(goog.html.SafeHtml.create('tr', {}, [
+      goog.html.SafeHtml.create(
+        'th', {}, cros.factory.i18n.i18nLabel('Retries')),
+      goog.html.SafeHtml.create(
+        'td', {},
+        goog.html.SafeHtml.create('input', { id: 'goofy-retries', value: '0' }))
+    ]));
+
+    const table = goog.html.SafeHtml.create(
+        'table', {class: 'goofy-addnote-table'}, rows);
+    const buttons = goog.ui.Dialog.ButtonSet.createOkCancel();
+
+    const test = this.pathTestMap[path];
+    const title = cros.factory.i18n.i18nLabel(
+      _('Set iterations and retries of test "{test}"',
+        { test: cros.factory.Goofy.getTestLabel(test) }));
+    this.iterationsAndRetriesDialog = this.createSimpleDialog(title, table);
+    this.iterationsAndRetriesDialog.setModal(true);
+    this.iterationsAndRetriesDialog.setButtonSet(buttons);
+    this.registerDialog(this.iterationsAndRetriesDialog);
+
+    goog.events.listen(
+      this.iterationsAndRetriesDialog, goog.ui.Dialog.EventType.SELECT,
+      (/** !goog.ui.Dialog.Event */ event) => {
+        if (event.key === goog.ui.Dialog.DefaultButtonKeys.OK) {
+          const iterationsBox = goog.asserts.assertInstanceof(
+            document.getElementById('goofy-iterations'), HTMLInputElement);
+          const retriesBox = goog.asserts.assertInstanceof(
+            document.getElementById('goofy-retries'), HTMLInputElement);
+          const /** number */ iterations = parseInt(iterationsBox.value, 0);
+          const /** number */ retries = parseInt(retriesBox.value, 0);
+          let failMessages = null;
+          if (isNaN(iterations) || iterations == 0 || iterations < -1) {
+            failMessages = cros.factory.i18n.i18nLabel(
+                'Iterations must be a positive integer or -1.');
+          } else if (isNaN(retries) || retries < -1) {
+            failMessages = cros.factory.i18n.i18nLabel(
+                'Retries must be a positive integer, 0, or -1.');
+          } else if (Math.max(iterations, retries) >= 2 ** 31) {
+            // In python2, int only accepts integer less than sys.maxint + 1.
+            // Assume that sys.maxint + 1 is 2 ** 31 here.
+            // Moreover, since Number is a floating point numer, large inputs
+            // may lose precision and cast into an unexpected value.
+            failMessages = cros.factory.i18n.i18nLabel(
+                'Iterations or retries is too large.\n' +
+                'Please use -1 to represent infinity.');
+          } else {
+            this.sendEvent('goofy:set_iterations_and_retries', {
+              'path': path,
+              'iterations': iterations,
+              'retries': retries
+            });
+          }
+          if (failMessages) {
+            this.alert(failMessages);
+            event.preventDefault();
+          }
+        }
+      });
+
+    this.iterationsAndRetriesDialog.setVisible(true);
+    this.iterationsAndRetriesDialog.reposition();
+  }
+
+  /**
    * Sets eng mode.
    * @param {boolean} enabled
    */
@@ -1887,6 +1998,16 @@ cros.factory.Goofy = class {
                   this.sendEvent('goofy:auto_run', {path});
                 }),
             true);
+      }
+      if (this.engineeringMode && test.state.status !== 'ACTIVE') {
+        menu.addChild(
+          this.makeMenuItem(
+              _('Set {count} tests in "{test}" to run multiple times'),
+              _('Set test "{test}" to run multiple times'), numLeaves, test,
+              () => {
+                this.showIterationsAndRetriesDialog(path);
+              }),
+          true);
       }
     }
     addSeparator();
@@ -2896,6 +3017,8 @@ cros.factory.Goofy = class {
     const elt = goog.asserts.assertElement(node.getElement());
     const test = this.pathTestMap[path];
     test.state = state;
+    node.setSafeHtml(cros.factory.i18n.i18nLabel(
+      cros.factory.Goofy.getTestLabel(test)));
 
     // Assign the appropriate class to the node, and remove all other status
     // classes.
@@ -2919,9 +3042,7 @@ cros.factory.Goofy = class {
     if (parent == null) {
       node = this.testTree;
     } else {
-      const html = cros.factory.i18n.i18nLabel(test.label);
       node = this.testTree.createNode();
-      node.setSafeHtml(html);
       parent.addChild(node);
     }
     for (const subtest of test.subtests) {

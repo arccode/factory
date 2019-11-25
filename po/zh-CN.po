@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-11-28 16:19+CST\n"
+"PO-Revision-Date: 2019-12-04 19:30+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -636,6 +636,10 @@ msgid "Factory tests stopped"
 msgstr "工厂测试已停止"
 
 #: ../py/goofy/js/goofy.js
+msgid "{label} ({iterations} times)"
+msgstr "{label} ({iterations} 次)"
+
+#: ../py/goofy/js/goofy.js
 msgid ""
 "An error occurred while starting the factory test system\n"
 "Factory testing cannot proceed."
@@ -654,6 +658,34 @@ msgstr ""
 #: ../py/goofy/js/goofy.js
 msgid "Language"
 msgstr "语言"
+
+#: ../py/goofy/js/goofy.js
+msgid "Iterations"
+msgstr "重复次数"
+
+#: ../py/goofy/js/goofy.js
+msgid "Retries"
+msgstr "失败重试次数"
+
+#: ../py/goofy/js/goofy.js
+msgid "Set iterations and retries of test \"{test}\""
+msgstr "设置测试「{test}」的重复次数和失败重试次数"
+
+#: ../py/goofy/js/goofy.js
+msgid "Iterations must be a positive integer or -1."
+msgstr "重复次数必须为正整数或-1。"
+
+#: ../py/goofy/js/goofy.js
+msgid "Retries must be a positive integer, 0, or -1."
+msgstr "失败重试次数必须为正整数，0或-1。"
+
+#: ../py/goofy/js/goofy.js
+msgid ""
+"Iterations or retries is too large.\n"
+"Please use -1 to represent infinity."
+msgstr ""
+"重复次数或失败重试次数太大。\n"
+"请使用-1表示无穷大。"
 
 #: ../py/goofy/js/goofy.js
 msgid "Press OK to shutdown"
@@ -730,6 +762,14 @@ msgstr "清除测试「{test}」的状态"
 #: ../py/goofy/js/goofy.js
 msgid "Run {count} untested tests in \"{test}\""
 msgstr "执行{count}个在「{test}」里面未测的测试"
+
+#: ../py/goofy/js/goofy.js
+msgid "Set {count} tests in \"{test}\" to run multiple times"
+msgstr "设置{count}个在「{test}」里面的测试的重复次数"
+
+#: ../py/goofy/js/goofy.js
+msgid "Set test \"{test}\" to run multiple times"
+msgstr "设置测试「{test}」的重复次数"
 
 #: ../py/goofy/js/goofy.js
 msgid "Stop all tests"
@@ -3475,10 +3515,6 @@ msgstr "测试站模板"
 #: ../py/test/test_lists/test_object.py
 msgid "Test Group"
 msgstr "测试群组"
-
-#: ../py/test/test_lists/test_object.py
-msgid "{label} ({iterations} times)"
-msgstr "{label} ({iterations} 次)"
 
 #: ../py/test/test_ui.py
 msgid "Press Enter to pass."

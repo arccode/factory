@@ -56,8 +56,7 @@ def json_default_repr(obj):
   if isinstance(obj, object):
     return dict([(k, v) for k, v in iteritems(obj.__dict__)
                  if k[0] != '_'])
-  else:
-    return obj
+  return obj
 
 
 class Event(object):
@@ -123,6 +122,8 @@ class Event(object):
     DIAGNOSIS_TOOL_EVENT = 'goofy:diagnosis_tool:event'
     # Notifies that factory server config (URL, timeout) is changed.
     FACTORY_SERVER_CONFIG_CHANGED = 'factory_server:config_changed'
+    # Notifies that the iterations or retries of a factory test is changed.
+    SET_ITERATIONS_AND_RETRIES = 'goofy:set_iterations_and_retries'
 
   def __init__(self, type, **kw):  # pylint: disable=redefined-builtin
     self.type = type
@@ -382,8 +383,7 @@ class EventClientBase(with_metaclass(abc.ABCMeta, object)):
     event_repr = repr(event)
     if len(event_repr) > _MAX_EVENT_SIZE_FOR_DEBUG_LOG:
       return event_repr[:_MAX_EVENT_SIZE_FOR_DEBUG_LOG] + '...'
-    else:
-      return event_repr
+    return event_repr
 
   def post_event(self, event):
     """Posts an event to the server."""

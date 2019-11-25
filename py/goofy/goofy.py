@@ -207,6 +207,11 @@ class Goofy(object):
         Event.Type.CLEAR_STATE:
             lambda event: self.ClearState(
                 self.test_list.LookupPath(event.path)),
+        Event.Type.SET_ITERATIONS_AND_RETRIES:
+            lambda event: self.SetIterationsAndRetries(
+                test=self.test_list.LookupPath(event.path),
+                iterations=getattr(event, 'iterations', None),
+                retries=getattr(event, 'retries', None)),
     }
 
     self.web_socket_manager = None
@@ -433,6 +438,10 @@ class Goofy(object):
       # Make sure the state server knows about all the tests,
       # defaulting to an untested state.
       test.UpdateState(update_parent=False)
+    for test in self.test_list.GetAllTests():
+      test_state = test.GetState()
+      self.SetIterationsAndRetries(test,
+                                   test_state.iterations, test_state.retries)
 
     is_unexpected_shutdown = False
 
@@ -974,8 +983,24 @@ class Goofy(object):
       root = self.test_list
     self.Stop(root, reason='Clearing test state')
     for f in root.Walk():
-      if f.IsLeaf():
-        f.UpdateState(status=TestState.UNTESTED)
+      f.UpdateState(status=TestState.UNTESTED if f.IsLeaf() else None,
+                    iterations=f.default_iterations,
+                    retries=f.default_retries)
+
+  def SetIterationsAndRetries(self, test, iterations, retries):
+    """Set iterations and retries in goofy, ui, and shelf.
+
+    If both iterations and retries are None, then set both value to default.
+    If any of the two is invalid, then the function does nothing but logs.
+    """
+    if iterations is None and retries is None:
+      iterations = test.default_iterations
+      retries = test.default_retries
+    try:
+      test.SetIterationsAndRetries(iterations, retries)
+      test.UpdateState(iterations=iterations, retries=retries)
+    except ValueError:
+      logging.exception('Unable to set iterations and retries.')
 
   def _AbortActiveTests(self, reason=None):
     self._KillActiveTests(True, reason=reason)

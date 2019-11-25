@@ -263,6 +263,8 @@ class GoofyRPC(object):
   def ReloadTestList(self):
     if isinstance(self.goofy.test_list, test_list.TestList):
       self.goofy.test_list.ForceReload()
+      for f in self.goofy.test_list.Walk():
+        f.UpdateState(iterations=f.iterations, retries=f.retries)
     else:
       raise NotImplementedError('Unknown type: %s' % type(self.goofy.test_list))
 
