@@ -26,6 +26,7 @@ from cros.factory.hwid.service.appengine import hwid_updater
 from cros.factory.hwid.service.appengine import hwid_util
 from cros.factory.hwid.service.appengine import hwid_validator
 from cros.factory.hwid.service.appengine import memcache_adaptor
+from cros.factory.hwid.v3 import validator as v3_validator
 
 
 KNOWN_BAD_HWIDS = ['DUMMY_HWID', 'dummy_hwid']
@@ -318,7 +319,7 @@ class HwidApi(remote.Service):
 
     try:
       self._hwid_validator.Validate(request.hwidConfigContents)
-    except hwid_validator.ValidationError as e:
+    except v3_validator.ValidationError as e:
       logging.exception('ValidationError: %r', str(e))
       return hwid_api_messages.ValidateConfigResponse(errorMessage=str(e))
 
@@ -347,7 +348,7 @@ class HwidApi(remote.Service):
     try:
       self._hwid_validator.ValidateChange(updated_contents,
                                           request.prevHwidConfigContents)
-    except hwid_validator.ValidationError as e:
+    except v3_validator.ValidationError as e:
       logging.exception('ValidationError: %r', str(e))
       return hwid_api_messages.ValidateConfigAndUpdateChecksumResponse(
           errorMessage=str(e))
@@ -430,7 +431,8 @@ class HwidApi(remote.Service):
       for component in bom.GetComponents(cls):
         if component.name:
           labels.append(hwid_api_messages.DUTLabel(
-              name="hwid_component", value=component.cls + '/' + component.name))
+              name="hwid_component",
+              value=component.cls + '/' + component.name))
 
     if set([label.name for label in labels]) - set(possible_labels):
       return hwid_api_messages.DUTLabelResponse(

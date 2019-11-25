@@ -32,6 +32,7 @@ import unittest
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import hwid_utils
+from cros.factory.hwid.v3 import validator
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -95,9 +96,9 @@ def _CheckProject(args):
       logging.warn(
           'Database %s:%s does not have checksum field. Will skip checksum '
           'verification.', commit, db_path)
-    unused_db = Database.LoadData(db_raw, expected_checksum=expected_checksum)
+    db = Database.LoadData(db_raw, expected_checksum=expected_checksum)
+    validator.ValidateIntegrity(db)
     return None
-
   except Exception:
     return (title, traceback.format_exception(*sys.exc_info()))
 

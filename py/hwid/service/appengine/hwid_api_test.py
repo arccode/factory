@@ -17,7 +17,7 @@ from cros.factory.hwid.service.appengine import hwid_api
 from cros.factory.hwid.service.appengine import hwid_api_messages
 from cros.factory.hwid.service.appengine import hwid_manager
 from cros.factory.hwid.service.appengine import hwid_util
-from cros.factory.hwid.service.appengine import hwid_validator
+from cros.factory.hwid.v3 import validator as v3_validator
 
 
 TEST_HWID = 'Foo'
@@ -276,7 +276,7 @@ class HwidApiTest(unittest.TestCase):
   def testValidateConfigErrors(self):
     request = hwid_api_messages.ValidateConfigRequest(hwidConfigContents='test')
     self.api._hwid_validator.Validate = mock.Mock(
-        side_effect=hwid_validator.ValidationError('msg'))
+        side_effect=v3_validator.ValidationError('msg'))
 
     response = self.api.ValidateConfig(request)
 
@@ -298,7 +298,7 @@ class HwidApiTest(unittest.TestCase):
     request = hwid_api_messages.ValidateConfigAndUpdateChecksumRequest(
         hwidConfigContents='test')
     self.api._hwid_validator.ValidateChange = mock.Mock(
-        side_effect=hwid_validator.ValidationError('msg'))
+        side_effect=v3_validator.ValidationError('msg'))
     self.api._hwid_updater.UpdateChecksum = mock.Mock()
     self.api._hwid_updater.UpdateChecksum.return_value = 'test2'
 

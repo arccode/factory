@@ -13,11 +13,7 @@ from cros.factory.hwid.service.appengine import \
     verification_payload_generator as vpg_module
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3 import database
-from cros.factory.hwid.v3 import verify_db_pattern
-
-
-class ValidationError(ValueError):
-  """Indicates that validation of the HWID config failed."""
+from cros.factory.hwid.v3 import validator as v3_validator
 
 
 class HwidValidator(object):
@@ -36,10 +32,11 @@ class HwidValidator(object):
 
     try:
       # Validate config by loading it.
-      database.Database.LoadData(
+      db = database.Database.LoadData(
           hwid_config_contents, expected_checksum=expected_checksum)
     except HWIDException as e:
-      raise ValidationError(str(e))
+      raise v3_validator.ValidationError(str(e))
+    v3_validator.ValidateIntegrity(db)
 
   def ValidateChange(self, hwid_config_contents, prev_hwid_config_contents):
     """Validates a HWID config change.
@@ -59,7 +56,8 @@ class HwidValidator(object):
           prev_hwid_config_contents, expected_checksum=None)
     except HWIDException as e:
       logging.exception('Previous version not valid: %r', e)
-      raise ValidationError('Previous version of HWID config is not valid.')
+      raise v3_validator.ValidationError(
+          'Previous version of HWID config is not valid.')
 
     expected_checksum = database.Database.ChecksumForText(
         hwid_config_contents.encode('utf8')).decode('utf8')
@@ -68,14 +66,14 @@ class HwidValidator(object):
       # Load and validate current config.
       db = database.Database.LoadData(
           hwid_config_contents, expected_checksum=expected_checksum)
-      # Verify that the change is valid.
-      verify_db_pattern.HWIDDBsPatternTest.VerifyParsedDatabasePattern(
-          prev_db, db)
     except HWIDException as e:
-      raise ValidationError(str(e))
+      raise v3_validator.ValidationError(str(e))
+
+    v3_validator.ValidateChange(prev_db, db)
+    v3_validator.ValidateIntegrity(db)
 
     if db.project in CONFIG.board_mapping:
       try:
         vpg_module.GenerateVerificationPayload([db])
       except vpg_module.GenerateVerificationPayloadError as e:
-        raise ValidationError(str(e))
+        raise v3_validator.ValidationError(str(e))
