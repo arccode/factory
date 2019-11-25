@@ -84,13 +84,11 @@ type DomeAppProps =
 
 interface DomeAppState {
   appMenuOpened: boolean;
-  taskListHeight: number;
 }
 
 class DomeApp extends React.Component<DomeAppProps, DomeAppState> {
   state = {
     appMenuOpened: true,
-    taskListHeight: 0,
   };
 
   overlayRef: React.RefObject<HTMLDivElement>;
