@@ -38,7 +38,7 @@ class FpmcuDevice(object):
       Command text output.
     """
     cmdline = ['ectool', self.CROS_FP_ARG, command] + list(args)
-    result = self._dut.CallOutput(cmdline)
+    result = self._dut.CheckOutput(cmdline)
     return result.strip() if result is not None else ''
 
   def GetFpmcuFirmwareVersion(self):
