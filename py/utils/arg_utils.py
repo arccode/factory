@@ -46,7 +46,7 @@ class Arg(object):
   # pylint: disable=redefined-builtin
 
   def __init__(self, name, type, help,
-               default=_DEFAULT_NOT_SET, _transform=None):
+               default=_DEFAULT_NOT_SET, _transform=None, schema=None):
     """Constructs a test argument.
 
     Args:
@@ -78,6 +78,7 @@ class Arg(object):
         default value, this is omitted.
       _transform: A transform function to be applied to the value after the
         argument is resolved.
+      schema: A utils.schema object for checking the argument.
     """
     if not name:
       raise ArgError('Argument is missing a name')
@@ -105,11 +106,15 @@ class Arg(object):
     self.type = type
     self.default = default
     self.transform = _transform
+    self.schema = schema
 
-    # Check type of default.
-    if default is not _DEFAULT_NOT_SET and not self.ValueMatchesType(default):
-      raise ArgError('Default value %s should have type %r, not %r' % (
-          default, type, TYPE(default)))
+    # Check validity of default.
+    if self.IsOptional():
+      if not self.ValueMatchesType(default):
+        raise ArgError('Default value %s should have type %r, not %r' % (
+            default, type, TYPE(default)))
+      if self.schema:
+        self.schema.Validate(default)
 
   def ValueMatchesType(self, value):
     """Returns True if value matches the type for this argument."""
@@ -212,6 +217,9 @@ class Args(object):
             arg.name, arg.type, type(value)))
         errors.append('Argument %s=%r' % (arg.name, value))
         continue
+
+      if arg.schema:
+        arg.schema.Validate(value)
 
       if arg.transform:
         value = arg.transform(value)
