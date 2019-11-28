@@ -88,6 +88,47 @@ def InstallSymlinks(target, dest, mode, sudo=False, symlinks=None):
   return linked
 
 
+def UninstallSymlinks(dest, mode, sudo=False, symlinks=None):
+  """Uninstalls symlinks to factory binaries.
+
+  Args:
+    dest: The directory in which the symlinks were created.
+    mode: The mode for uninstallation: 'mini' to uninstall only binaries
+        for factory-mini.par, or 'full' to uninstall all binaries.
+    sudo: Whether to sudo when removing the links.
+    symlinks: The parsed contents of the symlinks.yaml file.  If
+        None, this is loaded from symlinks.yaml.
+
+  Returns:
+    A list of names of symlinks binaries.
+  """
+  assert mode in VALID_MODES
+
+  if not symlinks:
+    with open(os.path.join(paths.FACTORY_DIR, 'misc/symlinks.yaml')) as f:
+      symlinks = yaml.load(f)
+
+  SYMLINKS_SCHEMA.Validate(symlinks)
+
+  removed = []
+
+  for item_name, item_mode in sorted(symlinks['binaries'].items()):
+    link_path = os.path.join(dest, item_name)
+
+    if item_mode == MODE_FULL and mode == MODE_MINI:
+      # The item works only with the full toolkit, but we are
+      # uninstalling symlinks for factory-mini.par.  Don't remove the
+      # symlink.
+      logging.info('Skipping %s', item_name)
+      continue
+
+    removed.append(item_name)
+
+    Spawn(['rm', '-f', link_path], log=True, check_call=True, sudo=sudo)
+
+  return removed
+
+
 def main(argv=None, out=sys.stdout):
   parser = argparse.ArgumentParser(
       description='Installs symlinks to factory binaries.')
