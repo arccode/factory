@@ -72,7 +72,7 @@ def RestrictedBoolConstructor(self, node):
 
   It does more harm than good to allow this conversion.  HWID database seldom
   contains boolean values, writing 'true|false' instead of 'on|off|yes|no' for
-  boolean values should be ok.  Furthor more, 'no' (string) is the country code
+  boolean values should be ok.  Further more, 'no' (string) is the country code
   for Norway.  We need to always remember to quote 'no' in region component if
   we don't override the default behavior.
   """
@@ -131,7 +131,7 @@ class _DefaultMappingHandler(_HWIDV3YAMLTagHandler):
     return dumper.represent_dict(iteritems(data))
 
 
-class _RegionField(dict):
+class RegionField(dict):
   """A class for holding the region field data in a HWID database."""
 
   def __init__(self, region_names=None):
@@ -153,7 +153,7 @@ class _RegionField(dict):
     # when being decoded.
     fields_dict[0] = {'region': []}
 
-    super(_RegionField, self).__init__(fields_dict)
+    super(RegionField, self).__init__(fields_dict)
 
   @property
   def is_legacy_style(self):
@@ -167,14 +167,13 @@ class _RegionFieldYAMLTagHandler(_HWIDV3YAMLTagHandler):
     !region_field [<region_code_1>, <region_code_2>,...]
   """
   YAML_TAG = '!region_field'
-  TARGET_CLASS = _RegionField
+  TARGET_CLASS = RegionField
 
   @classmethod
   def YAMLConstructor(cls, loader, node, deep=False):
     if isinstance(node, nodes.SequenceNode):
       return cls.TARGET_CLASS(loader.construct_sequence(node, deep=deep))
-    else:
-      return cls.TARGET_CLASS()
+    return cls.TARGET_CLASS()
 
   @classmethod
   def YAMLRepresenter(cls, dumper, data):
@@ -252,8 +251,7 @@ class _RegionComponentYAMLTagHandler(_HWIDV3YAMLTagHandler):
   def YAMLRepresenter(cls, dumper, data):
     if data.status_lists is None:
       return dumper.represent_scalar(cls.YAML_TAG, _YAML_DUMMY_STRING)
-    else:
-      return dumper.represent_mapping(cls.YAML_TAG, data.status_lists)
+    return dumper.represent_mapping(cls.YAML_TAG, data.status_lists)
 
   @classmethod
   def _VerifyStatusLists(cls, status_lists):
@@ -289,5 +287,4 @@ class _RegexpYAMLTagHandler(_HWIDV3YAMLTagHandler):
   def YAMLRepresenter(cls, dumper, data):
     if data.is_re:
       return dumper.represent_scalar(cls.YAML_TAG, data.raw_value)
-    else:
-      return dumper.represent_data(data.raw_value)
+    return dumper.represent_data(data.raw_value)

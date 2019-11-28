@@ -159,7 +159,7 @@ class Database(object):
 
     Raises:
       HWIDException if there is missing field in the database, or database
-      integrity veification fails.
+      integrity verification fails.
     """
     yaml_obj = yaml.load(raw_data)
 
@@ -217,6 +217,10 @@ class Database(object):
   @property
   def can_encode(self):
     return self._components.can_encode and self._encoded_fields.can_encode
+
+  @property
+  def region_field_legacy_info(self):
+    return self._encoded_fields.region_field_legacy_info
 
   @property
   def project(self):
@@ -299,8 +303,8 @@ class Database(object):
       return self._encoded_fields.GetComponentClasses(encoded_field_name)
 
     ret = set(self._components.component_classes)
-    for encoded_field_name in self.encoded_fields:
-      ret |= set(self._encoded_fields.GetComponentClasses(encoded_field_name))
+    for e in self.encoded_fields:
+      ret |= set(self._encoded_fields.GetComponentClasses(e))
 
     return ret
 
@@ -390,7 +394,7 @@ class Database(object):
             (bit_length, encoded_field_name, self.max_image_id))
     # TODO(yhong): Perform stricter check against the encoded fields that are
     #     excluded in the latest encoded pattern.  Currently it's allowed as
-    #     this feature is often applied to solve exceptional HWID submittion
+    #     this feature is often applied to solve exceptional HWID submission
     #     flows like b/124414887.
 
     # Each encoded field should be well defined.
@@ -620,7 +624,7 @@ class EncodedFields(object):
   generate the HWID identity because the combination of dram doesn't meet
   any case.
 
-  A number respresents to a combination of a set of components, and it's even
+  A number represents to a combination of a set of components, and it's even
   okey to be a set of different class of components like `firmware_field` in
   above example.  But for each class of components, it should belong to one
   `encoded_field`.  For example, below `encoded_fields` is invalid:
@@ -652,6 +656,8 @@ class EncodedFields(object):
         field which maps two different indexes into exactly same component
         combinations.  In above case the database still works for decoding,
         but not encoding.
+    _region_field_legacy_info: A dictionary that records whether it's legacy
+        style of each region field.
   """
 
   _SCHEMA = schema.Dict(
@@ -683,12 +689,15 @@ class EncodedFields(object):
     self._SCHEMA.Validate(encoded_fields_expr)
 
     # Verify the input by constructing the encoded fields from scratch
-    # because all checks are implemented in the manipulaping methods.
+    # because all checks are implemented in the manipulating methods.
     self._fields = yaml.Dict()
     self._field_to_comp_classes = {}
     self._can_encode = True
+    self._region_field_legacy_info = {}
 
     for field_name, field_data in iteritems(encoded_fields_expr):
+      if isinstance(field_data, yaml.RegionField):
+        self._region_field_legacy_info[field_name] = field_data.is_legacy_style
       self._RegisterNewEmptyField(field_name, list(field_data.values()[0]))
       for index, comps in iteritems(field_data):
         comps = yaml.Dict([(c, self._StandardlizeList(n))
@@ -707,6 +716,10 @@ class EncodedFields(object):
   @property
   def can_encode(self):
     return self._can_encode
+
+  @property
+  def region_field_legacy_info(self):
+    return self._region_field_legacy_info
 
   def Export(self):
     """Exports to a dictionary so that it can be stored to the database file."""
@@ -740,7 +753,7 @@ class EncodedFields(object):
     """Gets the related component classes of a specific field.
 
     Args:
-      field_name: A string of th name of the encoded field.
+      field_name: A string of the name of the encoded field.
 
     Returns:
       A set of string of component classes.
@@ -958,7 +971,7 @@ class Components(object):
                                   value_type=schema.AnyOf([
                                       schema.Scalar('probed value', str),
                                       schema.Scalar(
-                                          'probde value regex', Value)]),
+                                          'probed value regex', Value)]),
                                   min_size=1),
                               schema.Scalar('none', type(None))])},
                       optional_items={
@@ -1167,7 +1180,7 @@ class Pattern(object):
        component might be added into the HWID database in anytime and we can
        only append extra bits to the components bitset at the end so that
        old HWID identity can be decoded by the same pattern, the index number
-       of the installed component might have to be splitted into multiple part
+       of the installed component might have to be split into multiple part
        when we union all numbers into a big binary string.  For example, if the
        `fields` defines:
 
@@ -1409,7 +1422,7 @@ class Pattern(object):
           bit chunk.
 
     Returns:
-      A list of BitEntry objects indexed by bit position in the compoents
+      A list of BitEntry objects indexed by bit position in the components
           bitset.  Each BitEntry object has attributes (field, bit_offset)
           indicating which bit_offset of field this particular bit corresponds
           to. For example, if ret[6] has attributes (field='cpu', bit_offset=1),

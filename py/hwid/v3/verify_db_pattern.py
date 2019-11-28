@@ -50,9 +50,25 @@ class HWIDDBsPatternTest(unittest.TestCase):
 
     # Always read projects.yaml from ToT as all projects are required to have an
     # entry in it.
+    target_commit = (self.commit or os.environ.get('PRESUBMIT_COMMIT') or
+                     'cros-internal/master')
     projects_info = yaml.load(process_utils.CheckOutput(
-        ['git', 'show', 'remotes/cros-internal/master:projects.yaml'],
-        cwd=hwid_dir))
+        ['git', 'show', '%s:projects.yaml' % target_commit], cwd=hwid_dir))
+
+    def TestDatabase(db_path):
+      project_name = os.path.basename(db_path)
+      if project_name not in projects_info:
+        return
+      self.assertEqual(projects_info[project_name]['branch'], 'master')
+      logging.info('Checking %s:%s...', target_commit, db_path)
+      self.VerifyDatabasePattern(hwid_dir, target_commit, db_path)
+
+    if self.project:
+      if self.project not in projects_info:
+        self.fail('Invalid project %r' % self.project)
+      TestDatabase('v3/%s' % self.project)
+      return
+
     files = os.environ.get('PRESUBMIT_FILES')
     if files:
       files = [f.partition('/platform/chromeos-hwid/')[-1]
@@ -63,22 +79,8 @@ class HWIDDBsPatternTest(unittest.TestCase):
       files = [b['path'] for b in itervalues(projects_info)
                if b['version'] == 3]
 
-    def TestDatabase(db_path):
-      project_name = os.path.basename(db_path)
-      if project_name not in projects_info:
-        return
-      commit = (self.commit or os.environ.get('PRESUBMIT_COMMIT') or
-                'cros-internal/%s' % projects_info[project_name]['branch'])
-      logging.info('Checking %s:%s...', commit, db_path)
-      self.VerifyDatabasePattern(hwid_dir, commit, db_path)
-
-    if self.project:
-      if self.project not in projects_info:
-        self.fail('Invalid project %r' % self.project)
-      TestDatabase('v3/%s' % self.project)
-    else:
-      for f in files:
-        TestDatabase(f)
+    for f in files:
+      TestDatabase(f)
 
   def VerifyDatabasePattern(self, hwid_dir, commit, db_path):
     """Verify the specific HWID database.
@@ -98,28 +100,41 @@ class HWIDDBsPatternTest(unittest.TestCase):
     """
     # A compatible version of HWID database can be loaded successfully.
     new_db = Database.LoadData(
-        process_utils.CheckOutput(
-            ['git', 'show', '%s:%s' % (commit, db_path)],
-            cwd=hwid_dir, ignore_stderr=True))
+        process_utils.CheckOutput(['git', 'show', '%s:%s' % (commit, db_path)],
+                                  cwd=hwid_dir, ignore_stderr=True))
 
     try:
-      old_db = Database.LoadData(
-          process_utils.CheckOutput(
-              ['git', 'show', '%s~1:%s' % (commit, db_path)],
-              cwd=hwid_dir, ignore_stderr=True))
+      raw_old_db = process_utils.CheckOutput(
+          ['git', 'show', '%s~1:%s' % (commit, db_path)], cwd=hwid_dir,
+          ignore_stderr=True)
     except subprocess.CalledProcessError as e:
-      if e.returncode == 128:
-        logging.info('Adding new HWID database %s; skip pattern check',
-                     os.path.basename(db_path))
-        return
-      raise
+      if e.returncode != 128:
+        raise e
+      logging.info('Adding new HWID database %s; skip pattern check',
+                   os.path.basename(db_path))
+      HWIDDBsPatternTest.VerifyNewCreatedDatabasePattern(new_db)
+      return
+
+    try:
+      old_db = Database.LoadData(raw_old_db)
     except (SchemaException, common.HWIDException) as e:
       logging.warning('The previous version of HWID database %s is an '
                       'incompatible version (exception: %r), ignore the '
                       'pattern check', db_path, e)
       return
-
     HWIDDBsPatternTest.VerifyParsedDatabasePattern(old_db, new_db)
+
+  @staticmethod
+  def VerifyNewCreatedDatabasePattern(new_db):
+    if not new_db.can_encode:
+      raise common.HWIDException(
+          'The new HWID database should not use legacy pattern.  Please use '
+          '"hwid build-database" to prevent from generating legacy pattern.')
+
+    region_field_legacy_info = new_db.region_field_legacy_info
+    if not region_field_legacy_info or any(region_field_legacy_info.values()):
+      raise common.HWIDException(
+          'Legacy region field is forbidden in any new HWID database.')
 
   @staticmethod
   def VerifyParsedDatabasePattern(old_db, new_db):
@@ -142,6 +157,19 @@ class HWIDDBsPatternTest(unittest.TestCase):
               'If you are trying to append new bit(s), be sure to create a new '
               'bit pattern field instead of simply incrementing the last '
               'field' % (index, old_bit_mapping[index][0]))
+
+    old_region_field_legacy_info = old_db.region_field_legacy_info
+    new_region_field_legacy_info = new_db.region_field_legacy_info
+    for field_name, is_legacy_style in new_region_field_legacy_info.items():
+      orig_is_legacy_style = old_region_field_legacy_info.get(field_name)
+      if orig_is_legacy_style is None:
+        if is_legacy_style:
+          raise common.HWIDException(
+              'New region field should be constructed by new style yaml tag.')
+      else:
+        if orig_is_legacy_style != is_legacy_style:
+          raise common.HWIDException(
+              'Style of existing region field should remain unchanged.')
 
 
 if __name__ == '__main__':
