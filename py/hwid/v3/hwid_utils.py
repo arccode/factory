@@ -351,8 +351,7 @@ def GetVPDData(run_vpd=False, infile=None):
     }
   elif infile:
     return json_utils.LoadFile(infile)
-  else:
-    return {'ro': {}, 'rw': {}}
+  return {'ro': {}, 'rw': {}}
 
 
 def ComputeDatabaseChecksum(file_name):
@@ -410,7 +409,23 @@ def ProbeBrandCode():
   return brand_code
 
 
+_HWID_REPO_PATH = None
+
+
+def GetHWIDRepoPath():
+  """Returns the path to the repository which holds all the HWID databases."""
+  from cros.factory.utils import sys_utils
+  assert sys_utils.InChroot()
+
+  global _HWID_REPO_PATH  # pylint: disable=global-statement
+  if _HWID_REPO_PATH is None:
+    _HWID_REPO_PATH = os.path.join(
+        os.environ['CROS_WORKON_SRCROOT'], 'src', 'platform', 'chromeos-hwid')
+  return _HWID_REPO_PATH
+
+
 _DEFAULT_DATA_PATH = None
+
 
 def GetDefaultDataPath():
   """Returns the expected location of HWID data within a factory image or the
@@ -421,9 +436,7 @@ def GetDefaultDataPath():
   global _DEFAULT_DATA_PATH  # pylint: disable=global-statement
   if _DEFAULT_DATA_PATH is None:
     if sys_utils.InChroot():
-      _DEFAULT_DATA_PATH = os.path.join(
-          os.environ['CROS_WORKON_SRCROOT'],
-          'src', 'platform', 'chromeos-hwid', 'v3')
+      _DEFAULT_DATA_PATH = os.path.join(GetHWIDRepoPath(), 'v3')
     else:
       _DEFAULT_DATA_PATH = '/usr/local/factory/hwid'
   return _DEFAULT_DATA_PATH

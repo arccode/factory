@@ -30,28 +30,28 @@ _FREEZED_DB_CHECKSUM_FILE = os.path.join(
 
 class ValidHWIDsTest(unittest.TestCase):
   def runTest(self):
-    hwid_dir = hwid_utils.GetDefaultDataPath()
+    hwid_dir = hwid_utils.GetHWIDRepoPath()
     # Developer from chromiumos community can't access the HWID repository.
     if not os.path.isdir(hwid_dir):
       return
 
     freezed_hwid_db_checksums = json_utils.LoadFile(_FREEZED_DB_CHECKSUM_FILE)
 
-    projects_info = yaml.load(process_utils.CheckOutput(
-        ['git', 'show', 'remotes/cros-internal/master:projects.yaml'],
-        cwd=hwid_dir))
+    target_commit = os.environ.get('PRESUBMIT_COMMIT') or 'cros-internal/master'
 
-    for unused_project_name, proj_info in projects_info.iteritems():
+    projects_info = yaml.load(process_utils.CheckOutput(
+        ['git', 'show', '%s:projects.yaml' % target_commit], cwd=hwid_dir))
+
+    # Check the checksum of *all* HWID v2 databases.
+    for proj_info in projects_info.values():
       if proj_info['version'] != 2:
         continue
 
       self.assertEqual(proj_info['branch'], 'master')
 
       expected_checksum = freezed_hwid_db_checksums.pop(proj_info['path'])
-
-      commit = os.environ.get('PRESUBMIT_COMMIT') or 'cros-internal/master'
       raw_hwid_db = process_utils.CheckOutput(
-          ['git', 'show', '%s:%s' % (commit, proj_info['path'])],
+          ['git', 'show', '%s:%s' % (target_commit, proj_info['path'])],
           cwd=hwid_dir, ignore_stderr=True)
       checksum = hashlib.sha1(raw_hwid_db).hexdigest()
       self.assertEqual(checksum, expected_checksum)

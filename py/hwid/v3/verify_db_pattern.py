@@ -15,8 +15,6 @@ This test may be invoked in multiple ways:
   3. VerifyParsedDatabasePattern may be called directly by the HWID Server.
 """
 
-from __future__ import print_function
-
 import argparse
 import logging
 import os
@@ -29,6 +27,7 @@ from six.moves import xrange
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
+from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import process_utils
 from cros.factory.utils.schema import SchemaException
@@ -43,10 +42,10 @@ class HWIDDBsPatternTest(unittest.TestCase):
     self.commit = commit
 
   def runTest(self):
-    hwid_dir = os.path.join(
-        os.environ['CROS_WORKON_SRCROOT'], 'src', 'platform', 'chromeos-hwid')
+    hwid_dir = hwid_utils.GetHWIDRepoPath()
     if not os.path.exists(hwid_dir):
-      print('ValidHWIDDBsTest: ignored, no %s in source tree.' % hwid_dir)
+      logging.info(
+          'ValidHWIDDBsTest: ignored, no %s in source tree.', hwid_dir)
       return
 
     # Always read projects.yaml from ToT as all projects are required to have an
