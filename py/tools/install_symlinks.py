@@ -24,17 +24,18 @@ from cros.factory.utils.schema import Dict
 from cros.factory.utils.schema import FixedDict
 from cros.factory.utils.schema import Scalar
 
+# Valid modes.
+MODE_FULL = 'full'  # Install all binaries
+MODE_MINI = 'mini'  # Install only factory-mini binaries
+
+VALID_MODES = [MODE_FULL, MODE_MINI]
 
 # Schema for symlinks.yaml.
 SYMLINKS_SCHEMA = FixedDict(
     'binaries',
     items={'binaries': Dict('binaries',
                             Scalar('bin', str),
-                            Scalar('mode', str, ['full', 'mini']))})
-
-# Valid modes.
-MODE_FULL = 'full'  # Install all binaries
-MODE_MINI = 'mini'  # Install only factory-mini binaries
+                            Scalar('mode', str, VALID_MODES))})
 
 
 def InstallSymlinks(target, dest, mode, sudo=False, symlinks=None):
@@ -53,7 +54,7 @@ def InstallSymlinks(target, dest, mode, sudo=False, symlinks=None):
   Returns:
     A list of names of symlinks binaries.
   """
-  assert mode in [MODE_MINI, MODE_FULL]
+  assert mode in VALID_MODES
 
   if not symlinks:
     with open(os.path.join(paths.FACTORY_DIR,
@@ -69,7 +70,7 @@ def InstallSymlinks(target, dest, mode, sudo=False, symlinks=None):
 
   for item_name, item_mode in sorted(symlinks['binaries'].items()):
     link_path = os.path.join(dest, item_name)
-    if item_mode == 'full' and mode == 'mini':
+    if item_mode == MODE_FULL and mode == MODE_MINI:
       # The item works only with the full toolkit, but we are
       # installing symlinks for factory-mini.par.  Don't write the
       # symlink.
@@ -91,7 +92,7 @@ def main(argv=None, out=sys.stdout):
   parser = argparse.ArgumentParser(
       description='Installs symlinks to factory binaries.')
   parser.add_argument(
-      '--mode', choices=['mini', 'full'], metavar='MODE', default='full',
+      '--mode', choices=VALID_MODES, metavar='MODE', default=MODE_FULL,
       help=('Whether to install symlinks for the full toolkit or just for '
             'the mini toolkit (default: %(default)s)'))
   parser.add_argument(
