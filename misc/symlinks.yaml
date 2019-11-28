@@ -10,20 +10,21 @@
 # never installed into /usr/local/bin.
 
 binaries:
-  bft_fixture:     full
-  factory:         full
-  factory_bug:     full
-  factory_restart: full
-  flash_netboot:   full
-  image_tool:      mini
-  gooftool:        mini
-  goofy:           full
-  goofy_control:   full
-  goofy_remote:    full
-  goofy_rpc:       full
-  hwid:            mini
-  make_par:        full
-  merge_logs:      full
-  mount_partition: mini
-  regcode:         mini
-  run_pytest:      full
+  bft_fixture:       full
+  factory:           full
+  factory_bug:       full
+  factory_restart:   full
+  factory_uninstall: full
+  flash_netboot:     full
+  image_tool:        mini
+  gooftool:          mini
+  goofy:             full
+  goofy_control:     full
+  goofy_remote:      full
+  goofy_rpc:         full
+  hwid:              mini
+  make_par:          full
+  merge_logs:        full
+  mount_partition:   mini
+  regcode:           mini
+  run_pytest:        full
