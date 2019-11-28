@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-11-21 14:03+CST\n"
+"PO-Revision-Date: 2019-11-28 16:19+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -522,6 +522,10 @@ msgstr "更新机器资料"
 #: ../py/test/test_lists/generic_smt.test_list.json
 msgid "Update Firmware"
 msgstr "更新韧体"
+
+#: ../build/pytests_label_generated.json
+msgid "Update Fpmcu Firmware"
+msgstr "更新 Fpmcu 韧体"
 
 #: ../build/pytests_label_generated.json
 msgid "Update Kernel"
