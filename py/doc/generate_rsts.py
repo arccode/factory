@@ -19,10 +19,10 @@ always practical.)
 import argparse
 import codecs
 import inspect
+from io import StringIO
 import logging
 import os
 import re
-import StringIO
 
 from six import iteritems
 
@@ -256,8 +256,8 @@ def GenerateTestListDoc(output_dir):
       rst.WriteTitle('Definitions', '-')
       rst.WriteParagraph('Only pytest definitions are listed.')
 
-      rst_define = RSTWriter(StringIO.StringIO())
-      rst_detail = RSTWriter(StringIO.StringIO())
+      rst_define = RSTWriter(StringIO())
+      rst_detail = RSTWriter(StringIO())
 
       rst_define.WriteListTableHeader(header_rows=1)
       rst_define.WriteListTableRow(('Defined Name', 'Pytest Name'))
@@ -321,7 +321,7 @@ def GenerateProbeDoc(output_dir):
       type_desc = GetModuleClassDoc(all_base_cls[base_cls_index])[1]
 
     if func_type not in func_tables:
-      rst = func_tables[func_type] = RSTWriter(StringIO.StringIO())
+      rst = func_tables[func_type] = RSTWriter(StringIO())
       rst.WriteTitle(func_type, '`', ref_label=func_type)
       rst.WriteParagraph(type_desc)
       rst.WriteListTableHeader(header_rows=1)
@@ -343,7 +343,7 @@ def GenerateProbeDoc(output_dir):
         func_cls, (LinkToDoc(func_name, doc_path), short_desc))
 
   # Generate list tables of all functions, category by the function type.
-  functions_section_rst = RSTWriter(StringIO.StringIO())
+  functions_section_rst = RSTWriter(StringIO())
 
   # Always render `Misc` section at the end.
   func_types = sorted(func_tables.keys())

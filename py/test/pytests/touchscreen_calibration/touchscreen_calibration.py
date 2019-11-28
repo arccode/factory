@@ -5,9 +5,9 @@
 from __future__ import print_function
 
 import collections
+from io import StringIO
 import os
 import re
-import StringIO
 import threading
 import time
 import xmlrpc.client
@@ -489,7 +489,7 @@ class TouchscreenCalibration(test_case.TestCase):
 
     # Write the sensor data and the test result to USB stick, the UI,
     # and also to the shop floor.
-    log_to_file = StringIO.StringIO()
+    log_to_file = StringIO()
     self._WriteSensorDataToFile(log_to_file, sn, phase, self.test_pass, data)
     self.log('touchscreen_calibration', sn=sn, phase=phase,
              test_pass=self.test_pass, sensor_data=str(data))
@@ -521,7 +521,7 @@ class TouchscreenCalibration(test_case.TestCase):
 
     # Write the sensor data and the test result to USB stick, the UI,
     # and also to the shop floor.
-    log_to_file = StringIO.StringIO()
+    log_to_file = StringIO()
     self._WriteSensorDataToFile(log_to_file, sn, phase, self.test_pass, data)
     self.log('touchscreen_calibration', sn=sn, phase=phase,
              test_pass=self.test_pass, sensor_data=str(data))

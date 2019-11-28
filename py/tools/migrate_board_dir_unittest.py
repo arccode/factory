@@ -6,9 +6,9 @@
 
 
 from datetime import date
+from io import StringIO
 import os
 import shutil
-from StringIO import StringIO
 import sys
 import tempfile
 import unittest

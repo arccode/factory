@@ -6,13 +6,13 @@ from __future__ import print_function
 
 import contextlib
 import getpass
+from io import StringIO
 import logging
 import os
 import pipes
 import re
 import select
 import signal
-from StringIO import StringIO
 import subprocess
 import sys
 import threading

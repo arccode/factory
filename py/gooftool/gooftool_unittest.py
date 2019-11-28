@@ -9,9 +9,9 @@
 
 import __builtin__
 from collections import namedtuple
+from io import StringIO
 import logging
 import os
-from StringIO import StringIO
 from tempfile import NamedTemporaryFile
 import time
 import unittest

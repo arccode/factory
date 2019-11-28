@@ -5,9 +5,9 @@
 
 from __future__ import print_function
 
+from io import StringIO
 import json
 import logging
-import StringIO
 import unittest
 import urllib.error
 import urllib.request
@@ -42,7 +42,7 @@ class ChromeRemoteDebuggerTest(unittest.TestCase):
         "url": "http://cyan.bikeshed.com/",
         "webSocketDebuggerUrl": "ws://7711AF2B-B1CF-40C4-B269-0D29A72BEBBC"
     }]
-    self.mock_pageset_stream = StringIO.StringIO(json.dumps(self.mock_pageset))
+    self.mock_pageset_stream = StringIO(json.dumps(self.mock_pageset))
     self.mock_websocket = mock.Mock(WebSocketClient)
 
   @mock.patch('urllib.request.urlopen')

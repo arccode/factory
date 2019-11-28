@@ -107,9 +107,9 @@ attachment::
   }
 """
 
+from io import StringIO
 import logging
 import os
-import StringIO
 import subprocess
 import time
 
@@ -200,7 +200,7 @@ class ExecShell(test_case.TestCase):
         'stdout': process.stdout,
         'stderr': process.stderr,
     }
-    output = {name: StringIO.StringIO() for name in handles}
+    output = {name: StringIO() for name in handles}
     threads = [
         process_utils.StartDaemonThread(
             target=self.UpdateOutput, args=(handle, name, output))
