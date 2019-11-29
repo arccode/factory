@@ -17,6 +17,7 @@ from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils.schema import JSONSchemaDict
 
 
 LEDColor = led_module.LED.Color
@@ -39,6 +40,22 @@ _INDEX_LABEL = {
     LEDIndex.RECOVERY_HWREINIT: _('recovery hwreinit LED'),
     getattr(LEDIndex, 'SYSRQ DEBUG'): _('sysrq debug LED')}
 
+_ARG_COLORS_SCHEMA = JSONSchemaDict('colors schema object', {
+    'type': 'array',
+    'items': {
+        'oneOf': [
+            {'enum': list(LEDColor)},
+            {
+                'type': 'array',
+                'items': [
+                    {'enum': list(LEDIndex)},
+                    {'enum': list(LEDColor)}
+                ]
+            }
+        ]
+    }
+})
+
 
 class LEDTest(test_case.TestCase):
   """Tests if the onboard LED can light up with specified colors."""
@@ -50,7 +67,8 @@ class LEDTest(test_case.TestCase):
           'List of colors or [index, color] to test. color must be in '
           'LEDColor or OFF, and index, if specified, must be in LEDIndex.',
           default=[LEDColor.YELLOW, LEDColor.GREEN, LEDColor.RED,
-                   LEDColor.OFF]),
+                   LEDColor.OFF],
+          schema=_ARG_COLORS_SCHEMA),
       Arg('target_leds', list,
           'List of LEDs to test. If specified, it turns off all LEDs first, '
           'and sets them to auto after test.', default=None)]
