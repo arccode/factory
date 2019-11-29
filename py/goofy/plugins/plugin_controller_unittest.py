@@ -35,7 +35,7 @@ class PluginControllerTest(unittest.TestCase):
     with mock.patch('cros.factory.utils.config_utils.LoadConfig') as LoadConfig:
       LoadConfig.return_value = self._config
       controller = plugin_controller.PluginController('config', self._goofy)
-      LoadConfig.assert_called_with('config', 'plugins')
+      LoadConfig.assert_called_with('config', 'plugins', allow_inherit=True)
       return controller
 
   def testInit(self):

@@ -72,7 +72,8 @@ class PluginController(object):
 
     plugin_config = config_utils.LoadConfig('goofy_plugins', 'plugins')
     config_utils.OverrideConfig(
-        plugin_config, config_utils.LoadConfig(config_name, 'plugins'))
+        plugin_config,
+        config_utils.LoadConfig(config_name, 'plugins', allow_inherit=True))
 
     for name, plugin_args in iteritems(plugin_config['plugins']):
       if not plugin_args.get('enabled', True):
