@@ -161,6 +161,7 @@ from cros.factory.test import test_case
 from cros.factory.test.utils import audio_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils.schema import JSONSchemaDict
 from cros.factory.utils import process_utils
 
 # Default setting
@@ -209,6 +210,91 @@ _DEFAULT_MIN_FREQUENCY = 4000
 # Default maximum frequency.
 _DEFAULT_MAX_FREQUENCY = 10000
 
+_ARG_TESTS_TO_CONDUCT_SCHEMA = JSONSchemaDict('tests_to_conduct schema', {
+    'type': 'array',
+    'items': {
+        'type': 'object',
+        'oneOf': [
+            {
+                'properties': {
+                    'type': {
+                        'type': 'string',
+                        'enum': ['audiofun']
+                    },
+                    'iteration': {'type': 'integer'},
+                    'threshold': {'type': 'number'},
+                    'input_channels': {'type': 'array'},
+                    'output_channels': {'type': 'array'},
+                    'volume_gain': {
+                        'type': 'number',
+                        'minimum': 0,
+                        'maximum': 100
+                    },
+                    'capture_rate': {'type': 'number'},
+                    'sample_format': {
+                        'type': 'string',
+                        'enum': ['u8', 's16', 's24', 's32']
+                    },
+                    'player_format': {
+                        'type': 'string',
+                        'enum': ['u8', 's16', 's24', 's32']
+                    },
+                    'min_frequency': {'type': 'number'},
+                    'max_frequency': {'type': 'number'}
+                },
+                'additionalProperties': False,
+                'required': ['type']
+            },
+            {
+                'properties': {
+                    'type': {
+                        'type': 'string',
+                        'enum': ['sinewav']
+                    },
+                    'duration': {'type': 'number',},
+                    'freq_threshold': {'type': 'number'},
+                    'rms_threshold': {
+                        'type': 'array',
+                        'items': {'type': ['number', 'null']},
+                        'minItems': 2,
+                        'maxItems': 2
+                    },
+                    'amplitude_threshold': {
+                        'type': 'array',
+                        'items': {'type': ['number', 'null']},
+                        'minItems': 2,
+                        'maxItems': 2
+                    }
+                },
+                'additionalProperties': False,
+                'required': ['type']
+            },
+            {
+                'properties': {
+                    'type': {
+                        'type': 'string',
+                        'enum': ['noise']
+                    },
+                    'duration': {'type': 'number'},
+                    'rms_threshold': {
+                        'type': 'array',
+                        'items': {'type': ['number', 'null']},
+                        'minItems': 2,
+                        'maxItems': 2
+                    },
+                    'amplitude_threshold': {
+                        'type': 'array',
+                        'items': {'type': ['number', 'null']},
+                        'minItems': 2,
+                        'maxItems': 2
+                    }
+                },
+                'additionalProperties': False,
+                'required': ['type']
+            }
+        ]
+    }
+})
 
 class AudioLoopTest(test_case.TestCase):
   """Audio Loop test to test two kind of situations.
@@ -297,7 +383,8 @@ class AudioLoopTest(test_case.TestCase):
           '        make sure the inequality is true: *min <= minimum measured\n'
           '        amplitude <= maximum measured amplitude <= max*,\n'
           '        otherwise, fail the test.  Both of **min** and **max** can\n'
-          '        be set to None, which means no limit.'),
+          '        be set to None, which means no limit.',
+          schema=_ARG_TESTS_TO_CONDUCT_SCHEMA),
       Arg('keep_raw_logs', bool,
           'Whether to attach the audio by Testlog when the test fail.',
           default=True)]
