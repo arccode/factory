@@ -125,11 +125,30 @@ from cros.factory.test.i18n import _
 from cros.factory.test import state
 from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils.schema import JSONSchemaDict
 
 
 _UNICODE_PICTURES = u'☃☺☎'
 _TEST_DEGREES = [90, 180, 270, 0]
 _POLL_ROTATION_INTERVAL = 0.1
+
+_ARG_DEGREES_TO_ORIENTATION_SCHEMA = JSONSchemaDict(
+    'degrees_to_orientation schema object', {
+        'type': 'array',
+        'items': {
+            'type': 'array',
+            'items': [
+                {'enum': [0, 90, 180, 270]},
+                {
+                    'type': 'object',
+                    'patternProperties': {
+                        'in_accel_(x|y|z)': {'enum': [0, 1, -1]}
+                    },
+                    'additionalProperties': False
+                }
+            ]
+        }
+    })
 
 
 class TabletRotationTest(test_case.TestCase):
@@ -151,7 +170,7 @@ class TabletRotationTest(test_case.TestCase):
           'should be the name of the accelerometer signal. The possible keys '
           'are "in_accel_(x|y|z)". Values should be one of [0, 1, -1], '
           'representing the ideal value for gravity under such orientation.',
-          default=[]),
+          default=[], schema=_ARG_DEGREES_TO_ORIENTATION_SCHEMA),
       Arg('spec_offset', list,
           'Two numbers, ex: [1.5, 1.5] '
           'indicating the tolerance for the digital output of sensors under '
