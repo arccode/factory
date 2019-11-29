@@ -1125,7 +1125,7 @@ get_component_file() {
       printf '%s' "${json_str}" | json_get_image_files "${component}" -
       ;;
     toolkit | hwid | firmware | complete | netboot_* | toolkit_config | \
-      lsb_factory)
+      lsb_factory | description)
       printf '%s' "${json_str}" | json_get_file "${component}" -
       ;;
     *)
