@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-12-23 18:11+CST\n"
+"PO-Revision-Date: 2020-01-07 16:30+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -594,6 +594,10 @@ msgstr "无线频宽"
 #: ../build/pytests_label_generated.json
 msgid "Wireless Antenna"
 msgstr "无线天线"
+
+#: ../build/pytests_label_generated.json
+msgid "Wireless Connect"
+msgstr "连线到无线网路"
 
 #: ../build/pytests_label_generated.json
 msgid "Write Device Data To VPD"

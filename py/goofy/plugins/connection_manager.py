@@ -32,13 +32,20 @@ class ConnectionManager(plugin.Plugin):
     """
 
     super(ConnectionManager, self).__init__(goofy, [plugin.RESOURCE.NETWORK])
+    self._scan_wifi_periods_secs = scan_wifi_periods_secs
+    self._override_blacklisted_devices = override_blacklisted_network_devices
+    self._shuffle_wlans = shuffle_wlans
+    self._connection_manager = None
+    self._SetAPs(wlans)
+
+  def _SetAPs(self, wlans):
     converted_wlans = [net_utils.WLAN(**wlan) for wlan in wlans]
-    if shuffle_wlans:
+    if self._shuffle_wlans:
       random.shuffle(converted_wlans)
     self._connection_manager = connection_manager.ConnectionManager(
         wlans=converted_wlans,
-        scan_interval=scan_wifi_periods_secs,
-        override_blacklisted_devices=override_blacklisted_network_devices)
+        scan_interval=self._scan_wifi_periods_secs,
+        override_blacklisted_devices=self._override_blacklisted_devices)
 
   @type_utils.Overrides
   def OnStart(self):
@@ -70,3 +77,10 @@ class ConnectionManager(plugin.Plugin):
       return None
     except connection_manager.ConnectionManagerException as e:
       return e.error_code
+
+  @plugin.RPCFunction
+  def Reconnect(self, wlans):
+    if self._connection_manager:
+      self._connection_manager.DisableNetworking()
+      self._connection_manager = None
+    self._SetAPs(wlans)
