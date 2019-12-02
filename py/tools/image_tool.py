@@ -1831,7 +1831,7 @@ class ChromeOSFactoryBundle(object):
       lsb.SetValue('FACTORY_INSTALL_ACTION_COUNTDOWN', 'true')
       lsb.SetValue('FACTORY_INSTALL_COMPLETE_PROMPT', 'true')
       lsb.SetValue('RMA_AUTORUN', 'true')
-      SysUtils.WriteFile(lsb_file, lsb.AsRawData())
+      SysUtils.WriteFile(lsb_file, lsb.AsRawData() + '\n')
       CrosPayloadUtils.ReplaceComponent(
           json_path, PAYLOAD_TYPE_LSB_FACTORY, lsb_file.name)
 
@@ -3430,7 +3430,7 @@ class EditLSBCommand(SubCommand):
         def Write():
           """Apply changes and exit."""
           if self.old_data != self.lsb.AsRawData():
-            SysUtils.WriteFile(lsb_file, self.lsb.AsRawData())
+            SysUtils.WriteFile(lsb_file, self.lsb.AsRawData() + '\n')
             if legacy_lsb:
               with stateful_part.Mount(rw=True) as stateful:
                 lsb_path = os.path.join(stateful, PATH_LSB_FACTORY)
