@@ -344,12 +344,20 @@ class TestListCommand(Subcommand):
     if self.args.list:
       active_id = mgr.GetActiveTestListId()
 
-      line_format = '%-8s %-20s %s'
-      print(line_format % ('ACTIVE?', 'ID', 'PATH'))
+      # Calculate the maximum width of test_lists for alignment of displaying.
+      # TODO(menghuan): Use max(..., default=0) after upgrading to Python 3.
+      test_lists_id_maxlen = max(map(
+          len, all_test_lists.keys())) if all_test_lists else 0
+      id_width = max(test_lists_id_maxlen, len('ID'))
+
+      line_format = '{is_active:>8} {id:<{id_width}} {source_path}'
+      print(line_format.format(is_active='ACTIVE?', id='ID', id_width=id_width,
+                               source_path='PATH'))
 
       for k, v in sorted(all_test_lists.items()):
         is_active = '(active)' if k == active_id else ''
-        print(line_format % (is_active, k, v.source_path))
+        print(line_format.format(is_active=is_active, id=k, id_width=id_width,
+                                 source_path=v.source_path))
 
     if self.args.restart:
       goofy = state.GetInstance()
