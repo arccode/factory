@@ -7,7 +7,10 @@ FROM python:2.7
 ARG workdir="/usr/src/"
 ARG gcloud_archive_name="google-cloud-sdk-245.0.0-linux-x86_64.tar.gz"
 
-RUN cd /usr/src && \
+ADD factory/py/hwid/service/appengine/requirements.txt \
+  "${workdir}"/requirements.txt
+
+RUN cd "${workdir}" && \
   wget "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/${gcloud_archive_name}" && \
   tar xvf "${gcloud_archive_name}" && \
   google-cloud-sdk/install.sh \
@@ -16,17 +19,12 @@ RUN cd /usr/src && \
       --quiet && \
   rm "${gcloud_archive_name}" && \
   pip install \
-      -t "${workdir}"/lib \
-      dulwich==0.19.11 \
+      --target "${workdir}"/lib \
+      --requirement "${workdir}"/requirements.txt \
       mox==0.5.3 \
       mock==2.0.0 \
       protorpc-standalone==0.9.1 \
       PyYaml==3.11 \
-      GoogleAppEngineCloudStorageClient==1.9.22.1 \
-      google-endpoints==4.8.0 \
-      protobuf==3.7.0 \
-      protorpc-standalone==0.9.1 \
-      urllib3==1.24.2 \
       webapp2==3.0.0b1 \
       WebTest==2.0.29
 
