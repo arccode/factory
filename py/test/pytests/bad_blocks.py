@@ -351,7 +351,8 @@ class BadBlocksTest(test_case.TestCase):
           if match:
             # The percentage reported is actually the percentage until the last
             # block; convert it to an offset within the current phase.
-            block_offset = (match.group(1) / 100) * (params.last_block + 1)
+            block_offset = (
+                float(match.group(1)) / 100) * (params.last_block + 1)
             fraction_within_phase = (block_offset - params.first_block) / (
                 params.last_block + 1 - params.first_block)
             self.ui.SetHTML(line[match.end():], id='bb-progress')
