@@ -20,21 +20,21 @@ class HasFpmcuTest(unittest.TestCase):
     commands._has_fpmcu = None  # pylint: disable=protected-access
     mock_exists.return_value = True
     mock_shell.return_value = type_utils.Obj(
-        stdout='stdout', stderr='stderr', status=0, success=True)
+        stdout='mock_fp_board', stderr='', status=0, success=True)
     self.assertTrue(commands.HasFpmcu())
 
     # Normal case: FPMCU not exist:
     commands._has_fpmcu = None  # pylint: disable=protected-access
     mock_exists.return_value = False
     mock_shell.return_value = type_utils.Obj(
-        stdout='stdout', stderr='stderr', status=1, success=False)
+        stdout='', stderr='', status=0, success=True)
     self.assertFalse(commands.HasFpmcu())
 
     # Mismatch, case 1:
     commands._has_fpmcu = None  # pylint: disable=protected-access
     mock_exists.return_value = False
     mock_shell.return_value = type_utils.Obj(
-        stdout='stdout', stderr='stderr', status=0, success=True)
+        stdout='mock_fp_board', stderr='', status=0, success=True)
     with self.assertRaises(type_utils.Error):
       commands.HasFpmcu()
 
@@ -43,6 +43,14 @@ class HasFpmcuTest(unittest.TestCase):
     mock_exists.return_value = True
     mock_shell.return_value = type_utils.Obj(
         stdout='stdout', stderr='stderr', status=1, success=False)
+    with self.assertRaises(type_utils.Error):
+      commands.HasFpmcu()
+
+    # Mismatch, case 3:
+    commands._has_fpmcu = None  # pylint: disable=protected-access
+    mock_exists.return_value = True
+    mock_shell.return_value = type_utils.Obj(
+        stdout='', stderr='', status=0, success=True)
     with self.assertRaises(type_utils.Error):
       commands.HasFpmcu()
 

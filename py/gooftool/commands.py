@@ -25,7 +25,6 @@ import time
 import xmlrpclib
 
 from six import iteritems
-from six.moves import xrange
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.common import ExecFactoryPar
@@ -82,7 +81,8 @@ def HasFpmcu():
     FPMCU_PATH = '/dev/cros_fp'
     has_fpmcu_path = os.path.exists(FPMCU_PATH)
     has_cros_config_fpmcu = False
-    if Shell(['cros_config', '/fingerprint', 'board']).success:
+    cros_config_output = Shell(['cros_config', '/fingerprint', 'board'])
+    if cros_config_output.success and cros_config_output.stdout:
       has_cros_config_fpmcu = True
 
     if has_fpmcu_path is False and has_cros_config_fpmcu is True:
