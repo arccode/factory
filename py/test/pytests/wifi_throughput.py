@@ -107,6 +107,7 @@ from cros.factory.test.utils import kbd_leds
 from cros.factory.testlog import testlog
 from cros.factory.utils import arg_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils.schema import JSONSchemaDict
 from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
@@ -115,6 +116,34 @@ from cros.factory.utils import type_utils
 _WIFI_TIMEOUT_SECS = 20
 _DEFAULT_POLL_INTERVAL_SECS = 1
 _IPERF_TIMEOUT_SECS = 5
+
+_ARG_SERVICES_SCHEMA = JSONSchemaDict('services schema object', {
+    'definitions': {
+        'service': {
+            'type': 'object',
+            'properties': {
+                'ssid': {'type': 'string'},
+                'password': {'type': 'string'},
+                'min_strength': {'type': 'number'},
+                'min_quality': {'type': 'number'},
+                'iperf_host': {'type': 'string'},
+                'transmit_time': {'type': 'number'},
+                'transmit_interval': {'type': 'number'},
+                'min_rx_throughput': {'type': 'number'},
+                'min_tx_throughput': {'type': 'number'}
+            },
+            'required': ['ssid'],
+            'additionalProperties': False
+        }
+    },
+    'oneOf': [
+        {'$ref': '#/definitions/service'},
+        {
+            'type': 'array',
+            'items': {'$ref': '#/definitions/service'}
+        }
+    ]
+})
 
 
 def _MbitsToBits(x):
@@ -782,7 +811,7 @@ class WiFiThroughput(test_case.TestCase):
           'transmit_interval, min_rx_throughput, min_tx_throughput.  If '
           'services are not specified, this test will simply list APs.  Also '
           'note that each service may only be specified once.',
-          default=[]),
+          default=[], schema=_ARG_SERVICES_SCHEMA),
   ] + _SHARED_ARGS  # note the concatenation of "shared" arguments
 
   def _Log(self):
