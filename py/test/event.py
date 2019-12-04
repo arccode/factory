@@ -143,7 +143,7 @@ class Event(object):
 
   @staticmethod
   def from_json(encoded_event):
-    kw = type_utils.UnicodeToString(json.loads(encoded_event))
+    kw = json.loads(encoded_event)
     type = kw.pop('type')  # pylint: disable=redefined-builtin
     return Event(type=type, **kw)
 

@@ -20,7 +20,6 @@ import requests
 # pylint: disable=import-error
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
-from cros.factory.utils import type_utils
 
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -66,7 +65,7 @@ class E2ETest(unittest.TestCase):
         raise ValueError('Does not support http_method %s.' % http_method)
 
       try:
-        r = type_utils.UnicodeToString(response.json())
+        r = response.json()
         # Pops non-related keys.
         for k in ['kind', 'etag']:
           r.pop(k, None)

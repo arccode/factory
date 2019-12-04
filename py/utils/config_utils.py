@@ -56,7 +56,6 @@ from six import iteritems
 from six import iterkeys
 
 from . import file_utils
-from . import type_utils
 
 # To simplify portability issues, validating JSON schema is optional.
 try:
@@ -404,8 +403,8 @@ def _ResolveConfigInfo(config_name, frame, extra_config_dirs):
 
 
 def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
-               default_config_dirs=CALLER_DIR, convert_to_str=True,
-               allow_inherit=False, generate_depend=False):
+               default_config_dirs=CALLER_DIR, allow_inherit=False,
+               generate_depend=False):
   """Loads a configuration as mapping by given file name.
 
   The config files are retrieved and overridden in order:
@@ -429,7 +428,6 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
         directory of caller module (or current folder if no caller module).  If
         the caller module is a symbolic link, we search its original path first,
         and override it with the config beside the symbolic link if exists.
-    convert_to_str: True to convert the result from unicode to str.
     allow_inherit: if set to True, try to read 'inherit' from the
         loaded config. It should be the name of the parent config to be loaded,
         and will then be overridden by the current config. It can also be a list
@@ -521,9 +519,6 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
              'Python library not installed.', config_name)
   else:
     logger('Skip validating schema for config <%s>.', config_name)
-
-  if convert_to_str:
-    config = type_utils.UnicodeToString(config)
 
   config = ResolvedConfig(config)
   if generate_depend:

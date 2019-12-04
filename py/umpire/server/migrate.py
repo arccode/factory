@@ -45,7 +45,7 @@ def _GetEnvironmentVersionAndData():
     return (-1, None)
 
   try:
-    env = json_utils.JSONDatabase(_SESSION_JSON_PATH, convert_to_str=False)
+    env = json_utils.JSONDatabase(_SESSION_JSON_PATH)
   except IOError:
     logging.info(
         '%s not found. Assuming before migration mechanism.',

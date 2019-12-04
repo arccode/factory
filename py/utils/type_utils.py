@@ -482,26 +482,6 @@ class UniqueStack(object):
       return None
 
 
-def UnicodeToString(obj):
-  """Converts any Unicode strings in obj to UTF-8 strings.
-
-  Recurses into lists, dicts, and tuples in obj.
-  """
-  if isinstance(obj, list):
-    return [UnicodeToString(x) for x in obj]
-  elif isinstance(obj, dict):
-    return dict((UnicodeToString(k), UnicodeToString(v))
-                for k, v in iteritems(obj))
-  elif isinstance(obj, str):
-    return obj.encode('utf-8')
-  elif isinstance(obj, tuple):
-    return tuple(UnicodeToString(x) for x in obj)
-  elif isinstance(obj, set):
-    return set(UnicodeToString(x) for x in obj)
-  else:
-    return obj
-
-
 def StdRepr(obj, extra=None, excluded_keys=None, true_only=False):
   """Returns the representation of an object including its properties.
 

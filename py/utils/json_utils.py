@@ -11,36 +11,21 @@ to/from JSON strings or JSON files.
 import json
 import os
 
-from cros.factory.utils import type_utils
+
+LoadStr = json.loads
 
 
-def LoadStr(s, convert_to_str=True):
-  """Deserialize a JSON string to a Python object.
-
-  Args:
-    s: a JSON string.
-    convert_to_str: Whether to convert the unicode type elements into str type.
-
-  Returns:
-    The deserialized Python object.
-  """
-  json_obj = json.loads(s)
-  return (json_obj if not convert_to_str
-          else type_utils.UnicodeToString(json_obj))
-
-
-def LoadFile(file_path, convert_to_str=True):
+def LoadFile(file_path):
   """Deserialize a file consists of a JSON string to a Python object.
 
   Args:
     file_path: The path of the file to be deserialize.
-    convert_to_str: Whether to convert the unicode type elements into str type.
 
   Returns:
     The deserialized Python object.
   """
   with open(file_path) as f:
-    return LoadStr(f.read(), convert_to_str=convert_to_str)
+    return LoadStr(f.read())
 
 
 def DumpStr(obj, pretty=False, newline=None, **json_dumps_kwargs):
@@ -90,7 +75,7 @@ def DumpFile(file_path, obj, pretty=True, newline=None, **json_dumps_kwargs):
 class JSONDatabase(dict):
   """A dict bound to a JSON file."""
 
-  def __init__(self, file_path, allow_create=False, convert_to_str=True):
+  def __init__(self, file_path, allow_create=False):
     """Initialize and read the JSON file.
 
     Args:
@@ -100,7 +85,6 @@ class JSONDatabase(dict):
     """
     super(JSONDatabase, self).__init__()
     self._file_path = file_path
-    self._convert_to_str = convert_to_str
     if not allow_create or os.path.exists(file_path):
       self.Load()
     else:
@@ -114,8 +98,7 @@ class JSONDatabase(dict):
         of initialization.
     """
     self.clear()
-    self.update(LoadFile(file_path or self._file_path,
-                         convert_to_str=self._convert_to_str))
+    self.update(LoadFile(file_path or self._file_path))
 
   def Save(self, file_path=None):
     """Write the content to a JSON file.

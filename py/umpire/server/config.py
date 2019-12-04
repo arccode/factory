@@ -126,9 +126,9 @@ class UmpireConfig(dict):
         # As config dict has multi-layer dict, deepcopy is necessary.
         config = copy.deepcopy(config)
       else:
-        config = json_utils.LoadStr(config, convert_to_str=False)
+        config = json_utils.LoadStr(config)
     else:
-      config = json_utils.LoadFile(file_path, convert_to_str=False)
+      config = json_utils.LoadFile(file_path)
     super(UmpireConfig, self).__init__(config)
 
     if validate:

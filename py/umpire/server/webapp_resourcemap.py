@@ -11,7 +11,6 @@ The class handles
 import logging
 
 from cros.factory.umpire.server.web import wsgi
-from cros.factory.utils import type_utils
 
 
 PATH_INFO = '/webapps/resourcemap'
@@ -61,5 +60,5 @@ class ResourceMapApp(wsgi.WebApp):
       resource_map = GetResourceMap(self._env)
       if resource_map is None:
         return session.BadRequest400()
-      return session.Respond(type_utils.UnicodeToString(resource_map))
+      return session.Respond(resource_map)
     return session.BadRequest400()

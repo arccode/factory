@@ -593,8 +593,6 @@ class FactoryTest(object):
       node['status'] = state.status
       node['count'] = state.count
       node['error_msg'] = state.error_msg or None
-    # Convert to string, in case state_map has Unicode stuff from an RPC call
-    node = type_utils.UnicodeToString(node)
     if self.subtests:
       node['subtests'] = [x.AsDict(state_map) for x in self.subtests]
     return node

@@ -312,60 +312,6 @@ class GetDictTest(unittest.TestCase):
         data, 'services.shop_floor.service_url', 'DEFAULT'), 'DEFAULT')
 
 
-class UnicodeToStringTest(unittest.TestCase):
-
-  def isSame(self, a, b):
-    """Returns True if a and b are equal and the same type.
-
-    This is necessary because 'abc' == u'abc' but we want to distinguish
-    them.
-    """
-    # pylint: disable=unidiomatic-typecheck
-    if a != b:
-      return False
-    elif type(a) != type(b):
-      return False
-    elif type(a) in [list, tuple]:
-      for x, y in zip(a, b):
-        if not self.isSame(x, y):
-          return False
-    elif isinstance(a, set):
-      return self.isSame(sorted(list(a)), sorted(list(b)))
-    elif isinstance(a, dict):
-      for k in a:
-        if not self.isSame(a[k], b[k]):
-          return False
-    return True
-
-  def assertSame(self, a, b):
-    self.assertTrue(self.isSame(a, b), 'isSame(%r,%r)' % (a, b))
-
-  def testAssertSame(self):
-    """Makes sense that assertSame works properly."""
-    self.assertSame('abc', 'abc')
-    self.assertRaises(AssertionError,
-                      lambda: self.assertSame('abc', u'abc'))
-    self.assertSame(['a'], ['a'])
-    self.assertRaises(AssertionError,
-                      lambda: self.assertSame(['a'], [u'a']))
-    self.assertSame(('a'), ('a'))
-    self.assertRaises(AssertionError,
-                      lambda: self.assertSame(('a'), (u'a')))
-    self.assertSame(set(['a']), set(['a']))
-    self.assertRaises(
-        AssertionError,
-        lambda: self.assertSame(set(['a']),
-                                set([u'a'])))
-    self.assertSame({1: 'a'}, {1: 'a'})
-    self.assertRaises(AssertionError,
-                      lambda: self.assertSame({1: 'a'}, {1: u'a'}))
-
-  def testUnicodeToString(self):
-    self.assertSame(1, type_utils.UnicodeToString(1))
-    self.assertSame('abc', type_utils.UnicodeToString(u'abc'))
-    self.assertSame(JIONG_UTF8, type_utils.UnicodeToString(u'囧'))
-
-
 class BindFunctionTest(unittest.TestCase):
 
   def runTest(self):

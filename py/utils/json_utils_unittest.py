@@ -39,27 +39,17 @@ class _TestCaseBase(unittest.TestCase):
 class LoadStrTest(_TestCaseBase):
   _TEST_DATA = '{"aaa": [3, false, null, "bbb"]}'
 
-  def testNoConvertToStr(self):
+  def testLoadStr(self):
     self.assertJSONObjEqual(
-        json_utils.LoadStr(self._TEST_DATA, convert_to_str=False),
-        {u'aaa': [3, False, None, u"bbb"]})
-
-  def testConvertToStr(self):
-    for kwargs in [{'convert_to_str': True}, {}]:
-      self.assertJSONObjEqual(json_utils.LoadStr(self._TEST_DATA, **kwargs),
-                              {'aaa': [3, False, None, 'bbb']})
+        json_utils.LoadStr(self._TEST_DATA),
+        {'aaa': [3, False, None, "bbb"]})
 
 
 class LoadFileTest(_TestCaseBase):
-  def testNoConvertToStr(self):
+  def testLoadFile(self):
     self.assertJSONObjEqual(
-        json_utils.LoadFile(_TEST_DATA_PATH, convert_to_str=False),
-        {u'aaa': u'bbb', u'ccc': [u'ddd', {}, u'fff']})
-
-  def testConvertToStr(self):
-    for kwargs in [{'convert_to_str': True}, {}]:
-      self.assertJSONObjEqual(json_utils.LoadFile(_TEST_DATA_PATH, **kwargs),
-                              {'aaa': 'bbb', 'ccc': ['ddd', {}, 'fff']})
+        json_utils.LoadFile(_TEST_DATA_PATH),
+        {'aaa': 'bbb', 'ccc': ['ddd', {}, 'fff']})
 
 
 # For dumping related tests, just check whether the dumped output can be loaded
@@ -101,10 +91,6 @@ class JSONDatabaseTest(_TestCaseBase):
       db2 = json_utils.JSONDatabase(db_path)
       self.assertJSONObjEqual(
           db2, {'aaa': 'bbb', 'ccc': [1, None, {'ddd': 'eee'}]})
-
-      db3 = json_utils.JSONDatabase(db_path, convert_to_str=False)
-      self.assertJSONObjEqual(
-          db3, {u'aaa': u'bbb', u'ccc': [1, None, {u'ddd': u'eee'}]})
 
 
 if __name__ == '__main__':

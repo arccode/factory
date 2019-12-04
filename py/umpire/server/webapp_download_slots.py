@@ -13,7 +13,6 @@ import logging
 from cros.factory.umpire.server import download_slots_manager
 from cros.factory.umpire.server.web import wsgi
 from cros.factory.umpire.server import webapp_utils
-from cros.factory.utils import type_utils
 
 
 PATH_INFO = '/webapps/download_slots'
@@ -32,5 +31,5 @@ class DownloadSlotsApp(wsgi.WebApp):
       dut_info = webapp_utils.ParseDUTHeader(session.HTTP_X_UMPIRE_DUT)
       result = self._manager.ProcessSlotRequest(dut_info)
       if result:
-        return session.Respond(type_utils.UnicodeToString(result))
+        return session.Respond(result)
     return session.BadRequest400()

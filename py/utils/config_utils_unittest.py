@@ -131,12 +131,7 @@ class ConfigUtilsTest(unittest.TestCase):
     self.assertIsNone(config_m.get('sample_runtime_str'))
 
   def testLoadConfigStringType(self):
-    config = config_utils.LoadConfig(
-        'testdata/config_utils_unittest', convert_to_str=False)
-    self.assertEqual(type(config['sample_str']), str)
-
-    config = config_utils.LoadConfig(
-        'testdata/config_utils_unittest', convert_to_str=True)
+    config = config_utils.LoadConfig('testdata/config_utils_unittest')
     self.assertEqual(type(config['sample_str']), str)
 
   def testLoopDetection(self):
