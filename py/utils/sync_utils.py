@@ -14,6 +14,7 @@ import queue
 import signal
 import threading
 import time
+import _thread
 
 from six.moves import xrange
 
@@ -311,7 +312,7 @@ def Synchronized(f):
   @functools.wraps(f)
   def wrapped(self, *args, **kw):
     # pylint: disable=protected-access
-    if not self._lock or not isinstance(self._lock, threading._RLock):
+    if not self._lock or not isinstance(self._lock, _thread.RLock):
       raise RuntimeError(
           ("To use @Synchronized, the class must initialize self._lock as"
            " threading.RLock in its __init__ function."))
