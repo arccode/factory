@@ -121,7 +121,6 @@ class FactoryStateLayer(object):
 
 # TODO(shunhsingou): move goofy or dut related functions to goofy_rpc so we can
 # really separate them.
-@type_utils.UnicodeToStringClass
 class FactoryState(object):
   """The core implementation for factory state control.
 

@@ -21,7 +21,6 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
-@type_utils.UnicodeToStringClass
 class PathResolver(object):
   """Resolves paths in URLs."""
 

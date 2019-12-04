@@ -512,14 +512,6 @@ def UnicodeToStringArgs(function):
 
   return _Wrapper
 
-def UnicodeToStringClass(cls):
-  """A class decorator that converts all arguments of all
-  methods in class from Unicode to strings using UnicodeToStringArgs."""
-  for k, v in cls.__dict__.items():
-    if callable(v):
-      setattr(cls, k, UnicodeToStringArgs(v))
-  return cls
-
 
 def StdRepr(obj, extra=None, excluded_keys=None, true_only=False):
   """Returns the representation of an object including its properties.

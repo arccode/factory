@@ -373,22 +373,6 @@ class UnicodeToStringTest(unittest.TestCase):
     self.assertSame(('func', ('a',), {'b': 'c'}),
                     func(u'a', b=u'c'))
 
-  def testUnicodeToStringClass(self):
-    @type_utils.UnicodeToStringClass
-    class MyClass(object):
-
-      def f1(self, *args, **kwargs):
-        return ('f1', args, kwargs)
-
-      def f2(self, *args, **kwargs):
-        return ('f2', args, kwargs)
-
-    obj = MyClass()
-    self.assertSame(('f1', ('a',), {'b': 'c', 'd': set(['e'])}),
-                    obj.f1(u'a', b=u'c', d=set([u'e'])))
-    self.assertSame(('f2', ('a',), {'b': 'c', 'd': set(['e'])}),
-                    obj.f2(u'a', b=u'c', d=set([u'e'])))
-
 
 class BindFunctionTest(unittest.TestCase):
 
