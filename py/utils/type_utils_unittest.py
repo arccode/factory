@@ -365,14 +365,6 @@ class UnicodeToStringTest(unittest.TestCase):
     self.assertSame('abc', type_utils.UnicodeToString(u'abc'))
     self.assertSame(JIONG_UTF8, type_utils.UnicodeToString(u'囧'))
 
-  def testUnicodeToStringArgs(self):
-    @type_utils.UnicodeToStringArgs
-    def func(*args, **kwargs):
-      return ('func', args, kwargs)
-
-    self.assertSame(('func', ('a',), {'b': 'c'}),
-                    func(u'a', b=u'c'))
-
 
 class BindFunctionTest(unittest.TestCase):
 

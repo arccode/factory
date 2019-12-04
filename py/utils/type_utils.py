@@ -502,17 +502,6 @@ def UnicodeToString(obj):
     return obj
 
 
-def UnicodeToStringArgs(function):
-  """A function decorator that converts function's arguments from
-  Unicode to strings using UnicodeToString.
-  """
-  @functools.wraps(function)
-  def _Wrapper(*args, **kwargs):
-    return function(*UnicodeToString(args), **UnicodeToString(kwargs))
-
-  return _Wrapper
-
-
 def StdRepr(obj, extra=None, excluded_keys=None, true_only=False):
   """Returns the representation of an object including its properties.
 

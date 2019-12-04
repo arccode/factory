@@ -18,7 +18,6 @@ from jsonrpclib import SimpleJSONRPCServer
 
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import sync_utils
-from cros.factory.utils import type_utils
 
 
 class PathResolver(object):
@@ -237,7 +236,6 @@ class GoofyServer(socketserver.ThreadingMixIn,
     return uri_path
 
   @sync_utils.Synchronized
-  @type_utils.UnicodeToStringArgs
   def URLForData(self, mime_type, data, expiration_secs=None):
     """Returns a URL that can be used to serve a static collection of bytes.
 
@@ -290,7 +288,6 @@ class GoofyServer(socketserver.ThreadingMixIn,
     self._resolver.AddPath(url_path, local_path)
 
   @sync_utils.Synchronized
-  @type_utils.UnicodeToStringArgs
   def RegisterData(self, url_path, mime_type, data, expiration_secs=None):
     """Register url_path to the data.
 
