@@ -1027,7 +1027,11 @@ install_components() {
   register_tmp_object "${json_file}"
   json_url="$(get_canonical_url "${json_url}")"
   info "Getting JSON config from ${json_url}..."
-  fetch "${json_url}" "${json_file}"
+  if [ -n "${OPTIONAL}" ]; then
+    fetch "${json_url}" "${json_file}" || return 0
+  else
+    fetch "${json_url}" "${json_file}"
+  fi
 
   for component in ${components}; do
     if [ -n "${mode}" ]; then
