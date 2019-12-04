@@ -74,7 +74,7 @@ class TPMVerifyEK(unittest.TestCase):
     self.assertEqual('true', _TPMStatus()['TPM Owned'])
 
     # Verify the endorsement key.
-    with tempfile.TemporaryFile() as stderr:
+    with tempfile.TemporaryFile('w+') as stderr:
       self.dut.CheckCall(
           ['cryptohome', '--action=tpm_verify_ek'] + (
               ['--cros_core'] if self.args.is_cros_core else []),

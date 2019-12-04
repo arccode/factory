@@ -201,7 +201,7 @@ class SystemInterface(object):
     Raises:
       CalledProcessError if the exit code is non-zero.
     """
-    with tempfile.TemporaryFile() as stdout:
+    with tempfile.TemporaryFile('w+') as stdout:
       exit_code = self.Call(
           command, stdin=stdin, stdout=stdout, stderr=stderr, cwd=cwd, log=log)
       stdout.flush()

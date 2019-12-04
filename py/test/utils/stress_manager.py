@@ -153,7 +153,7 @@ class StressManager(object):
         str(mem_usage), '-s',
         str(duration_secs if duration_secs is not None else 10 ** 8)
     ])
-    with tempfile.TemporaryFile() as output:
+    with tempfile.TemporaryFile('w+') as output:
       if disk_thread:
         if not disk_thread_dir:
           disk_thread_dir = self._dut.storage.GetDataRoot()

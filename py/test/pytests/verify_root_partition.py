@@ -122,7 +122,7 @@ class VerifyRootPartitionTest(test_case.TestCase):
           self.ui.SetProgress(bytes_read)
     else:
       # for remote link, read out everything at once to save time.
-      with tempfile.TemporaryFile() as stderr:
+      with tempfile.TemporaryFile('w+') as stderr:
         try:
           # since we need the output of stderr, use CheckCall rather than
           # toybox.dd

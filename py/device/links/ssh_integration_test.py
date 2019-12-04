@@ -30,11 +30,11 @@ class SSHLinkUnittest(unittest.TestCase):
 
   def _RunAndCompare(self, cmd):
     # get output of SSHLink
-    ssh_output = tempfile.TemporaryFile()
+    ssh_output = tempfile.TemporaryFile('w+')
     self.ssh.Shell(cmd, stdout=ssh_output)
 
     # get output of LocalLink
-    local_output = tempfile.TemporaryFile()
+    local_output = tempfile.TemporaryFile('w+')
     self.local.Shell(cmd, stdout=local_output)
 
     ssh_output.seek(0)

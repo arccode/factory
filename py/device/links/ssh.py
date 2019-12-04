@@ -175,7 +175,7 @@ class SSHLink(device_types.DeviceLink):
         raise ValueError('options must be a list or string (got %r)' % options)
 
     def _TryOnce():
-      with tempfile.TemporaryFile() as stderr:
+      with tempfile.TemporaryFile('w+') as stderr:
         proc = subprocess.Popen(['scp'] + scp_options + [src, dest],
                                 stderr=stderr)
         self._StartWatcher(proc)

@@ -41,11 +41,12 @@ class FactoryTools(object):
     Returns:
       (stdout, stderr, return_code) of the execution results
     """
-    with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
-      return_code = self.Call(command, stdout=stdout, stderr=stderr)
-      stdout.seek(0)
-      stderr.seek(0)
-      return (stdout.read(), stderr.read(), return_code)
+    with tempfile.TemporaryFile('w+') as stdout:
+      with tempfile.TemporaryFile('w+') as stderr:
+        return_code = self.Call(command, stdout=stdout, stderr=stderr)
+        stdout.seek(0)
+        stderr.seek(0)
+        return (stdout.read(), stderr.read(), return_code)
 
 
 class FactoryPythonArchive(FactoryTools):

@@ -457,7 +457,7 @@ class BadBlocksTest(test_case.TestCase):
         testlog.LogParam('command_stderr', stderr_data)
 
     cmd = ['smartctl', '-a', self._filesystem]
-    with tempfile.TemporaryFile() as stdout:
+    with tempfile.TemporaryFile('w+') as stdout:
       exit_code = self.dut.Call(cmd, stdout=stdout)
       stdout.flush()
       stdout.seek(0)
