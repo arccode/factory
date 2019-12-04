@@ -330,7 +330,7 @@ class SysUtils(object):
 
   @staticmethod
   def WriteFileToMountedDir(mounted_dir, file_name, content):
-    with tempfile.NamedTemporaryFile() as f:
+    with tempfile.NamedTemporaryFile('w') as f:
       f.write(content)
       f.flush()
       os.chmod(f.name, 0o644)
@@ -379,16 +379,6 @@ class CrosPayloadUtils(object):
   @staticmethod
   def GetJSONPath(payloads_dir, board):
     return os.path.join(payloads_dir, '%s.json' % board)
-
-  @staticmethod
-  def AddMountedPayloadFile(mounted_payloads_dir, file_name, content):
-    with tempfile.NamedTemporaryFile() as f:
-      f.write(content)
-      f.flush()
-      os.chmod(f.name, 0o644)
-      dest = os.path.join(mounted_payloads_dir, file_name)
-      Sudo(['cp', '-pf', f.name, dest])
-      Sudo(['chown', 'root:root', dest])
 
   @classmethod
   def InitMetaData(cls, payloads_dir, board, mounted=False):
@@ -1031,7 +1021,7 @@ class LSBFile(object):
 
     The file will be owned by root:root, with file mode 0644.
     """
-    with tempfile.NamedTemporaryFile(prefix='lsb_') as f:
+    with tempfile.NamedTemporaryFile('w', prefix='lsb_') as f:
       f.write(self._raw_data + '\n')
       f.flush()
       os.chmod(f.name, 0o644)
@@ -1815,7 +1805,7 @@ class ChromeOSFactoryBundle(object):
 
     # Set active test_list
     if active_test_list:
-      with tempfile.NamedTemporaryFile() as config_file:
+      with tempfile.NamedTemporaryFile('w') as config_file:
         try:
           CrosPayloadUtils.InstallComponents(
               json_path, config_file.name, PAYLOAD_TYPE_TOOLKIT_CONFIG,
@@ -1830,7 +1820,7 @@ class ChromeOSFactoryBundle(object):
             json_path, PAYLOAD_TYPE_TOOLKIT_CONFIG, config_file.name)
 
     # Update lsb_factory payload.
-    with tempfile.NamedTemporaryFile() as lsb_file:
+    with tempfile.NamedTemporaryFile('w') as lsb_file:
       CrosPayloadUtils.InstallComponents(
           json_path, lsb_file.name, PAYLOAD_TYPE_LSB_FACTORY, silent=True)
 
@@ -3408,7 +3398,7 @@ class EditLSBCommand(SubCommand):
           temp_dir, create_metadata=True)
       json_path = CrosPayloadUtils.GetJSONPath(temp_dir, self.args.board)
 
-      with tempfile.NamedTemporaryFile() as lsb_file:
+      with tempfile.NamedTemporaryFile('w') as lsb_file:
         # variables for legacy lsb-factory
         legacy_lsb = False
         stateful_part = Partition(self.args.image, PART_CROS_STATEFUL)
@@ -3653,7 +3643,7 @@ class EditToolkitConfigCommand(SubCommand):
           self.args.image, self.args.board, [PAYLOAD_TYPE_TOOLKIT_CONFIG],
           temp_dir, create_metadata=True)
       json_path = CrosPayloadUtils.GetJSONPath(temp_dir, self.args.board)
-      with tempfile.NamedTemporaryFile() as config_file:
+      with tempfile.NamedTemporaryFile('w') as config_file:
         try:
           CrosPayloadUtils.InstallComponents(
               json_path, config_file.name, PAYLOAD_TYPE_TOOLKIT_CONFIG,

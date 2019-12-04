@@ -635,7 +635,7 @@ class Gooftool(object):
       List of language codes supported by the image
     """
     bitmap_locales = []
-    with self._named_temporary_file() as f:
+    with self._named_temporary_file('w+') as f:
       self._util.shell('cbfstool %s extract -n locales -f %s -r COREBOOT' %
                        (image_file, f.name))
       bitmap_locales = f.read()

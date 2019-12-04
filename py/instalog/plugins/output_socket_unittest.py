@@ -94,7 +94,7 @@ class TestOutputSocket(unittest.TestCase):
     self.assertTrue(self.stream.Empty())
 
   def testOneEventOneAttachment(self):
-    with tempfile.NamedTemporaryFile() as f:
+    with tempfile.NamedTemporaryFile('w') as f:
       f.write('XXXXXXXXXX')
       f.flush()
       event = datatypes.Event({}, {'my_attachment': f.name})

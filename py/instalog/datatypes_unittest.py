@@ -139,8 +139,8 @@ class TestEvent(unittest.TestCase):
 
     # Test equality operators.
     CONTENT = 'ASDFGHJKL!@#$%^&* :"'
-    with tempfile.NamedTemporaryFile() as f1:
-      with tempfile.NamedTemporaryFile() as f2:
+    with tempfile.NamedTemporaryFile('w') as f1:
+      with tempfile.NamedTemporaryFile('w') as f2:
         f1.write(CONTENT)
         f1.flush()
         f2.write(CONTENT)

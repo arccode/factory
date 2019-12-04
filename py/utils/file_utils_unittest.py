@@ -96,7 +96,7 @@ class ReadLinesTest(unittest.TestCase):
   """Unittest for ReadLines."""
 
   def testNormalFile(self):
-    tmp = tempfile.NamedTemporaryFile(delete=False)
+    tmp = tempfile.NamedTemporaryFile('w', delete=False)
     tmp.write('line 1\nline 2\n')
     tmp.close()
     try:
@@ -126,7 +126,7 @@ class ReadLinesTest(unittest.TestCase):
     self.assertTrue(lines is None)
 
   def testNormalFileWithDUT(self):
-    tmp = tempfile.NamedTemporaryFile(delete=False)
+    tmp = tempfile.NamedTemporaryFile('w', delete=False)
     tmp.write('line 1\nline 2\n')
     tmp.close()
     try:
@@ -196,11 +196,11 @@ class CopyFileSkipBytesTest(unittest.TestCase):
       os.unlink(self.out_file.name)
 
   def PrepareFile(self, in_file_content, out_file_content):
-    self.in_file = tempfile.NamedTemporaryFile(delete=False)
+    self.in_file = tempfile.NamedTemporaryFile('w', delete=False)
     if in_file_content:
       self.in_file.write(in_file_content)
     self.in_file.close()
-    self.out_file = tempfile.NamedTemporaryFile(delete=False)
+    self.out_file = tempfile.NamedTemporaryFile('w', delete=False)
     if out_file_content:
       self.out_file.write(out_file_content)
     self.out_file.close()
@@ -437,7 +437,7 @@ class FileHashTest(unittest.TestCase):
 
   def setUp(self):
     self.test_string = 'FileHash test'
-    f = tempfile.NamedTemporaryFile(delete=False)
+    f = tempfile.NamedTemporaryFile('w', delete=False)
     self.temp_file = f.name
     f.write(self.test_string)
     f.close()

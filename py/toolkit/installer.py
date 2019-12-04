@@ -348,7 +348,7 @@ def PackFactoryToolkit(src_root, output_path, initial_version):
     modified_msg = ''
   else:
     modified_msg = ' (modified %d times)' % modified_times
-  with tempfile.NamedTemporaryFile() as help_header:
+  with tempfile.NamedTemporaryFile('w') as help_header:
     help_header.write(initial_version + '\n' +
                       HELP_HEADER + HELP_HEADER_MAKESELF)
     help_header.flush()

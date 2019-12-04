@@ -148,7 +148,7 @@ def SoxStatOutput(in_file, channel, sox_format=_DEFAULT_SOX_FORMAT):
     The output of sox stat command
   """
   sox_output = SoxMixerOutput(in_file, channel, sox_format)
-  with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+  with tempfile.NamedTemporaryFile('wb', delete=False) as temp_file:
     temp_file.write(sox_output)
   stat_cmd = '%s -c 1 %s %s -n stat' % (SOX_PATH, sox_format, temp_file.name)
   output = process_utils.Spawn(

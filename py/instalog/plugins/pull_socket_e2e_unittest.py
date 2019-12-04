@@ -59,7 +59,7 @@ class TestPullSocket(unittest.TestCase):
     self.assertEqual(self.core.emit_calls, [[datatypes.Event({})]])
 
   def testOneEventOneAttachment(self):
-    with tempfile.NamedTemporaryFile() as f:
+    with tempfile.NamedTemporaryFile('w') as f:
       f.write('XXXXXXXXXX')
       f.flush()
       event = datatypes.Event({}, {'my_attachment': f.name})

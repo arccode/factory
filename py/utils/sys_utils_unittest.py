@@ -319,10 +319,11 @@ class TestLogMessagesTest(unittest.TestCase):
     self.mox.UnsetStubs()
 
   def testGetVarLogMessages(self):
-    with tempfile.NamedTemporaryFile(bufsize=0) as f:
+    with tempfile.NamedTemporaryFile('w') as f:
       data = ("Captain's log.\xFF\n"  # \xFF = invalid UTF-8
               'We are in pursuit of a starship of Ferengi design.\n')
       f.write(('X' * 100) + '\n' + data)
+      f.flush()
       # Use max_length=len(data) + 5 so that we'll end up reading
       # (and discarding) the last 5 bytes of garbage X's.
       self.assertEqual(
@@ -360,8 +361,9 @@ class TestLogMessagesTest(unittest.TestCase):
 
     dut = device_utils.CreateDUTInterface(board_class='LinuxBoard')
 
-    with tempfile.NamedTemporaryFile(bufsize=0) as f:
+    with tempfile.NamedTemporaryFile('w') as f:
       f.write(VAR_LOG_MESSAGES)
+      f.flush()
 
       self.assertEqual(
           ("19:27:17 kernel: That's all, folks.\n"
@@ -388,8 +390,9 @@ class TestLogMessagesTest(unittest.TestCase):
            "<after reboot, kernel came up at 19:27:56>\n"),
           sys_utils.GetVarLogMessagesBeforeReboot(path=f.name, lines=100))
 
-    with tempfile.NamedTemporaryFile(bufsize=0) as f:
+    with tempfile.NamedTemporaryFile('w') as f:
       f.write(EARLIER_VAR_LOG_MESSAGES)
+      f.flush()
       self.assertEqual(
           ("19:26:17 kernel: That's all, folks.\n"
            "<after reboot, kernel came up at 19:26:56>\n"),

@@ -70,7 +70,7 @@ class TinyalsaMixerController(base.BaseMixerController):
       new_mixer_settings_to_store = \
           self._GetMixerSettingsNotInStack(mixer_settings, card)
       if new_mixer_settings_to_store:
-        with tempfile.NamedTemporaryFile() as get_sh_file:
+        with tempfile.NamedTemporaryFile('w') as get_sh_file:
           with tempfile.NamedTemporaryFile() as output:
             self._GenerateGetOldValueShellScript(get_sh_file, output,
                                                  new_mixer_settings_to_store,
@@ -86,7 +86,7 @@ class TinyalsaMixerController(base.BaseMixerController):
             self._restore_mixer_control_stack.append((restore_mixer_settings,
                                                       card))
     # Set Mixer controls
-    with tempfile.NamedTemporaryFile() as set_sh_file:
+    with tempfile.NamedTemporaryFile('w') as set_sh_file:
       self._GenerateSetValueShellScript(set_sh_file, mixer_settings, card)
       set_sh_file.flush()
       self._PushAndExecute(set_sh_file.name)
