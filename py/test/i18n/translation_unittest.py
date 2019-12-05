@@ -65,10 +65,10 @@ class TranslationTest(unittest_test_case.I18nTestCase):
                       translation.Translated, {'zh-CN': 'zh'}, translate=False)
 
   def testTranslatedUnicode(self):
-    self.assertEqual({'en-US': 'en', 'zh-CN': u'\u4e2d\u6587'},
+    self.assertEqual({'en-US': 'en', 'zh-CN': '\u4e2d\u6587'},
                      translation.Translated({
                          'en-US': 'en',
-                         'zh-CN': '\xe4\xb8\xad\xe6\x96\x87'
+                         'zh-CN': b'\xe4\xb8\xad\xe6\x96\x87'
                      }))
 
   def testGetAllTranslations(self):
