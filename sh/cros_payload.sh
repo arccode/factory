@@ -361,7 +361,7 @@ def get_fd(path):
   return sys.stdin if path == '-' else open(path)
 
 def merge(base, delta):
-  for key, value in delta.iteritems():
+  for key, value in delta.items():
     if isinstance(value, dict):
       new_value = base.setdefault(key, {})
       merge(new_value, value)
@@ -839,7 +839,7 @@ INSTALL_PATH_MAP = {
 with open(sys.argv[1]) as f:
   config = json.load(f)
 
-for k, v in config.iteritems():
+for k, v in config.items():
   dir_path = INSTALL_PATH_MAP.get(k, None)
   if dir_path:
     if not os.path.exists(dir_path):

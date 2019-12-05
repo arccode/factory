@@ -385,7 +385,7 @@ class Database(object):
     # The last encoded patterns should always contain enough bits for all
     # fields.
     for encoded_field_name, bit_length in self.GetEncodedFieldsBitLength(
-        self.max_image_id).iteritems():
+        self.max_image_id).items():
       max_index = max(self.GetEncodedField(encoded_field_name))
       if max_index.bit_length() > bit_length:
         raise common.HWIDException(

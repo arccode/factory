@@ -63,7 +63,7 @@ class ChromeOSCamera(camera.Camera):
 
     camera_config = self._device.ReadFile(CAMERA_CONFIG_PATH)
     index_to_camera_id = {}
-    for index, vid_pid in index_to_vid_pid.iteritems():
+    for index, vid_pid in index_to_vid_pid.items():
       camera_id = re.findall(
           r'^camera(\d+)\.module\d+\.usb_vid_pid=%s$' % vid_pid,
           camera_config, re.MULTILINE)
@@ -76,7 +76,7 @@ class ChromeOSCamera(camera.Camera):
         camera_id = int(camera_id[0])
       index_to_camera_id[index] = camera_id
 
-    for index, camera_id in index_to_camera_id.iteritems():
+    for index, camera_id in index_to_camera_id.items():
       camera_facing = int(re.search(
           r'^camera%d\.lens_facing=(\d+)$' % camera_id,
           camera_config, re.MULTILINE).group(1))
