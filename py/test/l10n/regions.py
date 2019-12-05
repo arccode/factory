@@ -211,12 +211,6 @@ def LoadRegionDatabase(path=None):
 
   Returns a list of Regions as [confirmed, unconfirmed] .
   """
-  def EncodeUnicode(value):
-    if value is None:
-      return None
-    return ([s.encode('utf-8') for s in value] if isinstance(value, list) else
-            value.encode('utf-8'))
-
   def FindDatabaseContents():
     """Finds database.
 
@@ -269,13 +263,13 @@ def LoadRegionDatabase(path=None):
       db = LoadRegionDatabaseFromSource()
 
   for r in db.values():
-    encoded = Region(EncodeUnicode(r['region_code']),
-                     EncodeUnicode(r['keyboards']),
-                     EncodeUnicode(r['time_zones'])[0],
-                     EncodeUnicode(r['locales']),
-                     EncodeUnicode(r['keyboard_mechanical_layout']),
-                     EncodeUnicode(r['description']),
-                     EncodeUnicode(r.get('notes')))
+    encoded = Region(r['region_code'],
+                     r['keyboards'],
+                     r['time_zones'][0],
+                     r['locales'],
+                     r['keyboard_mechanical_layout'],
+                     r['description'],
+                     r.get('notes'))
     if r.get('confirmed', True):
       confirmed.append(encoded)
     else:
