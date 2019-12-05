@@ -49,9 +49,11 @@ class SafeFormatterTest(unittest.TestCase):
         r'Using positional argument \{1\} is not recommended')
 
   def testEmptyPositionalArg(self):
-    self.assertEqual('[?]', self.formatter.format('{}', 1))
-    self.AssertHasWarningRegexp(
-        r'Using positional argument \{\} is not supported')
+    self.assertEqual('1 3 5', self.formatter.format('{} {} {}', 1, 3, 5))
+    # TODO(kerker) : Don't let SafeFormatter throw this exception.
+    assertRaisesRegex(self, ValueError, "cannot switch from manual field "
+                      "specification to automatic field numbering",
+                      self.formatter.format, '{0} {1} {}', 1, 3, 5)
 
 
 class StringUtilsTest(unittest_test_case.I18nTestCase):
