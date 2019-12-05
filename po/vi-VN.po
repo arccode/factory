@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2019-12-04 19:30+CST\n"
+"PO-Revision-Date: 2019-12-23 18:11+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -3537,6 +3537,10 @@ msgstr "IDID trạm quét"
 #: ../py/test/test_lists/generic_smt.test_list.json
 msgid "Stress Test"
 msgstr "Thử áp lực"
+
+#: ../py/test/test_lists/generic_tast.test_list.json
+msgid "Test List for Tast Tests"
+msgstr "Test List for Tast Tests"
 
 #: ../py/test/test_lists/generic_unprovisioned.test_list.json
 msgid "Update SKU ID"
