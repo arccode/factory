@@ -134,6 +134,20 @@ Then you can use this by reading `self.args.wait_secs`.
 Since JSON serialization doesn't support `tuple` type, new pytests shouldn't
 use `tuple` in argument type, and should use `list` instead.
 
+### Schema validation
+
+If the argument is complicated, you may want to define a schema rule to
+validate the structure of the schema. For example:
+```python
+  Arg(..., schema=schema_object)
+```
+
+The schema object should be one of the schema classes defined in
+[schema.py](../../utils/schema.py). Then the argument value would
+automatically be validated with the schema rule.
+
+You can check [tablet_rotation.py](tablet_rotation.py) as an example usage.
+
 ## Using user interface
 
 The Chrome OS Factory Software provides a web based user interface.  The test UI
