@@ -698,7 +698,8 @@ class EncodedFields(object):
     for field_name, field_data in iteritems(encoded_fields_expr):
       if isinstance(field_data, yaml.RegionField):
         self._region_field_legacy_info[field_name] = field_data.is_legacy_style
-      self._RegisterNewEmptyField(field_name, list(field_data.values()[0]))
+      self._RegisterNewEmptyField(field_name,
+                                  list(next(iter(field_data.values()))))
       for index, comps in iteritems(field_data):
         comps = yaml.Dict([(c, self._StandardlizeList(n))
                            for c, n in iteritems(comps)])
@@ -1275,7 +1276,7 @@ class Pattern(object):
       pattern_obj = _PatternDatum(pattern_expr['encoding_scheme'], [])
       for field_expr in pattern_expr['fields']:
         pattern_obj.fields.append(
-            _PatternField(list(field_expr)[0], field_expr.values()[0]))
+            _PatternField(list(field_expr)[0], next(iter(field_expr.values()))))
 
       for image_id in pattern_expr['image_ids']:
         if image_id in self._image_id_to_pattern:
