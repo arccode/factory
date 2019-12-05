@@ -41,7 +41,9 @@ class CachedProbeFunctionTest(unittest.TestCase):
 
     result = self.func()
     self.assertEqual(
-        sorted(result), sorted([{'k1': 'v1'}, {'k2': 'v21'}, {'k2': 'v22'}]))
+        sorted(result, key=lambda d: sorted(d.items())),
+        sorted([{'k1': 'v1'}, {'k2': 'v21'}, {'k2': 'v22'}],
+               key=lambda d: sorted(d.items())))
     self.assertEqual(result, self.func())
 
   def testWithCategory(self):
@@ -61,7 +63,9 @@ class CachedProbeFunctionTest(unittest.TestCase):
     self.probed_results = [{'aa': 'bb'}, {'cc': 'dd'}]
     self.func.GetCategoryFromArgs.return_value = None
 
-    self.assertEqual(sorted(self.func()), sorted([{'aa': 'bb'}, {'cc': 'dd'}]))
+    self.assertEqual(sorted(self.func(), key=lambda d: sorted(d.items())),
+                     sorted([{'aa': 'bb'}, {'cc': 'dd'}],
+                            key=lambda d: sorted(d.items())))
 
 
 class LazyCachedProbeFunctionTest(unittest.TestCase):

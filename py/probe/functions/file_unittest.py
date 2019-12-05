@@ -52,8 +52,9 @@ class FileFunctionTest(unittest.TestCase):
     func = file_module.FileFunction(
         file_path=self.tmp_file, key='idx', split_line=True)
     result = func()
-    self.assertEqual(sorted(result), sorted([{'idx': 'foo'},
-                                             {'idx': 'bar'}]))
+    self.assertEqual(sorted(result, key=lambda d: sorted(d.items())),
+                     sorted([{'idx': 'foo'}, {'idx': 'bar'}],
+                            key=lambda d: sorted(d.items())))
 
   def testMultipleFiles(self):
     with open(os.path.join(self.tmp_dir, 'foo1'), 'w') as f:
@@ -66,15 +67,16 @@ class FileFunctionTest(unittest.TestCase):
     func = file_module.FileFunction(
         file_path=os.path.join(self.tmp_dir, '*'), key='idx')
     result = func()
-    self.assertEqual(sorted(result), sorted([{'idx': 'FOO1'},
-                                             {'idx': 'FOO2'},
-                                             {'idx': 'BAR'}]))
+    self.assertEqual(sorted(result, key=lambda d: sorted(d.items())),
+                     sorted([{'idx': 'FOO1'}, {'idx': 'FOO2'}, {'idx': 'BAR'}],
+                            key=lambda d: sorted(d.items())))
 
     func = file_module.FileFunction(
         file_path=os.path.join(self.tmp_dir, 'foo*'), key='idx')
     result = func()
-    self.assertEqual(sorted(result), sorted([{'idx': 'FOO1'},
-                                             {'idx': 'FOO2'}]))
+    self.assertEqual(sorted(result, key=lambda d: sorted(d.items())),
+                     sorted([{'idx': 'FOO1'}, {'idx': 'FOO2'}],
+                            key=lambda d: sorted(d.items())))
 
   def testEmptyResult(self):
     # tmp_file is empty.

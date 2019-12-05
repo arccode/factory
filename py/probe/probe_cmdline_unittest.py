@@ -25,7 +25,8 @@ class ProbeCmdTest(unittest.TestCase):
     self.assertEqual(len(result1), len(result2))
     for k, v1 in iteritems(result1):
       self.assertIn(k, result2)
-      self.assertEqual(sorted(v1), sorted(result2[k]))
+      self.assertEqual(sorted(v1, key=lambda d: sorted(d.items())),
+                       sorted(result2[k], key=lambda d: sorted(d.items())))
 
   def setUp(self):
     self.tmp_file = file_utils.CreateTemporaryFile()

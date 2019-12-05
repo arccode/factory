@@ -40,7 +40,8 @@ class InnerJoinFunctionTest(unittest.TestCase):
                     {'idx': '1', 'bar': 'BAR1'},
                     {'idx': '3', 'bar': 'BAR3'}]}}]}}
     ret = function.InterpretFunction(func_expression)()
-    self.assertEqual(ret, expected_value)
+    self.assertEqual(sorted(ret, key=lambda d: sorted(d.items())),
+                     sorted(expected_value, key=lambda d: sorted(d.items())))
 
     func_expression = {
         'inner_join': {

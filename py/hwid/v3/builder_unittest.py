@@ -182,8 +182,9 @@ class DatabaseBuilderTest(unittest.TestCase):
           {}, {}, image_name='NEW_IMAGE')
       self.assertEqual(
           sorted([attr.values for attr in itervalues(db.database.GetComponents(
-              'comp_cls_100'))]),
-          sorted([{'key1': 'value1'}, {'key4': 'value4'}, {'key4': 'value5'}]))
+              'comp_cls_100'))], key=lambda d: sorted(d.items())),
+          sorted([{'key1': 'value1'}, {'key4': 'value4'}, {'key4': 'value5'}],
+                 key=lambda d: sorted(d.items())))
 
       self.assertEqual(
           add_null_comp,
@@ -202,8 +203,9 @@ class DatabaseBuilderTest(unittest.TestCase):
         image_name='NEW_IMAGE')
     self.assertEqual(
         sorted([attr.values for attr in itervalues(db.database.GetComponents(
-            'comp_cls_1'))]),
-        sorted([{'value': '1'}, {'value': '2'}, {'value': '3'}]))
+            'comp_cls_1'))], key=lambda d: sorted(d.items())),
+        sorted([{'value': '1'}, {'value': '2'}, {'value': '3'}],
+               key=lambda d: sorted(d.items())))
 
     self.assertIn({'comp_cls_1': sorted(['comp_1_1', '3'])},
                   list(db.database.GetEncodedField('comp_cls_1_field')

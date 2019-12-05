@@ -69,9 +69,10 @@ class SysfsFunctionTest(unittest.TestCase):
     func = sysfs.SysfsFunction(dir_path=os.path.join(self.tmp_dir, '*'),
                                keys=['vendor', 'device'])
     result = func()
-    self.assertEqual(sorted(result),
+    self.assertEqual(sorted(result, key=lambda d: sorted(d.items())),
                      sorted([{'vendor': 'google', 'device': 'chromebook'},
-                             {'vendor': 'apple', 'device': 'macbook'}]))
+                             {'vendor': 'apple', 'device': 'macbook'}],
+                            key=lambda d: sorted(d.items())))
 
 
 if __name__ == '__main__':
