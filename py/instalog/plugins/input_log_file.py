@@ -101,7 +101,7 @@ class InputLogFile(plugin_base.InputPlugin):
         #
         #   /some/file/a => _some_file_a_0744b918
         #   /some/file_a => _some_file_a_287bc0ee
-        crc = '{:08x}'.format(abs(zlib.crc32(path)))
+        crc = '{:08x}'.format(abs(zlib.crc32(path.encode('utf-8'))))
         offset_file = '%s_%s' % (path.replace(os.sep, '_'), crc)
         log_file = LogFile(
             logger_name=self.logger.name,

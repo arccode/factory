@@ -8,9 +8,9 @@
 from __future__ import print_function
 
 import argparse
+from zlib import crc32
 
 from six.moves import xrange
-from zlib import crc32
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
@@ -126,7 +126,7 @@ class Base8192(object):
       representing the 8-bit checksum.
     """
     # Get the last 8 bits
-    c = crc32(string) & (2 ** 8 - 1)
+    c = crc32(string.encode('utf-8')) & (2 ** 8 - 1)
     return (cls.BASE8_ALPHABET[c >> cls.BASE32_BIT_WIDTH] +
             cls.BASE32_ALPHABET[c & (2 ** cls.BASE32_BIT_WIDTH - 1)])
 

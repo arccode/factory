@@ -105,7 +105,7 @@ def GetChecksumLegacy(data):
   # The function crc32() returns a signed 32-bit integer in Python2, but it
   # returns an unsigned 32-bit integer in Python3. To generate the same value
   # across all Python versions, we convert unsigned integer to signed integer.
-  checksum = zlib.crc32(data)
+  checksum = zlib.crc32(data.encode('utf-8'))
   if checksum >= 2**31:
     checksum -= 2**32
   return '{:08x}'.format(abs(checksum))
@@ -116,7 +116,7 @@ def GetChecksum(data):
   # The function crc32() returns a signed 32-bit integer in Python2, but it
   # returns an unsigned 32-bit integer in Python3. To generate the same value
   # across all Python versions, we use "crc32() & 0xffffffff".
-  return '{:08x}'.format(zlib.crc32(data) & 0xffffffff)
+  return '{:08x}'.format(zlib.crc32(data.encode('utf-8')) & 0xffffffff)
 
 
 def FormatRecord(seq, record):
