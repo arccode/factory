@@ -7,7 +7,7 @@
 
 """Unit tests for gooftool module."""
 
-import __builtin__
+import builtins
 from collections import namedtuple
 from io import StringIO
 import logging
@@ -276,7 +276,7 @@ class GooftoolTest(unittest.TestCase):
   def testVerifyTPM(self):
     # Mock os.path.exists to ensure that 3.18+ kernel TPM path does not exist.
     self.mox.StubOutWithMock(os.path, 'exists')
-    self.mox.StubOutWithMock(__builtin__, 'open')
+    self.mox.StubOutWithMock(builtins, 'open')
     os.path.exists('/sys/class/tpm/tpm0/device').AndReturn(False)
     open('/sys/class/misc/tpm0/device/enabled').AndReturn(StringIO('1'))
     open('/sys/class/misc/tpm0/device/owned').AndReturn(StringIO('0'))

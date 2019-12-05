@@ -2,8 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import __builtin__
 import ast
+import builtins
 import copy
 import inspect
 
@@ -145,11 +145,11 @@ class Checker(object):
   _EVAL_VALID_IDENTIFIERS = set(
       ['constants', 'options', 'dut', 'station', 'state_proxy', 'locals',
        'device'] +
-      [key for key, unused_value in inspect.getmembers(__builtin__)])
+      [key for key, unused_value in inspect.getmembers(builtins)])
 
   _RUN_IF_VALID_IDENTIFIERS = set(
       ['constants', 'device'] +
-      [key for key, unused_value in inspect.getmembers(__builtin__)])
+      [key for key, unused_value in inspect.getmembers(builtins)])
 
   def AssertValidArgs(self, args):
     """Check if the "eval! " expressions in an argument is valid."""

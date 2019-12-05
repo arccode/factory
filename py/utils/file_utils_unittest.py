@@ -459,7 +459,7 @@ class FileHashTest(unittest.TestCase):
 
   def testMultiBlockHash(self):
     with open(self.temp_file, 'rb') as f:
-      with mock.patch('__builtin__.open', mock.mock_open()) as m:
+      with mock.patch('builtins.open', mock.mock_open()) as m:
         m_file = m.return_value
         m_file.read.side_effect = f.read
 
