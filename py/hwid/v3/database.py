@@ -142,7 +142,7 @@ class Database(object):
     """
     # Ignore the 'checksum: <hash value>\n' line when calculating checksum.
     db_text = re.sub(r'^checksum:.*$\n?', '', db_text, flags=re.MULTILINE)
-    return hashlib.sha1(db_text).hexdigest()
+    return hashlib.sha1(db_text.encode('utf-8')).hexdigest()
 
   @staticmethod
   def LoadData(raw_data, expected_checksum=None):

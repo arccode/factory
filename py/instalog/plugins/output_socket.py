@@ -194,6 +194,8 @@ class OutputSocketSender(log_utils.LoggerMixin):
       Number of bytes sent.
     """
     local_hash = hashlib.sha1()
+    if isinstance(data, str):
+      data = data.encode('utf-8')
     local_hash.update(data)
     data_size = len(data)
     self.SendInt(data_size)
@@ -230,7 +232,7 @@ class OutputSocketSender(log_utils.LoggerMixin):
     self.SendInt(att_size)
 
     local_hash = hashlib.sha1()
-    with open(att_path) as f:
+    with open(att_path, 'rb') as f:
       while True:
         read_bytes = f.read()
         if not read_bytes:

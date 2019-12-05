@@ -16,7 +16,8 @@ def SaveNewActiveConfig(config):
   """Serialize and saves the configuration as new active config file."""
   json_config = json.dumps(
       config, indent=2, separators=(',', ': '), sort_keys=True) + '\n'
-  json_name = 'umpire.%s.json' % hashlib.md5(json_config).hexdigest()
+  json_name = 'umpire.%s.json' % (
+      hashlib.md5(json_config.encode('utf-8')).hexdigest())
   json_path = os.path.join('resources', json_name)
   with open(os.path.join(_ENV_DIR, json_path), 'w') as f:
     f.write(json_config)

@@ -363,7 +363,9 @@ class DRMKeysProvisioningServer(object):
 
     drm_key_hash_list = []
     for drm_key in drm_key_list:
-      drm_key_hash_list.append(hashlib.sha1(json.dumps(drm_key)).hexdigest())
+      drm_key_hash = hashlib.sha1(
+          json.dumps(drm_key).encode('utf-8')).hexdigest()
+      drm_key_hash_list.append(drm_key_hash)
 
     # Pass to the filter function if needed.
     if project['filter_module_file_name']:  # filter module can be null

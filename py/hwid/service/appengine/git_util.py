@@ -185,7 +185,7 @@ def _GetChangeId(tree_id, parent_commit, author, committer, commit_msg):
                     commit_msg=commit_msg)
   change_id_input = 'commit {size}\x00{change_msg}'.format(
       size=len(change_msg), change_msg=change_msg)
-  return 'I{}'.format(hashlib.sha1(change_id_input).hexdigest())
+  return 'I{}'.format(hashlib.sha1(change_id_input.encode('utf-8')).hexdigest())
 
 
 def CreateCL(git_url, auth_cookie, project, branch, new_files, author,

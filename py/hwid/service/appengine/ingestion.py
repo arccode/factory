@@ -213,8 +213,8 @@ class RefreshHandler(webapp2.RequestHandler):
       hash if it differs from cached hash, None if not
     """
 
-    payload_hash = hashlib.sha1(
-        json_utils.DumpStr(payload_dict, sort_keys=True)).hexdigest()
+    payload = json_utils.DumpStr(payload_dict, sort_keys=True)
+    payload_hash = hashlib.sha1(payload.encode('utf-8')).hexdigest()
     latest_hash = self.hwid_manager.GetLatestPayloadHash(board)
 
     if latest_hash == payload_hash and not force_update:

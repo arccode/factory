@@ -128,7 +128,8 @@ class InstalogService(umpire_service.UmpireService):
     self.UpdateConfig(
         instalog_config, umpire_config['services']['instalog'], env)
     # pprint guarantees the dictionary is sorted.
-    config_hash = hashlib.md5(pprint.pformat(instalog_config)).hexdigest()
+    config_value = pprint.pformat(instalog_config).encode('utf-8')
+    config_hash = hashlib.md5(config_value).hexdigest()
     config_path = os.path.join(root_dir, 'instalog-%s.yaml' % config_hash)
     if os.path.exists(config_path):
       os.remove(config_path)

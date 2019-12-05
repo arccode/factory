@@ -786,7 +786,7 @@ def HashFiles(root, path_filter=None, hash_function=hashlib.sha1):
       if path_filter and not path_filter(path):
         continue
 
-      data = ReadFile(path)
+      data = ReadFile(path, encoding=None)
       hash_value = hash_function(data)
       # If it has hexdigest() (e.g., we were called with
       # hash_function=hashlib.sha1), call it

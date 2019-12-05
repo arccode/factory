@@ -52,7 +52,7 @@ class ValidHWIDsTest(unittest.TestCase):
       raw_hwid_db = process_utils.CheckOutput(
           ['git', 'show', '%s:%s' % (target_commit, proj_info['path'])],
           cwd=hwid_dir, ignore_stderr=True)
-      checksum = hashlib.sha1(raw_hwid_db).hexdigest()
+      checksum = hashlib.sha1(raw_hwid_db.encode('utf-8')).hexdigest()
       self.assertEqual(checksum, expected_checksum)
 
     self.assertFalse(freezed_hwid_db_checksums)

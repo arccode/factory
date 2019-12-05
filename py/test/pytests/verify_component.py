@@ -66,7 +66,9 @@ class VerifyComponentTest(test_case.TestCase):
     converted_statement, converted_checksum = self._GetConvertedStatement()
 
     if self.args.verify_checksum:
-      if hashlib.sha1(converted_statement).hexdigest() != converted_checksum:
+      expected_checksum = hashlib.sha1(
+          converted_statement.encode('utf-8')).hexdigest()
+      if expected_checksum != converted_checksum:
         self.FailTask('Checksum failed.')
       else:
         session.console.info('Checksum passed.')

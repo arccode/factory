@@ -415,7 +415,7 @@ def ConverterCommand(options):
   else:
     file_utils.WriteFile(options.output_file, converted_results_data)
   if options.output_checksum_file:
-    checksum = hashlib.sha1(converted_results_data).hexdigest()
+    checksum = hashlib.sha1(converted_results_data.encode('utf-8')).hexdigest()
     file_utils.WriteFile(options.output_checksum_file, checksum)
 
 

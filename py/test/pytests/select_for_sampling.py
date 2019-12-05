@@ -71,7 +71,7 @@ class SelectForSamplingTest(unittest.TestCase):
     self.assertLessEqual(self.args.rate, 1.0)
 
     mac_address = net_utils.GetWLANMACAddress()
-    digest = hashlib.md5(mac_address).hexdigest()
+    digest = hashlib.md5(mac_address.encode('utf-8')).hexdigest()
     value = int(digest, 16)
 
     max_value = 16 ** len(digest)
