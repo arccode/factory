@@ -87,7 +87,7 @@ class MakeTest(unittest.TestCase):
     for locale in self.locales:
       translation = gettext.translation(DOMAIN, self.locale_dir, [locale])
       # Assert that metadata for po file can be read.
-      self.assertIn('PO-Revision-Date: ', translation.ugettext(''))
+      self.assertIn('PO-Revision-Date: ', translation.gettext(''))
 
   def testBoardMakeInit(self):
     po_path = os.path.join(self.board_po_dir, NONEXIST_LOCALE + '.po')
@@ -126,8 +126,8 @@ class MakeTest(unittest.TestCase):
       translation = gettext.translation(DOMAIN, self.locale_dir, [locale])
       # Assert that metadata for po file can be read and the mocked po file is
       # merged.
-      self.assertIn('PO-Revision-Date: ', translation.ugettext(''))
-      self.assertEqual(MOCK_MSGSTR, translation.ugettext(MOCK_MSGID))
+      self.assertIn('PO-Revision-Date: ', translation.gettext(''))
+      self.assertEqual(MOCK_MSGSTR, translation.gettext(MOCK_MSGID))
 
 if __name__ == '__main__':
   unittest.main()

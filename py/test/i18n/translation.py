@@ -53,7 +53,7 @@ def GetTranslation(text, locale):
   """
   # Do not translate empty string since it's the key of metadata in translation
   # object.
-  return _GetTranslations(locale).ugettext(text) if text else ''
+  return _GetTranslations(locale).gettext(text) if text else ''
 
 
 def Translation(text):
