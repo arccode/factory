@@ -76,6 +76,25 @@ from cros.factory.test import test_ui
 from cros.factory.testlog import testlog
 from cros.factory.utils import type_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils.schema import JSONSchemaDict
+
+_ARG_SERVICES_SCHEMA = JSONSchemaDict('services schema object', {
+    'type': 'array',
+    'items': {
+        'type': 'array',
+        'items': [
+            {'type': 'string'},
+            {'type': ['integer', 'null']},
+            {'type': ['string', 'null']}
+        ],
+        'minItems': 3,
+        'maxItems': 3
+    }
+})
+_ARG_STRENGTH_SCHEMA = JSONSchemaDict('strength schema object', {
+    'type': 'object',
+    'additionalProperties': {'type': 'number'}
+})
 
 
 class SwitchAntennaWiFiChip(wifi.WiFiChip):
@@ -488,12 +507,13 @@ class WirelessTest(test_case.TestCase):
           'fail if multiple devices are found, otherwise use the only one '
           'device it found.', default=None),
       Arg('services', list,
-          'A list of ``(<service_ssid>:str, <freq>:str|None, '
-          '<password>:str|None)`` tuples like ``[(SSID1, FREQ1, PASS1), '
-          '(SSID2, FREQ2, PASS2), ...]``.  If ``<freq>`` is ``None`` the test '
+          'A list of ``[<service_ssid>:str, <freq>:int|None, '
+          '<password>:str|None]`` sequences like ``[[SSID1, FREQ1, PASS1], '
+          '[SSID2, FREQ2, PASS2], ...]``. Each sequence should contain '
+          'exactly 3 items. If ``<freq>`` is ``None`` the test '
           'will detect the frequency by ``iw <device_name> scan`` command '
           'automatically.  ``<password>=None`` implies the service can connect '
-          'without a password.'),
+          'without a password.', schema=_ARG_SERVICES_SCHEMA),
       Arg('connect_timeout', int,
           'Timeout for connecting to the service.',
           default=10),
@@ -501,11 +521,11 @@ class WirelessTest(test_case.TestCase):
           'A dict of minimal signal strengths. For example, a dict like '
           '``{"main": strength_1, "aux": strength_2, "all": strength_all}``. '
           'The test will check signal strength according to the different '
-          'antenna configurations in this dict.'),
+          'antenna configurations in this dict.', schema=_ARG_STRENGTH_SCHEMA),
       Arg('scan_count', int,
           'Number of scans to get average signal strength.', default=5),
       Arg('switch_antenna_sleep_secs', int,
-          'The sleep time after switchingantenna and ifconfig up. Need to '
+          'The sleep time after switching antenna and ifconfig up. Need to '
           'decide this value carefully since it depends on the platform and '
           'antenna config to test.', default=10),
       Arg('press_space_to_start', bool,
