@@ -74,7 +74,7 @@ def FlattenAttrs(node, path=u'', allow_types=None, ignore_keys=None):
     separated by periods.
   """
   ignore_keys = [] if ignore_keys is None else ignore_keys
-  if not hasattr(node, '__iter__'):
+  if not hasattr(node, '__iter__') or isinstance(node, str):
     if allow_types is not None and not isinstance(node, tuple(allow_types)):
       yield path, repr(node)
     else:
