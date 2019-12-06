@@ -178,8 +178,7 @@ class WiFi(device_types.DeviceComponent):
       # anyways.
       self.BringsUpInterface(interface, 0)
 
-      output = self._device.CheckOutput(
-          command, log=True).decode('string_escape')
+      output = self._device.CheckOutput(command, log=True)
       return self._ParseScanResult(output)
     except device_types.CalledProcessError:
       return []
@@ -232,7 +231,7 @@ class WiFi(device_types.DeviceComponent):
         key, _, value = [x.strip() for x in line.partition(':')]
 
         if key == 'SSID':
-          ap.ssid = value.decode('utf-8')
+          ap.ssid = value
 
         elif key == 'signal':
           if 'dBm' in value:

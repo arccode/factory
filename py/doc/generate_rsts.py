@@ -168,8 +168,6 @@ def GenerateTestDocs(rst, pytest_name):
   doc = getattr(module, '__doc__', None)
   if doc is None:
     doc = 'No test-level description available for pytest %s.' % pytest_name
-  if isinstance(doc, str):
-    doc = doc.decode('utf-8')
 
   rst.WriteTitle(pytest_name, '=')
   rst.WriteParagraph(doc)
