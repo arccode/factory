@@ -185,7 +185,7 @@ class GSCTool(object):
       rlz_num = 0xffffffff
       result.BID_RLZ = None
     elif re.match(r'[A-Z]{4}$', result.BID_RLZ):
-      rlz_num = int(result.BID_RLZ.encode('hex'), 16)
+      rlz_num = int.from_bytes(result.BID_RLZ.encode('utf-8'), 'big')
     else:
       raise GSCToolError('Unexpected RLZ format: %r.' % result.BID_RLZ)
     try:
