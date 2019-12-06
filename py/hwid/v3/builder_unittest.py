@@ -81,11 +81,11 @@ class BuilderMethodTest(unittest.TestCase):
   def testChecksumUpdater(self):
     checksum_updater = builder.ChecksumUpdater()
     self.assertIsNotNone(checksum_updater)
-    with open(os.path.join(_TEST_DATA_PATH, 'CHECKSUM_TEST'), 'r') as f:
-      checksum_test = f.read()
+    checksum_test = file_utils.ReadFile(
+        os.path.join(_TEST_DATA_PATH, 'CHECKSUM_TEST'))
     updated = checksum_updater.ReplaceChecksum(checksum_test)
-    with open(os.path.join(_TEST_DATA_PATH, 'CHECKSUM_TEST.golden'), 'r') as f:
-      checksum_test_golden = f.read()
+    checksum_test_golden = file_utils.ReadFile(
+        os.path.join(_TEST_DATA_PATH, 'CHECKSUM_TEST.golden'))
     self.assertEqual(updated, checksum_test_golden)
 
 

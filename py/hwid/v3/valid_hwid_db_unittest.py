@@ -88,8 +88,7 @@ def _CheckProject(args):
     # have database checksum, the checksum verification will be skipped.
     if any([re.match('^checksum: ', line) for line in db_raw.split('\n')]):
       with file_utils.UnopenedTemporaryFile() as temp_db:
-        with open(temp_db, 'w') as f:
-          f.write(db_raw)
+        file_utils.WriteFile(temp_db, db_raw)
         expected_checksum = Database.Checksum(temp_db)
     else:
       expected_checksum = None
