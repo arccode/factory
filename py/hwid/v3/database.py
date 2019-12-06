@@ -970,6 +970,7 @@ class Components(object):
                                   key_type=schema.Scalar('probed key', str),
                                   value_type=schema.AnyOf([
                                       schema.Scalar('probed value', str),
+                                      schema.Scalar('probed value', bytes),
                                       schema.Scalar(
                                           'probed value regex', Value)]),
                                   min_size=1),
