@@ -38,7 +38,7 @@ AGENT_INTERFACE = SERVICE_NAME + '.Agent1'
 _RE_NODE_NAME = re.compile(r'<node name="(.*?)"/>')
 
 
-class AuthenticationAgent(dbus.service.Object):
+class AuthenticationAgent(service.Object):
   """An authenticator for Bluetooth devices
 
   This class implements methods from the org.bluez.Agent1 D-Bus
@@ -56,7 +56,7 @@ class AuthenticationAgent(dbus.service.Object):
         to indicate cancellation from the device
   """
   def __init__(self, bus, path, display_passkey_callback, cancel_callback):
-    dbus.service.Object.__init__(self, bus, path)
+    service.Object.__init__(self, bus, path)
     self._display_passkey_callback = display_passkey_callback
     self._cancel_callback = cancel_callback
 
@@ -67,7 +67,7 @@ class AuthenticationAgent(dbus.service.Object):
   # (note that 'q' is NOT a quadword like you might expect). Of course, in
   # Python, they're just arbitrary precision integers, but the signature
   # must still match for the method to be properly called.
-  @dbus.service.method(AGENT_INTERFACE, in_signature='ouq', out_signature='')
+  @service.method(AGENT_INTERFACE, in_signature='ouq', out_signature='')
   def DisplayPasskey(self, device, passkey, entered):
     logging.info('DisplayPasskey (%s, %06u entered %u)',
                  device, passkey, entered)
@@ -75,7 +75,7 @@ class AuthenticationAgent(dbus.service.Object):
     passkey_str = str(passkey).zfill(6)
     self._display_passkey_callback(passkey_str)
 
-  @dbus.service.method(AGENT_INTERFACE, in_signature='', out_signature='')
+  @service.method(AGENT_INTERFACE, in_signature='', out_signature='')
   def Cancel(self):
     logging.info('Cancel')
     self._cancel_callback()
@@ -270,7 +270,7 @@ class ChromeOSBluetoothManager(BluetoothManager):
     try:
       if display_passkey_callback is None:
         capability = 'NoInputNoOutput'
-        dbus.service.Object(bus, agent_path)
+        service.Object(bus, agent_path)
       else:
         capability = 'KeyboardDisplay'
         AuthenticationAgent(bus, agent_path,
