@@ -88,6 +88,7 @@ class BuildDatabaseWrapperTest(unittest.TestCase):
   def testNormal(self, obtain_all_device_data_mock, build_database_mock):
     with file_utils.TempDirectory() as path:
       options = mock.MagicMock()
+      options.project = 'mock'
       options.hwid_db_path = path
       options.add_default_comp = ['a', 'b']
       options.add_null_comp = ['c', 'd']
