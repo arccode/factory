@@ -38,7 +38,6 @@ from cros.factory.tools import factory_bug
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils import string_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
@@ -769,7 +768,7 @@ class GoofyRPC(object):
 
     log_file = os.path.join(test_dir, 'log')
     try:
-      log = string_utils.CleanUTF8(file_utils.ReadFile(log_file))
+      log = file_utils.ReadFile(log_file)
     except Exception:
       # Oh well
       logging.exception('Unable to read log file %s', log_file)
@@ -777,8 +776,7 @@ class GoofyRPC(object):
 
     source_code_file = os.path.join(test_dir, 'source_code')
     try:
-      source_code = string_utils.CleanUTF8(
-          file_utils.ReadFile(source_code_file))
+      source_code = file_utils.ReadFile(source_code_file)
     except Exception:
       # Oh well
       logging.exception('Unable to read source code %s', source_code_file)

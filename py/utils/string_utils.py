@@ -19,11 +19,6 @@ def DecodeUTF8(data):
   return data
 
 
-def CleanUTF8(data):
-  """Returns a UTF-8-clean string."""
-  return DecodeUTF8(data).encode('utf-8')
-
-
 def ParseDict(lines, delimeter=':'):
   """Parses list of lines into a dict. Each line is a string containing
   key, value pair, where key and value are separated by delimeter, and are
