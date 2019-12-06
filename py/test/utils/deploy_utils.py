@@ -67,7 +67,7 @@ class FactoryPythonArchive(FactoryTools):
     """Constructor of FactoryPythonArchive.
 
     Args:
-      :type dut: cros.factory.device.types.DeviceInterface
+      :type dut: cros.factory.device.device_types.DeviceInterface
       local_factory_par: local path to factory.par, If this is None (default
           value), the object will try to find factory.par at default location.
           (see self.local_factory_par)
@@ -158,7 +158,7 @@ class FactoryBin(FactoryTools):
     """Constructor of FactoryBin.
 
     Args:
-      :type dut: cros.factory.device.types.DeviceInterface
+      :type dut: cros.factory.device.device_types.DeviceInterface
     """
     assert dut.link.IsLocal()
     self._dut = dut
@@ -202,7 +202,7 @@ def CreateFactoryTools(dut, factory_par_path=None):
   to factory.par can be specified by `factory_par_path`.
 
   Args:
-    :type dut: cros.factory.device.types.DeviceInterface
+    :type dut: cros.factory.device.device_types.DeviceInterface
     factory_par_path: path to factory python archive (on station), or None to
         use the default one.
 

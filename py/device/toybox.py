@@ -5,11 +5,11 @@
 from collections import namedtuple
 import pipes
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.utils import debug_utils
 
 
-class Toybox(types.DeviceComponent):
+class Toybox(device_types.DeviceComponent):
   """A python wrapper for http://www.landley.net/toybox/.
 
   Toybox combines many common Linux command line utilities together into a

@@ -10,8 +10,8 @@ import unittest
 
 import mox
 
+from cros.factory.device import device_types
 from cros.factory.device import partitions
-from cros.factory.device import types
 
 
 class PartitionsTest(unittest.TestCase):
@@ -19,7 +19,7 @@ class PartitionsTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.dut = self.mox.CreateMock(types.DeviceInterface)
+    self.dut = self.mox.CreateMock(device_types.DeviceInterface)
     self.disk1 = partitions.Partitions(self.dut)
     self.disk2 = partitions.Partitions(self.dut)
     self.mox.StubOutWithMock(self.dut, 'CheckOutput')

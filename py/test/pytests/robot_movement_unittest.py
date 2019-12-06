@@ -8,7 +8,7 @@ import unittest
 
 import mock
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.test.fixture.robot.algorithm import Algorithm
 from cros.factory.test.fixture.robot.robot import Robot
 from cros.factory.test.pytests import robot_movement
@@ -27,7 +27,7 @@ class RobotMovementTest(unittest.TestCase):
 
   def setUp(self):
     self._test = self.Test()
-    self._test._dut = mock.create_autospec(spec=types.DeviceInterface)
+    self._test._dut = mock.create_autospec(spec=device_types.DeviceInterface)
     self._test._dut.info.serial_number = 'SN123'
     self._test.ui_class = lambda event_loop: mock.Mock(spec=test_ui.StandardUI)
     self._test._robot = mock.create_autospec(spec=Robot)

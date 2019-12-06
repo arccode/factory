@@ -14,8 +14,8 @@ import time
 from six.moves import xrange
 from six import viewitems
 
+from cros.factory.device import device_types
 from cros.factory.device import sensor_utils
-from cros.factory.device import types
 
 
 _IIO_DEVICES_PATH = '/sys/bus/iio/devices/'
@@ -284,7 +284,7 @@ class AccelerometerController(sensor_utils.BasicSensorController):
       self._SetSysfsValue(sysfs_entry, scaled[vpd_entry])
 
 
-class Accelerometer(types.DeviceComponent):
+class Accelerometer(device_types.DeviceComponent):
   """Accelerometer component module."""
 
   def GetController(self, location):

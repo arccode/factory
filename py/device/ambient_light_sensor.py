@@ -6,8 +6,8 @@
 import logging
 import os
 
+from cros.factory.device import device_types
 from cros.factory.device import sensor_utils
-from cros.factory.device import types
 
 
 IN_ILLUMINANCE_BIAS = "in_illuminance_calibbias"
@@ -111,7 +111,7 @@ class AmbientLightSensorController(sensor_utils.BasicSensorController):
       raise AmbientLightSensorException(str(e))
 
 
-class AmbientLightSensor(types.DeviceComponent):
+class AmbientLightSensor(device_types.DeviceComponent):
   """AmbientLightSensor (ALS) component module."""
 
   def GetController(self, name='cros-ec-light', location='lid'):

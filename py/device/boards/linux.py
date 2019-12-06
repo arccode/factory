@@ -13,6 +13,7 @@ from cros.factory.device import accelerometer
 from cros.factory.device import ambient_light_sensor
 from cros.factory.device.audio import utils as audio_utils
 from cros.factory.device import camera
+from cros.factory.device import device_types
 from cros.factory.device import ec
 from cros.factory.device import gyroscope
 from cros.factory.device import hwmon
@@ -31,7 +32,6 @@ from cros.factory.device import temp
 from cros.factory.device import thermal
 from cros.factory.device import touch
 from cros.factory.device import toybox
-from cros.factory.device import types
 from cros.factory.device import udev
 from cros.factory.device import usb_c
 from cros.factory.device import vsync_sensor
@@ -41,11 +41,11 @@ from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
 
-DeviceProperty = types.DeviceProperty
+DeviceProperty = device_types.DeviceProperty
 Overrides = type_utils.Overrides
 
 
-class LinuxBoard(types.DeviceBoard):
+class LinuxBoard(device_types.DeviceBoard):
 
   @DeviceProperty
   def accelerometer(self):

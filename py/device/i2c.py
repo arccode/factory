@@ -10,10 +10,10 @@ import fcntl
 import io
 import struct
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
-class I2CSlave(types.DeviceComponent):
+class I2CSlave(device_types.DeviceComponent):
   """Access a slave device on I2C bus."""
 
   _I2C_SLAVE_FORCE = 0x0706
@@ -84,7 +84,7 @@ class I2CSlave(types.DeviceComponent):
     return self.WriteRead(self._EncodeRegisterAddress(address) + value)
 
 
-class I2CBus(types.DeviceComponent):
+class I2CBus(device_types.DeviceComponent):
   """Provides access to devices on I2C bus.
 
   Usage:

@@ -14,8 +14,8 @@ import unittest
 
 import mock
 
+from cros.factory.device import device_types
 from cros.factory.device import ec
-from cros.factory.device import types
 
 
 class EmbeddedControllerTest(unittest.TestCase):
@@ -28,7 +28,7 @@ class EmbeddedControllerTest(unittest.TestCase):
       Build info:    samus_v1.7.688-22cf733 2015-07-16 11:31:57 @build291-m2""")
 
   def setUp(self):
-    self.board = mock.Mock(types.DeviceBoard)
+    self.board = mock.Mock(device_types.DeviceBoard)
     self.ec = ec.EmbeddedController(self.board)
 
   def testGetECVersion(self):

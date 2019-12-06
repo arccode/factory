@@ -2,10 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-from cros.factory.device import power
-from cros.factory.device import types
-from cros.factory.device import usb_c
 from cros.factory.device.boards import chromeos
+from cros.factory.device import device_types
+from cros.factory.device import power
+from cros.factory.device import usb_c
 
 
 class OakUSBTypeC(usb_c.USBTypeC):
@@ -32,10 +32,10 @@ class OakPower(power.Power):
 class OakBoard(chromeos.ChromeOSBoard):
   """Board interface for Oak (MT8173)."""
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def power(self):
     return OakPower(self)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def usb_c(self):
     return OakUSBTypeC(self)

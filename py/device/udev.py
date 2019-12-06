@@ -6,14 +6,14 @@ import threading
 
 from six import viewkeys
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.utils import process_utils
 from cros.factory.utils.type_utils import Enum
 
 from cros.factory.external import pyudev
 
 
-class UdevMonitorBase(types.DeviceComponent):
+class UdevMonitorBase(device_types.DeviceComponent):
   """Abstract class for detecting udev event.
 
   This class provide an interface to detect udev event, e.g.

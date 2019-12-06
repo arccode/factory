@@ -3,8 +3,8 @@
 # found in the LICENSE file.
 
 from cros.factory.device.boards import chromeos
+from cros.factory.device import device_types
 from cros.factory.device import power
-from cros.factory.device import types
 
 
 class SpringPower(power.Power):
@@ -66,6 +66,6 @@ class SpringPower(power.Power):
 class SpringBoard(chromeos.ChromeOSBoard):
   """Board interface for Spring."""
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def power(self):
     return SpringPower(self)

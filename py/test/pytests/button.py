@@ -131,7 +131,7 @@ class GpioButton(GenericButton):
 
     Args:
       dut: the DUT which this button belongs to.
-      :type dut: cros.factory.device.types.DeviceInterface
+      :type dut: cros.factory.device.device_types.DeviceInterface
       number: An integer for GPIO number.
       is_active_high: Boolean flag for polarity of GPIO ("active" = "pressed").
     """
@@ -165,7 +165,7 @@ class CrossystemButton(GenericButton):
 
     Args:
       dut: the DUT which this button belongs to.
-      :type dut: cros.factory.device.types.DeviceInterface
+      :type dut: cros.factory.device.device_types.DeviceInterface
       name: A string as crossystem parameter that outputs 1 or 0.
     """
     super(CrossystemButton, self).__init__(dut)

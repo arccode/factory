@@ -9,9 +9,9 @@ from cros.factory.device.boards import linux
 from cros.factory.device.chromeos import bluetooth
 from cros.factory.device.chromeos import camera
 from cros.factory.device.chromeos import display
+from cros.factory.device import device_types
 from cros.factory.device import fan
 from cros.factory.device import power
-from cros.factory.device import types
 from cros.factory.device import vpd
 from cros.factory.device import wifi
 from cros.factory.utils import type_utils
@@ -20,36 +20,36 @@ from cros.factory.utils import type_utils
 class ChromeOSBoard(linux.LinuxBoard):
   """Common interface for ChromeOS boards."""
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def audio(self):
     return audio_utils.CreateAudioControl(
         self, controller=audio_utils.CONTROLLERS.ALSA)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def bluetooth(self):
     return bluetooth.ChromeOSBluetoothManager(self)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def camera(self):
     return camera.ChromeOSCamera(self)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def display(self):
     return display.ChromeOSDisplay(self)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def fan(self):
     return fan.ECToolFanControl(self)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def power(self):
     return power.ChromeOSPower(self)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def wifi(self):
     return wifi.WiFiChromeOS(self)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def vpd(self):
     return vpd.ChromeOSVitalProductData(self)
 

@@ -4,7 +4,7 @@
 
 import pipes
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
 _HWMON_PATH = '/sys/class/hwmon'
@@ -14,7 +14,7 @@ class HardwareMonitorException(Exception):
   pass
 
 
-class HardwareMonitorDevice(types.DeviceComponent):
+class HardwareMonitorDevice(device_types.DeviceComponent):
   """A class representing a single hwmon device."""
   def __init__(self, dut, path):
     super(HardwareMonitorDevice, self).__init__(dut)
@@ -27,7 +27,7 @@ class HardwareMonitorDevice(types.DeviceComponent):
     return self._path
 
 
-class HardwareMonitor(types.DeviceComponent):
+class HardwareMonitor(device_types.DeviceComponent):
   """Utility class for hardware monitor devices."""
 
   def __init__(self, dut, hwmon_path=_HWMON_PATH):

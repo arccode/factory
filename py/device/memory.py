@@ -6,10 +6,10 @@
 
 import pipes
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
-class BaseMemory(types.DeviceComponent):
+class BaseMemory(device_types.DeviceComponent):
   """Abstract class for memory component."""
 
   def ResizeSharedMemory(self, size='100%'):

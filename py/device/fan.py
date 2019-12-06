@@ -11,12 +11,12 @@ from __future__ import print_function
 
 import re
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 from cros.factory.external import numpy
 
 
-class FanControl(types.DeviceComponent):
+class FanControl(device_types.DeviceComponent):
   """System module for fan control."""
 
   AUTO = 'auto'
@@ -107,7 +107,7 @@ class MosysFanControl(FanControl):
     """Constructor.
 
     Args:
-      device: a `cros.factory.device.types.DeviceInterface` instance.
+      device: a `cros.factory.device.device_types.DeviceInterface` instance.
       rpms: A list of integers for mapping from RPM to duty cycles (device
           specific), for example [2360, 3040, 3630, 4180, 4655, 5100, 5450,
           5950].

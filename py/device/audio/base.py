@@ -10,7 +10,7 @@ import logging
 from six import with_metaclass
 
 from cros.factory.device.audio import config_manager
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.utils import process_utils
 
 
@@ -91,7 +91,7 @@ class BaseMixerController(with_metaclass(abc.ABCMeta, object)):
     raise NotImplementedError
 
 
-class BaseAudioControl(types.DeviceComponent):
+class BaseAudioControl(device_types.DeviceComponent):
   """An abstract class for different target audio utils"""
 
   def __init__(self, dut, config_name, mixer_controller):

@@ -2,10 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
-class Hygrometer(types.DeviceComponent):
+class Hygrometer(device_types.DeviceComponent):
   """System module for hygrometers."""
 
   def GetRelativeHumidity(self):
@@ -27,7 +27,7 @@ class SysFSHygrometer(Hygrometer):
     """Constructor.
 
     Args:
-      device: Instance of cros.factory.device.types.DeviceInterface.
+      device: Instance of cros.factory.device.device_types.DeviceInterface.
       rh_filename_pattern: The glob pattern to find the file containing
           relative humidity information.
       rh_map: A function (str -> float) that translates the content of file

@@ -146,7 +146,7 @@ def CreateBoardInterface(config_type=DEVICE_CONFIG_TYPE_DEFAULT, **options):
   Returns:
     An instance of the sub-classed DeviceBoard.
 
-  :rtype: cros.factory.device.types.DeviceBoard
+  :rtype: cros.factory.device.device_types.DeviceBoard
   """
   link_name, board_name, args = _ParseOptions(config_type, options)
   link_class = _GetDeviceClass('links', 'Link', link_name)
@@ -174,7 +174,7 @@ def CreateDUTLink(**options):
   Returns:
     An instance of the sub-classede DeviceLink.
 
-  :rtype: cros.factory.device.types.DeviceLink
+  :rtype: cros.factory.device.device_types.DeviceLink
   """
   link_name, unused_name, args = _ParseOptions(DEVICE_CONFIG_TYPE_DUT, options)
   link_class = _GetDeviceClass('links', 'Link', link_name)

@@ -11,11 +11,11 @@ import subprocess
 
 from six import iteritems
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.utils import process_utils
 
 
-class Storage(types.DeviceComponent):
+class Storage(device_types.DeviceComponent):
   """Persistent storage on device."""
 
   _DICT_FILENAME = 'STORAGE_SAVED_DICT.json'

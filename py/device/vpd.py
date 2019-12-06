@@ -5,13 +5,13 @@
 import functools
 import logging
 
-from cros.factory.device import types
-from cros.factory.test.rules import privacy
+from cros.factory.device import device_types
 from cros.factory.gooftool import common as gooftool_common
 from cros.factory.gooftool import vpd
+from cros.factory.test.rules import privacy
 
 
-class Partition(types.DeviceComponent):
+class Partition(device_types.DeviceComponent):
   """A VPD partition.
 
   This should not be created by the caller; rather, the caller should use
@@ -111,7 +111,7 @@ class ImmutableFileBasedPartition(Partition):
     """Constructor.
 
     Args:
-      device: Instance of cros.factory.device.types.DeviceInterface.
+      device: Instance of cros.factory.device.device_types.DeviceInterface.
       path: The path of the partition (e.g., '/persist', '/sys/firmware/vpd').
     """
     super(ImmutableFileBasedPartition, self).__init__(device)
@@ -167,7 +167,7 @@ class MutableFileBasedPartition(ImmutableFileBasedPartition):
     self._device.CheckCall(['sync'])
 
 
-class VPDSource(types.DeviceComponent):
+class VPDSource(device_types.DeviceComponent):
   """A source to read Vital Product Data (VPD).
 
   Properties:
@@ -175,11 +175,11 @@ class VPDSource(types.DeviceComponent):
     rw: Access to Read-Write partition.
   """
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def ro(self):
     raise NotImplementedError
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def rw(self):
     raise NotImplementedError
 
@@ -188,17 +188,17 @@ class VPDSource(types.DeviceComponent):
       return self.rw
     elif partition == 'ro':
       return self.ro
-    raise types.DeviceException('No %s partition found.' % partition)
+    raise device_types.DeviceException('No %s partition found.' % partition)
 
 
 class CommandVPDSource(VPDSource):
   """A source to read VPD from command 'vpd'."""
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def ro(self):
     return CommandVPDPartition(self._device, vpd.VPD_READONLY_PARTITION_NAME)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def rw(self):
     return CommandVPDPartition(self._device, vpd.VPD_READWRITE_PARTITION_NAME)
 
@@ -211,11 +211,11 @@ class FileBasedVPDSource(VPDSource):
     self._path = path
     self._partition = MutableFileBasedPartition(self._device, self._path)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def ro(self):
     return self._partition
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def rw(self):
     return self._partition
 
@@ -229,13 +229,13 @@ class SysFSVPDSource(VPDSource):
       path = '/sys/firmware/vpd'
     self._path = path
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def ro(self):
     return ImmutableFileBasedPartition(
         self._device,
         self._device.path.join(self._path, 'ro'))
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def rw(self):
     return ImmutableFileBasedPartition(
         self._device,
@@ -251,38 +251,38 @@ class SysRawVPDSource(VPDSource):
       path = '/sys/firmware/vpd'
     self._path = path
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def ro(self):
     return CommandVPDPartition(
         self._device, vpd.VPD_READONLY_PARTITION_NAME,
         self._device.path.join(self._path, 'ro_raw'))
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def rw(self):
     return CommandVPDPartition(
         self._device, vpd.VPD_READWRITE_PARTITION_NAME,
         self._device.path.join(self._path, 'rw_raw'))
 
 
-class VitalProductData(types.DeviceComponent):
+class VitalProductData(device_types.DeviceComponent):
   """System module for Vital Product Data (VPD)."""
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def live(self):
     """An VPD source to read live VPD values."""
     raise NotImplementedError
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def boot(self):
     """An VPD source to read VPD values cached at boot time."""
     raise NotImplementedError
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def ro(self):
     """A shortcut to read ro from live VPD source."""
     return self.live.ro
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def rw(self):
     """A shortcut to read rw from live VPD source."""
     return self.live.rw
@@ -301,11 +301,11 @@ class ChromeOSVitalProductData(VitalProductData):
     if self._sysfs_path is None:
       self._sysfs_path = '/sys/firmware/vpd'
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def live(self):
     return CommandVPDSource(self._device)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def boot(self):
     return SysRawVPDSource(self._device, self._sysfs_path)
 
@@ -319,10 +319,10 @@ class AndroidVitalProductData(VitalProductData):
     if self._path is None:
       self._path = '/persist'
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def boot(self):
     raise NotImplementedError
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def live(self):
     return FileBasedVPDSource(self._device, self._path)

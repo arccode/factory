@@ -7,12 +7,12 @@
 This module provides accessing camera devices.
 """
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.test.utils.camera_utils import CameraDevice
 from cros.factory.test.utils.camera_utils import CVCameraReader
 
 
-class Camera(types.DeviceComponent):
+class Camera(device_types.DeviceComponent):
   """System module for camera device.
 
     The default implementation contains only one camera device, which is the

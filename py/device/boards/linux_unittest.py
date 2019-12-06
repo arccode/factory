@@ -10,7 +10,7 @@ import unittest
 import mock
 
 from cros.factory.device.boards import linux
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
 class MockProcess(object):
@@ -28,7 +28,7 @@ class MockProcess(object):
 class LinuxTargetTest(unittest.TestCase):
 
   def setUp(self):
-    self.link = types.DeviceLink()
+    self.link = device_types.DeviceLink()
     self.dut = linux.LinuxBoard(self.link)
 
   def testReadFile(self):
@@ -84,7 +84,7 @@ class LinuxTargetTest(unittest.TestCase):
         ['ls'], cwd=None, stdin=None, stdout=None, stderr=None)
 
     self.link.Shell = mock.MagicMock(return_value=MockProcess(1))
-    with self.assertRaises(types.CalledProcessError):
+    with self.assertRaises(device_types.CalledProcessError):
       self.dut.CheckCall(['ls'])
     self.link.Shell.assert_called_with(
         ['ls'], cwd=None, stdin=None, stdout=None, stderr=None)
@@ -101,7 +101,7 @@ class LinuxTargetTest(unittest.TestCase):
     self.dut.Call = mock.MagicMock(side_effect=fakeCallSuccess)
     self.assertEqual(self.dut.CheckOutput(['cmd']), 'fake data')
     self.dut.Call = mock.MagicMock(side_effect=fakeCallFailure)
-    with self.assertRaises(types.CalledProcessError):
+    with self.assertRaises(device_types.CalledProcessError):
       self.dut.CheckOutput(['cmd'])
 
   def testCallOutput(self):

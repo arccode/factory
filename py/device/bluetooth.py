@@ -3,14 +3,14 @@
 # found in the LICENSE file.
 
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
 class BluetoothManagerException(Exception):
   pass
 
 
-class BluetoothManager(types.DeviceComponent):
+class BluetoothManager(device_types.DeviceComponent):
   """The class to handle bluetooth adapter and device.
 
   Raises:

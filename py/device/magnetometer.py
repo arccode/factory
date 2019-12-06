@@ -2,11 +2,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from cros.factory.device import device_types
 from cros.factory.device import sensor_utils
-from cros.factory.device import types
 
 
-class Magnetometer(types.DeviceComponent):
+class Magnetometer(device_types.DeviceComponent):
   """Base class for magnetometer component module."""
 
   def GetController(self, location='base'):

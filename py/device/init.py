@@ -6,11 +6,11 @@
 
 import os
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.test.env import paths
 
 
-class FactoryInit(types.DeviceComponent):
+class FactoryInit(device_types.DeviceComponent):
   """Provides method to add start up jobs using the factory framework.
 
   The design is to apply the goofy startup flow used in most Chrome OS board.

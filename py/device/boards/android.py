@@ -8,11 +8,11 @@ import pipes
 
 from cros.factory.device.audio import utils as audio_utils
 from cros.factory.device.boards import linux
+from cros.factory.device import device_types
 from cros.factory.device import memory
 from cros.factory.device import path
 from cros.factory.device import storage
 from cros.factory.device import temp
-from cros.factory.device import types
 from cros.factory.device import vpd
 
 # pylint: disable=abstract-method
@@ -39,27 +39,27 @@ class AndroidBoard(linux.LinuxBoard):
     return super(AndroidBoard, self).Popen(
         command, stdin=stdin, stdout=stdout, stderr=stderr, cwd=cwd, log=log)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def audio(self):
     return audio_utils.CreateAudioControl(
         self, controller=audio_utils.CONTROLLERS.TINYALSA)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def memory(self):
     return memory.AndroidMemory(self)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def temp(self):
     return temp.AndroidTemporaryFiles(self)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def _RemotePath(self):
     return path.AndroidPath(self)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def storage(self):
     return storage.AndroidStorage(self)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def vpd(self):
     return vpd.AndroidVitalProductData(self)

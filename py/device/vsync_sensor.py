@@ -4,8 +4,8 @@
 
 import os
 
+from cros.factory.device import device_types
 from cros.factory.device import sensor_utils
-from cros.factory.device import types
 
 
 IN_COUNT = 'in_count_raw'
@@ -76,7 +76,7 @@ class VSyncSensorController(sensor_utils.BasicSensorController):
       raise VSyncSensorException("Failed to set freq: %s" % str(e))
 
 
-class VSyncSensor(types.DeviceComponent):
+class VSyncSensor(device_types.DeviceComponent):
   """Camera vertical sync sensor component module."""
 
   def GetController(self, location=DEFAULT_LOCATION):

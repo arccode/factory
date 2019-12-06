@@ -5,7 +5,7 @@
 import logging
 
 from cros.factory.device.boards import chromeos
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.device import power
 
 
@@ -22,6 +22,6 @@ class GruPower(power.Power):
 class GruBoard(chromeos.ChromeOSBoard):
   """Reference implementation for RK3399 platform."""
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def power(self):
     return GruPower(self)

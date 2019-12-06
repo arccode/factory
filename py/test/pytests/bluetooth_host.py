@@ -12,8 +12,8 @@ import collections
 import os
 import unittest
 
+from cros.factory.device import device_types
 from cros.factory.device import device_utils
-from cros.factory.device import types
 from cros.factory.test import session
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
@@ -152,7 +152,7 @@ class BluetoothScanTest(unittest.TestCase):
     session.console.info('Running %s: %s', cmd_name, cmd)
     try:
       output = self.dut.CheckOutput(cmd)
-    except types.CalledProcessError as e:
+    except device_types.CalledProcessError as e:
       session.console.info('Exit code: %d', e.returncode)
     else:
       session.console.info('Success. Output: %s', output)

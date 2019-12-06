@@ -12,7 +12,7 @@ import logging
 import os
 import re
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.test import device_data
 from cros.factory.test.env import paths
@@ -48,7 +48,7 @@ def InfoProperty(f):
   return prop
 
 
-class SystemInfo(types.DeviceComponent):
+class SystemInfo(device_types.DeviceComponent):
   """Static information about the system.
 
   This is mostly static information that changes rarely if ever

@@ -8,10 +8,10 @@ import posixpath
 
 from six.moves import xrange
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
-class Path(types.DeviceComponent):
+class Path(device_types.DeviceComponent):
   """Provies operations on pathnames, similar to os.path.
 
   If the operation doesn't need to access DUT, e.g. join and split,

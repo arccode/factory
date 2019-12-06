@@ -14,8 +14,8 @@ import unittest
 
 import mox
 
+from cros.factory.device import device_types
 from cros.factory.device import fan
-from cros.factory.device import types
 
 
 class ECToolFanControlTest(unittest.TestCase):
@@ -23,7 +23,7 @@ class ECToolFanControlTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(types.DeviceBoard)
+    self.board = self.mox.CreateMock(device_types.DeviceBoard)
     self.fan = fan.ECToolFanControl(self.board)
 
   def tearDown(self):
@@ -60,7 +60,7 @@ class SysFSFanControlTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(types.DeviceBoard)
+    self.board = self.mox.CreateMock(device_types.DeviceBoard)
     self.board.path = os.path
 
   def tearDown(self):

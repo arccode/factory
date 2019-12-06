@@ -8,13 +8,13 @@ import unittest
 import mock
 
 from cros.factory.device.boards import chromeos
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.test.utils import deploy_utils
 
 # pylint: disable=protected-access
 class FactoryPythonArchiveUnittest(unittest.TestCase):
   def setUp(self):
-    self.link = mock.Mock(spec=types.DeviceLink)
+    self.link = mock.Mock(spec=device_types.DeviceLink)
     self.dut = chromeos.ChromeOSBoard(self.link)
     self.remote_factory_root = '/remote/factory/root'
     self.dut.storage.GetFactoryRoot = mock.MagicMock(
@@ -66,7 +66,7 @@ class FactoryPythonArchiveUnittest(unittest.TestCase):
 
   def testPushFactoryParChecksumMatched(self):
     self.link.IsLocal = mock.MagicMock(return_value=False)
-    types.DeviceProperty.Override(
+    device_types.DeviceProperty.Override(
         self.factory_par, 'checksum', 'checksum_value')
     self.dut.CheckOutput = mock.MagicMock(return_value='checksum_value')
 
@@ -75,7 +75,7 @@ class FactoryPythonArchiveUnittest(unittest.TestCase):
 
   def testPushFactoryParChecksumNotMatched(self):
     self.link.IsLocal = mock.MagicMock(return_value=False)
-    types.DeviceProperty.Override(
+    device_types.DeviceProperty.Override(
         self.factory_par, 'checksum', 'checksum_value')
     self.dut.CheckCall = mock.MagicMock(return_value='checksum_value~')
 

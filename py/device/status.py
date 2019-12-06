@@ -12,7 +12,7 @@ import copy
 import functools
 import logging
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 from cros.factory.external import netifaces
 
@@ -91,7 +91,7 @@ class SystemStatusSnapshot(object):
         dict((name, getattr(status_, name)) for name in _PROP_LIST)))
 
 
-class SystemStatus(types.DeviceComponent):
+class SystemStatus(device_types.DeviceComponent):
   """Information about the current system status.
 
   This is information that changes frequently, e.g., load average

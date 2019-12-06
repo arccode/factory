@@ -13,11 +13,11 @@ import unittest
 
 import mox
 
+from cros.factory.device import device_types
 from cros.factory.device import fan
 from cros.factory.device import power
 from cros.factory.device import status as status_module
 from cros.factory.device import thermal
-from cros.factory.device import types
 
 
 class SystemStatusTest(unittest.TestCase):
@@ -36,7 +36,7 @@ class SystemStatusTest(unittest.TestCase):
     netifaces.AF_INET6 = 10
 
     # Set up mocks for Board interface
-    board = self.mox.CreateMock(types.DeviceBoard)
+    board = self.mox.CreateMock(device_types.DeviceBoard)
     board.power = self.mox.CreateMock(power.Power)
     board.power.GetInfoDict().AndReturn({})
     board.fan = self.mox.CreateMock(fan.FanControl)

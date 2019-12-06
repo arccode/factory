@@ -7,10 +7,10 @@ import re
 
 from six import iteritems
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
-class USBTypeC(types.DeviceComponent):
+class USBTypeC(device_types.DeviceComponent):
   """System module for USB type-C.
 
   System module for controlling or monitoring USB type-C port.
@@ -198,7 +198,7 @@ class USBTypeC(types.DeviceComponent):
     """
     logging.info('Set USB type-C port %d to %s', port, function)
     if function not in self.PORT_FUNCTION:
-      raise types.DeviceException(
+      raise device_types.DeviceException(
           'unsupported USB Type-C function: %s' % function)
     self._CallPD([function], port)
 

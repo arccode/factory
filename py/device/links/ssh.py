@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Implementation of cros.factory.device.types.DeviceLink using SSH."""
+"""Implementation of cros.factory.device.device_types.DeviceLink using SSH."""
 
 import logging
 import os
@@ -15,7 +15,7 @@ import time
 
 from six import with_metaclass
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.test import state
 from cros.factory.test.utils import dhcp_utils
 from cros.factory.utils import file_utils
@@ -60,7 +60,7 @@ class SSHProcess(object):
     return returncode
 
 
-class SSHLink(types.DeviceLink):
+class SSHLink(device_types.DeviceLink):
   """A DUT target that is connected via SSH interface.
 
   Properties:

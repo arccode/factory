@@ -235,7 +235,8 @@ def TailFile(path, max_length=5 * 1024 * 1024, dut=None):
   Args:
     path: path to the file to read
     max_length: Maximum characters of messages.
-    dut: a cros.factory.device.types.DeviceInterface instance, None for local.
+    dut: a cros.factory.device.device_types.DeviceInterface instance, None for
+         local.
   """
   if dut:
     data = dut.CheckOutput(['tail', '-c', str(max_length), path])

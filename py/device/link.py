@@ -6,9 +6,9 @@
 
 from __future__ import print_function
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
-DeviceLink = types.DeviceLink
+DeviceLink = device_types.DeviceLink
 
 print('You have imported cros.factory.device.link, which is deprecated by '
-      'cros.factory.device.types. Please migrate now.')
+      'cros.factory.device.device_types. Please migrate now.')

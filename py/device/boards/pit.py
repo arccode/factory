@@ -5,8 +5,8 @@
 import logging
 
 from cros.factory.device.boards import chromeos
+from cros.factory.device import device_types
 from cros.factory.device import power
-from cros.factory.device import types
 
 
 class PitPower(power.Power):
@@ -22,6 +22,6 @@ class PitPower(power.Power):
 class PitBoard(chromeos.ChromeOSBoard):
   """Board interface for Pit."""
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def power(self):
     return PitPower(self)

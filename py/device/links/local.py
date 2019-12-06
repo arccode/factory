@@ -2,16 +2,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Implementation of cros.factory.device.types.DeviceLink on local system."""
+"""Implementation of cros.factory.device.device_types.DeviceLink on local
+system."""
 
 import pipes
 import shutil
 import subprocess
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
-class LocalLink(types.DeviceLink):
+class LocalLink(device_types.DeviceLink):
   """Runs locally on a device."""
 
   def __init__(self, shell_path=None):

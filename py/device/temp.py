@@ -6,10 +6,10 @@
 
 from contextlib import contextmanager
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
-class TemporaryFiles(types.DeviceComponent):
+class TemporaryFiles(device_types.DeviceComponent):
   """Provides access to temporary files and directories on DUT-based systems.
 
   Examples:

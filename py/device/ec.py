@@ -11,10 +11,10 @@ from __future__ import print_function
 
 import re
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
-class EmbeddedController(types.DeviceComponent):
+class EmbeddedController(device_types.DeviceComponent):
   """System module for embedded controller."""
 
   # Regular expression for parsing ectool output.

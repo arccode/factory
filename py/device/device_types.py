@@ -131,8 +131,8 @@ class DeviceComponent(object):
       return self._do_something()
 
   Attributes:
-    _device: A cros.factory.device.types.DeviceInterface instance for accessing
-             target device.
+    _device: A cros.factory.device.device_types.DeviceInterface instance for
+             accessing target device.
     _dut: A legacy alias for _device.
     Error: Exception type for raising unexpected errors.
   """
@@ -142,7 +142,7 @@ class DeviceComponent(object):
   def __init__(self, device):
     """Constructor of DeviceComponent.
 
-    :type device: cros.factory.device.types.DeviceInterface
+    :type device: cros.factory.device.device_types.DeviceInterface
     """
     self._device = device
     # TODO(hungte) Remove the legacy reference _dut.
@@ -156,8 +156,8 @@ class DeviceInterface(sys_interface.SystemInterface):
   its keyboard, turn on display, forcing charge state, forcing fan speeds, and
   reading temperature sensors.
 
-  To obtain a :py:class:`cros.factory.device.types.DeviceInterface` object for
-  the device under test, use the
+  To obtain a :py:class:`cros.factory.device.device_types.DeviceInterface`
+  object for the device under test, use the
   :py:func:`cros.factory.device.device_utils.CreateDUTInterface` function.
 
   Implementations of this interface should be in the
@@ -177,14 +177,15 @@ class DeviceInterface(sys_interface.SystemInterface):
   :py:class:`NotImplementedError` if not implemented for this board.
 
   Attributes:
-    link: A cros.factory.device.types.DeviceLink instance for accessing device.
+    link: A cros.factory.device.device_types.DeviceLink instance for accessing
+          device.
   """
 
   def __init__(self, link=None):
     """Constructor.
 
     Arg:
-      link: A cros.factory.device.types.DeviceLink instance for accessing
+      link: A cros.factory.device.device_types.DeviceLink instance for accessing
             device.
     """
     super(DeviceInterface, self).__init__()

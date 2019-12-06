@@ -10,10 +10,10 @@ import time
 
 from six.moves import xrange
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
-class Touch(types.DeviceComponent):
+class Touch(device_types.DeviceComponent):
   """Touch Component."""
 
   def GetController(self, index):
@@ -28,7 +28,7 @@ class Touch(types.DeviceComponent):
     raise NotImplementedError
 
 
-class TouchController(types.DeviceComponent):
+class TouchController(device_types.DeviceComponent):
   """Touch Controller."""
 
   def CheckInterface(self):

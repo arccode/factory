@@ -5,8 +5,8 @@
 import logging
 
 from cros.factory.device.boards import chromeos
+from cros.factory.device import device_types
 from cros.factory.device import power
-from cros.factory.device import types
 from cros.factory.test import session
 
 
@@ -38,6 +38,6 @@ class SnowPower(power.Power):
 class SnowBoard(chromeos.ChromeOSBoard):
   """Board interface for Snow."""
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def power(self):
     return SnowPower(self)

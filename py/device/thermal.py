@@ -17,17 +17,17 @@ import time
 
 from six import iteritems
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
 # Currently SensorSource is only used by thermal sensors. We may move it to
 # other places if we see more modules having similar request, for example IIO
 # sensors.
-class SensorSource(types.DeviceComponent):
+class SensorSource(device_types.DeviceComponent):
   """Provides minimal functions for reading sensor input.
 
   Attributes:
-    _device: A `cros.factory.device.types.DeviceInterface` instance.
+    _device: A `cros.factory.device.device_types.DeviceInterface` instance.
     _sensors: A dictionary for cached sensor info (from `_Probe`).
   """
 
@@ -258,7 +258,7 @@ class ECToolTemperatureSensors(ThermalSensorSource):
     raise NotImplementedError
 
 
-class Thermal(types.DeviceComponent):
+class Thermal(device_types.DeviceComponent):
   """System module for thermal info (temperature sensors, power usage).
 
   Attributes:

@@ -4,7 +4,7 @@
 
 """Partitions on ChromeOS devices."""
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
 class DiskPartition(object):
@@ -27,32 +27,32 @@ class DiskPartition(object):
       self.path = disk + str(self.index)
 
 
-class Partitions(types.DeviceComponent):
+class Partitions(device_types.DeviceComponent):
   """Partitions of system boot disk."""
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def rootdev(self):
     """Gets root block device."""
     # rootdev may return /dev/dm-\d+ when LVM is enabled.  'rootdev -s -d' can
     # return simple format like /dev/sd[a-z] or /dev/mmcblk\d+.
     return self._device.CheckOutput(['rootdev', '-s', '-d']).strip()
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def STATEFUL(self):
     return DiskPartition(self.rootdev, 'STATEFUL', 1)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def FACTORY_KERNEL(self):
     return DiskPartition(self.rootdev, 'FACTORY_KERNEL', 2)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def FACTORY_ROOTFS(self):
     return DiskPartition(self.rootdev, 'FACTORY_ROOTFS', 3)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def RELEASE_KERNEL(self):
     return DiskPartition(self.rootdev, 'RELEASE_KERNEL', 4)
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def RELEASE_ROOTFS(self):
     return DiskPartition(self.rootdev, 'RELEASE_ROOTFS', 5)

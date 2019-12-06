@@ -32,7 +32,7 @@ import re
 import textwrap
 import time
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
@@ -42,7 +42,7 @@ class WiFiError(Exception):
   pass
 
 
-class WiFi(types.DeviceComponent):
+class WiFi(device_types.DeviceComponent):
   """WiFi system component."""
   _SCAN_TIMEOUT_SECS = 20
   _ACCESS_POINT_RE = re.compile(
@@ -181,7 +181,7 @@ class WiFi(types.DeviceComponent):
       output = self._device.CheckOutput(
           command, log=True).decode('string_escape')
       return self._ParseScanResult(output)
-    except types.CalledProcessError:
+    except device_types.CalledProcessError:
       return []
 
   def _ParseScanResult(self, output):
@@ -671,7 +671,7 @@ class Connection(object):
 
     try:
       out = self._device.CheckOutput(['iw', self.interface, 'station', 'dump'])
-    except types.CalledProcessError as e:
+    except device_types.CalledProcessError as e:
       raise WiFiError('unable to fetch the connection status: %r' % e)
 
     ret = ConnectionStatus()
@@ -698,7 +698,7 @@ class Connection(object):
     try:
       # grep exit with return code 0 when we have retrieved an IP.
       out = self._device.CheckOutput(check_command)
-    except types.CalledProcessError:
+    except device_types.CalledProcessError:
       return False
     # ex: inet 192.168.159.78/20 brd 192.168.159.255 scope global wlan0
     return out.split()[1].split('/')[0]

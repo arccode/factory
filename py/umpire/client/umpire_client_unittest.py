@@ -10,7 +10,7 @@ import unittest
 
 import mox
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.umpire.client import umpire_client
 
 
@@ -132,7 +132,7 @@ class UmpireClientInfoTest(unittest.TestCase):
   def setUp(self):
     """Setups mox and mock umpire_client_info used in tests."""
     self.mox = mox.Mox()
-    self.dut = self.mox.CreateMock(types.DeviceInterface)
+    self.dut = self.mox.CreateMock(device_types.DeviceInterface)
 
   def tearDown(self):
     """Clean up for each test."""

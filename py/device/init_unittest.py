@@ -10,9 +10,9 @@ import unittest
 
 import mock
 
+from cros.factory.device import device_types
 from cros.factory.device.init import FactoryInit
 from cros.factory.device.storage import Storage
-from cros.factory.device import types
 from cros.factory.test.env import paths
 
 
@@ -20,10 +20,10 @@ class FactoryInitTest(unittest.TestCase):
 
   def setUp(self):
     self._factory_root = '/usr/local/factory'
-    self._device = mock.create_autospec(types.DeviceInterface)
+    self._device = mock.create_autospec(device_types.DeviceInterface)
     self._device.storage = mock.create_autospec(Storage)
     self._device.storage.GetFactoryRoot.return_value = self._factory_root
-    self._device.link = mock.create_autospec(types.DeviceLink)
+    self._device.link = mock.create_autospec(device_types.DeviceLink)
     self._device.path = posixpath
     self._init = FactoryInit(self._device)
 

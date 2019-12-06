@@ -146,7 +146,7 @@ def UpdateHWIDDatabase(dut=None, target_dir=None):
 
   Args:
     dut: A reference to the device under test.
-        :rtype: cros.factory.device.types.DeviceBoard
+        :rtype: cros.factory.device.device_types.DeviceBoard
 
   Returns:
     True if new database is applied.

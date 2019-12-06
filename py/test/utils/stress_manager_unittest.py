@@ -11,16 +11,16 @@ import unittest
 
 import mock
 
+from cros.factory.device import device_types
 from cros.factory.device import info
 from cros.factory.device import memory
 from cros.factory.device import temp
-from cros.factory.device import types
 from cros.factory.test.utils import stress_manager
 
 # pylint: disable=protected-access
 class StressManagerUnittest(unittest.TestCase):
   def setUp(self):
-    self.dut = mock.Mock(spec=types.DeviceInterface)
+    self.dut = mock.Mock(spec=device_types.DeviceInterface)
     self.dut.memory = mock.Mock(spec=memory.LinuxMemory)
     self.dut.info = mock.Mock(spec=info.SystemInfo)
     self.dut.temp = temp.DummyTemporaryFiles(self.dut)

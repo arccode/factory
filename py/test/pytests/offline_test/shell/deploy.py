@@ -105,7 +105,7 @@ class ScriptBuilder(object):
     """Constructor of ScriptBuilder.
 
     Args:
-      :type dut: cros.factory.device.types.DeviceInterface
+      :type dut: cros.factory.device.device_types.DeviceInterface
       dut: used to get data from DUT.
 
       :type data_root: str

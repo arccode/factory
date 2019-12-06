@@ -13,8 +13,8 @@ import unittest
 import mox
 from six import assertRaisesRegex
 
+from cros.factory.device import device_types
 from cros.factory.device import led as led_module
-from cros.factory.device import types
 
 
 class LEDTest(unittest.TestCase):
@@ -22,7 +22,7 @@ class LEDTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(types.DeviceBoard)
+    self.board = self.mox.CreateMock(device_types.DeviceBoard)
 
   def tearDown(self):
     self.mox.UnsetStubs()
@@ -103,7 +103,7 @@ class LEDTest(unittest.TestCase):
         led_module.LED.Error(msg))
     self.mox.ReplayAll()
     led = led_module.LED(self.board)
-    with assertRaisesRegex(self, types.DeviceException, msg):
+    with assertRaisesRegex(self, device_types.DeviceException, msg):
       led.SetColor(led.Color.RED, brightness=None)
     self.mox.VerifyAll()
 

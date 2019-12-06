@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Implementation of cros.factory.device.types.DeviceLink using ADB."""
+"""Implementation of cros.factory.device.device_types.DeviceLink using ADB."""
 
 import logging
 import os
@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 import uuid
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.utils import file_utils
 
 
@@ -60,7 +60,7 @@ def RawADBProcess(proxy_object, session_id):
   return proxy_object
 
 
-class ADBLink(types.DeviceLink):
+class ADBLink(device_types.DeviceLink):
   """A device that is connected via ADB interface.
 
   Args:

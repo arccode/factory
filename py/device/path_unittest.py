@@ -7,14 +7,14 @@ import unittest
 
 import mock
 
+from cros.factory.device import device_types
 from cros.factory.device import path
-from cros.factory.device import types
 
 
 class PathTest(unittest.TestCase):
 
   def setUp(self):
-    self.dut = mock.Mock(spec=types.DeviceInterface)
+    self.dut = mock.Mock(spec=device_types.DeviceInterface)
     self.path = path.Path(self.dut)
 
   def testExists(self):
@@ -43,7 +43,7 @@ class PathTest(unittest.TestCase):
 class AndroidPathTest(unittest.TestCase):
 
   def setUp(self):
-    self.dut = mock.Mock(spec=types.DeviceInterface)
+    self.dut = mock.Mock(spec=device_types.DeviceInterface)
     self.path = path.AndroidPath(self.dut)
 
   def testQuickReturn(self):

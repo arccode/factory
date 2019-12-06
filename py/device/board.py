@@ -6,12 +6,12 @@
 
 from __future__ import print_function
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
-CalledProcessError = types.CalledProcessError
-DeviceBoard = types.DeviceBoard
-DeviceComponent = types.DeviceComponent
-DeviceException = types.DeviceException
+CalledProcessError = device_types.CalledProcessError
+DeviceBoard = device_types.DeviceBoard
+DeviceComponent = device_types.DeviceComponent
+DeviceException = device_types.DeviceException
 
 print('You have imported cros.factory.device.board, which is deprecated by '
-      'cros.factory.device.types. Please migrate now.')
+      'cros.factory.device.device_types. Please migrate now.')

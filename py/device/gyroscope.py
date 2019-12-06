@@ -12,8 +12,8 @@ import re
 from six import iteritems
 from six import viewitems
 
+from cros.factory.device import device_types
 from cros.factory.device import sensor_utils
-from cros.factory.device import types
 
 
 _RADIAN_TO_DEGREE = 180 / math.pi
@@ -207,7 +207,7 @@ class GyroscopeController(sensor_utils.BasicSensorController):
     logging.debug('Gyro: %s', gyro)
 
 
-class Gyroscope(types.DeviceComponent):
+class Gyroscope(device_types.DeviceComponent):
   """Gyroscope component module."""
 
   def GetController(self, location='base', gyro_id=None, freq=None):

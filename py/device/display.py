@@ -5,7 +5,7 @@
 
 from __future__ import print_function
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
 class DisplayError(Exception):
@@ -37,7 +37,7 @@ class PortInfo(object):
 
 
 # pylint: disable=abstract-method
-class LinuxDisplay(types.DeviceComponent):
+class LinuxDisplay(device_types.DeviceComponent):
 
   # syspath for backlight control
   BACKLIGHT_SYSPATH_PATTERN = '/sys/class/backlight/*'

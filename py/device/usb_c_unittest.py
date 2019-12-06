@@ -12,7 +12,7 @@ import unittest
 
 import mox
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.device import usb_c
 
 
@@ -25,7 +25,7 @@ class USBTypeCTest(unittest.TestCase):
 
   def setUp(self):
     self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(types.DeviceBoard)
+    self.board = self.mox.CreateMock(device_types.DeviceBoard)
     self.usb_c = MockUSBTypeC(self.board)
 
   def tearDown(self):
@@ -251,8 +251,8 @@ class USBTypeCTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testSetPortFunctionFail(self):
-    self.assertRaises(types.DeviceException, self.usb_c.SetPortFunction, 0,
-                      'display')
+    self.assertRaises(device_types.DeviceException, self.usb_c.SetPortFunction,
+                      0, 'display')
 
   def testResetPortFunction(self):
     self.board.CheckOutput(

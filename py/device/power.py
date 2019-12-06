@@ -11,13 +11,13 @@ import time
 
 from six.moves import xrange
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 from cros.factory.utils import type_utils
 
 from cros.factory.external import numpy
 
 
-class PowerException(types.DeviceException):
+class PowerException(device_types.DeviceException):
   pass
 
 
@@ -34,7 +34,7 @@ def CreatePower(dut, *mixins, **kargs):
   except that we actually cannot use *mixins in class declaration.
 
   Args:
-    dut: A types.DeviceBoard instance.
+    dut: A device_types.DeviceBoard instance.
     mixins: One or more mixin classes.
     kargs: Key arguments to pass to base constructor.
 
@@ -50,7 +50,7 @@ def CreatePower(dut, *mixins, **kargs):
   return power_cls(dut, **kargs)
 
 
-class PowerBase(types.DeviceComponent):
+class PowerBase(device_types.DeviceComponent):
   """Base class for power.
 
   The base class is basically empty, and needs mixin classes to add its
@@ -319,7 +319,7 @@ class SysfsPowerInfoMixin(PowerInfoMixinBase):
     except (PowerException, IOError):
       return 'Unknown'
 
-  @types.DeviceProperty
+  @device_types.DeviceProperty
   def _battery_path(self):
     """Get battery path.
 

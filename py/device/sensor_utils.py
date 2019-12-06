@@ -8,7 +8,7 @@ import time
 from six.moves import xrange
 from six import viewitems
 
-from cros.factory.device import types
+from cros.factory.device import device_types
 
 
 _IIO_DEVICES_PATTERN = '/sys/bus/iio/devices/iio:device*'
@@ -41,16 +41,16 @@ def FindDevice(dut, path_pattern, **attr_filter):
       devices.append(path)
 
   if not devices:
-    raise types.DeviceException(
+    raise device_types.DeviceException(
         'Device with constraint %r not found' % attr_filter)
   elif len(devices) > 1:
-    raise types.DeviceException(
+    raise device_types.DeviceException(
         'Multiple devices found with constraint %r' % attr_filter)
 
   return devices[0]
 
 
-class BasicSensorController(types.DeviceComponent):
+class BasicSensorController(device_types.DeviceComponent):
   """A sensor controller that only supports direct read."""
 
   def __init__(self, dut, name, location, signal_names, scale=False):
