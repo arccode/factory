@@ -36,7 +36,7 @@ def WriteCsv(target, list_of_dict, key_orders):
 
   logging.debug('Determined key_orders = \n%s\n', pprint.pformat(key_orders))
 
-  with open(target, 'wb') as fd:
+  with open(target, 'w') as fd:
     writer = csv.DictWriter(fd, key_orders)
     # Workaround for python before 2.7 that doesn't have a writer.writeheader
     header_dict = {}

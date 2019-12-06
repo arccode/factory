@@ -76,7 +76,7 @@ def IsAnnotation(row_in_dict, fieldnames):
 
 def IsCsvADictHeader(source):
   """Reads its first row and see if it fits the pre-defined format."""
-  with open(source, 'rb') as fd:
+  with open(source, 'r') as fd:
     reader = csv.DictReader(fd)
     fieldnames = reader.fieldnames
     # Check fieldnames.
@@ -91,7 +91,7 @@ def ReadCsvAsDict(source):
   A dict formatted csv have only two columns: __key__ and __value__.
   """
   data = {}
-  with open(source, 'rb') as fd:
+  with open(source, 'r') as fd:
     reader = csv.DictReader(fd)
     fieldnames = reader.fieldnames
     # Check fieldnames.
@@ -119,7 +119,7 @@ def ReadCsvAsListOfDict(source):
   The dict's key will follow the column in first row.
   """
   data = []
-  with open(source, 'rb') as fd:
+  with open(source, 'r') as fd:
     reader = csv.DictReader(fd)
     fieldnames = reader.fieldnames
 
