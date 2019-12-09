@@ -83,7 +83,7 @@ def ShopFloorUpload(source_path, remote_spec, stage,
                 server_url, serial_number, source_path)
   instance = xmlrpc.client.ServerProxy(server_url, allow_none=True,
                                        verbose=False)
-  blob = xmlrpc.client.Binary(file_utils.ReadFile(source_path))
+  blob = xmlrpc.client.Binary(file_utils.ReadFile(source_path, encoding=None))
   cmd_result = Shell('mosys platform model')
   model = ''
   if cmd_result.status == 0:

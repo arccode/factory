@@ -1410,7 +1410,7 @@ class Goofy(object):
         proxy = server_proxy.GetServerProxy()
         proxy.UploadEvent(
             chunk.log_name + '.' + event_log.GetReimageId(),
-            xmlrpc.client.Binary(chunk.chunk))
+            xmlrpc.client.Binary(chunk.chunk.encode('utf-8')))
         logging.info(
             'Successfully synced %s in %.03f s',
             description, time.time() - start_time)

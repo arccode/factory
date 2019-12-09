@@ -283,8 +283,7 @@ class GoofyRPC(object):
     output_file = factory_bug.SaveLogs(tempfile.gettempdir(),
                                        archive_id=archive_id)
     try:
-      with open(output_file) as f:
-        data = f.read()
+      data = file_utils.ReadFile(output_file, encoding=None)
       server_proxy.GetServerProxy(
           timeout=UPLOAD_FACTORY_LOGS_TIMEOUT_SECS).SaveAuxLog(
               os.path.basename(output_file),

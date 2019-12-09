@@ -632,7 +632,8 @@ def CreateReportArchiveBlob(*args, **kwargs):
   """
   report_archive = CreateReportArchive(*args, **kwargs)
   try:
-    return xmlrpc.client.Binary(file_utils.ReadFile(report_archive))
+    return xmlrpc.client.Binary(
+        file_utils.ReadFile(report_archive, encoding=None))
   finally:
     os.unlink(report_archive)
 

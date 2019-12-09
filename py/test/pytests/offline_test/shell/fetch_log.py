@@ -110,7 +110,7 @@ class OfflineTestFetchLog(unittest.TestCase):
       zip_file = self._CompressLog(upload_files)
       proxy.SaveAuxLog(
           os.path.join(dir_name, os.path.basename(zip_file)),
-          xmlrpc.client.Binary(file_utils.ReadFile(zip_file)))
+          xmlrpc.client.Binary(file_utils.ReadFile(zip_file, encoding=None)))
     else:
       logging.info('DUT mlb_serial_number: %s',
                    self.dut.info.mlb_serial_number)

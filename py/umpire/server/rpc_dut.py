@@ -125,7 +125,7 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
     if not os.path.isfile(abspath):
       raise ValueError('File does not exist or it is not a file')
 
-    return twisted_xmlrpc.Binary(file_utils.ReadFile(abspath))
+    return twisted_xmlrpc.Binary(file_utils.ReadFile(abspath, encoding=None))
 
   @umpire_rpc.RPCCall
   def GetParameters(self, namespace=None, name=None):
@@ -155,7 +155,7 @@ class UmpireDUTCommands(umpire_rpc.UmpireRPC):
       for arcname, path in abspaths:
         tar.add(path, arcname=arcname)
       tar.close()
-      return twisted_xmlrpc.Binary(file_utils.ReadFile(tar_path))
+      return twisted_xmlrpc.Binary(file_utils.ReadFile(tar_path, encoding=None))
 
   @umpire_rpc.RPCCall
   @twisted_xmlrpc.withRequest
