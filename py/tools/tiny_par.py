@@ -171,9 +171,10 @@ def main(argv=None):
   try:
     CollectFiles(args.pkg, args.modules, tmp_dir, init_modules)
     zip_path = BuildPythonZip(tmp_dir)
-    with open(args.output, 'w') as f:
-      f.write(TEMPLATE.replace(MODULES_PATTERN, ' '.join(args.modules)))
-      with open(zip_path, 'r') as z:
+    with open(args.output, 'wb') as f:
+      template = TEMPLATE.replace(MODULES_PATTERN, ' '.join(args.modules))
+      f.write(template.encode('utf-8'))
+      with open(zip_path, 'rb') as z:
         f.write(z.read())
     os.chmod(args.output, 0o755)
     print('Successfully created PAR executable: %s' % args.output)
