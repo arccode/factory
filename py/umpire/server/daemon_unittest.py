@@ -87,7 +87,8 @@ class DaemonTest(unittest.TestCase):
     self.env.LoadConfig()
     self.daemon = daemon.UmpireDaemon(self.env)
     self.rpc_proxy = xmlrpc.Proxy(
-        'http://%s:%d' % (net_utils.LOCALHOST, self.env.umpire_cli_port))
+        b'http://%s:%d' % (net_utils.LOCALHOST.encode('utf-8'),
+                           self.env.umpire_cli_port))
     self.agent = client.Agent(reactor)
 
   def tearDown(self):
@@ -111,8 +112,9 @@ class DaemonTest(unittest.TestCase):
     """
     if session is None:
       session = type_utils.AttrDict()
-    url = 'http://%s:%d%s' % (net_utils.LOCALHOST,
-                              self.env.umpire_webapp_port, path)
+    url = b'http://%s:%d%s' % (net_utils.LOCALHOST.encode('utf-8'),
+                               self.env.umpire_webapp_port,
+                               path.encode('utf-8'))
     logging.debug('GET %s', url)
     if headers:
       headers = copy.deepcopy(headers)

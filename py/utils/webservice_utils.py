@@ -111,6 +111,8 @@ class TwistedXMLRPCProxy(WebServiceProxy):
     self._url = url
 
   def callRemote(self, method, *args, **kargs):
+    if isinstance(self._url, str):
+      self._url = self._url.encode('utf-8')
     proxy = twisted_xmlrpc.Proxy(self._url, allowNone=True)
     return proxy.callRemote(method, *args, **kargs)
 

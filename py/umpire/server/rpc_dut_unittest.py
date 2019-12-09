@@ -46,7 +46,7 @@ class DUTRPCTest(unittest.TestCase):
 
     self.env.LoadConfig()
     self.proxy = twisted_xmlrpc.Proxy(
-        'http://%s:%d' % (net_utils.LOCALHOST, TEST_RPC_PORT),
+        b'http://%s:%d' % (net_utils.LOCALHOST.encode('utf-8'), TEST_RPC_PORT),
         allowNone=True)
     self.daemon = daemon.UmpireDaemon(self.env)
     root_commands = rpc_dut.RootDUTCommands(self.daemon)

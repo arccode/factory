@@ -43,7 +43,8 @@ class CommandTest(unittest.TestCase):
     test_port = net_utils.FindUnusedPort()
     self.env = umpire_env.UmpireEnvForTest()
     self.mox = mox.Mox()
-    self.proxy = xmlrpc.Proxy('http://%s:%d' % (net_utils.LOCALHOST, test_port))
+    self.proxy = xmlrpc.Proxy(b'http://%s:%d' %
+                              (net_utils.LOCALHOST.encode('utf-8'), test_port))
     xmlrpc_resource = umpire_xmlrpc.XMLRPCContainer()
     umpire_cli = rpc_cli.CLICommand(daemon.UmpireDaemon(self.env))
     xmlrpc_resource.AddHandler(umpire_cli)
