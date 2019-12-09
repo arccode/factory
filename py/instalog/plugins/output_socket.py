@@ -245,7 +245,7 @@ class OutputSocketSender(log_utils.LoggerMixin):
   def CheckSuccess(self, expected_char):
     """Checks that the transmission was committed on the remote side."""
     result = self._sock.recv(1)
-    return result == expected_char
+    return result == expected_char or result == expected_char.decode('utf-8')
 
 
 if __name__ == '__main__':

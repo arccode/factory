@@ -41,7 +41,7 @@ _MAX_EVENT_SIZE_FOR_DEBUG_LOG = 512
 
 # Hello message send by the server and expected as the first datagram by
 # the client.
-_HELLO_MESSAGE = '\1'
+_HELLO_MESSAGE = b'\1'
 
 
 def json_default_repr(obj):

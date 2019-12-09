@@ -155,7 +155,7 @@ class TestInputHTTPTestlog(unittest.TestCase):
         'serialNumbers': {'serial_number': 'Test SN'},
         'attachments': {
             'att_key1': {'path': '/path/to/file', 'mimeType': 'text/plain'}}})
-    with open(self.core.emit_calls[1][0].attachments['att_key1']) as f:
+    with open(self.core.emit_calls[1][0].attachments['att_key1'], 'rb') as f:
       self.assertEqual(att1, f.read())
 
     # Test complex Testlog event without attachment.
@@ -286,7 +286,7 @@ class TestInputHTTPTestlog(unittest.TestCase):
     # The time field is corrected.
     event['time'] = self.core.emit_calls[0][0].payload['time']
     self.assertEqual(event.payload, self.core.emit_calls[0][0].payload)
-    with open(self.core.emit_calls[0][0].attachments['att_key1']) as f:
+    with open(self.core.emit_calls[0][0].attachments['att_key1'], 'rb') as f:
       self.assertEqual(att1, f.read())
 
   def testTestlogEventWithoutAttachments(self):

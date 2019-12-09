@@ -100,6 +100,8 @@ class Event(json_utils.Serializable):
   @classmethod
   def Deserialize(cls, json_string):
     """Deserializes an Event object given as a JSON string."""
+    if isinstance(json_string, bytes):
+      json_string = json_string.decode('utf-8')
     obj = json_utils.decoder.decode(json_string)
 
     # json_string = '{"__type__": "Event", "payload": {payload}, '

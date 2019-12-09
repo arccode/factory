@@ -29,11 +29,11 @@ class N1914A(agilent_scpi.AgilentSCPI):
   # Format related methods.
   def SetAsciiFormat(self):
     """Sets the numeric data transferred over SCPI to ASCII."""
-    self.Send('FORM ASCii')
+    self.Send(b'FORM ASCii')
 
   def SetRealFormat(self):
     """Sets the numeric data transferred over SCPI to binary."""
-    self.Send('FORM REAL')
+    self.Send(b'FORM REAL')
 
   # Sampling setting related methods.
   def ToNormalMode(self, port):
@@ -55,11 +55,11 @@ class N1914A(agilent_scpi.AgilentSCPI):
       port: the port to set.
       mode: the mode, should be one of FAST, DOUBLE or NORMAL.
     """
-    mode_mapping = {'FAST': 'FAST',
-                    'DOUBLE': 'DOUBle',
-                    'NORMAL': 'NORMal'}
+    mode_mapping = {'FAST': b'FAST',
+                    'DOUBLE': b'DOUBle',
+                    'NORMAL': b'NORMal'}
     assert mode in mode_mapping.keys()
-    self.Send('SENSe%d:MRATe %s' % (port, mode_mapping[mode]))
+    self.Send(b'SENSe%d:MRATe %s' % (port, mode_mapping[mode]))
 
   # Range related methods.
   def SetRange(self, port, range_setting=None):
@@ -75,10 +75,10 @@ class N1914A(agilent_scpi.AgilentSCPI):
     """
     assert range_setting in [None, 0, 1]
     if range_setting is None:
-      self.Send('SENSe%d:POWer:AC:RANGe:AUTO 1' % port)
+      self.Send(b'SENSe%d:POWer:AC:RANGe:AUTO 1' % port)
     else:
-      self.Send(['SENSe%d:POWer:AC:RANGe:AUTO 0' % port,
-                 'SENSe%d:POWer:AC:RANGe %d' % (port, range_setting)])
+      self.Send([b'SENSe%d:POWer:AC:RANGe:AUTO 0' % port,
+                 b'SENSe%d:POWer:AC:RANGe %d' % (port, range_setting)])
 
   # Average related methods.
   def SetAverageFilter(self, port, avg_length):
@@ -93,39 +93,39 @@ class N1914A(agilent_scpi.AgilentSCPI):
     """
     if avg_length is None:
       # Disable the average filter.
-      self.Send('SENSe%d:AVERage:STATe 0' % port)
+      self.Send(b'SENSe%d:AVERage:STATe 0' % port)
     else:
-      self.Send('SENSe%d:AVERage:STATe 1' % port)
+      self.Send(b'SENSe%d:AVERage:STATe 1' % port)
       if avg_length > 0:
-        self.Send(['SENSe%d:AVERage:COUNt:AUTO 0' % port,
-                   'SENSe%d:AVERage:COUNt %d' % (port, avg_length)])
+        self.Send([b'SENSe%d:AVERage:COUNt:AUTO 0' % port,
+                   b'SENSe%d:AVERage:COUNt %d' % (port, avg_length)])
       elif avg_length == -1:
         # Use built-in auto average feature.
-        self.Send('SENSe%d:AVERage:COUNt:AUTO 1' % port)
+        self.Send(b'SENSe%d:AVERage:COUNt:AUTO 1' % port)
       else:
         raise ValueError('Invalid avg_length setting [%s]' % avg_length)
 
   # Frequency related methods.
   def SetMeasureFrequency(self, port, freq):
-    self.Send(['SENSe%d:FREQuency %s' % (port, freq),
-               'SENSe%d:CORRection:GAIN2:STATe 0' % port])
+    self.Send([b'SENSe%d:FREQuency %s' % (port, freq),
+               b'SENSe%d:CORRection:GAIN2:STATe 0' % port])
 
   # Trigger related methods.
   def SetContinuousTrigger(self, port):
     """Sets the trigger to repeatedly active."""
-    self.Send(['INITiate%d:CONTinuous ON' % port])
+    self.Send([b'INITiate%d:CONTinuous ON' % port])
 
   def SetOnetimeTrigger(self, port):
     """Sets the trigger to active only once."""
-    self.Send(['INITiate%d:CONTinuous OFF' % port])
+    self.Send([b'INITiate%d:CONTinuous OFF' % port])
 
   def SetTriggerToFreeRun(self, port):
     """Sets unconditional trigger (i.e. FreeRun mode)."""
-    self.Send(['TRIGger%d:SOURce IMMediate' % port])
+    self.Send([b'TRIGger%d:SOURce IMMediate' % port])
 
   def EnableTriggerImmediately(self, port):
     """Forces to trigger immediately."""
-    self.Send(['INITiate%d:IMMediate' % port])
+    self.Send([b'INITiate%d:IMMediate' % port])
 
   def GetMACAddress(self):
     """Returns the mac address of N1914A."""
@@ -146,7 +146,7 @@ class N1914A(agilent_scpi.AgilentSCPI):
       return struct.unpack('>d', binary_array)[0]
 
     ret = self.QueryWithoutErrorChecking(
-        'FETCh%d?' % port, 8, formatter=UnpackBinaryInDouble)
+        b'FETCh%d?' % port, 8, formatter=UnpackBinaryInDouble)
     return ret
 
   def MeasureInBinary(self, port, avg_length):

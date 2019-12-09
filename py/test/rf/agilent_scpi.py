@@ -10,8 +10,8 @@ class AgilentSCPI(lan_scpi.LANSCPI):
 
   def __init__(self, expected_model, *args, **kwargs):
     super(AgilentSCPI, self).__init__(*args, **kwargs)
-    self.id_fields = [x.strip() for x in self.id.split(',')]
-    model = self.id_fields[1]
+    self.id_fields = [x.strip() for x in self.id.split(b',')]
+    model = self.id_fields[1].decode('utf-8')
     if model != expected_model:
       raise lan_scpi.Error('Expected model %s but got %s' % (
           expected_model, model))

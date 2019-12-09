@@ -131,7 +131,7 @@ class GoofyWebRequestHandler(
     self.send_header('Content-Type', mime_type)
     self.send_header('Content-Length', os.path.getsize(local_path))
     self.end_headers()
-    with open(local_path) as f:
+    with open(local_path, 'rb') as f:
       shutil.copyfileobj(f, self.wfile)
 
 
@@ -258,6 +258,9 @@ class GoofyServer(socketserver.ThreadingMixIn,
       logging.warning('Expired generated data')
       handler.send_response(404)
       return
+
+    if isinstance(data, str):
+      data = data.encode('utf-8')
 
     handler.send_response(200)
     handler.send_header('Content-Type', mime_type)

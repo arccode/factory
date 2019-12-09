@@ -21,9 +21,9 @@ import unittest
 from cros.factory.test.rf.n1914a import N1914A
 from cros.factory.utils import net_utils
 
-NORMAL_ERR_RESPONSE = '+0,"No error"\n'
-NORMAL_ESR_REGISTER = '+0\n'
-NORMAL_OPC_RESPONSE = '+1\n'
+NORMAL_ERR_RESPONSE = b'+0,"No error"\n'
+NORMAL_ESR_REGISTER = b'+0\n'
+NORMAL_OPC_RESPONSE = b'+1\n'
 
 
 class MockTestServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -47,23 +47,23 @@ class MockServerHandler(socketserver.StreamRequestHandler):
   @classmethod
   def AddCommandsLookup(cls, commands, wait=True):
     """Wrapper for adding commands."""
-    if isinstance(commands, str):
+    if isinstance(commands, bytes):
       commands = [commands]
 
-    cls.AddLookup('*CLS', None)
+    cls.AddLookup(b'*CLS', None)
     for command in commands:
       cls.AddLookup(command, None)
-      cls.AddLookup('SYST:ERR?', NORMAL_ERR_RESPONSE)
+      cls.AddLookup(b'SYST:ERR?', NORMAL_ERR_RESPONSE)
     if wait:
-      cls.AddLookup('*OPC?', NORMAL_OPC_RESPONSE)
+      cls.AddLookup(b'*OPC?', NORMAL_OPC_RESPONSE)
 
   @classmethod
   def AddQueryLookup(cls, command, response):
     """Wrapper for adding a success query."""
-    cls.AddLookup('*CLS', None)
-    cls.AddLookup(command, response + '\n')
-    cls.AddLookup('*ESR?', NORMAL_ESR_REGISTER)
-    cls.AddLookup('SYST:ERR?', NORMAL_ERR_RESPONSE)
+    cls.AddLookup(b'*CLS', None)
+    cls.AddLookup(command, response + b'\n')
+    cls.AddLookup(b'*ESR?', NORMAL_ESR_REGISTER)
+    cls.AddLookup(b'SYST:ERR?', NORMAL_ERR_RESPONSE)
 
   @classmethod
   def ResetLookup(cls):
@@ -75,7 +75,7 @@ class MockServerHandler(socketserver.StreamRequestHandler):
 
   def handle(self):
     while True:
-      line = self.rfile.readline().rstrip('\n')
+      line = self.rfile.readline().rstrip(b'\n')
       if not line:
         break
       expected_input, output = self.lookup.pop(0)
@@ -88,21 +88,22 @@ class MockServerHandler(socketserver.StreamRequestHandler):
 
 
 class N1914ATest(unittest.TestCase):
-  EXPECTED_MODEL = 'Agilent Technologies,N1914A,MY50001187,A2.01.06'
+  EXPECTED_MODEL = b'Agilent Technologies,N1914A,MY50001187,A2.01.06'
   HOST = net_utils.LOCALHOST
 
   # FETCH1_EXPECTED_RESPONSE is the IEEE 754 64 bit floating
   # point representation of FETCH1_EXPECTED_RESPONSE
-  FETCH1_EXPECTED_RESPONSE = str(bytearray([192, 80, 67, 70, 215, 23, 57, 14]))
+  FETCH1_EXPECTED_RESPONSE = bytes(
+      bytearray([192, 80, 67, 70, 215, 23, 57, 14]))
   FETCH1_EXPECTED_VALUE = -65.05119874255999
 
   def _AddInitialLookup(self):
     """Adds necessary lookup for every connection."""
     MockServerHandler.ResetLookup()
-    MockServerHandler.AddLookup('*CLS', None)
-    MockServerHandler.AddLookup('*IDN?', self.EXPECTED_MODEL + '\n')
-    MockServerHandler.AddLookup('*ESR?', NORMAL_ESR_REGISTER)
-    MockServerHandler.AddLookup('SYST:ERR?', NORMAL_ERR_RESPONSE)
+    MockServerHandler.AddLookup(b'*CLS', None)
+    MockServerHandler.AddLookup(b'*IDN?', self.EXPECTED_MODEL + b'\n')
+    MockServerHandler.AddLookup(b'*ESR?', NORMAL_ESR_REGISTER)
+    MockServerHandler.AddLookup(b'SYST:ERR?', NORMAL_ERR_RESPONSE)
 
   def _StartMockServer(self):
     """Starts a thread for the mock equipment."""
@@ -122,9 +123,9 @@ class N1914ATest(unittest.TestCase):
     self.n1914a = N1914A(host=self.HOST, port=self.server_port, delay=0)
 
   def testSetAsciiFormat(self):
-    QUERY = 'FORM?'
-    EXPECTED_RESPONSE = 'ASC'
-    MockServerHandler.AddCommandsLookup(['FORM ASCii'])
+    QUERY = b'FORM?'
+    EXPECTED_RESPONSE = b'ASC'
+    MockServerHandler.AddCommandsLookup([b'FORM ASCii'])
     MockServerHandler.AddQueryLookup(QUERY, EXPECTED_RESPONSE)
 
     self._StartTest()
@@ -132,9 +133,9 @@ class N1914ATest(unittest.TestCase):
     self.assertEqual(self.n1914a.Query(QUERY), EXPECTED_RESPONSE)
 
   def testSetRealFormat(self):
-    QUERY = 'FORM?'
-    EXPECTED_RESPONSE = 'REAL'
-    MockServerHandler.AddCommandsLookup(['FORM REAL'])
+    QUERY = b'FORM?'
+    EXPECTED_RESPONSE = b'REAL'
+    MockServerHandler.AddCommandsLookup([b'FORM REAL'])
     MockServerHandler.AddQueryLookup(QUERY, EXPECTED_RESPONSE)
 
     self._StartTest()
@@ -147,9 +148,9 @@ class N1914ATest(unittest.TestCase):
     self.assertEqual(self.n1914a.id, self.EXPECTED_MODEL)
 
   def testToNormalMode(self):
-    QUERY = 'SENSe1:MRATe?'
-    EXPECTED_RESPONSE = 'NORM'
-    MockServerHandler.AddCommandsLookup(['SENSe1:MRATe NORMal'])
+    QUERY = b'SENSe1:MRATe?'
+    EXPECTED_RESPONSE = b'NORM'
+    MockServerHandler.AddCommandsLookup([b'SENSe1:MRATe NORMal'])
     MockServerHandler.AddQueryLookup(QUERY, EXPECTED_RESPONSE)
 
     self._StartTest()
@@ -157,9 +158,9 @@ class N1914ATest(unittest.TestCase):
     self.assertEqual(self.n1914a.Query(QUERY), EXPECTED_RESPONSE)
 
   def testToDoubleMode(self):
-    QUERY = 'SENSe1:MRATe?'
-    EXPECTED_RESPONSE = 'DOUB'
-    MockServerHandler.AddCommandsLookup(['SENSe1:MRATe DOUBle'])
+    QUERY = b'SENSe1:MRATe?'
+    EXPECTED_RESPONSE = b'DOUB'
+    MockServerHandler.AddCommandsLookup([b'SENSe1:MRATe DOUBle'])
     MockServerHandler.AddQueryLookup(QUERY, EXPECTED_RESPONSE)
 
     self._StartTest()
@@ -167,9 +168,9 @@ class N1914ATest(unittest.TestCase):
     self.assertEqual(self.n1914a.Query(QUERY), EXPECTED_RESPONSE)
 
   def testToFastMode(self):
-    QUERY = 'SENSe1:MRATe?'
-    EXPECTED_RESPONSE = 'FAST'
-    MockServerHandler.AddCommandsLookup(['SENSe1:MRATe FAST'])
+    QUERY = b'SENSe1:MRATe?'
+    EXPECTED_RESPONSE = b'FAST'
+    MockServerHandler.AddCommandsLookup([b'SENSe1:MRATe FAST'])
     MockServerHandler.AddQueryLookup(QUERY, EXPECTED_RESPONSE)
 
     self._StartTest()
@@ -177,16 +178,16 @@ class N1914ATest(unittest.TestCase):
     self.assertEqual(self.n1914a.Query(QUERY), EXPECTED_RESPONSE)
 
   def testSetRange(self):
-    QUERY1 = 'SENSe1:POWer:AC:RANGe:AUTO?'
-    EXPECTED_RESPONSE_ENABLE = '1'
-    EXPECTED_RESPONSE_DISABLE = '0'
-    QUERY2 = 'SENSe1:POWer:AC:RANGe?'
-    EXPECTED_RESPONSE_2 = '+0'
+    QUERY1 = b'SENSe1:POWer:AC:RANGe:AUTO?'
+    EXPECTED_RESPONSE_ENABLE = b'1'
+    EXPECTED_RESPONSE_DISABLE = b'0'
+    QUERY2 = b'SENSe1:POWer:AC:RANGe?'
+    EXPECTED_RESPONSE_2 = b'+0'
 
-    MockServerHandler.AddCommandsLookup(['SENSe1:POWer:AC:RANGe:AUTO 1'])
+    MockServerHandler.AddCommandsLookup([b'SENSe1:POWer:AC:RANGe:AUTO 1'])
     MockServerHandler.AddQueryLookup(QUERY1, EXPECTED_RESPONSE_ENABLE)
     MockServerHandler.AddCommandsLookup(
-        ['SENSe1:POWer:AC:RANGe:AUTO 0', 'SENSe1:POWer:AC:RANGe 0'])
+        [b'SENSe1:POWer:AC:RANGe:AUTO 0', b'SENSe1:POWer:AC:RANGe 0'])
     MockServerHandler.AddQueryLookup(QUERY1, EXPECTED_RESPONSE_DISABLE)
     MockServerHandler.AddQueryLookup(QUERY2, EXPECTED_RESPONSE_2)
 
@@ -201,19 +202,19 @@ class N1914ATest(unittest.TestCase):
     # TODO(itspeter): test if assertion will be trigger for invalid parameter.
 
   def testSetAverageFilter(self):
-    QUERY1 = 'SENSe1:AVERage:STATe?'
-    EXPECTED_RESPONSE_ENABLE = '1'
-    EXPECTED_RESPONSE_DISABLE = '0'
-    QUERY2 = 'SENSe1:AVERage:COUNt:AUTO?'
-    QUERY3 = 'SENSe1:AVERage:COUNt?'
-    EXPECTED_RESPONSE_3 = '+100'
+    QUERY1 = b'SENSe1:AVERage:STATe?'
+    EXPECTED_RESPONSE_ENABLE = b'1'
+    EXPECTED_RESPONSE_DISABLE = b'0'
+    QUERY2 = b'SENSe1:AVERage:COUNt:AUTO?'
+    QUERY3 = b'SENSe1:AVERage:COUNt?'
+    EXPECTED_RESPONSE_3 = b'+100'
 
-    MockServerHandler.AddCommandsLookup(['SENSe1:AVERage:STATe 0'])
+    MockServerHandler.AddCommandsLookup([b'SENSe1:AVERage:STATe 0'])
     MockServerHandler.AddQueryLookup(QUERY1, EXPECTED_RESPONSE_DISABLE)
 
-    MockServerHandler.AddCommandsLookup(['SENSe1:AVERage:STATe 1'])
+    MockServerHandler.AddCommandsLookup([b'SENSe1:AVERage:STATe 1'])
     MockServerHandler.AddCommandsLookup(
-        ['SENSe1:AVERage:COUNt:AUTO 0', 'SENSe1:AVERage:COUNt 100'])
+        [b'SENSe1:AVERage:COUNt:AUTO 0', b'SENSe1:AVERage:COUNt 100'])
 
     MockServerHandler.AddQueryLookup(QUERY1, EXPECTED_RESPONSE_ENABLE)
     MockServerHandler.AddQueryLookup(QUERY2, EXPECTED_RESPONSE_DISABLE)
@@ -229,17 +230,17 @@ class N1914ATest(unittest.TestCase):
     self.assertEqual(self.n1914a.Query(QUERY3), EXPECTED_RESPONSE_3)
 
   def testMeasureOnceInBinary(self):
-    MockServerHandler.AddLookup('FETCh1?',
-                                self.FETCH1_EXPECTED_RESPONSE + '\n')
+    MockServerHandler.AddLookup(b'FETCh1?',
+                                self.FETCH1_EXPECTED_RESPONSE + b'\n')
     self._StartTest()
     power = self.n1914a.MeasureOnceInBinary(port=1)
     self.assertAlmostEqual(power, self.FETCH1_EXPECTED_VALUE)
 
   def testMeasureInBinary(self):
-    MockServerHandler.AddLookup('FETCh1?',
-                                self.FETCH1_EXPECTED_RESPONSE + '\n')
-    MockServerHandler.AddLookup('FETCh1?',
-                                self.FETCH1_EXPECTED_RESPONSE + '\n')
+    MockServerHandler.AddLookup(b'FETCh1?',
+                                self.FETCH1_EXPECTED_RESPONSE + b'\n')
+    MockServerHandler.AddLookup(b'FETCh1?',
+                                self.FETCH1_EXPECTED_RESPONSE + b'\n')
     self._StartTest()
     power = self.n1914a.MeasureInBinary(port=1, avg_length=2)
     self.assertAlmostEqual(power, self.FETCH1_EXPECTED_VALUE)

@@ -223,7 +223,7 @@ class InputSocketReceiver(log_utils.LoggerMixin):
 
   def RecvItem(self):
     """Returns the next item in socket stream."""
-    buf = ''
+    buf = b''
     while True:
       data = self._conn.recv(1)
       if not data:
@@ -257,12 +257,12 @@ class InputSocketReceiver(log_utils.LoggerMixin):
     # Verify SHA1 checksum.
     remote_checksum = self.RecvItem()
     local_checksum = local_hash.hexdigest()
-    if remote_checksum != local_checksum:
+    if remote_checksum.decode('utf-8') != local_checksum:
       raise ChecksumError
 
   def RecvField(self):
     """Returns the next field in socket stream."""
-    buf = ''
+    buf = b''
     for unused_progress, field in self.RecvFieldParts():
       buf += field
     return buf
@@ -277,7 +277,7 @@ class InputSocketReceiver(log_utils.LoggerMixin):
     # Retrieve the event itself.
     event_field = self.RecvField()
     total_bytes += len(event_field)
-    event = datatypes.Event.Deserialize(event_field)
+    event = datatypes.Event.Deserialize(event_field.decode('utf-8'))
 
     # An event is followed by its number of attachments.
     num_atts = self.RecvInt()
@@ -301,7 +301,8 @@ class InputSocketReceiver(log_utils.LoggerMixin):
       A tuple with (total bytes received, temporary path).
     """
     progress = 0
-    with tempfile.NamedTemporaryFile('w', dir=self._tmp_dir, delete=False) as f:
+    with tempfile.NamedTemporaryFile('wb', dir=self._tmp_dir,
+                                     delete=False) as f:
       for progress, bin_part in self.RecvFieldParts():
         f.write(bin_part)
       return progress, f.name

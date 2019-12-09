@@ -132,8 +132,8 @@ class TestOutputHTTP(unittest.TestCase):
     self.assertEqual(output_event2.attachments, {'my_attachment': 'file1_001'})
     self.assertEqual(output_event3.payload, event3.payload)
     self.assertEqual(output_event3.attachments, {})
-    self.assertEqual(q.get(), ['!' * 10])
-    self.assertEqual(q.get(), ['@' * 10])
+    self.assertEqual(q.get(), [b'!' * 10])
+    self.assertEqual(q.get(), [b'@' * 10])
     httpd.shutdown()
 
 

@@ -103,7 +103,7 @@ class GoofyServerTest(unittest.TestCase):
     self.assertTrue(instance.called)
 
   def testAddHTTPGetHandler(self):
-    data = '<html><body><h1>Hello</h1></body></html>'
+    data = b'<html><body><h1>Hello</h1></body></html>'
     mime_type = 'text/html'
 
     def MyHandler(handler):
@@ -122,9 +122,9 @@ class GoofyServerTest(unittest.TestCase):
     response.close()
 
   def testRegisterPath(self):
-    data = '<html><body><h1>Hello</h1></body></html>'
+    data = b'<html><body><h1>Hello</h1></body></html>'
     with file_utils.TempDirectory() as path:
-      with open(os.path.join(path, 'index.html'), 'w') as f:
+      with open(os.path.join(path, 'index.html'), 'wb') as f:
         f.write(data)
 
       self.server.RegisterPath('/', path)
@@ -135,7 +135,7 @@ class GoofyServerTest(unittest.TestCase):
       response.close()
 
       # Check svg mime type
-      with open(os.path.join(path, 'test.svg'), 'w') as f:
+      with open(os.path.join(path, 'test.svg'), 'wb') as f:
         f.write(data)
       response = urllib.request.urlopen(
           'http://%s:%d/test.svg' % (net_utils.LOCALHOST, self.port))
@@ -144,7 +144,7 @@ class GoofyServerTest(unittest.TestCase):
       response.close()
 
   def testURLForData(self):
-    data = '<html><body><h1>Hello</h1></body></html>'
+    data = b'<html><body><h1>Hello</h1></body></html>'
 
     url = self.server.URLForData('text/html', data)
 
@@ -155,7 +155,7 @@ class GoofyServerTest(unittest.TestCase):
     response.close()
 
   def testRegisterData(self):
-    data = u'<html><body><h1>Hello</h1></body></html>'
+    data = b'<html><body><h1>Hello</h1></body></html>'
 
     url = '/some/page.html'
     self.server.RegisterData(url, 'text/html', data)
@@ -196,7 +196,7 @@ class GoofyServerTest(unittest.TestCase):
     response = urllib.request.urlopen(
         'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, url))
     self.assertEqual(200, response.getcode())
-    self.assertEqual(data, response.read())
+    self.assertEqual(data, response.read().decode('utf-8'))
     response.close()
 
   def testURLForFile(self):
@@ -209,7 +209,7 @@ class GoofyServerTest(unittest.TestCase):
       response = urllib.request.urlopen(
           'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, url))
       self.assertEqual(200, response.getcode())
-      self.assertEqual(data, response.read())
+      self.assertEqual(data, response.read().decode('utf-8'))
       response.close()
 
   def testURLForDataExpire(self):
@@ -220,7 +220,7 @@ class GoofyServerTest(unittest.TestCase):
     response = urllib.request.urlopen(
         'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, url))
     self.assertEqual(200, response.getcode())
-    self.assertEqual(data, response.read())
+    self.assertEqual(data, response.read().decode('utf-8'))
     response.close()
 
     time.sleep(1)
