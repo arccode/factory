@@ -5,6 +5,7 @@
 """Fake time to be used in unittest using mock library."""
 
 import inspect
+from itertools import count
 import queue
 import threading
 import time
@@ -27,6 +28,7 @@ class TimeLine(object):
   def __init__(self):
     self._fake_time = 0
     self._events = queue.PriorityQueue()
+    self._unique_id = count()
 
   def AddEvent(self, time_at, event_func):
     """Add an event that would happen at a particular time.
@@ -41,7 +43,7 @@ class TimeLine(object):
     if time_at < self._fake_time:
       raise ValueError('AddEvent add a past event, time_at = %s, time = %s' %
                        (time_at, self._fake_time))
-    self._events.put((time_at, event_func))
+    self._events.put((time_at, next(self._unique_id), event_func))
 
   def GetTime(self):
     """Get the current time."""
@@ -75,7 +77,7 @@ class TimeLine(object):
 
     while not condition():
       try:
-        event_time, event_func = self._events.get_nowait()
+        event_time, unique_id, event_func = self._events.get_nowait()
       except queue.Empty:
         if end_time is None:
           # Set time to inf so following AddEvent would fail.
@@ -88,7 +90,7 @@ class TimeLine(object):
 
       if end_time is not None and event_time > end_time:
         self._fake_time = end_time
-        self._events.put((event_time, event_func))
+        self._events.put((event_time, unique_id, event_func))
         break
 
       self._fake_time = event_time

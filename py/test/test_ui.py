@@ -9,6 +9,7 @@ from __future__ import print_function
 import cgi
 import collections
 import functools
+from itertools import count
 import json
 import logging
 import os
@@ -57,7 +58,7 @@ _HANDLER_WARN_TIME_LIMIT = 5
 _EVENT_LOOP_THREAD_NAME = 'TestEventLoopThread'
 _EVENT_LOOP_PROBE_INTERVAL = 0.1
 _TimedHandlerEvent = collections.namedtuple(
-    '_TimedHandlerEvent', ['next_time', 'handler', 'interval'])
+    '_TimedHandlerEvent', ['next_time', 'unique_id', 'handler', 'interval'])
 
 
 class EventLoop(object):
@@ -71,6 +72,7 @@ class EventLoop(object):
     self.event_handlers = {}
     self._handler_exception_hook = handler_exception_hook
     self._timed_handler_event_queue = queue.PriorityQueue()
+    self._unique_id = count()
 
   def AddEventHandler(self, subtype, handler):
     """Adds an event handler.
@@ -143,6 +145,7 @@ class EventLoop(object):
             self._timed_handler_event_queue.put(
                 _TimedHandlerEvent(
                     next_time=time.time() + timed_handler_event.interval,
+                    unique_id=timed_handler_event.unique_id,
                     handler=timed_handler_event.handler,
                     interval=timed_handler_event.interval))
         else:
@@ -181,6 +184,7 @@ class EventLoop(object):
     self._timed_handler_event_queue.put(
         _TimedHandlerEvent(
             next_time=time.time() + (0 if repeat else time_sec),
+            unique_id=next(self._unique_id),
             handler=handler,
             interval=time_sec if repeat else None))
 
