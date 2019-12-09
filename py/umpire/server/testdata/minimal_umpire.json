@@ -7,7 +7,7 @@
     }
   ],
   "services": {
-    "http": {
+    "umpire_http": {
       "reverse_proxies": [
         {
           "proxy_addr": "192.168.51.1:8080",

@@ -11,7 +11,7 @@ import unittest
 from six import assertRegex
 
 from cros.factory.umpire.server import config as umpire_config
-from cros.factory.umpire.server.service import http
+from cros.factory.umpire.server.service import umpire_http
 from cros.factory.umpire.server import umpire_env
 
 
@@ -25,7 +25,7 @@ class HTTPServiceTest(unittest.TestCase):
 
   def testGenerateLightyConfig(self):
     umpire_config_dict = {
-        'services': {'http': {
+        'services': {'umpire_http': {
             'reverse_proxies': [
                 {'remoteip': '192.168.51.0/24',
                  'proxy_addr': '192.168.51.1:8080'},
@@ -37,7 +37,7 @@ class HTTPServiceTest(unittest.TestCase):
             'payloads': 'payload.99914b932bd37a50b983c5e7c90ae93b.json'}],
         'active_bundle_id': 'default'}
     self.env.config = umpire_config.UmpireConfig(umpire_config_dict)
-    config_path = http.HTTPService.GenerateNginxConfig(
+    config_path = umpire_http.HTTPService.GenerateNginxConfig(
         umpire_config_dict, self.env)
 
     assertRegex(

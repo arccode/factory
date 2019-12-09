@@ -8,7 +8,7 @@
     }
   ],
   "services": {
-    "http": {
+    "umpire_http": {
       "reverse_proxies": [
         {
           "proxy_addr": "11.22.33.44",

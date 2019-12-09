@@ -29,7 +29,7 @@
     }
   ],
   "services": {
-    "http": {},
+    "umpire_http": {},
     "rsync": {},
     "shop_floor": {}
   }

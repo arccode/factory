@@ -31,7 +31,8 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
 # A list of all available umpire services
-_SERVICE_LIST = ['http', 'rsync', 'shop_floor', 'instalog', 'overlord', 'dkps']
+_SERVICE_LIST = ['umpire_http', 'rsync', 'shop_floor', 'instalog', 'overlord',
+                 'dkps']
 # Service package path
 _SERVICE_PACKAGE = 'cros.factory.umpire.server.service'
 # Service restart within _STARTTIME_LIMIT seconds is considered abnormal.

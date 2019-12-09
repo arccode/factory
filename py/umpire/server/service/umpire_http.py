@@ -140,7 +140,7 @@ class HTTPService(umpire_service.UmpireService):
       None if a nginx config failed to generate.
     """
     if ('services' not in umpire_config or
-        'http' not in umpire_config['services']):
+        'umpire_http' not in umpire_config['services']):
       return None
 
     with file_utils.UnopenedTemporaryFile() as temp_path:
@@ -169,7 +169,7 @@ class HTTPService(umpire_service.UmpireService):
     def _append_to_handlers(location_rule, port, changed_path=''):
       umpire_proxy_handlers.append((location_rule, port, changed_path))
 
-    http_config = umpire_config['services']['http']
+    http_config = umpire_config['services']['umpire_http']
     httpd_port = int(env.umpire_base_port)
 
     # Umpire common RPCs
