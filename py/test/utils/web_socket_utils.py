@@ -52,7 +52,8 @@ def WebSocketHandshake(request):
   request.send_header('Connection', 'Upgrade')
   request.send_header(
       'Sec-WebSocket-Accept',
-      base64.b64encode(hashlib.sha1(encoded_key + ws4py.WS_KEY).digest()))
+      base64.b64encode(hashlib.sha1(
+          encoded_key + ws4py.WS_KEY).digest()).decode('utf-8'))
   request.end_headers()
   request.wfile.flush()
 

@@ -67,7 +67,8 @@ class SystemInterface(object):
           f.seek(skip)
         except IOError:
           f.read(skip)
-      return f.read() if count is None else f.read(count)
+      x = f.read() if count is None else f.read(count)
+      return x.decode('utf-8')
 
   def WriteFile(self, path, content):
     """Writes some content into file on target device.
@@ -204,7 +205,7 @@ class SystemInterface(object):
     Raises:
       CalledProcessError if the exit code is non-zero.
     """
-    with tempfile.TemporaryFile('w+') as stdout:
+    with tempfile.TemporaryFile('w+', encoding='utf-8') as stdout:
       exit_code = self.Call(
           command, stdin=stdin, stdout=stdout, stderr=stderr, cwd=cwd, log=log)
       stdout.flush()

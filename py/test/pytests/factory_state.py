@@ -195,7 +195,7 @@ class ManipulateFactoryStateLayer(unittest.TestCase):
     serialized_data = source.SerializeLayer(
         layer_index=-1, include_data=True, include_tests=True)
     layer = state.FactoryStateLayer()
-    layer.Loads(str(serialized_data))
+    layer.Loads(serialized_data)
 
     # Only pack device data.
     # TODO(stimim): refactor state.py to make this more clear.

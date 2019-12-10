@@ -242,7 +242,8 @@ class EventLogTest(unittest.TestCase):
     except Exception:
       pass
 
-    log_data = list(yaml.load_all(open(event_log.EVENTS_PATH, 'r')))
+    log_data = list(yaml.load_all(open(event_log.EVENTS_PATH, 'r',
+                                       encoding='utf-8')))
     self.assertEqual(6, len(log_data))
     # The last one should be empty; remove it
     self.assertIsNone(None, log_data[-1])
@@ -275,8 +276,6 @@ class EventLogTest(unittest.TestCase):
              SEQ=1,
              LOG_ID=log_id,
              PREFIX='test:test'))
-    # Yaml loader converts non-ASCII strings to unicode.
-    event0['g'] = event0['h']
     self.assertEqual(event0, log_data[1])
     self.assertEqual(
         dict(EVENT='preamble',

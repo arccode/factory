@@ -822,8 +822,8 @@ class Gooftool(object):
 
     with scrub_exceptions('Error writing device secret to VPD'):
       self._vpd.UpdateData(
-          {'stable_device_secret_DO_NOT_SHARE': codecs.encode(secret_bytes,
-                                                              'hex')},
+          {'stable_device_secret_DO_NOT_SHARE':
+           codecs.encode(secret_bytes, 'hex').decode('utf-8')},
           partition=vpd.VPD_READONLY_PARTITION_NAME)
 
   def Cr50SetSnBits(self):

@@ -528,7 +528,7 @@ def PipeStdoutLines(process, callback, read_timeout=0.1):
 
     # Read a chunk of the process output. This should not block because of the
     # above select, and can return chunk with size < 4096.
-    data = os.read(process.stdout.fileno(), 4096)
+    data = str(os.read(process.stdout.fileno(), 4096), 'utf-8')
     if not data:
       return False
 

@@ -43,7 +43,7 @@ def _AddFirmwareIdTag(image, id_name='RO_FRID'):
   """Returns firmware ID in '#NAME' format if available."""
   if not image.has_section(id_name):
     return ''
-  id_stripped = image.get_section(id_name).strip(chr(0))
+  id_stripped = image.get_section(id_name).decode('utf-8').strip(chr(0))
   if id_stripped:
     return '#%s' % id_stripped
   return ''

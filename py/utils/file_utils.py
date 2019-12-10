@@ -193,7 +193,7 @@ def ReadLines(filename, dut=None):
   """
   try:
     if dut is None:
-      with open(filename) as f:
+      with open(filename, encoding='utf-8') as f:
         return f.readlines()
     else:
       return dut.ReadSpecialFile(filename).splitlines(True)
@@ -245,7 +245,7 @@ def TailFile(path, max_length=5 * 1024 * 1024, dut=None):
     offset = size - len(data.encode('utf-8'))
   else:
     offset = max(0, os.path.getsize(path) - max_length)
-    with open(path) as f:
+    with open(path, encoding='utf-8') as f:
       f.seek(offset)
       data = f.read()
 
@@ -581,7 +581,8 @@ def MD5InHex(path):
 
 def MD5InBase64(path):
   """Returns base64-encoded MD5 sum of given file."""
-  return base64.standard_b64encode(FileHash(path, 'md5').digest())
+  md5_sum = base64.standard_b64encode(FileHash(path, 'md5').digest())
+  return md5_sum.decode('utf-8')
 
 
 def SHA1InHex(path):
@@ -591,7 +592,8 @@ def SHA1InHex(path):
 
 def SHA1InBase64(path):
   """Returns base64-encoded SHA1 sum of given file."""
-  return base64.standard_b64encode(FileHash(path, 'sha1').digest())
+  sha1_sum = base64.standard_b64encode(FileHash(path, 'sha1').digest())
+  return sha1_sum.decode('utf-8')
 
 
 # Legacy function names for backwards compatibility.

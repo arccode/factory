@@ -287,7 +287,7 @@ class MountDeviceAndReadFileTest(unittest.TestCase):
 class TestLogMessagesTest(unittest.TestCase):
 
   def testGetVarLogMessages(self):
-    with tempfile.NamedTemporaryFile('w') as f:
+    with tempfile.NamedTemporaryFile('w', encoding='utf-8') as f:
       data = ("Captain's log.\xFF\n"  # \xFF = invalid UTF-8
               'We are in pursuit of a starship of Ferengi design.\n')
       f.write(('X' * 100) + '\n' + data)

@@ -141,7 +141,7 @@ class PyAstVisitor(ast.NodeVisitor):
   @classmethod
   def ParseFile(cls, filename, options):
     visitor = cls(options.py_keywords)
-    with open(filename) as fp:
+    with open(filename, encoding='utf-8') as fp:
       source = fp.read()
     try:
       node = ast.parse(source, filename)
@@ -227,7 +227,7 @@ class HTMLMessageParser(html.parser.HTMLParser, object):
   @classmethod
   def ParseFile(cls, filename, options):
     parser = cls(options.html_tags)
-    with open(filename) as fp:
+    with open(filename, encoding='utf-8') as fp:
       parser.feed(fp.read())
     parser.close()
     return parser.messages
@@ -241,7 +241,7 @@ def GetPotMessages(pot_filename):
   def ParseMsgId(msgid):
     return ''.join(Unescape(s[1:-1]) for s in msgid.splitlines(False))
 
-  with open(pot_filename) as fp:
+  with open(pot_filename, encoding='utf-8') as fp:
     pot = fp.read()
 
   match = re.findall(r"""
@@ -281,7 +281,7 @@ def ParseJSFiles(files, options):
 
 def ParseJSONTestList(filename, options):
   prefixes = options.json_prefixes
-  with open(filename, 'r') as fp:
+  with open(filename, 'r', encoding='utf-8') as fp:
     test_list = json.load(fp)
 
   messages = []

@@ -488,7 +488,7 @@ class FileHashTest(unittest.TestCase):
   def testLegacyMatchesSHA1InBase64(self):
     # Legacy method calculates the hash all at once.
     old_hash = base64.standard_b64encode(hashlib.sha1(
-        open(self.temp_file, 'rb').read()).digest())
+        open(self.temp_file, 'rb').read()).digest()).decode('utf-8')
     new_hash = file_utils.SHA1InBase64(self.temp_file)
     self.assertEqual(old_hash, new_hash)
 

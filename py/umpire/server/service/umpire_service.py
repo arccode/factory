@@ -276,14 +276,14 @@ class ServiceProcess(protocol.ProcessProtocol):
   def outReceived(self, data):
     """On stdout receive."""
     self._LogData(data)
-    self.messages.append(data)
+    self.messages.append(data.decode('utf-8'))
     if len(self.messages) > _MESSAGE_LINES:
       self.messages.pop(0)
 
   def errReceived(self, data):
     """On stderr receive."""
     self._LogData(data)
-    self.messages.append(data)
+    self.messages.append(data.decode('utf-8'))
     if len(self.messages) > _MESSAGE_LINES:
       self.messages.pop(0)
 

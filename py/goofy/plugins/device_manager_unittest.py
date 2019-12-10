@@ -19,18 +19,16 @@ class DeviceManagerTest(unittest.TestCase):
   @mock.patch('cros.factory.goofy.plugins.device_manager.sys_utils')
   def testGetVarLogMessages(self, sys_utils):
     var_log_messages = 'foo\xFF\nbar\n'
-    expected_output = u'foo\ufffd\nbar\n'
     sys_utils.GetVarLogMessages.return_value = var_log_messages
     data = self.dm.GetVarLogMessages()
-    self.assertEqual(expected_output, data.data)
+    self.assertEqual(var_log_messages, data.data)
 
   @mock.patch('cros.factory.goofy.plugins.device_manager.sys_utils')
   def testGetVarLogMessagesBeforeReboot(self, sys_utils):
     var_log_messages = 'foo\xFF\nbar\n'
-    expected_output = u'foo\ufffd\nbar\n'
     sys_utils.GetVarLogMessagesBeforeReboot.return_value = var_log_messages
     data = self.dm.GetVarLogMessagesBeforeReboot()
-    self.assertEqual(expected_output, data.data)
+    self.assertEqual(var_log_messages, data.data)
 
   @mock.patch.multiple('cros.factory.goofy.plugins.device_manager',
                        process_utils=mock.DEFAULT,

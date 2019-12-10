@@ -17,7 +17,6 @@ from cros.factory.goofy.plugins import plugin
 from cros.factory.test.i18n import _
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils import string_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
@@ -34,7 +33,7 @@ class DeviceManager(plugin.Plugin):
     """
     return plugin.MenuItem.ReturnData(
         action=plugin.MenuItem.Action.SHOW_IN_DIALOG,
-        data=string_utils.DecodeUTF8(sys_utils.GetVarLogMessages()))
+        data=sys_utils.GetVarLogMessages())
 
   def GetVarLogMessagesBeforeReboot(self):
     """Returns the last few lines in /var/log/messages before current boot.
@@ -43,9 +42,7 @@ class DeviceManager(plugin.Plugin):
       See sys_utils.GetVarLogMessagesBeforeReboot.
     """
     log = sys_utils.GetVarLogMessagesBeforeReboot()
-    if log:
-      log = string_utils.DecodeUTF8(log)
-    else:
+    if not log:
       log = 'Unable to find log message indicating reboot.'
 
     return plugin.MenuItem.ReturnData(

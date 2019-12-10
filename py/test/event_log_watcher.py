@@ -262,7 +262,8 @@ class EventLogWatcher(object):
       offset = 0
       if self._use_sync_markers:
         # Read in the file and set offset from the last sync marker.
-        with open(os.path.join(self._event_log_dir, log_name)) as f:
+        with open(os.path.join(self._event_log_dir, log_name),
+                  encoding='utf-8') as f:
           contents = f.read()
         # Set the offset to just after the last instance of
         # "\n#S\n---\n".
@@ -278,7 +279,8 @@ class EventLogWatcher(object):
       log_state = {KEY_OFFSET: offset}
       self._db[log_name] = log_state
 
-    with open(os.path.join(self._event_log_dir, log_name)) as f:
+    with open(os.path.join(self._event_log_dir, log_name),
+              encoding='utf-8') as f:
       f.seek(log_state[KEY_OFFSET])
 
       chunk = f.read()
