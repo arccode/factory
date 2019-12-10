@@ -532,7 +532,7 @@ class GooftoolTest(unittest.TestCase):
     f = MockFile()
     f.read = lambda: 'ja\nzh\nen'
     image_file = 'firmware'
-    self._gooftool._named_temporary_file().AndReturn(f)
+    self._gooftool._named_temporary_file('w+').AndReturn(f)
     self._gooftool._util.shell(
         'cbfstool %s extract -n locales -f %s -r COREBOOT' %
         (image_file, f.name))
@@ -553,7 +553,7 @@ class GooftoolTest(unittest.TestCase):
     f = MockFile()
     f.read = lambda: ''
     image_file = 'firmware'
-    self._gooftool._named_temporary_file().AndReturn(f)
+    self._gooftool._named_temporary_file('w+').AndReturn(f)
     self._gooftool._util.shell(
         'cbfstool %s extract -n locales -f %s -r COREBOOT'
         % (image_file, f.name))
@@ -581,7 +581,7 @@ class GooftoolTest(unittest.TestCase):
     # 'en'.
     f.read = lambda: 'ja\nzh\nfr'
     image_file = 'firmware'
-    self._gooftool._named_temporary_file().AndReturn(f)
+    self._gooftool._named_temporary_file('w+').AndReturn(f)
     self._gooftool._util.shell(
         'cbfstool %s extract -n locales -f %s -r COREBOOT' %
         (image_file, f.name))
