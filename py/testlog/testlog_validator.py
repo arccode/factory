@@ -24,7 +24,7 @@ class Validator(object):
 
   @staticmethod
   def Long(inst, key, value):
-    if not isinstance(value, (int, long)):
+    if not isinstance(value, int):
       raise ValueError(
           'key[%s] accepts type of int or long. Not %r '
           'Please convert before assign' % (key, type(value)))
@@ -32,7 +32,7 @@ class Validator(object):
 
   @staticmethod
   def Number(inst, key, value):
-    if isinstance(value, (int, long)):
+    if isinstance(value, int):
       value = float(value)
     if not isinstance(value, float):
       raise ValueError(

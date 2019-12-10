@@ -49,7 +49,7 @@ class IP(object):
     Args:
       obj: either string representation or integer representation of an IP.
     """
-    if isinstance(obj, (int, long)):
+    if isinstance(obj, int):
       if family == 4:
         self.family = socket.AF_INET
         self._ip = socket.inet_ntop(self.family, struct.pack('>I', obj))

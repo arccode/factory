@@ -1028,7 +1028,6 @@ class StationStatus(_StationBase):
   def _NumericSchema(cls, label):
     return schema.AnyOf([
         schema.Scalar(label, int),
-        schema.Scalar(label, long),
         schema.Scalar(label, float)])
 
   def _ValidatorSerialNumberWrapper(*args, **kwargs):
@@ -1083,7 +1082,7 @@ class StationStatus(_StationBase):
         raise ValueError('This should not happen!')
       if regex:
         value_dict['expectedRegex'] = regex
-    elif isinstance(value, (int, long, float)):
+    elif isinstance(value, (int, float)):
       value_dict['numericValue'] = value
       if regex:
         raise ValueError('This should not happen!')
@@ -1129,7 +1128,7 @@ class StationStatus(_StationBase):
 
     We use testlog_utils.IsInRange to perform the check.
     """
-    if not isinstance(value, (int, long, float)):
+    if not isinstance(value, (int, float)):
       raise ValueError('%r is not a numeric' % value)
 
     value_dict = StationStatus._CreateParamValueDict(value, min, max)
@@ -1373,7 +1372,7 @@ class StationTestRun(StationStatus):
     """Adds failures."""
     # TODO(itspeter): Unittest.
     # Get the numeric code unified into hex format.
-    if isinstance(code, (int, long)):
+    if isinstance(code, int):
       code = '0x%x' % code
     if not isinstance(code, str):
       raise ValueError('code(%r) should be a string or an integer' % code)

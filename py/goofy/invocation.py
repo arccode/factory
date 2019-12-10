@@ -583,7 +583,7 @@ class _TestInvocationTestLogHelper(object):
     if dargs:
       # Only allow types that can be natively expressed in JSON.
       flattened_dargs = testlog_utils.FlattenAttrs(
-          dargs, allow_types=(int, long, float, str, type(None)))
+          dargs, allow_types=(int, float, str, type(None)))
       for k, v in flattened_dargs:
         testlog_event.AddArgument(k, v)
     for k, v in iteritems(init_data['serialNumbers']):

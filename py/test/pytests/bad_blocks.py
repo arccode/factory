@@ -89,7 +89,7 @@ class BadBlocksTest(test_case.TestCase):
       Arg('device_path', str, 'Override the device path on which to test. '
           'Also functions as a file path for file and raw modes.',
           default=None),
-      Arg('max_bytes', (int, long), 'Maximum size to test, in bytes.',
+      Arg('max_bytes', int, 'Maximum size to test, in bytes.',
           default=None),
       Arg('max_errors', int, 'Stops testing after the given number of errors.',
           default=20),
@@ -400,10 +400,10 @@ class BadBlocksTest(test_case.TestCase):
 
     Args:
       file_path: String of the path to the file to generate.
-      file_bytes: Int/Long of the number of bytes to generate.
+      file_bytes: Int of the number of bytes to generate.
 
     Returns:
-      Int/Long of the number of bytes actually allocated.
+      Int of the number of bytes actually allocated.
 
     Raises:
       Assertion if the containing folder does not exist.
