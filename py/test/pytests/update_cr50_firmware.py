@@ -74,7 +74,6 @@ from distutils import version
 import functools
 import logging
 import os
-import re
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -89,9 +88,7 @@ from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
 
-GSCTOOL = '/usr/sbin/gsctool'
 DEFAULT_FIRMWARE_PATH = '/opt/google/cr50/firmware/cr50.bin.prod'
-BOARD_ID_FLAG_RE = re.compile(r'^IMAGE_BID_FLAGS=([0-9a-f]*)', re.MULTILINE)
 PREPVT_FLAG_MASK = 0x7F
 
 
