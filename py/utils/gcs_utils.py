@@ -10,8 +10,6 @@ import logging
 import os
 import sys
 
-from six import reraise as raise_
-
 from . import file_utils
 
 try:
@@ -31,7 +29,7 @@ except ImportError:
   new_exc = ImportError(
       'Please install these Python libraries before proceeding: '
       'google-cloud-storage==1.4.0 google-auth==1.0.2')
-  raise_(new_exc.__class__, new_exc, tb)
+  raise new_exc.__class__(new_exc).with_traceback(tb)
 
 
 _GCS_SCOPE = 'https://www.googleapis.com/auth/devstorage.read_write'

@@ -17,7 +17,6 @@ import tempfile
 import time
 
 from six import iteritems
-from six import reraise as raise_
 import yaml
 
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
@@ -807,7 +806,7 @@ class Gooftool(object):
         # value as it may contain the device secret.
         (exc_type, _, exc_traceback) = sys.exc_info()
         cause = '%s: %s' % (operation, exc_type)
-        raise_(Error, cause, exc_traceback)
+        raise Error(cause).with_traceback(exc_traceback)
 
     with scrub_exceptions('Error generating device secret'):
       # Generate the stable device secret and write it to VPD. Turn off logging,

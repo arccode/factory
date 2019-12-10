@@ -92,7 +92,6 @@ import sys
 import time
 
 from six import iteritems
-from six import reraise as raise_
 
 from cros.factory.device import CalledProcessError
 from cros.factory.device import device_utils
@@ -544,7 +543,7 @@ class _ServiceTest(object):
       exc_message = '%s: %s' % (exc.__class__.__name__, str(exc))
       new_exc = self._TestException('Unable to connect to %s: %s'
                                     % (ssid, exc_message))
-      raise_(new_exc.__class__, new_exc, tb)
+      raise new_exc.__class__(new_exc).with_traceback(tb)
     else:
       return 'Successfully connected to %s' % ssid
 

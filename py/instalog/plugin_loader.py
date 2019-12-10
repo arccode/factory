@@ -17,8 +17,6 @@ import inspect
 import logging
 import sys
 
-from six import reraise as raise_
-
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.utils import arg_utils
 
@@ -94,7 +92,7 @@ class PluginLoader(object):
     new_exc = plugin_base.LoadPluginError(
         'Plugin %s encountered an error loading: %s'
         % (self.plugin_id, exc_message))
-    raise_(new_exc.__class__, new_exc, tb)
+    raise new_exc.__class__(new_exc).with_traceback(tb)
 
   def _GetPossibleModuleNames(self):
     if not self._possible_module_names:

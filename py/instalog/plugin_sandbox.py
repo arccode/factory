@@ -17,8 +17,6 @@ import sys
 import threading
 import time
 
-from six import reraise as raise_
-
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import flow_policy
 from cros.factory.instalog import json_utils
@@ -238,7 +236,7 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
       new_exc = plugin_base.PluginCallError(
           'Plugin call for %s unexpectedly failed: %s'
           % (self.plugin_id, exc_message))
-      raise_(new_exc.__class__, new_exc, tb)
+      raise new_exc.__class__(new_exc).with_traceback(tb)
     return ret
 
 
