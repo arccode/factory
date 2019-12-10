@@ -155,7 +155,7 @@ class RFGraphyteTest(test_case.TestCase):
 
     # Execute Graphyte.
     self.ui.SetInstruction(_('Executing Graphyte'))
-    cmd = ['python2', os.path.join(self.args.graphyte_package, "main.py"),
+    cmd = [os.path.join(self.args.graphyte_package, "main.py"),
            '--config-file', self.config_file_path,
            '--result-file', self.result_file_path,
            '--log-file', self.log_file_path]

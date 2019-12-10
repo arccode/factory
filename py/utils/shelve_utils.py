@@ -33,7 +33,7 @@ def IsShelfValid(shelf):
   env = dict(os.environ)
   env['PYTHONPATH'] = ':'.join(sys.path)
 
-  process = process_utils.Spawn(['python2', '-c',
+  process = process_utils.Spawn(['python3', '-c',
                                  'import shelve, sys; '
                                  'shelve.open(sys.argv[1], "r").items(); '
                                  r'print("\nSHELF OK")',

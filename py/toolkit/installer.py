@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 #
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -374,7 +374,7 @@ def PackFactoryToolkit(src_root, output_path, initial_version):
            # INSTALLER_PATH because files under INSTALLER_PATH may not be
            # executable.
            'env', 'PYTHONPATH=' + PYTHONPATH,
-           'python2', '-m', INSTALLER_MODULE, '--in-exe']
+           'python3', '-m', INSTALLER_MODULE, '--in-exe']
     Spawn(cmd, check_call=True, log=True)
   with file_utils.TempDirectory() as tmp_dir:
     version_path = os.path.join(tmp_dir, VERSION_PATH)
@@ -505,7 +505,7 @@ def main():
       parser.error('Must specify --pack-into when using --repack.')
     env = dict(os.environ,
                PYTHONPATH=os.path.join(args.repack, PYTHONPATH))
-    Spawn(['python2', '-m', INSTALLER_MODULE, '--pack-into', args.pack_into],
+    Spawn(['python3', '-m', INSTALLER_MODULE, '--pack-into', args.pack_into],
           check_call=True, log=True, env=env)
     return
 

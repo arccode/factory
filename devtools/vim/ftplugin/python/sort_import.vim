@@ -3,7 +3,7 @@
 " found in the LICENSE file.
 "
 " Sort python imports
-" we only care about python2
+" we only care about python3
 "
 " According to python coding style, the import lines are sorted by package
 " path, for example::

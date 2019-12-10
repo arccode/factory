@@ -103,7 +103,7 @@ class TmpChroot(object):
                         shell=True, call=True, log=True)
 
     self.logger.debug('copy necessary binaries')
-    bin_deps = self.binary_list + ['python2', 'busybox']
+    bin_deps = self.binary_list + ['python3', 'busybox']
     bin_deps += self._GetLoadedLibrary()
 
     bin_paths = [(k, process_utils.SpawnOutput(['which', k]).strip())

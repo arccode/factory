@@ -237,7 +237,7 @@ stop_factory() {
   local i
   # shellcheck disable=SC2034
   for i in $(seq 5); do
-    pkill 'python2' || break
+    pkill 'python3' || break
     sleep 1
     echo -n "."
   done

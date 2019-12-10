@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 #
 # Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -81,7 +81,7 @@ fi
 export PYTHONPATH="${PYTHONPATH}:${REAL_PATH}"
 export PAR_PATH="${REAL_PATH}"
 export PATH="${PATH}:${REAL_DIR}"
-exec python2 -m "${MODULE}" "$@"
+exec python3 -m "${MODULE}" "$@"
 exit 1
 # Should never reach here. Anything below are reserved for ZIP.
 """

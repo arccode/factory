@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -131,7 +131,7 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
 
     # Start the server.
     self.server_process = subprocess.Popen(
-        ['python2', os.path.join(SCRIPT_DIR, 'dkps.py'),
+        ['python3', os.path.join(SCRIPT_DIR, 'dkps.py'),
          '--log_file_path', self.log_file_path,
          '--database_file_path', self.database_file_path,
          '--gnupg_homedir', self.server_gnupg_homedir,
@@ -197,7 +197,7 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
   def _CallHelper(self, client_key_file_path, command, extra_args=None):
     extra_args = extra_args if extra_args else []
     return subprocess.check_output(
-        ['python2', os.path.join(SCRIPT_DIR, 'helpers.py'),
+        ['python3', os.path.join(SCRIPT_DIR, 'helpers.py'),
          '--server_ip', 'localhost',
          '--server_port', str(self.port),
          '--client_key_file_path', client_key_file_path,

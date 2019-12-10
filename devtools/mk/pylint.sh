@@ -41,7 +41,7 @@ load_venv() {
     echo "Cannot find '${PYLINT_VENV}', install virtualvenv"
     mkdir -p "${PYLINT_VENV}"
     # Include system site packages for packages like "yaml", "mox".
-    virtualenv --system-site-package -p python2 "${PYLINT_VENV}"
+    virtualenv --system-site-package -p python3 "${PYLINT_VENV}"
   fi
 
   source "${PYLINT_VENV}/bin/activate"

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # pylint: disable=protected-access
 #
 # Copyright 2012 The Chromium OS Authors. All rights reserved.

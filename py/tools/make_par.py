@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 #
 # Copyright 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -67,7 +67,7 @@ fi
 
 export PYTHONIOENCODING=utf-8
 
-exec python2 -c \
+exec python3 -c \
 "import os, runpy, sys
 
 # Remove '-c' from argument list.
@@ -236,7 +236,7 @@ def main(argv=None):
     open(os.path.join(par_build, 'expanded'), 'w')
 
     if args.compiled:
-      Spawn(['python2', '-m', 'compileall', par_build], check_call=True)
+      Spawn(['python3', '-m', 'compileall', par_build], check_call=True)
 
     # Zip 'em up!
     factory_par = os.path.join(tmp, 'factory.par')

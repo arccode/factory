@@ -87,7 +87,7 @@ class Prespawner(object):
           pipe_stdout_args = {}
 
         process = process_utils.Spawn(
-            ['python2', '-u', self.prespawner_path] + self.prespawner_args,
+            ['python3', '-u', self.prespawner_path] + self.prespawner_args,
             cwd=os.path.dirname(self.prespawner_path),
             stdin=subprocess.PIPE,
             **pipe_stdout_args)

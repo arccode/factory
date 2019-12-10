@@ -41,7 +41,7 @@ TEMP_DIR ?= $(BUILD_DIR)/tmp
 # Global environment settings
 SHELL := bash
 OUTOFTREE_BUILD ?=
-PYTHON ?= python2
+PYTHON ?= python3
 TARGET_DIR = /usr/local/factory
 
 # Build and board config settings
