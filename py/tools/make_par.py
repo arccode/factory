@@ -218,7 +218,6 @@ def main(argv=None):
         return lib_paths[0]
 
       rsync_args = ['rsync', '-a',
-                    _GetPythonLibPath('enum'),
                     _GetPythonLibPath('google'),
                     _GetPythonLibPath('jsonrpclib'),
                     _GetPythonLibPath('yaml')]
