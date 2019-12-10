@@ -26,7 +26,8 @@ class RegistrationCodeTest(unittest.TestCase):
     # may modify the code.
     self.proto = reg_code_pb2.RegCode()
     self.proto.content.code_type = reg_code_pb2.UNIQUE_CODE
-    self.proto.content.code = ''.join([chr(x) for x in xrange(32)])
+    self.proto.content.code = ''.join(
+        [chr(x) for x in xrange(32)]).encode('utf-8')
     self.proto.content.device = 'chromebook'
 
   def _Encode(self, xor_checksum=0):
@@ -40,7 +41,7 @@ class RegistrationCodeTest(unittest.TestCase):
         binascii.crc32(self.proto.content.SerializeToString())
         & 0xFFFFFFFF) ^ xor_checksum
     return '=' + base64.urlsafe_b64encode(
-        self.proto.SerializeToString()).strip()
+        self.proto.SerializeToString()).strip().decode('utf-8')
 
   def testValid(self):
     # Build and test a valid registration code.
@@ -98,7 +99,7 @@ class RegistrationCodeTest(unittest.TestCase):
     # Make sure that we reject the code if it uses the non-URL-safe
     # encoding.
     invalid_code = '=' + base64.b64encode(base64.urlsafe_b64decode(
-        valid_code[1:]))
+        valid_code[1:])).decode('utf-8')
     assertRaisesRegex(
         self, RegistrationCodeException, 'bad base64 encoding',
         lambda: RegistrationCode(invalid_code))

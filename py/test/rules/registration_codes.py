@@ -72,7 +72,8 @@ class RegistrationCode(object):
 
       # Make sure that it encodes back to the same thing (e.g., no extra
       # padding)
-      expected_encoded_string = '=' + base64.urlsafe_b64encode(data).strip()
+      expected_encoded_string = '=' + base64.urlsafe_b64encode(
+          data).strip().decode('utf-8')
       if encoded_string != expected_encoded_string:
         raise RegistrationCodeException(
             'Reg code %r has bad base64 encoding (should be %r)' % (
