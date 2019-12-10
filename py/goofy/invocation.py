@@ -303,7 +303,7 @@ class TestInvocation(object):
       if not os.path.exists(results_path):
         return TestState.FAILED, 'pytest did not complete'
 
-      with open(results_path) as f:
+      with open(results_path, 'rb') as f:
         result = pickle.load(f)
         assert isinstance(result, pytest_utils.PytestExecutionResult)
         # TODO(yhong): Record the the detail failure reason for advanced

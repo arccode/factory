@@ -73,11 +73,14 @@ def RunPytest(test_info):
     logging.exception('Unable to run pytest')
     result = PytestExecutionResult.GenerateFromException(TestState.FAILED)
 
-  file_utils.WriteFile(test_info.results_path, pickle.dumps(result))
+  file_utils.WriteFile(test_info.results_path, pickle.dumps(result),
+                       encoding=None)
 
 
 def main():
-  env, info = pickle.load(sys.stdin)
+  # Load pickle object from the binary data directly to prevent potential
+  # decoding errors.
+  env, info = pickle.load(sys.stdin.buffer)
   if not env:
     sys.exit(0)
   os.environ.update(env)

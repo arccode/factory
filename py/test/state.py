@@ -97,7 +97,7 @@ class FactoryStateLayer(object):
         logging.exception('Unable to close shelf')
 
   def Loads(self, serialized_data):
-    o = pickle.loads(serialized_data)
+    o = pickle.loads(serialized_data.encode('utf-8'))
     if 'tests' in o:
       self.tests_shelf.SetValue('', o['tests'])
     if 'data' in o:
@@ -113,7 +113,7 @@ class FactoryStateLayer(object):
       o['tests'] = self.tests_shelf.GetValue('')
     if include_data and self.data_shelf.HasKey(''):
       o['data'] = self.data_shelf.GetValue('')
-    return pickle.dumps(o)
+    return pickle.dumps(o, 0).decode('utf-8')
 
 
 # TODO(shunhsingou): move goofy or dut related functions to goofy_rpc so we can
