@@ -15,7 +15,6 @@ Usage:
 """
 
 import argparse
-from contextlib import nested
 import glob
 import logging
 import shutil
@@ -56,10 +55,12 @@ class FlashNetboot(object):
 
   def Run(self):
     """Flashs netboot firmware."""
-    with nested(UnopenedTemporaryFile(prefix='fw_main.'),
-                UnopenedTemporaryFile(prefix='vpd.ro.'),
-                UnopenedTemporaryFile(prefix='vpd.rw.')) as files:
-      self._fw_main, self._ro_vpd, self._rw_vpd = files
+    with UnopenedTemporaryFile(prefix='fw_main.') as fw_main_file,\
+        UnopenedTemporaryFile(prefix='vpd.ro.') as vpd_ro_file,\
+        UnopenedTemporaryFile(prefix='vpd.rw.') as vpd_rw_file:
+      self._fw_main = fw_main_file
+      self._ro_vpd = vpd_ro_file
+      self._rw_vpd = vpd_rw_file
       self._PreserveVPD()
       shutil.copyfile(self._image, self._fw_main)
       self._PackVPD()
