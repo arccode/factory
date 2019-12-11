@@ -127,9 +127,9 @@ class HTTPHandler(http.server.BaseHTTPRequestHandler, log_utils.LoggerMixin):
 
   def do_POST(self):
     """Processes when receiving POST request."""
-    content_type = self.headers.getheader('Content-Type', '')
-    self.content_length = self.headers.getheader('Content-Length', None)
-    self.client_node_id = self.headers.getheader('Node-ID', 'NoNodeID')
+    content_type = self.headers.get('Content-Type', '')
+    self.content_length = self.headers.get('Content-Length', None)
+    self.client_node_id = self.headers.get('Node-ID', 'NoNodeID')
     # Need to reject other Content-Type, because Content-Type =
     # 'application/x-www-form-urlencoded' may use about 81 times of data size
     # of memory.
@@ -146,7 +146,7 @@ class HTTPHandler(http.server.BaseHTTPRequestHandler, log_utils.LoggerMixin):
       self._SendResponse(413, 'Request Entity Too Large: The request is bigger '
                               'than %d bytes' % self._max_bytes)
       return
-    if self.headers.getheader('Multi-Event', 'False') == 'True':
+    if self.headers.get('Multi-Event', 'False') == 'True':
       self._enable_multi_event = True
     # Create the temporary directory for attachments.
     with file_utils.TempDirectory(prefix='input_http_') as tmp_dir:
