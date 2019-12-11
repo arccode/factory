@@ -84,7 +84,7 @@ class TestOutputHTTP(unittest.TestCase):
           return
 
         self._SendResponse(200, 'OK')
-        self.wfile.write('Instalog input HTTP plugin is online now.\n')
+        self.wfile.write(b'Instalog input HTTP plugin is online now.\n')
         self.wfile.close()
 
       def do_POST(self):

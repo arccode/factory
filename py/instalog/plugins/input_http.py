@@ -122,7 +122,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
   def do_GET(self):
     """Checks the server is online or not."""
     self._SendResponse(200, 'OK')
-    self.wfile.write('Instalog input HTTP plugin is online now.\n')
+    self.wfile.write(b'Instalog input HTTP plugin is online now.\n')
     self.wfile.close()
 
   def do_POST(self):
