@@ -11,7 +11,8 @@ from multiprocessing import synchronize
 class Lock(synchronize.Lock):
 
   def __init__(self, logger_name):
-    super(Lock, self).__init__()
+    # Lock initialize with a default context if ctx is None.
+    super(Lock, self).__init__(ctx=None)
     self.logger = logging.getLogger(logger_name)
 
   def IsHolder(self):
