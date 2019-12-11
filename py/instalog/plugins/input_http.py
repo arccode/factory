@@ -29,6 +29,7 @@ from __future__ import print_function
 
 import cgi
 import http.server
+from io import StringIO
 from io import BytesIO
 import logging
 import shutil
@@ -85,11 +86,16 @@ class InstalogFieldStorage(cgi.FieldStorage):
     there won't be system calls for creating or deleting files (and no fd used).
     """
     if not self.name or self.name == 'event':
-      return BytesIO()
+      if self._binary_file:
+        return BytesIO()
+      return StringIO()
 
     # Save attachments.
+    mode = 'w'
+    if self._binary_file:
+      mode = 'wb'
     return tempfile.NamedTemporaryFile(
-        'wb', prefix=self.name + '_', dir=self.tmp_dir, delete=False)
+        mode, prefix=self.name + '_', dir=self.tmp_dir, delete=False)
 
 
 class HTTPHandler(http.server.BaseHTTPRequestHandler, log_utils.LoggerMixin):
