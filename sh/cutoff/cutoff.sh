@@ -29,10 +29,10 @@ reset_recovery_count() {
 }
 
 test_ec_flash_presence() {
-  # If "flashrom -p ec --get-size" command succeeds (returns 0),
+  # If "flashrom -p ec --flash-size" command succeeds (returns 0),
   # then EC flash chip is present in system. Otherwise, assume EC flash is not
   # present or supported.
-  if flashrom -p ec --get-size >/dev/null 2>&1; then
+  if flashrom -p ec --flash-size >/dev/null 2>&1; then
     EC_PRESENT=1
   else
     EC_PRESENT=0

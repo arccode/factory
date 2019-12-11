@@ -82,7 +82,7 @@ class Flashrom(object):
     self._target = target
 
   def GetSize(self):
-    return int(self._InvokeCommand('--get-size').stdout.splitlines()[-1], 0)
+    return int(self._InvokeCommand('--flash-size').stdout.splitlines()[-1], 0)
 
   def GetName(self):
     """Returns a key-value dict for chipset info, or None for any failure."""

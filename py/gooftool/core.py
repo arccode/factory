@@ -660,7 +660,7 @@ class Gooftool(object):
         'crossystem': self._util.GetCrosSystem(),
         'modem_status': self._util.shell('modem status').stdout.splitlines(),
         'ec_wp_status': self._util.shell(
-            'flashrom -p ec --get-size 2>/dev/null && '
+            'flashrom -p ec --flash-size 2>/dev/null && '
             'flashrom -p ec --wp-status || '
             'echo "EC is not available."').stdout,
         'bios_wp_status': self._util.shell(
