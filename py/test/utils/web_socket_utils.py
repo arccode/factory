@@ -25,6 +25,7 @@ def WebSocketHandshake(request):
   def send_error(msg):
     logging.error('Unable to start WebSocket connection: %s', msg)
     request.send_response(400, msg)
+    request.end_headers()
 
   # Can encode utf-8, check ws4py/server/cherrypyserver.py +150
   encoded_key = request.headers.get('Sec-WebSocket-Key').encode('utf-8')

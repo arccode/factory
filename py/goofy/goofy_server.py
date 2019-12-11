@@ -103,6 +103,7 @@ class GoofyWebRequestHandler(
     if '..' in self.path.split('/'):
       logging.warning('Invalid path')
       self.send_response(404)
+      self.end_headers()
       return
 
     if self.path.endswith('/'):
@@ -125,6 +126,7 @@ class GoofyWebRequestHandler(
     if not local_path or not os.path.exists(local_path):
       logging.warning('File not found: %s', (local_path or self.path))
       self.send_response(404)
+      self.end_headers()
       return
 
     self.send_response(200)
@@ -257,6 +259,7 @@ class GoofyServer(socketserver.ThreadingMixIn,
     if expiration_deadline and time.time() > expiration_deadline:
       logging.warning('Expired generated data')
       handler.send_response(404)
+      handler.end_headers()
       return
 
     if isinstance(data, str):
