@@ -3238,7 +3238,7 @@ class InstallChromiumOSImageCommand(SubCommand):
           dev_image_old = os.path.join(to_dir, 'dev_image.old')
           dev_image_to = os.path.join(to_dir, 'dev_image')
           if os.path.exists(dev_image_old):
-            logging.warn('Removing %s...', dev_image_old)
+            logging.warning('Removing %s...', dev_image_old)
             Sudo(['rm', '-rf', dev_image_old])
           if os.path.exists(dev_image_to):
             Sudo(['mv', dev_image_to, dev_image_old])

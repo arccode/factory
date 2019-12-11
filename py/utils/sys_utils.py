@@ -134,7 +134,7 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
         umount = lambda: dut.Call(['umount', mount_point]) == 0
 
       if not sync_utils.Retry(5, 1, None, umount):
-        logging.warn('Unable to umount %s', mount_point)
+        logging.warning('Unable to umount %s', mount_point)
 
       if remove_mount_point:
         if local_mode:

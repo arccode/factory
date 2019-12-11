@@ -43,7 +43,8 @@ class DevUploadHandler(webapp2.RequestHandler):
   def post(self):
     """Uploads a file to the cloud storage of the server."""
     if 'data' not in self.request.POST or 'path' not in self.request.POST:
-      logging.warn('Required fields missing on request: %r', self.request.POST)
+      logging.warning('Required fields missing on request: %r',
+                      self.request.POST)
       self.abort(400)
 
     data = self.request.POST['data']
@@ -52,7 +53,7 @@ class DevUploadHandler(webapp2.RequestHandler):
     logging.debug('Got upload request: %r', self.request.POST)
 
     if not isinstance(data, cgi.FieldStorage):
-      logging.warn('Got request without file in data field.')
+      logging.warning('Got request without file in data field.')
       self.abort(400)
 
     self._hwid_filesystem.WriteFile(path, data.file.read())

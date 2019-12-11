@@ -420,8 +420,8 @@ class BadBlocksTest(test_case.TestCase):
     # Assume we want at least 10MB free on the file system, so we make a pad.
     pad = 10 * 1024 * 1024
     if file_bytes > free_bytes + pad:
-      logging.warn('The file size is too large for the file system, '
-                   'clipping file to %dB.', free_bytes - pad)
+      logging.warning('The file size is too large for the file system, '
+                      'clipping file to %dB.', free_bytes - pad)
       file_bytes = free_bytes - pad
     self.dut.Call(['truncate', '-s', str(file_bytes), file_path], log=True)
     return file_bytes
@@ -496,9 +496,9 @@ class BadBlocksTest(test_case.TestCase):
       rlist, unused_wlist, unused_xlist = select(
           [self.message_monitor.stdout], [], [], self.args.timeout_secs)
       if not rlist:
-        logging.warn('UpdateSATALinkSpeed: Cannot get any line from '
-                     '/var/log/messages after %d seconds',
-                     self.args.timeout_secs)
+        logging.warning('UpdateSATALinkSpeed: Cannot get any line from '
+                        '/var/log/messages after %d seconds',
+                        self.args.timeout_secs)
 
     while True:
       rlist, unused_wlist, unused_xlist = select(

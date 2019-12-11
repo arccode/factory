@@ -164,8 +164,8 @@ class EventLoopTest(EventLoopTestBase):
 
     self.event_loop.AddEventHandler('type1', _Handler)
     self._MockNewEvent(_EventType.TEST_UI_EVENT, subtype='type1', data='data')
-    self.mock_logging.warn.assert_called_once()
-    assertRegex(self, self.mock_logging.warn.call_args[0][0],
+    self.mock_logging.warning.assert_called_once()
+    assertRegex(self, self.mock_logging.warning.call_args[0][0],
                 r'The handler .* takes too long to finish')
 
   def testCatchException(self):

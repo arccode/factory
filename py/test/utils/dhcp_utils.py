@@ -107,7 +107,7 @@ class DHCPManager(object):
         logging.info('IFACE %s already assigned to %s',
                      interface.name, cidr)
         if int(cidr.IP) & ~int(cidr.Netmask()) != 1:
-          logging.warn('However, the host part is not 1, will assign new IP.')
+          logging.warning('However, the host part is not 1, assign new IP.')
           cidr = None
       if not cidr:
         cidr = net_utils.GetUnusedIPV4RangeCIDR(exclude_ip_prefix=used_range,

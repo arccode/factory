@@ -41,7 +41,7 @@ def GetBoard(host):
                           check_output=True, log=True).stdout_data
   match = re.search(r'^CHROMEOS_RELEASE_BOARD=(.+)', release, re.MULTILINE)
   if not match:
-    logging.warn('Unable to determine release board')
+    logging.warning('Unable to determine release board')
     return None
   return match.group(1)
 

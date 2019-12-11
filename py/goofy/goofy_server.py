@@ -104,7 +104,7 @@ class GoofyWebRequestHandler(
     logging.debug('HTTP GET request for path %s', self.path)
 
     if '..' in self.path.split('/'):
-      logging.warn('Invalid path')
+      logging.warning('Invalid path')
       self.send_response(404)
       return
 
@@ -122,11 +122,11 @@ class GoofyWebRequestHandler(
 
     mime_type = mimetypes.guess_type(self.path)[0]
     if not mime_type:
-      logging.warn('Unable to guess MIME type')
+      logging.warning('Unable to guess MIME type')
       mime_type = 'application/octet-stream'
 
     if not local_path or not os.path.exists(local_path):
-      logging.warn('File not found: %s', (local_path or self.path))
+      logging.warning('File not found: %s', (local_path or self.path))
       self.send_response(404)
       return
 
@@ -259,7 +259,7 @@ class GoofyServer(SocketServer.ThreadingMixIn,
     """The handler used by URLForData"""
     self._CheckGeneratedDataExpired()
     if expiration_deadline and time.time() > expiration_deadline:
-      logging.warn('Expired generated data')
+      logging.warning('Expired generated data')
       handler.send_response(404)
       return
 

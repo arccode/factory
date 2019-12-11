@@ -109,7 +109,7 @@ class StationSetup(plugin.Plugin):
     check_dict = {key: properties[key] for key in self.check_overlord}
 
     if not self._OvlConnect():
-      logging.warn("Can't connect to overlord server, skipping check.")
+      logging.warning("Can't connect to overlord server, skipping check.")
       return False
 
     ls_cmd = [_OVL_BIN, 'ls']

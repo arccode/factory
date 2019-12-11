@@ -126,14 +126,14 @@ class ADBLink(types.DeviceLink):
       # TODO(hungte) Create a temp file remotely and store contents there, or
       # figure out a way to return by logcat.
       redirections += '2>/dev/null'
-      logging.warn('%s: stderr redirection is not supported yet.',
-                   type(self).__name__)
+      logging.warning('%s: stderr redirection is not supported yet.',
+                      type(self).__name__)
 
     delete_tmps = ''
     if stdin is not None:
       if stdin == subprocess.PIPE:
-        logging.warn('%s: stdin PIPE is not supported yet.',
-                     type(self).__name__)
+        logging.warning('%s: stdin PIPE is not supported yet.',
+                        type(self).__name__)
       else:
         with tempfile.NamedTemporaryFile() as tmp_file:
           data = stdin.read()

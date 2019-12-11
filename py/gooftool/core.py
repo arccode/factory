@@ -221,7 +221,7 @@ class Gooftool(object):
 
       # Pre-scan for well-known problems.
       if rootkey_hash == 'b11d74edd286c144e1135b49e7f0bc20cf041f10':
-        logging.warn('YOU ARE TRYING TO FINALIZE WITH DEV ROOTKEY.')
+        logging.warning('YOU ARE TRYING TO FINALIZE WITH DEV ROOTKEY.')
 
       _TmpExec('verify firmware A with root key',
                'futility vbutil_firmware --verify VBLOCK_A --signpubkey %s '
@@ -842,8 +842,8 @@ class Gooftool(object):
     # If the script does not exist, that board is not able to do Zero-Touch.
 
     if not os.path.exists(script_path):
-      logging.warn('The Cr50 script to set serial number bits is not found, '
-                   'those bits will not be set on this device.')
+      logging.warning('The Cr50 script to set serial number bits is not found, '
+                      'those bits will not be set on this device.')
       return
 
     if phase.GetPhase() >= phase.PVT_DOGFOOD:
@@ -882,8 +882,8 @@ class Gooftool(object):
 
     script_path = '/usr/share/cros/cr50-set-board-id.sh'
     if not os.path.exists(script_path):
-      logging.warn('The Cr50 script is not found, there should be no '
-                   'Cr50 on this device.')
+      logging.warning('The Cr50 script is not found, there should be no '
+                      'Cr50 on this device.')
       return
 
     if is_whitelabel:
@@ -949,8 +949,8 @@ class Gooftool(object):
 
     script_path = '/usr/share/cros/cr50-set-board-id.sh'
     if not os.path.exists(script_path):
-      logging.warn('The Cr50 script is not found, there should be no '
-                   'Cr50 on this device.')
+      logging.warning('The Cr50 script is not found, there should be no '
+                      'Cr50 on this device.')
       return
 
     try:
@@ -1009,11 +1009,11 @@ class Gooftool(object):
         factory_mode_disabled = False
 
       if not _IsCCDInfoMandatory():
-        logging.warn('Command of disabling factory mode %s and can not get CCD '
-                     'info so there is no way to make sure factory mode '
-                     'status.  cr50 version RW %s',
-                     'succeeds' if factory_mode_disabled else 'fails',
-                     gsctool.GetCr50FirmwareVersion().rw_version)
+        logging.warning('Command of disabling factory mode %s and can not get '
+                        'CCD info so there is no way to make sure factory mode '
+                        'status.  cr50 version RW %s',
+                        'succeeds' if factory_mode_disabled else 'fails',
+                        gsctool.GetCr50FirmwareVersion().rw_version)
         return
 
       is_factory_mode = gsctool.IsFactoryMode()

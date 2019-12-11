@@ -110,7 +110,7 @@ class Loader(object):
     except config_utils.ConfigNotFoundError:
       logging.info('No test list constants config found')
     except Exception as e:
-      logging.warn('Failed to load test list constants: %s', e)
+      logging.warning('Failed to load test list constants: %s', e)
     return constants
 
   def Load(self, test_list_id, allow_inherit=True):

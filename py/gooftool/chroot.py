@@ -109,8 +109,8 @@ class TmpChroot(object):
 
     bin_paths = [(k, process_utils.SpawnOutput(['which', k]).strip())
                  for k in bin_deps]
-    self.logger.warn('following binaries are not found: %s',
-                     [k for (k, v) in bin_paths if not v])
+    self.logger.warning('following binaries are not found: %s',
+                        [k for (k, v) in bin_paths if not v])
     # remove binaries that are not found
     bin_paths = {k: v for (k, v) in bin_paths if v}
     # copy binaries and their dependencies

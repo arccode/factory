@@ -39,10 +39,10 @@ def IsShelfValid(shelf):
   if process.returncode == 0 and process.stdout_data.endswith('SHELF OK\n'):
     return True
 
-  logging.warn('Unable to validate shelf %r: '
-               'returncode=%r, stdout=%r, stderr=%r',
-               shelf, process.returncode,
-               process.stdout_data, process.stderr_data)
+  logging.warning('Unable to validate shelf %r: '
+                  'returncode=%r, stdout=%r, stderr=%r',
+                  shelf, process.returncode,
+                  process.stdout_data, process.stderr_data)
   return False
 
 
@@ -73,7 +73,7 @@ def BackupShelfIfValid(shelf):
     return False
 
   if not IsShelfValid(shelf):
-    logging.warn('Shelf %s is invalid; not backing up', shelf)
+    logging.warning('Shelf %s is invalid; not backing up', shelf)
     return False
 
   backup_dir = os.path.join(os.path.dirname(shelf), BACKUP_DIRECTORY)

@@ -103,7 +103,7 @@ def main():
 
   if not os.path.isdir(translation.LOCALE_DIR):
     # TODO(youcheng): Provide an option to automatically build locale/.
-    logging.warn(
+    logging.warning(
         'Directory %r not found. There will be no i18n support.',
         translation.LOCALE_DIR)
 

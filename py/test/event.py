@@ -430,7 +430,7 @@ class EventClientBase(with_metaclass(abc.ABCMeta, object)):
         logging.debug('Event client: dispatching event %s',
                       self._truncate_event_for_debug_log(event))
     except Exception:
-      logging.warn('Event client: bad message %r', msg_bytes)
+      logging.warning('Event client: bad message %r', msg_bytes)
       traceback.print_exc(sys.stderr)
       return True, None
 
@@ -440,7 +440,7 @@ class EventClientBase(with_metaclass(abc.ABCMeta, object)):
       try:
         callback(event)
       except Exception:
-        logging.warn('Event client: error in callback')
+        logging.warning('Event client: error in callback')
         traceback.print_exc(sys.stderr)
         # Keep going
 

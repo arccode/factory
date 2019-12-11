@@ -113,7 +113,7 @@ class UpdateFirmwareTest(test_case.TestCase):
     """Downloads firmware updater from server."""
     updater = update_utils.Updater(update_utils.COMPONENTS.firmware)
     if not updater.IsUpdateAvailable():
-      logging.warn('No firmware updater available on server.')
+      logging.warning('No firmware updater available on server.')
       return False
 
     rw_version = self._dut.info.firmware_version
@@ -149,7 +149,7 @@ class UpdateFirmwareTest(test_case.TestCase):
                       'running (PID %s)' %
                       (LOCK_FILE, ', '.join(process.stdout_data.split())))
         return
-      logging.warn('Removing %s', LOCK_FILE)
+      logging.warning('Removing %s', LOCK_FILE)
       os.unlink(LOCK_FILE)
 
     command = [self.args.firmware_updater, '--force']

@@ -423,12 +423,12 @@ def main():
   paths = {}
 
   if root_is_usb:
-    logging.warn('Root partition is a USB drive')
+    logging.warning('Root partition is a USB drive')
     if not os.path.exists('/dev/sda1'):
       # TODO(jsalz): Make this work on ARM too.
       logging.error('/dev/sda1 does not exist; cannot mount SSD')
       sys.exit(1)
-    logging.warn('Saving report to the %s directory', USB_ROOT_OUTPUT_DIR)
+    logging.warning('Saving report to the %s directory', USB_ROOT_OUTPUT_DIR)
     args.usb = False
 
     def Mount(device, mount_point=None, options=None):

@@ -182,7 +182,7 @@ def main():
                 instance=ShopfloorService(),
                 logRequest=options.verbose)
   finally:
-    logging.warn('Server stopped.')
+    logging.warning('Server stopped.')
 
 
 if __name__ == '__main__':

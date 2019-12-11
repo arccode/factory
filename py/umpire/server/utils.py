@@ -62,7 +62,8 @@ def CreateLoopDevice(loop_path_prefix, start, end):
     uid = stat_result.st_uid
     gid = stat_result.st_gid
   except OSError as e:
-    logging.warn('Failed to stat /dev/loop0, try defalt value.', exc_info=True)
+    logging.warning('Failed to stat /dev/loop0, try defalt value.',
+                    exc_info=True)
 
   for i in range(start, end):
     loop_path = loop_path_prefix + str(i)
@@ -74,7 +75,7 @@ def CreateLoopDevice(loop_path_prefix, start, end):
       os.mknod(loop_path, mode, device_number)
       os.chown(loop_path, uid, gid)
     except OSError as e:
-      logging.warn('Failed to create %s: %s', loop_path, e)
+      logging.warning('Failed to create %s: %s', loop_path, e)
       return False
 
   return True

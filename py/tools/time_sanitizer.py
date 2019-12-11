@@ -52,7 +52,7 @@ class Time(object):
 
   def SetTime(self, new_time=None):
     new_time = new_time or self.Time()
-    logging.warn('Setting time to %s', _FormatTime(new_time))
+    logging.warning('Setting time to %s', _FormatTime(new_time))
     us, s = math.modf(new_time)
     value = timespec(int(s), int(us * 1000000))
     librt.clock_settime(0, ctypes.pointer(value))
@@ -157,25 +157,25 @@ class TimeSanitizer(object):
       except Exception:
         logging.exception('Unable to read %s', self.state_file)
     else:
-      logging.warn('State file %s does not exist', self.state_file)
+      logging.warning('State file %s does not exist', self.state_file)
 
     now = self._time.Time()
 
     if minimum_time is None:
       minimum_time = now
-      logging.warn('No minimum time or base time provided; assuming '
-                   'current time (%s) is correct.',
-                   _FormatTime(now))
+      logging.warning('No minimum time or base time provided; assuming '
+                      'current time (%s) is correct.',
+                      _FormatTime(now))
     else:
       sane_time = minimum_time + self.time_bump_secs
       if now < minimum_time:
-        logging.warn('Current time %s is less than minimum time %s; '
-                     'assuming clock is hosed',
-                     _FormatTime(now), _FormatTime(minimum_time))
+        logging.warning('Current time %s is less than minimum time %s; '
+                        'assuming clock is hosed',
+                        _FormatTime(now), _FormatTime(minimum_time))
         self._time.SetTime(sane_time)
         now = sane_time
       elif now > minimum_time + self.max_leap_secs:
-        logging.warn(
+        logging.warning(
             'Current time %s is too far past %s; assuming clock is hosed',
             _FormatTime(now), _FormatTime(minimum_time + self.max_leap_secs))
         self._time.SetTime(sane_time)
@@ -238,7 +238,7 @@ def GetBaseTimeFromFile(*base_time_files):
       except Exception:
         logging.exception('Unable to stat %s', f)
     else:
-      logging.warn('base-time-file %s does not exist', f)
+      logging.warning('base-time-file %s does not exist', f)
   return None
 
 

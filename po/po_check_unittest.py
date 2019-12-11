@@ -88,8 +88,8 @@ class PoBuildTest(unittest.TestCase):
 
         unused_vars = default_vars - used_vars
         if unused_vars:
-          logging.warn(u'[%s] "%s": Unused vars %r', locale, text[locale],
-                       list(unused_vars))
+          logging.warning('[%s] "%s": Unused vars %r', locale, text[locale],
+                          list(unused_vars))
 
   def testFormatStringFormat(self):
     all_translations = translation.GetAllTranslations()

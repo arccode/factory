@@ -64,7 +64,8 @@ class FunctionMapper(object):
 
   def Register(self, alias_name):
     if alias_name in self._FUNCTION_MAP:
-      logging.warn('`%s` already registered, overriding old value', alias_name)
+      logging.warning('`%s` already registered, overriding old value',
+                      alias_name)
     def wrapper(func):
       self._FUNCTION_MAP[alias_name] = func
       return func

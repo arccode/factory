@@ -120,7 +120,7 @@ class CpufreqManager(object):
     if success:
       self.enabled = enabled
     else:
-      logging.warn('Gave up on trying to set CPU scaling parameters')
+      logging.warning('Gave up on trying to set CPU scaling parameters')
 
   def _GetThermalService(self):
     possible_services = ('thermal')

@@ -695,8 +695,9 @@ class GPT(object):
           'New file size %d is not valid for image files.' % new_size)
     new_blocks = new_size // self.block_size
     if old_size != new_size:
-      logging.warn('Image size (%d, LBA=%d) changed from %d (LBA=%d).',
-                   new_size, new_blocks, old_size, old_size // self.block_size)
+      logging.warning('Image size (%d, LBA=%d) changed from %d (LBA=%d).',
+                      new_size, new_blocks, old_size,
+                      old_size // self.block_size)
     else:
       logging.info('Image size (%d, LBA=%d) not changed.',
                    new_size, new_blocks)
@@ -745,7 +746,7 @@ class GPT(object):
     old_blocks = p.blocks
     p.Update(LastLBA=self.header.LastUsableLBA)
     new_blocks = p.blocks
-    logging.warn(
+    logging.warning(
         '%s size changed in LBA: %d -> %d.', p, old_blocks, new_blocks)
     return (old_blocks, new_blocks)
 

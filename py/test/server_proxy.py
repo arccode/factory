@@ -110,10 +110,10 @@ def GetServerProxy(url=None, expected_project=None, timeout=None):
   if not url:
     raise ServerProxyError('No URL specified for factory server proxy.')
   if expected_project is None:
-    logging.warn('"%s" not set in config %s, please set the config '
-                 'to the project name of Umpire server, or set it to "" '
-                 'to disable this warning.', CONFIG_KEY_EXPECTED_PROJECT,
-                 FACTORY_SERVER_CONFIG_NAME)
+    logging.warning('"%s" not set in config %s, please set the config '
+                    'to the project name of Umpire server, or set it to "" '
+                    'to disable this warning.', CONFIG_KEY_EXPECTED_PROJECT,
+                    FACTORY_SERVER_CONFIG_NAME)
 
   proxy = net_utils.TimeoutXMLRPCServerProxy(
       url, allow_none=True, verbose=False, timeout=timeout)

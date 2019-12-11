@@ -56,7 +56,7 @@ def ClearState(state_file_dir=DEFAULT_FACTORY_STATE_FILE_DIR):
   Args:
     state_file_dir: Path to state; uses the default path if None.
   """
-  logging.warn('Clearing state file path %s', state_file_dir)
+  logging.warning('Clearing state file path %s', state_file_dir)
   if os.path.exists(state_file_dir):
     shutil.rmtree(state_file_dir)
 

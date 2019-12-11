@@ -135,7 +135,7 @@ class RPC(object):
       # TODO(youcheng): Make LoadPytest work for all pytests outside DUT.
       pytest = pytest_utils.LoadPytest(pytest_name)
     except Exception:
-      logging.warn('Failed to load pytest %r.', pytest_name)
+      logging.warning('Failed to load pytest %r.', pytest_name)
       return res
     args = {}
     for arg in getattr(pytest, 'ARGS', []):

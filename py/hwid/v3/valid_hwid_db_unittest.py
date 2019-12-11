@@ -93,7 +93,7 @@ def _CheckProject(args):
         expected_checksum = Database.Checksum(temp_db)
     else:
       expected_checksum = None
-      logging.warn(
+      logging.warning(
           'Database %s:%s does not have checksum field. Will skip checksum '
           'verification.', commit, db_path)
     db = Database.LoadData(db_raw, expected_checksum=expected_checksum)

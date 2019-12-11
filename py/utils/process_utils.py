@@ -403,7 +403,7 @@ def KillProcessTree(process, caption):
         return
       time.sleep(0.2)  # Sleep 200 ms and try again
 
-  logging.warn('Failed to stop %s process %r. Ignoring.', caption, pids)
+  logging.warning('Failed to stop %s process %r. Ignoring.', caption, pids)
 
 
 def WaitEvent(event):

@@ -220,7 +220,7 @@ class EventLoop(object):
     finally:
       used_time = time.time() - start_time
       if used_time > _HANDLER_WARN_TIME_LIMIT:
-        logging.warn(
+        logging.warning(
             'The handler (%r, args=%r) takes too long to finish (%.2f secs)! '
             'This would make the UI unresponsible for new events, '
             'consider moving the work load to background thread instead.',

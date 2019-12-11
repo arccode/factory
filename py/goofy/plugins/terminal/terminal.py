@@ -68,7 +68,7 @@ class TerminalManager(object):
           winsize = struct.pack('HHHH', params[0], params[1], 0, 0)
           fcntl.ioctl(fd, termios.TIOCSWINSZ, winsize)
         else:
-          logging.warn('Invalid request command "%s"', command)
+          logging.warning('Invalid request command "%s"', command)
 
       def received_message(self, message):
         if message.is_text:
@@ -82,7 +82,7 @@ class TerminalManager(object):
           # So we only can receive length 1 binary message one time.
           if len(message) != 1:
             # skip it
-            logging.warn('Len of binary message is %d, not 1.', len(message))
+            logging.warning('Len of binary message is %d, not 1.', len(message))
             return
           if self._control_state:
             if chr(_CONTROL_END) == message.data[0]:
@@ -90,12 +90,12 @@ class TerminalManager(object):
               self._control_state = None
               self._control_string = ''
             else:
-              logging.warn('Unexpected control message %d', message.data[0])
+              logging.warning('Unexpected control message %d', message.data[0])
           else:
             if chr(_CONTROL_START) == message.data[0]:
               self._control_state = _CONTROL_START
             else:
-              logging.warn('Unexpected control message %d', message.data[0])
+              logging.warning('Unexpected control message %d', message.data[0])
 
     ws = TerminalWebSocket(fd, sock=request.connection)
     t = threading.Thread(target=ws.run)

@@ -198,12 +198,12 @@ class GyroscopeController(sensor_utils.BasicSensorController):
       gyro['freq'] = str(self.freq)
 
     if self.freq < int(gyro['min_freq']):
-      logging.warn('Specified freq < %s, gyro test may fail due to it.  '
-                   'Are you sure the setting is correct?', gyro['min_freq'])
+      logging.warning('Specified freq < %s, gyro test may fail due to it.  '
+                      'Are you sure the setting is correct?', gyro['min_freq'])
 
     if self.freq > int(gyro['max_freq']):
-      logging.warn('Specified freq > %s, gyro test may fail due to it.  '
-                   'Are you sure the setting is correct?', gyro['max_freq'])
+      logging.warning('Specified freq > %s, gyro test may fail due to it.  '
+                      'Are you sure the setting is correct?', gyro['max_freq'])
 
     logging.debug('Gyro: %s', gyro)
 

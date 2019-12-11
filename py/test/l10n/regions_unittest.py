@@ -60,8 +60,8 @@ class RegionTest(unittest.TestCase):
     bmpblk_dir = os.path.join(
         os.environ.get('CROS_WORKON_SRCROOT'), 'src', 'platform', 'bmpblk')
     if not os.path.exists(bmpblk_dir):
-      logging.warn('Skipping testFirmwareLanguages, since %r is missing',
-                   bmpblk_dir)
+      logging.warning('Skipping testFirmwareLanguages, since %r is missing',
+                      bmpblk_dir)
       return
 
     bmp_locale_dir = os.path.join(bmpblk_dir, 'strings', 'locale')

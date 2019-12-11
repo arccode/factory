@@ -44,7 +44,7 @@ class Storage(types.DeviceComponent):
                           self.GetDictFilePath())
         data = {}
       if not isinstance(data, dict):
-        logging.warn('%r is not a dict object, will reset to {}', data)
+        logging.warning('%r is not a dict object, will reset to {}', data)
         data = {}
     else:
       logging.info('Cannot find %s, will create new dict object',
@@ -65,8 +65,9 @@ class Storage(types.DeviceComponent):
 
     invalid_keys = [k for k in data if not isinstance(k, basestring)]
     if invalid_keys:
-      logging.warn('Invalid keys: %r (keys can only be string)', invalid_keys)
-      logging.warn('These keys will be removed')
+      logging.warning('Invalid keys: %r (keys can only be string)',
+                      invalid_keys)
+      logging.warning('These keys will be removed')
       data = {k: v for (k, v) in iteritems(data) if k not in invalid_keys}
 
     device_data_file_path = self.GetDictFilePath()
@@ -118,7 +119,7 @@ class Storage(types.DeviceComponent):
     """
     filesystems = self._device.toybox.df(path)
     if not filesystems:
-      logging.warn('cannot find mount point of %s', path)
+      logging.warning('cannot find mount point of %s', path)
       return None, None
     return filesystems[0].mounted_on, filesystems[0].filesystem
 

@@ -216,14 +216,14 @@ class SuspendResumeTest(test_case.TestCase):
       cur_time = self._ReadCurrentTime()
       if cur_time >= self.resume_at - 1:
         self.attempted_wake_extensions += 1
-        logging.warn('Late suspend detected, attempting wake extension.')
+        logging.warning('Late suspend detected, attempting wake extension.')
         try:
           self._SetWakealarm('+=%d' % _MIN_SUSPEND_MARGIN_SECS)
         except IOError:
           # This happens when the device actually suspends and resumes but
           # suspend_stats is not updated yet, or when the device hangs for a
           # while and suspends just before we try to extend the wake time.
-          logging.warn('Write to wakealarm failed, assuming we woke.')
+          logging.warning('Write to wakealarm failed, assuming we woke.')
           break
         self.resume_at = self.resume_at + _MIN_SUSPEND_MARGIN_SECS
         self.actual_wake_extensions += 1
@@ -379,7 +379,7 @@ class SuspendResumeTest(test_case.TestCase):
       if raise_exception:
         raise IOError(error_msg)
       else:
-        logging.warn(error_msg)
+        logging.warning(error_msg)
 
   def _VerifyWakealarmCleared(self, raise_exception=True):
     """Verify that wakealarm is cleared after resume.
@@ -402,7 +402,7 @@ class SuspendResumeTest(test_case.TestCase):
       if raise_exception:
         raise RuntimeError(error_msg)
       else:
-        logging.warn(error_msg)
+        logging.warning(error_msg)
     self._SetWakealarm('0')
 
   def _HandleMessages(self, messages_start):
@@ -511,7 +511,7 @@ class SuspendResumeTest(test_case.TestCase):
 
       while self.alarm_thread.isAlive():
         alarm_suspend_delays += 1
-        logging.warn('alarm thread is taking a while to return, waiting 1s.')
+        logging.warning('alarm thread is taking a while to return, waiting 1s.')
         self.Sleep(1)
         self.assertGreaterEqual(self.start_time +
                                 self.args.suspend_worst_case_secs,

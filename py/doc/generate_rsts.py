@@ -193,7 +193,8 @@ def GeneratePyTestsDoc(pytests_output_dir):
       try:
         pytest_info[pytest_name] = GenerateTestDocs(RSTWriter(out), pytest_name)
       except Exception:
-        logging.warn('Failed to generate document for pytest %s.', pytest_name)
+        logging.warning('Failed to generate document for pytest %s.',
+                        pytest_name)
 
   index_rst = os.path.join(pytests_output_dir, 'index.rst')
   with open(index_rst, 'a') as f:
@@ -239,7 +240,7 @@ def GenerateTestListDoc(output_dir):
     with open(out_path, 'w') as out:
       rst = RSTWriter(out)
 
-      logging.warn('processing test list %s', test_list_id)
+      logging.warning('processing test list %s', test_list_id)
       test_list = manager_.GetTestListByID(test_list_id)
       config = test_list.ToTestListConfig()
       raw_config = manager_.loader.Load(test_list_id, allow_inherit=False)

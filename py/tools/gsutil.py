@@ -106,7 +106,7 @@ class GSUtil(object):
       try:
         return version.StrictVersion(version_str)
       except ValueError:
-        logging.warn('Bogus version string: %s', version_str)
+        logging.warning('Bogus version string: %s', version_str)
         # Try to handle version number like 3674.0.2013_02_07_1033.
         version_str = version_str.replace('_', '')
         return version.StrictVersion(version_str)

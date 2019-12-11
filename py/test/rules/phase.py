@@ -110,13 +110,14 @@ def GetPhase():
 
     if (phase != strictest_phase and
         os.system('crossystem phase_enforcement?1 >/dev/null 2>&1') == 0):
-      logging.warn('Hardware phase_enforcement activated, '
-                   'enforce phase %s as %s.', phase, strictest_phase)
+      logging.warning('Hardware phase_enforcement activated, '
+                      'enforce phase %s as %s.', phase, strictest_phase)
       phase = strictest_phase
 
   except IOError:
     phase = strictest_phase
-    logging.warn('Unable to read %s; using strictest phase (%s)', path, phase)
+    logging.warning('Unable to read %s; using strictest phase (%s)', path,
+                    phase)
 
   _current_phase = phase
   return phase

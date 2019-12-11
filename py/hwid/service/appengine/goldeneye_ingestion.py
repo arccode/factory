@@ -67,7 +67,7 @@ def IngestAllDevicesJson():
       logging.info('Device: %s', (device['hwid_match'],
                                   device['public_codename']))
     else:
-      logging.warn('Empty pattern: %s', (device['hwid_match'],
-                                         device['public_codename']))
+      logging.warning('Empty pattern: %s', (device['hwid_match'],
+                                            device['public_codename']))
 
   memcache.Put('regexp_to_device', regexp_to_device)
