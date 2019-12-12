@@ -96,7 +96,7 @@ class TestListLoaderTest(unittest.TestCase):
         'b': 'eval! constants.timestamp',
         'c': 'eval! constants.timestamp + 3',
         'd': 'eval! options.ui_locale.upper()',
-        'e': 'eval! [x * x for x in xrange(3)]',
+        'e': 'eval! [x * x for x in range(3)]',
         'f': 'eval! constants.some_label',
         'g': 'eval! state_proxy.data_shelf.device.vpd.ro.region.Get()',
         'h': 'eval! device.vpd.ro.region + "_testing"', }
