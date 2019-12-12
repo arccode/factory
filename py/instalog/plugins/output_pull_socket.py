@@ -14,8 +14,9 @@ See socket_common.py for protocol definition.
 
 from __future__ import print_function
 
-from six.moves import xrange
 import socket
+
+from six.moves import xrange
 
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import output_socket
@@ -60,8 +61,8 @@ class OutputPullSocket(plugin_base.OutputPlugin):
     # Bind socket.
     try:
       self._accept_sock.bind((self.args.hostname, self.args.port))
-    except socket.error as msg:
-      self.exception('Bind failed. Error %d: %s' % (msg[0], msg[1]))
+    except socket.error as e:
+      self.exception('Bind failed. Error : %s' % e)
       raise
     self.debug('Socket bind complete')
 

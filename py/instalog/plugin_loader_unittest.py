@@ -175,7 +175,7 @@ class TestPluginLoader(unittest.TestCase):
     pl = plugin_loader.PluginLoader(pname, pname, _plugin_prefix='')
     with assertRaisesRegex(
         self, plugin_base.LoadPluginError,
-        r'ZeroDivisionError: integer division'):
+        r'ZeroDivisionError: division by zero'):
       pl.Create()
 
   def testArgsInvalidError(self):

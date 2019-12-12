@@ -62,8 +62,8 @@ class InputSocket(plugin_base.InputPlugin):
     # Bind socket.
     try:
       self._sock.bind((self.args.hostname, self.args.port))
-    except socket.error as msg:
-      self.exception('Bind failed. Error %d: %s' % (msg[0], msg[1]))
+    except socket.error as e:
+      self.exception('Bind failed. Error : %s' % e)
       raise
     self.debug('Socket bind complete')
 

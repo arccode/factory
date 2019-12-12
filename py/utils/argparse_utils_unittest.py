@@ -34,7 +34,7 @@ def Parse(argv):
 class HackedArgparseTest(unittest.TestCase):
 
   def testSubcommand(self):
-    with self.assertRaises(SystemExit):
+    with self.assertRaises(KeyError):
       Parse('')
     self.assertEqual({'command_name': 'do_this',
                       'defarg': '42',

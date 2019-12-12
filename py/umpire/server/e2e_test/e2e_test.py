@@ -232,7 +232,7 @@ class UmpireRPCTest(UmpireDockerTestCase):
         os.path.join(HOST_RESOURCE_DIR, conf)))
 
   def testValidateConfig(self):
-    with self.assertRPCRaises('ValueError'):
+    with self.assertRPCRaises('json.decoder.JSONDecodeError'):
       self.proxy.ValidateConfig('not a valid config.')
 
     with self.assertRPCRaises('KeyError'):

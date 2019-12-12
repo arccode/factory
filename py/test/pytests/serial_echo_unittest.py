@@ -44,20 +44,20 @@ class SerialEchoUnittest(unittest.TestCase):
   def testSendRecvTupleTooLong(self):
     self.SetUpTestCase({'send_recv': ['tuple', 'too', 'long']})
     self.RunTestCase()
-    self.HasError('Invalid dargs send_recv',
-                  'Unable to detect invalid send_recv.')
+    self.HasFailure('Invalid dargs send_recv',
+                    'Unable to detect invalid send_recv.')
 
   def testSendRecvTupleTooShort(self):
     self.SetUpTestCase({'send_recv': ['tuple_too_short']})
     self.RunTestCase()
-    self.HasError('Invalid dargs send_recv',
-                  'Unable to detect invalid send_recv.')
+    self.HasFailure('Invalid dargs send_recv',
+                    'Unable to detect invalid send_recv.')
 
   def testSendRecvTupleNotStr(self):
     self.SetUpTestCase({'send_recv': [1, 2]})
     self.RunTestCase()
-    self.HasError('Invalid dargs send_recv',
-                  'Unable to detect invalid send_recv.')
+    self.HasFailure('Invalid dargs send_recv',
+                    'Unable to detect invalid send_recv.')
 
   @mock.patch('cros.factory.test.utils.serial_utils.OpenSerial')
   def testDefault(self, open_serial_mock):
