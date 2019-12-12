@@ -925,7 +925,7 @@ class Goofy(object):
     test_completed = False
     # Since items are removed while iterating, make a copy using values()
     # instead of itervalues().
-    for invoc in self.invocations.values():
+    for invoc in list(self.invocations.values()):
       test = invoc.test
       if invoc.IsCompleted():
         test_completed = True
@@ -965,7 +965,7 @@ class Goofy(object):
     self.ReapCompletedTests()
     # Since items are removed while iterating, make a copy using values()
     # instead of itervalues().
-    for invoc in self.invocations.values():
+    for invoc in list(self.invocations.values()):
       test = invoc.test
       if root and not test.HasAncestor(root):
         continue
