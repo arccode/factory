@@ -245,6 +245,8 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
 
   def _DecryptData(self, data):
     """Decrypts and verifies the data."""
+    if isinstance(data, str):
+      data = data.encode('utf-8')
     decrypted_data = self._gpg.decrypt(data, always_trust=False)
     self._CheckDecryptedData(decrypted_data)
     return decrypted_data.data
@@ -253,7 +255,7 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
     """Decrypts and verifies the file."""
     with file_utils.UnopenedTemporaryFile(prefix='decrypt_',
                                           dir=target_dir) as tmp_path:
-      with open(file_path, 'r') as encrypted_file:
+      with open(file_path, 'rb') as encrypted_file:
         decrypted_data = self._gpg.decrypt_file(
             encrypted_file, output=tmp_path, always_trust=False)
         self._CheckDecryptedData(decrypted_data)

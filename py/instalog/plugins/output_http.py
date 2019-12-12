@@ -238,6 +238,8 @@ class OutputHTTP(plugin_base.OutputPlugin):
 
   def _EncryptData(self, data):
     """Encrypts and signs the data by target key and default secret key."""
+    if isinstance(data, str):
+      data = data.encode('utf-8')
     encrypted_data = self._gpg.encrypt(
         data,
         self.args.target_key,
@@ -251,7 +253,7 @@ class OutputHTTP(plugin_base.OutputPlugin):
     """Encrypts and signs the file by target key and default secret key."""
     encrypt_path = file_utils.CreateTemporaryFile(prefix='encrypt_',
                                                   dir=target_dir)
-    with open(file_path, 'r') as plaintext_file:
+    with open(file_path, 'rb') as plaintext_file:
       encrypted_data = self._gpg.encrypt_file(
           plaintext_file,
           self.args.target_key,
