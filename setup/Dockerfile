@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-FROM alpine:3.4
+FROM alpine:3.10
 MAINTAINER Mao Huang <littlecvr@google.com>
 
 # need to explicitly assign PYTHONPATH for uwsgi
@@ -54,7 +54,7 @@ RUN apk upgrade --no-cache && apk add --no-cache \
     openssl \
     pigz \
     py-lxml \
-    py-pip \
+    py3-pip \
     py-psutil \
     py-twisted \
     python \
@@ -73,9 +73,9 @@ ADD build/docker/lbzip2.tbz2 /usr/bin
 COPY py/umpire/server/requirements.txt "${umpire_dir}/"
 COPY py/dome/requirements.txt "${dome_dir}/"
 COPY py/instalog/requirements.txt "${instalog_dir}/"
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir --upgrade setuptools
-RUN pip install --no-cache-dir \
+RUN pip3 install --no-cache-dir --upgrade pip && \
+    pip3 install --no-cache-dir --upgrade setuptools
+RUN pip3 install --no-cache-dir \
       -r "${umpire_dir}/requirements.txt" \
       -r "${dome_dir}/requirements.txt" \
       -r "${instalog_dir}/requirements.txt"

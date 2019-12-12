@@ -1,4 +1,5 @@
 jsonschema==2.6.0
+jsonrpclib-pelix==0.4.0
 python-gnupg==0.4.3
 PyYAML==3.12
 six==1.12.0
