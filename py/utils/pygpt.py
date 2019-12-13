@@ -190,14 +190,14 @@ class PartitionAttributeStructField(StructField):
     return PartitionAttributes(value)
 
 
-# The binascii.crc32 returns signed integer, so CRC32 in in struct must be
-# declared as 'signed' (l) instead of 'unsigned' (L).
+# The binascii.crc32 returns unsigned integer in python3, so CRC32 in struct
+# must be declared as 'unsigned' (L).
 # http://en.wikipedia.org/wiki/GUID_Partition_Table#Partition_table_header_.28LBA_1.29
 HEADER_FIELDS = [
     StructField('8s', 'Signature'),
     StructField('4s', 'Revision'),
     StructField('L', 'HeaderSize'),
-    StructField('l', 'CRC32'),
+    StructField('L', 'CRC32'),
     StructField('4s', 'Reserved'),
     StructField('Q', 'CurrentLBA'),
     StructField('Q', 'BackupLBA'),
@@ -207,7 +207,7 @@ HEADER_FIELDS = [
     StructField('Q', 'PartitionEntriesStartingLBA'),
     StructField('L', 'PartitionEntriesNumber'),
     StructField('L', 'PartitionEntrySize'),
-    StructField('l', 'PartitionArrayCRC32'),
+    StructField('L', 'PartitionArrayCRC32'),
 ]
 
 # http://en.wikipedia.org/wiki/GUID_Partition_Table#Partition_entries
