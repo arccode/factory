@@ -63,7 +63,12 @@
   },
   "cpu": {
     "generic": {
-      "eval": "generic_cpu"
+      "eval": "generic_cpu",
+      "keys": [
+        "model",
+        "cores",
+        "hardware"
+      ]
     }
   },
   "display_panel": {

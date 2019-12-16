@@ -8,7 +8,7 @@ import subprocess
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.probe import function
-from cros.factory.probe.lib import cached_probe_function
+from cros.factory.probe.lib import probe_function
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
@@ -17,46 +17,63 @@ from cros.factory.utils import type_utils
 KNOWN_CPU_TYPES = type_utils.Enum(['x86', 'arm'])
 
 
-class GenericCPUFunction(cached_probe_function.LazyCachedProbeFunction):
+class GenericCPUFunction(probe_function.ProbeFunction):
   """Probe the generic CPU information."""
 
   ARGS = [
-      Arg('cpu_type', str, 'The type of CPU. "x86" or "arm".', default=None),
+      Arg('cpu_type', str,
+          'The type of CPU. "x86" or "arm". Default: Auto detection.',
+          default=None),
   ]
 
-  def GetCategoryFromArgs(self):
+  def __init__(self, **kwargs):
+    super(GenericCPUFunction, self).__init__(**kwargs)
+
     if self.args.cpu_type is None:
-      logging.info('cpu_type is not assigned. Determine by crossystem.')
+      logging.info('cpu_type not specified. Determine by crossystem.')
       self.args.cpu_type = process_utils.CheckOutput(
           'crossystem arch', shell=True)
-
     if self.args.cpu_type not in KNOWN_CPU_TYPES:
-      raise cached_probe_function.InvalidCategoryError(
-          'cpu_type should be one of %r.', list(KNOWN_CPU_TYPES))
+      raise ValueError('cpu_type should be one of %r.' % list(KNOWN_CPU_TYPES))
 
-    return self.args.cpu_type
+  def Probe(self):
+    if self.args.cpu_type == KNOWN_CPU_TYPES.x86:
+      return self._ProbeX86()
+    return self._ProbeArm()
 
-  @classmethod
-  def ProbeDevices(cls, category):
-    if category == KNOWN_CPU_TYPES.x86:
-      return cls._ProbeX86()
-    if category == KNOWN_CPU_TYPES.arm:
-      return cls._ProbeArm()
-    return function.NOTHING
-
-  @classmethod
-  def _ProbeX86(cls):
-    cmd = r'sed -nr "s/^model name\s*: (.*)/\1/p" /proc/cpuinfo'
+  @staticmethod
+  def _ProbeX86():
+    cmd = r'/usr/bin/lscpu'
     try:
-      stdout = process_utils.CheckOutput(cmd, shell=True, log=True).splitlines()
+      stdout = process_utils.CheckOutput(cmd, shell=True, log=True)
     except subprocess.CalledProcessError:
       return function.NOTHING
-    return {
-        'model': stdout[0].strip(),
-        'cores': str(len(stdout))}
 
-  @classmethod
-  def _ProbeArm(cls):
+    def _CountCores(cpu_list):
+      count = 0
+      for cpu in cpu_list.split(','):
+        if '-' in cpu:
+          # e.g. 3-5 ==> core 3, 4, 5 are enabled
+          l, r = map(int, cpu.split('-'))
+          count += r - l + 1
+        else:
+          # e.g. 12 ==> core 12 is enabled
+          count += 1
+      return count
+
+    def _ReSearch(regex):
+      return re.search(regex, stdout).group(1).strip()
+
+    model = _ReSearch(r'Model name:(.*)')
+    physical = int(_ReSearch(r'CPU\(s\):(.*)'))
+    online = _CountCores(_ReSearch(r'On-line.*:(.*)'))
+    return {
+        'model': model,
+        'cores': str(physical),
+        'online_cores': str(online)}
+
+  @staticmethod
+  def _ProbeArm():
     # For ARM platform, ChromeOS kernel has/had special code to expose fields
     # like 'model name' or 'Processor' and 'Hardware' field.  However, this
     # doesn't seem to be available in ARMv8 (and probably all future versions).
@@ -90,6 +107,7 @@ class GenericCPUFunction(cached_probe_function.LazyCachedProbeFunction):
       logging.error('Unable to construct "model" of ARM CPU')
 
     cores = process_utils.CheckOutput('nproc', shell=True, log=True)
+    # TODO(frankbozar): count the number of online cores
 
     return {
         'model': model.strip(),
