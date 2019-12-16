@@ -59,11 +59,12 @@ class GSCTool(object):
                                                  'RW_FW_VER': 'rw_version'},
                           'firmware versions.')
 
-  def UpdateCr50Firmware(self, image_file):
+  def UpdateCr50Firmware(self, image_file, upstart_mode=True):
     """Update the Cr50 firmware.
 
     Args:
       image_file: Path to the image file that contains the cr50 firmware image.
+      upstart_mode: Use upstart mode.
 
     Returns:
       Enum element of `UpdateResult` if succeeds.
@@ -71,15 +72,22 @@ class GSCTool(object):
     Raises:
       `GSCToolError` if update fails.
     """
-    cmd = [GSCTOOL_PATH, '-a', '-u', image_file]
-    # 0: noop. 1: all_updated, 2: rw_updated, 3: update_error
-    # See platform/ec/extra/usb_updater/gsctool.h for more detail.
-    cmd_result_checker = lambda result: 0 <= result.status <= 2
-    cmd_result = self._InvokeCommand(cmd, 'Failed to update the Cr50 firmware',
-                                     cmd_result_checker=cmd_result_checker)
-    return {0: UpdateResult.NOOP,
-            1: UpdateResult.ALL_UPDATED,
-            2: UpdateResult.RW_UPDATED}[cmd_result.status]
+    if upstart_mode:
+      cmd = [GSCTOOL_PATH, '-a', '-u', image_file]
+      # 0: noop. 1: all_updated, 2: rw_updated, 3: update_error
+      # See platform/ec/extra/usb_updater/gsctool.h for more detail.
+      cmd_result_checker = lambda result: 0 <= result.status <= 2
+      cmd_result = self._InvokeCommand(cmd, 'Failed to update Cr50 firmware',
+                                       cmd_result_checker=cmd_result_checker)
+      return {0: UpdateResult.NOOP,
+              1: UpdateResult.ALL_UPDATED,
+              2: UpdateResult.RW_UPDATED}[cmd_result.status]
+
+    cmd = [GSCTOOL_PATH, '-a', image_file]
+    self._InvokeCommand(cmd, 'Failed to update Cr50 firmware')
+    # The command will trigger a reboot, so the following lines should not be
+    # run.
+    raise GSCToolError("Device doesn't reboot after updating Cr50 firmware.")
 
   def GetImageInfo(self, image_file):
     """Get the version and the board id of the specified Cr50 firmware image.
@@ -103,7 +111,7 @@ class GSCTool(object):
     return info
 
   def _GetAttrs(self, cmd, AttrClass, fields, target_name):
-    cmd_result = self._InvokeCommand(cmd, 'failed to get the %s' % target_name)
+    cmd_result = self._InvokeCommand(cmd, 'failed to get %s' % target_name)
 
     translated_kwargs = {}
     for line in cmd_result.stdout.splitlines():
@@ -132,7 +140,7 @@ class GSCTool(object):
     enable_str = 'enable' if enable else 'disable'
     cmd = [GSCTOOL_PATH, '-a', '-F', enable_str]
     self._InvokeCommand(
-        cmd, 'failed to %s the cr50 factory mode' % enable_str)
+        cmd, 'failed to %s cr50 factory mode' % enable_str)
 
   def IsFactoryMode(self):
     """Queries if the cr50 is in factory mode or not.

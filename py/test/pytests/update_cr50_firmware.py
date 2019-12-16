@@ -49,6 +49,18 @@ add this in test list::
     "pytest_name": "update_cr50_firmware"
   }
 
+To update Cr50 firmware without upstart mode, unset `upstart_mode` argument and
+set the pytest as `allow_reboot`. After updated and reboot, the test will be run
+again and succeeds in the second run::
+
+  {
+    "pytest_name": "update_cr50_firmware",
+    "allow_reboot": true,
+    "args": {
+      "upstart_mode": false
+    }
+  }
+
 To update Cr50 firmware with the Cr50 firmware image in station::
 
   {
@@ -79,6 +91,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.gooftool import common as gooftool_common
 from cros.factory.gooftool import gsctool
+from cros.factory.test import device_data
 from cros.factory.test import session
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
@@ -90,6 +103,10 @@ from cros.factory.utils import type_utils
 
 DEFAULT_FIRMWARE_PATH = '/opt/google/cr50/firmware/cr50.bin.prod'
 PREPVT_FLAG_MASK = 0x7F
+KEY_ATTEMPT_CR50_UPDATE_RO_VERSION = device_data.JoinKeys(
+    device_data.KEY_FACTORY, 'attempt_cr50_update_ro_version')
+KEY_ATTEMPT_CR50_UPDATE_RW_VERSION = device_data.JoinKeys(
+    device_data.KEY_FACTORY, 'attempt_cr50_update_rw_version')
 
 
 class UpdateCr50FirmwareTest(test_case.TestCase):
@@ -112,6 +129,9 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
           'Specify whether to update the Cr50 firmware or to check the '
           'firmware version.',
           default=_METHOD_TYPE.UPDATE),
+      Arg('upstart_mode', bool,
+          'Use upstart mode to update Cr50 firmware.',
+          default=True),
       Arg('check_version_retry_timeout', int,
           'If the version is not matched, retry the check after the specific '
           'seconds.  Set to `0` to disable the retry.',
@@ -138,6 +158,9 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
                      'firmware_file should be a full path')
 
     self._LogCr50Info()
+
+    self._CheckVersionRetry(self._CompareAttemptUpdateVersion)
+    self._ClearAttemptDeviceData()
 
     if self.args.method == self._METHOD_TYPE.UPDATE:
       method_func = self._UpdateCr50Firmware
@@ -173,45 +196,61 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
     testlog.LogParam('board_id_flags', image_info.board_id_flags)
     return image_info.board_id_flags & PREPVT_FLAG_MASK
 
-  def _UpdateCr50Firmware(self, firmware_file):
-    if not self.args.skip_prepvt_flag_check:
-      if self._IsPrePVTFirmware(firmware_file):
-        raise ValueError('Cr50 firmware board ID flag is PrePVT.')
-
+  def _CompareFirmwareFileVersion(self, firmware_file):
+    """Compare if current cr50 version is not older than firmware file."""
     image_info = self.gsctool.GetImageInfo(firmware_file)
     fw_ver = self.gsctool.GetCr50FirmwareVersion()
 
-    msg = 'Update the Cr50 firmware from version %r to %r.' % (fw_ver,
-                                                               image_info)
-    self.ui.SetState(msg)
-    session.console.info(msg)
-    update_result = self.gsctool.UpdateCr50Firmware(firmware_file)
-    session.console.info('Cr50 firmware update complete: %s.', update_result)
-
-  def _CheckCr50FirmwareVersion(self, firmware_file):
     testlog.UpdateParam('expected_ro_fw_version',
                         description='The expected RO FW version.')
     testlog.UpdateParam('expected_rw_fw_version',
                         description='The expected RW FW version.')
     testlog.UpdateParam('ro_fw_version', description='The RO FW version.')
     testlog.UpdateParam('rw_fw_version', description='The RW FW version.')
-
-    image_info = self.gsctool.GetImageInfo(firmware_file)
     testlog.LogParam('expected_ro_fw_version', image_info.ro_fw_version)
     testlog.LogParam('expected_rw_fw_version', image_info.rw_fw_version)
+    testlog.LogParam('ro_fw_version', fw_ver.ro_version)
+    testlog.LogParam('rw_fw_version', fw_ver.rw_version)
+
+    for name in ('ro', 'rw'):
+      actual = getattr(fw_ver, name + '_version')
+      expect = getattr(image_info, name + '_fw_version')
+      if version.StrictVersion(actual) < version.StrictVersion(expect):
+        session.console.info(
+            '%s FW version is old (actual=%r, expect=%r)' %
+            (name.upper(), actual, expect))
+        return False
+
+    return True
+
+  def _CompareAttemptUpdateVersion(self):
+    """Compare if current cr50 version is the same as attempted update."""
+    fw_ver = self.gsctool.GetCr50FirmwareVersion()
+    for name in ('ro', 'rw'):
+      actual = getattr(fw_ver, name + '_version')
+      key = device_data.JoinKeys(device_data.KEY_FACTORY,
+                                 'attempt_cr50_update_' + name + '_version')
+      expect = device_data.GetDeviceData(key)
+      if expect and actual != expect:
+        session.console.info(
+            '%s FW is not updated in previous attempt (actual=%s, expect=%s)' %
+            (name.upper(), actual, expect))
+        return False
+
+    return True
+
+  def _CheckVersionRetry(self, check_version_func, *check_version_args):
+    """Check if current Cr50 version is new enough, with a retry timeout.
+
+    Args:
+      check_version_func: A function that returns True when Cr50 version is new
+                          enough.
+      check_version_args: Argument passed to `check_version_func`.
+    """
 
     def _Check():
-      self.ui.SetState('Get the current Cr50 firmware version.')
-      fw_ver = self.gsctool.GetCr50FirmwareVersion()
-      testlog.LogParam('ro_fw_version', fw_ver.ro_version)
-      testlog.LogParam('rw_fw_version', fw_ver.rw_version)
-      for name in ('ro', 'rw'):
-        actual = getattr(fw_ver, name + '_version')
-        expect = getattr(image_info, name + '_fw_version')
-        if version.StrictVersion(actual) < version.StrictVersion(expect):
-          raise type_utils.TestFailure(
-              '%s FW version is old (actual=%r, expect=%r)' %
-              (name.upper(), actual, expect))
+      if not check_version_func(*check_version_args):
+        raise type_utils.TestFailure('Cr50 firmware is old.')
 
     try:
       _Check()
@@ -222,3 +261,35 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
                        self.args.check_version_retry_timeout)
       self.Sleep(self.args.check_version_retry_timeout)
       _Check()
+
+  def _UpdateCr50Firmware(self, firmware_file):
+    if not self.args.skip_prepvt_flag_check:
+      if self._IsPrePVTFirmware(firmware_file):
+        raise ValueError('Cr50 firmware board ID flag is PrePVT.')
+
+    if self._CompareFirmwareFileVersion(firmware_file):
+      session.console.info('Cr50 firmware is up-to-date.')
+      return
+
+    image_info = self.gsctool.GetImageInfo(firmware_file)
+    fw_ver = self.gsctool.GetCr50FirmwareVersion()
+
+    msg = 'Update the Cr50 firmware from version %r to %r.' % (fw_ver,
+                                                               image_info)
+    self.ui.SetState(msg)
+    session.console.info(msg)
+    device_data.UpdateDeviceData({
+        KEY_ATTEMPT_CR50_UPDATE_RO_VERSION: image_info.ro_fw_version,
+        KEY_ATTEMPT_CR50_UPDATE_RW_VERSION: image_info.rw_fw_version
+    })
+    update_result = self.gsctool.UpdateCr50Firmware(firmware_file,
+                                                    self.args.upstart_mode)
+    session.console.info('Cr50 firmware update complete: %s.', update_result)
+
+  def _CheckCr50FirmwareVersion(self, firmware_file):
+    self._CheckVersionRetry(self._CompareFirmwareFileVersion, firmware_file)
+    session.console.info('Cr50 firmware is up-to-date.')
+
+  def _ClearAttemptDeviceData(self):
+    device_data.DeleteDeviceData(KEY_ATTEMPT_CR50_UPDATE_RO_VERSION, True)
+    device_data.DeleteDeviceData(KEY_ATTEMPT_CR50_UPDATE_RW_VERSION, True)
