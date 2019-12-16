@@ -181,8 +181,6 @@ _AUDIOFUNTEST_RUN_START_RE = re.compile('^carrier')
 _DEFAULT_AUDIOFUN_TEST_THRESHOLD = 50
 # Default iterations to do the audiofun test.
 _DEFAULT_AUDIOFUN_TEST_ITERATION = 10
-# Default channels of the input_dev to be tested.
-_DEFAULT_AUDIOFUN_TEST_INPUT_CHANNELS = [0, 1]
 # Default channels of the output_dev to be tested.
 _DEFAULT_AUDIOFUN_TEST_OUTPUT_CHANNELS = [0, 1]
 # Default audio gain used for audiofuntest.
@@ -193,6 +191,8 @@ _DEFAULT_AUDIOFUN_TEST_SAMPLE_RATE = 48000
 _DEFAULT_AUDIOFUN_TEST_SAMPLE_FORMAT = 's16'
 # Default sample format used to play audio, s16 = Signed 16 Bit.
 _DEFAULT_AUDIOFUN_TEST_PLAYER_FORMAT = 's16'
+# Default channels of the input_dev to be tested.
+_DEFAULT_TEST_INPUT_CHANNELS = [0, 1]
 # Default duration to do the sinewav test, in seconds.
 _DEFAULT_SINEWAV_TEST_DURATION = 2
 # Default frequency tolerance, in Hz.
@@ -709,7 +709,7 @@ class AudioLoopTest(test_case.TestCase):
                          self._alsa_output_device, self._alsa_input_device)
 
     input_channels = self._current_test_args.get(
-        'input_channels', _DEFAULT_AUDIOFUN_TEST_INPUT_CHANNELS)
+        'input_channels', _DEFAULT_TEST_INPUT_CHANNELS)
     output_channels = self._current_test_args.get(
         'output_channels', _DEFAULT_AUDIOFUN_TEST_OUTPUT_CHANNELS)
     capture_rate = self._current_test_args.get(
@@ -732,6 +732,8 @@ class AudioLoopTest(test_case.TestCase):
     # Need to redesign the args to provide more flexbility.
     duration = self._current_test_args.get('duration',
                                            _DEFAULT_SINEWAV_TEST_DURATION)
+    input_channels = self._current_test_args.get(
+        'input_channels', _DEFAULT_TEST_INPUT_CHANNELS)
 
     for channel in xrange(num_channels):
       # file path in host
@@ -759,7 +761,8 @@ class AudioLoopTest(test_case.TestCase):
       self.RecordFile(duration, record_file_path)
       self._dut.audio.StopPlaybackWavFile()
 
-      sox_output = audio_utils.SoxStatOutput(record_file_path, channel)
+      sox_output = audio_utils.SoxStatOutput(record_file_path,
+                                             input_channels[channel])
       self.CheckRecordedAudio(sox_output)
 
       self._audio_file_path.append(record_file_path)
