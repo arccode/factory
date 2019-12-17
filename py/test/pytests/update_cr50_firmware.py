@@ -94,7 +94,6 @@ from cros.factory.gooftool import gsctool
 from cros.factory.test import device_data
 from cros.factory.test import session
 from cros.factory.test import test_case
-from cros.factory.test import test_ui
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sys_utils
@@ -138,13 +137,13 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
           default=10)
   ]
 
-  ui_class = test_ui.ScrollableLogUI
-
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
 
     dut_shell = functools.partial(gooftool_common.Shell, sys_interface=self.dut)
     self.gsctool = gsctool.GSCTool(shell=dut_shell)
+    self.fw_ver = self.gsctool.GetCr50FirmwareVersion()
+    self.board_id = self.gsctool.GetBoardID()
 
   def runTest(self):
     """Update Cr50 firmware."""
@@ -180,12 +179,8 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
           method_func(dut_temp_file)
 
   def _LogCr50Info(self):
-    # TODO(yhong): Centralize the logic to invoking gsctool commands to
-    #     `cros.factory.gooftool.gsctool`.
-    # Report running Cr50 firmware versions
-    self.ui.PipeProcessOutputToUI([gsctool.GSCTOOL_PATH, '-a', '-f'])
-    # Get Info1 board ID fields
-    self.ui.PipeProcessOutputToUI([gsctool.GSCTOOL_PATH, '-a', '-i'])
+    session.console.info('Cr50 firmware version: %r' % self.fw_ver)
+    session.console.info('Cr50 board ID: %r' % self.board_id)
 
   def _IsPrePVTFirmware(self, firmware_file):
     image_info = self.gsctool.GetImageInfo(firmware_file)
@@ -199,7 +194,6 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
   def _CompareFirmwareFileVersion(self, firmware_file):
     """Compare if current cr50 version is not older than firmware file."""
     image_info = self.gsctool.GetImageInfo(firmware_file)
-    fw_ver = self.gsctool.GetCr50FirmwareVersion()
 
     testlog.UpdateParam('expected_ro_fw_version',
                         description='The expected RO FW version.')
@@ -209,11 +203,11 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
     testlog.UpdateParam('rw_fw_version', description='The RW FW version.')
     testlog.LogParam('expected_ro_fw_version', image_info.ro_fw_version)
     testlog.LogParam('expected_rw_fw_version', image_info.rw_fw_version)
-    testlog.LogParam('ro_fw_version', fw_ver.ro_version)
-    testlog.LogParam('rw_fw_version', fw_ver.rw_version)
+    testlog.LogParam('ro_fw_version', self.fw_ver.ro_version)
+    testlog.LogParam('rw_fw_version', self.fw_ver.rw_version)
 
     for name in ('ro', 'rw'):
-      actual = getattr(fw_ver, name + '_version')
+      actual = getattr(self.fw_ver, name + '_version')
       expect = getattr(image_info, name + '_fw_version')
       if version.StrictVersion(actual) < version.StrictVersion(expect):
         session.console.info(
@@ -225,9 +219,8 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
 
   def _CompareAttemptUpdateVersion(self):
     """Compare if current cr50 version is the same as attempted update."""
-    fw_ver = self.gsctool.GetCr50FirmwareVersion()
     for name in ('ro', 'rw'):
-      actual = getattr(fw_ver, name + '_version')
+      actual = getattr(self.fw_ver, name + '_version')
       key = device_data.JoinKeys(device_data.KEY_FACTORY,
                                  'attempt_cr50_update_' + name + '_version')
       expect = device_data.GetDeviceData(key)
@@ -272,9 +265,8 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
       return
 
     image_info = self.gsctool.GetImageInfo(firmware_file)
-    fw_ver = self.gsctool.GetCr50FirmwareVersion()
 
-    msg = 'Update the Cr50 firmware from version %r to %r.' % (fw_ver,
+    msg = 'Update the Cr50 firmware from version %r to %r.' % (self.fw_ver,
                                                                image_info)
     self.ui.SetState(msg)
     session.console.info(msg)
