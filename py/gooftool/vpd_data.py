@@ -43,6 +43,7 @@ KNOWN_RO_DATA = {
     'model_name': ANY,
     'service_tag': ANY,
     'dsm_calib': r'[0-9a-f ]*',
+    'oem_device_requisition': ANY,
 }
 
 # Variable key names in regular expression.
