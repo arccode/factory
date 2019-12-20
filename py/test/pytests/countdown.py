@@ -291,7 +291,7 @@ class CountDownTest(test_case.TestCase):
 
       if current_time >= self._next_log_time:
         event_log.Log('system_status', elapsed_secs=self._elapsed_secs,
-                      **sys_status.__dict__)
+                      **sys_status._asdict())
         self.DetectAbnormalStatus(sys_status, last_status)
         last_status = sys_status
         self._next_log_time = current_time + self.args.log_interval
