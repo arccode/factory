@@ -234,8 +234,9 @@ class BadBlocksTest(test_case.TestCase):
                               self.args.max_bytes // sector_size)
       last_block = first_block + sectors_to_test - 1
 
+      local_variables = locals()
       logging.info(', '.join(
-          ['%s=%s' % (x, locals()[x])
+          ['%s=%s' % (x, local_variables[x])
            for x in ['fs_first_block', 'fs_block_count', 'fs_block_size',
                      'start_sector', 'sector_count',
                      'sector_size',
