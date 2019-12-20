@@ -238,7 +238,8 @@ class CameraTest(test_case.TestCase):
         # postprocessing on JavaScript.
         blob_path = self.RunJSPromiseBlocking(
             'cameraTest.grabFrameAndTransmitBack()')
-        blob = codecs.decode(file_utils.ReadFile(blob_path), 'base64')
+        blob = codecs.decode(
+            file_utils.ReadFile(blob_path, encoding=None), 'base64')
         os.unlink(blob_path)
         return cv.imdecode(np.fromstring(blob, dtype=np.uint8), cv.IMREAD_COLOR)
 
