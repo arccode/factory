@@ -507,8 +507,8 @@ def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
              keep_developer_mode_flag):
   Daemonize()
   logfile = '/tmp/wipe_init.log'
-  wipe_in_tmpfs_log = os.path.join(old_root, 'tmp', WIPE_IN_TMPFS_LOG)
   ResetLog(logfile)
+  wipe_in_tmpfs_log = os.path.join(old_root, 'tmp', WIPE_IN_TMPFS_LOG)
 
   logging.debug('wipe_args: %s', wipe_args)
   logging.debug('shopfloor_url: %s', shopfloor_url)
