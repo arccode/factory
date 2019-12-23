@@ -1,0 +1,6 @@
+syntax = "proto3";
+package cros.factory.probe_info_service.app_engine.stubby_pb2;
+
+
+service ProbeInfoService {
+}
