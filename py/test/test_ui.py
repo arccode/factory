@@ -310,7 +310,7 @@ class UI(object):
                                  os.path.basename(base) + '.' + extension)
       if not os.path.exists(static_file):
         return default
-      return file_utils.ReadFile(static_file).decode('UTF-8')
+      return file_utils.ReadFile(static_file)
 
     self.SetHTML(
         html='<base href="/tests/%s/">' % test, id='head', append=True)

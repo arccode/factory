@@ -203,7 +203,7 @@ class Gooftool(object):
       with open(kernel_dev, 'rb') as f:
         # The kernel is usually 8M or 16M, but let's read more.
         file_utils.WriteFile(os.path.join(tmpdir, blob_kern),
-                             f.read(64 * 1048576))
+                             f.read(64 * 1048576), encoding=None)
       logging.debug('extract firmware from %s', firmware_path)
       for section in ('GBB', 'FW_MAIN_A', 'FW_MAIN_B', 'VBLOCK_A', 'VBLOCK_B'):
         file_utils.WriteFile(os.path.join(tmpdir, section),

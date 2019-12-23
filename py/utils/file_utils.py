@@ -219,13 +219,14 @@ def TryUnlink(path):
       raise
 
 
-def ReadFile(path):
-  """Reads bytes from a file.
+def ReadFile(path, encoding='utf-8'):
+  """Reads data from a file.
 
   Args:
     path: The path of the file to read.
+    encoding: Same param as open(). Set to None for binary mode.
   """
-  with open(path) as f:
+  with open(path, mode='r' if encoding else 'rb', encoding=encoding) as f:
     return f.read()
 
 
@@ -256,19 +257,25 @@ def TailFile(path, max_length=5 * 1024 * 1024, dut=None):
   return data
 
 
-def WriteFile(path, data, log=False):
+def WriteFile(path, data, encoding='utf-8', log=False):
   """Writes a value to a file.
 
   Args:
     path: The path to write to.
     data: The value to write.  This may be any type and is stringified with
-        str().
+        str(). If you need to write bytes, you should set encoding to None.
+    encoding: Same param as open(). Set to None for binary mode.
     log: Whether to log path and data.
   """
-  data = str(data)
   if log:
     logging.info('Writing %r to %s', data, path)
-  with open(path, 'w') as f:
+
+  if encoding:
+    data = data if isinstance(data, str) else str(data)
+  elif not isinstance(data, bytes):
+    raise TypeError('Given data must be in type of `bytes` in binary mode')
+
+  with open(path, mode='w' if encoding else 'wb', encoding=encoding) as f:
     f.write(data)
 
 
