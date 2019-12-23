@@ -1052,6 +1052,7 @@ class GPTCommands(object):
         args.image_file.seek(0)
         args.image_file.write('\0' * block_size * gpt.header.FirstUsableLBA)
       gpt.WriteToFile(args.image_file)
+      args.image_file.close()
       return 'Created GPT for %s' % args.image_file.name
 
   class Boot(SubCommand):
@@ -1085,6 +1086,7 @@ class GPTCommands(object):
           args.image_file, args.pmbr, bootcode=bootcode, boot_guid=boot_guid)
 
       print(pmbr.BootGUID)
+      args.image_file.close()
       return 0
 
   class Legacy(SubCommand):
@@ -1118,6 +1120,7 @@ class GPTCommands(object):
         new_signature = gpt.Header.SIGNATURES[0 if args.efi else 1]
         gpt.header.Update(Signature=new_signature)
       gpt.WriteToFile(args.image_file)
+      args.image_file.close()
       if args.primary_ignore:
         return ('Set %s primary GPT header to %s.' %
                 (args.image_file.name, gpt.header.SIGNATURE_IGNORE))
@@ -1137,6 +1140,7 @@ class GPTCommands(object):
       gpt = GPT.LoadFromFile(args.image_file)
       gpt.Resize(GPT.GetImageSize(args.image_file.name))
       gpt.WriteToFile(args.image_file)
+      args.image_file.close()
       return 'Disk image file %s repaired.' % args.image_file.name
 
   class Expand(SubCommand):
@@ -1154,6 +1158,7 @@ class GPTCommands(object):
       gpt = GPT.LoadFromFile(args.image_file)
       old_blocks, new_blocks = gpt.ExpandPartition(args.number)
       gpt.WriteToFile(args.image_file)
+      args.image_file.close()
       if old_blocks < new_blocks:
         return (
             'Partition %s on disk image file %s has been extended '
@@ -1268,6 +1273,7 @@ class GPTCommands(object):
         part.Zero()
 
       gpt.WriteToFile(args.image_file)
+      args.image_file.close()
       if part.IsUnused():
         # If we do ('%s' % part) there will be TypeError.
         return 'Deleted (zeroed) %s.' % (part,)
@@ -1503,6 +1509,7 @@ class GPTCommands(object):
                        new_priority)
 
       gpt.WriteToFile(args.image_file)
+      args.image_file.close()
 
   class Find(SubCommand):
     """Locate a partition by its GUID.
