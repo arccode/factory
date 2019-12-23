@@ -35,7 +35,8 @@ is_macosx() {
 realpath() {
   # Try to find "realpath" in a portable way.
   if type python2 >/dev/null 2>&1; then
-    python2 -c 'import sys; import os; print os.path.realpath(sys.argv[1])' "$1"
+    python2 -c 'import sys; import os; print(os.path.realpath(sys.argv[1]))' \
+      "$1"
   else
     readlink -f "$@"
   fi

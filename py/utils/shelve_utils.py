@@ -36,7 +36,7 @@ def IsShelfValid(shelf):
   process = process_utils.Spawn(['python2', '-c',
                                  'import shelve, sys; '
                                  'shelve.open(sys.argv[1], "r").items(); '
-                                 r'print "\nSHELF OK"',
+                                 r'print("\nSHELF OK")',
                                  os.path.realpath(shelf)],
                                 cwd=os.path.dirname(__file__), call=True,
                                 log=True, read_stdout=True, read_stderr=True,

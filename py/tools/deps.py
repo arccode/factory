@@ -157,7 +157,7 @@ def GetSysPathInDir(file_dir, additional_script=''):
                   'import os\n'
                   'import json\n'
                   '%s\n'
-                  'print json.dumps([os.path.abspath(p) for p in sys.path])') %
+                  'print(json.dumps([os.path.abspath(p) for p in sys.path]))') %
               additional_script
           ],
           cwd=file_dir))

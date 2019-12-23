@@ -104,13 +104,13 @@ except Exception:
 
 if not module:
   # Display an error message describing the valid commands.
-  print >>sys.stderr, (
-    'Unable to run %s.  To run a file within this archive,' % name)
-  print >>sys.stderr, (
-    'rename it to (or create a symbolic link from) one of the following:')
-  print >>sys.stderr
+  print('Unable to run %s.  To run a file within this archive,' % name,
+        file=sys.stderr)
+  print('rename it to (or create a symbolic link from) one of the following:',
+        file=sys.stderr)
+  print('', file=sys.stderr)
   for m in sorted(modules.keys()):
-    print >>sys.stderr, '  %s' % m
+    print('  %s' % m, file=sys.stderr)
   sys.exit(1)
 
 runpy.run_module(module, run_name='__main__')" "$0" "$@"
