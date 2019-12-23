@@ -63,31 +63,36 @@ class LinuxTargetTest(unittest.TestCase):
     self.link.Shell = mock.MagicMock()
     self.assertEqual(self.dut.Popen(['ls']), self.link.Shell.return_value)
     self.link.Shell.assert_called_with(
-        ['ls'], cwd=None, stdin=None, stdout=None, stderr=None)
+        ['ls'], cwd=None, stdin=None, stdout=None, stderr=None,
+        encoding='utf-8')
 
     self.link.Shell = mock.MagicMock()
     self.assertEqual(self.dut.Popen('ls', cwd='/'),
                      self.link.Shell.return_value)
     self.link.Shell.assert_called_with(
-        'ls', cwd='/', stdin=None, stdout=None, stderr=None)
+        'ls', cwd='/', stdin=None, stdout=None, stderr=None,
+        encoding='utf-8')
 
   def testCall(self):
     self.link.Shell = mock.MagicMock(return_value=MockProcess(1))
     self.assertEqual(self.dut.Call(['ls']), 1)
     self.link.Shell.assert_called_with(
-        ['ls'], cwd=None, stdin=None, stdout=None, stderr=None)
+        ['ls'], cwd=None, stdin=None, stdout=None, stderr=None,
+        encoding='utf-8')
 
   def testCheckCall(self):
     self.link.Shell = mock.MagicMock(return_value=MockProcess(0))
     self.assertEqual(self.dut.CheckCall(['ls']), 0)
     self.link.Shell.assert_called_with(
-        ['ls'], cwd=None, stdin=None, stdout=None, stderr=None)
+        ['ls'], cwd=None, stdin=None, stdout=None, stderr=None,
+        encoding='utf-8')
 
     self.link.Shell = mock.MagicMock(return_value=MockProcess(1))
     with self.assertRaises(device_types.CalledProcessError):
       self.dut.CheckCall(['ls'])
     self.link.Shell.assert_called_with(
-        ['ls'], cwd=None, stdin=None, stdout=None, stderr=None)
+        ['ls'], cwd=None, stdin=None, stdout=None, stderr=None,
+        encoding='utf-8')
 
   def testCheckOutput(self):
     def fakeCallSuccess(command, cwd, stdin, stdout, stderr, log):

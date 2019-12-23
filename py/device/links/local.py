@@ -39,7 +39,8 @@ class LocalLink(device_types.DeviceLink):
     shutil.copy(remote, local)
     return None
 
-  def Shell(self, command, stdin=None, stdout=None, stderr=None, cwd=None):
+  def Shell(self, command, stdin=None, stdout=None, stderr=None, cwd=None,
+            encoding='utf-8'):
     """See DeviceLink.Shell"""
 
     # On most remote links, we always need to execute the commands via shell. To
@@ -63,7 +64,8 @@ class LocalLink(device_types.DeviceLink):
       # systems like Windows.
       shell = True
     return subprocess.Popen(command, shell=shell, cwd=cwd, close_fds=True,
-                            stdin=stdin, stdout=stdout, stderr=stderr)
+                            stdin=stdin, stdout=stdout, stderr=stderr,
+                            encoding=encoding)
 
   def IsReady(self):
     """See DeviceLink.IsReady"""

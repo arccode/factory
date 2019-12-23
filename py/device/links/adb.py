@@ -95,7 +95,8 @@ class ADBLink(device_types.DeviceLink):
                             stderr=subprocess.STDOUT)
     return None
 
-  def Shell(self, command, stdin=None, stdout=None, stderr=None, cwd=None):
+  def Shell(self, command, stdin=None, stdout=None, stderr=None, cwd=None,
+            encoding='utf-8'):
     """See DeviceLink.Shell"""
     # ADB shell does not provide interactive shell, which means we are not
     # able to send stdin data in an interactive way (
@@ -168,7 +169,8 @@ class ADBLink(device_types.DeviceLink):
     logging.debug('ADBLink: Run %r', command)
     return wrapper(subprocess.Popen(command, shell=False, close_fds=True,
                                     stdin=stdin, stdout=stdout,
-                                    stderr=stderr), session_id)
+                                    stderr=stderr, encoding=encoding),
+                   session_id)
 
   def IsReady(self):
     """See DeviceLink.IsReady"""

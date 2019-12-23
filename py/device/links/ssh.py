@@ -237,7 +237,8 @@ class SSHLink(device_types.DeviceLink):
     watcher.Start()  # make sure the watcher is running
     watcher.AddProcess(subproc.pid, os.getpid())
 
-  def Shell(self, command, stdin=None, stdout=None, stderr=None, cwd=None):
+  def Shell(self, command, stdin=None, stdout=None, stderr=None, cwd=None,
+            encoding='utf-8'):
     """See DeviceLink.Shell"""
     remote_sig, options = self._signature(False)
 
@@ -250,7 +251,7 @@ class SSHLink(device_types.DeviceLink):
 
     logging.debug('SSHLink: Run [%r]', command)
     proc = SSHProcess(command, shell=False, close_fds=True, stdin=stdin,
-                      stdout=stdout, stderr=stderr)
+                      stdout=stdout, stderr=stderr, encoding=encoding)
     self._StartWatcher(proc)
     return proc
 

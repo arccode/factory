@@ -225,11 +225,14 @@ def Spawn(args, **kwargs):
     ignore_stderr: Ignore stderr.
     sudo: Prepend sudo to arguments if user is not root.
     env: Same as subprocess.Popen, set-up environment parameters if needed.
+    encoding: Same as subprocess.Popen, we will use `utf-8` as default to make
+      it output str type.
 
   Returns/Raises:
     Same as Popen.
   """
   kwargs.setdefault('close_fds', True)
+  kwargs.setdefault('encoding', 'utf-8')
 
   logger = logging
   log = kwargs.pop('log', False)

@@ -308,7 +308,7 @@ class LinuxBoard(device_types.DeviceBoard):
 
   @type_utils.Overrides
   def Popen(self, command, stdin=None, stdout=None, stderr=None, cwd=None,
-            log=False):
+            log=False, encoding='utf-8'):
     """Executes a command on target device using subprocess.Popen convention.
 
     This function should be the single entry point for invoking link.Shell
@@ -323,6 +323,8 @@ class LinuxBoard(device_types.DeviceBoard):
       cwd: The working directory for the command.
       log: True (for logging.info) or a logger object to keep logs before
           running the command.
+      encoding: Same as subprocess.Popen, we will use `utf-8` as default to make
+          it output str type.
 
     Returns:
       An object similar to subprocess.Popen (see link.Shell).
@@ -330,8 +332,8 @@ class LinuxBoard(device_types.DeviceBoard):
     if log:
       logger = logging.info if log is True else log
       logger('%s Running: %r', type(self), command)
-    return self.link.Shell(command, cwd=cwd,
-                           stdin=stdin, stdout=stdout, stderr=stderr)
+    return self.link.Shell(command, cwd=cwd, stdin=stdin, stdout=stdout,
+                           stderr=stderr, encoding=encoding)
 
   @type_utils.Overrides
   def Glob(self, pattern):

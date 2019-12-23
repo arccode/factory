@@ -117,7 +117,7 @@ class SystemInterface(object):
     return shutil.copy(local, remote)
 
   def Popen(self, command, stdin=None, stdout=None, stderr=None, cwd=None,
-            log=False):
+            log=False, encoding='utf-8'):
     """Executes a command on target device using subprocess.Popen convention.
 
     Compare to `subprocess.Popen`, the argument `shell=True/False` is not
@@ -133,6 +133,8 @@ class SystemInterface(object):
       cwd: The working directory for the command.
       log: True (for logging.info) or a logger object to keep logs before
           running the command.
+      encoding: Same as subprocess.Popen, we will use `utf-8` as default to make
+          it output str type.
 
     Returns:
       An object similar to subprocess.Popen.
@@ -144,7 +146,8 @@ class SystemInterface(object):
     if not isinstance(command, str):
       command = ' '.join(pipes.quote(param) for param in command)
     return subprocess.Popen(command, cwd=cwd, shell=True, close_fds=True,
-                            stdin=stdin, stdout=stdout, stderr=stderr)
+                            stdin=stdin, stdout=stdout, stderr=stderr,
+                            encoding=encoding)
 
   def Call(self, *args, **kargs):
     """Executes a command on target device, using subprocess.call convention.

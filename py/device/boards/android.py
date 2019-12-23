@@ -22,7 +22,7 @@ class AndroidBoard(linux.LinuxBoard):
   TMPDIR = '/data/local/tmp'
 
   def Popen(self, command, stdin=None, stdout=None, stderr=None, cwd=None,
-            log=False):
+            log=False, encoding='utf-8'):
     # On Android, TMPDIR environment variable is only specified when
     # /system/etc/mkshrc was executed.  When we access to Android via ADBLink or
     # SSHLink ("adb shell" or "ssh host cmd"), ${TMPDIR} will be empty and
@@ -37,7 +37,8 @@ class AndroidBoard(linux.LinuxBoard):
 
     command = ['TMPDIR=%s' % self.TMPDIR, 'sh', '-c', command]
     return super(AndroidBoard, self).Popen(
-        command, stdin=stdin, stdout=stdout, stderr=stderr, cwd=cwd, log=log)
+        command, stdin=stdin, stdout=stdout, stderr=stderr, cwd=cwd, log=log,
+        encoding=encoding)
 
   @device_types.DeviceProperty
   def audio(self):

@@ -68,7 +68,8 @@ class DeviceLink(object):
     """
     raise NotImplementedError
 
-  def Shell(self, command, stdin=None, stdout=None, stderr=None, cwd=None):
+  def Shell(self, command, stdin=None, stdout=None, stderr=None, cwd=None,
+            encoding='utf-8'):
     """Executes a command on device.
 
     The calling convention is similar to subprocess.Popen, but only a subset of
@@ -80,6 +81,8 @@ class DeviceLink(object):
       stdout: A file object to override standard output.
       stderr: A file object to override standard error.
       cwd: The working directory for the command.
+      encoding: Same as subprocess.Popen, we will use `utf-8` as default to make
+          it output str type.
 
     Returns:
       An object representing the process, similar to subprocess.Popen.
