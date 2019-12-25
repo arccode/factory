@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import logging
 import uuid
 
 # pylint: disable=import-error,no-name-in-module
@@ -25,7 +26,8 @@ class ProtoRPCServiceBase(object):
 class _ProtoRPCServiceFlaskAppViewFunc(object):
   """A helper class to handle ProtoRPC POST requests on flask apps."""
 
-  def __init__(self, service_inst):
+  def __init__(self, app_inst, service_inst):
+    self._app_inst = app_inst
     self._service_inst = service_inst
     self._method_msg_classes = {}
 
@@ -47,6 +49,8 @@ class _ProtoRPCServiceFlaskAppViewFunc(object):
       assert isinstance(response_msg, response_msg_class)
       response_raw_body = response_msg.SerializeToString()
     except Exception:
+      if self._app_inst.debug:
+        logging.exception('Caught exception from RPC method %r.', method_name)
       return flask.Response(status=500)
     response = flask.Response(response=response_raw_body)
     response.headers['Content-type'] = 'application/octet-stream'
@@ -67,7 +71,7 @@ def RegisterProtoRPCServiceToFlaskApp(
   """
   service_name = service_name or service_inst.SERVICE_DESCRIPTOR.name
   endpoint_name = '__protorpc_service_view_func_' + str(uuid.uuid1())
-  view_func = _ProtoRPCServiceFlaskAppViewFunc(service_inst)
+  view_func = _ProtoRPCServiceFlaskAppViewFunc(app_inst, service_inst)
   app_inst.add_url_rule(
       '%s/%s.<method_name>' % (path, service_name), endpoint=endpoint_name,
       view_func=view_func, methods=['POST'])

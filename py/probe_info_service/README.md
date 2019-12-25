@@ -31,7 +31,47 @@ To deploy the service to staging environment, run
 
 ## Testing
 
-TODO(yhong): Add the instructions to run the tests once it becomes ready.
+### Unittest
+
+Unittests modules are named with suffix `_unittest.py`.  Because the working
+environment of Probe Info Service is quite different than the factory framework
+on DUT, `make -C $(factory-repo) test` ignores all unittest modules related
+to Probe Info Service.  Instead, developers should trigger the tests by
+the helper script as follow:
+
+```shell
+(factory-repo)$ ./deploy/probe_info_service.sh unittest
+```
+
+Or run the specific unittest(s) and dump the log by the following command:
+
+```shell
+(factory-repo)$ ./deploy/probe_info_service.sh --dump_logs \
+    [<absolute_unittest_module_names>...]
+```
+
+### Manual Test
+
+Following command starts the service on `localhost:8080`:
+
+```shell
+(factory-repo)$ ./deploy/probe_info_service.sh run
+```
+
+To invoke a ProtoRPC method call, one can send the request by `curl` commandline
+tool.  For example, following shell commands invoke
+`ProbeInfoService.GetProbeSchema`.
+
+```shell
+(factory-repo)$ PKG_NAME="cros.factory.probe_info_service.app_engine.stubby_pb2"
+(factory-repo)$ BASE_URL="http://localhost:8080/_ah/stubby"
+(factory-repo)$ PROTOC_ARGS="-I py/probe_info_service/app_engine stubby.proto"
+(factory-repo)$ \
+  echo -ne '' \
+  | protoc $PROTOC_ARGS --encode="${PKG_NAME}.GetProbeSchemaRequest" <<__EOF__ \
+  | curl --data-binary @- "${BASE_URL}/ProbeInfoService.GetProbeSchema" \
+  | protoc $PROTOC_ARGS --decode="${PKG_NAME}.GetProbeSchemaResponse"
+```
 
 ## Development Tip
 
