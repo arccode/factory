@@ -140,7 +140,7 @@ class TestInputHTTP(unittest.TestCase):
     data = {'event': datatypes.Event.Serialize(event)}
     r = self._RequestsPost(files=data)
     self.assertEqual(400, r.status_code)
-    self.assertEqual('Bad request: ValueError(u\'Attachment(att) should have '
+    self.assertEqual('Bad request: ValueError(\'Attachment(att) should have '
                      'exactly one in the request\',)', r.reason)
     self.assertEqual(0, len(self.core.emit_calls))
 
@@ -153,7 +153,7 @@ class TestInputHTTP(unittest.TestCase):
             ('att', att2)]
     r = self._RequestsPost(files=data)
     self.assertEqual(400, r.status_code)
-    self.assertEqual('Bad request: ValueError(u\'Attachment(att) should have '
+    self.assertEqual('Bad request: ValueError(\'Attachment(att) should have '
                      'exactly one in the request\',)', r.reason)
     self.assertEqual(0, len(self.core.emit_calls))
 
@@ -166,7 +166,7 @@ class TestInputHTTP(unittest.TestCase):
             ('att', att)]
     r = self._RequestsPost(files=data)
     self.assertEqual(400, r.status_code)
-    self.assertEqual('Bad request: ValueError(u\'Attachment(att) should be '
+    self.assertEqual('Bad request: ValueError(\'Attachment(att) should be '
                      'used by one event\',)', r.reason)
     self.assertEqual(0, len(self.core.emit_calls))
 
