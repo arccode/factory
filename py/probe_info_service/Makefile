@@ -10,6 +10,7 @@
 PACKAGE_PATH_NAME = cros/factory/probe_info_service
 
 FACTORY_DIR = ../..
+FACTORY_PY_PKG_DIR = $(FACTORY_DIR)/py_pkg
 FACTORY_PRIVATE_DIR = $(FACTORY_DIR)/../factory-private
 BUILD_DIR := $(FACTORY_DIR)/build/probe_info_service
 GEN_CODE_DIR = $(BUILD_DIR)/gen
@@ -20,6 +21,8 @@ PROTO_PYGEN_FILE = $(patsubst \
 	%.proto,%_pb2.py,$(GEN_CODE_DIR)/$(PACKAGE_PATH_NAME)/$(PROTO_SRC_FILE))
 
 APPENGINE_CONFIGS = app_engine/requirements.txt app_engine/app.yaml
+
+DEP_PACKAGE_PATH_NAMES = cros/factory/utils
 
 .PHONY: prepare _pack clean
 
@@ -37,5 +40,14 @@ _pack: prepare
 	  $(error "You must specify the dest directory by `PACK_DEST_DIR`."))
 	mkdir -p "$(PACK_DEST_DIR)/$(PACKAGE_PATH_NAME)"
 	cp -r . "$(PACK_DEST_DIR)/$(PACKAGE_PATH_NAME)"
+	for path_name in $(DEP_PACKAGE_PATH_NAMES); \
+	  do \
+	    mkdir -p "$(PACK_DEST_DIR)/$${path_name}"; \
+	    ( \
+	      cd "$(FACTORY_PY_PKG_DIR)/$${path_name}"; \
+	      find . -type f ! -name "*_unittest.py" -exec \
+	          cp --parents "{}" "$(PACK_DEST_DIR)/$${path_name}" ";" \
+	    ); \
+	  done
 	cp -r "$(GEN_CODE_DIR)/"* "$(PACK_DEST_DIR)"
 	cp $(APPENGINE_CONFIGS) "$(PACK_DEST_DIR)"

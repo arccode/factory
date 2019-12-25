@@ -56,6 +56,9 @@ GENERIC_PROBE_STATEMENTS = {
 GENERIC_COMPONENT_NAME = 'generic'
 
 
+# TODO(yhong): Consider re-using logic in
+#     `cros.factory.probe_info_service.app_engine.probe_tool_manager`.
+
 class ProbeStatementGenerator(object):
   """Base class of the probe statement generator.
 

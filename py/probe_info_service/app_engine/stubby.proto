@@ -1,6 +1,40 @@
 syntax = "proto3";
 package cros.factory.probe_info_service.app_engine.stubby_pb2;
 
+message ProbeParameterDefinition {
+  string name = 1;         // Required.
+  string description = 2;  // Required.
+}
+
+message ProbeFunctionDefinition {
+  string name = 1;         // Required.
+  string description = 2;  // Required.
+  repeated ProbeParameterDefinition parameter_definitions = 3;
+}
+
+message ProbeSchema {
+  repeated ProbeFunctionDefinition probe_function_definitions = 1;
+}
+
+message ProbeParameter {
+  string name = 1;  // Required.
+
+  oneof value {  // Required.
+    string str_value = 2;
+  }
+}
+
+message ProbeParameterError {
+  ProbeParameter probe_parameter = 1;  // Required.
+  string error_msg = 2;                // Required.
+}
+
+message GetProbeSchemaRequest {}
+
+message GetProbeSchemaResponse {
+  ProbeSchema probe_schema = 1;  // Required.
+}
 
 service ProbeInfoService {
+  rpc GetProbeSchema(GetProbeSchemaRequest) returns (GetProbeSchemaResponse) {}
 }
