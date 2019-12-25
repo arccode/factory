@@ -100,10 +100,10 @@ def _ParseBinaryBlob(blob):
     indicating the reason for parsing failure.
   """
   def ReadShortBE(offset):
-    return (ord(blob[offset]) << 8) | ord(blob[offset + 1])
+    return (blob[offset] << 8) | blob[offset + 1]
 
   def ReadShortLE(offset):
-    return (ord(blob[offset + 1]) << 8) | ord(blob[offset])
+    return (blob[offset + 1] << 8) | blob[offset]
 
   # Check size, magic, and version.
   if len(blob) < MINIMAL_SIZE:
@@ -112,11 +112,11 @@ def _ParseBinaryBlob(blob):
   if blob[MAGIC_OFFSET:(MAGIC_OFFSET + len(MAGIC))] != MAGIC:
     logging.warning('EDID parse error: incorrect header.')
     return None
-  if ord(blob[VERSION_OFFSET]) != VERSION:
+  if blob[VERSION_OFFSET] != VERSION:
     logging.warning('EDID parse error: unsupported EDID version.')
     return None
   # Verify checksum.
-  if sum([ord(char) for char in blob[:CHECKSUM_OFFSET + 1]]) % 0x100 != 0:
+  if sum([char for char in blob[:CHECKSUM_OFFSET + 1]]) % 0x100 != 0:
     logging.warning('EDID parse error: checksum error.')
     return None
   # Currently we don't support EDID not using pixel clock.
@@ -134,10 +134,8 @@ def _ParseBinaryBlob(blob):
     vendor_char = chr(vendor_char + ord('@'))
     vendor_name += vendor_char
   product_id = ReadShortLE(PRODUCT_ID_OFFSET)
-  width = (ord(blob[HORIZONTAL_OFFSET]) |
-           ((ord(blob[HORIZONTAL_HIGH_OFFSET]) >> 4) << 8))
-  height = (ord(blob[VERTICAL_OFFSET]) |
-            ((ord(blob[VERTICAL_HIGH_OFFSET]) >> 4) << 8))
+  width = (blob[HORIZONTAL_OFFSET] | ((blob[HORIZONTAL_HIGH_OFFSET] >> 4) << 8))
+  height = (blob[VERTICAL_OFFSET] | ((blob[VERTICAL_HIGH_OFFSET] >> 4) << 8))
   return {'vendor': vendor_name,
           'product_id': '%04x' % product_id,
           'width': str(width),

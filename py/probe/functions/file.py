@@ -24,7 +24,7 @@ def ReadFile(path, binary_mode=False, skip=0, size=-1):
   if not binary_mode:
     ret = data.strip()
   else:
-    binary_data = ['0x%02x' % ord(char) for char in data]
+    binary_data = ['0x%02x' % char for char in data]
     ret = ' '.join(binary_data)
   if not ret:
     return None
