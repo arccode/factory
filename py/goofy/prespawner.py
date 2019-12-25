@@ -71,7 +71,7 @@ class Prespawner(object):
     process = self.prespawned.get()
     # Write the environment and argv to the process's stdin; it will launch
     # test once these are received.
-    pickle.dump((new_env, args), process.stdin, protocol=2)
+    pickle.dump((new_env, args), process.stdin)
     process.stdin.close()
     return process
 
@@ -115,7 +115,7 @@ class Prespawner(object):
         if process.poll() is None:
           # Send a 'None' environment and arg list to tell the prespawner
           # processes to exit.
-          pickle.dump((None, None), process.stdin, protocol=2)
+          pickle.dump((None, None), process.stdin)
           process.stdin.close()
           process.wait()
       self.thread.join()

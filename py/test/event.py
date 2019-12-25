@@ -389,7 +389,7 @@ class EventClientBase(with_metaclass(abc.ABCMeta, object)):
     if logging.getLogger().isEnabledFor(logging.DEBUG):
       logging.debug('Event client: sending event %s',
                     self._truncate_event_for_debug_log(event))
-    message = pickle.dumps(event, protocol=2)
+    message = pickle.dumps(event)
     if len(message) > _MAX_MESSAGE_SIZE:
       # pylint: disable=logging-too-many-args
       logging.error(b'Message too large (%d bytes): event type = %s, '
