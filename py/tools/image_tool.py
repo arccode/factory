@@ -1651,7 +1651,7 @@ class ChromeOSFactoryBundle(object):
       A file (in self._temp_dir) containing PMBR.
     """
     pmbr_path = os.path.join(self._temp_dir, '_pmbr')
-    with open(image_path) as src:
+    with open(image_path, 'rb') as src:
       with open(pmbr_path, 'wb') as dest:
         # The PMBR is always less than DEFAULT_BLOCK_SIZE, no matter if the
         # disk has larger sector size.

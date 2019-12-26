@@ -181,7 +181,7 @@ class OutputSocketSender(log_utils.LoggerMixin):
 
   def SendItem(self, item):
     """Transmits an item over the socket stream."""
-    self._sock.sendall('%s%s' % (item, socket_common.SEPARATOR))
+    self._sock.sendall(item.encode('utf-8') + socket_common.SEPARATOR)
 
   def SendInt(self, num):
     """Transmits an integer over the socket stream."""

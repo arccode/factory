@@ -121,7 +121,7 @@ def Download(args, results):
 def FileHash(path):
   file_hash = hashlib.md5()
   with open(path, 'rb') as f:
-    for chunk in iter(lambda: f.read(HASH_FILE_READ_BLOCK_SIZE), ''):
+    for chunk in iter(lambda: f.read(HASH_FILE_READ_BLOCK_SIZE), b''):
       file_hash.update(chunk)
   return file_hash.hexdigest()
 

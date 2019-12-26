@@ -261,7 +261,7 @@ class TestInvocation(object):
 
       # Invoke the unittest driver in a separate process.
       with open(self._log_path, 'ab', 0) as log:
-        print('Running test: %s' % self.test.path, file=log)
+        log.write(b'Running test: %s\n' % self.test.path.encode('utf-8'))
         self._env_additions['CROS_PROC_TITLE'] = (
             '%s.py (factory pytest %s)' % (pytest_name, self.output_dir))
 
@@ -282,8 +282,8 @@ class TestInvocation(object):
               self._env_additions)
 
         def _LineCallback(line):
-          log.write(line + '\n')
-          sys.stderr.write('%s> %s\n' % (self.test.path.encode('utf-8'), line))
+          log.write(line.encode('utf-8') + b'\n')
+          sys.stderr.write('%s> %s\n' % (self.test.path, line))
 
         # Tee process's stderr to both the log and our stderr.
         process_utils.PipeStdoutLines(self._process, _LineCallback)

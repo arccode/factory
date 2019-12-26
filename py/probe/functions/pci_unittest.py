@@ -31,7 +31,7 @@ class PCIFunctionTest(unittest.TestCase):
     for key, value in iteritems(values):
       if key == 'revision_id':
         open(os.path.join(real_path, 'config'), 'wb').write(
-            'x' * 8 + chr(int(value, 16)))
+            b'x' * 8 + bytes([int(value, 16)]))
       else:
         file_utils.WriteFile(os.path.join(real_path, key), value)
 

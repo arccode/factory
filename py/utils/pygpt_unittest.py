@@ -100,7 +100,7 @@ class GPTTest(unittest.TestCase):
     with open(self.temp_bin, 'rb') as f:
       gpt = pygpt.GPT.LoadFromFile(f)
     header = gpt.header
-    self.assertEqual(header.Signature, 'EFI PART')
+    self.assertEqual(header.Signature, b'EFI PART')
     self.assertEqual(header.CurrentLBA, 1)
     self.assertEqual(header.BackupLBA, 102399)
     self.assertEqual(header.FirstUsableLBA, 34)
@@ -110,7 +110,7 @@ class GPTTest(unittest.TestCase):
     self.assertEqual(header.PartitionEntrySize, 128)
 
     self.assertEqual(gpt.header.PartitionArrayCRC32,
-                     binascii.crc32(''.join(p.blob for p in gpt.partitions)))
+                     binascii.crc32(b''.join(p.blob for p in gpt.partitions)))
 
     self.CheckPartitions(gpt.partitions)
     # TODO(hungte) Add test for CheckIntegrity.
@@ -144,7 +144,7 @@ class GPTTest(unittest.TestCase):
     self.assertEqual(gpt.header.BackupLBA, 102399)
     self.assertEqual(gpt.GetUsedPartitions(), [])
     self.assertEqual(gpt.header.PartitionArrayCRC32,
-                     binascii.crc32(''.join(p.blob for p in gpt.partitions)))
+                     binascii.crc32(b''.join(p.blob for p in gpt.partitions)))
 
     # It is possible to check if a disk with both GPT header at block size = 512
     # and 4096 will load from 512 first, but then integrity check and partition
@@ -166,10 +166,10 @@ class GPTTest(unittest.TestCase):
     bin_file = self.temp_bin
     boot_guid = pygpt.GPT.LoadFromFile(bin_file).partitions[1].UniqueGUID
     pygpt.GPT.WriteProtectiveMBR(
-        bin_file, True, bootcode='TEST', boot_guid=boot_guid)
+        bin_file, True, bootcode=b'TEST', boot_guid=boot_guid)
     gpt = pygpt.GPT.LoadFromFile(bin_file)
     self.assertEqual(gpt.pmbr.BootGUID, boot_guid)
-    self.assertEqual(gpt.pmbr.BootCode.strip('\0'), 'TEST')
+    self.assertEqual(gpt.pmbr.BootCode.strip(b'\0'), b'TEST')
     self.assertEqual(gpt.pmbr.Magic, gpt.ProtectiveMBR.MAGIC)
     self.assertEqual(gpt.pmbr.Signature, gpt.ProtectiveMBR.SIGNATURE)
 
@@ -185,7 +185,7 @@ class GPTTest(unittest.TestCase):
     gpt = pygpt.GPT.LoadFromFile(bin_file)
     self.assertEqual(gpt.header.Signature, gpt.header.SIGNATURES[1])
 
-    with open(bin_file, 'r+') as f:
+    with open(bin_file, 'rb+') as f:
       f.seek(512)
       f.write(gpt.header.SIGNATURE_IGNORE)
 

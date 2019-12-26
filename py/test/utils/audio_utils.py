@@ -133,7 +133,7 @@ def SoxMixerOutput(in_file, channel, sox_format=_DEFAULT_SOX_FORMAT):
       '%s -c 2 %s %s -c 1 %s - remix %s' %
       (SOX_PATH, sox_format, in_file, sox_format, str(remix_channel)))
   return process_utils.Spawn(
-      command.split(' '), log=True, read_stdout=True).stdout_data
+      command.split(' '), log=True, encoding=None, read_stdout=True).stdout_data
 
 
 def SoxStatOutput(in_file, channel, sox_format=_DEFAULT_SOX_FORMAT):

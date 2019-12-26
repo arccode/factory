@@ -26,7 +26,7 @@ from cros.factory.utils import sys_utils
 
 # Constants lifted from EDID documentation.
 VERSION = 0x01
-MAGIC = '\x00\xff\xff\xff\xff\xff\xff\x00'
+MAGIC = b'\x00\xff\xff\xff\xff\xff\xff\x00'
 MAGIC_OFFSET = 0
 MANUFACTURER_ID_OFFSET = 8
 PRODUCT_ID_OFFSET = 10
@@ -42,7 +42,7 @@ I2C_LVDS_ADDRESS = 0x50
 MINIMAL_SIZE = 128
 MANUFACTURER_ID_BITS = 5
 
-PREFIX_TEGRA = 'edid[000]'
+PREFIX_TEGRA = b'edid[000]'
 
 
 def Parse(content):
@@ -184,7 +184,7 @@ def LoadFromI2C(path):
 
 
 def LoadFromFile(path):
-  return Parse(file_utils.ReadFile(path))
+  return Parse(file_utils.ReadFile(path, encoding=None))
 
 class EDIDFunction(probe_function.ProbeFunction):
   # pylint: disable=line-too-long

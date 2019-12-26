@@ -104,7 +104,7 @@ class VerifyRootPartitionTest(test_case.TestCase):
     if self.dut.link.IsLocal():
       self.ui.DrawProgressBar(bytes_to_read)
       # For local link, let's show progress bar for better UX
-      with open(DM_DEVICE_PATH) as dm_device:
+      with open(DM_DEVICE_PATH, 'rb') as dm_device:
         bytes_read = 0
         while True:
           bytes_left = bytes_to_read - bytes_read

@@ -122,7 +122,7 @@ class DaemonTest(unittest.TestCase):
       headers = {}
     headers.update({'User-Agent': ['Trial unittest']})
     headers = http_headers.Headers(headers)
-    d = self.agent.request('GET', url, headers, None)
+    d = self.agent.request(b'GET', url, headers, None)
     d.addCallback(lambda response: self.OnResponse(session, response))
     return d
 
@@ -147,7 +147,7 @@ class DaemonTest(unittest.TestCase):
   def testWebAppSite(self):
     def _Callback(result):
       logging.debug('test callback: %s', result)
-      self.assertIn('REQUEST_METHOD=GET', result['body'])
+      self.assertIn(b'REQUEST_METHOD=GET', result['body'])
       return result
 
     app = TestWebApplication()

@@ -299,7 +299,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
                                time.strftime('%Y%m%d', self._Now()), file_name)
       save_dir = os.path.dirname(os.path.abspath(save_path))
       file_utils.TryMakeDirs(save_dir)
-      if mode == 'a' and os.path.isfile(save_path):
+      if mode == 'ab' and os.path.isfile(save_path):
         shutil.copy2(save_path, temp_path)
       with open(temp_path, mode) as f:
         f.write(content)
@@ -395,7 +395,7 @@ class LogDUTCommands(umpire_rpc.UmpireRPC):
       IOError if unable to save the chunk of events.
     """
     d = threads.deferToThread(lambda: self._SaveUpload(
-        'eventlog', log_name, self._UnwrapBlob(chunk), mode='a'))
+        'eventlog', log_name, self._UnwrapBlob(chunk), mode='ab'))
     d.addCallback(self._ReturnTrue)
     return d
 

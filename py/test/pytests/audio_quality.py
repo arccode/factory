@@ -409,7 +409,7 @@ class AudioQualityTest(test_case.TestCase):
         self.SendResponse(rawdata, args)
     except IOError:
       session.console.error('No such file or directory: %s', file_path)
-      self.SendResponse('NO_CONFIG;0;%s' % binascii.b2a_hex(''), args)
+      self.SendResponse('NO_CONFIG;0;%s' % binascii.b2a_hex(b''), args)
 
   def DecompressZip(self, file_path, target_path):
     """Decompresses ZIP format file

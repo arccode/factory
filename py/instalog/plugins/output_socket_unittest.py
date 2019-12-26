@@ -55,7 +55,7 @@ class TestOutputSocket(unittest.TestCase):
     self.core.Close()
 
   def _GetSentData(self):
-    data = ''.join([x[1][0] for x in self.sock.sendall.mock_calls])
+    data = b''.join([x[1][0] for x in self.sock.sendall.mock_calls])
     self.sock.sendall.mock_calls = []
     return data
 
@@ -63,7 +63,7 @@ class TestOutputSocket(unittest.TestCase):
     self.assertTrue(self.sender.Ping())
     time.sleep(1)
     self.assertEqual(
-        '0\0',  # ping
+        b'0\0',  # ping
         self._GetSentData())
 
   def testMidTransmissionFailure(self):
@@ -83,13 +83,13 @@ class TestOutputSocket(unittest.TestCase):
     with mock.patch.object(datatypes.Event, 'Serialize', return_value='EVENT'):
       self.stream.Queue([event])
       self.sandbox.Flush(2, True)
-      self.assertEqual('0\0'  # ping
-                       '1\0'
-                       '5\0'
-                       'EVENT'
-                       '7c90977a1d83c431f761e4bae201bddd4a6f31d6\0'
-                       '0\0'
-                       '1',  # confirmation
+      self.assertEqual(b'0\0'  # ping
+                       b'1\0'
+                       b'5\0'
+                       b'EVENT'
+                       b'7c90977a1d83c431f761e4bae201bddd4a6f31d6\0'
+                       b'0\0'
+                       b'1',  # confirmation
                        self._GetSentData())
     self.assertTrue(self.stream.Empty())
 
@@ -102,17 +102,17 @@ class TestOutputSocket(unittest.TestCase):
                              return_value='EVENT'):
         self.stream.Queue([event])
         self.sandbox.Flush(2, True)
-        self.assertEqual('0\0'  # ping
-                         '1\0'
-                         '5\0'
-                         'EVENT'
-                         '7c90977a1d83c431f761e4bae201bddd4a6f31d6\0'
-                         '1\0'
-                         '13\0my_attachment'
-                         '8c18ccf21585d969762e4da67bc890da8672ba5c\0'
-                         '10\0XXXXXXXXXX'
-                         '1c17e556736c4d23933f99d199e7c2c572895fd2\0'
-                         '1',  # confirmation
+        self.assertEqual(b'0\0'  # ping
+                         b'1\0'
+                         b'5\0'
+                         b'EVENT'
+                         b'7c90977a1d83c431f761e4bae201bddd4a6f31d6\0'
+                         b'1\0'
+                         b'13\0my_attachment'
+                         b'8c18ccf21585d969762e4da67bc890da8672ba5c\0'
+                         b'10\0XXXXXXXXXX'
+                         b'1c17e556736c4d23933f99d199e7c2c572895fd2\0'
+                         b'1',  # confirmation
                          self._GetSentData())
     self.assertTrue(self.stream.Empty())
 

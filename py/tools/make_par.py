@@ -274,8 +274,9 @@ def main(argv=None):
     logging.info('modules: %r', modules)
     # Concatenate the header and the par file.
     with open(args.output, 'wb') as out:
-      out.write(HEADER_TEMPLATE.replace('MODULES', repr(modules)))
-      shutil.copyfileobj(open(factory_par), out)
+      out.write(
+          HEADER_TEMPLATE.replace('MODULES', repr(modules)).encode('utf-8'))
+      shutil.copyfileobj(open(factory_par, 'rb'), out)
       os.fchmod(out.fileno(), 0o755)
 
     # Done!

@@ -391,9 +391,11 @@ class EventClientBase(with_metaclass(abc.ABCMeta, object)):
                     self._truncate_event_for_debug_log(event))
     message = pickle.dumps(event, protocol=2)
     if len(message) > _MAX_MESSAGE_SIZE:
-      logging.error('Message too large (%d bytes): event type = %s, '
-                    'truncated message: %s', len(message), event.type,
-                    message[:_MAX_MESSAGE_SIZE // 20] + '\n\n...SKIPED...\n\n' +
+      # pylint: disable=logging-too-many-args
+      logging.error(b'Message too large (%d bytes): event type = %s, '
+                    b'truncated message: %s', len(message), event.type,
+                    message[:_MAX_MESSAGE_SIZE // 20] +
+                    b'\n\n...SKIPED...\n\n' +
                     message[-_MAX_MESSAGE_SIZE // 20:])
       raise IOError('Message too large (%d bytes)' % len(message))
     self.socket.sendall(message)

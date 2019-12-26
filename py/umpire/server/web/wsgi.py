@@ -96,7 +96,7 @@ class WSGISession(type_utils.AttrDict):
     """
     return '%d %s' % (code, http.RESPONSES.get(code, 'Unknown Status'))
 
-  def Respond(self, data='', content_type=TEXT_PLAIN, code=http.OK):
+  def Respond(self, data=b'', content_type=TEXT_PLAIN, code=http.OK):
     """Sends response header then returns body.
 
     Args:
@@ -107,6 +107,9 @@ class WSGISession(type_utils.AttrDict):
     Returns:
       WSGI return body list.
     """
+    if isinstance(data, str):
+      data = data.encode('utf-8')
+
     code_message = self.GetMessage(code)
     if content_type is None:
       content_type = self.TEXT_PLAIN

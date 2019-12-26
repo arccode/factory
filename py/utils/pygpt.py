@@ -65,6 +65,8 @@ class StructField(object):
   def Pack(self, value):
     """"Packs given value from given format."""
     del self  # Unused.
+    if isinstance(value, str):
+      value = value.encode('utf-8')
     return value
 
   def Unpack(self, value):
@@ -114,7 +116,7 @@ class GUIDStructField(StructField):
 
   def Pack(self, value):
     if value is None:
-      return '\x00' * 16
+      return b'\x00' * 16
     if not isinstance(value, uuid.UUID):
       raise StructError('Field %s needs a GUID value instead of [%r].' %
                         (self.name, value))
@@ -330,14 +332,17 @@ class GPTObject(object):
     fmt = self.GetStructFormat()
     if source is None:
       source = '\x00' * struct.calcsize(fmt)
-    if not isinstance(source, str):
+    if not isinstance(source, (str, bytes)):
       return self.Unpack(source.read(struct.calcsize(fmt)))
-    for f, value in zip(self.FIELDS, struct.unpack(fmt, source)):
+    if isinstance(source, str):
+      source = source.encode('utf-8')
+    for f, value in zip(self.FIELDS, struct.unpack(fmt.encode('utf-8'),
+                                                   source)):
       setattr(self, f.name, f.Unpack(value))
     return None
 
   def Pack(self):
-    """Packs values in all fields into a string by struct format."""
+    """Packs values in all fields into a bytes by struct format."""
     return struct.pack(self.GetStructFormat(),
                        *(f.Pack(getattr(self, f.name)) for f in self.FIELDS))
 
@@ -407,17 +412,17 @@ class GPT(object):
     FIELDS = PMBR_FIELDS
     __slots__ = [f.name for f in FIELDS]
 
-    SIGNATURE = '\x55\xAA'
-    MAGIC = '\x1d\x9a'
+    SIGNATURE = b'\x55\xAA'
+    MAGIC = b'\x1d\x9a'
 
   class Header(GPTObject):
     """Wrapper to Header in GPT."""
     FIELDS = HEADER_FIELDS
     __slots__ = [f.name for f in FIELDS]
 
-    SIGNATURES = ['EFI PART', 'CHROMEOS']
-    SIGNATURE_IGNORE = 'IGNOREME'
-    DEFAULT_REVISION = '\x00\x00\x01\x00'
+    SIGNATURES = [b'EFI PART', b'CHROMEOS']
+    SIGNATURE_IGNORE = b'IGNOREME'
+    DEFAULT_REVISION = b'\x00\x00\x01\x00'
 
     DEFAULT_PARTITION_ENTRIES = 128
     DEFAULT_PARTITIONS_LBA = 2  # LBA 0 = MBR, LBA 1 = GPT Header.
@@ -802,7 +807,7 @@ class GPT(object):
     if len(set(p.UniqueGUID for p in parts)) != len(parts):
       raise GPTError('Partition UniqueGUIDs are duplicated.')
     # Check if CRCs match.
-    if (binascii.crc32(''.join(p.blob for p in self.partitions)) !=
+    if (binascii.crc32(b''.join(p.blob for p in self.partitions)) !=
         header.PartitionArrayCRC32):
       raise GPTError('GPT Header PartitionArrayCRC32 does not match.')
     header_crc = header.Clone()
@@ -812,7 +817,7 @@ class GPT(object):
 
   def UpdateChecksum(self):
     """Updates all checksum fields in GPT objects."""
-    parts = ''.join(p.blob for p in self.partitions)
+    parts = b''.join(p.blob for p in self.partitions)
     self.header.Update(PartitionArrayCRC32=binascii.crc32(parts))
     self.header.UpdateChecksum()
 
@@ -913,7 +918,7 @@ class GPT(object):
 
     self.UpdateChecksum()
     self.CheckIntegrity()
-    parts_blob = ''.join(p.blob for p in self.partitions)
+    parts_blob = b''.join(p.blob for p in self.partitions)
 
     header = self.header
     WriteData('GPT Header', header.blob, header.CurrentLBA)
@@ -1053,7 +1058,7 @@ class GPTCommands(object):
         # initialized with different block size won't have GPT signature in
         # different locations, we should zero until first usable LBA.
         args.image_file.seek(0)
-        args.image_file.write('\0' * block_size * gpt.header.FirstUsableLBA)
+        args.image_file.write(b'\0' * block_size * gpt.header.FirstUsableLBA)
       gpt.WriteToFile(args.image_file)
       args.image_file.close()
       return 'Created GPT for %s' % args.image_file.name

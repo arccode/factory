@@ -74,7 +74,7 @@ class TerminalManager(object):
           if self._control_state:
             self._control_string += str(message)
           else:
-            os.write(self._fd, str(message))
+            os.write(self._fd, str(message).encode('utf-8'))
         elif message.is_binary:
           # The control section is
           # binary(_CONTROL_START)-text-binary(_CONTROL_END)

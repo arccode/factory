@@ -57,7 +57,7 @@ def MockPytest(name, test_state, exc_repr, func=None):
     assert info.pytest_name == name
     if func:
       func()
-    with open(info.results_path, 'w') as out:
+    with open(info.results_path, 'wb') as out:
       tb_list = traceback.extract_stack(inspect.currentframe())
       result = pytest_utils.PytestExecutionResult(
           test_state, failures=[pytest_utils.PytestExceptionInfo(exc_repr,

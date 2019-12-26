@@ -170,7 +170,7 @@ class AccelerometerController(sensor_utils.BasicSensorController):
       # In addition, need to wait some time after set trigger_now to get
       # the raw data.
       time.sleep(1 / sample_rate)
-      with open(file_path) as f:
+      with open(file_path, 'rb') as f:
         line = f.read(buffer_length_per_record)
         # Sometimes it fails to read a record of raw data (12 bytes) because
         # Chrome is reading the data at the same time.

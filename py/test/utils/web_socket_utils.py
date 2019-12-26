@@ -26,7 +26,8 @@ def WebSocketHandshake(request):
     logging.error('Unable to start WebSocket connection: %s', msg)
     request.send_response(400, msg)
 
-  encoded_key = request.headers.get('Sec-WebSocket-Key')
+  # Can encode utf-8, check ws4py/server/cherrypyserver.py +150
+  encoded_key = request.headers.get('Sec-WebSocket-Key').encode('utf-8')
 
   if (request.headers.get('Upgrade') != 'websocket' or
       request.headers.get('Connection') != 'Upgrade' or

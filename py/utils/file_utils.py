@@ -242,7 +242,7 @@ def TailFile(path, max_length=5 * 1024 * 1024, dut=None):
   if dut:
     data = dut.CheckOutput(['tail', '-c', str(max_length), path])
     size = int(dut.CheckOutput(['stat', '--printf=%s', path]))
-    offset = size - len(data)
+    offset = size - len(data.encode('utf-8'))
   else:
     offset = max(0, os.path.getsize(path) - max_length)
     with open(path) as f:
@@ -359,7 +359,7 @@ def IsGzippedFile(path):
     True if it looks like a gzipped file.
   """
   with open(path, 'rb') as f:
-    return f.read(2) == '\x1f\x8b'
+    return f.read(2) == b'\x1f\x8b'
 
 
 @contextlib.contextmanager
@@ -380,7 +380,7 @@ def GunzipSingleFile(gzip_path, output_path=None):
   if not output_path:
     output_path = CreateTemporaryFile(prefix='GunzipSingleFile_')
 
-  with open(output_path, 'w') as output_file:
+  with open(output_path, 'wb') as output_file:
     with gzip.open(gzip_path, 'rb') as input_file:
       while True:
         chunk = input_file.read(MAX_CHUNK_SIZE)
@@ -569,7 +569,7 @@ def FileHash(path, algorithm, block_size=_HASH_FILE_READ_BLOCK_SIZE):
   """
   file_hash = hashlib.new(algorithm)
   with open(path, 'rb') as f:
-    for chunk in iter(lambda: f.read(block_size), ''):
+    for chunk in iter(lambda: f.read(block_size), b''):
       file_hash.update(chunk)
   return file_hash
 

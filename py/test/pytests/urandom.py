@@ -49,7 +49,7 @@ class UrandomTest(unittest.TestCase):
     duration_secs = self.args.duration_secs
     logging.info('Getting /dev/urandom for %d seconds', duration_secs)
 
-    with open('/dev/urandom') as f:
+    with open('/dev/urandom', 'rb') as f:
       end_time = time.time() + duration_secs
       while time.time() <= end_time:
         data = f.read(1024 * 1024)

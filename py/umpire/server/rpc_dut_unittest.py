@@ -145,15 +145,15 @@ class DUTRPCTest(unittest.TestCase):
       logging.debug('event files: %r', event_files)
       self.assertTrue(event_files)
       event_path = event_files[0]
-      self.assertEqual(file_utils.ReadFile(event_path), content)
+      self.assertEqual(file_utils.ReadFile(event_path, encoding=None), content)
       return True
 
-    d = self.Call('UploadEvent', 'event_log_name', '123')
+    d = self.Call('UploadEvent', 'event_log_name', b'123')
     d.addCallback(CheckTrue)
-    d.addCallback(lambda _: CheckEvent('123'))
-    d.addCallback(lambda _: self.Call('UploadEvent', 'event_log_name', '456'))
+    d.addCallback(lambda _: CheckEvent(b'123'))
+    d.addCallback(lambda _: self.Call('UploadEvent', 'event_log_name', b'456'))
     d.addCallback(CheckTrue)
-    d.addCallback(lambda _: CheckEvent('123456'))
+    d.addCallback(lambda _: CheckEvent(b'123456'))
     return d
 
 

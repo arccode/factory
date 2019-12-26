@@ -404,7 +404,7 @@ class RPCDUTTest(UmpireDockerTestCase):
     self.assertEqual(PORT + 4, self.proxy.GetFactoryLogPort())
 
   def testUploadReport(self):
-    report = 'Stub report content for testing.'
+    report = b'Stub report content for testing.'
     self.assertTrue(self.proxy.UploadReport('test_serial', report))
     # Report uses GMT time
     now = time.gmtime(time.time())
@@ -416,7 +416,7 @@ class RPCDUTTest(UmpireDockerTestCase):
     report_files = glob.glob(report_pattern)
     self.assertEqual(1, len(report_files))
     report_file = report_files[0]
-    self.assertEqual(report, file_utils.ReadFile(report_file))
+    self.assertEqual(report, file_utils.ReadFile(report_file, encoding=None))
 
 
 if __name__ == '__main__':

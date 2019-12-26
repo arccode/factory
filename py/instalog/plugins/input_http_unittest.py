@@ -218,7 +218,7 @@ class TestInputHTTP(unittest.TestCase):
     self.assertEqual(1, len(self.core.emit_calls))
     self.assertEqual(1, len(self.core.emit_calls[0]))
     self.assertEqual(event.payload, self.core.emit_calls[0][0].payload)
-    with open(self.core.emit_calls[0][0].attachments['att_id']) as f:
+    with open(self.core.emit_calls[0][0].attachments['att_id'], 'rb') as f:
       self.assertEqual(att, f.read())
 
     event = datatypes.Event({'AA': 'BB'})
@@ -230,7 +230,7 @@ class TestInputHTTP(unittest.TestCase):
     self.assertEqual(2, len(self.core.emit_calls))
     self.assertEqual(1, len(self.core.emit_calls[1]))
     self.assertEqual(event.payload, self.core.emit_calls[1][0].payload)
-    with open(self.core.emit_calls[1][0].attachments['att']) as f:
+    with open(self.core.emit_calls[1][0].attachments['att'], 'rb') as f:
       self.assertEqual(att, f.read())
 
   def testHTTPlibEvent(self):
@@ -267,9 +267,9 @@ class TestInputHTTP(unittest.TestCase):
     self.assertEqual(event1.payload, self.core.emit_calls[0][0].payload)
     self.assertEqual(event2.payload, self.core.emit_calls[0][1].payload)
     self.assertEqual(event3.payload, self.core.emit_calls[0][2].payload)
-    with open(self.core.emit_calls[0][0].attachments['att_id']) as f:
+    with open(self.core.emit_calls[0][0].attachments['att_id'], 'rb') as f:
       self.assertEqual(att1, f.read())
-    with open(self.core.emit_calls[0][2].attachments['att_id']) as f:
+    with open(self.core.emit_calls[0][2].attachments['att_id'], 'rb') as f:
       self.assertEqual(att2, f.read())
 
   @unittest.skipIf(_TempAvailSpaceMB() < 256, 'Test requires 256mb disk space.')

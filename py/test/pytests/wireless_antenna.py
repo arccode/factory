@@ -267,7 +267,7 @@ class RadiotapPacket(object):
                                                       'antenna_offsets'])
 
   # This is a variable-length header, but this is what we want to see.
-  EXPECTED_HEADER_FORMAT = struct.Struct(MAIN_HEADER_FORMAT.format + 'II')
+  EXPECTED_HEADER_FORMAT = struct.Struct(MAIN_HEADER_FORMAT.format + b'II')
 
   @staticmethod
   def Decode(packet_bytes):

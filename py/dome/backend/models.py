@@ -578,7 +578,7 @@ class Resource(object):
       try:
         umpire_server.ExportPayload(
             bundle_name, resource_type, resource_filepath)
-        resource_file = open(resource_filepath, 'r')
+        resource_file = open(resource_filepath, 'rb')
         return resource_file
       except xmlrpc.client.Fault as e:
         logger.error(
@@ -940,7 +940,7 @@ class Log(object):
       log_path = os.path.join(SHARED_TMP_DIR,
                               download_params['tmp_dir'],
                               download_params['log_file'])
-      log_file = open(log_path, 'r')
+      log_file = open(log_path, 'rb')
       return log_file
     except Exception as e:
       logger.error(
