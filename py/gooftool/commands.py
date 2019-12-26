@@ -633,27 +633,23 @@ def CreateReportArchive(device_sn=None, add_file=None):
   target_path = os.path.join(gettempdir(), target_name)
 
   # Intentionally ignoring dotfiles in EVENT_LOG_DIR.
-  tar_cmd = 'cd %s ; tar cJf %s *' % (event_log.EVENT_LOG_DIR, target_path)
-  tar_cmd += ' %s' % paths.FACTORY_LOG_PATH
-  tar_cmd += ' %s' % paths.DATA_TESTLOG_DIR
-  if add_file:
-    for f in add_file:
-      # Require absolute paths since the tar command may change the
-      # directory.
-      if not f.startswith('/'):
-        raise Error('Not an absolute path: %s' % f)
-      if not os.path.exists(f):
-        raise Error('File does not exist: %s' % f)
-      tar_cmd += ' %s' % pipes.quote(f)
+  tar_cmd = 'cd %s ; tar cJf %s * -C /' % (event_log.EVENT_LOG_DIR, target_path)
+  tar_files = [paths.FACTORY_LOG_PATH, paths.DATA_TESTLOG_DIR] + add_file
+  for f in tar_files:
+    # Require absolute paths since we use -C / to change current directory to
+    # root.
+    if not f.startswith('/'):
+      raise Error('Not an absolute path: %s' % f)
+    if not os.path.exists(f):
+      raise Error('File does not exist: %s' % f)
+    tar_cmd += ' %s' % pipes.quote(f[1:])
   cmd_result = Shell(tar_cmd)
 
   if ((cmd_result.status == 1) and
-      all((x == '' or
-           'file changed as we read it' in x or
-           "Removing leading `/' from member names" in x)
+      all((x == '' or 'file changed as we read it' in x)
           for x in cmd_result.stderr.split('\n'))):
     # That's OK.  Make sure it's valid though.
-    Spawn(['tar', 'tfJ', target_path], check_call=True, log=True,
+    Spawn(['tar', 'tJf', target_path], check_call=True, log=True,
           ignore_stdout=True)
   elif not cmd_result.success:
     raise Error('unable to tar event logs, cmd %r failed, stderr: %r' %
@@ -802,7 +798,7 @@ def Finalize(options):
   GenerateStableDeviceSecret(options)
   ClearGBBFlags(options)
   if options.no_write_protect:
-    logging.warn('WARNING: Firmware Write Protection is SKIPPED.')
+    logging.warning('WARNING: Firmware Write Protection is SKIPPED.')
     event_log.Log('wp', fw='both', status='skipped')
   else:
     EnableFwWp(options)
