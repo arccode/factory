@@ -659,6 +659,14 @@ class Goofy(object):
       invoc.Start()
     elif test.parallel:
       for subtest in test.subtests:
+        # Pass the service lists defined in parallel group down to each
+        # subtest.
+        # Subtests of a parallel group are not allowed to have their own
+        # service lists, so it's fine to override the lists with parallel
+        # group's.
+        subtest.enable_services = test.enable_services
+        subtest.disable_services = test.disable_services
+
         # TODO(stimim): what if the subtests *must* be run in parallel?
         # for example, stressapptest and countdown test.
 
