@@ -16,8 +16,8 @@ This is an automatic test that doesn't need any user interaction.
 1. Firstly, this test will create a DUT link.
 2. If the FPMCU firmware image is from the station, the image would be sent
    to DUT.
-3. If the FPMCU firmware image is from the release partition, the test mounts
-   the release partition to retrieve the FPMCU firmware image for the board.
+3. If the FPMCU firmware image is not specified, the test mounts the release
+   partition and get the FPMCU firmware image from there for update.
 
 Dependency
 ----------
@@ -29,27 +29,25 @@ Dependency
 
 Examples
 --------
-To update Fingerprint firmware with the image in DUT release partition,
+To update fingerprint firmware with the image in DUT release partition,
 add this in test list::
 
   {
     "pytest_name": "update_fpmcu_firmware"
   }
 
-To update Fingerprint firmware with the image in the station::
+To update fingerprint firmware with a specified image in the station
+(only recommended in pre-PVT stages)::
 
   {
     "pytest_name": "update_fpmcu_firmware",
     "args": {
-      "firmware_file": "/path/on/station/to/image.bin",
-      "from_release": false
+      "firmware_file": "/path/on/station/to/image.bin"
     }
   }
 """
 
 import logging
-import os
-import re
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
@@ -62,16 +60,13 @@ from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error
 
 FLASHTOOL = '/usr/local/bin/flash_fp_mcu'
-FPMCU_FW_DIR = '/opt/google/biod/fw'
+FPMCU_FW_DIR_UNDER_ROOTFS = 'opt/google/biod/fw'
 
 
 class UpdateFpmcuFirmwareTest(test_case.TestCase):
-
   ARGS = [
       Arg('firmware_file', str, 'The full path of the firmware binary file.',
-          default=None),
-      Arg('from_release', bool, 'Find the firmware from release rootfs.',
-          default=True),
+          default=None)
   ]
 
   ui_class = test_ui.ScrollableLogUI
@@ -85,33 +80,26 @@ class UpdateFpmcuFirmwareTest(test_case.TestCase):
     if self._dut.CallOutput(['crossystem', 'wpsw_cur']).strip() != '0':
       raise Error('Hardware write protection is enabled.')
 
-    if self.args.firmware_file is None:
-      self.assertEqual(
-          self.args.from_release, True,
-          'Must set "from_release" to True if not specifying firmware_file')
-      fpmcu_board = self._dut.CallOutput(
-          ['cros_config', '/fingerprint', 'board'])
-      if fpmcu_board is None:
-        raise Error('No fingerprint board found in cros_config')
+    fpmcu_board = self._dut.CallOutput(
+        ['cros_config', '/fingerprint', 'board'])
+    if not fpmcu_board:
+      raise Error('No fingerprint board found in cros_config')
 
-      fpmcu_bin_list = self._dut.CallOutput(['ls', FPMCU_FW_DIR])
-      match_fpmcu_bin = re.search(r'(%s_v\S*.bin)' % fpmcu_board,
-                                  fpmcu_bin_list, re.MULTILINE)
-      if match_fpmcu_bin is None:
-        raise Error('No matching firmware blob found in %s' % FPMCU_FW_DIR)
-      fpmcu_bin = match_fpmcu_bin.group(1)
+    if not self.args.firmware_file:
+      logging.info('No specified path to FPMCU FW image')
+      logging.info('Get FPMCU FW image from the release rootfs partition.')
 
-      self.args.firmware_file = os.path.join(FPMCU_FW_DIR, fpmcu_bin)
-
-    self.assertEqual(self.args.firmware_file[0], '/',
-                     'firmware_file should be a full path')
-
-    if self.args.from_release:
       with sys_utils.MountPartition(
           self._dut.partitions.RELEASE_ROOTFS.path, dut=self._dut) as root:
-        self.UpdateFpmcuFirmware(os.path.join(root,
-                                              self.args.firmware_file[1:]))
+        pattern = self._dut.path.join(root, FPMCU_FW_DIR_UNDER_ROOTFS,
+                                      '%s_v*.bin' % fpmcu_board)
+        fpmcu_fw_files = self._dut.Glob(pattern)
+        self.assertEqual(len(fpmcu_fw_files), 1,
+                         'No uniquely matched FPMCU firmware blob found')
+        self.UpdateFpmcuFirmware(fpmcu_fw_files[0])
     else:
+      self.assertEqual(self.args.firmware_file[0], '/',
+                       'firmware_file should be a full path')
       if self._dut.link.IsLocal():
         self.UpdateFpmcuFirmware(self.args.firmware_file)
       else:
