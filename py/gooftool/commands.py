@@ -634,7 +634,9 @@ def CreateReportArchive(device_sn=None, add_file=None):
 
   # Intentionally ignoring dotfiles in EVENT_LOG_DIR.
   tar_cmd = 'cd %s ; tar cJf %s * -C /' % (event_log.EVENT_LOG_DIR, target_path)
-  tar_files = [paths.FACTORY_LOG_PATH, paths.DATA_TESTLOG_DIR] + add_file
+  tar_files = [paths.FACTORY_LOG_PATH, paths.DATA_TESTLOG_DIR]
+  if add_file:
+    tar_files = tar_files + add_file
   for f in tar_files:
     # Require absolute paths since we use -C / to change current directory to
     # root.
