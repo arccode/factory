@@ -104,7 +104,9 @@ class TerminalManager(object):
 
     while True:
       try:
-        ws.send(base64.b64encode(os.read(fd, _BUFSIZ)))
+        data = os.read(fd, _BUFSIZ)
+        if data is not None:
+          ws.send(base64.b64encode(data))
       except OSError:
         break
 
