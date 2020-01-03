@@ -62,7 +62,7 @@ def _GetV4L2Data(video_idx):
       pass
 
   try:
-    with open('/dev/video%d' % video_idx, 'r+') as f:
+    with open('/dev/video%d' % video_idx, 'r') as f:
       # Read chip identifier.
       buf = array.array('i', [0] * V4L2_DBG_CHIP_IDENT_SIZE)
       _TryIoctl(f.fileno(), VIDIOC_DBG_G_CHIP_IDENT, buf, 1)
