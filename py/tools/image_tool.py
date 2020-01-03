@@ -188,6 +188,7 @@ class SysUtils(object):
     if not isinstance(commands, str):
       commands = ' '.join(pipes.quote(arg) for arg in commands)
     kargs['shell'] = True
+    kargs['encoding'] = 'utf-8'
 
     caller = subprocess.check_output if output else subprocess.check_call
     if sudo and os.geteuid() != 0:

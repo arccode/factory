@@ -34,7 +34,8 @@ def Shell(cmd, stdin=None, log=True, sys_interface=None):
   if not isinstance(cmd, str):
     cmd = ' '.join(pipes.quote(param) for param in cmd)
   if sys_interface is None:
-    process = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+    process = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True,
+                    encoding='utf-8')
   else:
     process = sys_interface.Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
   stdout, stderr = process.communicate(input=stdin)

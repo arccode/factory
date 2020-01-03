@@ -19,7 +19,8 @@ class GoofyJSTest(unittest.TestCase):
   def runTest(self):
     static_dir = os.path.join(SCRIPT_DIR, '..', 'static')
     output = subprocess.check_output(
-        ['make', '-C', static_dir, 'check_js'], stderr=subprocess.STDOUT)
+        ['make', '-C', static_dir, 'check_js'], stderr=subprocess.STDOUT,
+        encoding='utf-8')
     self.assertNotIn(
         ' WARNING ', output,
         "There's warning in closure compiler output, please fix them.\n"

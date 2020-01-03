@@ -90,6 +90,7 @@ class Prespawner(object):
             ['python3', '-u', self.prespawner_path] + self.prespawner_args,
             cwd=os.path.dirname(self.prespawner_path),
             stdin=subprocess.PIPE,
+            encoding=None,
             **pipe_stdout_args)
         logging.debug('Pre-spawned a test process %d', process.pid)
         self.prespawned.put(process)
