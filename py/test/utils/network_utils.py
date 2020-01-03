@@ -8,7 +8,6 @@ Utilities with more complex functionalities and required interaction with other
 system components.
 """
 
-import codecs
 import logging
 from multiprocessing import pool
 import os
