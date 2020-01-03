@@ -94,11 +94,11 @@ ErrorCode = connection_manager.ConnectionManagerException.ErrorCode
 def _ErrorCodeToMessage(error_code, interface):
   interface = '<b>%s</b>' % interface
   if error_code == ErrorCode.NO_PHYSICAL_LINK:
-    return _('No physical link on {interface}', interface=interface),
+    return _('No physical link on {interface}', interface=interface)
   if error_code == ErrorCode.INTERFACE_NOT_FOUND:
-    return _('Interface {interface} not found', interface=interface),
+    return _('Interface {interface} not found', interface=interface)
   if error_code == ErrorCode.NO_SELECTED_SERVICE:
-    return _('Interface {interface} not initialized', interface=interface),
+    return _('Interface {interface} not initialized', interface=interface)
   return _('Unknown Error on {interface}', interface=interface)
 
 

@@ -492,7 +492,7 @@ class GoofyRPC(object):
         tests = self._GetTests()
         scheduled_tests_status = [t for t in tests if t['path'] in
                                   self.goofy.scheduled_run_tests]
-        ret_val['run_id'] = self.goofy.run_id,
+        ret_val['run_id'] = self.goofy.run_id
         ret_val['scheduled_tests'] = scheduled_tests_status
 
         if (self.goofy.test_list_iterator.GetPendingTests() or

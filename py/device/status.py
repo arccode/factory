@@ -141,7 +141,7 @@ class SystemStatus(types.DeviceComponent):
     # If the below calls raise PowerException, the machine probably doesn't
     # have a battery.  Leave the values as `None` in this case.
     try:
-      charge_fraction = self._device.power.GetChargePct(get_float=True) / 100,
+      charge_fraction = self._device.power.GetChargePct(get_float=True) / 100
     except Exception:
       charge_fraction = None
 
