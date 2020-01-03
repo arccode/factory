@@ -214,5 +214,4 @@ def CreateFactoryTools(dut, factory_par_path=None):
   if dut.path.exists(dut.path.join(paths.FACTORY_DIR, 'bin')):
     # factory/bin exists, let's use factory/bin
     return FactoryBin(dut)
-  else:
-    return FactoryPythonArchive(dut, local_factory_par=factory_par_path)
+  return FactoryPythonArchive(dut, local_factory_par=factory_par_path)

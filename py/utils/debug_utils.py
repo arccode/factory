@@ -96,8 +96,7 @@ def MaybeStartDebugServer():
   port = os.environ.get('CROS_DEBUG_SERVER_PORT')
   if port:
     return StartDebugServer(port=int(port))
-  else:
-    return None
+  return None
 
 
 def CatchException(name, enable=True):

@@ -420,8 +420,7 @@ class _CommandStep(_Step):
     elif self._CheckCommandSuccess(proc.returncode, self._stdout_text,
                                    self._expected_output):
       return _STEP_STATE.SUCCESS
-    else:
-      return _STEP_STATE.FAILED
+    return _STEP_STATE.FAILED
 
   def Stop(self):
     self._need_to_stop = True

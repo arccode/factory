@@ -280,8 +280,7 @@ def GetEthernetIp(interface=None, netmask=False):
 
   if not netmask:
     return ip_address
-  else:
-    return (ip_address, prefix_number)
+  return (ip_address, prefix_number)
 
 def SetAliasEthernetIp(ip, alias_index=0, interface=None, mask='255.255.255.0'):
   """Sets the alias IP address for Ethernet.

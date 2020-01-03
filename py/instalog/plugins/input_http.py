@@ -232,9 +232,8 @@ class HTTPHandler(BaseHTTPServer.BaseHTTPRequestHandler, log_utils.LoggerMixin):
                 self.content_length, receive_time, process_time, emit_time,
                 self.client_node_id)
       return 200, 'OK'
-    else:
-      self.warning('Emit failed')
-      return 400, 'Bad request: Emit failed'
+    self.warning('Emit failed')
+    return 400, 'Bad request: Emit failed'
 
   def _CheckDecryptedData(self, decrypted_data):
     """Checks if the data is decrypted and verified."""

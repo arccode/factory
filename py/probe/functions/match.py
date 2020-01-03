@@ -125,9 +125,8 @@ class MatchFunction(function.Function):
 
     if not self.is_dict:
       return len(item) == 1 and _Match(self.rule, next(iter(item.values())))
-    else:
-      return all([key in item and _Match(rule, item[key])
-                  for key, rule in iteritems(self.rule)])
+    return all([key in item and _Match(rule, item[key])
+                for key, rule in iteritems(self.rule)])
 
   @classmethod
   def ConstructRule(cls, rule):
@@ -141,8 +140,7 @@ class MatchFunction(function.Function):
     prefix, unused_sep, rest = rule.partition(' ')
     if prefix in transformers:
       return transformers[prefix](rest)
-    else:
-      return lambda v: v == rule
+    return lambda v: v == rule
 
   @classmethod
   def TryTransferRegex(cls, value):

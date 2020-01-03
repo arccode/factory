@@ -88,8 +88,7 @@ def FindTtyByDriver(driver_name, interface_protocol=None, multiple_ports=False):
           return candidate
   if multiple_ports:
     return matched_candidates
-  else:
-    return None
+  return None
 
 
 def FindTtyByPortIndex(port_index, driver_name=None):

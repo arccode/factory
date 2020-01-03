@@ -57,8 +57,7 @@ def _PrepareTests(test_names):
 
   if test_names:
     return _HostToGuest([_CanonicalizeTestName(tn) for tn in test_names])
-  else:
-    return _HostToGuest(_ListAllTests())
+  return _HostToGuest(_ListAllTests())
 
 
 def _BuildDockerImage():

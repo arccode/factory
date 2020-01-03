@@ -164,8 +164,7 @@ def MockAll(timeline):
       caller_module_name = inspect.getmodule(frame).__name__
       if caller_module_name.startswith('cros.factory.'):
         return replace(*args, **kwargs)
-      else:
-        return orig(*args, **kwargs)
+      return orig(*args, **kwargs)
 
     _StartPatcher(obj, name).side_effect = _Stub
 

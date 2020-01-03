@@ -43,8 +43,7 @@ class CachedProbeFunction(probe_function.ProbeFunction):
 
     if not category:
       return sum(itervalues(self._CACHED_DEVICES), [])
-    else:
-      return self._CACHED_DEVICES.get(category, function.NOTHING)
+    return self._CACHED_DEVICES.get(category, function.NOTHING)
 
   @classmethod
   def CleanCachedData(cls):

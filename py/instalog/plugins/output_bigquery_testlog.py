@@ -124,8 +124,7 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
         return time_utils.DatetimeToUnixtime(obj)
       elif isinstance(obj, float):
         return obj
-      else:
-        return None
+      return None
 
     row = {}
 

@@ -634,9 +634,8 @@ class FinalizeBundle(object):
         key_match = re.search(r'channel_([\w\-]+)\.bin$', shim)
         if key_match:
           return key_match.group(1)
-        else:
-          # Error deriving signing key
-          return 'undefined'
+        # Error deriving signing key
+        return 'undefined'
 
       with MountPartition(shim, 1, rw=True) as mount:
         PatchLSBFactory(mount)

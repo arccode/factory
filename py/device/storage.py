@@ -120,8 +120,7 @@ class Storage(types.DeviceComponent):
     if not filesystems:
       logging.warn('cannot find mount point of %s', path)
       return None, None
-    else:
-      return filesystems[0].mounted_on, filesystems[0].filesystem
+    return filesystems[0].mounted_on, filesystems[0].filesystem
 
   def GetMountPoint(self, path):
     """Returns a pair (mount_point, device) where path is mounted.

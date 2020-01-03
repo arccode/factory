@@ -272,11 +272,10 @@ class OutputBigQuery(plugin_base.OutputPlugin):
           self.info('Commit %d events (%d rows)', event_count, row_count)
           event_stream.Commit()
           return True
-        else:
-          event_stream.Abort()
-          self.warning('Insert failed with errors: %s', job.errors)
-          self.info('Abort %d events (%d rows)', event_count, row_count)
-          return False
+        event_stream.Abort()
+        self.warning('Insert failed with errors: %s', job.errors)
+        self.info('Abort %d events (%d rows)', event_count, row_count)
+        return False
 
 
 if __name__ == '__main__':

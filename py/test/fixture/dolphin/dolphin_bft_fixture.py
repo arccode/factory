@@ -47,8 +47,7 @@ def _ChangeBit(byte, offset, bit_value):
   """
   if bit_value:
     return byte | (1 << offset)
-  else:
-    return byte & ~(1 << offset)
+  return byte & ~(1 << offset)
 
 
 class DolphinBFTFixture(bft_fixture.BFTFixture):

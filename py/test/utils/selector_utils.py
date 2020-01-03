@@ -103,8 +103,7 @@ class DataShelfSelector(ISelector):
   def Get(self, default=_DEFAULT_NOT_SET):
     if default is _DEFAULT_NOT_SET or self._proxy.DataShelfHasKey(self._key):
       return self._proxy.DataShelfGetValue(self._key)
-    else:
-      return default
+    return default
 
   def __getitem__(self, key):
     key = shelve_utils.DictKey.Join(self._key, key)
@@ -131,8 +130,7 @@ class DictSelector(ISelector):
     if isinstance(self._value, collections.Mapping):
       return DictSelector(key=new_key,
                           value=self._value.get(basename, _DEFAULT_NOT_SET))
-    else:
-      return DictSelector(key=new_key)
+    return DictSelector(key=new_key)
 
   def Get(self, default=_DEFAULT_NOT_SET):
     if self._value is _DEFAULT_NOT_SET and default is _DEFAULT_NOT_SET:

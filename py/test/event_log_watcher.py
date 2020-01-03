@@ -91,8 +91,7 @@ class EventLogWatcher(object):
     if self._scan_lock.acquire(blocking=False):
       self._scan_lock.release()
       return False
-    else:
-      return True
+    return True
 
   def FlushEventLogs(self):
     """Flushes event logs.

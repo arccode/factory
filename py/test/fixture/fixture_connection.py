@@ -173,5 +173,4 @@ class SerialFixtureConnection(FixtureConnection):
   def Recv(self, length=0):
     if length:
       return self._tty.read(length)
-    else:
-      return self._tty.read(self._tty.inWaiting())
+    return self._tty.read(self._tty.inWaiting())

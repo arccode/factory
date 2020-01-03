@@ -1124,9 +1124,8 @@ class GPTCommands(object):
       if args.primary_ignore:
         return ('Set %s primary GPT header to %s.' %
                 (args.image_file.name, gpt.header.SIGNATURE_IGNORE))
-      else:
-        return ('Changed GPT signature for %s to %s.' %
-                (args.image_file.name, new_signature))
+      return ('Changed GPT signature for %s to %s.' %
+              (args.image_file.name, new_signature))
 
   class Repair(SubCommand):
     """Repair damaged GPT headers and tables."""
@@ -1165,9 +1164,8 @@ class GPTCommands(object):
             'from %s to %s .' %
             (args.number, args.image_file.name, old_blocks * gpt.block_size,
              new_blocks * gpt.block_size))
-      else:
-        return ('Nothing to expand for disk image %s partition %s.' %
-                (args.image_file.name, args.number))
+      return ('Nothing to expand for disk image %s partition %s.' %
+              (args.image_file.name, args.number))
 
   class Add(SubCommand):
     """Add, edit, or remove a partition entry.
@@ -1277,10 +1275,9 @@ class GPTCommands(object):
       if part.IsUnused():
         # If we do ('%s' % part) there will be TypeError.
         return 'Deleted (zeroed) %s.' % (part,)
-      else:
-        return ('%s %s (%s+%s).' %
-                ('Added' if is_new_part else 'Modified',
-                 part, part.FirstLBA, part.blocks))
+      return ('%s %s (%s+%s).' %
+              ('Added' if is_new_part else 'Modified',
+               part, part.FirstLBA, part.blocks))
 
   class Show(SubCommand):
     """Show partition table and entries.
@@ -1359,8 +1356,7 @@ class GPTCommands(object):
           return p.Attributes.legacy_boot
         elif args.Attribute:
           return '[%x]' % (p.Attributes.raw >> 48)
-        else:
-          return None
+        return None
 
       def IsFormatArgsSpecified():
         return any(getattr(args, arg[0]) for arg in GPTCommands.FORMAT_ARGS)

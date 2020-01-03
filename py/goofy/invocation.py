@@ -205,8 +205,7 @@ class TestInvocation(object):
       # reuse the existing invocation as uuid so that we can accumulate all the
       # logs in the same log file.
       return post_shutdown_state['invocation']
-    else:
-      return time_utils.TimedUUID()
+    return time_utils.TimedUUID()
 
   def _SetupOutputDir(self):
     output_dir = os.path.join(paths.DATA_TESTS_DIR,

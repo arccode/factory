@@ -41,8 +41,7 @@ class IngestionTest(unittest.TestCase):
     def MockReadFile(*args):
       if args[0] == '/staging/boards.yaml':
         return SERVER_BOARDS_DATA
-      else:
-        return 'Test Data'
+      return 'Test Data'
 
     CONFIG.hwid_filesystem.ReadFile = mock.Mock(side_effect=MockReadFile)
 

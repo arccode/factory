@@ -223,33 +223,29 @@ def GetUnmanagedEthernetInterfaces():
         if 'dhcp' in config:
           if net_utils.GetEthernetIp(intf):
             return True
-          else:
-            # this is strange...
-            logging.warning('shill found DHCP server on %s, but cannot get IP')
-            logging.warning('We consider it as UNMANAGED.')
-            return False
+          # this is strange...
+          logging.warning('shill found DHCP server on %s, but cannot get IP')
+          logging.warning('We consider it as UNMANAGED.')
+          return False
       return False
-    else:
-      # We can't talk to shill without DBus, so let's just check for IP
-      # address.
-      return net_utils.GetEthernetIp(intf) is not None
+    # We can't talk to shill without DBus, so let's just check for IP
+    # address.
+    return net_utils.GetEthernetIp(intf) is not None
 
   if IsShillRunning():
     # 'shill' running. Let's not mess with it. Just check whether shill got
     # DHCP response on each interface.
     return [intf for intf in net_utils.GetEthernetInterfaces() if
             not IsShillUsingDHCP(intf)]
-  else:
-    # 'shill' not running. Use dhclient.
-    p = pool.ThreadPool(5)
-    def CheckManaged(interface):
-      if RenewDhcpLease(interface):
-        return None
-      else:
-        return interface
-    managed = p.map(CheckManaged, net_utils.GetEthernetInterfaces())
-    p.terminate()
-    return [x for x in managed if x]
+  # 'shill' not running. Use dhclient.
+  p = pool.ThreadPool(5)
+  def CheckManaged(interface):
+    if RenewDhcpLease(interface):
+      return None
+    return interface
+  managed = p.map(CheckManaged, net_utils.GetEthernetInterfaces())
+  p.terminate()
+  return [x for x in managed if x]
 
 
 def GetDHCPBootParameters(interface):

@@ -294,8 +294,7 @@ class BluetoothTest(test_case.TestCase):
     """
     if self._input_device_mac:
       return self._input_device_mac
-    else:
-      return self._strongest_rssi_mac
+    return self._strongest_rssi_mac
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()

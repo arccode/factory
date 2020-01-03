@@ -139,8 +139,7 @@ class SeqGenerator(object):
       # There is no log file. It's safe to start at 0.
       return recovery_seq
 
-    else:
-      return recovery_seq + SEQ_INCREMENT_ON_BOOT
+    return recovery_seq + SEQ_INCREMENT_ON_BOOT
 
   def _NextOrRaise(self):
     """Returns the next sequence number, raising an exception on failure."""

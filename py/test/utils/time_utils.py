@@ -40,5 +40,4 @@ def SyncTimeWithFactoryServer():
   if time_sanitizer is not None:
     time_sanitizer.SyncTimeWithFactoryServer(force=True)
     return True
-  else:
-    return False
+  return False

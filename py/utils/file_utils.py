@@ -360,9 +360,8 @@ def GetFileSizeInBytes(path, follow_link=False, dut=None):
 
     if file_type in ('block special file', 'block device'):
       return int(dut.CallOutput(['blockdev', '--getsize64', path]))
-    else:
-      # For other files, just returns what we got from stat
-      return int(size)
+    # For other files, just returns what we got from stat
+    return int(size)
   else:
     with open(path, 'rb') as f:
       f.seek(0, os.SEEK_END)

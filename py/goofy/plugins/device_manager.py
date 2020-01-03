@@ -613,9 +613,8 @@ class DeviceManager(plugin.Plugin):
       return ''.join(xml_lines)
 
     # In second stage, we execute slower commands and return their results.
-    else:
-      result = (
-          [eval(reload_function)  # pylint: disable=eval-used
-           for reload_function in json.loads(reload_function_array)])
+    result = (
+        [eval(reload_function)  # pylint: disable=eval-used
+         for reload_function in json.loads(reload_function_array)])
 
-      return json.dumps(result)
+    return json.dumps(result)

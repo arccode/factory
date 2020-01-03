@@ -61,11 +61,10 @@ def GetDeviceID():
   """
   if os.path.exists(DEVICE_ID_PATH):
     return file_utils.ReadFile(DEVICE_ID_PATH).strip()
-  else:
-    # The device_id file doesn't exist, we probably are not on DUT, just
-    # run bin/device_id once and return the result.
-    device_id_bin = os.path.join(paths.FACTORY_DIR, 'bin', 'device_id')
-    return subprocess.check_output(device_id_bin).strip()
+  # The device_id file doesn't exist, we probably are not on DUT, just
+  # run bin/device_id once and return the result.
+  device_id_bin = os.path.join(paths.FACTORY_DIR, 'bin', 'device_id')
+  return subprocess.check_output(device_id_bin).strip()
 
 
 @type_utils.CachedGetter

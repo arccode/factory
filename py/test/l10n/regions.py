@@ -403,8 +403,7 @@ def main(args=sys.argv[1:], out=sys.stdout):
     """
     if isinstance(value, list):
       return ','.join(value)
-    else:
-      return str(value)
+    return str(value)
   for region in sorted(regions_dict.values(), key=lambda v: v.region_code):
     lines.append([CoerceToString(getattr(region, field))
                   for field in Region.FIELDS])

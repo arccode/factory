@@ -117,8 +117,7 @@ class ChargerTest(test_case.TestCase):
   def _NormalizeCharge(self, charge_pct):
     if self.args.use_percentage:
       return charge_pct
-    else:
-      return charge_pct * self._power.GetChargeFull() / 100.0
+    return charge_pct * self._power.GetChargeFull() / 100.0
 
   def _CheckPower(self):
     """Checks battery and AC power adapter are present."""
@@ -175,8 +174,7 @@ class ChargerTest(test_case.TestCase):
       return True
     if moving_up:
       return charge > target
-    else:
-      return charge < target
+    return charge < target
 
   def _RegulateCharge(self, charge_change, timeout_secs, load=None):
     """Checks if the charger can meet the spec.

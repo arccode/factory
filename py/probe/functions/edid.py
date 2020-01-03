@@ -55,8 +55,7 @@ def Parse(content):
   # Check if it's from Tegra.
   if content.startswith(PREFIX_TEGRA):
     return _ParseTegra(content)
-  else:
-    return _ParseBinaryBlob(content)
+  return _ParseBinaryBlob(content)
 
 
 def _ParseTegra(content):

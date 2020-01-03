@@ -428,9 +428,8 @@ class TestListIterator(six.Iterator):
         test.UpdateState(status=state.TestState.UNTESTED)
         # check again (for status filter)
         return self.CheckSkip(test)
-      else:
-        # this test is still skipped
-        return True
+      # this test is still skipped
+      return True
     return False
 
   def CheckStatusFilter(self, test):

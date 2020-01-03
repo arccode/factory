@@ -97,10 +97,9 @@ def ReconstructSourceImport(item):
   """
   if item['import'] is None:
     return "import %s" % item['module']
-  else:
-    module = ''.join(['.'] * item['level'])
-    module += item['module'] or ''
-    return "from %s import %s" % (module, item['import'])
+  module = ''.join(['.'] * item['level'])
+  module += item['module'] or ''
+  return "from %s import %s" % (module, item['import'])
 
 
 def GuessModule(filename):
@@ -291,8 +290,7 @@ def LoadRules(path):
       return 2
     elif key == '*':
       return 1
-    else:
-      return 3
+    return 3
 
   return sorted(rules.items(),
                 key=lambda k_v: (RulePriority(k_v[0]), k_v[0]),
@@ -306,8 +304,7 @@ def GetPackage(module):
   """
   if '.' in module:
     return module.rpartition('.')[0]
-  else:
-    return module
+  return module
 
 
 def RuleMatch(rule, module):
@@ -345,8 +342,7 @@ def RuleMatch(rule, module):
 
   if rule.endswith('.*'):
     return target == rule[:-2] or target.startswith(rule[:-1])
-  else:
-    return target == rule
+  return target == rule
 
 
 def FindRule(rules, module):

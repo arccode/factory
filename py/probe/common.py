@@ -81,8 +81,7 @@ def EvaluateStatement(statement, approx_match=False, max_mismatch=0):
     if approx_match:
       return ApproxMatchFunction(rule=statement.get('expect', {}),
                                  max_mismatch=max_mismatch)
-    else:
-      return MatchFunction(rule=statement.get('expect', {}))
+    return MatchFunction(rule=statement.get('expect', {}))
 
   probe_func = function.InterpretFunction(statement['eval'])
   match_func = _ChooseMatchFunction(approx_match, max_mismatch)

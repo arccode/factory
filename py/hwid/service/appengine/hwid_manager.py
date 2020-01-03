@@ -129,8 +129,7 @@ class Bom(object):
         return []
       elif self._components[cls] == list():
         return [Component(cls, None)]
-      else:
-        return [Component(cls, name) for name in self._components[cls]]
+      return [Component(cls, name) for name in self._components[cls]]
 
     components = []
     for comp_class, comp_names in self._components.items():
@@ -193,13 +192,11 @@ class Bom(object):
             for name, values in self._labels[cls].items()
             for value in values
         ]
-      else:
-        return []
-    else:
-      return [
-          Label(cls, name, value) for cls in self._labels
-          for name, values in self._labels[cls].items() for value in values
-      ]
+      return []
+    return [
+        Label(cls, name, value) for cls in self._labels
+        for name, values in self._labels[cls].items() for value in values
+    ]
 
   def AddLabel(self, cls, name, value=None):
     """Adds a label to this bom.
@@ -293,8 +290,7 @@ class HwidManager(object):
       return set(metadata.board
                  for metadata in HwidMetadata.all()
                  if metadata.version in versions)
-    else:
-      return set(metadata.board for metadata in HwidMetadata.all())
+    return set(metadata.board for metadata in HwidMetadata.all())
 
   def GetBomAndConfigless(self, hwid_string):
     """Get the BOM and configless for a given HWID.

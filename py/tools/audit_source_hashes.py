@@ -167,10 +167,9 @@ def AuditHashes(golden, samples, out):
                   len(samples) - total_bad_samples,
                   len(samples)))
     return False
-  else:
-    out.write('PASSED (%d/%d samples passed).\n' % (
-        len(samples), len(samples)))
-    return True
+  out.write('PASSED (%d/%d samples passed).\n' % (
+      len(samples), len(samples)))
+  return True
 
 
 def main(argv=None, out=sys.stderr):

@@ -57,8 +57,7 @@ def MayTranslate(obj, force=False):
     raise TypeError('not a string')
   if obj.startswith(TRANSLATE_PREFIX):
     return i18n.Translated(obj[len(TRANSLATE_PREFIX):])
-  else:
-    return i18n.Translated(obj) if force else obj
+  return i18n.Translated(obj) if force else obj
 
 
 class Options(object):
@@ -386,8 +385,7 @@ class FactoryTestList(test_object_module.FactoryTest):
     if recursive:
       return json.dumps(self.ToTestListConfig(recursive=True), indent=2,
                         sort_keys=True, separators=(',', ': '))
-    else:
-      return json.dumps(self.ToTestListConfig(recursive=False), sort_keys=True)
+    return json.dumps(self.ToTestListConfig(recursive=False), sort_keys=True)
 
 
 class ITestList(with_metaclass(abc.ABCMeta, object)):
@@ -460,8 +458,7 @@ class ITestList(with_metaclass(abc.ABCMeta, object)):
         return type(value)(ConvertToBasicType(v) for v in value)
       elif isinstance(value, collections.Sequence):
         return [ConvertToBasicType(v) for v in value]
-      else:
-        return value
+      return value
 
     def ResolveArg(key, value):
       if isinstance(value, collections.Mapping):
@@ -879,10 +876,9 @@ class TestList(ITestList):
   def ToTestListConfig(self, recursive=True):
     if recursive:
       return self._config.ToDict()
-    else:
-      ret = self._config.ToDict()
-      ret.pop('tests', None)
-      return ret
+    ret = self._config.ToDict()
+    ret.pop('tests', None)
+    return ret
 
   def ReloadIfModified(self):
     if not self.modified:

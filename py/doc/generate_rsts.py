@@ -145,8 +145,7 @@ def WriteArgsTable(rst, title, args):
         return repr(sorted(arg_type))
       elif arg_type == type(None):
         return 'None'
-      else:
-        return arg_type.__name__
+      return arg_type.__name__
     arg_types = ', '.join(FormatArgType(x) for x in arg.type)
 
     rst.WriteListTableRow((arg.name, arg_types, description))

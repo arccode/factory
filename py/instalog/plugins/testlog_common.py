@@ -24,8 +24,7 @@ def From0_1to0_21(event):
       return time_utils.DatetimeToUnixtime(obj)
     elif isinstance(obj, float):
       return obj
-    else:
-      return None
+    return None
 
   event['time'] = DateTimeToUnixTimestamp(event['time'])
 

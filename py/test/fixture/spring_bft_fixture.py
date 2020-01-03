@@ -21,10 +21,8 @@ def _CommandStr(command):
   if isinstance(command, str):
     if len(command) == 1:
       return '0x%02X' % ord(command)
-    else:
-      return 'invalid command %r, len:%d != 1' % (command, len(command))
-  else:
-    return 'invalid command %r: not a string.' % command
+    return 'invalid command %r, len:%d != 1' % (command, len(command))
+  return 'invalid command %r: not a string.' % command
 
 
 class SpringBFTFixture(bft_fixture.BFTFixture):

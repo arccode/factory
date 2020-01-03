@@ -54,9 +54,8 @@ class Path(types.DeviceComponent):
 
     if file_type in ('block special file', 'block device'):
       return int(self._device.CallOutput(['blockdev', '--getsize64', path]))
-    else:
-      # For other files, just returns what we got from stat
-      return int(size)
+    # For other files, just returns what we got from stat
+    return int(size)
 
   def isdir(self, path):
     """Returns True if path refers to an existing directory."""

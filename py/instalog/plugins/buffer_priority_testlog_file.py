@@ -22,8 +22,7 @@ class BufferPriorityFile(buffer_priority_file.BufferPriorityFile):
       return 1
     elif event.get('logLevel') != 'INFO':
       return 2
-    else:
-      return 3
+    return 3
 
 
 if __name__ == '__main__':

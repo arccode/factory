@@ -44,8 +44,7 @@ class OverlordService(umpire_service.UmpireService):
     if '/local/' in paths.FACTORY_DIR:
       return os.path.normpath(os.path.join(paths.FACTORY_DIR,
                                            '..', '..', 'bin', 'overlordd'))
-    else:
-      return OVERLORDD_BIN
+    return OVERLORDD_BIN
 
   def CreateProcesses(self, umpire_config, env):
     # pylint: disable=unused-argument

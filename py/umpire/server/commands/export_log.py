@@ -114,12 +114,11 @@ class LogExporter(object):
               'messages': messages,
               'log_paths': [src_file],
           }
-        else:
-          messages.append("echo code doesn't exist")
-          return {
-              'messages': messages,
-              'log_paths': [],
-          }
+        messages.append("echo code doesn't exist")
+        return {
+            'messages': messages,
+            'log_paths': [],
+        }
       elif log_type == 'report' or log_type == 'log':
         start_date = datetime.datetime.strptime(start_date_str, '%Y%m%d').date()
         end_date = datetime.datetime.strptime(end_date_str, '%Y%m%d').date()

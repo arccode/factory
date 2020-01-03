@@ -82,13 +82,10 @@ class EthernetTest(test_case.TestCase):
       if self.args.iface in devices:
         if self.CheckNotUsbLanDongle(self.args.iface):
           return self.args.iface
-        else:
-          session.console.info('Not a built-in ethernet device.')
-          return None
-      else:
+        session.console.info('Not a built-in ethernet device.')
         return None
-    else:
-      return self.GetCandidateInterface()
+      return None
+    return self.GetCandidateInterface()
 
   def GetCandidateInterface(self):
     devices = self.GetEthernetInterfaces()
@@ -144,8 +141,7 @@ class EthernetTest(test_case.TestCase):
     match = re.search(r'^\s+inet ([.0-9]+)/([0-9]+)', output, re.MULTILINE)
     if match:
       return match.group(1)
-    else:
-      return None
+    return None
 
   def CheckLinkSWconfig(self):
     if isinstance(self.args.swconfig_ports, int):

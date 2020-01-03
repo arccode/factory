@@ -268,8 +268,7 @@ class RunTests(object):
       for test in sorted(self._failed_tests.values()):
         self._FailMessage(test)
       return 1
-    else:
-      return 0
+    return 0
 
   def _GetLogFilename(self, test_path):
     """Composes log filename.

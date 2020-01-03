@@ -58,8 +58,7 @@ class SSHProcess(object):
       self.__retry_count += 1
       self.__process = self._create_process()
       return self.wait()
-    else:
-      return returncode
+    return returncode
 
 
 class SSHLink(types.DeviceLink):
@@ -401,8 +400,7 @@ class SSHLink(types.DeviceLink):
         if returncode != 0:
           proc.kill()
           return False
-        else:
-          return True
+        return True
 
       def _PollingCallback(is_process_alive):
         if not is_process_alive:

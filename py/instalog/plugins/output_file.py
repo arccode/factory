@@ -174,10 +174,9 @@ class OutputFile(plugin_base.OutputPlugin):
         self.info('Commit %d events', num_events)
         event_stream.Commit()
         return True
-      else:
-        self.info('Abort %d events', num_events)
-        event_stream.Abort()
-        return False
+      self.info('Abort %d events', num_events)
+      event_stream.Abort()
+      return False
 
 if __name__ == '__main__':
   plugin_base.main()

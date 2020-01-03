@@ -49,16 +49,15 @@ def GetPluginClass(plugin_name):
 
   if inspect.isclass(target):
     return target
-  else:
-    target_class = None
-    for unused_name, obj in inspect.getmembers(target):
-      if (inspect.isclass(obj) and
-          obj.__module__ == full_name and
-          issubclass(obj, Plugin)):
-        assert target_class is None, (
-            'Multiple plugins class found in %s' % plugin_name)
-        target_class = obj
-    return target_class
+  target_class = None
+  for unused_name, obj in inspect.getmembers(target):
+    if (inspect.isclass(obj) and
+        obj.__module__ == full_name and
+        issubclass(obj, Plugin)):
+      assert target_class is None, (
+          'Multiple plugins class found in %s' % plugin_name)
+      target_class = obj
+  return target_class
 
 
 def GetPluginNameFromClass(plugin_class):

@@ -106,8 +106,7 @@ class Updater(object):
       return False
     if match_method == MATCH_METHOD.exact:
       return current_version != update_version
-    else:
-      return current_version not in update_version
+    return current_version not in update_version
 
   def UpdateCallback(self, component, destination, url):
     """A callback function after an update is installed.

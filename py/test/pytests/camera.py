@@ -245,11 +245,9 @@ class CameraTest(test_case.TestCase):
         os.unlink(blob_path)
         return cv2.imdecode(
             np.fromstring(blob, dtype=np.uint8), cv2.CV_LOAD_IMAGE_COLOR)
-      else:
-        self.RunJSPromiseBlocking('cameraTest.grabFrame()')
-        return None
-    else:
-      return self.camera_device.ReadSingleFrame()
+      self.RunJSPromiseBlocking('cameraTest.grabFrame()')
+      return None
+    return self.camera_device.ReadSingleFrame()
 
   def LEDTest(self):
     flicker = bool(random.randint(0, 1))

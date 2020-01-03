@@ -165,8 +165,7 @@ class _ExtendedPopen(Popen):
   def communicate(self, *args, **kwargs):
     if self.stdout_data is None and self.stderr_data is None:
       return super(_ExtendedPopen, self).communicate(*args, **kwargs)
-    else:
-      return self.stdout_data, self.stderr_data
+    return self.stdout_data, self.stderr_data
 
 
 def Spawn(args, **kwargs):

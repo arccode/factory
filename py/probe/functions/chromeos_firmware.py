@@ -91,8 +91,7 @@ def CalculateFirmwareHashes(fw_file_path):
     return _EcRoHash(image)
   elif image.has_section('GBB') and image.has_section('RO_SECTION'):
     return _MainRoHash(image)
-  else:
-    return None
+  return None
 
 
 class ChromeosFirmwareFunction(cached_probe_function.LazyCachedProbeFunction):

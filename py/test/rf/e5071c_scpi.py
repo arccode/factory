@@ -301,8 +301,7 @@ class ENASCPI(agilent_scpi.AgilentSCPI):
 
     if calibration_check_passed:
       return (True, traces)
-    else:
-      return (False, traces)
+    return (False, traces)
 
   def CaptureScreenshot(self):
     """Return the screenshot content in PNG format."""

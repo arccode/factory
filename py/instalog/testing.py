@@ -78,10 +78,9 @@ class MockCore(plugin_sandbox.CoreAPI):
     assert stream_id >= 0 and stream_id <= len(self.streams)
     if stream_id < len(self.streams):
       return self.streams[stream_id]
-    else:
-      stream = MockBufferEventStream()
-      self.streams.append(stream)
-      return stream
+    stream = MockBufferEventStream()
+    self.streams.append(stream)
+    return stream
 
   def NewStream(self, plugin):
     """Returns the next available EventStream (with Events in it)."""

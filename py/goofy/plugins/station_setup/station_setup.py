@@ -77,8 +77,7 @@ class StationSetup(plugin.Plugin):
     if status.startswith('success '):
       ip, unused_port = status.split(' ', 1)[1].split(':')
       return (ip, self.overlord_port)
-    else:
-      return None
+    return None
 
   def _OvlConnect(self):
     address = self._GetOverlordAddress()

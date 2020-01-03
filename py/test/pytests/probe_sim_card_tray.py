@@ -141,8 +141,7 @@ class ProbeSimCardTrayTest(test_case.TestCase):
 
     if self.args.gpio_active_high:
       return _TrayState.INSERTED if ret == '1' else _TrayState.REMOVED
-    else:
-      return _TrayState.INSERTED if ret == '0' else _TrayState.REMOVED
+    return _TrayState.INSERTED if ret == '0' else _TrayState.REMOVED
 
   def CheckPresence(self):
     self.assertEqual(

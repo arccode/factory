@@ -337,9 +337,8 @@ class ChromeOSBluetoothManager(BluetoothManager):
     if adapters is None:
       logging.error('BluetoothManager: Fail to get any adapter.')
       return None
-    else:
-      logging.info('GetAdapters (mac_addr=%s): %s', mac_addr, adapters)
-      return adapters
+    logging.info('GetAdapters (mac_addr=%s): %s', mac_addr, adapters)
+    return adapters
 
   def _SwitchAdapterPower(self, adapter, on):
     """Powers on adapter by setting the Powered property.

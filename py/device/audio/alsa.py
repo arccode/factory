@@ -60,10 +60,9 @@ class AlsaMixerController(base.BaseMixerController):
     m = re.search(r'^.*: values=(.*)$', lines, re.MULTILINE)
     if m:
       return m.group(1)
-    else:
-      logging.info('Unable to get value for mixer control \'%s\', numid=%d',
-                   name, numid)
-      return None
+    logging.info('Unable to get value for mixer control \'%s\', numid=%d',
+                 name, numid)
+    return None
 
   def SetMixerControls(self, mixer_settings, card='0', store=True):
     """See BaseMixerController.SetMixerControls"""

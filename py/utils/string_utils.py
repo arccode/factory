@@ -16,8 +16,7 @@ def DecodeUTF8(data):
   """
   if isinstance(data, str):
     return unicode(data, encoding='utf-8', errors='replace')
-  else:
-    return data
+  return data
 
 
 def CleanUTF8(data):

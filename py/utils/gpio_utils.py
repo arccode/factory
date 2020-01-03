@@ -238,8 +238,7 @@ class Gpio(object):
     gpio_path = self._GPIO_PIN_PATTERN % self._port
     if attribute:
       return os.path.join(gpio_path, attribute)
-    else:
-      return gpio_path
+    return gpio_path
 
   def _ExportSysfs(self):
     """Exports GPIO sysfs interface."""

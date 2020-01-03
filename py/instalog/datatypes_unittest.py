@@ -369,8 +369,7 @@ class TestEventStreamIterator(unittest.TestCase):
       del plugin, event_stream, timeout
       if time_utils.MonotonicTime() > wait_event_begin:
         return 'delayed_event'
-      else:
-        return None
+      return None
 
     with mock.patch.object(self.plugin_api, 'EventStreamNext',
                            DelayedEvent):

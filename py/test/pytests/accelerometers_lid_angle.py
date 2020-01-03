@@ -134,8 +134,7 @@ class AccelerometersLidAngleTest(test_case.TestCase):
     lid_base_cross_vec = np.cross(base_vec_flattened, lid_vec_flattened)
     if np.dot(lid_base_cross_vec, hinge_vec) > 0.0:
       return 360.0 - lid_angle
-    else:
-      return lid_angle
+    return lid_angle
 
   def runTest(self):
     self.ui.SetState(

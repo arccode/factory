@@ -359,16 +359,14 @@ class SysfsPowerInfoMixin(PowerInfoMixinBase):
     charge_now = self.GetBatteryAttribute('charge_now')
     if charge_now:
       return int(charge_now) // 1000
-    else:
-      return None
+    return None
 
   def GetChargeFull(self):
     """See PowerInfoMixinBase.GetChargeFull"""
     charge_full = self.GetBatteryAttribute('charge_full')
     if charge_full:
       return int(charge_full) // 1000
-    else:
-      return None
+    return None
 
   def GetChargePct(self, get_float=False):
     """See PowerInfoMixinBase.GetChargePct"""
@@ -385,8 +383,7 @@ class SysfsPowerInfoMixin(PowerInfoMixinBase):
     charge_pct = float(now) * 100 / float(full)
     if get_float:
       return charge_pct
-    else:
-      return round(charge_pct)
+    return round(charge_pct)
 
   def GetWearPct(self):
     """See PowerInfoMixinBase.GetWearPct"""
@@ -471,8 +468,7 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
         self._device.CallOutput(['ectool', 'battery']))
     if re_object:
       return re_object[0].split()
-    else:
-      return []
+    return []
 
   def _GetECToolBatteryAttribute(self, key_name, item_type=str):
     re_object = re.findall(r'%s\s+(\S+)' % key_name,
@@ -510,8 +506,7 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
     charge_pct = self.GetCharge() * 100 / self.GetChargeFull()
     if get_float:
       return charge_pct
-    else:
-      return round(charge_pct)
+    return round(charge_pct)
 
   def GetWearPct(self):
     """See PowerInfoMixinBase.GetWearPct"""
@@ -525,8 +520,7 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
     """See PowerInfoMixinBase.GetWearPct"""
     if 'CHARGING' in self._GetECToolBatteryFlags():
       return self.ChargeState.CHARGE
-    else:
-      return self.ChargeState.DISCHARGE
+    return self.ChargeState.DISCHARGE
 
   def GetBatteryCurrent(self):
     """See PowerInfoMixinBase.GetBatteryCurrent"""
@@ -660,8 +654,7 @@ class PowerDaemonPowerInfoMixin(PowerInfoMixinBase):
     charge_pct = self._GetPowerAttribute('battery_percent', float)
     if get_float:
       return charge_pct
-    else:
-      return round(charge_pct)
+    return round(charge_pct)
 
   def GetWearPct(self):
     """See PowerInfoMixinBase.GetWearPct"""

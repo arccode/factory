@@ -286,8 +286,7 @@ class DRMModeConnector(DRMModeBaseStruct):
       encoder.fd = self.fd
       encoder.need_free = True
       return encoder
-    else:
-      return None
+    return None
 
   @property
   def edid(self):

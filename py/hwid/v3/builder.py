@@ -89,8 +89,7 @@ def _DetermineComponentName(comp_cls, value):
   if comp_cls == 'firmware_keys':
     if 'devkeys' in value['key_root']:
       return 'firmware_keys_dev'
-    else:
-      return 'firmware_keys_non_dev'
+    return 'firmware_keys_non_dev'
 
   # General components.
   if len(value) == 1:
