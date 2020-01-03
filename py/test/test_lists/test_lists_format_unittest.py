@@ -6,12 +6,12 @@
 
 import glob
 import os
-import subprocess
 import unittest
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 
 
 class JSONFormatTest(unittest.TestCase):
@@ -24,7 +24,7 @@ class JSONFormatTest(unittest.TestCase):
 
     failed_files = []
     for test_list in test_lists:
-      if file_utils.ReadFile(test_list) != subprocess.check_output(
+      if file_utils.ReadFile(test_list) != process_utils.CheckOutput(
           [formatter, test_list]):
         failed_files.append(test_list)
 

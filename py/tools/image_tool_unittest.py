@@ -23,6 +23,7 @@ from six import assertCountEqual
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.tools import image_tool
+from cros.factory.utils import process_utils
 
 
 DEBUG = False
@@ -220,7 +221,8 @@ class ImageToolTest(unittest.TestCase):
     self.ImageTool('bundle', '--no-firmware', '--timestamp', '20180101')
     bundle_name = 'factory_bundle_test_20180101_proto.tar.bz2'
     self.assertTrue(os.path.exists(bundle_name))
-    contents = subprocess.check_output('tar -xvf %s' % bundle_name, shell=True)
+    contents = process_utils.CheckOutput('tar -xvf %s' % bundle_name,
+                                         shell=True)
     contents = [line.split()[-1] for line in contents.splitlines()]
     assertCountEqual(
         self,

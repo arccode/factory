@@ -13,6 +13,8 @@ import subprocess
 import tempfile
 import unittest
 
+from cros.factory.utils import process_utils
+
 
 class TinyParTest(unittest.TestCase):
   """End-2-end tests for tiny_par."""
@@ -49,7 +51,7 @@ class TinyParTest(unittest.TestCase):
                      subprocess.call([self.par_file, 'par_test', '2']),
                      'PAR CMD ARG invocation failed.')
     self.assertEqual('correct result\n',
-                     subprocess.check_output(
+                     process_utils.CheckOutput(
                          [self.par_file, 'par_test', '0', 'correct', 'result']),
                      'PAR CMD ARG output incorrect.')
 
@@ -61,7 +63,7 @@ class TinyParTest(unittest.TestCase):
                      subprocess.call([self.symlink, '1']),
                      'SYMLINK CMD ARG invocation failed.')
     self.assertEqual('correct result\n',
-                     subprocess.check_output(
+                     process_utils.CheckOutput(
                          [self.symlink, '0', 'correct', 'result']),
                      'SYMLINK CMD ARG output incorrect.')
 
@@ -73,7 +75,7 @@ class TinyParTest(unittest.TestCase):
                      subprocess.call([self.hard_link, '1']),
                      'HARDLINK CMD ARG invocation failed.')
     self.assertEqual('correct result\n',
-                     subprocess.check_output(
+                     process_utils.CheckOutput(
                          [self.hard_link, '0', 'correct', 'result']),
                      'HARDLINK CMD ARG output incorrect.')
 

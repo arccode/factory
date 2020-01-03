@@ -191,7 +191,7 @@ class DeviceManager(plugin.Plugin):
 
     def GetBootDisk():
       """Returns boot disk info."""
-      boot_device = subprocess.check_output(['rootdev', '-s', '-d']).strip()
+      boot_device = process_utils.CheckOutput(['rootdev', '-s', '-d']).strip()
 
       boot_device_removable_path = (
           os.path.join('/sys/block/',
@@ -223,25 +223,25 @@ class DeviceManager(plugin.Plugin):
                     open(os.path.join(tpm_root, 'owned')).read())
       tpm_stat = (
           ('Enabled: %s\nOwned: %s\n' % tpm_status) +
-          subprocess.check_output('crossystem | grep tpm_owner', shell=True))
+          process_utils.CheckOutput('crossystem | grep tpm_owner', shell=True))
 
       return DeviceNodeString(
           'tpm', 'TPM status', [('status', tpm_stat, True)])
 
     def GetHWID():
       """Returns HWID."""
-      hwid = subprocess.check_output(['crossystem', 'hwid'])
+      hwid = process_utils.CheckOutput(['crossystem', 'hwid'])
 
       return DeviceNodeString('hwid', 'HWID', [('hwid', hwid, False)])
 
     def GetWPStatus():
       """Returns current write protection status info."""
       host_wp_stat = (
-          subprocess.check_output(['flashrom', '-p', 'host', '--wp-status']))
+          process_utils.CheckOutput(['flashrom', '-p', 'host', '--wp-status']))
 
       try:
         ec_wp_stat = (
-            subprocess.check_output(['flashrom', '-p', 'ec', '--wp-status']))
+            process_utils.CheckOutput(['flashrom', '-p', 'ec', '--wp-status']))
       except subprocess.CalledProcessError:
         ec_wp_stat = 'EC not available.'
 
@@ -252,11 +252,11 @@ class DeviceManager(plugin.Plugin):
     def GetVersion():
       """Returns EC/BIOS/Image version info."""
       fw_version = (
-          subprocess.check_output(['crossystem', 'fwid']) +
-          subprocess.check_output(['crossystem', 'ro_fwid']))
+          process_utils.CheckOutput(['crossystem', 'fwid']) +
+          process_utils.CheckOutput(['crossystem', 'ro_fwid']))
 
       try:
-        ec_version = subprocess.check_output(['ectool', 'version'])
+        ec_version = process_utils.CheckOutput(['ectool', 'version'])
       except subprocess.CalledProcessError:
         ec_version = 'EC not available.'
 
@@ -269,8 +269,8 @@ class DeviceManager(plugin.Plugin):
 
     def GetVPD():  # pylint: disable=unused-variable
       """Returns RO VPD and RW VPD info."""
-      ro_vpd = subprocess.check_output(['vpd', '-i', 'RO_VPD', '-l'])
-      rw_vpd = subprocess.check_output(['vpd', '-i', 'RW_VPD', '-l'])
+      ro_vpd = process_utils.CheckOutput(['vpd', '-i', 'RO_VPD', '-l'])
+      rw_vpd = process_utils.CheckOutput(['vpd', '-i', 'RW_VPD', '-l'])
 
       return DeviceNodeString(
           'vpd', 'RO/RW VPD', [('ro', ro_vpd, True), ('rw', rw_vpd, True)])
@@ -325,7 +325,7 @@ class DeviceManager(plugin.Plugin):
     def GetTouchpadStatus():
       """Returns touchpad status."""
       try:
-        touchpad_stat = subprocess.check_output(
+        touchpad_stat = process_utils.CheckOutput(
             ['/opt/google/touchpad/tpcontrol_xinput', 'status'])
         lines = (
             [re.sub(r'\s\s+', '', line) for line in touchpad_stat.splitlines()])
@@ -340,7 +340,7 @@ class DeviceManager(plugin.Plugin):
     def GetPanelHDMIStatus():
       """Returns panel and HDMI status."""
       try:
-        panel_hdmi_stat = subprocess.check_output(['xrandr', '-d', ':0'])
+        panel_hdmi_stat = process_utils.CheckOutput(['xrandr', '-d', ':0'])
       except Exception:
         panel_hdmi_stat = 'Unknown'
         logging.exception('Failed to get touchpad status')
@@ -351,7 +351,7 @@ class DeviceManager(plugin.Plugin):
 
     def GetModemStatus():
       """Returns modem status."""
-      modem_stat = subprocess.check_output(['modem', 'status'])
+      modem_stat = process_utils.CheckOutput(['modem', 'status'])
 
       modem_stat_tag_list = []
       tag_content = []
@@ -406,7 +406,7 @@ class DeviceManager(plugin.Plugin):
 
     def GetCPUUsage():
       """Returns CPU usage detail in HTML format."""
-      cpu_usage_output = subprocess.check_output(['top', '-n', '1', '-b'])
+      cpu_usage_output = process_utils.CheckOutput(['top', '-n', '1', '-b'])
       cpu_usage_table = []
 
       lines = cpu_usage_output.split('\n')
@@ -429,7 +429,7 @@ class DeviceManager(plugin.Plugin):
 
     def GetDiskUsage():
       """Returns disk usage detail in HTML format."""
-      disk_usage_output = subprocess.check_output(['df', '-h'])
+      disk_usage_output = process_utils.CheckOutput(['df', '-h'])
 
       disk_usage_html_string = ComposeHTMLTable(
           [line.split() for line in disk_usage_output.splitlines()])
@@ -533,8 +533,8 @@ class DeviceManager(plugin.Plugin):
           The default time is 20 seconds.
       """
       with file_utils.UnopenedTemporaryFile(suffix='.html') as html_file_path:
-        subprocess.check_output(['powertop', '--html=%s' % html_file_path,
-                                 '--time=%d' % fetch_time])
+        process_utils.CheckOutput(['powertop', '--html=%s' % html_file_path,
+                                   '--time=%d' % fetch_time])
 
         power_usage_main_xml = []
         power_usage_main_xml.append('<node id="power_usage">')
@@ -565,7 +565,7 @@ class DeviceManager(plugin.Plugin):
     # In first stage, we execute faster commands first.
     if reload_function_array is None:
       # lshw provides common hardware information.
-      lshw_output = subprocess.check_output(['lshw', '-xml'])
+      lshw_output = process_utils.CheckOutput(['lshw', '-xml'])
       xml_lines = [line.strip() for line in lshw_output.splitlines()]
 
       # Use cros-specific commands to get cros info.

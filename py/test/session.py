@@ -10,13 +10,13 @@ convention here to invoke a test.
 
 import logging
 import os
-import subprocess
 import uuid
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.env import paths
 from cros.factory.utils import file_utils
 from cros.factory.utils import log_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
 
 
@@ -64,7 +64,7 @@ def GetDeviceID():
   # The device_id file doesn't exist, we probably are not on DUT, just
   # run bin/device_id once and return the result.
   device_id_bin = os.path.join(paths.FACTORY_DIR, 'bin', 'device_id')
-  return subprocess.check_output(device_id_bin).strip()
+  return process_utils.CheckOutput(device_id_bin).strip()
 
 
 @type_utils.CachedGetter

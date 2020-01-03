@@ -34,6 +34,7 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire import common
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 
@@ -267,7 +268,7 @@ class UmpireRPCTest(UmpireDockerTestCase):
 
     # TODO(pihsun): Figure out a better way to detect if services are restarted
     # without reading docker logs.
-    docker_logs = subprocess.check_output(
+    docker_logs = process_utils.CheckOutput(
         ['docker', 'logs', UMPIRE_CONTAINER_NAME],
         stderr=subprocess.STDOUT).splitlines()
     restarted_services = []
