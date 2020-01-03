@@ -18,6 +18,7 @@ import time
 
 from six import iteritems
 from six import reraise as raise_
+import yaml
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
@@ -36,6 +37,8 @@ from cros.factory.test.rules import registration_codes
 from cros.factory.test.rules.registration_codes import RegistrationCode
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import json_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error
 
 # The mismatch result tuple.
@@ -447,6 +450,54 @@ class Gooftool(object):
       raise Error('Release image channel is incorrect: %s. '
                   'Enforced channels are %s.' % (
                       release_channel, enforced_channels))
+
+  def VerifyCrosConfig(self):
+    """Verify that entries in cros config make sense."""
+    if phase.GetPhase() >= phase.PVT_DOGFOOD:
+      # The value actually comes from "cros_config / brand-code", however,
+      # most scripts are still using "mosys platform brand" to get the value,
+      # so we also check the value by mosys command.
+      rlz = self._util.shell(['mosys', 'platform', 'brand']).stdout.strip()
+      if not rlz or rlz == 'ZZCR':
+        # this is incorrect...
+        raise Error('RLZ code "%s" is not allowed in PVT' % rlz)
+
+    model = self._util.shell(['mosys', 'platform', 'model']).stdout.strip()
+    if not model:
+      raise Error('Model name is empty')
+
+    def _ParseCrosConfig(config_path):
+      with open(config_path) as f:
+        obj = yaml.load(f)
+      fields = ['name', 'identity', 'brand-code']
+      configs = [
+          {
+              field: config[field] for field in fields
+          }
+          for config in obj['chromeos']['configs']
+          if config['name'] == model
+      ]
+      configs = {
+          # set sort_keys=True to make the result stable.
+          json_utils.DumpStr(config, sort_keys=True) for config in configs
+      }
+      return configs
+
+    # Load config.yaml from release image (FSI) and test image, and compare the
+    # fields we cared about.
+    config_path = 'usr/share/chromeos-config/yaml/config.yaml'
+    test_configs = _ParseCrosConfig(os.path.join('/', config_path))
+    with sys_utils.Mountpartition(
+        self._util.GetReleaseRootPartitionPath()) as root:
+      release_configs = _ParseCrosConfig(os.path.join(root, config_path))
+
+    if test_configs != release_configs:
+      error = ['Detect different chromeos-config between test image and FSI.']
+      error += ['Configs in test image:']
+      error += ['\t' + config for config in test_configs]
+      error += ['Configs in FSI:']
+      error += ['\t' + config for config in release_configs]
+      raise Error('\n'.join(error))
 
   def ClearGBBFlags(self):
     """Zero out the GBB flags, in preparation for transition to release state.

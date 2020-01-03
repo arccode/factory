@@ -357,6 +357,12 @@ def VerifyReleaseChannel(options):
       options.enforced_release_channels)
 
 
+@Command('verify_cros_config')
+def VerifyCrosConfig(options):
+  """Verify entries in cros config make sense."""
+  return GetGooftool(options).VerifyCrosConfig()
+
+
 @Command('write_protect')
 def EnableFwWp(options):
   """Enable then verify firmware write protection."""
@@ -545,6 +551,7 @@ def Verify(options):
   VerifyTPM(options)
   VerifyVPD(options)
   VerifyReleaseChannel(options)
+  VerifyCrosConfig(options)
 
 
 @Command('untar_stateful_files')
