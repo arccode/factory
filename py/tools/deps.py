@@ -140,9 +140,9 @@ def GuessIsBuiltin(module):
   top_module = module.split('.')[0]
   try:
     path, module_type = FindModule(top_module, sys.path)
-    if ((path.startswith(STANDARD_LIB_DIR) and
-         not path.startswith(SITE_PACKAGES_DIR)) or
-        module_type == imp.C_BUILTIN):
+    if (module_type == imp.C_BUILTIN or
+        (path.startswith(STANDARD_LIB_DIR) and
+         not path.startswith(SITE_PACKAGES_DIR))):
       return True
     return False
   except Exception:
