@@ -52,8 +52,8 @@ def Decode(options):
     CmdArg('--seed', '-s', metavar='INT', type=int, default=None,
            help='Seed to use for pseudo-random payload; defaults to clock'))
 def GenerateDummy(options):
-  print ('*** This may be used only to generate a code for testing, '
-         'not for a real device.')
+  print('*** This may be used only to generate a code for testing, '
+        'not for a real device.')
   yes_no = input('*** Are you OK with that? (yes/no) ')
   if yes_no != 'yes':
     print('Aborting.')

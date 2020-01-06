@@ -264,10 +264,10 @@ def _ParseCommandLine():
 def main():
   """The main program to run the script."""
   options = _ParseCommandLine()
-  print ('battery level:',
-         GattTool.GetDeviceInfo(options.address, 'battery level'))
-  print ('firmware revision string:',
-         GattTool.GetDeviceInfo(options.address, 'firmware revision string'))
+  print('battery level:',
+        GattTool.GetDeviceInfo(options.address, 'battery level'))
+  print('firmware revision string:',
+        GattTool.GetDeviceInfo(options.address, 'firmware revision string'))
 
 
 if __name__ == '__main__':
