@@ -260,14 +260,14 @@ class ServiceProcess(protocol.ProcessProtocol):
     self._Info('%r' % s)
 
   # Twisted process protocol callbacks.
-  def makeConnection(self, process):
-    self._Debug('makeConnection %s' % process)
-    self.subprocess = process
+  def makeConnection(self, transport):
+    self._Debug('makeConnection %s' % transport)
+    self.subprocess = transport
     def Started():
       self._ChangeState(State.STARTED)
       self.deferred_start.callback(self.subprocess.pid)
     self.start_monitor = reactor.callLater(_STARTTIME_LIMIT, Started)
-    return protocol.ProcessProtocol.makeConnection(self, process)
+    return protocol.ProcessProtocol.makeConnection(self, transport)
 
   def connectionMade(self):
     """On process start."""
@@ -299,9 +299,9 @@ class ServiceProcess(protocol.ProcessProtocol):
     """On stderr close."""
     self._Debug('stderr lost')
 
-  def processEnded(self, status):
+  def processEnded(self, reason):
     """Subprocess has been ended."""
-    del status  # Unused.
+    del reason  # Unused.
     self.subprocess = None
     self.CancelAllMonitors()
 
@@ -431,12 +431,12 @@ class UmpireService(object):
       if '_unittest' in self.modulename or 'test_' in self.modulename:
         self.name = self.classname
 
-  def CreateProcesses(self, dummy_config, dummy_env):
+  def CreateProcesses(self, umpire_config, env):
     """Creates list of processes via config.
 
     Params:
-      dummy_config: Umpire config dict.
-      dummy_env: UmpireEnv.
+      umpire_config: Umpire config dict.
+      env: UmpireEnv.
 
     Returns:
       A list of ServiceProcess.

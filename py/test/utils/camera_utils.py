@@ -283,6 +283,7 @@ class MockCameraReader(CameraReaderBase):
         os.path.join(os.path.dirname(__file__), *paths))
     self._enabled = False
 
+  # pylint: disable=arguments-differ
   def EnableCamera(self):
     self._enabled = True
 

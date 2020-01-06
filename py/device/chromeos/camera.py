@@ -97,6 +97,7 @@ class ChromeOSCamera(camera.Camera):
       raise CameraError('No %s camera is found' % facing)
     return self._index_mapping[facing]
 
+  # pylint: disable=arguments-differ
   def GetCameraDevice(self, facing):
     """Get the camera device of the given direction the camera faces.
 

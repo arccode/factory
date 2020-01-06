@@ -303,18 +303,18 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
         if file_num is not None:
           self._file_num_lock[file_num].CheckAndRelease()
 
-  def AddConsumer(self, name):
+  def AddConsumer(self, consumer_id):
     """See BufferPlugin.AddConsumer."""
-    self.consumers[name] = Consumer(name, self)
+    self.consumers[consumer_id] = Consumer(consumer_id, self)
     for pri_level in xrange(_PRIORITY_LEVEL):
       for file_num in xrange(_PARTITION):
-        self.buffer_file[pri_level][file_num].AddConsumer(name)
+        self.buffer_file[pri_level][file_num].AddConsumer(consumer_id)
 
-  def RemoveConsumer(self, name):
+  def RemoveConsumer(self, consumer_id):
     """See BufferPlugin.RemoveConsumer."""
     for pri_level in xrange(_PRIORITY_LEVEL):
       for file_num in xrange(_PARTITION):
-        self.buffer_file[pri_level][file_num].RemoveConsumer(name)
+        self.buffer_file[pri_level][file_num].RemoveConsumer(consumer_id)
 
   def ListConsumers(self, details=0):
     """See BufferPlugin.ListConsumers."""
@@ -341,9 +341,9 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
         consumers_dict[name] = progress_dict[name]
     return consumers_dict
 
-  def Consume(self, name):
+  def Consume(self, consumer_id):
     """See BufferPlugin.Consume."""
-    return self.consumers[name].CreateStream()
+    return self.consumers[consumer_id].CreateStream()
 
 
 class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):

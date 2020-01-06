@@ -117,22 +117,22 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
         self.exception('Exception encountered when producing events')
         return False
 
-  def AddConsumer(self, name):
+  def AddConsumer(self, consumer_id):
     """See BufferPlugin.AddConsumer."""
-    self.buffer_file.AddConsumer(name)
+    self.buffer_file.AddConsumer(consumer_id)
 
-  def RemoveConsumer(self, name):
+  def RemoveConsumer(self, consumer_id):
     """See BufferPlugin.RemoveConsumer."""
-    self.buffer_file.RemoveConsumer(name)
+    self.buffer_file.RemoveConsumer(consumer_id)
 
   def ListConsumers(self, details=0):
     """See BufferPlugin.ListConsumers."""
     del details
     return self.buffer_file.ListConsumers()
 
-  def Consume(self, name):
+  def Consume(self, consumer_id):
     """See BufferPlugin.Consume."""
-    return self.buffer_file.Consume(name)
+    return self.buffer_file.Consume(consumer_id)
 
 
 if __name__ == '__main__':

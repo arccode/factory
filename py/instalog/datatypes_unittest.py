@@ -66,7 +66,7 @@ class FakePluginAPI(plugin_base.PluginAPI):
   """Implements a fake PluginAPI.
 
   Implements IsFlushing, EventStreamNext, EventStreamCommit, and
-  EventStreamAbort from PluginAPI.  Ignores the `plugin` and `event_stream`
+  EventStreamAbort from PluginAPI.  Ignores the `plugin` and `plugin_stream`
   arguments, essentially acting as a BufferEventStream itself.
   """
 
@@ -86,8 +86,8 @@ class FakePluginAPI(plugin_base.PluginAPI):
     del plugin
     return False
 
-  def EventStreamNext(self, plugin, event_stream, timeout=1):
-    del plugin, event_stream, timeout
+  def EventStreamNext(self, plugin, plugin_stream, timeout=1):
+    del plugin, plugin_stream, timeout
     if self._expired:
       raise plugin_base.EventStreamExpired
     if self._buffer_queue.empty():
@@ -97,8 +97,8 @@ class FakePluginAPI(plugin_base.PluginAPI):
     logging.debug('Popping %s...', ret)
     return ret
 
-  def EventStreamCommit(self, plugin, event_stream):
-    del plugin, event_stream
+  def EventStreamCommit(self, plugin, plugin_stream):
+    del plugin, plugin_stream
     if self._expired:
       raise plugin_base.EventStreamExpired
     self._expired = True
@@ -106,8 +106,8 @@ class FakePluginAPI(plugin_base.PluginAPI):
       return False
     return True
 
-  def EventStreamAbort(self, plugin, event_stream):
-    del plugin, event_stream
+  def EventStreamAbort(self, plugin, plugin_stream):
+    del plugin, plugin_stream
     if self._expired:
       raise plugin_base.EventStreamExpired
     self._expired = True

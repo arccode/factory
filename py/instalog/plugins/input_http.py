@@ -82,7 +82,7 @@ class InstalogFieldStorage(cgi.FieldStorage):
     else:
       self.read_lines_to_eof()
 
-  def make_file(self, binary=None):
+  def make_file(self):
     """Always use memory.
 
     When the content is larger than 1k, FieldStorage will call make_file to
@@ -90,7 +90,6 @@ class InstalogFieldStorage(cgi.FieldStorage):
     in-memory buffer. Note there will still be one copy in __write, but
     there won't be system calls for creating or deleting files (and no fd used).
     """
-    del binary  # Unused.
     if not self.name or self.name == 'event':
       return StringIO.StringIO()
 

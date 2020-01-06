@@ -37,6 +37,7 @@ class XMLRPCContainer(xmlrpc.XMLRPC, object):
     """
     return list(self.handlers)
 
+  # pylint: disable=arguments-differ
   def lookupProcedure(self, procedure_path):
     """Searches RPC procedure by name.
 

@@ -1033,9 +1033,9 @@ class _HwidV3Data(_HwidData):
     """Seeds the object from a yaml string of hwid definitions."""
     return self._SeedFromData(raw_hwid_yaml)
 
-  def _SeedFromData(self, raw_hwid_data):
+  def _SeedFromData(self, hwid_data):
     self.database = database.Database.LoadData(
-        raw_hwid_data, expected_checksum=None)
+        hwid_data, expected_checksum=None)
 
   def GetBomAndConfigless(self, hwid_string):
     """Get the BOM and configless field for a given HWID.

@@ -73,6 +73,7 @@ class ArduinoController(serial_utils.SerialDevice):
   def __del__(self):
     self.Disconnect()
 
+  # pylint: disable=arguments-differ
   def Connect(self, **kwargs):
     """Opens a serial connection.
 
