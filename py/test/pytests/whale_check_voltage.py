@@ -51,7 +51,7 @@ class WhaleCheckVoltageTest(test_case.TestCase):
     power_rail = self._bft.CheckPowerRail()
     self._power_rail_str = ', '.join(
         '%s: %d' % kv for kv in sorted(power_rail.items()))
-    logging.debug('Measured power rail (mV): ' + self._power_rail_str)
+    logging.debug('Measured power rail (mV): %s', self._power_rail_str)
 
     self._errors = []
     for key, (display_name, expected, tolerance) in self._sorted_criteria:
