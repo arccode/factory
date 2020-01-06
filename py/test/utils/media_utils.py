@@ -2,10 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import commands
 import logging
 import os
 import shutil
+import subprocess
 import tempfile
 
 from cros.factory.external import pyudev
@@ -142,7 +142,7 @@ class MountedMedia(object):
     # Create an temporary mount directory to mount.
     self._mount_dir = tempfile.mkdtemp(prefix='MountedMedia')
     logging.info('Media mount directory created: %s', self._mount_dir)
-    exit_code, output = commands.getstatusoutput(
+    exit_code, output = subprocess.getstatusoutput(
         'mount %s %s' % (self._dev_path, self._mount_dir))
     if exit_code != 0:
       shutil.rmtree(self._mount_dir)
@@ -152,7 +152,7 @@ class MountedMedia(object):
   def _UmountMedia(self):
     """Umounts the partition of the media."""
     # Umount media and delete the temporary directory.
-    exit_code, output = commands.getstatusoutput(
+    exit_code, output = subprocess.getstatusoutput(
         'umount %s' % self._mount_dir)
     if exit_code != 0:
       raise Exception('Failed to umount. Message-%s' % output)
