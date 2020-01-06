@@ -19,12 +19,12 @@ import unittest
 from six import assertRaisesRegex
 from six import iteritems
 
-from testlog_pkg import testlog
-from testlog_pkg import testlog_utils
-from testlog_pkg.utils import file_utils
-from testlog_pkg.utils import json_utils
-from testlog_pkg.utils import schema
-from testlog_pkg.utils import time_utils
+from cros.factory.testlog.testlog_pkg import testlog
+from cros.factory.testlog.testlog_pkg import testlog_utils
+from cros.factory.testlog.testlog_pkg.utils import file_utils
+from cros.factory.testlog.testlog_pkg.utils import json_utils
+from cros.factory.testlog.testlog_pkg.utils import schema
+from cros.factory.testlog.testlog_pkg.utils import time_utils
 
 
 SAMPLE_DATETIME_FLOAT = 618538088.888888

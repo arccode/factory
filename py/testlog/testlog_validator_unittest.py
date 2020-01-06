@@ -7,10 +7,10 @@
 import logging
 import unittest
 
-from testlog_pkg import testlog
-from testlog_pkg import testlog_utils
-from testlog_pkg import testlog_validator
-from testlog_pkg.utils import schema
+from cros.factory.testlog.testlog_pkg import testlog
+from cros.factory.testlog.testlog_pkg import testlog_utils
+from cros.factory.testlog.testlog_pkg import testlog_validator
+from cros.factory.testlog.testlog_pkg.utils import schema
 
 
 class TestlogValidatorTest(unittest.TestCase):

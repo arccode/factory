@@ -19,8 +19,8 @@ import unittest
 
 from six.moves import xrange
 
-from testlog_pkg import testlog_seq
-from testlog_pkg.utils import file_utils
+from cros.factory.testlog.testlog_pkg import testlog_seq
+from cros.factory.testlog.testlog_pkg.utils import file_utils
 
 
 class BootSequenceTest(unittest.TestCase):

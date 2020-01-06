@@ -9,7 +9,7 @@ import logging
 import sys
 import unittest
 
-from testlog_pkg import testlog_utils
+from cros.factory.testlog.testlog_pkg import testlog_utils
 
 SAMPLE_UNIX_TIME = 618566888.888888
 SAMPLE_DATETIME_STRING = '618566888.888888'
