@@ -104,6 +104,7 @@ class TestOutputHTTP(unittest.TestCase):
 
       def log_request(self, code='-', size='-'):
         """Overrides log_request to Instalog format."""
+        del size  # Unused.
         logging.info('Send response: %s %d', self.requestline, code)
 
 
