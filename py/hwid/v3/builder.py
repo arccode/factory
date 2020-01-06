@@ -449,7 +449,8 @@ class DatabaseBuilder(object):
                       for image_id in self.database.image_ids]:
       if image_name != self.database.GetImageName(
           self.database.max_image_id):
-        raise ValueError('image_id [%s] is already in the database.' % image_id)
+        raise ValueError('image_name [%s] is already in the database.' %
+                         image_name)
       # Mark the image name to none if the given image name is the latest image
       # name so that the caller can specify that they don't want to create
       # an extra image by specifying the image_name to either none or the latest
