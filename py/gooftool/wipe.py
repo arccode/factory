@@ -527,6 +527,8 @@ def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
         'dbus',
         # Keep shill for connecting to shopfloor or stations.
         'shill',
+        # Keep wpasupplicant since shopfloor may connect over WiFi.
+        'wpasupplicant',
         # Keep openssh-server for debugging purpose.
         'openssh-server',
         # sslh is a service in ARC++ for muxing between ssh and adb.
