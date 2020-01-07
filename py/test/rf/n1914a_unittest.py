@@ -14,7 +14,7 @@ explicit annotation is given.
 from __future__ import print_function
 
 import logging
-import SocketServer
+import socketserver
 import threading
 import unittest
 
@@ -26,11 +26,11 @@ NORMAL_ESR_REGISTER = '+0\n'
 NORMAL_OPC_RESPONSE = '+1\n'
 
 
-class MockTestServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+class MockTestServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
   allow_reuse_address = True
 
 
-class MockServerHandler(SocketServer.StreamRequestHandler):
+class MockServerHandler(socketserver.StreamRequestHandler):
   """A mocking handler for socket.
 
   This handler responses client based on its pre-defined lookup table.
@@ -71,7 +71,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
 
   def __init__(self, *args, **kwargs):
     self.lookup = list(self.responses_lookup)
-    SocketServer.StreamRequestHandler.__init__(self, *args, **kwargs)
+    socketserver.StreamRequestHandler.__init__(self, *args, **kwargs)
 
   def handle(self):
     while True:

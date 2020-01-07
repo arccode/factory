@@ -10,7 +10,7 @@ import functools
 import inspect
 import logging
 import os
-import SocketServer
+import socketserver
 import sys
 import threading
 import time
@@ -69,7 +69,7 @@ def FormatExceptionOnly():
       traceback.format_exception_only(*sys.exc_info()[:2])).strip()
 
 
-class DebugRequestHandler(SocketServer.StreamRequestHandler):
+class DebugRequestHandler(socketserver.StreamRequestHandler):
   """Prints all threads' stack traces."""
 
   def handle(self):
@@ -81,8 +81,8 @@ def StartDebugServer(address=net_utils.LOCALHOST, port=5339):
 
   Returns the server and thread.
   """
-  SocketServer.ThreadingTCPServer.allow_reuse_address = True
-  server = SocketServer.ThreadingTCPServer(
+  socketserver.ThreadingTCPServer.allow_reuse_address = True
+  server = socketserver.ThreadingTCPServer(
       (address, port), DebugRequestHandler)
   thread = process_utils.StartDaemonThread(target=server.serve_forever,
                                            name='tcp-debug-server')

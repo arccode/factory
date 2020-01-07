@@ -12,7 +12,7 @@ It starts a local server to mock the test equipment.
 from __future__ import print_function
 
 import logging
-import SocketServer
+import socketserver
 import threading
 import unittest
 
@@ -23,11 +23,11 @@ from cros.factory.utils import net_utils
 from cros.factory.utils import type_utils
 
 
-class MockTestServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+class MockTestServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
   allow_reuse_address = True
 
 
-class MockServerHandler(SocketServer.StreamRequestHandler):
+class MockServerHandler(socketserver.StreamRequestHandler):
   """A mocking handler for socket.
 
   This handler responses client based on its pre-defined lookup table.
@@ -47,7 +47,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
 
   def __init__(self, *args, **kwargs):
     self.lookup = list(self.responses_lookup)
-    SocketServer.StreamRequestHandler.__init__(self, *args, **kwargs)
+    socketserver.StreamRequestHandler.__init__(self, *args, **kwargs)
 
   def handle(self):
     while True:

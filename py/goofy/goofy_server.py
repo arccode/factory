@@ -9,7 +9,7 @@ import mimetypes
 import os
 import Queue
 import shutil
-import SocketServer
+import socketserver
 import threading
 import time
 from uuid import uuid4
@@ -137,7 +137,7 @@ class GoofyWebRequestHandler(
       shutil.copyfileobj(f, self.wfile)
 
 
-class GoofyServer(SocketServer.ThreadingMixIn,
+class GoofyServer(socketserver.ThreadingMixIn,
                   jsonrpc_utils.MultiPathJSONRPCServer):
   """Server that handles Web request that Goofy used
 

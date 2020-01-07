@@ -412,7 +412,7 @@ class Finalize(test_case.TestCase):
       """Receive and verify DUT message.
 
       Args:
-        :type handler: SocketServer.StreamRequestHandler
+        :type handler: socketserver.StreamRequestHandler
       """
       try:
         dut_response = json.loads(handler.rfile.readline())

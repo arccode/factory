@@ -9,7 +9,7 @@
 from __future__ import print_function
 
 import socket
-import SocketServer
+import socketserver
 import threading
 import time
 import unittest
@@ -82,7 +82,7 @@ class JSONRPCTest(unittest.TestCase):
 class MultiPathJSONRPCServerTest(unittest.TestCase):
 
   class MyServer(jsonrpc_utils.MultiPathJSONRPCServer,
-                 SocketServer.ThreadingMixIn):
+                 socketserver.ThreadingMixIn):
     pass
 
 

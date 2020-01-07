@@ -14,7 +14,7 @@ import os
 import random
 import shutil
 import signal
-import SocketServer
+import socketserver
 import struct
 from subprocess import STDOUT
 import sys
@@ -145,21 +145,21 @@ class _TestProc(object):
       shutil.rmtree(self.cros_factory_data_dir)
 
 
-class PortDistributeHandler(SocketServer.StreamRequestHandler):
+class PortDistributeHandler(socketserver.StreamRequestHandler):
   def handle(self):
     length = struct.unpack('B', self.rfile.read(1))[0]
     port = self.server.RequestPort(length)
     self.wfile.write(struct.pack('<H', port))
 
 
-class PortDistributeServer(SocketServer.ThreadingUnixStreamServer):
+class PortDistributeServer(socketserver.ThreadingUnixStreamServer):
   def __init__(self):
     self.lock = threading.RLock()
     self.unused_ports = set(
         xrange(net_utils.UNUSED_PORT_LOW, net_utils.UNUSED_PORT_HIGH))
     self.socket_file = tempfile.mktemp(prefix='random_port_socket')
     self.thread = None
-    SocketServer.ThreadingUnixStreamServer.__init__(self, self.socket_file,
+    socketserver.ThreadingUnixStreamServer.__init__(self, self.socket_file,
                                                     PortDistributeHandler)
 
   def Start(self):

@@ -10,7 +10,7 @@ import argparse
 import logging
 import SimpleXMLRPCServer
 import socket
-import SocketServer
+import socketserver
 
 
 DEFAULT_SERVER_PORT = 8090
@@ -123,7 +123,7 @@ class ShopfloorService(object):
     return {}
 
 
-class ThreadedXMLRPCServer(SocketServer.ThreadingMixIn,
+class ThreadedXMLRPCServer(socketserver.ThreadingMixIn,
                            SimpleXMLRPCServer.SimpleXMLRPCServer):
   """A threaded XML RPC Server."""
   pass

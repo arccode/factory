@@ -11,7 +11,7 @@ import os
 import Queue
 import select
 import socket
-import SocketServer
+import socketserver
 import sys
 import tempfile
 import threading
@@ -166,14 +166,14 @@ def get_unique_id():
   return ret
 
 
-class EventServerRequestHandler(SocketServer.BaseRequestHandler):
+class EventServerRequestHandler(socketserver.BaseRequestHandler):
   """Request handler for the event server.
 
   This class is agnostic to message format (except for logging).
   """
 
   def setup(self):
-    SocketServer.BaseRequestHandler.setup(self)
+    socketserver.BaseRequestHandler.setup(self)
     threading.current_thread().name = (
         'EventServerRequestHandler-%d' % get_unique_id())
     # A thread to be used to send messages that are posted to the queue.
@@ -226,7 +226,7 @@ class EventServerRequestHandler(SocketServer.BaseRequestHandler):
         return
 
 
-class EventServer(SocketServer.ThreadingUnixStreamServer):
+class EventServer(socketserver.ThreadingUnixStreamServer):
   """An event server that broadcasts messages to all clients.
 
   This class is agnostic to message format (except for logging).
@@ -255,12 +255,12 @@ class EventServer(SocketServer.ThreadingUnixStreamServer):
       logging.info('Setting %s=%s', CROS_FACTORY_EVENT, path)
       self._temp_path = path
     # pylint: disable=non-parent-init-called
-    SocketServer.UnixStreamServer.__init__(
+    socketserver.UnixStreamServer.__init__(
         self, path, EventServerRequestHandler)
 
   def server_close(self):
     """Cleanup temporary file"""
-    SocketServer.ThreadingUnixStreamServer.server_close(self)
+    socketserver.ThreadingUnixStreamServer.server_close(self)
     if self._temp_path is not None:
       file_utils.TryUnlink(self._temp_path)
 

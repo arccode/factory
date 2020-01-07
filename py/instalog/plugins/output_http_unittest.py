@@ -12,7 +12,7 @@ import logging
 import os
 import Queue
 import shutil
-import SocketServer
+import socketserver
 import tempfile
 import threading
 import unittest
@@ -107,7 +107,7 @@ class TestOutputHTTP(unittest.TestCase):
         logging.info('Send response: %s %d', self.requestline, code)
 
 
-    httpd = SocketServer.TCPServer(('', self.port), MyHandler)
+    httpd = socketserver.TCPServer(('', self.port), MyHandler)
     T = threading.Thread(target=httpd.serve_forever)
     T.start()
     att_path1 = os.path.join(self._tmp_dir, 'file0')

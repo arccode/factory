@@ -20,7 +20,7 @@ import logging
 import os
 import re
 import SimpleHTTPServer
-import SocketServer
+import socketserver
 import threading
 
 from six.moves import xrange
@@ -290,7 +290,7 @@ def ServeHttpScreenshot():
       os.path.dirname(os.path.realpath(__file__)), 'e5071c_mock_static'))
 
   # Starts a simple http server to serve for screenshot.
-  httpd = SocketServer.TCPServer(('0.0.0.0', 80),
+  httpd = socketserver.TCPServer(('0.0.0.0', 80),
                                  SimpleHTTPServer.SimpleHTTPRequestHandler)
   httpd_thread = threading.Thread(target=httpd.serve_forever)
   httpd_thread.daemon = True

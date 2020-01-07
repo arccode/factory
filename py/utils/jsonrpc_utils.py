@@ -115,7 +115,7 @@ class MultiPathJSONRPCServer(SimpleJSONRPCServer.SimpleJSONRPCServer):
   class MyHandler(SimpleJSONRPCRequestHandler):
     rpc_paths = ()
 
-  class MyServer(SocketServer.ThreadingMixIn,
+  class MyServer(socketserver.ThreadingMixIn,
                  MultiPathJSONRPCServer):
     pass
 

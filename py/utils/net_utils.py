@@ -13,7 +13,7 @@ import os
 import random
 import re
 import socket
-import SocketServer
+import socketserver
 import struct
 import subprocess
 import time
@@ -796,12 +796,12 @@ class WLAN(object):
 class CallbackSocketServer(object):
   @staticmethod
   def RequestHandlerFactory(callback):
-    class _Handler(SocketServer.StreamRequestHandler):
+    class _Handler(socketserver.StreamRequestHandler):
       def handle(self):
         callback(self)
     return _Handler
 
-  class _ThreadedTCPServer(SocketServer.TCPServer):
+  class _ThreadedTCPServer(socketserver.TCPServer):
     pass
 
   def __init__(self, callback):

@@ -14,14 +14,14 @@ Example Usage:
 import inspect
 import logging
 import re
-import SocketServer
+import socketserver
 
 
-class MockTestServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+class MockTestServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
   allow_reuse_address = True
 
 
-class MockServerHandler(SocketServer.StreamRequestHandler):
+class MockServerHandler(socketserver.StreamRequestHandler):
   """A mocking handler for socket.
 
   This handler responses client based on its pre-defined lookup table.
@@ -48,7 +48,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
 
   def __init__(self, *args, **kwargs):
     self.lookup = list(self.responses_lookup)
-    SocketServer.StreamRequestHandler.__init__(self, *args, **kwargs)
+    socketserver.StreamRequestHandler.__init__(self, *args, **kwargs)
 
   def handle(self):
     while True:
