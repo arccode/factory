@@ -9,6 +9,7 @@
     "typeRoots": ["node_modules/@types", "types"],
     "allowSyntheticDefaultImports": true,
     "declaration": false,
+    "esModuleInterop": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "importHelpers": true,
