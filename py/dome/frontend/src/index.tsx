@@ -28,6 +28,9 @@ const THEME = {
   palette: {
     primary: indigo,
   },
+  typography: {
+    useNextVariants: true,
+  },
 };
 
 const configureStore = () => {

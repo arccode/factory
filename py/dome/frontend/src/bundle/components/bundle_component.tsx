@@ -119,7 +119,7 @@ class BundleComponent extends React.Component<BundleComponentProps> {
       >
         <CardContent className={classes.header} onClick={this.toggleExpand}>
           <div className={classes.headerText}>
-            <Typography variant="headline">{bundle.name}</Typography>
+            <Typography variant="h5">{bundle.name}</Typography>
             <Typography variant="caption">{bundle.note}</Typography>
           </div>
           <FormControlLabel
@@ -160,7 +160,7 @@ class BundleComponent extends React.Component<BundleComponentProps> {
         </CardContent>
         <Collapse in={expanded}>
           <CardContent>
-            <Typography variant="subheading" gutterBottom>RESOURCES</Typography>
+            <Typography variant="subtitle1" gutterBottom>RESOURCES</Typography>
             <ResourceTable bundle={bundle} projectName={projectName} />
           </CardContent>
         </Collapse>

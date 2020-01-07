@@ -35,7 +35,7 @@ const LoginForm: React.SFC<LoginFormProps> =
     <form onSubmit={handleSubmit}>
       <Card>
         <CardContent>
-          <Typography variant="headline">
+          <Typography variant="h5">
             Login to continue
           </Typography>
           <ReduxFormTextField

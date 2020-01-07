@@ -118,7 +118,7 @@ const Task: React.SFC<TaskProps> = ({
   }
   return (
     <>
-      <Typography variant="body1" className={classes.description} >
+      <Typography variant="body2" className={classes.description} >
         {description}
       </Typography>
       <Tooltip title="cancel">

@@ -64,7 +64,7 @@ class ParameterApp extends React.Component<ParameterAppProps, ParameterState> {
         <CreateDirectoryForm dirId={currentDirId}/>
         <Card>
           <CardContent className={classes.header}>
-            <Typography variant="headline">Parameter</Typography>
+            <Typography variant="h5">Parameter</Typography>
             <div className={classes.headerButtonGroup}>
               <Tooltip title="Create Files">
                 <IconButton

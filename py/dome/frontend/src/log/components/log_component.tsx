@@ -180,7 +180,7 @@ class LogComponent extends React.Component<LogComponentProps> {
                                classes.item,
                                classes.normalGrid);
         renderedMessage = (
-          <Typography variant="body2">
+          <Typography variant="body1">
             {message}
           </Typography>
         );
@@ -190,7 +190,7 @@ class LogComponent extends React.Component<LogComponentProps> {
                                classes.item,
                                classes.listItemGrid);
         renderedMessage = (
-          <Typography variant="body1">
+          <Typography variant="body2">
             {message}
           </Typography>
         );

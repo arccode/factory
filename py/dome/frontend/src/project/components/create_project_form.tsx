@@ -42,7 +42,7 @@ class CreateProjectForm extends React.Component<
         />
         <Button
           color="primary"
-          variant="raised"
+          variant="contained"
           fullWidth
           type="submit"
         >

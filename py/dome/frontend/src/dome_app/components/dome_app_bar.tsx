@@ -28,7 +28,7 @@ const EmphasizedString: React.SFC = ({children}) => (
 );
 
 const DomeAppBarTitle: React.SFC = () => (
-  <Typography variant="title" color="inherit">
+  <Typography variant="h6" color="inherit">
     <EmphasizedString>D</EmphasizedString>ome:
     fact<EmphasizedString>o</EmphasizedString>ry
     server <EmphasizedString>m</EmphasizedString>anagement

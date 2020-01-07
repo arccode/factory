@@ -302,7 +302,7 @@ class ParameterList extends
               <ArrowBackIcon />
             </IconButton>
           </ListItemIcon>
-          <Typography variant="subheading">
+          <Typography variant="subtitle1">
             Current directory: {currentPath}
           </Typography>
         </ListItem>

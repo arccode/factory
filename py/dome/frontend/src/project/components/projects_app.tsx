@@ -46,7 +46,7 @@ const styles = (theme: Theme) => createStyles({
   },
   title: {
     textAlign: 'center',
-    fontSize: theme.typography.display1.fontSize,
+    fontSize: theme.typography.h4.fontSize,
     fontWeight: theme.typography.fontWeightMedium,
   },
 });
@@ -83,7 +83,7 @@ class ProjectsApp extends React.Component<ProjectAppProps> {
           <List>
             {projectNames.length === 0 ? (
               <ListItem className={classes.center}>
-                <Typography variant="subheading">
+                <Typography variant="subtitle1">
                   no projects, create or add an existing one
                 </Typography>
               </ListItem>
