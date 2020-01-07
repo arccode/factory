@@ -252,6 +252,11 @@ _skip_list_cmd_arg = CmdArg(
          'Each item should be a sub-command of gooftool. '
          'e.g. "gooftool verify --skip_list verify_tpm clear_gbb_flags".')
 
+_test_umount_cmd_arg = CmdArg(
+    '--test_umount', action='store_true',
+    help='(For testing only) Only umount rootfs and stateful partition '
+         'instead of running full wiping and cutoff process.')
+
 _rlz_embargo_end_date_offset_cmd_arg = CmdArg(
     '--embargo_offset', type=int, default=7, choices=list(range(7, 15)),
     help='Change the offset of embargo end date, cannot less than 7 days or '
@@ -475,7 +480,8 @@ def EnableReleasePartition(options):
          _shopfloor_url_args_cmd_arg,
          _station_ip_cmd_arg,
          _station_port_cmd_arg,
-         _wipe_finish_token_cmd_arg)
+         _wipe_finish_token_cmd_arg,
+         _test_umount_cmd_arg)
 def WipeInPlace(options):
   """Start factory wipe directly without reboot."""
 
@@ -483,7 +489,8 @@ def WipeInPlace(options):
                                    options.shopfloor_url,
                                    options.station_ip,
                                    options.station_port,
-                                   options.wipe_finish_token)
+                                   options.wipe_finish_token,
+                                   options.test_umount)
 
 @Command('wipe_init',
          CmdArg('--wipe_args', help='arguments for clobber-state'),
@@ -495,7 +502,8 @@ def WipeInPlace(options):
          _station_ip_cmd_arg,
          _station_port_cmd_arg,
          _wipe_finish_token_cmd_arg,
-         _keep_developer_mode_flag_after_clobber_state_cmd_arg)
+         _keep_developer_mode_flag_after_clobber_state_cmd_arg,
+         _test_umount_cmd_arg)
 def WipeInit(options):
   GetGooftool(options).WipeInit(
       options.wipe_args,
@@ -507,7 +515,8 @@ def WipeInit(options):
       options.station_ip,
       options.station_port,
       options.wipe_finish_token,
-      options.keep_developer_mode_flag_after_clobber_state)
+      options.keep_developer_mode_flag_after_clobber_state,
+      options.test_umount)
 
 @Command('verify',
          CmdArg('--no_write_protect', action='store_true',

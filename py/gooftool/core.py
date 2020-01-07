@@ -523,7 +523,8 @@ class Gooftool(object):
 
 
   def WipeInPlace(self, is_fast=None, shopfloor_url=None,
-                  station_ip=None, station_port=None, wipe_finish_token=None):
+                  station_ip=None, station_port=None, wipe_finish_token=None,
+                  test_umount=False):
     """Start transition to release state directly without reboot.
 
     Args:
@@ -542,7 +543,8 @@ class Gooftool(object):
       logging.warning('Failed to get GBB flags, assume it is 0', exc_info=1)
       gbb_flags = 0
 
-    if phase.GetPhase() >= phase.PVT and gbb_flags != 0:
+    if (not test_umount and
+        phase.GetPhase() >= phase.PVT and gbb_flags != 0):
       raise Error('GBB flags should be cleared in PVT (it is 0x%x)' % gbb_flags)
 
     GBB_FLAG_FORCE_DEV_SWITCH_ON = 0x00000008
@@ -550,15 +552,15 @@ class Gooftool(object):
 
     wipe.WipeInTmpFs(is_fast, shopfloor_url,
                      station_ip, station_port, wipe_finish_token,
-                     keep_developer_mode_flag)
+                     keep_developer_mode_flag, test_umount)
 
   def WipeInit(self, wipe_args, shopfloor_url, state_dev,
                release_rootfs, root_disk, old_root, station_ip, station_port,
-               wipe_finish_token, keep_developer_mode_flag):
+               wipe_finish_token, keep_developer_mode_flag, test_umount):
     """Start wiping test image."""
     wipe.WipeInit(wipe_args, shopfloor_url, state_dev,
                   release_rootfs, root_disk, old_root, station_ip, station_port,
-                  wipe_finish_token, keep_developer_mode_flag)
+                  wipe_finish_token, keep_developer_mode_flag, test_umount)
 
   def WriteVPDForRLZPing(self, embargo_offset=7):
     """Write VPD values related to RLZ ping into VPD."""

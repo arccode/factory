@@ -128,7 +128,7 @@ def ResetLog(logfile=None):
 
 def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
                 station_port=None, wipe_finish_token=None,
-                keep_developer_mode_flag=False):
+                keep_developer_mode_flag=False, test_umount=False):
   """prepare to wipe by pivot root to tmpfs and unmount stateful partition.
 
   Args:
@@ -246,6 +246,8 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
         args += ['--station_port', station_port]
       if wipe_finish_token:
         args += ['--wipe_finish_token', wipe_finish_token]
+      if test_umount:
+        args += ['--test_umount']
       args += ['--state_dev', state_dev]
       args += ['--release_rootfs', release_rootfs]
       args += ['--root_disk', root_disk]
@@ -504,7 +506,7 @@ def _Cutoff():
 
 def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
              root_disk, old_root, station_ip, station_port, finish_token,
-             keep_developer_mode_flag):
+             keep_developer_mode_flag, test_umount):
   Daemonize()
   logfile = '/tmp/wipe_init.log'
   ResetLog(logfile)
@@ -516,6 +518,7 @@ def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
   logging.debug('release_rootfs: %s', release_rootfs)
   logging.debug('root_disk: %s', root_disk)
   logging.debug('old_root: %s', old_root)
+  logging.debug('test_umount: %s', test_umount)
 
   try:
     _StopAllUpstartJobs(exclude_list=[
@@ -539,6 +542,13 @@ def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
     process_utils.Spawn(
         [os.path.join(CUTOFF_SCRIPT_DIR, 'display_wipe_message.sh'), 'wipe'],
         call=True)
+
+    # When testing, stop the wiping process with no error. In normal
+    # process, this function will run forever until reboot.
+    if test_umount:
+      logging.info('Finished unmount, stop wiping process because test_umount '
+                   'is set.')
+      return
 
     try:
       _WipeStateDev(release_rootfs, root_disk, wipe_args, state_dev,
