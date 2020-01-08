@@ -11,9 +11,10 @@ import shutil
 import subprocess
 import tempfile
 
+from . import process_utils
 
-# Use subprocess.CalledProcessError for invocation exceptions.
-CalledProcessError = subprocess.CalledProcessError
+# Use process_utils.CalledProcessError for invocation exceptions.
+CalledProcessError = process_utils.CalledProcessError
 
 
 class SystemInterface(object):
@@ -22,7 +23,6 @@ class SystemInterface(object):
   # Special values to make Popen work like subprocess.
   PIPE = subprocess.PIPE
   STDOUT = subprocess.STDOUT
-  CalledProcessError = subprocess.CalledProcessError
 
   def ReadFile(self, path, count=None, skip=None):
     """Returns file contents on target device.

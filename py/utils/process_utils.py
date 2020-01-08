@@ -22,6 +22,13 @@ import traceback
 from six import iteritems
 from six.moves import xrange
 
+# Use subprocess.CalledProcessError for invocation exceptions.
+class CalledProcessError(subprocess.CalledProcessError):
+  """A CalledProcessError with a workaround repr."""
+
+  def __repr__(self):
+    msg = 'CalledProcessError(returncode=%d, cmd=%r, output=%r)'
+    return msg % (self.returncode, self.cmd, self.output)
 
 try:
   PIPE = subprocess.PIPE
@@ -318,7 +325,7 @@ def Spawn(args, **kwargs):
         logger.error(message)
 
       if check_call:
-        raise subprocess.CalledProcessError(process.returncode, args)
+        raise CalledProcessError(process.returncode, args)
 
   return process
 
@@ -442,6 +449,7 @@ def StartDaemonThread(*args, **kwargs):
         os.kill(os.getpid(), signal.SIGINT)
 
     if len(args) > 1:
+      args = list(args)
       args[1] = _target
     else:
       kwargs['target'] = _target
