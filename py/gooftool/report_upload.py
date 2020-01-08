@@ -11,8 +11,7 @@ import os
 import re
 import sys
 import time
-import urllib
-import urlparse
+import urllib.parse
 import xmlrpc.client
 
 from cros.factory.gooftool.common import Shell
@@ -238,7 +237,7 @@ def FtpUpload(source_path, ftp_url,
     GFTError: When input url is invalid, or if network issue without retry.
   """
   # scheme: ftp, netloc: user:pass@host:port, path: /...
-  url_struct = urlparse.urlparse(ftp_url)
+  url_struct = urllib.parse.urlparse(ftp_url)
   regexp = '(([^:]*)(:([^@]*))?@)?([^:]*)(:(.*))?'
   tokens = re.match(regexp, url_struct.netloc)
   userid = tokens.group(2)
@@ -258,7 +257,7 @@ def FtpUpload(source_path, ftp_url,
 
   # Parse destination path: According to RFC1738, 3.2.2,
   # Starting with %2F means absolute path, otherwise relative.
-  path = urllib.unquote(url_struct.path)
+  path = urllib.parse.unquote(url_struct.path)
   assert path[0] == '/', 'Unknown FTP URL path.'
   path = path[1:]
 
@@ -316,7 +315,7 @@ def SmbUpload(source_path, smb_url,
     GFTError: When input url is invalid, or if network issue without retry.
   """
   # scheme: smb, netloc: user:pass@host:port, path: /...
-  url_struct = urlparse.urlparse(smb_url)
+  url_struct = urllib.parse.urlparse(smb_url)
   regexp = '(([^:]*)(:([^@]*))?@)?([^:]*)(:(.*))?'
   tokens = re.match(regexp, url_struct.netloc)
   userid = tokens.group(2)
@@ -334,7 +333,7 @@ def SmbUpload(source_path, smb_url,
 
   # Parse destination path: According to RFC1738, 3.2.2,
   # Starting with %2F means absolute path, otherwise relative.
-  unquote_path = urllib.unquote(url_struct.path)
+  unquote_path = urllib.parse.unquote(url_struct.path)
   if unquote_path[0] != '/':
     raise Error('SmbUpload: invalid smb url: %s. Missing share name.' % smb_url)
   try:

@@ -30,7 +30,7 @@ import sys
 import tempfile
 import textwrap
 import time
-import urlparse
+import urllib.parse
 
 # The edit_lsb command works better if readline enabled, but will still work if
 # that is not available.
@@ -2257,7 +2257,7 @@ class ChromeOSFactoryBundle(object):
 
     tftp_server_ip = ''
     if self.server_url:
-      tftp_server_ip = urlparse.urlparse(self.server_url).hostname
+      tftp_server_ip = urllib.parse.urlparse(self.server_url).hostname
       server_url_config = os.path.join(
           tftp_root, 'omahaserver_%s.conf' % self.board)
       with open(server_url_config, 'w') as f:
@@ -2287,7 +2287,7 @@ class ChromeOSFactoryBundle(object):
     if self.server_url:
       args += [
           '--factory-server-url', self.server_url,
-          '--tftpserverip', urlparse.urlparse(self.server_url).hostname]
+          '--tftpserverip', urllib.parse.urlparse(self.server_url).hostname]
     netboot_firmware_settings.NetbootFirmwareSettings(parser.parse_args(args))
 
   @staticmethod

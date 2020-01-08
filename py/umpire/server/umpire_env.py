@@ -13,7 +13,7 @@ import os
 import re
 import shutil
 import tempfile
-import urlparse
+import urllib.parse
 
 from six import iteritems
 
@@ -182,7 +182,7 @@ class UmpireEnv(object):
     # string so we have to preserve that first.
     unused_prefixes, real_url = webservice_utils.ParseURL(url)
     try:
-      parsed_url = urlparse.urlparse(real_url)
+      parsed_url = urllib.parse.urlparse(real_url)
       if parsed_url.hostname == 'localhost':
         # We translate 'localhost' to Docker host when running inside Docker.
         # The prefixes should not contain 'localhost'.

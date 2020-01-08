@@ -30,7 +30,7 @@ To directly install 'release_image' (block device component)::
 
 import json
 import logging
-import urllib2
+import urllib.request
 
 from cros.factory.device import device_utils
 from cros.factory.test import server_proxy
@@ -75,7 +75,7 @@ class Updater(object):
     dut_info = umpire_client.UmpireClientInfo().GetDUTInfoComponents()
     url = proxy.GetCROSPayloadURL(dut_info['x_umpire_dut'])
     if url:
-      payloads = json.loads(urllib2.urlopen(url).read())
+      payloads = json.loads(urllib.request.urlopen(url).read())
     self._url = url
     self._payload = payloads.get(self._component, {})
     self._loaded = True

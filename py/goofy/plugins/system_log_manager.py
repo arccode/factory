@@ -14,7 +14,7 @@ import queue
 import shutil
 import threading
 import time
-from urlparse import urlparse
+import urllib.parse
 
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import paths
@@ -196,7 +196,8 @@ class SystemLogManager(plugin.Plugin):
     factory_log_port = proxy.GetFactoryLogPort()
     folder_name = session.GetDeviceID()
     return ['rsync://%s:%s/system_logs/%s' %
-            (urlparse(url).hostname, factory_log_port, folder_name)]
+            (urllib.parse.urlparse(url).hostname, factory_log_port,
+             folder_name)]
 
   @CatchException('SystemLogManager')
   def _ClearLogs(self):

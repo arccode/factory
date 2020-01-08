@@ -14,7 +14,7 @@ import math
 import os
 import threading
 import time
-from urlparse import urlparse
+import urllib.parse
 
 from six.moves import xrange
 
@@ -206,7 +206,7 @@ class TimeSanitizer(object):
     Raises:
       Error if sync time failed.
     """
-    server_ip_port = urlparse(server_proxy.GetServerURL()).netloc
+    server_ip_port = urllib.parse.urlparse(server_proxy.GetServerURL()).netloc
     try:
       synced = process_utils.Spawn(['htpdate', '-s', '-t', server_ip_port],
                                    log=True, call=True,

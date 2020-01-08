@@ -27,7 +27,7 @@ from __future__ import print_function
 import json
 import sys
 import threading
-import urllib2
+import urllib.request
 
 from ws4py.client.threadedclient import WebSocketClient
 
@@ -80,7 +80,7 @@ class ChromeRemoteDebugger(object):
     Returns:
       A list representing PageSet in Chrome remote debugging protocol.
     """
-    page_set = json.load(urllib2.urlopen(self.debug_url + '/json'))
+    page_set = json.load(urllib.request.urlopen(self.debug_url + '/json'))
     if page_type is not self.ANY:
       return [page for page in page_set if page['type'] == page_type]
     return page_set

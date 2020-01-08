@@ -16,7 +16,7 @@ import shutil
 import tempfile
 import threading
 import unittest
-import urllib
+import urllib.parse
 
 import requests
 
@@ -237,8 +237,8 @@ class TestInputHTTP(unittest.TestCase):
     client = http.client.HTTPConnection('localhost', self.port, timeout=180)
     event = datatypes.Event({'AA': 'BB'}, {'att_id': 'att'})
     att = os.urandom(1024)  # 1kb data
-    params = urllib.urlencode({'event': datatypes.Event.Serialize(event),
-                               'att': att})
+    params = urllib.parse.urlencode({'event': datatypes.Event.Serialize(event),
+                                     'att': att})
     client.request('POST', '/', params)
     self.assertEqual(406, client.getresponse().status)
     self.assertEqual(0, len(self.core.emit_calls))

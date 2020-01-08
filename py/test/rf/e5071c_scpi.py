@@ -12,7 +12,7 @@ from __future__ import division
 import bisect
 import itertools
 import logging
-import urllib
+import urllib.request
 
 from cros.factory.test.rf import agilent_scpi
 from cros.factory.test.rf import lan_scpi
@@ -310,5 +310,5 @@ class ENASCPI(agilent_scpi.AgilentSCPI):
     # a copy locally, we need to make another screenshot using ENA's HTTP
     # service (image.asp) which always puts the file publicly available as
     # "disp.png".
-    urllib.urlopen('http://%s/image.asp' % self.host).read()
-    return urllib.urlopen('http://%s/disp.png' % self.host).read()
+    urllib.request.urlopen('http://%s/image.asp' % self.host).read()
+    return urllib.request.urlopen('http://%s/disp.png' % self.host).read()

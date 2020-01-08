@@ -19,7 +19,7 @@ import shutil
 import sys
 import textwrap
 import time
-import urlparse
+import urllib.parse
 
 from six import iteritems
 import yaml
@@ -545,8 +545,8 @@ class FinalizeBundle(object):
     target_argsfile = os.path.join(files_dir, 'cmdline')
 
     server_url = self.manifest.get('server_url')
-    tftp_server_ip = (urlparse.urlparse(server_url).hostname if server_url else
-                      '')
+    tftp_server_ip = (urllib.parse.urlparse(server_url).hostname if server_url
+                      else '')
 
     for netboot_firmware_image in glob.glob(
         os.path.join(netboot_dir, 'image*.net.bin')):

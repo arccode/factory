@@ -10,7 +10,7 @@ This file is also the place that all the binding is done for various components.
 import functools
 import logging
 import re
-import urllib
+import urllib.parse
 
 # pylint: disable=import-error, no-name-in-module
 import endpoints
@@ -97,7 +97,7 @@ class HwidApi(remote.Service):
 
   def _GetBomAndConfigless(self, raw_hwid):
     try:
-      hwid = urllib.unquote(raw_hwid)
+      hwid = urllib.parse.unquote(raw_hwid)
       bom, configless = self._hwid_manager.GetBomAndConfigless(hwid)
 
       if bom is None:
@@ -205,7 +205,7 @@ class HwidApi(remote.Service):
   def GetHwids(self, request):
     """Return a filtered list of HWIDs for the given board."""
 
-    board = urllib.unquote(request.board)
+    board = urllib.parse.unquote(request.board)
 
     def IsNotNoneOrEmpty(x):
       return x and len(x)
@@ -251,7 +251,7 @@ class HwidApi(remote.Service):
     """Return a list of all component classes for the given board."""
 
     try:
-      board = urllib.unquote(request.board)
+      board = urllib.parse.unquote(request.board)
       classes = self._hwid_manager.GetComponentClasses(board)
     except ValueError:
       logging.exception('ValueError -> bad input')
@@ -282,7 +282,7 @@ class HwidApi(remote.Service):
     """Return a filtered list of components for the given board."""
 
     try:
-      board = urllib.unquote(request.board)
+      board = urllib.parse.unquote(request.board)
       with_classes = set(request.withClasses)
       components = self._hwid_manager.GetComponents(board, with_classes)
     except ValueError:

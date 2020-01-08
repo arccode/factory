@@ -16,7 +16,7 @@ import queue
 import shutil
 import threading
 import unittest
-from urlparse import urlparse
+import urllib.parse
 
 import mox
 from six.moves import xrange
@@ -65,7 +65,8 @@ MOCK_PORT = '8084'
 MOCK_DEVICE_ID = 'abcdef0123456789abcdef0123456789'
 MOCK_RSYNC_DESTINATION = [
     'rsync://%s:%s/system_logs/%s' %
-    (urlparse(MOCK_SERVER_URL).hostname, MOCK_PORT, MOCK_DEVICE_ID)]
+    (urllib.parse.urlparse(MOCK_SERVER_URL).hostname, MOCK_PORT,
+     MOCK_DEVICE_ID)]
 MOCK_RSYNC_COMMAND_ARG = ['rsync', '-azR', '--stats', '--chmod=o-t',
                           '--timeout=%s' % MOCK_RSYNC_IO_TIMEOUT]
 

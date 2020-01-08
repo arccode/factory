@@ -8,8 +8,7 @@ import http.client
 import logging
 import os
 import time
-import urllib
-import urlparse
+import urllib.parse
 
 # pylint: disable=import-error, no-name-in-module
 import certifi
@@ -57,7 +56,7 @@ class MemoryRepo(_MemoryRepo):
       client
     """
 
-    parsed = urlparse.urlparse(remote_location)
+    parsed = urllib.parse.urlparse(remote_location)
 
     pool_manager = PoolManager(ca_certs=certifi.where())
     pool_manager.headers['Cookie'] = self.auth_cookie
@@ -270,8 +269,8 @@ def GetCommitId(git_url_prefix, project, branch, auth_cookie):
 
   git_url = '{git_url_prefix}/projects/{project}/branches/{branch}'.format(
       git_url_prefix=git_url_prefix,
-      project=urllib.quote(project, safe=''),
-      branch=urllib.quote(branch, safe=''))
+      project=urllib.parse.quote(project, safe=''),
+      branch=urllib.parse.quote(branch, safe=''))
   pool_manager = PoolManager(ca_certs=certifi.where())
   pool_manager.headers['Cookie'] = auth_cookie
   pool_manager.headers['Content-Type'] = 'application/json'

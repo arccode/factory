@@ -7,7 +7,8 @@
 import os
 import time
 import unittest
-import urllib2
+import urllib.error
+import urllib.request
 
 from jsonrpclib import jsonrpc
 from six import assertCountEqual
@@ -67,9 +68,9 @@ class GoofyServerTest(unittest.TestCase):
   def setUp(self):
     def ServerReady():
       try:
-        urllib2.urlopen(
+        urllib.request.urlopen(
             'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, '/not_exists'))
-      except urllib2.HTTPError as err:
+      except urllib.error.HTTPError as err:
         if err.code == 404:
           return True
       return False
@@ -114,7 +115,7 @@ class GoofyServerTest(unittest.TestCase):
 
     self.server.AddHTTPGetHandler('/test', MyHandler)
 
-    response = urllib2.urlopen(
+    response = urllib.request.urlopen(
         'http://%s:%d/test' % (net_utils.LOCALHOST, self.port))
     self.assertEqual(200, response.getcode())
     self.assertEqual(data, response.read())
@@ -127,7 +128,7 @@ class GoofyServerTest(unittest.TestCase):
         f.write(data)
 
       self.server.RegisterPath('/', path)
-      response = urllib2.urlopen(
+      response = urllib.request.urlopen(
           'http://%s:%d/' % (net_utils.LOCALHOST, self.port))
       self.assertEqual(200, response.getcode())
       self.assertEqual(data, response.read())
@@ -136,7 +137,7 @@ class GoofyServerTest(unittest.TestCase):
       # Check svg mime type
       with open(os.path.join(path, 'test.svg'), 'w') as f:
         f.write(data)
-      response = urllib2.urlopen(
+      response = urllib.request.urlopen(
           'http://%s:%d/test.svg' % (net_utils.LOCALHOST, self.port))
       self.assertEqual(200, response.getcode())
       self.assertEqual(data, response.read())
@@ -147,7 +148,7 @@ class GoofyServerTest(unittest.TestCase):
 
     url = self.server.URLForData('text/html', data)
 
-    response = urllib2.urlopen(
+    response = urllib.request.urlopen(
         'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, url))
     self.assertEqual(200, response.getcode())
     self.assertEqual(data, response.read())
@@ -159,7 +160,7 @@ class GoofyServerTest(unittest.TestCase):
     url = '/some/page.html'
     self.server.RegisterData(url, 'text/html', data)
 
-    response = urllib2.urlopen(
+    response = urllib.request.urlopen(
         'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, url))
     self.assertEqual(200, response.getcode())
     self.assertEqual(data, response.read())
@@ -171,7 +172,7 @@ class GoofyServerTest(unittest.TestCase):
     url = '/some/page.html'
     self.server.RegisterData(url, 'text/html', data)
 
-    response = urllib2.urlopen(
+    response = urllib.request.urlopen(
         'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, url))
     self.assertEqual(200, response.getcode())
     self.assertEqual(data, response.read().decode('UTF-8'))
@@ -192,7 +193,7 @@ class GoofyServerTest(unittest.TestCase):
 
     data = '<html><body><h1>Hello</h1></body></html>'
     url = proxy.URLForData('text/html', data)
-    response = urllib2.urlopen(
+    response = urllib.request.urlopen(
         'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, url))
     self.assertEqual(200, response.getcode())
     self.assertEqual(data, response.read())
@@ -205,7 +206,7 @@ class GoofyServerTest(unittest.TestCase):
         f.write(data)
 
       url = self.server.URLForFile(path)
-      response = urllib2.urlopen(
+      response = urllib.request.urlopen(
           'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, url))
       self.assertEqual(200, response.getcode())
       self.assertEqual(data, response.read())
@@ -216,7 +217,7 @@ class GoofyServerTest(unittest.TestCase):
 
     url = self.server.URLForData('text/html', data, 0.8)
 
-    response = urllib2.urlopen(
+    response = urllib.request.urlopen(
         'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, url))
     self.assertEqual(200, response.getcode())
     self.assertEqual(data, response.read())
@@ -225,13 +226,13 @@ class GoofyServerTest(unittest.TestCase):
     time.sleep(1)
 
     # The data should expired now.
-    with self.assertRaises(urllib2.HTTPError):
-      response = urllib2.urlopen(
+    with self.assertRaises(urllib.error.HTTPError):
+      response = urllib.request.urlopen(
           'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, url))
 
   def testURLNotFound(self):
-    with assertRaisesRegex(self, urllib2.HTTPError, '404: Not Found'):
-      response = urllib2.urlopen(
+    with assertRaisesRegex(self, urllib.error.HTTPError, '404: Not Found'):
+      response = urllib.request.urlopen(
           'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, '/not_exists'))
       response.close()
 

@@ -5,7 +5,7 @@
 import json
 import logging
 import os
-import urlparse
+import urllib.parse
 
 import yaml
 
@@ -91,8 +91,8 @@ class Instalog(plugin.Plugin):
       except Exception:
         pass
       if url:
-        self._uplink_hostname = urlparse.urlparse(url).hostname
-        self._uplink_port = urlparse.urlparse(url).port
+        self._uplink_hostname = urllib.parse.urlparse(url).hostname
+        self._uplink_port = urllib.parse.urlparse(url).port
       elif self._uplink_hostname and self._uplink_port:
         logging.error('Instalog: Could not retrieve factory server IP and port;'
                       ' falling back to provided uplink "%s:%d"',

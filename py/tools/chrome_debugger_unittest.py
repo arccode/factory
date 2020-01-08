@@ -9,7 +9,8 @@ import json
 import logging
 import StringIO
 import unittest
-import urllib2
+import urllib.error
+import urllib.request
 
 import mock
 from ws4py.client.threadedclient import WebSocketClient
@@ -44,11 +45,9 @@ class ChromeRemoteDebuggerTest(unittest.TestCase):
     self.mock_pageset_stream = StringIO.StringIO(json.dumps(self.mock_pageset))
     self.mock_websocket = mock.Mock(WebSocketClient)
 
-  @mock.patch('urllib2.urlopen')
+  @mock.patch('urllib.request.urlopen')
   def testIsReady(self, urlopen_mock):
-    urllib2.urlopen(self.mock_pageset_url).AndReturn(self.mock_pageset_stream)
-
-    urlopen_mock.side_effect = urllib2.URLError("Cannot connect")
+    urlopen_mock.side_effect = urllib.error.URLError("Cannot connect")
     self.assertFalse(self.chrome.IsReady())
 
     # TODO(kerker) Use urlopen_mock.reset_mock(side_effect=True) in py3
@@ -57,7 +56,7 @@ class ChromeRemoteDebuggerTest(unittest.TestCase):
     self.assertTrue(self.chrome.IsReady())
     urlopen_mock.assert_called_with(self.mock_pageset_url)
 
-  @mock.patch('urllib2.urlopen')
+  @mock.patch('urllib.request.urlopen')
   def testGetPages(self, urlopen_mock):
     urlopen_mock.return_value = self.mock_pageset_stream
     self.assertEqual(self.chrome.GetPages(), self.mock_pageset)
