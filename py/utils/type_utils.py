@@ -7,7 +7,7 @@
 import collections
 import functools
 import inspect
-import Queue
+import queue
 import re
 
 from six import iteritems
@@ -76,7 +76,7 @@ class Enum(frozenset):
     raise AttributeError
 
 
-def DrainQueue(queue):
+def DrainQueue(q):
   """Returns as many elements as can be obtained from a queue without blocking.
 
   (This may be no elements at all.)
@@ -84,8 +84,8 @@ def DrainQueue(queue):
   ret = []
   while True:
     try:
-      ret.append(queue.get_nowait())
-    except Queue.Empty:
+      ret.append(q.get_nowait())
+    except queue.Empty:
       break
   return ret
 

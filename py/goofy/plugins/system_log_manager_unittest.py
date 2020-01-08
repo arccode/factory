@@ -12,7 +12,7 @@ from __future__ import division
 import glob
 import logging
 import os
-import Queue
+import queue
 import shutil
 import threading
 import unittest
@@ -105,7 +105,7 @@ class StubQueue(object):
         self.timer.fake_time = item_put_time
         return item
     self.timer.fake_time += timeout
-    raise Queue.Empty
+    raise queue.Empty
 
   def put(self, item):
     logging.debug('%s StubQueue.put(%r), put_index = %d',

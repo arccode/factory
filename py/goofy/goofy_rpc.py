@@ -14,7 +14,7 @@ import inspect
 import json
 import logging
 import os
-import Queue
+import queue
 import random
 import re
 import tempfile
@@ -77,7 +77,7 @@ class GoofyRPC(object):
     # will contain a two-element tuple (ret, exc), where ret is the
     # return value or exc is any exception thrown.  Only one will be
     # set.
-    result = Queue.Queue()
+    result = queue.Queue()
 
     def Target():
       try:
@@ -103,7 +103,7 @@ class GoofyRPC(object):
     self.goofy.RunEnqueue(Target)
     try:
       ret, exc = result.get(block=True, timeout=timeout_secs)
-    except Queue.Empty:
+    except queue.Empty:
       raise GoofyRPCException('Time out waiting for %s to complete' %
                               _GetFuncString())
     if exc:
@@ -164,7 +164,7 @@ class GoofyRPC(object):
         restart_time: The time at which the system will restart (on success).
         error_msg: An error message (on failure).
     """
-    ret_value = Queue.Queue()
+    ret_value = queue.Queue()
 
     def PostUpdateHook():
       # After update, wait REBOOT_AFTER_UPDATE_DELAY_SECS before the

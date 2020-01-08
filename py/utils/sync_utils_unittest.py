@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import Queue
+import queue
 import signal
 import threading
 import time
@@ -80,10 +80,10 @@ class QueueGetTest(PollingTestBase):
 
   def setUp(self):
     super(QueueGetTest, self).setUp()
-    self._queue = Queue.Queue()
+    self._queue = queue.Queue()
 
   def testQueueGetEmpty(self):
-    self.assertRaises(Queue.Empty, sync_utils.QueueGet, self._queue, timeout=1)
+    self.assertRaises(queue.Empty, sync_utils.QueueGet, self._queue, timeout=1)
 
   def testQueueGetSomething(self):
     self._timeline.AddEvent(30, lambda: self._queue.put(123))
@@ -100,7 +100,7 @@ class QueueGetTest(PollingTestBase):
     self._timeline.AddEvent(40, lambda: self._queue.put('bar'))
 
     self.assertRaises(
-        Queue.Empty,
+        queue.Empty,
         sync_utils.QueueGet, self._queue, timeout=20, poll_interval_secs=1)
     self._timeline.AssertTimeAt(20)
 
@@ -178,29 +178,29 @@ class TimeoutTest(unittest.TestCase):
         with sync_utils.ThreadTimeout(0.5):
           time.sleep(0.3)
 
-    def Run(func, queue):
+    def Run(func, q):
       try:
-        queue.put((True, func()))
+        q.put((True, func()))
       except BaseException as e:
-        queue.put((False, e))
+        q.put((False, e))
 
-    queue = Queue.Queue(1)
-    thread = threading.Thread(target=Run, args=(WillPass, queue))
+    q = queue.Queue(1)
+    thread = threading.Thread(target=Run, args=(WillPass, q))
     thread.daemon = True
     thread.start()
     thread.join(1)
     self.assertFalse(thread.is_alive())
-    flag, value = queue.get()
+    flag, value = q.get()
     self.assertTrue(flag)
     self.assertIsNone(value)
 
-    queue = Queue.Queue(1)
-    thread = threading.Thread(target=Run, args=(WillTimeout, queue))
+    q = queue.Queue(1)
+    thread = threading.Thread(target=Run, args=(WillTimeout, q))
     thread.daemon = True
     thread.start()
     thread.join(1)
     self.assertFalse(thread.is_alive())
-    flag, value = queue.get()
+    flag, value = q.get()
     self.assertFalse(flag)
     self.assertTrue(isinstance(value, type_utils.TimeoutError))
 

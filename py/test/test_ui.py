@@ -12,7 +12,7 @@ import functools
 import json
 import logging
 import os
-import Queue
+import queue
 import subprocess
 import threading
 import time
@@ -70,7 +70,7 @@ class EventLoop(object):
         callback=self._HandleEvent)
     self.event_handlers = {}
     self._handler_exception_hook = handler_exception_hook
-    self._timed_handler_event_queue = Queue.PriorityQueue()
+    self._timed_handler_event_queue = queue.PriorityQueue()
 
   def AddEventHandler(self, subtype, handler):
     """Adds an event handler.
@@ -125,7 +125,7 @@ class EventLoop(object):
       while True:
         try:
           timed_handler_event = self._timed_handler_event_queue.get_nowait()
-        except Queue.Empty:
+        except queue.Empty:
           break
 
         current_time = time.time()
@@ -602,7 +602,7 @@ class UI(object):
     if not isinstance(keys, list):
       keys = [keys]
 
-    key_pressed = Queue.Queue()
+    key_pressed = queue.Queue()
 
     for key in keys:
       # pylint 1.5.6 has a false negative on nested lambda, see
@@ -612,7 +612,7 @@ class UI(object):
                    (lambda k: lambda unused_event: key_pressed.put(k))(key))
     try:
       return sync_utils.QueueGet(key_pressed, timeout=timeout)
-    except Queue.Empty:
+    except queue.Empty:
       return None
     finally:
       for key in keys:

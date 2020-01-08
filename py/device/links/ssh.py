@@ -7,7 +7,7 @@
 import logging
 import os
 import pipes
-import Queue
+import queue
 import subprocess
 import tempfile
 import threading
@@ -333,7 +333,7 @@ class SSHLink(device_types.DeviceLink):
 
       self._link = link_instance
       self._thread = threading.Thread(target=self.Run)
-      self._proc_queue = Queue.Queue()
+      self._proc_queue = queue.Queue()
 
       self._user = self._link.user
       self._host = self._link._host  # pylint: disable=protected-access
@@ -421,7 +421,7 @@ class SSHLink(device_types.DeviceLink):
 
       while True:
         # get a new process from queue to monitor
-        # since Queue.get will block if queue is empty, we don't need to sleep
+        # since queue.get will block if queue is empty, we don't need to sleep
         pid, ppid = self._proc_queue.get()
         logging.debug('start monitoring control master until %d terminates',
                       pid)

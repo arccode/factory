@@ -153,8 +153,8 @@ names::
 
 from __future__ import print_function
 
-import Queue
 import logging
+import queue
 import re
 
 from six import iteritems
@@ -335,7 +335,7 @@ class UpdateDeviceData(test_case.TestCase):
 
   def ManualInput(self, entry):
     event_subtype = 'devicedata-' + entry.key
-    event_queue = Queue.Queue()
+    event_queue = queue.Queue()
 
     if entry.GetInputList():
       self._RenderSelectBox(entry)

@@ -10,7 +10,7 @@ from __future__ import print_function
 import argparse
 import logging
 import os
-import Queue
+import queue
 import signal
 import sys
 import threading
@@ -120,7 +120,7 @@ class Goofy(object):
   """
 
   def __init__(self):
-    self.run_queue = Queue.Queue()
+    self.run_queue = queue.Queue()
     self.exceptions = []
     self.last_idle = None
 
@@ -712,7 +712,7 @@ class Goofy(object):
         # Block for at least one event...
         try:
           events.append(self.run_queue.get(timeout=RUN_QUEUE_TIMEOUT_SECS))
-        except Queue.Empty:
+        except queue.Empty:
           # Keep going (calling _RunQueueIdle() again at the top of
           # the loop)
           continue

@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-import Queue
+import queue
 import unittest
 
 import mock
@@ -26,7 +26,7 @@ class TestCaseTest(unittest.TestCase):
 
   class _MockEventLoop(object):
     def __init__(self):
-      self._event_loop_end = Queue.Queue()
+      self._event_loop_end = queue.Queue()
       # We don't use mock for PostNewEvent and Run, since there is race
       # condition within the mock library __call__...
       self.mock = mock.Mock()

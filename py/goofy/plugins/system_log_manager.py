@@ -10,7 +10,7 @@ from collections import namedtuple
 import glob
 import logging
 import os
-import Queue
+import queue
 import shutil
 import threading
 import time
@@ -91,7 +91,7 @@ class SystemLogManager(plugin.Plugin):
 
     self._main_thread = None
     self._aborted = threading.Event()
-    self._queue = Queue.Queue()
+    self._queue = queue.Queue()
     self._suppress_periodic_server_messages = False
 
     # For unittest stubbing
@@ -295,7 +295,7 @@ class SystemLogManager(plugin.Plugin):
         extra_files, callback, clear_only = self._queue.get(
             block=True, timeout=self._scan_log_period_secs)
 
-      except Queue.Empty:
+      except queue.Empty:
         # clears obsolete logs.
         self._ClearLogs()
 

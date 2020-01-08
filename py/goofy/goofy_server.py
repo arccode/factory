@@ -7,7 +7,7 @@
 import logging
 import mimetypes
 import os
-import Queue
+import queue
 import shutil
 import socketserver
 import threading
@@ -170,7 +170,7 @@ class GoofyServer(socketserver.ThreadingMixIn,
     jsonrpc_utils.MultiPathJSONRPCServer.__init__(
         self, addr, GoofyWebRequestHandler, logRequests=logRequests)
     self._generated_data = {}
-    self._generated_data_expiration = Queue.PriorityQueue()
+    self._generated_data_expiration = queue.PriorityQueue()
     self._resolver = PathResolver()
 
     # Used by sync_utils.Synchronized
@@ -275,7 +275,7 @@ class GoofyServer(socketserver.ThreadingMixIn,
     while True:
       try:
         item = self._generated_data_expiration.get_nowait()
-      except Queue.Empty:
+      except queue.Empty:
         break
 
       if item[0] < now:

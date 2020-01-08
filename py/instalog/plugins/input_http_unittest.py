@@ -11,7 +11,7 @@ from __future__ import print_function
 import http.client
 import logging
 import os
-import Queue
+import queue
 import shutil
 import tempfile
 import threading
@@ -101,7 +101,7 @@ class TestInputHTTP(unittest.TestCase):
     event = datatypes.Event({}, {'att_id': 'att'})
     big_att_path = self._GeneratePayload(128)  # 128mb
     # Use a queue to get the request object out of the thread.
-    q = Queue.Queue()
+    q = queue.Queue()
     def PostBig():
       event_str = datatypes.Event.Serialize(event)
       r = self._CurlPost('event=%s' % event_str, 'att=@%s' % big_att_path)
@@ -282,7 +282,7 @@ class TestInputHTTP(unittest.TestCase):
                   'att': '!' * 1024}  # 1kb
 
     # Use a queue to get the request object out of the thread.
-    q = Queue.Queue()
+    q = queue.Queue()
     def PostBig():
       event_str = datatypes.Event.Serialize(event1)
       r = self._CurlPost('event=%s' % event_str, 'att=@%s' % big_att_path)

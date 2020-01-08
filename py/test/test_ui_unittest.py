@@ -8,7 +8,7 @@
 from __future__ import print_function
 
 import json
-import Queue
+import queue
 import random
 import re
 import sys
@@ -211,7 +211,7 @@ class EventLoopRunTest(EventLoopTestBase):
         self._event_callback(event)
         if condition(event):
           return event
-    except Queue.Empty:
+    except queue.Empty:
       return None
 
   def _MockEndEventLoopEvent(self,

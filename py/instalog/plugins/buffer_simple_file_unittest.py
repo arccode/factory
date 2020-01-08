@@ -32,7 +32,7 @@ import collections
 import functools
 import logging
 import os
-import Queue
+import queue
 import random
 import shutil
 import tempfile
@@ -401,7 +401,7 @@ class TestBufferSimpleFile(unittest.TestCase):
   @_WithBufferSize(80)  # Each line is around ~35 characters.
   def testMultiThreadConsumeTruncate(self):
     """Tests multiple Consumers reading simultaneously when Truncate occurs."""
-    record_count_queue = Queue.Queue()
+    record_count_queue = queue.Queue()
     def ConsumerThread(consumer_id):
       stream = self.sf.Consume(consumer_id)
       record_count = collections.defaultdict(int)

@@ -10,7 +10,7 @@ import cgi
 import http.server
 import logging
 import os
-import Queue
+import queue
 import shutil
 import socketserver
 import tempfile
@@ -62,7 +62,7 @@ class TestOutputHTTP(unittest.TestCase):
     shutil.rmtree(self._tmp_dir)
 
   def testMultiEvent(self):
-    q = Queue.Queue()
+    q = queue.Queue()
 
     class MyHandler(http.server.BaseHTTPRequestHandler):
       def __init__(self, request, client_address, server):

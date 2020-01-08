@@ -120,7 +120,7 @@ don't show the image::
 import codecs
 import numbers
 import os
-import Queue
+import queue
 import random
 import time
 import uuid
@@ -198,7 +198,7 @@ class CameraTest(test_case.TestCase):
     self.ui.CallJSFunction('showInstruction', msg)
 
   def _RunJSBlockingImpl(self, js, func):
-    return_queue = Queue.Queue()
+    return_queue = queue.Queue()
     event_name = 'wait_js_%s_%s' % (func, uuid.uuid4())
     self.event_loop.AddEventHandler(
         event_name, lambda event: return_queue.put(event.data))

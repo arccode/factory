@@ -5,7 +5,7 @@
 """Fake time to be used in unittest using mock library."""
 
 import inspect
-import Queue
+import queue
 import threading
 import time
 
@@ -26,7 +26,7 @@ class TimeLine(object):
   """
   def __init__(self):
     self._fake_time = 0
-    self._events = Queue.PriorityQueue()
+    self._events = queue.PriorityQueue()
 
   def AddEvent(self, time_at, event_func):
     """Add an event that would happen at a particular time.
@@ -76,7 +76,7 @@ class TimeLine(object):
     while not condition():
       try:
         event_time, event_func = self._events.get_nowait()
-      except Queue.Empty:
+      except queue.Empty:
         if end_time is None:
           # Set time to inf so following AddEvent would fail.
           self._fake_time = float('inf')
@@ -110,10 +110,10 @@ class FakeEvent(threading.Event().__class__):
     return self.isSet()
 
 
-class FakeQueue(Queue.Queue, object):
-  """A fake Queue.Queue.
+class FakeQueue(queue.Queue, object):
+  """A fake queue.Queue.
 
-  All methods works like a normal Queue.Queue, except that get(block=True) won't
+  All methods works like a normal queue.Queue, except that get(block=True) won't
   really block, but only advance the timeline.
 
   Also notice that only maxsize=0 is supported, so the put operation never
@@ -174,6 +174,6 @@ def MockAll(timeline):
 
   _MockFactoryOnly(threading, 'Event', lambda: FakeEvent(timeline))
 
-  _MockFactoryOnly(Queue, 'Queue', lambda: FakeQueue(timeline))
+  _MockFactoryOnly(queue, 'Queue', lambda: FakeQueue(timeline))
 
   return patchers

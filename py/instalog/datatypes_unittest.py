@@ -11,7 +11,7 @@ from __future__ import print_function
 import copy
 import datetime
 import logging
-import Queue
+import queue
 import tempfile
 import unittest
 
@@ -73,7 +73,7 @@ class FakePluginAPI(plugin_base.PluginAPI):
     """Initializes FakePluginAPI.
 
     Args:
-      buffer_queue: A Queue from which to pop elements when EventStreamNext is
+      buffer_queue: A queue from which to pop elements when EventStreamNext is
                     called.
       fail_on_commit: Causes Commit to fail when called.
     """
@@ -232,7 +232,7 @@ class TestEventStream(unittest.TestCase):
 
   def testEventStream(self):
     """Tests using the basic functionality of EventStream."""
-    buffer_q = Queue.Queue()
+    buffer_q = queue.Queue()
     plugin_api = FakePluginAPI(buffer_q)
     event_stream = datatypes.EventStream(None, plugin_api)
 
@@ -256,7 +256,7 @@ class TestEventStreamIterator(unittest.TestCase):
   """Tests for the EventStreamIterator class."""
 
   def setUp(self):
-    self.q = Queue.Queue()
+    self.q = queue.Queue()
     self.plugin_api = FakePluginAPI(self.q)
     self.event_stream = datatypes.EventStream(None, self.plugin_api)
 

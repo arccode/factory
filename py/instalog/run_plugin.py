@@ -11,7 +11,7 @@ from __future__ import print_function
 import json
 import logging
 import os
-import Queue
+import queue
 import select
 import shutil
 import sys
@@ -58,7 +58,7 @@ class PluginRunnerBufferEventStream(plugin_base.BufferEventStream,
       self._retrieved_events.append(ret)
       self.debug('BufferEventStream.Next: %s', ret)
       return ret
-    except Queue.Empty:
+    except queue.Empty:
       self.debug('BufferEventStream.Next: (empty)')
       return None
 
@@ -102,7 +102,7 @@ class PluginRunner(plugin_sandbox.CoreAPI, log_utils.LoggerMixin):
     self.info('Saving plugin store to: %s', self._store_path)
     self.info('Saving attachments to: %s', self._att_dir)
 
-    self._event_queue = Queue.Queue()
+    self._event_queue = queue.Queue()
     self._plugin = plugin_sandbox.PluginSandbox(
         plugin_type, config=config, store_path=self._store_path,
         data_dir=self._data_dir, core_api=self)

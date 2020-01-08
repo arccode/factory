@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import Queue
+import queue
 import threading
 import unittest
 
@@ -14,7 +14,7 @@ from cros.factory.utils import thread_utils
 
 class ThreadUtilsUnittest(unittest.TestCase):
   def setUp(self):
-    self.errors = Queue.Queue()
+    self.errors = queue.Queue()
 
   def _TestOneThread(self, index):
     try:

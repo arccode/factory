@@ -35,7 +35,7 @@ for discussions.
 import logging
 import os
 import pickle
-from Queue import Queue
+import queue
 import subprocess
 
 from cros.factory.test.env import paths
@@ -50,7 +50,7 @@ PYTEST_PRESPAWNER_PATH = os.path.join(paths.FACTORY_DIR,
 class Prespawner(object):
 
   def __init__(self, prespawner_path, prespawner_args, pipe_stdout=False):
-    self.prespawned = Queue(NUM_PRESPAWNED_PROCESSES)
+    self.prespawned = queue.Queue(NUM_PRESPAWNED_PROCESSES)
     self.thread = None
     self.terminated = False
     self.prespawner_path = prespawner_path

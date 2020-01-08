@@ -7,7 +7,7 @@
 
 from __future__ import print_function
 
-import Queue
+import queue
 import threading
 import unittest
 
@@ -122,7 +122,7 @@ class FakeQueueTest(TimeLineTest):
 
   def testGetTimeout(self):
     self._timeline.AddEvent(5, lambda: self._queue.put('foo'))
-    self.assertRaises(Queue.Empty, self._queue.get, timeout=3)
+    self.assertRaises(queue.Empty, self._queue.get, timeout=3)
     self.AssertTime(3)
 
   def testGetBlocking(self):
@@ -145,7 +145,7 @@ class FakeQueueTest(TimeLineTest):
     self.assertEqual('foo1', self._queue.get(timeout=5))
     self.AssertTime(3)
 
-    self.assertRaises(Queue.Empty, self._queue.get, timeout=2)
+    self.assertRaises(queue.Empty, self._queue.get, timeout=2)
     self.AssertTime(5)
 
     self.assertEqual('foo2', self._queue.get(timeout=2))
@@ -157,7 +157,7 @@ class FakeQueueTest(TimeLineTest):
     self.assertEqual('foo4', self._queue.get())
     self.AssertTime(12)
 
-    self.assertRaises(Queue.Empty, self._queue.get, timeout=10)
+    self.assertRaises(queue.Empty, self._queue.get, timeout=10)
     self.AssertTime(22)
 
 

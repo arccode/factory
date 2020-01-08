@@ -8,7 +8,7 @@ import json
 import logging
 import os
 import pickle
-import Queue
+import queue
 import select
 import socket
 import socketserver
@@ -179,7 +179,7 @@ class EventServerRequestHandler(socketserver.BaseRequestHandler):
     # A thread to be used to send messages that are posted to the queue.
     self.send_thread = None
     # A queue containing messages.
-    self.queue = Queue.Queue()
+    self.queue = queue.Queue()
 
   def handle(self):
     # The handle() methods is run in a separate thread per client
@@ -264,21 +264,21 @@ class EventServer(socketserver.ThreadingUnixStreamServer):
     if self._temp_path is not None:
       file_utils.TryUnlink(self._temp_path)
 
-  def _subscribe(self, queue):
+  def _subscribe(self, q):
     """Subscribes a queue to receive events.
 
     Invoked only from the request handler.
     """
     with self._lock:
-      self._queues.add(queue)
+      self._queues.add(q)
 
-  def _unsubscribe(self, queue):
+  def _unsubscribe(self, q):
     """Unsubscribes a queue to receive events.
 
     Invoked only from the request handler.
     """
     with self._lock:
-      self._queues.discard(queue)
+      self._queues.discard(q)
 
   def _post_message(self, message):
     """Posts a message to all clients.
@@ -551,19 +551,19 @@ class ThreadingEventClient(EventClientBase):
 
   def request_response(self, request_event, check_response, timeout=None):
     """See EventClientBase.request_response."""
-    queue = Queue.Queue()
+    q = queue.Queue()
 
     def check_response_callback(event):
       if check_response(event):
-        queue.put(event)
+        q.put(event)
 
     try:
       with self._lock:
         self.callbacks.add(check_response_callback)
         if request_event:
           self.post_event(request_event)
-      return queue.get(timeout=timeout)
-    except Queue.Empty:
+      return q.get(timeout=timeout)
+    except queue.Empty:
       return None
     finally:
       with self._lock:
