@@ -131,7 +131,10 @@ def HasEC():
   return has_ec
 
 
-def AppendLogToABT(abt_file, log_file):
+def AppendLogToABT(abt_file, log_file, enabled=False):
+  if not enabled:
+    return
+
   for f in [abt_file, log_file]:
     if not os.path.isfile(f):
       logging.error('%s is not a valid file.', f)
@@ -177,7 +180,7 @@ def GenerateDRAMCalibrationLog(tmp_dir):
 
 
 def SaveLogs(output_dir, include_network_log=False, archive_id=None,
-             probe=False, dram=False,
+             probe=False, dram=False, abt=False,
              var='/var', usr_local='/usr/local', etc='/etc'):
   """Saves dmesg and relevant log files to a new archive in output_dir.
 
@@ -190,6 +193,8 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
     archive_id: An optional short ID to put in the filename (so
       archives may be more easily differentiated).
     probe: True to include probe result in the logs.
+    dram: True to include DRAM calibration logs.
+    abt: True to include abt.txt for Android Bug Tool.
     var, usr_local, etc: Paths to the relavant directories.
   """
   output_dir = os.path.realpath(output_dir)
@@ -269,6 +274,8 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
         ]], [])
 
     # Add an additional file to support android bug tool
+    # abt.txt is created anyway so the file is always available,
+    # but can be a dummy file in tmp dir if 'abt' is False.
     abt_name = 'abt.txt'
     abt_file = os.path.join(tmp, abt_name)
     file_utils.TouchFile(abt_file)
@@ -285,16 +292,17 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
         file_list = [path_name]
 
       for log_file in file_list:
-        AppendLogToABT(abt_file, log_file)
+        AppendLogToABT(abt_file, log_file, abt)
 
-    files += [abt_name]
+    if abt:
+      files += [abt_name]
 
     # DRAM logs are unreadable, so put it here to avoid abt.txt include them.
     if dram:
       files += GenerateDRAMCalibrationLog(tmp)
       # Manually add trimmed DRAMK_LOG into abt file
       if 'DRAMK_LOG' in files:
-        AppendLogToABT(abt_file, os.path.join(tmp, 'DRAMK_LOG'))
+        AppendLogToABT(abt_file, os.path.join(tmp, 'DRAMK_LOG'), abt)
 
     # Name of Chrome data directory within the state directory.
     chrome_data_dir_name = 'chrome-data-dir'
@@ -408,6 +416,8 @@ def main():
                       help=('include probe result in the logs'))
   parser.add_argument('--dram', action='store_true',
                       help=('include DRAM calibration info in the logs'))
+  parser.add_argument('--abt', action='store_true',
+                      help=('create abt.txt for "Android Bug Tool"'))
   args = parser.parse_args()
 
   paths = {}
@@ -464,7 +474,8 @@ def main():
     with (MountUSB() if args.usb else
           DummyContext(MountUSBInfo(None, args.output_dir, False))) as mount:
       output_file = SaveLogs(
-          mount.mount_point, args.net, args.id, args.probe, args.dram, **paths)
+          mount.mount_point, args.net, args.id, args.probe, args.dram, args.abt,
+          **paths)
       logging.info('Wrote %s (%d bytes)',
                    output_file, os.path.getsize(output_file))
 
