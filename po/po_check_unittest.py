@@ -146,6 +146,29 @@ class PoCheckTest(unittest.TestCase):
         "Lines started with '#~' found in files %r, please check if those lines"
         ' are unused and remove those lines.' % err_files)
 
+  def testNoUnusedAgain(self):
+    bad_lines = []
+    for po_file in self.po_files:
+      po_lines = file_utils.ReadLines(po_file)
+      base_po_file = os.path.basename(po_file)
+      last_line = ''
+      is_first_msgid = True
+      for line_number, line in enumerate(po_lines, 1):
+        if line.startswith('msgid '):
+          # Since po file always maps the first string to the header data and
+          # the line before it can be any string, we skip the first msgid.
+          # After the first msgid, every line before a msgid should start with
+          # '#:' and contain the file reference it.
+          if not is_first_msgid and not last_line.startswith('#:'):
+            bad_lines.append((base_po_file, line_number))
+          is_first_msgid = False
+        last_line = line
+
+    self.assertFalse(
+        bad_lines,
+        'Translations without file reference found in %s, please check if those'
+        ' lines are unused and remove those lines.'
+        % ', '.join('%s at line %d' % file_line for file_line in bad_lines))
 
 class PoUpdateTest(unittest.TestCase):
   """Check that po update have been run."""
