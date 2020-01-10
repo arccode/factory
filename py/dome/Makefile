@@ -44,7 +44,8 @@ lint-frontend:
 	../../setup/cros_docker.sh build
 	docker run --rm cros/dome-builder npm run lint
 
-test: test-backend test-frontend
+test: test-frontend test-backend
+	touch .tests-passed
 
 test-backend:
 	../../setup/cros_docker.sh build
@@ -56,7 +57,8 @@ test-backend:
 		--workdir "${DOME_DIR}" \
 		cros/factory_server \
 		sh -c "$(TEST_COVERAGE_CMD)"
-	touch .tests-passed
 
 test-frontend:
-	echo "not implemented yet"
+	echo "Running dome frontend test"
+	../../setup/cros_docker.sh build
+	docker run --rm cros/dome-builder npm run test
