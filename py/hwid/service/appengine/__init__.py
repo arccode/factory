@@ -9,7 +9,7 @@ import site
 import sys
 
 
-def _patch_imports():
+def _PatchImports():
   google = 'google'
   site_dir = os.environ.get('CUSTOMIZE_SITE_DIR')
   appengine_sdk_dir = os.environ.get('APPENGINE_SDK_DIR')
@@ -22,4 +22,4 @@ def _patch_imports():
           os.path.join(appengine_sdk_dir, google))
 
 
-_patch_imports()
+_PatchImports()

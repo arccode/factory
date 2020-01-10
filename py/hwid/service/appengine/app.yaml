@@ -1,10 +1,12 @@
 # Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-runtime: python27
-threadsafe: true
-api_version: 1
+runtime: python37
+entrypoint:
+  gunicorn -b :${DOLLAR}PORT cros.factory.hwid.service.appengine.app:app -t 600
+
 instance_class: F4_1G
+
 automatic_scaling:
   min_idle_instances: 1
   max_idle_instances: automatic
@@ -14,41 +16,20 @@ automatic_scaling:
 # Endpoints handler.
 handlers:
 - url: /api/.*
-  script: cros.factory.hwid.service.appengine.app.hwid_api_app
+  secure: always
+  redirect_http_response_code: 301
+  script: auto
+
 - url: /ingestion/.*
-  script: cros.factory.hwid.service.appengine.app.ingestion_app
-  login: "${LOGIN_REQUIRED}"
+  secure: always
+  redirect_http_response_code: 301
+  script: auto
+
 - url: /favicon.ico
+  secure: always
+  redirect_http_response_code: 301
   static_files: cros/factory/hwid/service/appengine/static/favicon.ico
   upload: cros/factory/hwid/service/appengine/static/favicon.ico
-
-libraries:
-- name: pycrypto
-  version: 2.6
-- name: grpcio
-  version: 1.0.0
-- name: ssl
-  version: 2.7.11
-
-skip_files:
-# Default patterns skipped by App Engine, which must be repeated since
-# specifying skip_files overrides them otherwise.
-- ^(.*/)?app\.yaml
-- ^(.*/)?app\.yml
-- ^(.*/)?index\.yaml
-- ^(.*/)?index\.yml
-- ^(.*/)?#.*#
-- ^(.*/)?.*~
-- ^(.*/)?.*\.pyo
-- ^(.*/)?.*/RCS/.*
-- ^(.*/)?\..*
-- ^(.*/)?.*\.pyc
-- env/
-- cros/factory/testlog/
-- cros/factory/instalog/
-- cros/factory/umpire/
-- cros/factory/dome/
-- cros/factory/doc/
 
 vpc_access_connector:
   name: "projects/${GCP_PROJECT}/locations/${VPC_CONNECTOR_REGION}/connectors/${VPC_CONNECTOR_NAME}"
@@ -57,6 +38,4 @@ env_variables:
   GAE_USE_SOCKETS_HTTPLIB : 'true'
   REDIS_HOST: "${REDIS_HOST}"
   REDIS_PORT: "${REDIS_PORT}"
-  ENDPOINTS_SERVICE_VERSION: "${ENDPOINTS_SERVICE_VERSION}"
-  ENDPOINTS_SERVICE_NAME: "${ENDPOINTS_SERVICE_NAME}"
   REDIS_CACHE_URL: "${REDIS_CACHE_URL}"

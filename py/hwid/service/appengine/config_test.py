@@ -17,13 +17,13 @@ class ConfigTest(unittest.TestCase):
 
   def testConfigSwitchingDev(self):
     # Have to patch os.enviorn before importing config module
-    os.environ['APPLICATION_ID'] = 'unknown app id'
+    os.environ['GAE_APPLICATION'] = 'unknown app id'
     from cros.factory.hwid.service.appengine import config
     self.assertEqual('dev', config._Config().env)
 
   def testConfigSwitchingProd(self):
     # Have to patch os.enviorn before importing config module
-    os.environ['APPLICATION_ID'] = 's~chromeos-hwid'
+    os.environ['GAE_APPLICATION'] = 's~chromeos-hwid'
     from cros.factory.hwid.service.appengine import config
     self.assertEqual('prod', config._Config().env)
 

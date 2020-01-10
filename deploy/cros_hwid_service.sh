@@ -16,7 +16,6 @@ DEPLOYMENT_PROD="prod"
 DEPLOYMENT_STAGING="staging"
 DEPLOYMENT_LOCAL="local"
 DEPLOYMENT_E2E="e2e"
-ENDPOINTS_SUFFIX=".appspot.com"
 FACTORY_PRIVATE_DIR="${FACTORY_DIR}/../factory-private"
 
 . "${FACTORY_DIR}/devtools/mk/common.sh" || exit 1
@@ -101,12 +100,6 @@ prepare_protobuf() {
     "${RT_PROBE_DIR}/runtime_probe.proto"
 }
 
-get_latest_endpoint_config_version() {
-  local service_name="$1${ENDPOINTS_SUFFIX}"
-  gcloud endpoints configs list --service="${service_name}" --limit=1 \
-    | tail -n1 | cut -f1 -d' '
-}
-
 do_deploy() {
   local deployment_type="$1"
   shift
@@ -118,7 +111,7 @@ do_deploy() {
   fi
 
   mkdir -p "${TEMP_DIR}/lib"
-  SYMLINK_FILES=(cron.yaml appengine_config.py requirements.txt)
+  SYMLINK_FILES=(cron.yaml requirements.txt .gcloudignore)
   for file in "${SYMLINK_FILES[@]}"; do
     ln -fs "${APPENGINE_DIR}/${file}" "${TEMP_DIR}"
   done
@@ -130,28 +123,18 @@ ${FACTORY_PRIVATE_DIR}/config/hwid/service/appengine/configurations.yaml" \
       "${TEMP_DIR}/resource"
   fi
 
-  local endpoints_version="$(get_latest_endpoint_config_version \
-    "${GCP_PROJECT}")"
   # Fill in env vars in app.yaml
   env GCP_PROJECT="${GCP_PROJECT}" \
     VPC_CONNECTOR_REGION="${VPC_CONNECTOR_REGION}" \
     VPC_CONNECTOR_NAME="${VPC_CONNECTOR_NAME}" \
     REDIS_HOST="${REDIS_HOST}" \
     REDIS_PORT="${REDIS_PORT}" \
-    ENDPOINTS_SERVICE_VERSION="${endpoints_version}" \
-    ENDPOINTS_SERVICE_NAME="${GCP_PROJECT}${ENDPOINTS_SUFFIX}" \
-    LOGIN_REQUIRED="${LOGIN_REQUIRED}" \
     REDIS_CACHE_URL="${REDIS_CACHE_URL}" \
+    DOLLAR='$' \
     envsubst < "${APPENGINE_DIR}/app.yaml" > "${TEMP_DIR}/app.yaml"
 
   prepare_protobuf
   prepare_cros_regions
-  run_in_temp virtualenv env
-  source "${TEMP_DIR}/env/bin/activate"
-  add_temp "${TEMP_DIR}/env"
-  run_in_temp \
-    pip install -t lib -r requirements.txt
-  deactivate
   case "${deployment_type}" in
     "${DEPLOYMENT_LOCAL}")
       run_in_temp dev_appserver.py "${@}" app.yaml

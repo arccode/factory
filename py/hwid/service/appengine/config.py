@@ -60,7 +60,7 @@ class _Config:
   def __init__(self):
     super(_Config, self).__init__()
     try:
-      app_id = os.environ['APPLICATION_ID']
+      app_id = os.environ['GAE_APPLICATION']
       confs = yaml.load(file_utils.ReadFile(_PATH_TO_APP_CONFIGURATIONS_FILE))
       conf = confs.get(app_id, _DEFAULT_CONFIGURATION)
     except (KeyError, OSError, IOError):

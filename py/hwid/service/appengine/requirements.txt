@@ -1,6 +1,9 @@
 # License: Apache License 2.0
 dulwich==0.19.11
 
+# 3-Clause BSD License
+flask==1.1.1
+
 # License: Apache License 2.0
 googleapis_common_protos==1.52.0
 
@@ -16,17 +19,17 @@ google-cloud-storage==1.29.0
 # License: Apache License 2.0
 google-cloud-tasks==1.5.0
 
-# License: Apache License 2.0
-google-endpoints==4.8.0
+# License: MIT
+gunicorn==20.0.4
 
-# License: Apache License 2.0
-google-endpoints-api-management==1.11.0
+# 3-Clause BSD License
+protobuf==3.12.2
+
+# License: MIT
+PyYaml==3.13
 
 # License: MIT
 redis==3.3.11
 
 # License: MIT
 urllib3==1.24.2
-
-# 3-Clause BSD License
-protobuf==3.12.2
