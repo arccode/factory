@@ -16,8 +16,6 @@ import {Omit} from '@common/types';
 
 const styles = (theme: Theme) => createStyles({
   subtitle: {
-    // TODO(pihsun): Use new material UI typography preset after v2 is
-    // released. (https://github.com/mui-org/material-ui/issues/11667)
     ...theme.typography.subtitle1,
     color: theme.palette.grey[500],
     fontWeight: theme.typography.fontWeightMedium,
