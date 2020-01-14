@@ -589,6 +589,14 @@ class HwidManager(object):
     board_data = self._fs_adapter.ReadFile(self._StagingPath(stage_file_id))
     self._fs_adapter.WriteFile(self._LivePath(live_file_id), board_data)
 
+  def _ClearMemcache(self):
+    """Clear all cache items via memcache_adaptor.
+
+    This method is for testing purpose since each integration test should have
+    empty cache in the beginning.
+    """
+    self._memcache_adaptor.ClearAll()
+
   def GetBoardDataFromCache(self, board):
     """Get the HWID file data from cache.
 

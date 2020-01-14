@@ -14,19 +14,20 @@ RUN cd "${workdir}" && \
   wget "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/${gcloud_archive_name}" && \
   tar xvf "${gcloud_archive_name}" && \
   google-cloud-sdk/install.sh \
-      --rc-path /root/.bashrc \
-      --additional-components app-engine-python app-engine-python-extras \
-      --quiet && \
+    --rc-path /root/.bashrc \
+    --additional-components app-engine-python app-engine-python-extras \
+    --quiet && \
   rm "${gcloud_archive_name}" && \
   pip install \
-      --target "${workdir}"/lib \
-      --requirement "${workdir}"/requirements.txt \
-      mox==0.5.3 \
-      mock==2.0.0 \
-      protorpc-standalone==0.9.1 \
-      PyYaml==3.11 \
-      webapp2==3.0.0b1 \
-      WebTest==2.0.29
+    --target "${workdir}"/lib \
+    --requirement "${workdir}"/requirements.txt \
+    mox==0.5.3 \
+    mock==2.0.0 \
+    protorpc-standalone==0.9.1 \
+    PyYaml==3.11 \
+    webapp2==3.0.0b1 \
+    WebTest==2.0.29 && \
+  apt update && apt install -y redis-server
 
 ADD factory/py "${workdir}/cros/factory/py"
 ADD factory/py_pkg "${workdir}/cros/factory/py_pkg"
@@ -37,4 +38,4 @@ ENV PYTHONPATH="${workdir}/lib:"\
 "${workdir}/google-cloud-sdk/platform/google_appengine:"\
 "${workdir}/protobuf_out"
 
-CMD bash
+CMD redis-server & bash

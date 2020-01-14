@@ -70,7 +70,9 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
     if adapter is None:
       adapter = self.filesystem_adapter
 
-    return hwid_manager.HwidManager(adapter)
+    manager = hwid_manager.HwidManager(adapter)
+    manager._ClearMemcache()
+    return manager
 
   def testGetBoardsWithoutExistingBoards(self):
     """Test that a if there are no existing boards, an empty set is returned."""

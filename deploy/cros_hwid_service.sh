@@ -117,12 +117,24 @@ do_deploy() {
   fi
 
   mkdir -p "${TEMP_DIR}/lib"
-  SYMLINK_FILES=(app.yaml cron.yaml appengine_config.py requirements.txt)
+  SYMLINK_FILES=(cron.yaml appengine_config.py requirements.txt)
   for file in "${SYMLINK_FILES[@]}"; do
     ln -fs "${APPENGINE_DIR}/${file}" "${TEMP_DIR}"
   done
   ln -fs "${FACTORY_DIR}/py_pkg/cros" "${TEMP_DIR}"
   ln -fs "${FACTORY_DIR}/py_pkg/cros/factory/factory_common.py" "${TEMP_DIR}"
+
+  local endpoints_version="$(get_latest_endpoint_config_version \
+    "${GCP_PROJECT}")"
+  # Fill in env vars in app.yaml
+  env GCP_PROJECT="${GCP_PROJECT}" \
+    VPC_CONNECTOR_REGION="${VPC_CONNECTOR_REGION}" \
+    VPC_CONNECTOR_NAME="${VPC_CONNECTOR_NAME}" \
+    REDIS_HOST="${REDIS_HOST}" \
+    REDIS_PORT="${REDIS_PORT}" \
+    ENDPOINTS_SERVICE_VERSION="${endpoints_version}" \
+    ENDPOINTS_SERVICE_NAME="${GCP_PROJECT}${ENDPOINTS_SUFFIX}" \
+    envsubst < "${APPENGINE_DIR}/app.yaml" > "${TEMP_DIR}/app.yaml"
 
   prepare_protobuf
   prepare_cros_regions
@@ -133,16 +145,8 @@ do_deploy() {
     pip install -t lib -r requirements.txt
   deactivate
   if [ "${deployment_type}" != "${DEPLOYMENT_LOCAL}" ]; then
-    endpoints_version="$(get_latest_endpoint_config_version "${GCP_PROJECT}")"
-    run_in_temp cat << __EOF__ > "${TEMP_DIR}/env.yaml"
-env_variables:
-  ENDPOINTS_SERVICE_VERSION: ${endpoints_version}
-  ENDPOINTS_SERVICE_NAME: ${GCP_PROJECT}${ENDPOINTS_SUFFIX}
-__EOF__
     run_in_temp gcloud --project="${GCP_PROJECT}" app deploy app.yaml cron.yaml
   else
-    # Create an empty env.yaml
-    run_in_temp echo -n > "${TEMP_DIR}/env.yaml"
     run_in_temp dev_appserver.py "${@}" app.yaml
   fi
 }

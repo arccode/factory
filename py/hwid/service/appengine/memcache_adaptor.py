@@ -6,11 +6,11 @@
 
 import cPickle
 import logging
+import os
 
+import redis
 from six.moves import xrange
 
-# pylint: disable=import-error, no-name-in-module
-from google.appengine.api import memcache
 
 PICKLE_PROTOCOL_VERSION = 2
 MAX_NUMBER_CHUNKS = 10
@@ -36,6 +36,17 @@ class MemcacheAdaptor(object):
 
   def __init__(self, namespace=None):
     self.namespace = namespace
+    redis_host = os.environ.get('REDIS_HOST', 'localhost')
+    redis_port = int(os.environ.get('REDIS_PORT', 6379))
+    self.client = redis.Redis(host=redis_host, port=redis_port)
+
+  def ClearAll(self):
+    """Clear all items in cache.
+
+    This method is for testing purpose since each integration test should have
+    empty cache in the beginning.
+    """
+    self.client.flushall()
 
   def BreakIntoChunks(self, key, serialized_data):
     chunks = {}
@@ -43,7 +54,7 @@ class MemcacheAdaptor(object):
     # key for the split chunks is <key>.<number> so the first chunk for key SNOW
     # will be SNOW.0 the second chunk will be in SNOW.1
     for i in xrange(0, len(serialized_data), MEMCACHE_CHUNKSIZE):
-      chunk_key = '%s.%s' % (key, i // MEMCACHE_CHUNKSIZE)
+      chunk_key = '%s:%s.%s' % (self.namespace, key, i // MEMCACHE_CHUNKSIZE)
       chunks[chunk_key] = serialized_data[i : i+MEMCACHE_CHUNKSIZE]
     return chunks
 
@@ -56,29 +67,14 @@ class MemcacheAdaptor(object):
       raise MemcacheAdaptorException('Object too large to store in memcache.')
 
     logging.debug('Memcache writing %s', key)
-    memcache.set_multi(chunks, namespace=self.namespace)
-
-  def AssembleFromChunks(self, chunks):
-    chunks_in_order = []
-
-    def _SortKeyByIndex(chunk_key):
-      # The chunk_key format is 'PROJECT.INDEX', we should extract the index out
-      # to do integer comparison.
-      return int(chunk_key[chunk_key.find('.') + 1:])
-
-    # They memcache keys returned are in no particular order so sort them.
-    for key in sorted(chunks, key=_SortKeyByIndex):
-      # We ask for more memcache keys than there are chunks so ignore any
-      # empty memcache returns.
-      if chunks[key]:
-        chunks_in_order.append(chunks[key])
-    return ''.join(chunks_in_order)
+    self.client.mset(chunks)
 
   def Get(self, key):
     """Retrieve and re-assemble a large object from memcache."""
-    keys = ['%s.%s' % (key, i) for i in xrange(MAX_NUMBER_CHUNKS)]
-    chunks = memcache.get_multi(keys, namespace=self.namespace)
-    serialized_data = self.AssembleFromChunks(chunks)
+    keys = ['%s:%s.%s' % (self.namespace, key, i)
+            for i in xrange(MAX_NUMBER_CHUNKS)]
+    chunks = self.client.mget(keys)
+    serialized_data = ''.join(filter(None, chunks))
     if not serialized_data:
       logging.debug('Memcache no data found %s', key)
       return None

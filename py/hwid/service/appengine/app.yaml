@@ -48,8 +48,12 @@ skip_files:
 - cros/factory/dome/
 - cros/factory/doc/
 
+vpc_access_connector:
+  name: "projects/${GCP_PROJECT}/locations/${VPC_CONNECTOR_REGION}/connectors/${VPC_CONNECTOR_NAME}"
+
 env_variables:
   GAE_USE_SOCKETS_HTTPLIB : 'true'
-
-includes:
-  - env.yaml
+  REDIS_HOST: "${REDIS_HOST}"
+  REDIS_PORT: "${REDIS_PORT}"
+  ENDPOINTS_SERVICE_VERSION: "${ENDPOINTS_SERVICE_VERSION}"
+  ENDPOINTS_SERVICE_NAME: "${ENDPOINTS_SERVICE_NAME}"

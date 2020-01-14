@@ -10,8 +10,6 @@ The origin HWID Server [Arch Overview](http://go/hwid-server-arch) and
 ## Important Files
 - `app.yaml`: Config file for deploying service on AppEngine.
 - `cron.yaml`: Config file for deploying cronjob on AppEngine.
-- `env.yaml`: Auto-generated config file for setting environment of deployment
-  and endpoint service versions.
 - `${factory_dir}/deploy/cros_hwid_service.sh`: The main script to deploy and
   test HWID Service. Run `cros_hwid_service.sh` for more usage.
 - `appengine_config.py`: The very first loading file on AppEngine.
