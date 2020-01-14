@@ -458,8 +458,8 @@ class Tuple(BaseType):
       raise SchemaException(
           'Number of elements in tuple %r does not match that defined '
           'in Tuple schema %r' % (str(data), self.label))
-    for data, element_type in zip(data, self.element_types):
-      element_type.Validate(data)
+    for content, element_type in zip(data, self.element_types):
+      element_type.Validate(content)
 
 
 class AnyOf(BaseType):

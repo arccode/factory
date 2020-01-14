@@ -133,11 +133,11 @@ class Bom(object):
         return [Component(cls, name) for name in self._components[cls]]
 
     components = []
-    for cls, names in self._components.items():
-      if names == list():
-        components.append(Component(cls, None))
+    for comp_class, comp_names in self._components.items():
+      if comp_names == list():
+        components.append(Component(comp_class, None))
       else:
-        components.extend([Component(cls, name) for name in names])
+        components.extend([Component(comp_class, name) for name in comp_names])
 
     return components
 
