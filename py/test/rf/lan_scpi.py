@@ -30,9 +30,6 @@ class Error(Exception):
     self.error_msg = error_msg
 
 
-class TimeoutError(Error):
-  pass
-
 MAX_LOG_LENGTH = 800
 
 

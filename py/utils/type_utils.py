@@ -30,6 +30,7 @@ class TestListError(Exception):
   pass
 
 
+# pylint: disable=redefined-builtin
 class TimeoutError(Error):
   """Timeout error."""
   def __init__(self, message='Timed out', output=None):
