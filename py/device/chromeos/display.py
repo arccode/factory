@@ -12,7 +12,7 @@ from cros.factory.test.utils import drm_utils
 from cros.factory.external import PIL
 
 if PIL.MODULE_READY:
-  from cros.factory.external.PIL import Image
+  from cros.factory.external.PIL import Image  # pylint: disable=no-name-in-module
 
 
 class DisplayError(Exception):

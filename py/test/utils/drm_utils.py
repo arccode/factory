@@ -21,7 +21,7 @@ import factory_common  # pylint: disable=unused-import
 
 from cros.factory.external import PIL
 if PIL.MODULE_READY:
-  from cros.factory.external.PIL import Image
+  from cros.factory.external.PIL import Image  # pylint: disable=no-name-in-module
 
 
 class DRMError(Exception):

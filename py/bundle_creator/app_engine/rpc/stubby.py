@@ -13,9 +13,9 @@ from protorpc import remote  # pylint: disable=import-error
 from protorpc import definition  # pylint: disable=import-error
 from protorpc import protobuf  # pylint: disable=import-error
 from protorpc.wsgi import service  # pylint: disable=import-error
-from google.appengine.api import app_identity  # pylint: disable=import-error
-from google.appengine.api import mail  # pylint: disable=import-error
-from google.appengine.api import urlfetch  # pylint: disable=import-error
+from google.appengine.api import app_identity  # pylint: disable=import-error, no-name-in-module
+from google.appengine.api import mail  # pylint: disable=import-error, no-name-in-module
+from google.appengine.api import urlfetch  # pylint: disable=import-error, no-name-in-module
 from googleapiclient.discovery import build  # pylint: disable=import-error
 
 definition.import_file_set('rpc/factorybundle.proto.def')
