@@ -454,9 +454,22 @@ def GenerateStableDeviceSecret(options):
 
 @Command('cr50_set_sn_bits_and_board_id')
 def Cr50SetSnBitsAndBoardId(options):
+  """Deprecated: use Cr50WriteFlashInfo instead."""
+  logging.warning('This function is renamed to Cr50WriteFlashInfo')
+  Cr50WriteFlashInfo(options)
+
+
+@Command('cr50_write_flash_info')
+def Cr50WriteFlashInfo(options):
   """Set the serial number bits, board id and flags on the Cr50 chip."""
-  GetGooftool(options).Cr50SetSnBitsAndBoardId()
-  event_log.Log('cr50_set_sn_bits_and_board_id')
+  GetGooftool(options).Cr50WriteFlashInfo()
+  event_log.Log('cr50_write_flash_info')
+
+
+@Command('cr50_write_whitelabel_flags')
+def Cr50WriteWhitelabelFlags(options):
+  GetGooftool(options).Cr50WriteWhitelabelFlags()
+  event_log.Log('cr50_write_whitelabel_flags')
 
 
 @Command('cr50_disable_factory_mode')
@@ -803,7 +816,7 @@ def Finalize(options):
     GetGooftool(options).WriteVPDForRLZPing(options.embargo_offset)
     if options.generate_mfg_date:
       GetGooftool(options).WriteVPDForMFGDate()
-  Cr50SetSnBitsAndBoardId(options)
+  Cr50WriteFlashInfo(options)
   Cr50DisableFactoryMode(options)
   Verify(options)
   LogSourceHashes(options)

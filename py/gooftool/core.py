@@ -23,6 +23,7 @@ import yaml
 import factory_common  # pylint: disable=unused-import
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Util
+from cros.factory.gooftool import cros_config as cros_config_module
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import gsctool as gsctool_module
 from cros.factory.gooftool import vpd
@@ -865,7 +866,7 @@ class Gooftool(object):
       raise Error('Failed to set board ID and flag on Cr50. '
                   '(args=%s)' % arg_phase)
 
-  def Cr50SetBoardId(self):
+  def Cr50SetBoardId(self, is_whitelabel):
     """Set the board id and flags on the Cr50 chip.
 
     The Cr50 image need to be lock down for a certain subset of devices for
@@ -885,7 +886,10 @@ class Gooftool(object):
                    'Cr50 on this device.')
       return
 
-    if phase.GetPhase() >= phase.PVT_DOGFOOD:
+    if is_whitelabel:
+      # For whitelabel devices, the phase argument is always 'whitelabel'.
+      arg_phase = 'whitelabel'
+    elif phase.GetPhase() >= phase.PVT_DOGFOOD:
       arg_phase = 'pvt'
     else:
       arg_phase = 'dev'
@@ -906,15 +910,63 @@ class Gooftool(object):
       else:  # General errors.
         raise Error('Failed to set board ID and flag on Cr50. '
                     '(args=%s)' % arg_phase)
-
     except Exception:
       logging.exception('Failed to set Cr50 Board ID.')
       raise
 
-  def Cr50SetSnBitsAndBoardId(self):
-    """Set the serial number its, board id and flags on the Cr50 chip."""
+  def Cr50WriteFlashInfo(self):
+    """Write device info into cr50 flash."""
+    cros_config = cros_config_module.CrosConfig(self._util.shell)
+    is_whitelabel, whitelabel_tag = cros_config.GetWhiteLabelTag()
+
+    if is_whitelabel:
+      # If we can't find whitelabel_tag in VPD, this will be None.
+      vpd_whitelabel_tag = self._vpd.GetValue('whitelabel_tag')
+      if vpd_whitelabel_tag != whitelabel_tag:
+        if vpd_whitelabel_tag is None:
+          # whitelabel_tag is not set in VPD.  Technically, this is allowed by
+          # cros_config. It would be equivalent to whitelabel_tag='' (empty
+          # string).  However, it is ambiguous, we don't know if this is
+          # intended or not.  Therefore, we enforce the whitelabel_tag should be
+          # set explicitly, even if it is an empty string.
+          raise Error('This is a whitelabel device, but whitelabel_tag is not '
+                      'set in VPD.')
+        else:
+          # whitelabel_tag is set in VPD, but it is different from what is
+          # reported by cros_config.  We don't allow this, because whitelabel
+          # tag affects RLZ code, and RLZ code will be written to cr50 board ID.
+          raise Error('whitelabel_tag reported by cros_config and VPD does not '
+                      'match.  Have you reboot the device after updating VPD '
+                      'fields?')
     self.Cr50SetSnBits()
-    self.Cr50SetBoardId()
+    self.Cr50SetBoardId(is_whitelabel)
+
+  def Cr50WriteWhitelabelFlags(self):
+    cros_config = cros_config_module.CrosConfig(self._util.shell)
+    is_whitelabel, unused_whitelabel_tag = cros_config.GetWhiteLabelTag()
+    if not is_whitelabel:
+      raise Error('This is not a whitelabel device.')
+
+    script_path = '/usr/share/cros/cr50-set-board-id.sh'
+    if not os.path.exists(script_path):
+      logging.warn('The Cr50 script is not found, there should be no '
+                   'Cr50 on this device.')
+      return
+
+    try:
+      result = self._util.shell([script_path, 'whitelabel_flags'])
+      if result.status == 0:
+        logging.info('Successfully set whitelabel flags.')
+      elif result.status == 2:
+        logging.error('Whitelabel flags has already been set.')
+      elif result.status == 3:
+        error_msg = 'Board ID and/or flag has been set DIFFERENTLY on Cr50!'
+        raise Error(error_msg)
+      else:  # General errors.
+        raise Error('Failed to set whitelabel flags.')
+    except Exception:
+      logging.exception('Failed to set Cr50 whitelabel flags.')
+      raise
 
   def Cr50DisableFactoryMode(self):
     """Disable Cr50 Factory mode.
