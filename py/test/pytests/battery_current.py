@@ -66,8 +66,6 @@ in test list::
 
 import logging
 
-from six.moves import xrange
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
@@ -129,10 +127,10 @@ class BatteryCurrentTest(test_case.TestCase):
     else:
       raise ValueError('ERROR: invalid usbpd_info item: ' + str(info))
 
-    for i in xrange(len(info)):
-      if not isinstance(info[i], check_types[i]):
-        logging.error('(%s)usbpd_info[%d] type is not %s', type(info[i]), i,
-                      check_types[i])
+    for i, (info_i, check_type) in enumerate(zip(info, check_types)):
+      if not isinstance(info_i, check_type):
+        logging.error('(%s)usbpd_info[%d] type is not %s', type(info_i), i,
+                      check_type)
         raise ValueError('ERROR: invalid usbpd_info[%d]: ' % i + str(info))
 
   def _LogCurrent(self, current):

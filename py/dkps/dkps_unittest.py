@@ -14,7 +14,6 @@ import unittest
 
 import gnupg
 from six import assertRaisesRegex
-from six.moves import xrange
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.dkps import dkps
@@ -154,7 +153,7 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
       self._Upload(drm_keys_file_path)
 
     # Request and finalize DRM keys.
-    for i in xrange(len(MOCK_KEY_LIST)):
+    for i, mock_key in enumerate(MOCK_KEY_LIST):
       # Check available key count.
       expected_available_key_count = len(MOCK_KEY_LIST) - i
       available_key_count = int(self._CallHelper(
@@ -164,7 +163,7 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
       # Request.
       device_serial_number = 'SN%.6d' % i
       serialized_key = self._Request(device_serial_number)
-      self.assertEqual(MOCK_KEY_LIST[i], json.loads(serialized_key))
+      self.assertEqual(mock_key, json.loads(serialized_key))
 
     # Test request but insufficient keys left.
     with self.assertRaises(subprocess.CalledProcessError):

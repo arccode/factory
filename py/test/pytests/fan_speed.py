@@ -161,8 +161,8 @@ class FanSpeedTest(test_case.TestCase):
     if self.args.spin_max_then_half:
       logging.info('Spinning fan up to get max fan speed...')
       max_rpm = self.SetAndGetFanSpeed(self.args.max_rpm)
-      for i in xrange(len(max_rpm)):
-        if max_rpm[i] == 0:
+      for i, rpm in enumerate(max_rpm):
+        if rpm == 0:
           self.FailTask('Fan %d is not reporting any RPM' % i)
       target_rpm = _Average(max_rpm) / 2
       observed_rpm = self.SetAndGetFanSpeed(target_rpm)

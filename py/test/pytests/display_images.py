@@ -22,8 +22,6 @@ import glob
 import logging
 import os
 
-from six.moves import xrange
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
@@ -122,18 +120,16 @@ class DisplayImageTest(test_case.TestCase):
 
   def UploadImages(self, image_paths):
     """Upload images to DUT."""
-    for i in xrange(len(image_paths)):
-      # path in the station
-      path = image_paths[i]
-      dut_path = self._dut_image_paths[i]
-      name = os.path.basename(path)
+    for i, (station_path, dut_path) in enumerate(zip(image_paths,
+                                                     self._dut_image_paths)):
+      name = os.path.basename(station_path)
       self.ui.SetHTML(
           _('({index}/{total}) Uploading images {name}',
             index=i + 1,
             total=len(image_paths),
             name=name),
           id='upload')
-      self._dut.link.Push(path, dut_path)
+      self._dut.link.Push(station_path, dut_path)
       self._uploaded_index = i
     self.ui.SetHTML(_('All images uploaded.'), id='upload')
 

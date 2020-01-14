@@ -24,7 +24,6 @@ use the args attribute to access the attribute values.
 """
 
 from six import iteritems
-from six.moves import xrange
 
 from .type_utils import Enum
 
@@ -249,8 +248,8 @@ def MergeArgs(old_args, new_args):
   args = list(old_args)
   for new_arg in new_args:
     found = False
-    for i in xrange(len(args)):
-      if args[i].name == new_arg.name:
+    for i, element in enumerate(args):
+      if element.name == new_arg.name:
         found = True
         args[i] = new_arg
         break

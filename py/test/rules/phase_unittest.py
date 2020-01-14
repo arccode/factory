@@ -10,7 +10,6 @@ import tempfile
 import unittest
 
 from six import assertRaisesRegex
-from six.moves import xrange
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rules import phase
@@ -27,10 +26,10 @@ from cros.factory.test.rules.phase import PhaseAssertionError
 class BasicPhaseTest(unittest.TestCase):
 
   def testBasicOps(self):
-    for l in xrange(len(PHASE_NAMES)):
-      for r in xrange(len(PHASE_NAMES)):
-        left = Phase(PHASE_NAMES[l])
-        right = Phase(PHASE_NAMES[r])
+    for l, name_l in enumerate(PHASE_NAMES):
+      for r, name_r in enumerate(PHASE_NAMES):
+        left = Phase(name_l)
+        right = Phase(name_r)
         self.assertEqual(left < right, l < r)
         self.assertEqual(left > right, l > r)
         self.assertEqual(left == right, l == r)

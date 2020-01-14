@@ -22,7 +22,6 @@ import subprocess
 import unittest
 
 from six import itervalues
-from six.moves import xrange
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common
@@ -150,13 +149,14 @@ class HWIDDBsPatternTest(unittest.TestCase):
     for image_id in old_db.image_ids:
       old_bit_mapping = old_db.GetBitMapping(image_id=image_id)
       new_bit_mapping = new_db.GetBitMapping(image_id=image_id)
-      for index in xrange(len(old_bit_mapping)):
-        if new_bit_mapping[index] != old_bit_mapping[index]:
+      for index, (element_old, element_new) in enumerate(zip(old_bit_mapping,
+                                                             new_bit_mapping)):
+        if element_new != element_old:
           raise common.HWIDException(
               'Bit pattern mismatch found at bit %d (encoded field=%r). '
               'If you are trying to append new bit(s), be sure to create a new '
               'bit pattern field instead of simply incrementing the last '
-              'field' % (index, old_bit_mapping[index][0]))
+              'field' % (index, element_old[0]))
 
     old_region_field_legacy_info = old_db.region_field_legacy_info
     new_region_field_legacy_info = new_db.region_field_legacy_info

@@ -14,8 +14,6 @@ import itertools
 import logging
 import urllib
 
-from six.moves import xrange
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.test.rf import agilent_scpi
 from cros.factory.test.rf import lan_scpi
@@ -199,9 +197,9 @@ class ENASCPI(agilent_scpi.AgilentSCPI):
     """
     # Check that the segments are all 3-tuples and that they are
     # in increasing order of frequency.
-    for i in xrange(len(segments)):
+    for i, segment in enumerate(segments):
       # pylint: disable=unused-variable
-      min_freq, max_freq, pts = segments[i]
+      min_freq, max_freq, pts = segment
       assert max_freq >= min_freq
       if i < len(segments) - 1:
         assert segments[i + 1][0] >= min_freq

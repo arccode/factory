@@ -10,7 +10,6 @@ import os
 import unittest
 
 from six import iteritems
-from six.moves import xrange
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.utils import file_utils
@@ -26,8 +25,8 @@ class _TestCaseBase(unittest.TestCase):
     if isinstance(a, list):
       self.assertIsInstance(b, list)
       self.assertEqual(len(a), len(b))
-      for i in xrange(len(a)):
-        self.assertJSONObjEqual(a[i], b[i])
+      for element_a, element_b in zip(a, b):
+        self.assertJSONObjEqual(element_a, element_b)
     elif isinstance(a, dict):
       self.assertIsInstance(b, dict)
       self.assertEqual(len(a), len(b))
