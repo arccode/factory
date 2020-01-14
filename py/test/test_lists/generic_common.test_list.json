@@ -237,6 +237,9 @@
         "HaltStep"
       ]
     },
+    "Cr50WriteWhitelabelFlags": {
+      "pytest_name": "cr50_write_whitelabel_flags"
+    },
     "Display": {
       "pytest_name": "display"
     },

@@ -57,6 +57,7 @@
       "label": "Finish",
       "subtests": [
         "StationEnd",
+        "Cr50WriteWhitelabelFlags",
         "CheckPoint",
         "HaltStep"
       ]

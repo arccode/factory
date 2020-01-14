@@ -69,6 +69,8 @@ class CheckCr50FirmwareBoardIDTest(test_case.TestCase):
       'PHASE_UNKNOWN': 0x0000ff00,
       'PHASE_PREPVT': 0x00007f7f,
       'PHASE_PVT': 0x00007f80,
+      # Whitelabel devices have different flags to distinguish with PVT.
+      'PHASE_WHITELABEL': 0x00003f80,
   }
 
   ARGS = [
