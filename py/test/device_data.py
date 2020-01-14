@@ -247,7 +247,7 @@ def VerifyDeviceData(device_data):
   """
   for key, value in iteritems(device_data):
     if key.startswith(JoinKeys(KEY_COMPONENT, 'has_')):
-      if not (isinstance(value, bool) or isinstance(value, int)):
+      if not isinstance(value, (bool, int)):
         raise ValueError('Values in the "component" domain should be in type '
                          'of either `bool` or `int`.')
 
