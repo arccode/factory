@@ -34,9 +34,6 @@ class FileSystemAdapterTest(unittest.TestCase):
 class CloudStorageAdapterTest(appengine_test_base.AppEngineTestBase):
   """Tests for the CloudStorageAdapter class."""
 
-  def setUp(self):
-    super(CloudStorageAdapterTest, self).setUp()
-
   def testWrite(self):
     """Tests writing a file."""
     adapter = filesystem_adapter.CloudStorageAdapter(TEST_BUCKET)

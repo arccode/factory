@@ -139,12 +139,6 @@ class ArduinoDigitalPinController(ArduinoController):
   change, be sure to update arduino_digital_pin_controller.ino as well.
   """
 
-  def __init__(self, send_receive_interval_secs=0.5, retry_interval_secs=0.2,
-               log=True, ready_delay_secs=2.0):
-    """Constructor."""
-    super(ArduinoDigitalPinController, self).__init__(
-        send_receive_interval_secs, retry_interval_secs, log, ready_delay_secs)
-
   def SetPin(self, pin, level_high=True):
     """Sets a pin to HIGH or LOW.
 

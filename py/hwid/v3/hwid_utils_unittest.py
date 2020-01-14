@@ -169,9 +169,6 @@ class ListComponentsTest(_HWIDTestCaseBase):
 
 
 class EnumerateHWIDTest(_HWIDTestCaseBase):
-  def setUp(self):
-    super(EnumerateHWIDTest, self).setUp()
-
   def testSupported(self):
     results = hwid_utils.EnumerateHWID(self.database, status='supported')
     self.assertEqual(len(results), 6)

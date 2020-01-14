@@ -675,6 +675,7 @@ class PowerDaemonPowerInfoMixin(PowerInfoMixinBase):
     """See PowerInfoMixinBase.GetChargeState"""
     return self._CHARGE_STATE_MAP[self._GetPowerAttribute('battery_status')]
 
+  # pylint: disable=useless-super-delegation
   def GetChargerCurrent(self):
     """See PowerInfoMixinBase.GetChargerCurrent
 
@@ -702,6 +703,7 @@ class PowerDaemonPowerInfoMixin(PowerInfoMixinBase):
     return int(
         self._GetPowerAttribute('battery_voltage', float) * 1000)
 
+  # pylint: disable=useless-super-delegation
   def GetBatteryCycleCount(self):
     """See PowerInfoMixinBase.GetBatteryCycleCount
 
@@ -710,6 +712,7 @@ class PowerDaemonPowerInfoMixin(PowerInfoMixinBase):
     """
     return super(PowerDaemonPowerInfoMixin, self).GetBatteryCycleCount()
 
+  # pylint: disable=useless-super-delegation
   def GetBatteryManufacturer(self):
     """See PowerInfoMixinBase.GetBatteryManufacturer
 
