@@ -29,7 +29,7 @@ HELP_HEADER = """
 Uninstall the factory toolkit on a CrOS device.
 """
 
-FACTORY_DIRS = ['/var/factory', paths.FACTORY_DIR]
+FACTORY_DIRS = ['/var/factory', '/run/factory', paths.FACTORY_DIR]
 
 
 def AssertEnvironment():
