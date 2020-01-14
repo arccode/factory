@@ -7,6 +7,7 @@
   "definitions": {
     "TouchFile": {
       "pytest_name": "exec_shell",
+      "no_host": true,
       "args": {
         "commands": "echo done >/tmp/tast_factory_test"
       }
