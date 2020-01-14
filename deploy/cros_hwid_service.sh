@@ -12,12 +12,17 @@ TEST_DIR="${APPENGINE_DIR}/test"
 PLATFORM_DIR="$(dirname ${FACTORY_DIR})"
 REGIONS_DIR="$(readlink -f "${FACTORY_DIR}/../../platform2/regions")"
 TEMP_DIR="${FACTORY_DIR}/build/hwid"
-ENV_PROD="chromeos-hwid"
-ENV_STAGING="chromeos-hwid-staging"
-ENV_LOCAL="LOCAL"
+DEPLOYMENT_PROD="prod"
+DEPLOYMENT_STAGING="staging"
+DEPLOYMENT_LOCAL="local"
 ENDPOINTS_SUFFIX=".appspot.com"
+FACTORY_PRIVATE_DIR="${FACTORY_DIR}/../factory-private"
 
 . "${FACTORY_DIR}/devtools/mk/common.sh" || exit 1
+. "${FACTORY_PRIVATE_DIR}/config/hwid/service/appengine/config.sh" || exit 1
+
+# Following variables will be assigned by `load_config <DEPLOYMENT_TYPE>`
+GCP_PROJECT=
 
 check_docker() {
   if ! type docker >/dev/null 2>&1; then
@@ -102,12 +107,12 @@ get_latest_endpoint_config_version() {
 }
 
 do_deploy() {
-  gcp_project="$1"
+  local deployment_type="$1"
   shift
   check_gcloud
-  check_credentials "${gcp_project}"
+  check_credentials "${GCP_PROJECT}"
 
-  if [ "${gcp_project}" == "${ENV_PROD}" ]; then
+  if [ "${deployment_type}" == "${DEPLOYMENT_PROD}" ]; then
     do_test
   fi
 
@@ -127,14 +132,14 @@ do_deploy() {
   run_in_temp \
     pip install -t lib -r requirements.txt
   deactivate
-  if [ "${gcp_project}" != "${ENV_LOCAL}" ]; then
-    endpoints_version="$(get_latest_endpoint_config_version "${gcp_project}")"
+  if [ "${deployment_type}" != "${DEPLOYMENT_LOCAL}" ]; then
+    endpoints_version="$(get_latest_endpoint_config_version "${GCP_PROJECT}")"
     run_in_temp cat << __EOF__ > "${TEMP_DIR}/env.yaml"
 env_variables:
   ENDPOINTS_SERVICE_VERSION: ${endpoints_version}
-  ENDPOINTS_SERVICE_NAME: ${gcp_project}${ENDPOINTS_SUFFIX}
+  ENDPOINTS_SERVICE_NAME: ${GCP_PROJECT}${ENDPOINTS_SUFFIX}
 __EOF__
-    run_in_temp gcloud --project="${gcp_project}" app deploy app.yaml cron.yaml
+    run_in_temp gcloud --project="${GCP_PROJECT}" app deploy app.yaml cron.yaml
   else
     # Create an empty env.yaml
     run_in_temp echo -n > "${TEMP_DIR}/env.yaml"
@@ -196,26 +201,17 @@ __EOF__
 }
 
 main() {
-  local proejct=""
   case "$1" in
     deploy)
       shift
       [ $# -gt 0 ] || (usage && exit 1);
-      case "$1" in
-        prod)
-          project="${ENV_PROD}"
-          ;;
-        staging)
-          project="${ENV_STAGING}"
-          ;;
-        local)
-          project="${ENV_LOCAL}"
-          ;;
-        *)
-          usage && exit 1
-      esac
+      local deployment_type="$1"
       shift
-      do_deploy "${project}" "${@}"
+      if ! load_config "${deployment_type}" ; then
+        usage
+        die "Unsupported deployment type: \"${deployment_type}\"."
+      fi
+      do_deploy "${deployment_type}" "${@}"
        ;;
     build)
       do_build
