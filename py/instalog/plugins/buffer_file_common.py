@@ -99,9 +99,18 @@ class SimpleFileException(Exception):
   pass
 
 
+def GetChecksumLegacy(data):
+  """Generates an 8-character CRC32 checksum of given string."""
+  # TODO(chuntsen): Remove this legacy function.
+  return '{:08x}'.format(abs(zlib.crc32(data)))
+
+
 def GetChecksum(data):
   """Generates an 8-character CRC32 checksum of given string."""
-  return '{:08x}'.format(abs(zlib.crc32(data)))
+  # The function crc32() returns a signed 32-bit integer in Python2, but it
+  # returns an unsigned 32-bit integer in Python3. To generate the same value
+  # across all Python versions, we use "crc32() & 0xffffffff".
+  return '{:08x}'.format(zlib.crc32(data) & 0xffffffff)
 
 
 def FormatRecord(seq, record):
@@ -126,7 +135,7 @@ def ParseRecord(line, logger_name=None):
   if not seq or not record:
     logger.warning('Parsing error for record %s', line.rstrip())
     return None, None
-  if checksum != GetChecksum(data):
+  if checksum != GetChecksum(data) and checksum != GetChecksumLegacy(data):
     logger.warning('Checksum error for record %s', line.rstrip())
     return None, None
   return int(seq), record
