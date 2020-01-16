@@ -654,10 +654,10 @@ def CreateReportArchive(device_sn=None, add_file=None):
     tar_cmd += ' %s' % pipes.quote(f[1:])
   cmd_result = Shell(tar_cmd)
 
-  if ((cmd_result.status == 1) and
-      all((x == '' or 'file changed as we read it' in x)
-          for x in cmd_result.stderr.split('\n'))):
-    # That's OK.  Make sure it's valid though.
+  if cmd_result.status == 1:
+    # tar returns 1 when some files were changed during archiving,
+    # but that is expected for log files so should ignore such failure
+    # if the archive looks good.
     Spawn(['tar', 'tJf', target_path], check_call=True, log=True,
           ignore_stdout=True)
   elif not cmd_result.success:
