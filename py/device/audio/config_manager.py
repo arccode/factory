@@ -466,6 +466,7 @@ class UCMConfigManager(BaseConfigManager):
       legacy_ucm_path = self._device.path.join(self._AlsaUCMPath, card_name)
       if self._device.path.isdir(legacy_ucm_path):
         return card_name
+      return None
 
     output = self._device.CallOutput(['aplay', '-l'])
     card_map = {}

@@ -334,6 +334,7 @@ class GPTObject(object):
       return self.Unpack(source.read(struct.calcsize(fmt)))
     for f, value in zip(self.FIELDS, struct.unpack(fmt, source)):
       setattr(self, f.name, f.Unpack(value))
+    return None
 
   def Pack(self):
     """Packs values in all fields into a string by struct format."""
@@ -928,6 +929,7 @@ class GPT(object):
           backup_header.PartitionEntriesStartingLBA)
       WriteData(
           'Backup Header', backup_header.blob, backup_header.CurrentLBA)
+    return None
 
 
 class GPTCommands(object):

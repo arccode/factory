@@ -23,3 +23,4 @@ class GenericTPMFunction(cached_probe_function.CachedProbeFunction):
     version = tpm_dict.get('Chip Version', None)
     if mfg is not None and version is not None:
       return [{'manufacturer_info': mfg, 'version': version}]
+    return None

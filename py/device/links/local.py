@@ -37,6 +37,7 @@ class LocalLink(types.DeviceLink):
       with open(remote) as f:
         return f.read()
     shutil.copy(remote, local)
+    return None
 
   def Shell(self, command, stdin=None, stdout=None, stderr=None, cwd=None):
     """See DeviceLink.Shell"""

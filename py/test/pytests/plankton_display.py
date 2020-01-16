@@ -259,6 +259,7 @@ class PlanktonDisplayTest(test_case.TestCase):
       if info['isPrimary']:
         return info['id']
     self.FailTask('Fail to get primary display ID')
+    return None
 
   def _PollDisplayConnected(self):
     """Event for polling display connected.

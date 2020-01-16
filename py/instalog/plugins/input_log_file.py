@@ -346,7 +346,7 @@ class LogFile(log_utils.LoggerMixin, object):
     """
     size = self.GetSize()
     if size is None:
-      return
+      return False
 
     if size > self.cur_offset:
       self.info('%s progress: %d / %d',
@@ -387,7 +387,7 @@ class LogFile(log_utils.LoggerMixin, object):
     """
     size = self.GetSize()
     if size is None:
-      return
+      return False
 
     if not (self.args.max_bytes > 0 and
             self.cur_offset == size and

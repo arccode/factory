@@ -24,3 +24,4 @@ class GenericBatteryFunction(
     if result is not None and result.pop('type') == 'Battery' and (
         'charge_full_design' in result or 'energy_full_design' in result):
       return result
+    return None

@@ -99,6 +99,7 @@ class MockFixtureConnection(FixtureConnection):
     self._curr_cmd = msg.strip()
     if read_response:
       return self.Recv()
+    return None
 
   def Recv(self, length=0):
     if self._curr_cmd in self._script:

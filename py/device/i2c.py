@@ -61,6 +61,7 @@ class I2CSlave(types.DeviceComponent):
       bus.write(write_data)
     if read_count:
       return bus.read(read_count)
+    return None
 
   def Read(self, address, count):
     """Reads data from I2C device.

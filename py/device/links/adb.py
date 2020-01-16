@@ -94,6 +94,7 @@ class ADBLink(types.DeviceLink):
 
     subprocess.check_output(['adb', 'pull', remote, local],
                             stderr=subprocess.STDOUT)
+    return None
 
   def Shell(self, command, stdin=None, stdout=None, stderr=None, cwd=None):
     """See DeviceLink.Shell"""
