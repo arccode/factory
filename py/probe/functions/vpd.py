@@ -153,7 +153,7 @@ class VPDFunction(cached_probe_function.LazyCachedProbeFunction):
   def GetCategoryFromArgs(self):
     if self.args.partition not in PARTITION:
       raise cached_probe_function.InvalidCategoryError(
-          'partition should be one of %r.', list(PARTITION))
+          'partition should be one of %r.' % list(PARTITION))
 
     return self.args.partition
 

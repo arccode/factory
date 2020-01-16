@@ -186,7 +186,7 @@ class GyroscopeController(sensor_utils.BasicSensorController):
 
     if gyro['location'] != self.location:
       raise Exception('Gyro location mismatched: "%s" specified but found'
-                      '"%s".', self.location, gyro['location'])
+                      '"%s".' % (self.location, gyro['location']))
 
     #  Adapt gyro['freq'] to the minimal usable freq if it's None.
     if self.freq is None:

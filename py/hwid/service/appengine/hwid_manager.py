@@ -488,8 +488,8 @@ class HwidManager(object):
       logging.debug("Processing as version 3 file.")
       hwid_data = _HwidV3Data(metadata.board, raw_hwid_yaml=raw_hwid_yaml)
     else:
-      raise MetadataError('Board %r has invalid version %r.', metadata.board,
-                          metadata.version)
+      raise MetadataError('Board %r has invalid version %r.' %
+                          (metadata.board, metadata.version))
 
     return hwid_data
 
