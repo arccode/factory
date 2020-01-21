@@ -37,7 +37,7 @@ def PullTask():
   tasks = cloudtasks.projects().locations().queues().tasks()
   subscriber = pubsub_v1.SubscriberClient()
   subscription_path = subscriber.subscription_path(
-      config.PROJECT, config.SUBSCRIPTION)
+      config.GCLOUD_PROJECT, config.PUBSUB_SUBSCRIPTION)
   try:
     response = subscriber.pull(subscription_path, max_messages=1)
 

@@ -21,6 +21,9 @@ from cros.factory.utils import file_utils
 from cros.factory.bundle_creator.docker import config  # pylint: disable=no-name-in-module
 
 
+SERVICE_ACCOUNT_JSON = '/service_account.json'
+
+
 class CreateBundleException(Exception):
   pass
 
@@ -52,7 +55,7 @@ def SetMetadataByGsutil(gs_path, metadata):
 def CreateBundle(req):
   logger = logging.getLogger('main.createbundle')
   storage_client = storage.Client.from_service_account_json(
-      config.SERVICE_ACCOUNT_JSON, project=config.PROJECT)
+      SERVICE_ACCOUNT_JSON, project=config.GCLOUD_PROJECT)
 
   logger.info(text_format.MessageToString(req, as_utf8=True, as_one_line=True))
 

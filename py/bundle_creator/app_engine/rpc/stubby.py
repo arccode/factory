@@ -30,7 +30,7 @@ _SERVICE_PATH = '/_ah/stubby/FactoryBundleService'
 def whitelist(function):
   def function_wrapper(*args, **kwargs):
     loas_peer_username = os.getenv('LOAS_PEER_USERNAME')
-    if loas_peer_username != config.ALLOWED_LOAS_PEER_USERNAME:
+    if loas_peer_username not in config.ALLOWED_LOAS_PEER_USERNAMES:
       raise Exception(
           'LOAS_PEER_USERNAME {} is not allowed'.format(loas_peer_username))
     return function(*args, **kwargs)
@@ -46,7 +46,7 @@ class FactoryBundleService(remote.Service):
   def CreateBundleAsync(self, request):
     pubsub_service = build('pubsub', 'v1')
     topic_path = 'projects/{project_id}/topics/{topic}'.format(
-        project_id=config.PROJECT,
+        project_id=config.GCLOUD_PROJECT,
         topic=config.PUBSUB_TOPIC)
     pubsub_service.projects().topics().publish(
         topic=topic_path,
