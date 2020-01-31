@@ -132,9 +132,8 @@ class Loader(object):
       logging.error('Cannot load test list "%s"', test_list_id)
       raise
 
-    # Override constants from py/config if it exists
-    loaded_config.get(test_list_common.TEST_LIST_CONSTANTS_KEY, {}).update(
-        self.test_list_constants)
+    # Override test list constants from py/config.
+    loaded_config['constants'].update(self.test_list_constants)
 
     loaded_config = TestListConfig(
         resolved_config=loaded_config,

@@ -35,7 +35,6 @@ ACTIVE_TEST_LIST_CONFIG_PATH = os.path.join(
 
 # Test list constants config.
 TEST_LIST_CONSTANTS_CONFIG_NAME = 'test_list_constants'
-TEST_LIST_CONSTANTS_KEY = 'constants'
 
 
 def GetTestListConfigName(test_list_id):
