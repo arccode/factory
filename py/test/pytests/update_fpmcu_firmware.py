@@ -110,10 +110,14 @@ class UpdateFpmcuFirmwareTest(test_case.TestCase):
   def UpdateFpmcuFirmware(self, firmware_file):
     """Update FPMCU firmware by `flash_fp_mcu`."""
     flash_cmd = [FLASHTOOL, firmware_file]
-    old_ro_ver, old_rw_ver = self._fpmcu.GetFpmcuFirmwareVersion()
-    bin_ro_ver, bin_rw_ver = self.GetFirmwareVersionFromFile(firmware_file)
 
-    logging.info('Current FPMCU RO: %s, RW: %s', old_ro_ver, old_rw_ver)
+    try:
+      old_ro_ver, old_rw_ver = self._fpmcu.GetFpmcuFirmwareVersion()
+      logging.info('Current FPMCU RO: %s, RW: %s', old_ro_ver, old_rw_ver)
+    except Exception:
+      logging.exception('Fail to read the current FPMCU RO/RW FW versions.')
+
+    bin_ro_ver, bin_rw_ver = self.GetFirmwareVersionFromFile(firmware_file)
     logging.info('Ready to update FPMCU firmware to RO: %s, RW: %s.',
                  bin_ro_ver, bin_rw_ver)
 
