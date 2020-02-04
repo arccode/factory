@@ -55,7 +55,7 @@ To run Graphyte framework with the config file `conductive_config.json`, add
 this in test list::
 
   {
-    "pytest_name": "rf_graphyte",
+    "pytest_name": "rf_graphyte.rf_graphyte",
     "args": {
       "graphyte_config_file": "conductive_config.json",
       "verbose": true
@@ -73,6 +73,7 @@ from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import device_utils
+from cros.factory.test import device_data
 from cros.factory.test.env import paths
 from cros.factory.test.i18n import _
 from cros.factory.test import session
@@ -162,7 +163,7 @@ class RFGraphyteTest(test_case.TestCase):
     if self.args.verbose:
       cmd.append('-v')
     session.console.info('Call the Graphyte command: %s', ' '.join(cmd))
-    self.ui.PipeProcessOutputToUI(cmd)
+    return_value = self.ui.PipeProcessOutputToUI(cmd)
 
     # Save the log file.
     if os.path.exists(self.log_file_path):
@@ -181,6 +182,10 @@ class RFGraphyteTest(test_case.TestCase):
           name='graphyte_result.csv',
           description=os.path.basename(self.result_file_path),
           delete=False)
+
+    # Fail if return_value is not zero.
+    if return_value:
+      self.fail('Graphyte ended abnormally.')
 
     # Parse result file.
     if not os.path.exists(self.result_file_path):
@@ -220,10 +225,8 @@ class RFGraphyteTest(test_case.TestCase):
     To keep the output file for every DUT, we add serial number and timestamp to
     make the file name unique.
     """
-    # Workaround: Get the serial number without InfoProperty.
-    # https://bugs.chromium.org/p/chromium/issues/detail?id=707200
-    # Revert it after the issue is resolved.
-    mlb_serial_number = self._dut.vpd.ro.get('mlb_serial_number', 'unknown')
+    mlb_serial_number = device_data.GetAllSerialNumbers().get(
+        'mlb_serial_number', 'unknown')
     file_name = '%s_%s_%s' % (
         mlb_serial_number, timestamp, suffix)
     # save the log under /var/factory/tests/<TestID>-<UUID>/
