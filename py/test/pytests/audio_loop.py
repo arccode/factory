@@ -64,9 +64,8 @@ Audiofuntest external mic (default) of input_dev and speakers of output_dev::
         ],
         "tests_to_conduct": [
           {
-            "duration": 4,
-            "threshold": 80,
             "type": "audiofun",
+            "threshold": 80,
             "player_format": "s16"
           }
         ]
