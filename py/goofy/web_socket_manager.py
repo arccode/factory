@@ -69,9 +69,9 @@ class WebSocketManager(object):
         ignore_stdin=True,
         stdout=subprocess.PIPE)
     self.tail_thread = threading.Thread(target=self._tail_console)
-    self.tail_thread.start()
     self.closed = False
     self.tail_buffer = collections.deque()
+    self.tail_thread.start()
 
   def close(self):
     with self.lock:
