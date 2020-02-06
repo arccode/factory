@@ -157,10 +157,20 @@ class WebSocketManager:
 
   def wait(self):
     """Waits for one socket to connect successfully."""
-    while not self.has_confirmed_socket.is_set():
-      # Wait at most 100 ms at a time; without a timeout, this seems
-      # to eat SIGINT signals.
-      self.has_confirmed_socket.wait(0.1)
+    count = 1
+    interval = 20
+    # Wait at most interval seconds at a time; without a timeout, this seems
+    # to eat SIGINT signals.
+    while not self.has_confirmed_socket.wait(interval):
+      # For some unknown reason, sometimes chrome UI does not come up and show
+      # a white screen or this site can't be reached on the screen. Restarting
+      # UI can solve this. See b/147780638 and b/176268649 for more contexts.
+      # TODO(cyueh) Find why UI does not come up.
+      logging.info('Wait web socket for %f seconds, restart ui',
+                   interval * count)
+      process_utils.Spawn(['restart', 'ui'], check_call=True,
+                          log_stderr_on_error=True)
+      count += 1
 
   def _tail_console(self):
     """Tails the console log, generating an event whenever a new
