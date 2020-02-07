@@ -102,7 +102,13 @@ class SimpleFileException(Exception):
 def GetChecksumLegacy(data):
   """Generates an 8-character CRC32 checksum of given string."""
   # TODO(chuntsen): Remove this legacy function.
-  return '{:08x}'.format(abs(zlib.crc32(data)))
+  # The function crc32() returns a signed 32-bit integer in Python2, but it
+  # returns an unsigned 32-bit integer in Python3. To generate the same value
+  # across all Python versions, we convert unsigned integer to signed integer.
+  checksum = zlib.crc32(data)
+  if checksum >= 2**31:
+    checksum -= 2**32
+  return '{:08x}'.format(abs(checksum))
 
 
 def GetChecksum(data):
