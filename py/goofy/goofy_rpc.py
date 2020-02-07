@@ -786,8 +786,15 @@ class GoofyRPC(object):
             'log': log,
             'source_code': source_code}
 
-  def GetInvocationResolvedArgs(self, invocation):
-    return self.goofy.invocations[invocation].resolved_dargs
+  def GetInvocationResolvedArgs(self, invocation_id):
+    """Returns the resolved arguments of an invocation.
+
+    Returns:
+      A dictionary represents the resolved arguments of an invocation. Returns
+      None if the invocation no longer exists.
+    """
+    invocation = self.goofy.invocations.get(invocation_id)
+    return invocation.resolved_dargs if invocation else None
 
   def GetPluginMenuItems(self):
     """Returns menu items supported by plugins."""

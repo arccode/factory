@@ -3249,6 +3249,9 @@ cros.factory.Goofy = class {
 
         invocation.loaded.then(() => {
           const document = invocation.iframe.contentDocument;
+          if (!document) {
+            return;
+          }
           const element =
               message.id ? document.getElementById(message.id) : document.body;
           if (!element) {
@@ -3303,6 +3306,9 @@ cros.factory.Goofy = class {
             // We need to evaluate the code in the context of the content
             // window, but we also need to give it a variable.  Stash it in the
             // window and load it directly in the eval command.
+            if (!invocation.iframe.contentWindow) {
+              return;
+            }
             invocation.iframe.contentWindow.__goofy_args = message.args;
             invocation.iframe.contentWindow.eval(
                 `const args = window.__goofy_args; ${message.js}`);
