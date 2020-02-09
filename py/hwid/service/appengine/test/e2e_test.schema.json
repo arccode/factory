@@ -44,7 +44,9 @@
             "type": "string",
             "title": "HTTP Method request path",
             "default": "",
-            "examples": "bom/CHROMEBOOK ABC-ABC-123-ABC"
+            "examples": [
+              "bom/CHROMEBOOK ABC-ABC-123-ABC"
+            ]
           },
           "expecting_output": {
             "type": "object",
