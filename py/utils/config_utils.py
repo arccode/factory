@@ -490,7 +490,8 @@ def LoadConfig(config_name=None, schema_name=None, validate_schema=True,
   config = raw_config_list.Resolve()
 
   # Remove the special key so that we don't need to write schema for this field.
-  config.pop(_INHERIT_KEY, None)
+  if allow_inherit:
+    config.pop(_INHERIT_KEY, None)
 
   # Ideally we should enforce validating schema, but currently many environments
   # where our factory software needs to live (i.e., old ChromeOS test images,
