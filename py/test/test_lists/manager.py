@@ -124,7 +124,9 @@ class Loader(object):
       loaded_config = config_utils.LoadConfig(
           config_name=config_name,
           schema_name=test_list_common.TEST_LIST_SCHEMA_NAME,
-          validate_schema=True,
+          # The loaded content might be incomplete if allow_inherit=False.
+          # No need to validate in this case.
+          validate_schema=allow_inherit,
           default_config_dirs=self.config_dir,
           allow_inherit=allow_inherit,
           generate_depend=True)
@@ -133,7 +135,8 @@ class Loader(object):
       raise
 
     # Override test list constants from py/config.
-    loaded_config['constants'].update(self.test_list_constants)
+    if allow_inherit:
+      loaded_config['constants'].update(self.test_list_constants)
 
     loaded_config = TestListConfig(
         resolved_config=loaded_config,
