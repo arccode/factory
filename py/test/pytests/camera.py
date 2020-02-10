@@ -122,7 +122,6 @@ import numbers
 import os
 import Queue
 import random
-import tempfile
 import time
 import uuid
 
@@ -136,8 +135,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
-from cros.factory.external import cv
-from cros.factory.external import cv2
+from cros.factory.external import cv2 as cv
 from cros.factory.external import numpy as np
 
 
@@ -145,7 +143,7 @@ from cros.factory.external import numpy as np
 # through websocket.
 _JPEG_QUALITY = 70
 _HAAR_CASCADE_PATH = (
-    '/usr/local/share/opencv/haarcascades/haarcascade_frontalface_default.xml')
+    '/usr/local/share/opencv4/haarcascades/haarcascade_frontalface_default.xml')
 
 
 TestModes = type_utils.Enum(['qr', 'face', 'timeout', 'frame_count', 'manual',
@@ -242,10 +240,11 @@ class CameraTest(test_case.TestCase):
             'cameraTest.grabFrameAndTransmitBack()')
         blob = codecs.decode(file_utils.ReadFile(blob_path), 'base64')
         os.unlink(blob_path)
-        return cv2.imdecode(
-            np.fromstring(blob, dtype=np.uint8), cv2.CV_LOAD_IMAGE_COLOR)
+        return cv.imdecode(np.fromstring(blob, dtype=np.uint8), cv.IMREAD_COLOR)
+
       self.RunJSPromiseBlocking('cameraTest.grabFrame()')
       return None
+
     return self.camera_device.ReadSingleFrame()
 
   def LEDTest(self):
@@ -286,15 +285,21 @@ class CameraTest(test_case.TestCase):
     if self.e2e_mode and False:
       return self.RunJSPromiseBlocking('cameraTest.detectFaces()')
     else:
-      storage = cv.CreateMemStorage()
-      cascade = cv.Load(_HAAR_CASCADE_PATH)
-      detected = cv.HaarDetectObjects(cv_image, cascade, storage, 1.2, 2,
-                                      cv.CV_HAAR_DO_CANNY_PRUNING, (20, 20))
+      cascade = cv.CascadeClassifier(_HAAR_CASCADE_PATH)
+      detected_objs = cascade.detectMultiScale(
+          cv_image,
+          scaleFactor=1.2,
+          minNeighbors=2,
+          flags=cv.CASCADE_DO_CANNY_PRUNING,
+          minSize=(20, 20))
+      # pylint: disable=len-as-condition
+      # Detected_objs will be numpy array or an empty tuple. bool(numpy_array)
+      # will not work (will raise an exception).
+      detected = len(detected_objs) > 0
       if detected:
-        for loc, unused_n in detected:
-          x, y, w, h = loc
-          cv.Rectangle(cv_image, (x, y), (x + w, y + h), 255)
-      return bool(detected)
+        for x, y, w, h in detected_objs:
+          cv.rectangle(cv_image, (x, y), (x + w, y + h), 255)
+      return detected
 
   def ScanQRCode(self, cv_image):
     scanned_text = None
@@ -320,26 +325,30 @@ class CameraTest(test_case.TestCase):
     if self.e2e_mode and not self.need_transmit_to_ui:
       self.RunJSPromiseBlocking('cameraTest.showImage(%s)' % resize_ratio)
     else:
-      cv_image = cv2.resize(cv_image, None, fx=resize_ratio, fy=resize_ratio,
-                            interpolation=cv2.INTER_AREA)
-      if self.flip_image:
-        cv_image = cv2.flip(cv_image, 1)
+      cv_image = cv.resize(
+          cv_image,
+          None,
+          fx=resize_ratio,
+          fy=resize_ratio,
+          interpolation=cv.INTER_AREA)
 
-      with tempfile.NamedTemporaryFile(suffix='.jpg') as img_buffer:
-        cv2.imwrite(img_buffer.name, cv_image,
-                    (cv.CV_IMWRITE_JPEG_QUALITY, _JPEG_QUALITY))
-        try:
-          # TODO(pihsun): Don't use CallJSFunction for transmitting image back
-          # to UI. Use URLForData instead, since event server actually
-          # broadcast to all client, and is not suitable for large amount of
-          # data.
-          self.ui.CallJSFunction(
-              'showImage',
-              'data:image/jpeg;base64,' + codecs.encode(img_buffer.read(),
-                                                        'base64'))
-        except AttributeError:
-          # The websocket is closed because test has passed/failed.
-          return
+      if self.flip_image:
+        cv_image = cv.flip(cv_image, 1)
+
+      unused_retval, jpg_data = cv.imencode(
+          '.jpg', cv_image, (cv.IMWRITE_JPEG_QUALITY, _JPEG_QUALITY))
+
+      try:
+        # TODO(pihsun): Don't use CallJSFunction for transmitting image back
+        # to UI. Use URLForData instead, since event server actually
+        # broadcast to all client, and is not suitable for large amount of
+        # data.
+        self.ui.CallJSFunction(
+            'showImage',
+            'data:image/jpeg;base64,' + codecs.encode(jpg_data, 'base64'))
+      except AttributeError:
+        # The websocket is closed because test has passed/failed.
+        return
 
   def CaptureTest(self, mode):
     frame_count = 0

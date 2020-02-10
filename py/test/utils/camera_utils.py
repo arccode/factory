@@ -12,16 +12,13 @@ import logging
 import os
 import re
 import string
-import tempfile
 
 from six import with_metaclass
 
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils import time_utils
 
-from cros.factory.external import cv
-from cros.factory.external import cv2
+from cros.factory.external import cv2 as cv
 
 
 # Paths of mock images.
@@ -48,6 +45,7 @@ class CameraError(Exception):
   pass
 
 
+# TODO(menghuan): remove this dead code?
 def EncodeCVImage(img, file_ext):
   """Encodes OpenCV image to common image format.
 
@@ -58,16 +56,8 @@ def EncodeCVImage(img, file_ext):
   Returns:
     Encoded image data.
   """
-  # TODO (jchuang): newer version of OpenCV has better imencode()
-  # Python method.
-  temp_fn = os.path.join(tempfile.gettempdir(),
-                         time_utils.TimedUUID() + file_ext)
-  try:
-    cv2.imwrite(temp_fn, img)
-    with open(temp_fn, 'rb') as f:
-      return f.read()
-  finally:
-    file_utils.TryUnlink(temp_fn)
+  unused_retval, data = cv.imencode(file_ext, img)
+  return data
 
 
 def ReadImageFile(filename):
@@ -82,7 +72,7 @@ def ReadImageFile(filename):
   Raise:
     CameraError on error.
   """
-  img = cv2.imread(filename)
+  img = cv.imread(filename)
   if img is None:
     raise CameraError('Can not open image file %s' % filename)
   return img
@@ -154,12 +144,12 @@ class CVCameraReader(CameraReaderBase):
       logging.warning('Camera device is already enabled.')
       return
 
-    self._device = cv2.VideoCapture(self._device_index)
+    self._device = cv.VideoCapture(self._device_index)
     if not self._device.isOpened():
       raise CameraError('Unable to open video capture interface')
     if resolution:
-      self._device.set(cv.CV_CAP_PROP_FRAME_WIDTH, resolution[0])
-      self._device.set(cv.CV_CAP_PROP_FRAME_HEIGHT, resolution[1])
+      self._device.set(cv.CAP_PROP_FRAME_WIDTH, resolution[0])
+      self._device.set(cv.CAP_PROP_FRAME_HEIGHT, resolution[1])
 
   def DisableCamera(self):
     if self._device:
