@@ -159,6 +159,12 @@ class RegionField(dict):
   def is_legacy_style(self):
     return self._is_legacy_style
 
+  def GetRegionNames(self):
+    """Returns the material that is used to initialize this instance."""
+    if self.is_legacy_style:
+      return None
+    return [self[idx]['region'] for idx in range(1, len(self))]
+
 
 class _RegionFieldYAMLTagHandler(_HWIDV3YAMLTagHandler):
   """Metaclass for registering the !region_field YAML tag.
@@ -184,12 +190,10 @@ class _RegionFieldYAMLTagHandler(_HWIDV3YAMLTagHandler):
     Otherwise when we dump the RegionField to yaml, it should output like:
         !region_field [us, gb]
     """
-    if data.is_legacy_style:
-      return dumper.represent_scalar(cls.YAML_TAG, _YAML_DUMMY_STRING)
-
-    # 0 is a reserved field for {region: None}. Ignore it.
-    region_list = [node['region'] for node in data.values()[1:]]
-    return dumper.represent_sequence(cls.YAML_TAG, region_list)
+    region_names = data.GetRegionNames()
+    if region_names is not None:
+      return dumper.represent_sequence(cls.YAML_TAG, region_names)
+    return dumper.represent_scalar(cls.YAML_TAG, _YAML_DUMMY_STRING)
 
 
 class _RegionComponent(dict):
