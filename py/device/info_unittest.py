@@ -11,12 +11,10 @@
 import logging
 import unittest
 
-import mox
+import mock
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import info as info_module
-from cros.factory.device import partitions
-from cros.factory.device import types
 
 MOCK_RELEASE_IMAGE_LSB_RELEASE = ('GOOGLE_RELEASE=5264.0.0\n'
                                   'CHROMEOS_RELEASE_TRACK=canary-channel\n')
@@ -25,25 +23,11 @@ MOCK_RELEASE_IMAGE_LSB_RELEASE = ('GOOGLE_RELEASE=5264.0.0\n'
 class SystemInfoTest(unittest.TestCase):
   """Unittest for SystemInfo."""
 
-  def setUp(self):
-    self.mox = mox.Mox()
-
-  def tearDown(self):
-    self.mox.UnsetStubs()
-
-  def runTest(self):
-
-    dut = self.mox.CreateMock(types.DeviceInterface)
-    dut.partitions = self.mox.CreateMock(partitions.Partitions)
-    dut.partitions.RELEASE_ROOTFS = self.mox.CreateMock(
-        partitions.DiskPartition)
+  @mock.patch('cros.factory.device.info.MountDeviceAndReadFile')
+  def runTest(self, mount_and_read_mock):
+    dut = mock.MagicMock()
     dut.partitions.RELEASE_ROOTFS.path = '/dev/sda5'
-    self.mox.StubOutWithMock(info_module, 'MountDeviceAndReadFile')
-    info_module.MountDeviceAndReadFile(
-        '/dev/sda5', '/etc/lsb-release', dut=dut).AndReturn(
-            MOCK_RELEASE_IMAGE_LSB_RELEASE)
-
-    self.mox.ReplayAll()
+    mount_and_read_mock.return_value = MOCK_RELEASE_IMAGE_LSB_RELEASE
 
     info = info_module.SystemInfo(dut)
     self.assertEqual('5264.0.0', info.release_image_version)
@@ -52,7 +36,8 @@ class SystemInfoTest(unittest.TestCase):
     self.assertEqual('5264.0.0', info.release_image_version)
     self.assertEqual('canary-channel', info.release_image_channel)
 
-    self.mox.VerifyAll()
+    mount_and_read_mock.assert_called_once_with('/dev/sda5', '/etc/lsb-release',
+                                                dut=dut)
 
 if __name__ == '__main__':
   logging.basicConfig(
