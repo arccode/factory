@@ -8,8 +8,7 @@ It converts DP/HDMI to UVC camera (a USB3 device).
 """
 
 try:
-  import cv
-  import cv2
+  import cv2 as cv
 except ImportError:
   pass
 
@@ -69,7 +68,7 @@ class PlanktonHDMI(object):
       self._uvc_video_index = self.FindUVCVideoDeviceIndex(self._uvc_video_port)
 
     logging.debug('Create VideoCapture(index=%r)', self._uvc_video_index)
-    self._camera_device = cv2.VideoCapture(self._uvc_video_index)
+    self._camera_device = cv.VideoCapture(self._uvc_video_index)
     if not self._camera_device.isOpened():
       raise PlanktonHDMIException(
           'Unable to open video capture interface: %r' % self._uvc_video_index)
@@ -77,9 +76,9 @@ class PlanktonHDMI(object):
     # Set camera capture to HD resolution.
     logging.debug('Set capture resolution')
     x_res, y_res = self._capture_resolution
-    self._camera_device.set(cv.CV_CAP_PROP_FPS, self._capture_fps)
-    self._camera_device.set(cv.CV_CAP_PROP_FRAME_WIDTH, x_res)
-    self._camera_device.set(cv.CV_CAP_PROP_FRAME_HEIGHT, y_res)
+    self._camera_device.set(cv.CAP_PROP_FPS, self._capture_fps)
+    self._camera_device.set(cv.CAP_PROP_FRAME_WIDTH, x_res)
+    self._camera_device.set(cv.CAP_PROP_FRAME_HEIGHT, y_res)
 
     # Open read stream thread. Plankton-HDMI needs to be an active streaming
     # camera device if we need to regard it as an auto-detectable external
@@ -137,7 +136,7 @@ class PlanktonHDMI(object):
     """
     captured_image = self.Capture()
     logging.info('Image captured. Writing to file %s', file_path)
-    cv2.imwrite(file_path, captured_image)
+    cv.imwrite(file_path, captured_image)
     return True
 
   def CaptureCompare(self, golden_image_path, threshold, return_corr=False):
@@ -158,8 +157,8 @@ class PlanktonHDMI(object):
     logging.debug('Comparing captured image w/ golden image: %s',
                   golden_image_path)
 
-    golden_image = cv2.imread(golden_image_path)
-    golden_image = cv2.resize(golden_image, self._capture_resolution)
+    golden_image = cv.imread(golden_image_path)
+    golden_image = cv.resize(golden_image, self._capture_resolution)
 
     # Compare two images.
     # Retries are added to avoid false alarms when getting flaky images
@@ -253,9 +252,9 @@ class PlanktonHDMI(object):
     corr_values = []
     result = True
     for color_channel in xrange(3):  # b, g, r channels
-      hist1 = cv2.calcHist([image1], [color_channel], None, [256], [0, 255])
-      hist2 = cv2.calcHist([image2], [color_channel], None, [256], [0, 255])
-      corr = cv2.compareHist(hist1, hist2, method=cv.CV_COMP_CORREL)
+      hist1 = cv.calcHist([image1], [color_channel], None, [256], [0, 255])
+      hist2 = cv.calcHist([image2], [color_channel], None, [256], [0, 255])
+      corr = cv.compareHist(hist1, hist2, method=cv.HISTCMP_CORREL)
       corr_values.append(corr)
       if corr < threshold[color_channel]:
         result = False
