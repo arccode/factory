@@ -20,7 +20,6 @@ import time
 import unittest
 
 import mock
-import mox
 from six import assertRaisesRegex
 from six.moves import xrange
 
@@ -417,26 +416,22 @@ class AtomicCopyTest(unittest.TestCase):
     # dest is overwritten.
     self.assertEqual('source', file_utils.ReadLines(dest_path)[0])
 
-  def testCopyFailed(self):
-    m = mox.Mox()
-    m.StubOutWithMock(shutil, 'copy2')
-
+  @mock.patch('shutil.copy2')
+  def testCopyFailed(self, copy2_mock):
     source_path = os.path.join(self.temp_dir, 'source')
     dest_path = os.path.join(self.temp_dir, 'dest')
 
     file_utils.WriteFile(source_path, 'source')
     file_utils.WriteFile(dest_path, 'dest')
 
-    shutil.copy2(source_path, mox.IgnoreArg()).AndRaise(IOError)
-    m.ReplayAll()
+    copy2_mock.side_effect = IOError
 
     self.assertRaises(IOError, file_utils.AtomicCopy, source_path,
                       dest_path)
     # Verify that dest file is unchanged after a failed copy.
     self.assertEqual('dest', file_utils.ReadLines(dest_path)[0])
 
-    m.UnsetStubs()
-    m.VerifyAll()
+    copy2_mock.assert_called_once_with(source_path, mock.ANY)
 
 
 class FileHashTest(unittest.TestCase):
