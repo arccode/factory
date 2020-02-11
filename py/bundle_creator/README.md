@@ -23,6 +23,7 @@ To deploy the app engine, run:
 
 ```
 (factory-repo)$ ./deploy/bundle_creator.sh deploy-appengine ${deployment_type}
+(factory-repo)$ ./deploy/bundle_creator.sh deploy-appengine-legancy ${deployment_type}
 ```
 
 To deploy the compute engine, run:

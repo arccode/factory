@@ -1,0 +1,4 @@
+queue:
+- name: bundle-tasks-result
+  mode: push
+  rate: 1/s

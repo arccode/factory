@@ -1,0 +1,22 @@
+runtime: python27
+service: cloud-mail
+api_version: 1
+threadsafe: yes
+
+handlers:
+- url: /_ah/stubby/.*
+  script: rpc.stubby.app
+
+manual_scaling:
+  instances: 1
+
+# Google App Engine limits application deployments to 10,000 uploaded files per
+# version. The skip_files section allows us to skip virtual environment files
+# to meet this requirement. The first 5 are the default regular expressions to
+# skip.
+skip_files:
+- ^(.*/)?#.*#$
+- ^(.*/)?.*~$
+- ^(.*/)?.*\.py[co]$
+- ^(.*/)?.*/RCS/.*$
+- ^(.*/)?\..*$

@@ -24,9 +24,15 @@ def ResponseResult(tasks, response_proto):
                    'task': {
                        'app_engine_http_request': {
                            'http_method': 'POST',
+                           'app_engine_routing': {
+                               'service': 'cloud-mail',
+                           },
                            'relative_uri': RESPONSE_CALLBACK,
                            'body': base64.b64encode(
-                               response_proto.SerializeToString())}}}
+                               response_proto.SerializeToString())
+                       }
+                   }
+               }
               ).execute()
 
 

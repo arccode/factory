@@ -39,7 +39,7 @@ build_docker() {
   fi
   add_temp "${temp_dir}"
 
-  rsync -avr --exclude="app_engine" --exclude="proto" "${SOURCE_DIR}"/* \
+  rsync -avr --exclude="app_engine*" --exclude="proto" "${SOURCE_DIR}"/* \
       "${temp_dir}"
   cp "${FACTORY_PRIVATE_DIR}/config/bundle_creator/service_account.json" \
       "${temp_dir}/docker"
@@ -71,7 +71,11 @@ deploy_appengine() {
   fi
   add_temp "${temp_dir}"
 
-  cp -r "${SOURCE_DIR}"/app_engine/* "${temp_dir}"
+  local factory_dir="${temp_dir}/cros/factory"
+  local package_dir="${factory_dir}/bundle_creator"
+  mkdir -p "${package_dir}"
+
+  cp -r "${SOURCE_DIR}/app_engine" "${package_dir}"
   local allowed_array=$(printf ", \'%s\'" "${ALLOWED_LOAS_PEER_USERNAMES[@]}")
   allowed_array="${allowed_array:3:$((${#allowed_array}-4))}"
   # Fill in env vars in rpc/config.py
@@ -81,11 +85,34 @@ deploy_appengine() {
     ALLOWED_LOAS_PEER_USERNAMES="${allowed_array}" \
     NOREPLY_EMAIL="${NOREPLY_EMAIL}" \
     FAILURE_EMAIL="${FAILURE_EMAIL}" \
-    envsubst < "${SOURCE_DIR}/app_engine/rpc/config.py" \
+    envsubst < "${SOURCE_DIR}/app_engine/config.py" \
+    > "${package_dir}/app_engine/config.py"
+  mv "${package_dir}/app_engine/app.yaml" "${temp_dir}"
+  mv "${package_dir}/app_engine/requirements.txt" "${temp_dir}"
+
+  protoc --python_out="${package_dir}/app_engine" -I "${SOURCE_DIR}/proto" \
+      "${SOURCE_DIR}/proto/factorybundle.proto"
+
+  gcloud --project="${GCLOUD_PROJECT}" app deploy \
+    "${temp_dir}/app.yaml" --quiet
+}
+
+deploy_appengine_legacy() {
+  load_config_by_deployment_type "$1"
+  local temp_dir=$(mktemp -d)
+  if [ ! -d "${temp_dir}" ]; then
+    die "Failed to create a temporary placeholder for files to deploy."
+  fi
+  add_temp "${temp_dir}"
+
+  cp -r "${SOURCE_DIR}"/app_engine_legacy/* "${temp_dir}"
+  # Fill in env vars in rpc/config.py
+  env BUNDLE_BUCKET="${BUNDLE_BUCKET}" \
+    NOREPLY_EMAIL="${NOREPLY_EMAIL}" \
+    FAILURE_EMAIL="${FAILURE_EMAIL}" \
+    envsubst < "${SOURCE_DIR}/app_engine_legacy/rpc/config.py" \
     > "${temp_dir}/rpc/config.py"
 
-  mkdir "${temp_dir}/lib"
-  pip install -I -r "${temp_dir}/requirements.txt" -t "${temp_dir}/lib"
   protoc -o "${temp_dir}/rpc/factorybundle.proto.def" \
     -I "${SOURCE_DIR}" "${SOURCE_DIR}/proto/factorybundle.proto"
 
@@ -145,6 +172,10 @@ commands:
       Deploy the code and configuration under
       \`factory/py/bundle_creator/app_engine\` to App Engine.
 
+  $0 deploy-appengine-legacy [prod|staging]
+      Deploy the code and configuration under
+      \`factory/py/bundle_creator/app_engine_legacy\` to App Engine.
+
   $0 create-vm [prod|staging]
       Create a compute engine instance which use the docker image deployed by
       the command \`deploy-docker\`.
@@ -169,6 +200,9 @@ main() {
         ;;
       deploy-appengine)
         deploy_appengine "$2"
+        ;;
+      deploy-appengine-legacy)
+        deploy_appengine_legacy "$2"
         ;;
       create-vm)
         create_vm "$2"
