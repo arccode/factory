@@ -13,11 +13,10 @@ import subprocess
 import tempfile
 import unittest
 
-import mox
+import mock
 from six import assertRaisesRegex
 
 from cros.factory.device import device_utils
-from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils
 
@@ -32,18 +31,9 @@ SPU:          0          0          0          0   Spurious interrupts"""
 class GetInterruptsTest(unittest.TestCase):
   """Unit tests for GetInterrupts."""
 
-  def setUp(self):
-    self.mox = mox.Mox()
-
-  def tearDown(self):
-    self.mox.VerifyAll()
-    self.mox.UnsetStubs()
-
-  def testGetCount(self):
-    self.mox.StubOutWithMock(file_utils, 'ReadLines')
-    file_utils.ReadLines('/proc/interrupts').AndReturn(
-        SAMPLE_INTERRUPTS.split('\n'))
-    self.mox.ReplayAll()
+  @mock.patch('cros.factory.utils.file_utils.ReadLines')
+  def testGetCount(self, read_lines_mock):
+    read_lines_mock.return_value = SAMPLE_INTERRUPTS.split('\n')
 
     ints = sys_utils.GetInterrupts()
     # Digit-type interrupts:
@@ -54,14 +44,17 @@ class GetInterruptsTest(unittest.TestCase):
     self.assertEqual(ints['NMI'], 612 + 631 + 661 + 401)
     self.assertEqual(ints['SPU'], 0)
 
-  def testFailToReadProcInterrupts(self):
-    self.mox.StubOutWithMock(file_utils, 'ReadLines')
-    file_utils.ReadLines('/proc/interrupts').AndReturn(None)
-    self.mox.ReplayAll()
+    read_lines_mock.assert_called_once_with('/proc/interrupts')
+
+  @mock.patch('cros.factory.utils.file_utils.ReadLines')
+  def testFailToReadProcInterrupts(self, read_lines_mock):
+    read_lines_mock.return_value = None
 
     assertRaisesRegex(
         self, OSError, r'Unable to read /proc/interrupts',
         sys_utils.GetInterrupts)
+
+    read_lines_mock.assert_called_once_with('/proc/interrupts')
 
 
 SAMPLE_INPUT_DEVICES = """I: Bus=0019 Vendor=0000 Product=0005 Version=0000
@@ -153,41 +146,30 @@ B: SW=140
 class GetI2CBusTest(unittest.TestCase):
   """Unit tests for GetI2CBus."""
 
-  def setUp(self):
-    self.mox = mox.Mox()
-
-  def tearDown(self):
-    self.mox.VerifyAll()
-    self.mox.UnsetStubs()
-
-  def testTouchpad(self):
-    self.mox.StubOutWithMock(file_utils, 'ReadFile')
-    file_utils.ReadFile('/proc/bus/input/devices').AndReturn(
-        SAMPLE_INPUT_DEVICES)
-    self.mox.ReplayAll()
+  @mock.patch('cros.factory.utils.file_utils.ReadFile')
+  def testTouchpad(self, read_file_mock):
+    read_file_mock.return_value = SAMPLE_INPUT_DEVICES
     self.assertEqual(sys_utils.GetI2CBus(['Dummy device name',
                                           'Atmel maXTouch Touchpad']), 0)
+    read_file_mock.assert_called_once_with('/proc/bus/input/devices')
 
-  def testTouchscreen(self):
-    self.mox.StubOutWithMock(file_utils, 'ReadFile')
-    file_utils.ReadFile('/proc/bus/input/devices').AndReturn(
-        SAMPLE_INPUT_DEVICES)
-    self.mox.ReplayAll()
+  @mock.patch('cros.factory.utils.file_utils.ReadFile')
+  def testTouchscreen(self, read_file_mock):
+    read_file_mock.return_value = SAMPLE_INPUT_DEVICES
     self.assertEqual(sys_utils.GetI2CBus(['Atmel maXTouch Touchscreen']), 3)
+    read_file_mock.assert_called_once_with('/proc/bus/input/devices')
 
-  def testNoMatch(self):
-    self.mox.StubOutWithMock(file_utils, 'ReadFile')
-    file_utils.ReadFile('/proc/bus/input/devices').AndReturn(
-        SAMPLE_INPUT_DEVICES)
-    self.mox.ReplayAll()
+  @mock.patch('cros.factory.utils.file_utils.ReadFile')
+  def testNoMatch(self, read_file_mock):
+    read_file_mock.return_value = SAMPLE_INPUT_DEVICES
     self.assertEqual(sys_utils.GetI2CBus(['Unknown Device']), None)
+    read_file_mock.assert_called_once_with('/proc/bus/input/devices')
 
-  def testNonI2CDevice(self):
-    self.mox.StubOutWithMock(file_utils, 'ReadFile')
-    file_utils.ReadFile('/proc/bus/input/devices').AndReturn(
-        SAMPLE_INPUT_DEVICES)
-    self.mox.ReplayAll()
+  @mock.patch('cros.factory.utils.file_utils.ReadFile')
+  def testNonI2CDevice(self, read_file_mock):
+    read_file_mock.return_value = SAMPLE_INPUT_DEVICES
     self.assertEqual(sys_utils.GetI2CBus(['Lid Switch']), None)
+    read_file_mock.assert_called_once_with('/proc/bus/input/devices')
 
 
 SAMPLE_PARTITIONS = """major minor  #blocks  name
@@ -216,22 +198,15 @@ SAMPLE_PARTITIONS = """major minor  #blocks  name
 class GetPartitionsTest(unittest.TestCase):
   """Unit tests for GetInterrupts."""
 
-  def setUp(self):
-    self.mox = mox.Mox()
-
-  def tearDown(self):
-    self.mox.VerifyAll()
-    self.mox.UnsetStubs()
-
-  def testGetPartitions(self):
-    self.mox.StubOutWithMock(file_utils, 'ReadLines')
-    file_utils.ReadLines('/proc/partitions').AndReturn(
-        SAMPLE_PARTITIONS.split('\n'))
-    self.mox.ReplayAll()
+  @mock.patch('cros.factory.utils.file_utils.ReadLines')
+  def testGetPartitions(self, read_lines_mock):
+    read_lines_mock.return_value = SAMPLE_PARTITIONS.split('\n')
 
     partitions = sys_utils.GetPartitions()
     for p in partitions:
       print(unicode(p))
+
+    read_lines_mock.assert_called_once_with('/proc/partitions')
 
 
 class MountDeviceAndReadFileTest(unittest.TestCase):
@@ -310,13 +285,6 @@ class MountDeviceAndReadFileTest(unittest.TestCase):
 
 
 class TestLogMessagesTest(unittest.TestCase):
-
-  def setUp(self):
-    self.mox = mox.Mox()
-
-  def tearDown(self):
-    self.mox.VerifyAll()
-    self.mox.UnsetStubs()
 
   def testGetVarLogMessages(self):
     with tempfile.NamedTemporaryFile('w') as f:
@@ -399,56 +367,60 @@ class TestLogMessagesTest(unittest.TestCase):
           sys_utils.GetVarLogMessagesBeforeReboot(path=f.name, lines=1))
 
 class TestGetRunningFactoryPythonArchivePath(unittest.TestCase):
-  def setUp(self):
-    self.mox = mox.Mox()
 
-  def tearDown(self):
-    self.mox.UnsetStubs()
+  def setUp(self):
+    self.path_exists_mapping = {}
+    self.original_path_exists_func = os.path.exists
+
+  def path_exists_mock_side_effect(self, *args, **unused_kwargs):
+    if args[0] in self.path_exists_mapping:
+      return self.path_exists_mapping[args[0]]
+    return self.original_path_exists_func(args[0])
 
   def testNotInPythonArchive(self):
     sys_utils.__file__ = '/path/to/factory/utils/sys_utils.py'
-    self.mox.StubOutWithMock(sys_utils.os.path, 'exists')
-    sys_utils.os.path.exists(sys_utils.__file__).AndReturn(True)
+    self.path_exists_mapping = {
+        sys_utils.__file__: True
+    }
 
-    self.mox.ReplayAll()
-    self.assertEqual(sys_utils.GetRunningFactoryPythonArchivePath(), None)
-
-    self.mox.VerifyAll()
+    with mock.patch('os.path.exists') as path_exists_mock:
+      path_exists_mock.side_effect = self.path_exists_mock_side_effect
+      self.assertEqual(sys_utils.GetRunningFactoryPythonArchivePath(), None)
 
   def testInPythonFactoryArchive(self):
     factory_par = '/path/to/factory.par'
     sys_utils.__file__ = '/path/to/factory.par/cros/factory/utils/sys_utils.py'
-    self.mox.StubOutWithMock(sys_utils.os.path, 'exists')
-    sys_utils.os.path.exists(sys_utils.__file__).AndReturn(False)
-    sys_utils.os.path.exists(factory_par).AndReturn(True)
+    self.path_exists_mapping = {
+        sys_utils.__file__: False,
+        factory_par: True
+    }
 
-    self.mox.ReplayAll()
-    self.assertEqual(sys_utils.GetRunningFactoryPythonArchivePath(),
-                     factory_par)
-
-    self.mox.VerifyAll()
+    with mock.patch('os.path.exists') as path_exists_mock:
+      path_exists_mock.side_effect = self.path_exists_mock_side_effect
+      self.assertEqual(sys_utils.GetRunningFactoryPythonArchivePath(),
+                       factory_par)
 
   def testNonExistingFileWithoutCrosFactoryPrefix(self):
     sys_utils.__file__ = '/path/to/nowhere/utils/sys_utils.py'
-    self.mox.StubOutWithMock(sys_utils.os.path, 'exists')
-    sys_utils.os.path.exists(sys_utils.__file__).AndReturn(False)
+    self.path_exists_mapping = {
+        sys_utils.__file__: False
+    }
 
-    self.mox.ReplayAll()
-    self.assertEqual(sys_utils.GetRunningFactoryPythonArchivePath(), None)
-
-    self.mox.VerifyAll()
+    with mock.patch('os.path.exists') as path_exists_mock:
+      path_exists_mock.side_effect = self.path_exists_mock_side_effect
+      self.assertEqual(sys_utils.GetRunningFactoryPythonArchivePath(), None)
 
   def testNonExistingFactoryPythonArchive(self):
     factory_par = '/path/to/factory.par'
     sys_utils.__file__ = '/path/to/factory.par/cros/factory/utils/sys_utils.py'
-    self.mox.StubOutWithMock(sys_utils.os.path, 'exists')
-    sys_utils.os.path.exists(sys_utils.__file__).AndReturn(False)
-    sys_utils.os.path.exists(factory_par).AndReturn(False)
+    self.path_exists_mapping = {
+        sys_utils.__file__: False,
+        factory_par: False
+    }
 
-    self.mox.ReplayAll()
-    self.assertEqual(sys_utils.GetRunningFactoryPythonArchivePath(), None)
-
-    self.mox.VerifyAll()
+    with mock.patch('os.path.exists') as path_exists_mock:
+      path_exists_mock.side_effect = self.path_exists_mock_side_effect
+      self.assertEqual(sys_utils.GetRunningFactoryPythonArchivePath(), None)
 
 
 if __name__ == '__main__':
