@@ -6,7 +6,7 @@
 
 import unittest
 
-import mox
+import mock
 from six import iteritems
 
 from cros.factory.utils import service_utils
@@ -16,11 +16,7 @@ from cros.factory.utils.service_utils import Status
 class ServiceManagerTest(unittest.TestCase):
 
   def setUp(self):
-    self.mox = mox.Mox()
-    self.dut = self.mox.CreateMockAnything()
-
-  def tearDown(self):
-    self.mox.UnsetStubs()
+    self.dut = mock.MagicMock()
 
   def testParseServiceStatus(self):
     self.assertEqual(
@@ -32,100 +28,93 @@ class ServiceManagerTest(unittest.TestCase):
         service_utils.ParseServiceStatus('service: Unknown instance:'),
         Status.UNKNOWN)
 
-  def testGetService(self):
-    self.mox.StubOutWithMock(service_utils, 'SetServiceStatus')
-
-    service_utils.SetServiceStatus(
-        'started', None, self.dut).AndReturn(Status.START)
-    service_utils.SetServiceStatus(
-        'raise_exception', None, self.dut).AndRaise(Exception('message'))
-
-    self.mox.ReplayAll()
+  @mock.patch('cros.factory.utils.service_utils.SetServiceStatus')
+  def testGetService(self, set_status_mock):
+    set_status_mock.return_value = Status.START
     self.assertEqual(service_utils.GetServiceStatus('started', dut=self.dut),
                      Status.START)
+    set_status_mock.assert_called_once_with('started', None, self.dut)
 
+    set_status_mock.reset_mock()
+    set_status_mock.side_effect = Exception('message')
     with self.assertRaises(Exception):
       service_utils.GetServiceStatus('raise_exception', dut=self.dut)
+    set_status_mock.assert_called_once_with('raise_exception', None, self.dut)
 
-    self.mox.VerifyAll()
-
-  def testGetServiceIgnoreFailure(self):
-    self.mox.StubOutWithMock(service_utils, 'SetServiceStatus')
-    service_utils.SetServiceStatus(
-        'raise_exception', None, self.dut).AndRaise(Exception('message'))
-
-    self.mox.ReplayAll()
-
+  @mock.patch('cros.factory.utils.service_utils.SetServiceStatus')
+  def testGetServiceIgnoreFailure(self, set_status_mock):
+    set_status_mock.side_effect = Exception('message')
     self.assertEqual(
         service_utils.GetServiceStatus('raise_exception', True, dut=self.dut),
         None)
+    set_status_mock.assert_called_once_with('raise_exception', None, self.dut)
 
-    self.mox.VerifyAll()
-
-  def testSetServiceStatusWithoutDUT(self):
-    self.mox.StubOutWithMock(service_utils, 'CheckOutput')
-    self.mox.StubOutWithMock(service_utils, 'ParseServiceStatus')
-
+  @mock.patch('cros.factory.utils.service_utils.CheckOutput')
+  @mock.patch('cros.factory.utils.service_utils.ParseServiceStatus')
+  def testSetServiceStatusWithoutDUT(self, parse_status_mock,
+                                     check_output_mock):
     commands = {
         None: 'status',
         Status.START: 'start',
         Status.STOP: 'stop'}
 
     for status, cmd in iteritems(commands):
+      check_output_mock.reset_mock()
+      parse_status_mock.reset_mock()
+
       output = cmd + '_result'
-      service_utils.CheckOutput([cmd, 'service']).AndReturn(output)
-      service_utils.ParseServiceStatus(output).AndReturn(status)
+      check_output_mock.return_value = output
+      parse_status_mock.return_value = status
 
-    self.mox.ReplayAll()
-
-    for status in commands:
       self.assertEqual(service_utils.SetServiceStatus('service', status),
                        status)
+      check_output_mock.assert_called_once_with([cmd, 'service'])
+      parse_status_mock.assert_called_once_with(output)
 
-    self.mox.VerifyAll()
-
-  def testSetServiceStatusWithDUT(self):
-    self.mox.StubOutWithMock(service_utils, 'CheckOutput')
-    self.mox.StubOutWithMock(service_utils, 'ParseServiceStatus')
-
+  @mock.patch('cros.factory.utils.service_utils.ParseServiceStatus')
+  def testSetServiceStatusWithDUT(self, parse_status_mock):
     commands = {
         None: 'status',
         Status.START: 'start',
         Status.STOP: 'stop'}
 
     for status, cmd in iteritems(commands):
+      self.dut.CheckOutput.reset_mock()
+      parse_status_mock.reset_mock()
+
       output = cmd + '_result'
-      self.dut.CheckOutput([cmd, 'service']).AndReturn(output)
-      service_utils.ParseServiceStatus(output).AndReturn(status)
+      self.dut.CheckOutput.return_value = output
+      parse_status_mock.return_value = status
 
-    self.mox.ReplayAll()
-
-    for status in commands:
       self.assertEqual(
           service_utils.SetServiceStatus('service', status, self.dut), status)
+      self.dut.CheckOutput.assert_called_once_with([cmd, 'service'])
+      parse_status_mock.assert_called_once_with(output)
 
-    self.mox.VerifyAll()
+  @mock.patch('cros.factory.utils.service_utils.SetServiceStatus')
+  @mock.patch('cros.factory.utils.service_utils.GetServiceStatus')
+  def testServiceManager(self, get_status_mock, set_status_mock):
+    get_status_return_mapping = {
+        'stopped_and_enable': Status.STOP,
+        'started_and_enable': Status.START,
+        'stopped_and_disable': Status.STOP,
+        'started_and_disable': Status.START
+    }
+    set_status_return_mapping = {
+        ('stopped_and_enable', Status.START): Status.START,
+        ('started_and_disable', Status.STOP): Status.STOP,
+        ('stopped_and_enable', Status.STOP): Status.STOP,
+        ('started_and_disable', Status.START): Status.START
+    }
 
-  def testServiceManager(self):
-    self.mox.StubOutWithMock(service_utils, 'GetServiceStatus')
-    self.mox.StubOutWithMock(service_utils, 'SetServiceStatus')
-    service_utils.GetServiceStatus('stopped_and_enable',
-                                   dut=self.dut).AndReturn(Status.STOP)
-    service_utils.SetServiceStatus(
-        'stopped_and_enable', Status.START, self.dut).AndReturn(Status.START)
-    service_utils.GetServiceStatus('started_and_enable',
-                                   dut=self.dut).AndReturn(Status.START)
-    service_utils.GetServiceStatus('stopped_and_disable',
-                                   dut=self.dut).AndReturn(Status.STOP)
-    service_utils.GetServiceStatus('started_and_disable',
-                                   dut=self.dut).AndReturn(Status.START)
-    service_utils.SetServiceStatus(
-        'started_and_disable', Status.STOP, self.dut).AndReturn(Status.STOP)
-    service_utils.SetServiceStatus(
-        'stopped_and_enable', Status.STOP, self.dut).AndReturn(Status.STOP)
-    service_utils.SetServiceStatus(
-        'started_and_disable', Status.START, self.dut).AndReturn(Status.START)
-    self.mox.ReplayAll()
+    def GetStatusSideEffect(*args, **unused_kwargs):
+      return get_status_return_mapping[args[0]]
+
+    def SetStatusSideEffect(*args, **unused_kwargs):
+      return set_status_return_mapping[(args[0], args[1])]
+
+    get_status_mock.side_effect = GetStatusSideEffect
+    set_status_mock.side_effect = SetStatusSideEffect
 
     sm = service_utils.ServiceManager(dut=self.dut)
     sm.SetupServices(
@@ -133,7 +122,11 @@ class ServiceManagerTest(unittest.TestCase):
         disable_services=['stopped_and_disable', 'started_and_disable'])
     sm.RestoreServices()
 
-    self.mox.VerifyAll()
+    for service in get_status_return_mapping:
+      get_status_mock.assert_any_call(service, dut=self.dut)
+
+    for (service, status) in set_status_return_mapping:
+      set_status_mock.assert_any_call(service, status, self.dut)
 
 
 if __name__ == '__main__':
