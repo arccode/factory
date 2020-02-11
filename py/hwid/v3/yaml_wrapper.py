@@ -83,7 +83,7 @@ def RestrictedBoolConstructor(self, node):
     return True
   if value.lower() == 'false':
     return False
-  return self.construct_scalar(node)
+  return self.construct_yaml_str(node)
 
 add_constructor(u'tag:yaml.org,2002:bool', RestrictedBoolConstructor)
 

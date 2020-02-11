@@ -7,6 +7,7 @@ import os
 import unittest
 
 import factory_common  # pylint: disable=unused-import
+from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import rule
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.test.l10n import regions
@@ -34,6 +35,14 @@ class ParseRegionFieldUnittest(unittest.TestCase):
         1: {'region': 'us'},
         2: {'region': 'gb'},
         3: {'region': 'no'}})
+
+    fields = database.EncodedFields(decoded)
+    self.assertFalse(fields.region_field_legacy_info['foo'])
+    self.assertEqual(fields.GetField('foo'), {
+        0: {'region': []},
+        1: {'region': ['us']},
+        2: {'region': ['gb']},
+        3: {'region': ['no']}})
 
   def testDumpRegionField(self):
     doc = 'foo: !region_field [us, gb]'
