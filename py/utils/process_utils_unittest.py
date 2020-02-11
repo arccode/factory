@@ -15,7 +15,7 @@ import sys
 import time
 import unittest
 
-import mox
+import mock
 
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -186,40 +186,41 @@ class SpawnOutputTest(unittest.TestCase):
 
 class TerminateOrKillProcessTest(unittest.TestCase):
 
-  def setUp(self):
-    self.m = mox.Mox()
-    self.m.StubOutWithMock(logging, 'info')
-
-  def tearDown(self):
-    self.m.UnsetStubs()
-
-  def testTerminateProcess(self):
+  @mock.patch('logging.info')
+  def testTerminateProcess(self, logging_info_mock):
     process = Spawn(['sleep', '10'])
-    logging.info('Stopping process %d', process.pid)
-    logging.info('Process %d stopped', process.pid)
-    self.m.ReplayAll()
-    TerminateOrKillProcess(process, 2)
-    self.m.VerifyAll()
+    logging_info_calls = [
+        mock.call('Stopping process %d', process.pid),
+        mock.call('Process %d stopped', process.pid)]
 
-  def testKillProcess(self):
+    TerminateOrKillProcess(process, 2)
+
+    self.assertEqual(logging_info_mock.call_args_list, logging_info_calls)
+
+  @mock.patch('logging.info')
+  def testKillProcess(self, logging_info_mock):
     process = Spawn('trap true SIGTERM SIGKILL; sleep 10', shell=True)
     # Allow the process some time to execute and setup signal trap.
     time.sleep(1)
-    logging.info('Stopping process %d', process.pid)
-    logging.info('Sending SIGKILL to process %d', process.pid)
-    logging.info('Process %d stopped', process.pid)
-    self.m.ReplayAll()
-    TerminateOrKillProcess(process, 2)
-    self.m.VerifyAll()
+    logging_info_calls = [
+        mock.call('Stopping process %d', process.pid),
+        mock.call('Sending SIGKILL to process %d', process.pid),
+        mock.call('Process %d stopped', process.pid)]
 
-  def testTerminateSudoProcess(self):
+    TerminateOrKillProcess(process, 2)
+
+    self.assertEqual(logging_info_mock.call_args_list, logging_info_calls)
+
+  @mock.patch('logging.info')
+  def testTerminateSudoProcess(self, logging_info_mock):
     process = Spawn(['sleep', '10'], sudo=True)
-    logging.info('Stopping process %d', process.pid)
-    spawn_msg = 'Running command: "kill %d"' % process.pid
-    logging.info(spawn_msg)
-    self.m.ReplayAll()
+    logging_info_calls = [
+        mock.call('Stopping process %d', process.pid),
+        mock.call('Running command: "kill %d"' % process.pid)]
+
     TerminateOrKillProcess(process, sudo=True)
-    self.m.VerifyAll()
+
+    self.assertEqual(logging_info_mock.call_args_list, logging_info_calls)
 
 
 class TestRedirectStdout(unittest.TestCase):
