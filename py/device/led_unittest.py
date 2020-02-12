@@ -10,7 +10,7 @@ from __future__ import print_function
 
 import unittest
 
-import mox
+import mock
 from six import assertRaisesRegex
 
 from cros.factory.device import device_types
@@ -21,11 +21,7 @@ class LEDTest(unittest.TestCase):
   """Unittest for LED."""
 
   def setUp(self):
-    self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(device_types.DeviceBoard)
-
-  def tearDown(self):
-    self.mox.UnsetStubs()
+    self.board = mock.Mock(device_types.DeviceBoard)
 
   def testSetColor(self):
     msg = ('Brightness range for LED 0:\n'
@@ -35,58 +31,68 @@ class LEDTest(unittest.TestCase):
            '\tyellow\t: 0x1\n'
            '\twhite\t: 0x0\n'
            '\tamber\t: 0x0\n')
-    self.board.CallOutput(['ectool', 'led', 'battery', 'query']).AndReturn(msg)
-
-    self.board.CheckCall(['ectool', 'led', 'battery', 'red=100'])
-    self.board.CheckCall(['ectool', 'led', 'battery', 'yellow=1'])
-    self.board.CheckCall(['ectool', 'led', 'battery', 'green=255'])
-
-    self.board.CheckCall(['ectool', 'led', 'battery', 'green=255'])
-    self.board.CheckCall(['ectool', 'led', 'battery', 'green=128'])
-    self.board.CheckCall(['ectool', 'led', 'battery', 'green=0'])
-
-    self.board.CheckCall(['ectool', 'led', 'battery', 'auto'])
-    # brightness does not take effect.
-    self.board.CheckCall(['ectool', 'led', 'battery', 'auto'])
-
-    # Turn off battery LED.
-    self.board.CheckCall(['ectool', 'led', 'battery', 'off'])
-    self.board.CheckCall(['ectool', 'led', 'battery', 'off'])
-
-    self.mox.ReplayAll()
+    self.board.CallOutput.return_value = msg
 
     led = led_module.LED(self.board)
+    self.board.CallOutput.assert_called_with(
+        ['ectool', 'led', 'battery', 'query'])
 
     led.SetColor(led.Color.RED, brightness=None)
+    self.board.CheckCall.assert_called_with(
+        ['ectool', 'led', 'battery', 'red=100'])
+
     led.SetColor(led.Color.YELLOW, brightness=None)
+    self.board.CheckCall.assert_called_with(
+        ['ectool', 'led', 'battery', 'yellow=1'])
+
     led.SetColor(led.Color.GREEN, brightness=None)
+    self.board.CheckCall.assert_called_with(
+        ['ectool', 'led', 'battery', 'green=255'])
 
     led.SetColor(led.Color.GREEN, brightness=100)
+    self.board.CheckCall.assert_called_with(
+        ['ectool', 'led', 'battery', 'green=255'])
+
     led.SetColor(led.Color.GREEN, brightness=50)
+    self.board.CheckCall.assert_called_with(
+        ['ectool', 'led', 'battery', 'green=128'])
+
     led.SetColor(led.Color.GREEN, brightness=0)
+    self.board.CheckCall.assert_called_with(
+        ['ectool', 'led', 'battery', 'green=0'])
 
     led.SetColor(led.Color.AUTO)
+    self.board.CheckCall.assert_called_with(
+        ['ectool', 'led', 'battery', 'auto'])
+
     led.SetColor(led.Color.AUTO, brightness=0)
+    self.board.CheckCall.assert_called_with(
+        ['ectool', 'led', 'battery', 'auto'])
 
     led.SetColor(led.Color.OFF)
+    self.board.CheckCall.assert_called_with(['ectool', 'led', 'battery', 'off'])
+
     led.SetColor(led.Color.OFF, brightness=100)
-    self.mox.VerifyAll()
+    self.board.CheckCall.assert_called_with(['ectool', 'led', 'battery', 'off'])
 
   def testMultipleLEDs(self):
-    self.board.CallOutput(['ectool', 'led', 'left', 'query']).InAnyOrder()
-    self.board.CallOutput(['ectool', 'led', 'right', 'query']).InAnyOrder()
-    self.board.CheckCall(['ectool', 'led', 'left', 'auto']).InAnyOrder()
-    self.board.CheckCall(['ectool', 'led', 'right', 'auto']).InAnyOrder()
-    self.board.CheckCall(['ectool', 'led', 'left', 'green=255'])
-    self.mox.ReplayAll()
+    self.board.CallOutput.return_value = ''
+
     led = led_module.LeftRightLED(self.board)
+    self.board.CallOutput.assert_any_call(['ectool', 'led', 'left', 'query'])
+    self.board.CallOutput.assert_any_call(['ectool', 'led', 'right', 'query'])
+
     led.SetColor(led.Color.AUTO)
+    self.board.CheckCall.assert_any_call(['ectool', 'led', 'left', 'auto'])
+    self.board.CheckCall.assert_any_call(['ectool', 'led', 'right', 'auto'])
+
     led.SetColor(led.Color.GREEN, led_name='left')
-    self.mox.VerifyAll()
+    self.board.CheckCall.assert_called_with(
+        ['ectool', 'led', 'left', 'green=255'])
 
   def testSetColorInvalidInput(self):
-    self.board.CallOutput(['ectool', 'led', 'battery', 'query'])
-    self.mox.ReplayAll()
+    self.board.CallOutput.return_value = ''
+
     led = led_module.LED(self.board)
     with assertRaisesRegex(self, ValueError, 'Invalid color'):
       led.SetColor('invalid color')
@@ -97,15 +103,15 @@ class LEDTest(unittest.TestCase):
       led.SetColor(led.Color.RED, brightness=255)
 
   def testSetColorUnsupportedBoard(self):
-    self.board.CallOutput(['ectool', 'led', 'battery', 'query'])
+    self.board.CallOutput.return_value = ''
     msg = 'EC returned error 99'
-    self.board.CheckCall(['ectool', 'led', 'battery', 'red=255']).AndRaise(
-        led_module.LED.Error(msg))
-    self.mox.ReplayAll()
+    self.board.CheckCall.side_effect = led_module.LED.Error(msg)
+
     led = led_module.LED(self.board)
+    self.board.CallOutput.assert_called_once_with(
+        ['ectool', 'led', 'battery', 'query'])
     with assertRaisesRegex(self, device_types.DeviceException, msg):
       led.SetColor(led.Color.RED, brightness=None)
-    self.mox.VerifyAll()
 
 
 if __name__ == '__main__':
