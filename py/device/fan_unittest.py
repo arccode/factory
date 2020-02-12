@@ -12,7 +12,7 @@ from __future__ import print_function
 import os.path
 import unittest
 
-import mox
+import mock
 
 from cros.factory.device import device_types
 from cros.factory.device import fan
@@ -22,35 +22,31 @@ class ECToolFanControlTest(unittest.TestCase):
   """Unittest for ECToolFanControl."""
 
   def setUp(self):
-    self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(device_types.DeviceBoard)
+    self.board = mock.Mock(device_types.DeviceBoard)
     self.fan = fan.ECToolFanControl(self.board)
-
-  def tearDown(self):
-    self.mox.UnsetStubs()
 
   def testGetFanRPM(self):
     _MOCK_FAN_RPM = 'Fan 0 RPM: 2974\n'
-    self.board.CallOutput(['ectool', 'pwmgetfanrpm']).AndReturn(_MOCK_FAN_RPM)
-    self.mox.ReplayAll()
+    self.board.CallOutput.return_value = _MOCK_FAN_RPM
+
     self.assertEqual(self.fan.GetFanRPM(), [2974])
-    self.mox.VerifyAll()
+    self.board.CallOutput.assert_called_once_with(['ectool', 'pwmgetfanrpm'])
 
   def testSetFanRPM(self):
-    self.board.CheckCall(['ectool', 'pwmsetfanrpm', '12345'])
-    self.board.CheckCall(['ectool', 'pwmsetfanrpm', '1', '12345'])
-    self.mox.ReplayAll()
     self.fan.SetFanRPM(12345)
+    self.board.CheckCall.assert_called_with(
+        ['ectool', 'pwmsetfanrpm', '12345'])
+
     self.fan.SetFanRPM(12345, fan_id=1)
-    self.mox.VerifyAll()
+    self.board.CheckCall.assert_called_with(
+        ['ectool', 'pwmsetfanrpm', '1', '12345'])
 
   def testSetFanRPMAuto(self):
-    self.board.CheckCall(['ectool', 'autofanctrl'])
-    self.board.CheckCall(['ectool', 'autofanctrl', '1'])
-    self.mox.ReplayAll()
     self.fan.SetFanRPM(self.fan.AUTO)
+    self.board.CheckCall.assert_called_with(['ectool', 'autofanctrl'])
+
     self.fan.SetFanRPM(self.fan.AUTO, fan_id=1)
-    self.mox.VerifyAll()
+    self.board.CheckCall.assert_called_with(['ectool', 'autofanctrl', '1'])
 
 
 class SysFSFanControlTest(unittest.TestCase):
@@ -59,34 +55,30 @@ class SysFSFanControlTest(unittest.TestCase):
   _FANS_INFO = [{'fan_id': None, 'path': '/sys/fan'}]
 
   def setUp(self):
-    self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(device_types.DeviceBoard)
+    self.board = mock.Mock(device_types.DeviceBoard)
     self.board.path = os.path
-
-  def tearDown(self):
-    self.mox.UnsetStubs()
 
   def testGetFanRPM(self):
     fan_obj = fan.SysFSFanControl(self.board, fans_info=self._FANS_INFO)
-    self.board.ReadFile('/sys/fan/fan1_input').AndReturn('5566')
-    self.mox.ReplayAll()
+    self.board.ReadFile.return_value = '5566'
+
     self.assertEqual(fan_obj.GetFanRPM(), [5566])
-    self.mox.VerifyAll()
+    self.board.ReadFile.assert_called_once_with('/sys/fan/fan1_input')
 
   def testSetFanRPMAuto(self):
     fan_obj = fan.SysFSFanControl(self.board, fans_info=self._FANS_INFO)
-    self.board.WriteFile('/sys/fan/pwm1_enable', '2')
-    self.mox.ReplayAll()
+
     fan_obj.SetFanRPM(fan_obj.AUTO)
-    self.mox.VerifyAll()
+    self.board.WriteFile.assert_called_once_with('/sys/fan/pwm1_enable', '2')
 
   def testSetFanRPM(self):
     fan_obj = fan.SysFSFanControl(self.board, fans_info=self._FANS_INFO)
-    self.board.WriteFile('/sys/fan/pwm1_enable', '1')
-    self.board.WriteFile('/sys/fan/pwm1', '5566')
-    self.mox.ReplayAll()
+    write_file_calls = [
+        mock.call('/sys/fan/pwm1_enable', '1'),
+        mock.call('/sys/fan/pwm1', '5566')]
+
     fan_obj.SetFanRPM(5566)
-    self.mox.VerifyAll()
+    self.assertEqual(self.board.WriteFile.call_args_list, write_file_calls)
 
 
 if __name__ == '__main__':
