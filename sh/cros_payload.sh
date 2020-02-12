@@ -37,6 +37,8 @@ description"
 # A variable for the file name of tracking temp files.
 TMP_OBJECTS=""
 
+DIR_CROS_PAYLOADS="dev_image/opt/cros_payloads"
+
 # Cleans up any temporary files we have created.
 # Usage: cleanup
 cleanup() {
@@ -868,13 +870,13 @@ install_add_stub() {
   case "${component}" in
     toolkit)
       stub_prefix="0_"
-      cmd="bash ./${component} -- --yes"
+      cmd="sh ./${component} -- --yes"
       ;;
     hwid)
       stub_prefix="1_"
       # Current HWID bundle expects parent folder to exist before being able to
       # extract HWID files so we have to mkdir first.
-      cmd="mkdir -p /usr/local/factory; bash ./${component}"
+      cmd="mkdir -p /usr/local/factory; sh ./${component}"
       ;;
     toolkit_config)
       stub_prefix="1_"
@@ -953,7 +955,7 @@ install_payload() {
     register_tmp_object "${mount_point}"
     ${SUDO} mount "${dev}" "${mount_point}"
 
-    local out_dir="${mount_point}/cros_payloads"
+    local out_dir="${mount_point}/${DIR_CROS_PAYLOADS}"
     mkdir -p "${out_dir}"
     output="${out_dir}/${payload}.${file_ext}"
     output_display="${dev}!${output#${mount_point}}"

@@ -16,6 +16,7 @@ from __future__ import print_function
 import argparse
 import contextlib
 import copy
+import errno
 import glob
 import inspect
 import json
@@ -76,7 +77,7 @@ PREFLASH_DEFAULT_BOARD = 'preflash'
 PATH_PREFLASH_PAYLOADS_JSON = os.path.join(
     'dev_image', 'etc', '%s.json' % PREFLASH_DEFAULT_BOARD)
 # The name of folder must match /etc/init/cros-payloads.conf.
-DIR_CROS_PAYLOADS = 'cros_payloads'
+DIR_CROS_PAYLOADS = os.path.join('dev_image', 'opt', 'cros_payloads')
 # Relative path of RMA image metadata.
 CROS_RMA_METADATA = 'rma_metadata.json'
 PATH_CROS_RMA_METADATA = os.path.join(DIR_CROS_PAYLOADS, CROS_RMA_METADATA)
@@ -344,6 +345,15 @@ class SysUtils(object):
     finally:
       os.umask(old_umask)
 
+  @staticmethod
+  def CreateDirectories(dir_name, mode=MODE_NEW_DIR):
+    with SysUtils.SetUmask(0o022):
+      try:
+        os.makedirs(dir_name, mode)
+      except OSError as exc:
+        # Need to catch ourself before python 3.2 exist_ok.
+        if exc.errno != errno.EEXIST or not os.path.isdir(dir_name):
+          raise
 
 # Short cut to SysUtils.
 Shell = SysUtils.Shell
@@ -609,8 +619,10 @@ class CrosPayloadUtils(object):
     # Move the added payloads to stateful partition.
     print('Moving payloads (%dM)...' % (new_payloads_size // MEGABYTE))
     with Partition(image, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
+      dest_dir = os.path.dirname(os.path.join(stateful, DIR_CROS_PAYLOADS))
       Sudo(['chown', '-R', 'root:root', new_payloads_dir])
-      Sudo(['rsync', '-a', new_payloads_dir, stateful])
+      Sudo(['mkdir', '-p', dest_dir, '-m', '%o' % MODE_NEW_DIR])
+      Sudo(['rsync', '-a', new_payloads_dir, dest_dir])
 
     # Shrink stateful partition.
     if remain_size > new_payloads_size + 2 * margin:
@@ -622,8 +634,7 @@ class CrosPayloadUtils(object):
   def TempPayloadsDir(cls):
     with SysUtils.TempDirectory() as temp_dir:
       temp_payloads_dir = os.path.join(temp_dir, DIR_CROS_PAYLOADS)
-      with SysUtils.SetUmask(0o022):
-        os.mkdir(temp_payloads_dir, MODE_NEW_DIR)
+      SysUtils.CreateDirectories(temp_payloads_dir)
       yield temp_payloads_dir
 
 
@@ -1553,11 +1564,6 @@ class ChromeOSFactoryBundle(object):
     self._lsb_factory = part.CopyFile(PATH_LSB_FACTORY, self._temp_dir)
     return self._lsb_factory
 
-  @staticmethod
-  def CreateDirectory(dir_name, mode=MODE_NEW_DIR):
-    with SysUtils.SetUmask(0o022):
-      os.mkdir(dir_name, mode)
-
   def CreatePayloads(self, target_dir):
     """Builds cros_payload contents into target_dir.
 
@@ -1732,7 +1738,7 @@ class ChromeOSFactoryBundle(object):
     """
     new_size = self.InitDiskImage(output, sectors, sector_size, verbose)
     payloads_dir = os.path.join(self._temp_dir, DIR_CROS_PAYLOADS)
-    self.CreateDirectory(payloads_dir)
+    SysUtils.CreateDirectories(payloads_dir)
     self.CreatePayloads(payloads_dir)
     json_path = CrosPayloadUtils.GetJSONPath(payloads_dir, self.board)
 
@@ -1786,13 +1792,13 @@ class ChromeOSFactoryBundle(object):
       block_size: the size of block (sector) in bytes in output image.
     """
     # It is possible to enlarge the disk by calculating sizes of all input
-    # files, create cros_payloads folder in the disk image file, to minimize
+    # files, create DIR_CROS_PAYLOADS folder in the disk image file, to minimize
     # execution time. However, that implies we have to shrink disk image later
     # (due to gz), and run build_payloads using root, which are all not easy.
     # As a result, here we want to create payloads in temporary folder then copy
     # into disk image.
     payloads_dir = os.path.join(self._temp_dir, DIR_CROS_PAYLOADS)
-    self.CreateDirectory(payloads_dir)
+    SysUtils.CreateDirectories(payloads_dir)
     json_path = CrosPayloadUtils.GetJSONPath(payloads_dir, self.board)
     if src_payloads_dir:
       print('Copying payloads ...')
@@ -1849,12 +1855,13 @@ class ChromeOSFactoryBundle(object):
     with Partition(output, PART_CROS_STATEFUL).Mount(rw=True) as stateful:
       print('Moving payload files to disk image...')
       new_name = os.path.join(stateful, DIR_CROS_PAYLOADS)
+      new_dir = os.path.dirname(new_name)
       if os.path.exists(new_name):
         raise RuntimeError('Factory shim already contains %s - already RMA?' %
                            DIR_CROS_PAYLOADS)
       Sudo(['chown', '-R', 'root:root', payloads_dir])
-      Sudo(['mv', '-f', payloads_dir, stateful])
-
+      Sudo(['mkdir', '-p', new_name, '-m', '%o' % MODE_NEW_DIR])
+      Sudo(['mv', '-f', payloads_dir, new_dir])
       _WriteRMAMetadata(stateful,
                         board_list=[RMAImageBoardInfo(board=self.board)])
 
@@ -1928,10 +1935,10 @@ class ChromeOSFactoryBundle(object):
 
     A (universal) RMA image should have factory_install kernel and rootfs in
     partition (2n, 2n+1), and resources in stateful partition (partition 1)
-    cros_payloads directory.  This function extracts some stateful partitions
-    using a user defined function `select_func` and then generate the output
-    image by merging the resource files to partition 1 and cloning kernel/rootfs
-    partitions of each selected boards.
+    DIR_CROS_PAYLOADS directory.  This function extracts some stateful
+    partitions using a user defined function `select_func` and then generate the
+    output image by merging the resource files to partition 1 and cloning
+    kernel/rootfs partitions of each selected boards.
 
     The layout of the merged output image:
        1 stateful  [cros_payloads from all rmaimgX]
@@ -2322,7 +2329,7 @@ class ChromeOSFactoryBundle(object):
     bundle_name = '%s_%s_%s' % (self.board, timestamp, phase)
     output_name = 'factory_bundle_%s.tar.bz2' % bundle_name
     bundle_dir = os.path.join(self._temp_dir, 'bundle')
-    self.CreateDirectory(bundle_dir)
+    SysUtils.CreateDirectories(bundle_dir)
 
     try:
       part = Partition(self.release_image, PART_CROS_ROOTFS_A)
@@ -2416,7 +2423,7 @@ class ChromeOSFactoryBundle(object):
     if self.setup_dir:
       AddResource('setup', os.path.join(self.setup_dir, '*'))
     if self.netboot:
-      self.CreateDirectory(os.path.join(bundle_dir, 'netboot'))
+      SysUtils.CreateDirectories(os.path.join(bundle_dir, 'netboot'))
       for netboot_firmware_image in glob.glob(
           os.path.join(self.netboot, 'image*.net.bin')):
         self.CreateNetbootFirmware(

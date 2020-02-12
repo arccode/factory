@@ -202,7 +202,7 @@ class ImageToolRMATest(unittest.TestCase):
     image_tool.Partition('rma1.bin', 1).CopyFile('tag', 'tag.1')
     image_tool.Partition('rma1.bin', 3).CopyFile('tag', 'tag.3')
     image_tool.Partition('rma1.bin', 1).CopyFile(
-        'cros_payloads/test1.json', self.temp_dir)
+        os.path.join(image_tool.DIR_CROS_PAYLOADS, 'test1.json'), self.temp_dir)
     image_tool.Partition('rma1.bin', 1).CopyFile(
         image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
     self.assertEqual(open('tag.1').read().strip(), 'factory_shim')
@@ -259,7 +259,7 @@ class ImageToolRMATest(unittest.TestCase):
     image_tool.Partition('rma12.bin', 5).CopyFile('tag', 'tag.5')
     self.assertEqual(open('tag.5').read().strip(), 'factory_shim_3')
     image_tool.Partition('rma12.bin', 1).CopyFile(
-        'cros_payloads/test2.json', self.temp_dir)
+        os.path.join(image_tool.DIR_CROS_PAYLOADS, 'test2.json'), self.temp_dir)
     with open('test2.json') as f:
       data = json.load(f)
     self.assertEqual(data['toolkit']['version'], u'Toolkit Version 2.0')

@@ -38,7 +38,7 @@ STATEFUL_PARTITION_PATH = '/mnt/stateful_partition/'
 
 WIPE_MARK_FILE = 'wipe_mark_file'
 
-CRX_CACHE_PAYLOAD_NAME = 'cros_payloads/release_image.crx_cache'
+CRX_CACHE_PAYLOAD_NAME = 'dev_image/opt/cros_payloads/release_image.crx_cache'
 CRX_CACHE_TAR_PATH = '/tmp/crx_cache.tar'
 
 class WipeError(Exception):
