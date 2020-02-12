@@ -8,7 +8,7 @@
 
 import unittest
 
-import mox
+import mock
 
 from cros.factory.device import device_types
 from cros.factory.device import partitions
@@ -18,35 +18,28 @@ class PartitionsTest(unittest.TestCase):
   """Unit test for Partition class."""
 
   def setUp(self):
-    self.mox = mox.Mox()
-    self.dut = self.mox.CreateMock(device_types.DeviceInterface)
-    self.disk1 = partitions.Partitions(self.dut)
-    self.disk2 = partitions.Partitions(self.dut)
-    self.mox.StubOutWithMock(self.dut, 'CheckOutput')
+    self.dut = mock.Mock(device_types.DeviceInterface)
 
   def testGetPartition(self):
+    disk = partitions.Partitions(self.dut)
+    self.dut.CheckOutput.return_value = '/dev/mmcblk0\n'
 
-    disk1 = self.disk1
-    disk2 = self.disk2
+    self.assertEqual('/dev/mmcblk0p1', disk.STATEFUL.path)
+    self.assertEqual('/dev/mmcblk0p2', disk.FACTORY_KERNEL.path)
+    self.assertEqual('/dev/mmcblk0p3', disk.FACTORY_ROOTFS.path)
+    self.assertEqual('/dev/mmcblk0p4', disk.RELEASE_KERNEL.path)
+    self.assertEqual('/dev/mmcblk0p5', disk.RELEASE_ROOTFS.path)
+    self.dut.CheckOutput.assert_called_with(['rootdev', '-s', '-d'])
 
-    self.dut.CheckOutput(['rootdev', '-s', '-d']).AndReturn('/dev/mmcblk0\n')
-    self.dut.CheckOutput(['rootdev', '-s', '-d']).AndReturn('/dev/sda\n')
+    disk = partitions.Partitions(self.dut)
+    self.dut.CheckOutput.return_value = '/dev/sda\n'
 
-    self.mox.ReplayAll()
-
-    self.assertEqual('/dev/mmcblk0p1', disk1.STATEFUL.path)
-    self.assertEqual('/dev/mmcblk0p2', disk1.FACTORY_KERNEL.path)
-    self.assertEqual('/dev/mmcblk0p3', disk1.FACTORY_ROOTFS.path)
-    self.assertEqual('/dev/mmcblk0p4', disk1.RELEASE_KERNEL.path)
-    self.assertEqual('/dev/mmcblk0p5', disk1.RELEASE_ROOTFS.path)
-
-    self.assertEqual('/dev/sda1', disk2.STATEFUL.path)
-    self.assertEqual('/dev/sda2', disk2.FACTORY_KERNEL.path)
-    self.assertEqual('/dev/sda3', disk2.FACTORY_ROOTFS.path)
-    self.assertEqual('/dev/sda4', disk2.RELEASE_KERNEL.path)
-    self.assertEqual('/dev/sda5', disk2.RELEASE_ROOTFS.path)
-
-    self.mox.VerifyAll()
+    self.assertEqual('/dev/sda1', disk.STATEFUL.path)
+    self.assertEqual('/dev/sda2', disk.FACTORY_KERNEL.path)
+    self.assertEqual('/dev/sda3', disk.FACTORY_ROOTFS.path)
+    self.assertEqual('/dev/sda4', disk.RELEASE_KERNEL.path)
+    self.assertEqual('/dev/sda5', disk.RELEASE_ROOTFS.path)
+    self.dut.CheckOutput.assert_called_with(['rootdev', '-s', '-d'])
 
 if __name__ == '__main__':
   unittest.main()
