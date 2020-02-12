@@ -5,96 +5,86 @@
 
 import unittest
 
-import mox
-from six import iteritems
+import mock
 
 from cros.factory.device import device_utils
-from cros.factory.gooftool.vpd import VPDTool
 
 
 class VPDTest(unittest.TestCase):
   # pylint: disable=no-value-for-parameter
 
   def setUp(self):
-    self.mox = mox.Mox()
     self.dut = device_utils.CreateDUTInterface()
     self.vpd = self.dut.vpd
 
-    self.mox.StubOutWithMock(VPDTool, 'GetAllData')
-    self.mox.StubOutWithMock(VPDTool, 'GetValue')
-    self.mox.StubOutWithMock(VPDTool, 'UpdateData')
+  @mock.patch('cros.factory.gooftool.vpd.VPDTool.GetAllData')
+  @mock.patch('cros.factory.gooftool.vpd.VPDTool.GetValue')
+  def testGet(self, get_value_mock, get_all_data_mock):
+    def GetValueSideEffect(*args, **unused_kwargs):
+      if args[0] == 'a':
+        return 'aa'
+      elif args[0] == 'b':
+        return 123
+      return None
 
-  def MockVPDGetAll(self, partition, data):
-    """Mocks reading all data in vpd
+    get_all_data_mock.return_value = dict(a='b', foo='bar', empty='')
+    get_value_mock.side_effect = GetValueSideEffect
 
-    This function is used in every vpd Update test cases because
-    we read data from vpd before writing it to avoid duplicate writing.
-    Args:
-      partition: 'RW_VPD' or 'RO_VPD'.
-      data: A dict to be read.
-    """
-    self.dut.CallOutput(['vpd', '-i', partition, '-l']).AndReturn(
-        '\n'.join(('"%s"="%s"' % (k, v) for k, v in iteritems(data))))
-
-  def tearDown(self):
-    self.mox.UnsetStubs()
-
-  def testGet(self):
-    VPDTool.GetAllData(
-        partition='RW_VPD').AndReturn(dict(a='b', foo='bar', empty=''))
-    VPDTool.GetValue(
-        'a', default_value=None, partition='RO_VPD').AndReturn('aa')
-    VPDTool.GetValue('b', default_value=123, partition='RO_VPD').AndReturn(123)
-
-    self.mox.ReplayAll()
     self.assertEqual(dict(a='b', foo='bar', empty=''), self.vpd.rw.GetAll())
-    self.assertEqual('aa', self.vpd.ro.get('a'))
-    self.assertEqual(123, self.vpd.ro.get('b', 123))
-    self.mox.VerifyAll()
+    get_all_data_mock.assert_called_once_with(partition='RW_VPD')
 
-  def testUpdate(self):
-    VPDTool.GetAllData(
-        partition='RW_VPD').AndReturn(dict(a='b', foo='bar', empty=''))
-    VPDTool.UpdateData(dict(w='x', y='z', foo=None), partition='RW_VPD')
-    self.mox.ReplayAll()
+    self.assertEqual('aa', self.vpd.ro.get('a'))
+    get_value_mock.assert_called_with('a', default_value=None,
+                                      partition='RO_VPD')
+
+    self.assertEqual(123, self.vpd.ro.get('b', 123))
+    get_value_mock.assert_called_with('b', default_value=123,
+                                      partition='RO_VPD')
+
+  @mock.patch('cros.factory.gooftool.vpd.VPDTool.GetAllData')
+  @mock.patch('cros.factory.gooftool.vpd.VPDTool.UpdateData')
+  def testUpdate(self, update_data_mock, get_all_data_mock):
+    get_all_data_mock.return_value = dict(a='b', foo='bar', empty='')
 
     self.vpd.rw.Update(dict(w='x', y='z', foo=None))
-    self.mox.VerifyAll()
+    get_all_data_mock.assert_called_once_with(partition='RW_VPD')
+    update_data_mock.assert_called_once_with(dict(w='x', y='z', foo=None),
+                                             partition='RW_VPD')
 
-  def testUpdatePartial(self):
+  @mock.patch('cros.factory.gooftool.vpd.VPDTool.GetAllData')
+  @mock.patch('cros.factory.gooftool.vpd.VPDTool.UpdateData')
+  def testUpdatePartial(self, update_data_mock, get_all_data_mock):
     # "a"="b" is already in vpd, update will skip it.
     # "unset" is already not in vpd, update will skip it.
-    VPDTool.GetAllData(
-        partition='RW_VPD').AndReturn(dict(a='b', foo='bar', empty=''))
-    VPDTool.UpdateData(dict(w='x', y='z'), partition='RW_VPD')
-    self.mox.ReplayAll()
+    get_all_data_mock.return_value = dict(a='b', foo='bar', empty='')
 
     self.vpd.rw.Update(dict(a='b', w='x', y='z', unset=None))
-    self.mox.VerifyAll()
+    get_all_data_mock.assert_called_once_with(partition='RW_VPD')
+    update_data_mock.assert_called_once_with(dict(w='x', y='z'),
+                                             partition='RW_VPD')
 
-  def testDeleteOne(self):
-    VPDTool.UpdateData(dict(a=None), partition='RW_VPD')
-    self.mox.ReplayAll()
-
+  @mock.patch('cros.factory.gooftool.vpd.VPDTool.UpdateData')
+  def testDeleteOne(self, update_data_mock):
     self.vpd.rw.Delete('a')
-    self.mox.VerifyAll()
+    update_data_mock.assert_called_once_with(dict(a=None), partition='RW_VPD')
 
-  def testDeleteTwo(self):
-    VPDTool.UpdateData(dict(a=None, b=None), partition='RW_VPD')
-    self.mox.ReplayAll()
-
+  @mock.patch('cros.factory.gooftool.vpd.VPDTool.UpdateData')
+  def testDeleteTwo(self, update_data_mock):
     self.vpd.rw.Delete('a', 'b')
-    self.mox.VerifyAll()
+    update_data_mock.assert_called_once_with(dict(a=None, b=None),
+                                             partition='RW_VPD')
 
-  def testGetPartition(self):
-    VPDTool.GetAllData(partition='RW_VPD').AndReturn(dict(foo='bar'))
-    VPDTool.GetAllData(partition='RO_VPD').AndReturn(dict(bar='foo'))
-    self.mox.ReplayAll()
+  @mock.patch('cros.factory.gooftool.vpd.VPDTool.GetAllData')
+  def testGetPartition(self, get_all_data_mock):
+    get_all_data_mock.return_value = dict(foo='bar')
     self.assertEqual(dict(foo='bar'),
                      self.vpd.GetPartition('rw').GetAll())
+    get_all_data_mock.assert_called_with(partition='RW_VPD')
+
+    get_all_data_mock.return_value = dict(bar='foo')
     self.assertEqual(dict(bar='foo'),
                      self.vpd.GetPartition('ro').GetAll())
-    self.mox.VerifyAll()
+    get_all_data_mock.assert_called_with(partition='RO_VPD')
 
 if __name__ == '__main__':
   unittest.main()
