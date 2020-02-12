@@ -12,7 +12,7 @@ from __future__ import print_function
 import textwrap
 import unittest
 
-import mox
+import mock
 
 import factory_common  # pylint: disable=unused-import
 from cros.factory.device import ec
@@ -29,34 +29,27 @@ class EmbeddedControllerTest(unittest.TestCase):
       Build info:    samus_v1.7.688-22cf733 2015-07-16 11:31:57 @build291-m2""")
 
   def setUp(self):
-    self.mox = mox.Mox()
-    self.board = self.mox.CreateMock(types.DeviceBoard)
+    self.board = mock.Mock(types.DeviceBoard)
     self.ec = ec.EmbeddedController(self.board)
 
-  def tearDown(self):
-    self.mox.UnsetStubs()
-
   def testGetECVersion(self):
-    self.board.CallOutput(
-        ['mosys', 'ec', 'info', '-s', 'fw_version']).AndReturn(
-            'link_v1.1.227-3b0e131')
-    self.mox.ReplayAll()
+    self.board.CallOutput.return_value = 'link_v1.1.227-3b0e131'
+
     self.assertEqual(self.ec.GetECVersion(), 'link_v1.1.227-3b0e131')
-    self.mox.VerifyAll()
+    self.board.CallOutput.assert_called_once_with(
+        ['mosys', 'ec', 'info', '-s', 'fw_version'])
 
   def testGetROVersion(self):
-    self.board.CallOutput(['ectool', 'version']).AndReturn(
-        self._EC_VERSION_OUTPUT)
-    self.mox.ReplayAll()
+    self.board.CallOutput.return_value = self._EC_VERSION_OUTPUT
+
     self.assertEqual(self.ec.GetROVersion(), 'samus_v1.7.576-9648e39')
-    self.mox.VerifyAll()
+    self.board.CallOutput.assert_called_once_with(['ectool', 'version'])
 
   def testGetRWVersion(self):
-    self.board.CallOutput(['ectool', 'version']).AndReturn(
-        self._EC_VERSION_OUTPUT)
-    self.mox.ReplayAll()
+    self.board.CallOutput.return_value = self._EC_VERSION_OUTPUT
+
     self.assertEqual(self.ec.GetRWVersion(), 'samus_v1.7.688-22cf733')
-    self.mox.VerifyAll()
+    self.board.CallOutput.assert_called_once_with(['ectool', 'version'])
 
   def testGetECConsoleLog(self):
     _MOCK_LOG = '\n'.join([
@@ -64,10 +57,10 @@ class EmbeddedControllerTest(unittest.TestCase):
         '[hostcmd 0x60]',
         '[charge state idle -> charge]'])
 
-    self.board.CallOutput(['ectool', 'console']).AndReturn(_MOCK_LOG)
-    self.mox.ReplayAll()
+    self.board.CallOutput.return_value = _MOCK_LOG
+
     self.assertEqual(self.ec.GetECConsoleLog(), _MOCK_LOG)
-    self.mox.VerifyAll()
+    self.board.CallOutput.assert_called_once_with(['ectool', 'console'])
 
   def testGetECPanicInfo(self):
     _MOCK_PANIC = '\n'.join([
@@ -78,38 +71,35 @@ class EmbeddedControllerTest(unittest.TestCase):
         'r8 :00000000 r9 :20001ab0 r10:00000000 r11:00000000',
         'r12:00000000 sp :20000fe0 lr :0800023d pc :08000242'])
 
-    self.board.CallOutput(['ectool', 'panicinfo']).AndReturn(_MOCK_PANIC)
-    self.mox.ReplayAll()
+    self.board.CallOutput.return_value = _MOCK_PANIC
+
     self.assertEqual(self.ec.GetECPanicInfo(), _MOCK_PANIC)
-    self.mox.VerifyAll()
+    self.board.CallOutput.assert_called_once_with(['ectool', 'panicinfo'])
 
   def testProbeEC(self):
-    self.board.CallOutput(['ectool', 'hello']).AndReturn('EC says hello')
-    self.mox.ReplayAll()
+    self.board.CallOutput.return_value = 'EC says hello'
+
     self.ec.ProbeEC()
-    self.mox.VerifyAll()
+    self.board.CallOutput.assert_called_once_with(['ectool', 'hello'])
 
   def testProbeECFail(self):
-    self.board.CallOutput(['ectool', 'hello']).AndReturn(
-        'EC dooes not say hello')
-    self.mox.ReplayAll()
-    self.assertRaises(self.ec.Error, self.ec.ProbeEC)
-    self.mox.VerifyAll()
+    self.board.CallOutput.return_value = 'EC dooes not say hello'
 
+    self.assertRaises(self.ec.Error, self.ec.ProbeEC)
+    self.board.CallOutput.assert_called_once_with(['ectool', 'hello'])
 
   def testI2CRead(self):
     _MOCK_I2C_READ = 'Read from I2C port 0 at 0x12 offset 0x12 = 0xf912'
-    self.board.CheckOutput(
-        ['ectool', 'i2cread', '16', '0', '18', '18']).AndReturn(_MOCK_I2C_READ)
-    self.mox.ReplayAll()
+    self.board.CheckOutput.return_value = _MOCK_I2C_READ
+
     self.assertEqual(self.ec.I2CRead(0, 0x12, 0x12), 0xf912)
-    self.mox.VerifyAll()
+    self.board.CheckOutput.assert_called_once_with(
+        ['ectool', 'i2cread', '16', '0', '18', '18'])
 
   def testI2CWrite(self):
-    self.board.CheckCall(['ectool', 'i2cwrite', '16', '0', '18', '18', '0'])
-    self.mox.ReplayAll()
     self.ec.I2CWrite(0, 0x12, 0x12, 0)
-    self.mox.VerifyAll()
+    self.board.CheckCall.assert_called_once_with(
+        ['ectool', 'i2cwrite', '16', '0', '18', '18', '0'])
 
 if __name__ == '__main__':
   unittest.main()
