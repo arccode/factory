@@ -868,13 +868,13 @@ install_add_stub() {
   case "${component}" in
     toolkit)
       stub_prefix="0_"
-      cmd="sh ./${component} -- --yes"
+      cmd="bash ./${component} -- --yes"
       ;;
     hwid)
       stub_prefix="1_"
       # Current HWID bundle expects parent folder to exist before being able to
       # extract HWID files so we have to mkdir first.
-      cmd="mkdir -p /usr/local/factory; sh ./${component}"
+      cmd="mkdir -p /usr/local/factory; bash ./${component}"
       ;;
     toolkit_config)
       stub_prefix="1_"
