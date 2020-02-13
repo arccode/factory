@@ -6,25 +6,18 @@
 
 import unittest
 
-import mox
-from mox import IgnoreArg
+import mock
 import serial
 
 from cros.factory.test.pytests import serial_echo
-from cros.factory.test.utils import serial_utils
 from cros.factory.utils.arg_utils import Args
 
 
 class SerialEchoUnittest(unittest.TestCase):
 
   def setUp(self):
-    self._mox = mox.Mox()
     self._test_case = None
     self._test_result = None
-
-  def tearDown(self):
-    self._mox.UnsetStubs()
-    self._mox.VerifyAll()
 
   def SetUpTestCase(self, args, test_case_name='testEcho'):
     self._test_case = serial_echo.SerialEchoTest(test_case_name)
@@ -66,94 +59,92 @@ class SerialEchoUnittest(unittest.TestCase):
     self.HasError('Invalid dargs send_recv',
                   'Unable to detect invalid send_recv.')
 
-  def testDefault(self):
-    self._mox.StubOutWithMock(serial_utils, 'OpenSerial')
-    mock_serial = self._mox.CreateMock(serial.Serial)
-    serial_utils.OpenSerial(port=IgnoreArg()).AndReturn(mock_serial)
+  @mock.patch('cros.factory.test.utils.serial_utils.OpenSerial')
+  def testDefault(self, open_serial_mock):
+    mock_serial = mock.Mock(serial.Serial)
+    mock_serial.write.return_value = 1
+    mock_serial.read.return_value = chr(0xE1)
 
-    mock_serial.write(chr(0xE0)).AndReturn(1)
-    mock_serial.read().AndReturn(chr(0xE1))
-    mock_serial.close()
-
-    self._mox.ReplayAll()
+    open_serial_mock.return_value = mock_serial
 
     self.SetUpTestCase({})
     self.RunTestCase()
     self.assertEqual(0, len(self._test_result.errors))
     self.assertEqual(0, len(self._test_result.failures))
+    open_serial_mock.assert_called_once_with(port=mock.ANY)
+    mock_serial.write.assert_called_once_with(chr(0xE0))
+    mock_serial.read.assert_called_once_with()
+    mock_serial.close.assert_called_once_with()
 
-  def testOpenSerialFailed(self):
-    self._mox.StubOutWithMock(serial_utils, 'OpenSerial')
-    serial_utils.OpenSerial(port=IgnoreArg()).AndRaise(
-        serial.SerialException('Failed to open serial port'))
-    self._mox.ReplayAll()
+  @mock.patch('cros.factory.test.utils.serial_utils.OpenSerial')
+  def testOpenSerialFailed(self, open_serial_mock):
+    open_serial_mock.side_effect = serial.SerialException(
+        'Failed to open serial port')
 
     self.SetUpTestCase({})
     self.RunTestCase()
     self.HasError('Failed to open serial port',
                   'Unable to handle OpenSerial exception.')
 
-  def testWriteFail(self):
-    self._mox.StubOutWithMock(serial_utils, 'OpenSerial')
-    mock_serial = self._mox.CreateMock(serial.Serial)
-    serial_utils.OpenSerial(port=IgnoreArg()).AndReturn(mock_serial)
+  @mock.patch('cros.factory.test.utils.serial_utils.OpenSerial')
+  def testWriteFail(self, open_serial_mock):
+    mock_serial = mock.Mock(serial.Serial)
+    mock_serial.write.return_value = 0
 
-    mock_serial.write(chr(0xE0)).AndReturn(0)
-    mock_serial.close()
-
-    self._mox.ReplayAll()
+    open_serial_mock.return_value = mock_serial
 
     self.SetUpTestCase({})
     self.RunTestCase()
     self.HasFailure('Write fail',
                     'Unable to handle write failure.')
+    mock_serial.write.assert_called_once_with(chr(0xE0))
+    mock_serial.close.assert_called_once_with()
 
-  def testReadFail(self):
-    self._mox.StubOutWithMock(serial_utils, 'OpenSerial')
-    mock_serial = self._mox.CreateMock(serial.Serial)
-    serial_utils.OpenSerial(port=IgnoreArg()).AndReturn(mock_serial)
+  @mock.patch('cros.factory.test.utils.serial_utils.OpenSerial')
+  def testReadFail(self, open_serial_mock):
+    mock_serial = mock.Mock(serial.Serial)
+    mock_serial.write.return_value = 1
+    mock_serial.read.return_value = '0'
 
-    mock_serial.write(chr(0xE0)).AndReturn(1)
-    mock_serial.read().AndReturn('0')
-    mock_serial.close()
-
-    self._mox.ReplayAll()
+    open_serial_mock.return_value = mock_serial
 
     self.SetUpTestCase({})
     self.RunTestCase()
     self.HasFailure('Read fail',
                     'Unable to handle read failure.')
+    mock_serial.write.assert_called_once_with(chr(0xE0))
+    mock_serial.read.assert_called_once_with()
+    mock_serial.close.assert_called_once_with()
 
-  def testWriteTimeout(self):
-    self._mox.StubOutWithMock(serial_utils, 'OpenSerial')
-    mock_serial = self._mox.CreateMock(serial.Serial)
-    serial_utils.OpenSerial(port=IgnoreArg()).AndReturn(mock_serial)
+  @mock.patch('cros.factory.test.utils.serial_utils.OpenSerial')
+  def testWriteTimeout(self, open_serial_mock):
+    mock_serial = mock.Mock(serial.Serial)
+    mock_serial.write.side_effect = serial.SerialTimeoutException
 
-    mock_serial.write(chr(0xE0)).AndRaise(serial.SerialTimeoutException)
-    mock_serial.close()
-
-    self._mox.ReplayAll()
+    open_serial_mock.return_value = mock_serial
 
     self.SetUpTestCase({})
     self.RunTestCase()
     self.HasFailure('Write timeout',
                     'Unable to handle write timeout.')
+    mock_serial.write.assert_called_once_with(chr(0xE0))
+    mock_serial.close.assert_called_once_with()
 
-  def testReadTimeout(self):
-    self._mox.StubOutWithMock(serial_utils, 'OpenSerial')
-    mock_serial = self._mox.CreateMock(serial.Serial)
-    serial_utils.OpenSerial(port=IgnoreArg()).AndReturn(mock_serial)
+  @mock.patch('cros.factory.test.utils.serial_utils.OpenSerial')
+  def testReadTimeout(self, open_serial_mock):
+    mock_serial = mock.Mock(serial.Serial)
+    mock_serial.write.return_value = 1
+    mock_serial.read.side_effect = serial.SerialTimeoutException
 
-    mock_serial.write(chr(0xE0)).AndReturn(1)
-    mock_serial.read().AndRaise(serial.SerialTimeoutException)
-    mock_serial.close()
-
-    self._mox.ReplayAll()
+    open_serial_mock.return_value = mock_serial
 
     self.SetUpTestCase({})
     self.RunTestCase()
     self.HasFailure('Read timeout',
                     'Unable to handle read timeout.')
+    mock_serial.write.assert_called_once_with(chr(0xE0))
+    mock_serial.read.assert_called_once_with()
+    mock_serial.close.assert_called_once_with()
 
 
 if __name__ == '__main__':
