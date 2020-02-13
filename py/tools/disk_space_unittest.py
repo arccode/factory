@@ -9,7 +9,7 @@ import collections
 import os
 import unittest
 
-import mox
+import mock
 
 from cros.factory.tools import disk_space
 
@@ -23,16 +23,12 @@ class DiskSpaceTest(unittest.TestCase):
   # pylint: disable=protected-access
 
   def setUp(self):
-    self.mox = mox.Mox()
-    self.mox.StubOutWithMock(disk_space, '_Open')
-    self.mox.StubOutWithMock(os, 'statvfs')
-
     self.stateful_stats = FakeStatVFSResult(f_blocks=261305, f_bavail=60457,
                                             f_files=65536, f_favail=35168)
     self.media_stats = FakeStatVFSResult(f_blocks=497739, f_bavail=497699,
                                          f_files=497739, f_favail=497698)
 
-    disk_space._Open('/etc/mtab').AndReturn([
+    disk_space._Open = mock.Mock(return_value=[
         '/dev/sda1 /mnt/stateful_partition ext4 rw\n',
         '/dev/sda1 /home ext4 rw\n',
         '/dev/sdb1 /media/usb ext4 rw\n',
@@ -41,14 +37,22 @@ class DiskSpaceTest(unittest.TestCase):
         'fusectl /sys/fs/fuse/connections fusectl rw\n'
     ])
 
-    os.statvfs('/mnt/stateful_partition').AndReturn(self.stateful_stats)
-    os.statvfs('/media/usb').AndReturn(self.media_stats)
+    def StatvfsSideEffect(*args, **unused_kwargs):
+      if args[0] == '/mnt/stateful_partition':
+        return self.stateful_stats
+      elif args[0] == '/media/usb':
+        return self.media_stats
+      return None
 
-    self.mox.ReplayAll()
+    os.statvfs = mock.Mock(side_effect=StatvfsSideEffect)
 
   def tearDown(self):
-    self.mox.VerifyAll()
-    self.mox.UnsetStubs()
+    statvfs_calls = [
+        mock.call('/mnt/stateful_partition'),
+        mock.call('/media/usb')]
+
+    disk_space._Open.assert_called_once_with('/etc/mtab')
+    self.assertEqual(os.statvfs.call_args_list, statvfs_calls)
 
   def testGetAllVFSInfo(self):
     self.assertEqual(
