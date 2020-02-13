@@ -11,7 +11,7 @@ import StringIO
 import unittest
 import urllib2
 
-import mox
+import mock
 from ws4py.client.threadedclient import WebSocketClient
 
 import factory_common  # pylint: disable=unused-import
@@ -22,9 +22,6 @@ class ChromeRemoteDebuggerTest(unittest.TestCase):
 
   def setUp(self):
     self.chrome = chrome_debugger.ChromeRemoteDebugger()
-    self.mox = mox.Mox()
-    self.mox.StubOutWithMock(urllib2, "urlopen")
-    self.mox.StubOutWithMock(chrome_debugger, "WebSocketClient")
     self.mock_pageset_url = chrome_debugger.DEFAULT_CHROME_DEBUG_URL + "/json"
     self.mock_pageset = [{
         "id": "6CA5278B-EEC7-48F7-BBE2-297C6DEFB59A",
@@ -46,72 +43,75 @@ class ChromeRemoteDebuggerTest(unittest.TestCase):
         "webSocketDebuggerUrl": "ws://7711AF2B-B1CF-40C4-B269-0D29A72BEBBC"
     }]
     self.mock_pageset_stream = StringIO.StringIO(json.dumps(self.mock_pageset))
-    self.mock_websocket = self.mox.CreateMock(WebSocketClient)
+    self.mock_websocket = mock.Mock(WebSocketClient)
 
-  def tearDown(self):
-    self.mox.UnsetStubs()
-
-  def testIsReady(self):
-    urllib2.urlopen(self.mock_pageset_url).AndRaise(
-        urllib2.URLError("Cannot connect"))
+  @mock.patch('urllib2.urlopen')
+  def testIsReady(self, urlopen_mock):
     urllib2.urlopen(self.mock_pageset_url).AndReturn(self.mock_pageset_stream)
-    self.mox.ReplayAll()
+
+    urlopen_mock.side_effect = urllib2.URLError("Cannot connect")
     self.assertFalse(self.chrome.IsReady())
-    self.assertTrue(self.chrome.IsReady())
-    self.mox.VerifyAll()
 
-  def testGetPages(self):
-    urllib2.urlopen(self.mock_pageset_url).AndReturn(self.mock_pageset_stream)
-    urllib2.urlopen(self.mock_pageset_url).AndReturn(self.mock_pageset_stream)
-    urllib2.urlopen(self.mock_pageset_url).AndReturn(self.mock_pageset_stream)
-    self.mox.ReplayAll()
+    # TODO(kerker) Use urlopen_mock.reset_mock(side_effect=True) in py3
+    urlopen_mock.side_effect = None
+    urlopen_mock.return_value = self.mock_pageset_stream
+    self.assertTrue(self.chrome.IsReady())
+    urlopen_mock.assert_called_with(self.mock_pageset_url)
+
+  @mock.patch('urllib2.urlopen')
+  def testGetPages(self, urlopen_mock):
+    urlopen_mock.return_value = self.mock_pageset_stream
     self.assertEqual(self.chrome.GetPages(), self.mock_pageset)
+    urlopen_mock.assert_called_with(self.mock_pageset_url)
+
+    urlopen_mock.reset_mock()
     self.mock_pageset_stream.seek(0)
     self.assertEqual(self.chrome.GetPages("background_page"),
                      [self.mock_pageset[0]])
+    urlopen_mock.assert_called_with(self.mock_pageset_url)
+
+    urlopen_mock.reset_mock()
     self.mock_pageset_stream.seek(0)
     self.assertEqual(self.chrome.GetPages("no-such-page"), [])
-    self.mox.VerifyAll()
+    urlopen_mock.assert_called_with(self.mock_pageset_url)
 
-  def testSetActivePage(self):
-    self.mox.StubOutWithMock(self.chrome, "GetPages")
-    self.chrome.GetPages("other").AndReturn(self.mock_pageset[1:])
-    chrome_debugger.WebSocketClient(
-        self.mock_pageset[1]["webSocketDebuggerUrl"]).AndReturn(
-            self.mock_websocket)
+  @mock.patch('cros.factory.tools.chrome_debugger.WebSocketClient')
+  def testSetActivePage(self, web_socket_client_mock):
+    self.chrome.GetPages = mock.Mock(return_value=self.mock_pageset[1:])
+    web_socket_client_mock.return_value = self.mock_websocket
     self.mock_websocket.connect()
     self.mock_websocket.close()
-    self.mox.ReplayAll()
 
     self.chrome.SetActivePage()
     self.chrome.SetActivePage(None)
-    self.mox.VerifyAll()
+    self.chrome.GetPages.assert_called_once_with("other")
+    web_socket_client_mock.assert_called_once_with(
+        self.mock_pageset[1]["webSocketDebuggerUrl"])
 
   def testSendCommand(self):
     command = {"method": "test", "params": {"param1": "value1"}}
     expected = command.copy()
     expected.update({"id": 1})
     self.chrome.active_websocket = self.mock_websocket
-    self.chrome.active_websocket.send(json.dumps(expected))
-    self.mox.ReplayAll()
 
     self.assertEqual(1, self.chrome.id)
+
     self.chrome.SendCommand(command)
     self.assertEqual(2, self.chrome.id)
+    self.chrome.active_websocket.send.assert_called_once_with(
+        json.dumps(expected))
     self.chrome.active_websocket = None
-    self.mox.VerifyAll()
 
   def testPageNavigate(self):
     url = "http://blah"
     expected = {"method": "Page.navigate", "params": {"url": url}}
     expected.update({"id": 1})
     self.chrome.active_websocket = self.mock_websocket
-    self.chrome.active_websocket.send(json.dumps(expected))
-    self.mox.ReplayAll()
 
     self.chrome.PageNavigate(url)
+    self.chrome.active_websocket.send.assert_called_once_with(
+        json.dumps(expected))
     self.chrome.active_websocket = None
-    self.mox.VerifyAll()
 
 
 if __name__ == "__main__":
