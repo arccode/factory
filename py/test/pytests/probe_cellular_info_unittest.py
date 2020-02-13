@@ -10,34 +10,24 @@ Requested data are probed, written to the event log, and saved to device data.
 
 import unittest
 
-import mox
+import mock
 from six import assertRaisesRegex
 
-from cros.factory.test import device_data
-from cros.factory.test import event_log
 from cros.factory.test.pytests import probe_cellular_info
-from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Args
-from cros.factory.utils import process_utils
 
 
 class ProbeCellularInfoTestTest(unittest.TestCase):
 
   def setUp(self):
     self.test = probe_cellular_info.ProbeCellularInfoTest()
-    self.mox = mox.Mox()
-    self.mox.StubOutWithMock(process_utils, 'CheckOutput')
-    self.mox.StubOutWithMock(event_log, 'Log')
-    self.mox.StubOutWithMock(testlog, 'LogParam')
-    self.mox.StubOutWithMock(device_data, 'UpdateDeviceData')
 
-  def tearDown(self):
-    try:
-      self.mox.VerifyAll()
-    finally:
-      self.mox.UnsetStubs()
-
-  def testValid(self):
+  @mock.patch('cros.factory.utils.process_utils.CheckOutput')
+  @mock.patch('cros.factory.test.event_log.Log')
+  @mock.patch('cros.factory.testlog.testlog.LogParam')
+  @mock.patch('cros.factory.test.device_data.UpdateDeviceData')
+  def testValid(self, update_device_data_mock, log_param_mock, log_mock,
+                check_output_mock):
     stdout = """
 Modem /org/chromium/ModemManager/Gobi/1:
   GetStatus:
@@ -45,21 +35,31 @@ Modem /org/chromium/ModemManager/Gobi/1:
     meid: Q9298301CDF827
 """
 
-    process_utils.CheckOutput(['modem', 'status'], log=True).AndReturn(stdout)
-    event_log.Log(
-        'cellular_info', modem_status_stdout=stdout,
-        imei='838293836198373', meid='Q9298301CDF827')
-    testlog.LogParam('modem_status_stdout', stdout)
-    testlog.LogParam('imei', '838293836198373')
-    testlog.LogParam('meid', 'Q9298301CDF827')
-    device_data.UpdateDeviceData({'component.cellular.imei': '838293836198373',
-                                  'component.cellular.meid': 'Q9298301CDF827'})
-    self.mox.ReplayAll()
+    log_param_calls = [
+        mock.call('modem_status_stdout', stdout),
+        mock.call('imei', '838293836198373'),
+        mock.call('meid', 'Q9298301CDF827')]
+
+    check_output_mock.return_value = stdout
 
     self.test.args = Args(*self.test.ARGS).Parse({})
     self.test.runTest()
 
-  def testValidLTE(self):
+    check_output_mock.assert_called_once_with(['modem', 'status'], log=True)
+    self.assertEqual(log_param_mock.call_args_list, log_param_calls)
+    log_mock.assert_called_once_with(
+        'cellular_info', modem_status_stdout=stdout,
+        imei='838293836198373', meid='Q9298301CDF827')
+    update_device_data_mock.assert_called_once_with(
+        {'component.cellular.imei': '838293836198373',
+         'component.cellular.meid': 'Q9298301CDF827'})
+
+  @mock.patch('cros.factory.utils.process_utils.CheckOutput')
+  @mock.patch('cros.factory.test.event_log.Log')
+  @mock.patch('cros.factory.testlog.testlog.LogParam')
+  @mock.patch('cros.factory.test.device_data.UpdateDeviceData')
+  def testValidLTE(self, update_device_data_mock, log_param_mock, log_mock,
+                   check_output_mock):
     stdout = """
 Modem /org/freedesktop/ModemManager1/Modem/0:
   GetStatus:
@@ -106,17 +106,12 @@ Modem /org/freedesktop/ModemManager1/Modem/0:
     OperatorName:
 """
 
-    process_utils.CheckOutput(['modem', 'status'], log=True).AndReturn(stdout)
-    event_log.Log(
-        'cellular_info', modem_status_stdout=stdout,
-        lte_imei='359636040066332', lte_iccid='89148000000328035895')
-    testlog.LogParam('modem_status_stdout', stdout)
-    testlog.LogParam('lte_imei', '359636040066332')
-    testlog.LogParam('lte_iccid', '89148000000328035895')
-    device_data.UpdateDeviceData({
-        'component.cellular.lte_imei': '359636040066332',
-        'component.cellular.lte_iccid': '89148000000328035895'})
-    self.mox.ReplayAll()
+    log_param_calls = [
+        mock.call('modem_status_stdout', stdout),
+        mock.call('lte_imei', '359636040066332'),
+        mock.call('lte_iccid', '89148000000328035895')]
+
+    check_output_mock.return_value = stdout
 
     self.test.args = Args(*self.test.ARGS).Parse(
         {'probe_imei': False,
@@ -125,27 +120,46 @@ Modem /org/freedesktop/ModemManager1/Modem/0:
          'probe_lte_iccid': True})
     self.test.runTest()
 
-  def testMissingIMEI(self):
+    check_output_mock.assert_called_once_with(['modem', 'status'], log=True)
+    self.assertEqual(log_param_mock.call_args_list, log_param_calls)
+    log_mock.assert_called_once_with(
+        'cellular_info', modem_status_stdout=stdout,
+        lte_imei='359636040066332', lte_iccid='89148000000328035895')
+    update_device_data_mock.assert_called_once_with(
+        {'component.cellular.lte_imei': '359636040066332',
+         'component.cellular.lte_iccid': '89148000000328035895'})
+
+  @mock.patch('cros.factory.utils.process_utils.CheckOutput')
+  @mock.patch('cros.factory.test.event_log.Log')
+  @mock.patch('cros.factory.testlog.testlog.LogParam')
+  def testMissingIMEI(self, log_param_mock, log_mock, check_output_mock):
     stdout = """
 Modem /org/chromium/ModemManager/Gobi/1:
   GetStatus:
     meid: Q9298301CDF827
 """
 
-    process_utils.CheckOutput(['modem', 'status'], log=True).AndReturn(stdout)
-    event_log.Log(
-        'cellular_info', modem_status_stdout=stdout,
-        imei=None, meid='Q9298301CDF827')
-    testlog.LogParam('modem_status_stdout', stdout)
-    testlog.LogParam('imei', None)
-    testlog.LogParam('meid', 'Q9298301CDF827')
-    self.mox.ReplayAll()
+    log_param_calls = [
+        mock.call('modem_status_stdout', stdout),
+        mock.call('imei', None),
+        mock.call('meid', 'Q9298301CDF827')]
+
+    check_output_mock.return_value = stdout
 
     self.test.args = Args(*self.test.ARGS).Parse({})
     assertRaisesRegex(self, AssertionError, r"Missing elements.+: \['imei'\]",
                       self.test.runTest)
 
-  def testBlankIMEI(self):
+    check_output_mock.assert_called_once_with(['modem', 'status'], log=True)
+    self.assertEqual(log_param_mock.call_args_list, log_param_calls)
+    log_mock.assert_called_once_with(
+        'cellular_info', modem_status_stdout=stdout,
+        imei=None, meid='Q9298301CDF827')
+
+  @mock.patch('cros.factory.utils.process_utils.CheckOutput')
+  @mock.patch('cros.factory.test.event_log.Log')
+  @mock.patch('cros.factory.testlog.testlog.LogParam')
+  def testBlankIMEI(self, log_param_mock, log_mock, check_output_mock):
     stdout = """
 Modem /org/chromium/ModemManager/Gobi/1:
   GetStatus:
@@ -154,18 +168,22 @@ Modem /org/chromium/ModemManager/Gobi/1:
 """.replace('#', '')
     # Remove hash mark; necessary to make white-space check pass
 
-    process_utils.CheckOutput(['modem', 'status'], log=True).AndReturn(stdout)
-    event_log.Log(
-        'cellular_info', modem_status_stdout=stdout,
-        imei=None, meid='Q9298301CDF827')
-    testlog.LogParam('modem_status_stdout', stdout)
-    testlog.LogParam('imei', None)
-    testlog.LogParam('meid', 'Q9298301CDF827')
-    self.mox.ReplayAll()
+    log_param_calls = [
+        mock.call('modem_status_stdout', stdout),
+        mock.call('imei', None),
+        mock.call('meid', 'Q9298301CDF827')]
+
+    check_output_mock.return_value = stdout
 
     self.test.args = Args(*self.test.ARGS).Parse({})
     assertRaisesRegex(self, AssertionError, r"Missing elements.+: \['imei'\]",
                       self.test.runTest)
+
+    check_output_mock.assert_called_once_with(['modem', 'status'], log=True)
+    log_mock.assert_called_once_with(
+        'cellular_info', modem_status_stdout=stdout,
+        imei=None, meid='Q9298301CDF827')
+    self.assertEqual(log_param_mock.call_args_list, log_param_calls)
 
 
 if __name__ == '__main__':
