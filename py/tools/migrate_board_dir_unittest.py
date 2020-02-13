@@ -13,7 +13,7 @@ import sys
 import tempfile
 import unittest
 
-import mox
+import mock
 from six import iteritems
 
 import factory_common  # pylint: disable=unused-import
@@ -69,19 +69,17 @@ class PrepareDirectoryCopyTest(unittest.TestCase):
 
   def setUp(self):
     self.temp_dir = tempfile.mkdtemp(prefix='migrate_board_dir_unittest')
-    self.mox = mox.Mox()
-    self.mock_instream = self.mox.CreateMock(sys.stdin)
+    self.mock_instream = mock.Mock(sys.stdin)
     self.mock_outstream = StringIO()
 
   def tearDown(self):
     shutil.rmtree(self.temp_dir)
-    self.mox.UnsetStubs()
 
   def testNoSourceDirectory(self):
     nonexistent_src_dir = os.path.join(self.temp_dir, 'nonexistent_src')
     with self.assertRaises(SystemExit) as sys_exit:
       migrate_board_dir.PrepareDirectoryCopy(
-          nonexistent_src_dir, mox.IgnoreArg(), sys.stdin, self.mock_outstream)
+          nonexistent_src_dir, mock.ANY, sys.stdin, self.mock_outstream)
 
     # Checks sys.exit(1) and the output messages.
     self.assertEqual(sys_exit.exception.code, 1)
@@ -90,14 +88,12 @@ class PrepareDirectoryCopyTest(unittest.TestCase):
         self.mock_outstream.getvalue())
 
   def testPressNToCancel(self):
-    self.mock_instream.readline().AndReturn('n\n')
-    self.mox.ReplayAll()
-
     src_dir = os.path.join(self.temp_dir, 'src')
     dst_dir = os.path.join(self.temp_dir, 'dst')
     os.mkdir(src_dir)
     os.mkdir(dst_dir)
 
+    self.mock_instream.readline = mock.Mock(return_value='n\n')
     with self.assertRaises(SystemExit) as sys_exit:
       migrate_board_dir.PrepareDirectoryCopy(src_dir, dst_dir,
                                              self.mock_instream)
@@ -105,17 +101,14 @@ class PrepareDirectoryCopyTest(unittest.TestCase):
     # Checks that dst_dir was not removed and sys.exit(0).
     self.assertTrue(os.path.exists(dst_dir))
     self.assertEqual(sys_exit.exception.code, 0)
-    self.mox.VerifyAll()
 
   def testPressYToProceed(self):
-    self.mock_instream.readline().AndReturn('y\n')
-    self.mox.ReplayAll()
-
     src_dir = os.path.join(self.temp_dir, 'src')
     dst_dir = os.path.join(self.temp_dir, 'dst')
     os.mkdir(src_dir)
     os.mkdir(dst_dir)
 
+    self.mock_instream.readline = mock.Mock(return_value='y\n')
     migrate_board_dir.PrepareDirectoryCopy(
         src_dir, dst_dir, self.mock_instream, self.mock_outstream)
     # User presses 'y' to remove the dst_dir.
@@ -123,18 +116,15 @@ class PrepareDirectoryCopyTest(unittest.TestCase):
     self.assertFalse(os.path.exists(dst_dir))
     self.assertTrue(self.mock_outstream.getvalue().endswith(
         'Directory: %r was removed before migration.\n' % dst_dir))
-    self.mox.VerifyAll()
 
 
 class CopyFilesAndRenameTest(unittest.TestCase):
 
   def setUp(self):
     self.temp_dir = tempfile.mkdtemp(prefix='migrate_board_dir_unittest')
-    self.mox = mox.Mox()
 
   def tearDown(self):
     shutil.rmtree(self.temp_dir)
-    self.mox.UnsetStubs()
 
   def testCopyFilesAndRenameSuccess(self):
     src_dir = os.path.join(self.temp_dir, 'src')
@@ -169,7 +159,9 @@ class CopyFilesAndRenameTest(unittest.TestCase):
         reset_ebuild_file=True)
     CheckFileContent(expected_dst_files)
 
-  def testCopyFilesAndRenameWithFailure(self):
+  @mock.patch('shutil.copystat')
+  @mock.patch('shutil.copy2')
+  def testCopyFilesAndRenameWithFailure(self, copy2_mock, copystat_mock):
     src_dir = os.path.join(self.temp_dir, 'src')
     dst_dir = os.path.join(self.temp_dir, 'dst')
     src_files = {
@@ -180,41 +172,54 @@ class CopyFilesAndRenameTest(unittest.TestCase):
     CreateFileWithContent(src_files)
 
     errors = []  # Stores the error for all file operations.
-    self.mox.StubOutWithMock(shutil, 'copy2')
-    self.mox.StubOutWithMock(shutil, 'copystat')
 
     # Exception happens for no_such_file in the root folder.
-    src_file = os.path.join(src_dir, 'no_such_file1')
-    dst_file = os.path.join(dst_dir, 'no_such_file1')
-    raised_exception = IOError(
-        'IOError: [Errno 2] No such file or directory: %r' % src_file)
-    shutil.copy2(src_file, dst_file).InAnyOrder().AndRaise(raised_exception)
-    errors.append((src_file, dst_file, str(raised_exception)))
+    no_src_file = os.path.join(src_dir, 'no_such_file1')
+    no_dst_file = os.path.join(dst_dir, 'no_such_file1')
+    no_such_file_raised_exception = IOError(
+        'IOError: [Errno 2] No such file or directory: %r' % no_src_file)
+    errors.append((no_src_file, no_dst_file,
+                   str(no_such_file_raised_exception)))
 
     # Exception happens for no_such_file2 in the sub folder.
-    src_file = os.path.join(src_dir, 'dog_folder', 'no_such_file2')
-    dst_file = os.path.join(dst_dir, 'cat_folder', 'no_such_file2')
-    raised_exception = IOError(
-        'IOError: [Errno 2] No such file or directory: %r' % src_file)
-    shutil.copy2(src_file, dst_file).InAnyOrder().AndRaise(raised_exception)
-    errors.append((src_file, dst_file, str(raised_exception)))
-    # The sub folder should be copied and renamed as expected.
-    shutil.copystat(
-        os.path.join(src_dir, 'dog_folder'),
-        os.path.join(dst_dir, 'cat_folder')).InAnyOrder().AndReturn(0)
+    src_sub_dir = os.path.join(src_dir, 'dog_folder')
+    dst_sub_dir = os.path.join(dst_dir, 'cat_folder')
+    no_src_file2 = os.path.join(src_sub_dir, 'no_such_file2')
+    no_dst_file2 = os.path.join(dst_sub_dir, 'no_such_file2')
+    no_such_file2_raised_exception = IOError(
+        'IOError: [Errno 2] No such file or directory: %r' % no_src_file2)
+    errors.append((no_src_file2, no_dst_file2,
+                   str(no_such_file2_raised_exception)))
 
     # Test copystat error.
     raised_exception = OSError(
         'OSError: [Errno 2] No such file or directory: %r' % src_dir)
-    shutil.copystat(src_dir, dst_dir).InAnyOrder().AndRaise(raised_exception)
     errors.append((src_dir, dst_dir, str(raised_exception)))
 
     # Normal files should still be copied and renamed as expected.
-    src_file = os.path.join(src_dir, 'dog_file3')
-    dst_file = os.path.join(dst_dir, 'cat_file3')
-    shutil.copy2(src_file, dst_file).InAnyOrder().AndReturn(0)
+    normal_src_file = os.path.join(src_dir, 'dog_file3')
+    normal_dst_file = os.path.join(dst_dir, 'cat_file3')
 
-    self.mox.ReplayAll()
+    def Copy2SideEffect(*args, **unused_kwargs):
+      if args[0] == no_src_file and args[1] == no_dst_file:
+        raise no_such_file_raised_exception
+      elif args[0] == no_src_file2 and args[1] == no_dst_file2:
+        raise no_such_file2_raised_exception
+      elif args[0] == normal_src_file and args[1] == normal_dst_file:
+        return 0
+      return None
+
+    def CopystatSideEffect(*args, **unused_kwargs):
+      # The sub folder should be copied and renamed as expected.
+      if args[0] == src_sub_dir and args[1] == dst_sub_dir:
+        return 0
+      # Test copystat error.
+      elif args[0] == src_dir and args[1] == dst_dir:
+        raise raised_exception
+      return None
+
+    copy2_mock.side_effect = Copy2SideEffect
+    copystat_mock.side_effect = CopystatSideEffect
 
     with self.assertRaises(MigrateBoardException) as context_manager:
       migrate_board_dir.CopyFilesAndRename(
@@ -224,6 +229,15 @@ class CopyFilesAndRenameTest(unittest.TestCase):
           reset_ebuild_file=True)
     # Checks it includes all errors raised from recursive call in the exception.
     self.assertEqual(set(context_manager.exception.args[0]), set(errors))
+
+    copy2_mock.assert_any_call(no_src_file, no_dst_file)
+    copy2_mock.assert_any_call(no_src_file2, no_dst_file2)
+    copy2_mock.assert_any_call(normal_src_file, normal_dst_file)
+    self.assertEqual(3, copy2_mock.call_count)
+
+    copystat_mock.assert_any_call(src_sub_dir, dst_sub_dir)
+    copystat_mock.assert_any_call(src_dir, dst_dir)
+    self.assertEqual(2, copystat_mock.call_count)
 
 
 class ReplaceStringInFilesTest(unittest.TestCase):
