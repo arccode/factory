@@ -10,7 +10,7 @@ import tempfile
 import time
 import unittest
 
-import mox
+import mock
 from six.moves import xrange
 
 from cros.factory.test import event_log
@@ -143,13 +143,9 @@ class EventLogWatcherTest(unittest.TestCase):
     self.assertEqual(watcher.GetEventLog(MOCK_LOG_NAME(0)), None)
 
   def testHandleEventLogsCallback(self):
-    mock = mox.MockAnything()
-    mock.handle_event_log([
-        Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0), 0)], False)
-    mox.Replay(mock)
-
+    handle_event_log = mock.MagicMock()
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
-                              mock.handle_event_log)
+                              handle_event_log)
 
     self.WriteLog(MOCK_PREAMBLE(0), MOCK_LOG_NAME(0))
     watcher.ScanEventLogs()
@@ -159,16 +155,14 @@ class EventLogWatcherTest(unittest.TestCase):
     self.assertEqual(log[event_log_watcher.KEY_OFFSET],
                      len(MOCK_PREAMBLE(0)))
 
-    mox.Verify(mock)
+    handle_event_log.assert_called_once_with(
+        [Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0), 0)], False)
 
   def testHandleEventLogsCallbackMultiple(self):
-    mock = mox.MockAnything()
-    mock.handle_event_log(mox.IgnoreArg(), False)
-    mock.handle_event_log(mox.IgnoreArg(), False)
-    mox.Replay(mock)
+    handle_event_log = mock.MagicMock()
 
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
-                              mock.handle_event_log, num_log_per_callback=2)
+                              handle_event_log, num_log_per_callback=2)
 
     for i in xrange(3):
       self.WriteLog(MOCK_PREAMBLE(i), MOCK_LOG_NAME(i))
@@ -180,15 +174,15 @@ class EventLogWatcherTest(unittest.TestCase):
       self.assertEqual(log[event_log_watcher.KEY_OFFSET],
                        len(MOCK_PREAMBLE(i)))
 
-    mox.Verify(mock)
+    self.assertEqual(handle_event_log.call_args_list,
+                     [mock.call(mock.ANY, False),
+                      mock.call(mock.ANY, False)])
 
   def testHandleEventLogsCallbackUnlimited(self):
-    mock = mox.MockAnything()
-    mock.handle_event_log(mox.IgnoreArg(), False)
-    mox.Replay(mock)
+    handle_event_log = mock.MagicMock()
 
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
-                              mock.handle_event_log, num_log_per_callback=0)
+                              handle_event_log, num_log_per_callback=0)
 
     for i in xrange(3):
       self.WriteLog(MOCK_PREAMBLE(i), MOCK_LOG_NAME(i))
@@ -200,7 +194,7 @@ class EventLogWatcherTest(unittest.TestCase):
       self.assertEqual(log[event_log_watcher.KEY_OFFSET],
                        len(MOCK_PREAMBLE(i)))
 
-    mox.Verify(mock)
+    handle_event_log.assert_called_once_with(mock.ANY, False)
 
   def testSyncMarkers_NoRestart(self):
     self._testSyncMarkers(False)
@@ -210,8 +204,7 @@ class EventLogWatcherTest(unittest.TestCase):
 
   def _testSyncMarkers(self, unexpected_restart):
     # pylint: disable=not-callable
-    m = mox.Mox()
-    mock_callback = m.CreateMockAnything()
+    mock_callback = mock.MagicMock()
     path = os.path.join(self.events_dir, MOCK_LOG_NAME(0))
 
     # No DB; use sync markers.
@@ -219,11 +212,9 @@ class EventLogWatcherTest(unittest.TestCase):
                               mock_callback)
     self.WriteLog(MOCK_PREAMBLE(0, True), MOCK_LOG_NAME(0))
 
-    mock_callback([
-        Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0, True), 0)], False)
-    m.ReplayAll()
     watcher.ScanEventLogs()
-    m.VerifyAll()
+    mock_callback.assert_called_with(
+        [Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0, True), 0)], False)
 
     def ReplaceSyncMarker(s):
       return s.replace(event_log.SYNC_MARKER_SEARCH,
@@ -249,13 +240,11 @@ class EventLogWatcherTest(unittest.TestCase):
     # Write two events; they (but not the preamble) should be scanned.
     self.WriteLog(MOCK_EVENT(0, True), MOCK_LOG_NAME(0))
     self.WriteLog(MOCK_EVENT(1, True), MOCK_LOG_NAME(0))
-    m.ResetAll()
-    mock_callback([
-        Chunk(MOCK_LOG_NAME(0), MOCK_EVENT(0, True) + MOCK_EVENT(1, True),
-              len(MOCK_PREAMBLE(0, True)))], False)
-    m.ReplayAll()
+
     watcher.ScanEventLogs()
-    m.VerifyAll()
+    mock_callback.assert_called_with(
+        [Chunk(MOCK_LOG_NAME(0), MOCK_EVENT(0, True) + MOCK_EVENT(1, True),
+               len(MOCK_PREAMBLE(0, True)))], False)
 
     # We should have replaced '#s' with '#S' in the preamble and the
     # second real event.
@@ -265,13 +254,9 @@ class EventLogWatcherTest(unittest.TestCase):
                      open(path).read())
 
   def testHandleEventLogsFail(self):
-    mock = mox.MockAnything()
-    mock.handle_event_log(
-        [Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0), 0)], False
-    ).AndRaise(Exception('Bar'))
-    mox.Replay(mock)
+    handle_event_log = mock.MagicMock(side_effect=Exception('Bar'))
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
-                              mock.handle_event_log)
+                              handle_event_log)
 
     self.WriteLog(MOCK_PREAMBLE(0), MOCK_LOG_NAME(0))
     watcher.ScanEventLogs()
@@ -280,18 +265,15 @@ class EventLogWatcherTest(unittest.TestCase):
     # when handle logs fail.
     log = watcher.GetEventLog(MOCK_LOG_NAME(0))
     self.assertEqual(log[event_log_watcher.KEY_OFFSET], 0)
-    mox.Verify(mock)
+    handle_event_log.assert_called_once_with(
+        [Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0), 0)], False)
 
     watcher.Close()
 
   def testFlushEventLogsFail(self):
-    mock = mox.MockAnything()
-    mock.handle_event_log(
-        [(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0))], False).AndRaise(
-            Exception('Foo'))
-    mox.Replay(mock)
+    handle_event_log = mock.MagicMock(side_effect=Exception('Foo'))
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
-                              mock.handle_event_log)
+                              handle_event_log)
 
     self.WriteLog(MOCK_PREAMBLE(0), MOCK_LOG_NAME(0))
 
@@ -302,7 +284,8 @@ class EventLogWatcherTest(unittest.TestCase):
     # when handle logs fail.
     log = watcher.GetEventLog(MOCK_LOG_NAME(0))
     self.assertEqual(log[event_log_watcher.KEY_OFFSET], 0)
-    mox.Verify(mock)
+    handle_event_log.assert_called_once_with(
+        [Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0), 0)], False)
 
   def testIncompleteLog(self):
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db)
