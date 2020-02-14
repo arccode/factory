@@ -12,16 +12,13 @@ import logging
 import os
 import re
 
-from mox3 import mox
+import mock
 from twisted.internet import reactor
 from twisted.trial import unittest
 from twisted.web import server
 from twisted.web import xmlrpc
 
 from cros.factory.umpire import common
-from cros.factory.umpire.server.commands import import_bundle
-from cros.factory.umpire.server.commands import update
-from cros.factory.umpire.server import config
 from cros.factory.umpire.server import daemon
 from cros.factory.umpire.server import resource
 from cros.factory.umpire.server import rpc_cli
@@ -40,21 +37,45 @@ if __name__ == '__main__':
 class CommandTest(unittest.TestCase):
 
   def setUp(self):
-    test_port = net_utils.FindUnusedPort()
+    self.test_port = net_utils.FindUnusedPort()
     self.env = umpire_env.UmpireEnvForTest()
-    self.mox = mox.Mox()
     self.proxy = xmlrpc.Proxy(b'http://%s:%d' %
-                              (net_utils.LOCALHOST.encode('utf-8'), test_port))
-    xmlrpc_resource = umpire_xmlrpc.XMLRPCContainer()
-    umpire_cli = rpc_cli.CLICommand(daemon.UmpireDaemon(self.env))
-    xmlrpc_resource.AddHandler(umpire_cli)
-    self.port = reactor.listenTCP(test_port, server.Site(xmlrpc_resource))
+                              (net_utils.LOCALHOST.encode('utf-8'),
+                               self.test_port))
+    self.xmlrpc_resource = umpire_xmlrpc.XMLRPCContainer()
+    self.umpire_cli = rpc_cli.CLICommand(daemon.UmpireDaemon(self.env))
+    self.port = None
+
+    def MockSuccess():
+      return None
+
+    def MockFailure():
+      raise common.UmpireError('mock error')
+
+    self.MockResultFunction = {
+        True: MockSuccess,
+        False: MockFailure
+    }
 
   def tearDown(self):
     self.port.stopListening()
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
     self.env.Close()
+
+  def SetUpMock(self, success, umpire_cli_func, *umpire_cli_func_args):
+    def SideEffect(*args, **unused_kwargs):
+      if args == umpire_cli_func_args:
+        return self.MockResultFunction[success]()
+      raise Exception('Wrong parameters')
+
+    setattr(self.umpire_cli, umpire_cli_func, mock.Mock(
+        getattr(self.umpire_cli, umpire_cli_func),
+        side_effect=SideEffect,
+        __name__=umpire_cli_func))
+
+  def SetUpHandlerAndStartListen(self):
+    self.xmlrpc_resource.AddHandler(self.umpire_cli)
+    self.port = reactor.listenTCP(self.test_port,
+                                  server.Site(self.xmlrpc_resource))
 
   def Call(self, function, *args):
     return self.proxy.callRemote(function, *args)
@@ -77,10 +98,8 @@ class CommandTest(unittest.TestCase):
   def testUpdate(self):
     resource_to_update = [['factory_toolkit', '/tmp/factory_toolkit.tar.bz']]
 
-    self.mox.StubOutClassWithMocks(update, 'ResourceUpdater')
-    mock_updater = update.ResourceUpdater(mox.IsA(daemon.UmpireDaemon))
-    mock_updater.Update(resource_to_update, 'sid', 'did')
-    self.mox.ReplayAll()
+    self.SetUpMock(True, 'Update', resource_to_update, 'sid', 'did')
+    self.SetUpHandlerAndStartListen()
 
     d = self.Call('Update', resource_to_update, 'sid', 'did')
     return self.AssertSuccess(d)
@@ -88,11 +107,8 @@ class CommandTest(unittest.TestCase):
   def testUpdateFailure(self):
     resource_to_update = [['factory_toolkit', '/tmp/factory_toolkit.tar.bz']]
 
-    self.mox.StubOutClassWithMocks(update, 'ResourceUpdater')
-    mock_updater = update.ResourceUpdater(mox.IsA(daemon.UmpireDaemon))
-    mock_updater.Update(resource_to_update, 'sid', 'did').AndRaise(
-        common.UmpireError('mock error'))
-    self.mox.ReplayAll()
+    self.SetUpMock(False, 'Update', resource_to_update, 'sid', 'did')
+    self.SetUpHandlerAndStartListen()
 
     return self.AssertFailure(
         self.Call('Update', resource_to_update, 'sid', 'did'),
@@ -102,12 +118,9 @@ class CommandTest(unittest.TestCase):
     bundle_path = '/path/to/bundle'
     bundle_id = 'test'
     note = 'test note'
-    self.mox.StubOutWithMock(import_bundle, 'BundleImporter')
-    mock_importer = self.mox.CreateMockAnything()
-    import_bundle.BundleImporter(mox.IsA(daemon.UmpireDaemon)).AndReturn(
-        mock_importer)
-    mock_importer.Import(bundle_path, bundle_id, note)
-    self.mox.ReplayAll()
+
+    self.SetUpMock(True, 'ImportBundle', bundle_path, bundle_id, note)
+    self.SetUpHandlerAndStartListen()
 
     return self.AssertSuccess(
         self.Call('ImportBundle', bundle_path, bundle_id, note))
@@ -116,19 +129,17 @@ class CommandTest(unittest.TestCase):
     bundle_path = '/path/to/bundle'
     bundle_id = 'test'
     note = 'test note'
-    self.mox.StubOutWithMock(import_bundle, 'BundleImporter')
-    mock_importer = self.mox.CreateMockAnything()
-    import_bundle.BundleImporter(mox.IsA(daemon.UmpireDaemon)).AndReturn(
-        mock_importer)
-    mock_importer.Import(bundle_path, bundle_id, note).AndRaise(
-        common.UmpireError('mock error'))
-    self.mox.ReplayAll()
+
+    self.SetUpMock(False, 'ImportBundle', bundle_path, bundle_id, note)
+    self.SetUpHandlerAndStartListen()
 
     return self.AssertFailure(
         self.Call('ImportBundle', bundle_path, bundle_id, note),
         'UmpireError: mock error')
 
   def testAddResourceResType(self):
+    self.SetUpHandlerAndStartListen()
+
     checksum_for_empty = 'da39a3ee5e6b4b0d3255bfef95601890afd80709'
 
     file_to_add = os.path.join(self.env.base_dir, 'hwid')
@@ -140,29 +151,26 @@ class CommandTest(unittest.TestCase):
     return self.AssertSuccess(d)
 
   def testAddConfigFail(self):
+    self.SetUpHandlerAndStartListen()
+
     return self.AssertFailure(
         self.Call('AddConfig', '/path/to/nowhere',
                   resource.ConfigTypeNames.umpire_config),
-        'IOError:.*/path/to/nowhere')
+        'FileNotFoundError:.*/path/to/nowhere')
 
   def testValidateConfig(self):
     config_str = 'umpire config'
-    self.mox.StubOutClassWithMocks(config, 'UmpireConfig')
-    self.mox.StubOutWithMock(config, 'ValidateResources')
-    mock_config = config.UmpireConfig(config_str)
-    config.ValidateResources(mock_config, self.env)
-    self.mox.ReplayAll()
+
+    self.SetUpMock(True, 'ValidateConfig', config_str)
+    self.SetUpHandlerAndStartListen()
 
     return self.AssertSuccess(self.Call('ValidateConfig', config_str))
 
   def testValidateConfigFailure(self):
     config_str = 'umpire config'
-    self.mox.StubOutClassWithMocks(config, 'UmpireConfig')
-    self.mox.StubOutWithMock(config, 'ValidateResources')
-    mock_config = config.UmpireConfig(config_str)
-    config.ValidateResources(mock_config, self.env).AndRaise(
-        common.UmpireError('mock error'))
-    self.mox.ReplayAll()
+
+    self.SetUpMock(False, 'ValidateConfig', config_str)
+    self.SetUpHandlerAndStartListen()
 
     return self.AssertFailure(self.Call('ValidateConfig', config_str),
                               'UmpireError: mock error')
