@@ -12,7 +12,7 @@ import shutil
 import tempfile
 import unittest
 
-import mox
+import mock
 
 from cros.factory.test.utils import core_dump_manager
 
@@ -28,53 +28,49 @@ class CoreDumpManagerTest(unittest.TestCase):
   def setUp(self):
     self.watchlist = ['*watch*']
     self.crash_dir = tempfile.mkdtemp(prefix='core_dump_manager_unittest.')
-    self.mocker = mox.Mox()
     self.watched_file = None
     self.other_file = None
 
   def tearDown(self):
     shutil.rmtree(self.crash_dir)
-    self.mocker.UnsetStubs()
 
-  def testScan(self):
+  @mock.patch('cros.factory.test.utils.core_dump_manager.CoreDumpManager._SetCoreDump')
+  def testScan(self, set_core_dump_mock):
     logging.info('Test ScanFiles()')
-    core_dump_manager.CoreDumpManager._SetCoreDump = (
-        self.mocker.CreateMockAnything())
-    core_dump_manager.CoreDumpManager._SetCoreDump()
-    self.mocker.ReplayAll()
+
     manager = core_dump_manager.CoreDumpManager(
         watchlist=self.watchlist, crash_dir=self.crash_dir)
+    set_core_dump_mock.assert_called_once_with()
+
     self.CreateFiles()
     # Should get a list containing watched_file.
     self.assertEqual(manager.ScanFiles(), [self.watched_file.name])
     # Other files should get deleted in ScanFiles().
     self.assertEqual(os.listdir(self.crash_dir),
                      [os.path.basename(self.watched_file.name)])
-    self.mocker.VerifyAll()
 
-  def testScanNoWatch(self):
+  @mock.patch('cros.factory.test.utils.core_dump_manager.CoreDumpManager._SetCoreDump')
+  def testScanNoWatch(self, set_core_dump_mock):
     logging.info('Test ScanFiles()')
-    core_dump_manager.CoreDumpManager._SetCoreDump = (
-        self.mocker.CreateMockAnything())
-    core_dump_manager.CoreDumpManager._SetCoreDump()
-    self.mocker.ReplayAll()
+
     manager = core_dump_manager.CoreDumpManager(
         crash_dir=self.crash_dir)
+    set_core_dump_mock.assert_called_once_with()
+
     self.CreateFiles()
     # Should get an empty list.
     self.assertEqual(manager.ScanFiles(), [])
     # All files should get deleted in ScanFiles().
     self.assertEqual(os.listdir(self.crash_dir), [])
-    self.mocker.VerifyAll()
 
-  def testClear(self):
+  @mock.patch('cros.factory.test.utils.core_dump_manager.CoreDumpManager._SetCoreDump')
+  def testClear(self, set_core_dump_mock):
     logging.info('Test ClearFiles()')
-    core_dump_manager.CoreDumpManager._SetCoreDump = (
-        self.mocker.CreateMockAnything())
-    core_dump_manager.CoreDumpManager._SetCoreDump()
-    self.mocker.ReplayAll()
+
     manager = core_dump_manager.CoreDumpManager(
         watchlist=self.watchlist, crash_dir=self.crash_dir)
+    set_core_dump_mock.assert_called_once_with()
+
     self.CreateFiles()
     watch_file = manager.ScanFiles()
     # Should get a list containing watched_file.
@@ -83,7 +79,6 @@ class CoreDumpManagerTest(unittest.TestCase):
     manager.ClearFiles(watch_file)
     # The watched file is deleted after ClearFiles()
     self.assertEqual(os.listdir(self.crash_dir), [])
-    self.mocker.VerifyAll()
 
 
 if __name__ == '__main__':
