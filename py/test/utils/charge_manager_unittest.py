@@ -9,7 +9,7 @@
 import logging
 import unittest
 
-import mox
+import mock
 
 from cros.factory.device.power import Power
 from cros.factory.test.utils import charge_manager
@@ -18,56 +18,58 @@ from cros.factory.test.utils import charge_manager
 class ChargeManagerTest(unittest.TestCase):
 
   def setUp(self):
-    self.mox = mox.Mox()
-    self._power = self.mox.CreateMock(Power)
+    self._power = mock.Mock(Power)
     # Patch in the ChargeState Enum.
     self._power.ChargeState = Power.ChargeState
     self._charge_manager = charge_manager.ChargeManager(70, 80, self._power)
 
-  def tearDown(self):
-    self.mox.UnsetStubs()
-
   def testCharge(self):
-    self._power.CheckBatteryPresent().AndReturn(True)
-    self._power.CheckACPresent().AndReturn(True)
-    self._power.GetChargePct().AndReturn(65)
-    self._power.SetChargeState(self._power.ChargeState.CHARGE)
-    self.mox.ReplayAll()
+    self._power.CheckBatteryPresent.return_value = True
+    self._power.CheckACPresent.return_value = True
+    self._power.GetChargePct.return_value = 65
 
     self._charge_manager.AdjustChargeState()
 
-    self.mox.VerifyAll()
+    self._power.CheckBatteryPresent.assert_called_once_with()
+    self._power.CheckACPresent.assert_called_once_with()
+    self._power.GetChargePct.assert_called_once_with()
+    self._power.SetChargeState.assert_called_once_with(
+        self._power.ChargeState.CHARGE)
 
   def testDischarge(self):
-    self._power.CheckBatteryPresent().AndReturn(True)
-    self._power.CheckACPresent().AndReturn(True)
-    self._power.GetChargePct().AndReturn(85)
-    self._power.SetChargeState(self._power.ChargeState.DISCHARGE)
-    self.mox.ReplayAll()
+    self._power.CheckBatteryPresent.return_value = True
+    self._power.CheckACPresent.return_value = True
+    self._power.GetChargePct.return_value = 85
 
     self._charge_manager.AdjustChargeState()
 
-    self.mox.VerifyAll()
+    self._power.CheckBatteryPresent.assert_called_once_with()
+    self._power.CheckACPresent.assert_called_once_with()
+    self._power.GetChargePct.assert_called_once_with()
+    self._power.SetChargeState.assert_called_once_with(
+        self._power.ChargeState.DISCHARGE)
 
   def testStopCharge(self):
-    self._power.CheckBatteryPresent().AndReturn(True)
-    self._power.CheckACPresent().AndReturn(True)
-    self._power.GetChargePct().AndReturn(75)
-    self._power.SetChargeState(self._power.ChargeState.IDLE)
-    self.mox.ReplayAll()
+    self._power.CheckBatteryPresent.return_value = True
+    self._power.CheckACPresent.return_value = True
+    self._power.GetChargePct.return_value = 75
 
     self._charge_manager.AdjustChargeState()
 
-    self.mox.VerifyAll()
+    self._power.CheckBatteryPresent.assert_called_once_with()
+    self._power.CheckACPresent.assert_called_once_with()
+    self._power.GetChargePct.assert_called_once_with()
+    self._power.SetChargeState.assert_called_once_with(
+        self._power.ChargeState.IDLE)
 
   def testNoAC(self):
-    self._power.CheckBatteryPresent().AndReturn(True)
-    self._power.CheckACPresent().AndReturn(False)
-    self.mox.ReplayAll()
+    self._power.CheckBatteryPresent.return_value = True
+    self._power.CheckACPresent.return_value = False
 
     self._charge_manager.AdjustChargeState()
 
-    self.mox.VerifyAll()
+    self._power.CheckBatteryPresent.assert_called_once_with()
+    self._power.CheckACPresent.assert_called_once_with()
 
 
 if __name__ == '__main__':
