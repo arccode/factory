@@ -5,14 +5,13 @@
 # found in the LICENSE file.
 
 import calendar
-from contextlib import contextmanager
 import logging
 import os
 import tempfile
 import time
 import unittest
 
-import mox
+import mock
 from six.moves import xrange
 
 from cros.factory.tools import time_sanitizer
@@ -29,8 +28,7 @@ SECONDS_PER_DAY = 86400
 class TimeSanitizerTestBase(unittest.TestCase):
 
   def setUp(self):
-    self.mox = mox.Mox()
-    self.fake_time = self.mox.CreateMock(time_sanitizer.Time)
+    self.fake_time = mock.Mock(time_sanitizer.Time)
 
     self.sanitizer = time_sanitizer.TimeSanitizer(
         self.state_file,
@@ -46,15 +44,6 @@ class TimeSanitizerTestBase(unittest.TestCase):
       # pylint: disable=attribute-defined-outside-init
       self.state_file = os.path.join(temp_dir, 'state_file')
       super(TimeSanitizerTestBase, self).run(result)
-
-  @contextmanager
-  def Mock(self):
-    """Context manager that sets up a mock, then runs the sanitizer once."""
-    self.mox.ResetAll()
-    yield
-    self.mox.ReplayAll()
-    self.sanitizer.RunOnce()
-    self.mox.VerifyAll()
 
   def _ReadStateFile(self):
     return float(open(self.state_file).read().strip())
@@ -76,34 +65,48 @@ class TimeSanitizerBaseTimeTest(TimeSanitizerTestBase):
 class TimeSanitizerTest(TimeSanitizerTestBase):
 
   def runTest(self):
-    with self.Mock():
-      self.fake_time.Time().AndReturn(BASE_TIME)
+    self.fake_time.Time.return_value = BASE_TIME
+
+    self.sanitizer.RunOnce()
     self.assertEqual(BASE_TIME, self._ReadStateFile())
+    self.fake_time.Time.assert_called_once_with()
+    self.fake_time.Time.reset_mock()
 
     # Now move forward 1 second, and then forward 0 seconds.  Should
     # be fine.
-    for _ in xrange(2):
-      with self.Mock():
-        self.fake_time.Time().AndReturn(BASE_TIME + 1)
+    for unused_iteration in xrange(2):
+      self.fake_time.Time.return_value = BASE_TIME + 1
+
+      self.sanitizer.RunOnce()
       self.assertEqual(BASE_TIME + 1, self._ReadStateFile())
+      self.fake_time.Time.assert_called_once_with()
+      self.fake_time.Time.reset_mock()
 
     # Now move forward 2 days.  This should be considered hosed, so
     # the time should be bumped up by time_bump_secs (120).
-    with self.Mock():
-      self.fake_time.Time().AndReturn(BASE_TIME + 2 * SECONDS_PER_DAY)
-      self.fake_time.SetTime(BASE_TIME + 61)
+    self.fake_time.Time.return_value = BASE_TIME + 2 * SECONDS_PER_DAY
+
+    self.sanitizer.RunOnce()
     self.assertEqual(BASE_TIME + 61, self._ReadStateFile())
+    self.fake_time.Time.assert_called_once_with()
+    self.fake_time.Time.reset_mock()
+    self.fake_time.SetTime.assert_called_with(BASE_TIME + 61)
 
     # Move forward a bunch.  Fine.
-    with self.Mock():
-      self.fake_time.Time().AndReturn(BASE_TIME + 201.5)
+    self.fake_time.Time.return_value = BASE_TIME + 201.5
+
+    self.sanitizer.RunOnce()
     self.assertEqual(BASE_TIME + 201.5, self._ReadStateFile())
+    self.fake_time.Time.assert_called_once_with()
+    self.fake_time.Time.reset_mock()
 
     # Jump back 20 seconds.  Not fine!
-    with self.Mock():
-      self.fake_time.Time().AndReturn(BASE_TIME + 181.5)
-      self.fake_time.SetTime(BASE_TIME + 261.5)
+    self.fake_time.Time.return_value = BASE_TIME + 181.5
+
+    self.sanitizer.RunOnce()
     self.assertEqual(BASE_TIME + 261.5, self._ReadStateFile())
+    self.fake_time.Time.assert_called_once_with()
+    self.fake_time.SetTime.assert_called_with(BASE_TIME + 261.5)
 
 
 if __name__ == '__main__':
