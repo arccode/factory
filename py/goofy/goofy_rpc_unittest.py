@@ -8,7 +8,7 @@ import json
 import os
 import unittest
 
-import mox
+import mock
 
 from cros.factory.goofy import goofy
 from cros.factory.goofy import goofy_rpc
@@ -30,24 +30,18 @@ def ReplaceAttribute(obj, name, value):
 class GoofyRPCTest(unittest.TestCase):
 
   def setUp(self):
-    self.mox = mox.Mox()
-    self.goofy = self.mox.CreateMock(goofy)
+    self.goofy = mock.Mock(goofy)
     self.goofy_rpc = goofy_rpc.GoofyRPC(self.goofy)
-
-  def tearDown(self):
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
 
   def testGetTestList(self):
     test_list = "data"
-    self.goofy.test_list = self.mox.CreateMock(test_list_module.FactoryTestList)
-    self.goofy.test_list.ToStruct(extra_fields=['path']).AndReturn(test_list)
-
-    self.mox.ReplayAll()
+    self.goofy.test_list = mock.Mock(test_list_module.FactoryTestList)
+    self.goofy.test_list.ToStruct.return_value = test_list
 
     self.assertEqual(
         test_list,
         self.goofy_rpc.GetTestList())
+    self.goofy.test_list.ToStruct.assert_called_once_with(extra_fields=['path'])
 
   def testGetTestHistory(self):
     data = {'A': 1, 'b': 'abc'}
