@@ -539,16 +539,18 @@ def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
     ])
     _UnmountStatefulPartition(old_root, state_dev)
 
-    process_utils.Spawn(
-        [os.path.join(CUTOFF_SCRIPT_DIR, 'display_wipe_message.sh'), 'wipe'],
-        call=True)
-
     # When testing, stop the wiping process with no error. In normal
     # process, this function will run forever until reboot.
     if test_umount:
       logging.info('Finished unmount, stop wiping process because test_umount '
                    'is set.')
       return
+
+    # The following code could not be executed when factory is not installed
+    # due to lacking of CUTOFF_SCRIPT_DIR.
+    process_utils.Spawn(
+        [os.path.join(CUTOFF_SCRIPT_DIR, 'display_wipe_message.sh'), 'wipe'],
+        call=True)
 
     try:
       _WipeStateDev(release_rootfs, root_disk, wipe_args, state_dev,
