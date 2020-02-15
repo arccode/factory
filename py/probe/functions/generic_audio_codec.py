@@ -36,12 +36,16 @@ class GenericAudioCodecFunction(cached_probe_function.CachedProbeFunction):
     ])
 
     results = []
-    asoc_path = '/sys/kernel/debug/asoc/codecs'
-    if os.path.exists(asoc_path):
-      with open(asoc_path) as f:
-        results = [codec.strip()
-                   for codec in f.read().splitlines()
-                   if codec not in KNOWN_INVALID_CODEC_NAMES]
+    asoc_paths = [
+        '/sys/kernel/debug/asoc/codecs', # for kernel version <= 4.4
+        '/sys/kernel/debug/asoc/components', # for kernel version >= 4.14
+    ]
+    for p in asoc_paths:
+      if os.path.exists(p):
+        with open(p) as f:
+          results.extend([codec.strip()
+                          for codec in f.read().splitlines()
+                          if codec not in KNOWN_INVALID_CODEC_NAMES])
 
     grep_result = process_utils.SpawnOutput(
         'grep -R "Codec:" /proc/asound/*', shell=True, log=True)
