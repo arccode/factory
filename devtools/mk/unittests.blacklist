@@ -1,2 +1,4 @@
 py/test/utils/media_utils_unittest.py
 py/probe_info_service/%_unittest.py
+py/dkps/dkps_unittest.py
+py/test_list_editor/backend/rpc_unittest.py
