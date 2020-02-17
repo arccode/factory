@@ -1,4 +1,4 @@
-#!/usr/bin/trial --temp-directory=/tmp/_trial_temp/
+#!/usr/bin/env python
 #
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -27,6 +27,12 @@ from cros.factory.umpire.server import umpire_rpc
 from cros.factory.umpire.server.web import wsgi
 from cros.factory.utils import net_utils
 from cros.factory.utils import type_utils
+
+
+# Forward to the correct executer with additional arguments.
+if __name__ == '__main__':
+  import sys
+  os.execvp('trial', ('--temp-directory=/tmp/_trial_temp', sys.argv[0]))
 
 
 TESTDIR = os.path.abspath(os.path.join(os.path.split(__file__)[0], 'testdata'))

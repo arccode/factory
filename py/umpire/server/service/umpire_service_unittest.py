@@ -1,4 +1,4 @@
-#!/usr/bin/trial --temp-directory=/tmp/_trial_temp/
+#!/usr/bin/env python
 #
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -19,6 +19,12 @@ from cros.factory.umpire import common
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.umpire.server import umpire_env
 from cros.factory.umpire.server import utils
+
+
+# Forward to the correct executer with additional arguments.
+if __name__ == '__main__':
+  import sys
+  os.execvp('trial', ('--temp-directory=/tmp/_trial_temp', sys.argv[0]))
 
 
 # Lower the time limit for starting monitor to speed up the test, since the

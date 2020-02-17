@@ -1,4 +1,4 @@
-#!/usr/bin/trial --temp-directory=/tmp/_trial_temp/
+#!/usr/bin/env python
 #
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -26,6 +26,13 @@ from cros.factory.umpire.server import umpire_env
 from cros.factory.umpire.server.web import xmlrpc as umpire_xmlrpc
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
+
+
+# Forward to the correct executer with additional arguments.
+if __name__ == '__main__':
+  import sys
+  os.execvp('trial', ('--temp-directory=/tmp/_trial_temp', sys.argv[0]))
+
 
 TEST_RPC_PORT = net_utils.FindUnusedPort()
 TESTDIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'testdata'))

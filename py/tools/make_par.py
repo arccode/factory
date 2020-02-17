@@ -9,7 +9,6 @@
 from __future__ import print_function
 
 import argparse
-from distutils.sysconfig import get_python_lib
 import glob
 import logging
 import os
@@ -215,13 +214,16 @@ def main(argv=None):
     # Copy necessary third-party packages. They are already present in test
     # images, so no need in mini version.
     if not args.mini:
-      python_lib = get_python_lib()
+      def _GetPythonLibPath(lib_name):
+        lib_paths = list(__import__(lib_name).__path__)
+        assert len(lib_paths) == 1  # We don't anticipate namespace packages.
+        return lib_paths[0]
 
       rsync_args = ['rsync', '-a',
-                    os.path.join(python_lib, 'enum'),
-                    os.path.join(python_lib, 'google'),
-                    os.path.join(python_lib, 'jsonrpclib'),
-                    os.path.join(python_lib, 'yaml')]
+                    _GetPythonLibPath('enum'),
+                    _GetPythonLibPath('google'),
+                    _GetPythonLibPath('jsonrpclib'),
+                    _GetPythonLibPath('yaml')]
 
       rsync_args.append(par_build)
       Spawn(rsync_args, log=True, check_call=True,
