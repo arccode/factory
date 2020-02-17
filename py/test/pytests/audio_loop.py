@@ -252,6 +252,7 @@ _ARG_TESTS_TO_CONDUCT_SCHEMA = JSONSchemaDict('tests_to_conduct schema', {
                         'enum': ['sinewav']
                     },
                     'duration': {'type': 'number',},
+                    'input_channels': {'type': 'array'},
                     'freq_threshold': {'type': 'number'},
                     'rms_threshold': {
                         'type': 'array',
@@ -360,6 +361,7 @@ class AudioLoopTest(test_case.TestCase):
           '\n'
           'If type is **sinewav**, the dict can optionally contain:\n'
           '  - **duration**: The test duration, in seconds.\n'
+          '  - **input_channels**: A list of input channels to be tested.\n'
           '  - **freq_threshold**: Acceptable frequency margin.\n'
           '  - **rms_threshold**: **[min, max]** that will make\n'
           '        sure the following inequality is true: *min <= recorded\n'
