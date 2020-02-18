@@ -23,7 +23,11 @@
         }
       },
       "generic": {
-        "eval": {"generic_battery": {}}
+        "eval": {"generic_battery": {}},
+        "expect": {
+          "manufacturer": [false, "str"],
+          "model_name": [false, "str"]
+        }
       }
     },
     "storage": {
@@ -31,20 +35,24 @@
         "eval": {"generic_storage": {}},
         "expect": {
           "name": [true, "str", "!eq ABCxyz"],
-          "manfid": [true, "hex", "!eq 0x001122"],
+          "manfid": [true, "hex", "!eq 0x22"],
           "oemid": [true, "hex", "!eq 0x4455"],
-          "prv": [true, "hex", "!eq 0x8899aabb"],
+          "prv": [true, "hex", "!eq 0x0A"],
           "sectors": [true, "int", "!eq 1000000"]
         }
       },
       "generic": {
         "eval": {"generic_storage": {}},
         "expect": {
+          "type": [false, "str"],
           "sectors": [false, "int"],
           "manfid": [false, "hex"],
-          "pci_vendor": [false, "hex"],
+          "name": [false, "str"],
+          "ata_model": [false, "str"],
+          "ata_vendor": [false, "str"],
+          "pci_class": [false, "hex"],
           "pci_device": [false, "hex"],
-          "pci_class": [false, "hex"]
+          "pci_vendor": [false, "hex"]
         }
       }
     }
@@ -66,18 +74,26 @@
         }
       },
       "generic": {
-        "eval": {"generic_battery": {}}
+        "eval": {"generic_battery": {}},
+        "expect": {
+          "manufacturer": [false, "str"],
+          "model_name": [false, "str"]
+        }
       }
     },
     "storage": {
       "generic": {
         "eval": {"generic_storage": {}},
         "expect": {
+          "type": [false, "str"],
           "sectors": [false, "int"],
           "manfid": [false, "hex"],
-          "pci_vendor": [false, "hex"],
+          "name": [false, "str"],
+          "ata_model": [false, "str"],
+          "ata_vendor": [false, "str"],
+          "pci_class": [false, "hex"],
           "pci_device": [false, "hex"],
-          "pci_class": [false, "hex"]
+          "pci_vendor": [false, "hex"]
         }
       }
     }

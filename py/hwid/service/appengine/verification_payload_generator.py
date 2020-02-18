@@ -4,11 +4,8 @@
 # found in the LICENSE file.
 """Methods to generate the verification payload from the HWID database."""
 
-import collections
-import copy
 import re
-
-from six import iteritems
+import functools
 
 # pylint: disable=import-error, no-name-in-module
 from google.protobuf import text_format
@@ -19,8 +16,8 @@ import factory_common  # pylint: disable=unused-import
 from cros.factory.hwid.v3 import common as hwid_common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import rule as hwid_rule
-from cros.factory.utils import json_utils
-from cros.factory.utils import schema
+from cros.factory.probe.runtime_probe import probe_config_definition
+from cros.factory.probe.runtime_probe import probe_config_types
 
 
 class GenerateVerificationPayloadError(Exception):
@@ -31,206 +28,180 @@ class ProbeStatementGeneratorNotSuitableError(Exception):
   """The given component values cannot be converted by this generator."""
 
 
-GenericProbeStatementInfo = collections.namedtuple(
-    'GenericProbeStatementInfo', ['probe_statement', 'whitelist_fields'])
+class GenericProbeStatementInfoRecord(object):
+  """Placeholder for info. related to the generic probe statement.
+
+  Attributes:
+    probe_category: The name of the probe category.
+    probe_func_name: The name of the probe function.
+    whitelist_fields: A list of fields that is allowed to be outputted.
+  """
+
+  def __init__(self, probe_category, probe_func_name, whitelist_fields):
+    self.probe_category = probe_category
+    self.probe_func_name = probe_func_name
+    self.whitelist_fields = whitelist_fields
+
+  def GenerateProbeStatement(self):
+    return probe_config_definition.GetProbeStatementDefinition(
+        self.probe_category).GenerateProbeStatement(
+            'generic', self.probe_func_name,
+            {fn: None for fn in self.whitelist_fields})
+
+
+_generic_probe_statement_info_records = None
 
 
 # TODO(yhong): Remove the expect field when runtime_probe converts the output
 #              format automatically (b/133641904).
-GENERIC_PROBE_STATEMENTS = {
-    runtime_probe_pb2.ProbeRequest.battery: GenericProbeStatementInfo(
-        {'eval': {'generic_battery': {}}},
-        ['manufacturer', 'model_name', 'technology']),
-    runtime_probe_pb2.ProbeRequest.storage: GenericProbeStatementInfo(
-        {'eval': {'generic_storage': {}},
-         'expect': {'sectors': [False, 'int'],
-                    'manfid': [False, 'hex'],
-                    'pci_vendor': [False, 'hex'],
-                    'pci_device': [False, 'hex'],
-                    'pci_class': [False, 'hex']}},
-        ['type', 'sectors', 'manfid', 'name', 'pci_vendor', 'pci_device',
-         'pci_class', 'ata_vendor', 'ata_model']),
-}
+def _GetAllGenericProbeStatementInfoRecords():
+  # pylint:disable=global-statement
+  global _generic_probe_statement_info_records
+
+  if not _generic_probe_statement_info_records:
+    _generic_probe_statement_info_records = [
+        GenericProbeStatementInfoRecord(
+            'battery', 'generic_battery',
+            ['manufacturer', 'model_name']),
+        GenericProbeStatementInfoRecord(
+            'storage', 'generic_storage',
+            ['type', 'sectors', 'manfid', 'name', 'pci_vendor', 'pci_device',
+             'pci_class', 'ata_vendor', 'ata_model'])
+    ]
+
+  return _generic_probe_statement_info_records
 
 
-GENERIC_COMPONENT_NAME = 'generic'
+class _FieldRecord(object):
+  def __init__(self, hwid_field_name, probe_statement_field_name,
+               value_converter):
+    self.hwid_field_name = hwid_field_name
+    self.probe_statement_field_name = probe_statement_field_name
+    self.value_converter = value_converter
 
 
-# TODO(yhong): Consider re-using logic in
-#     `cros.factory.probe_info_service.app_engine.probe_tool_manager`.
-
-class ProbeStatementGenerator(object):
-  """Base class of the probe statement generator.
-
-  Each sub-class represents a generator of a specific probe function.
-
-  Properties:
-    SUPPORTED_CATEGORIES: A dictionary that maps the component category in
-        the HWID database to the corresponding component category enum item
-        in the probe statement.
-  """
-  SUPPORTED_CATEGORIES = None
-
-  @classmethod
-  def TryGenerate(cls, comp_values):
-    """Generates the corresponding probe statement from the given data.
-
-    Args:
-      comp_values: The probed component values from the HWID database.
-
-    Returns:
-      The generated probe statement object.
-
-    Raises:
-      `ProbeStatementGeneratorNotSuitableError` if it fails to transform
-          the given `comp_values` to the corresponding probe statement.
-    """
-    raise NotImplementedError
+class MissingComponentValueError(ProbeStatementGeneratorNotSuitableError):
+  pass
 
 
-_all_probe_statement_generators = []
+class ProbeStatementConversionError(ProbeStatementGeneratorNotSuitableError):
+  pass
 
 
-def RegisterProbeStatementGenerator(cls):
-  _all_probe_statement_generators.append(cls)
-  return cls
+class _ProbeStatementGenerator(object):
+  def __init__(self, probe_category, probe_function_name, field_converters):
+    self.probe_category = probe_category
+
+    self._probe_statement_generator = (
+        probe_config_definition.GetProbeStatementDefinition(probe_category))
+    self._probe_function_name = probe_function_name
+    self._field_converters = field_converters
+
+  def TryGenerate(self, comp_name, comp_values):
+    expected_fields = {}
+    for fc in self._field_converters:
+      try:
+        val = comp_values[fc.hwid_field_name]
+      except KeyError:
+        raise MissingComponentValueError(
+            'missing component value field: %r' % fc.hwid_field_name)
+      try:
+        expected_fields[fc.probe_statement_field_name] = fc.value_converter(val)
+      except Exception as e:
+        raise ProbeStatementConversionError(
+            'unable to convert the value of field %r : %r' %
+            (fc.hwid_field_name, e))
+    try:
+      return self._probe_statement_generator.GenerateProbeStatement(
+          comp_name, self._probe_function_name, expected_fields)
+    except Exception as e:
+      raise ProbeStatementConversionError(
+          'unable to convert to the probe statement : %r' % e)
+
+
+_all_probe_statement_generators = None
 
 
 def GetAllProbeStatementGenerators():
+  # pylint:disable=global-statement
+  global _all_probe_statement_generators
+  if _all_probe_statement_generators:
+    return _all_probe_statement_generators
+
+  def HWIDValueToStr(value):
+    if isinstance(value, hwid_rule.Value):
+      return re.compile(value.raw_value) if value.is_re else value.raw_value
+    return value
+
+  def StrToNum(value):
+    if not re.match('-?[0-9]+$', value):
+      raise ValueError('not a regular string of number')
+    return int(value)
+
+  def HWIDHexStrToHexStr(num_digits, value):
+    if not re.match('0x0*[0-9a-fA-F]{1,%d}$' % num_digits, value):
+      raise ValueError(
+          'not a regular string of %d digits hex number' % num_digits)
+    # Regulate the output to the fixed-digit hex string with upper cases.
+    return value.upper()[-num_digits:].zfill(num_digits)
+
+  def GetHWIDHexStrToHexStrConverter(num_digits):
+    return functools.partial(HWIDHexStrToHexStr, num_digits)
+
+  def SimplyForwardValue(value):
+    return value
+
+  same_name_field_converter = lambda n, c: _FieldRecord(n, n, c)
+
+  _all_probe_statement_generators = {}
+
+  _all_probe_statement_generators['battery'] = [
+      _ProbeStatementGenerator('battery', 'generic_battery', [
+          same_name_field_converter('manufacturer', HWIDValueToStr),
+          same_name_field_converter('model_name', HWIDValueToStr),
+      ])
+  ]
+
+  storage_shared_fields = [
+      same_name_field_converter('sectors', StrToNum)
+  ]
+  _all_probe_statement_generators['storage'] = [
+      # eMMC
+      _ProbeStatementGenerator(
+          'storage', 'generic_storage',
+          storage_shared_fields + [
+              same_name_field_converter('name', SimplyForwardValue),
+              same_name_field_converter(
+                  'manfid', GetHWIDHexStrToHexStrConverter(2)),
+              same_name_field_converter(
+                  'oemid', GetHWIDHexStrToHexStrConverter(4)),
+              same_name_field_converter(
+                  'prv', GetHWIDHexStrToHexStrConverter(2)),
+          ]
+      ),
+      # NVMe
+      _ProbeStatementGenerator(
+          'storage', 'generic_storage',
+          storage_shared_fields + [
+              _FieldRecord('vendor', 'pci_vendor',
+                           GetHWIDHexStrToHexStrConverter(4)),
+              _FieldRecord('device', 'pci_device',
+                           GetHWIDHexStrToHexStrConverter(4)),
+              _FieldRecord('class', 'pci_class',
+                           GetHWIDHexStrToHexStrConverter(6)),
+          ]
+      ),
+      # ATA
+      _ProbeStatementGenerator(
+          'storage', 'generic_storage',
+          storage_shared_fields + [
+              _FieldRecord('vendor', 'ata_vendor', HWIDValueToStr),
+              _FieldRecord('model', 'ata_model', HWIDValueToStr),
+          ]
+      ),
+  ]
+
   return _all_probe_statement_generators
-
-
-def _CompValueToExpectStrField(value):
-  if isinstance(value, hwid_rule.Value):
-    pattern = ('!re ' if value.is_re  else '!eq ') + value.raw_value
-  else:
-    pattern = '!eq ' + value
-  return [True, 'str', pattern]
-
-
-def _GetHexStrRegexp(num_bits=None):
-  if not num_bits:
-    return re.compile('0x[0-9a-f]+$', flags=re.IGNORECASE)
-
-  assert num_bits % 8 == 0
-  return re.compile('0x[0-9a-f]{%d}$' % (num_bits // 4), flags=re.IGNORECASE)
-
-
-_NUMBER_REGEXP = re.compile('[0-9]+$')
-
-
-@RegisterProbeStatementGenerator
-class GenericBatteryProbeStatementGenerator(ProbeStatementGenerator):
-  SUPPORTED_CATEGORIES = {'battery': runtime_probe_pb2.ProbeRequest.battery}
-
-  @classmethod
-  def TryGenerate(cls, comp_values):
-    probe_statement = {'eval': {'generic_battery': {}}, 'expect': {}}
-    for field_name in ('manufacturer', 'model_name'):
-      try:
-        probe_statement['expect'][field_name] = _CompValueToExpectStrField(
-            comp_values[field_name])
-      except KeyError:
-        raise ProbeStatementGeneratorNotSuitableError('missing field: %s' %
-                                                      field_name)
-    return probe_statement
-
-
-class GenericStorageProbeStatementGeneratorBase(ProbeStatementGenerator):
-  """A base class of the probe statement generator of `generic_storage` func.
-
-  The probe function `generic_storage` is actually a superset of different kind
-  of probing methods.  The generator for each of the method are similar but
-  still different.  This class extracts the common part out and leave the
-  method-specific part to be customized by the sub-class.
-  """
-  SUPPORTED_CATEGORIES = {'storage': runtime_probe_pb2.ProbeRequest.storage}
-
-  STORAGE_TYPE = None  # Type of the storage, defined by the sub-class.
-
-  _COMMON_COMP_VALUE_SCHEMA_ITEMS = {
-      'sectors': schema.RegexpStr('sectors', _NUMBER_REGEXP)}
-
-  @classmethod
-  def TryGenerate(cls, comp_values):
-    fixed_dict_items = copy.copy(cls._COMMON_COMP_VALUE_SCHEMA_ITEMS)
-    fixed_dict_items.update(cls.GetExtraCompValueSchemaItems())
-    schema_obj = schema.FixedDict(
-        'component values', items=fixed_dict_items, allow_undefined_keys=True)
-    try:
-      schema_obj.Validate(comp_values)
-    except schema.SchemaException as e:
-      raise ProbeStatementGeneratorNotSuitableError('schema mismatch: %r' % e)
-
-    probe_statement = {
-        'eval': {'generic_storage': {}},
-        'expect': {
-            'sectors': [True, 'int', '!eq ' + comp_values['sectors']]
-        }
-    }
-    probe_statement['expect'].update(cls.GenerateExtraExpectFields(comp_values))
-    return probe_statement
-
-  @classmethod
-  def GetExtraCompValueSchemaItems(cls):
-    raise NotImplementedError
-
-  @classmethod
-  def GenerateExtraExpectFields(cls, comp_values):
-    raise NotImplementedError
-
-
-@RegisterProbeStatementGenerator
-class GenericStorageMMCProbeStatementGenerator(
-    GenericStorageProbeStatementGeneratorBase):
-  """Generator for MMC type of `generic_storage` function."""
-
-  @classmethod
-  def GetExtraCompValueSchemaItems(cls):
-    return {'name': schema.RegexpStr('name', re.compile(r'.{6}$')),
-            'manfid': schema.RegexpStr('manfid', _GetHexStrRegexp(num_bits=24)),
-            'oemid': schema.RegexpStr('oemid', _GetHexStrRegexp(num_bits=16)),
-            'prv': schema.RegexpStr('prv', _GetHexStrRegexp())}
-
-  @classmethod
-  def GenerateExtraExpectFields(cls, comp_values):
-    ret = {fn: [True, 'hex', '!eq ' + comp_values[fn]]
-           for fn in ('manfid', 'oemid', 'prv')}
-    ret['name'] = _CompValueToExpectStrField(comp_values['name'])
-    return ret
-
-
-@RegisterProbeStatementGenerator
-class GenericStorageATAProbeStatementGenerator(
-    GenericStorageProbeStatementGeneratorBase):
-  """Generator for ATA/SATA type of `generic_storage` function."""
-
-  @classmethod
-  def GetExtraCompValueSchemaItems(cls):
-    return {'vendor': schema.RegexpStr('vendor', re.compile(r'.+$')),
-            'model': schema.RegexpStr('manfid', re.compile(r'.+$'))}
-
-  @classmethod
-  def GenerateExtraExpectFields(cls, comp_values):
-    return {'ata_' + fn: [True, 'str', '!eq ' + comp_values[fn]]
-            for fn in ('vendor', 'model')}
-
-
-@RegisterProbeStatementGenerator
-class GenericStorageNVMeProbeStatementGenerator(
-    GenericStorageProbeStatementGeneratorBase):
-  """Generator for NVMe type of `generic_storage` function."""
-
-  @classmethod
-  def GetExtraCompValueSchemaItems(cls):
-    return {'vendor': schema.RegexpStr('vendor', _GetHexStrRegexp(num_bits=16)),
-            'device': schema.RegexpStr('device', _GetHexStrRegexp(num_bits=16)),
-            'class': schema.RegexpStr('class', _GetHexStrRegexp(num_bits=24))}
-
-  @classmethod
-  def GenerateExtraExpectFields(cls, comp_values):
-    return {'pci_' + fn: [True, 'hex', '!eq ' + comp_values[fn]]
-            for fn in ('vendor', 'device', 'class')}
 
 
 def GenerateVerificationPayload(dbs):
@@ -252,7 +223,7 @@ def GenerateVerificationPayload(dbs):
 
   Raises:
     `GenerateVerificationPayloadError` if it fails to generate the
-        corresponding payloads.
+     corresponding payloads.
   """
   _STATUS_MAP = {
       hwid_common.COMPONENT_STATUS.supported: hardware_verifier_pb2.QUALIFIED,
@@ -261,75 +232,68 @@ def GenerateVerificationPayload(dbs):
       hwid_common.COMPONENT_STATUS.deprecated: hardware_verifier_pb2.REJECTED,
       hwid_common.COMPONENT_STATUS.unsupported: hardware_verifier_pb2.REJECTED,
   }
+  ProbeRequestSupportCategory = runtime_probe_pb2.ProbeRequest.SupportCategory
 
-  def _AddProbeStatement(probe_config_data, comp_category, probe_statement):
-    comp_category_name = runtime_probe_pb2.ProbeRequest.SupportCategory.Name(
-        comp_category)
-    probe_config_data.setdefault(comp_category_name, {}).update(
-        probe_statement)
+  def TryGenerateProbeStatement(comp_name, comp_values, ps_gens):
+    ret = []
+    for ps_gen in ps_gens:
+      try:
+        ps = ps_gen.TryGenerate(comp_name, comp_values)
+        ret.append((ps_gen, ps))
+      except ProbeStatementGeneratorNotSuitableError:
+        continue
+    return ret
 
-  def _AppendProbeStatement(
-      probe_config_data, comp_category, comp_name, probe_statement):
-    comp_category_name = runtime_probe_pb2.ProbeRequest.SupportCategory.Name(
-        comp_category)
-    probe_config_data.setdefault(comp_category_name, {})[
-        comp_name] = probe_statement
-
-  ps_generators = collections.defaultdict(list)
-  for ps_gen in GetAllProbeStatementGenerators():
-    for hwid_comp_category in ps_gen.SUPPORTED_CATEGORIES:
-      ps_generators[hwid_comp_category].append(ps_gen)
+  ps_generators = GetAllProbeStatementGenerators()
 
   ret_files = {}
   hw_verification_spec = hardware_verifier_pb2.HwVerificationSpec()
   for db in dbs:
     model_prefix = db.project.lower()
-    probe_config_data = {}
-    for hwid_comp_category, ps_gens in iteritems(ps_generators):
+    probe_config = probe_config_types.ProbeConfigPayload()
+    for hwid_comp_category, ps_gens in ps_generators.items():
       comps = db.GetComponents(hwid_comp_category, include_default=False)
-      for comp_name, comp_info in iteritems(comps):
+      for comp_name, comp_info in comps.items():
         unique_comp_name = model_prefix + '_' + comp_name
         if comp_info.status == hwid_common.COMPONENT_STATUS.duplicate:
           continue
 
-        is_handled = False
-        for ps_gen in ps_gens:
-          try:
-            # `comp_info.values` is in type of collections.OrderedDict, which
-            # makes the schema check fails so we convert it to a regular dict
-            # first.
-            probe_statement = ps_gen.TryGenerate(dict(comp_info.values))
-          except ProbeStatementGeneratorNotSuitableError:
-            continue
-          if is_handled:
-            assert False, ("The code shouldn't reach here because we expect "
-                           'only one generator can handle the given component '
-                           'by design.')
-          comp_category = ps_gen.SUPPORTED_CATEGORIES[hwid_comp_category]
-          _AppendProbeStatement(probe_config_data, comp_category,
-                                unique_comp_name, probe_statement)
-          hw_verification_spec.component_infos.add(
-              component_category=comp_category, component_uuid=unique_comp_name,
-              qualification_status=_STATUS_MAP[comp_info.status])
-          is_handled = True
-        if not is_handled:
+        results = TryGenerateProbeStatement(
+            unique_comp_name, comp_info.values, ps_gens)
+        if not results:
           raise GenerateVerificationPayloadError(
               'no probe statement generator supports %r typed component %r' %
               (hwid_comp_category, comp_info))
+        elif len(results) > 1:
+          assert False, ("The code shouldn't reach here because we expect "
+                         'only one generator can handle the given component '
+                         'by design.')
+        ps_gen, probe_statement = results[0]
 
-      # Append the generic probe statements.
-      for comp_category, ps_info in iteritems(GENERIC_PROBE_STATEMENTS):
-        _AppendProbeStatement(probe_config_data, comp_category,
-                              GENERIC_COMPONENT_NAME, ps_info.probe_statement)
+        probe_config.AddComponentProbeStatement(probe_statement)
+        hw_verification_spec.component_infos.add(
+            component_category=ProbeRequestSupportCategory.Value(
+                ps_gen.probe_category),
+            component_uuid=unique_comp_name,
+            qualification_status=_STATUS_MAP[comp_info.status])
+
+    # Append the generic probe statements.
+    for ps_gen in _GetAllGenericProbeStatementInfoRecords():
+      probe_config.AddComponentProbeStatement(ps_gen.GenerateProbeStatement())
+
     probe_config_pathname = 'runtime_probe/%s/probe_config.json' % model_prefix
-    ret_files[probe_config_pathname] = json_utils.DumpStr(probe_config_data,
-                                                          pretty=True)
+    ret_files[probe_config_pathname] = probe_config.DumpToString()
+
   hw_verification_spec.component_infos.sort(
       key=lambda ci: (ci.component_category, ci.component_uuid))
+
   # Append the whitelists in the verification spec.
-  for comp_category, ps_info in iteritems(GENERIC_PROBE_STATEMENTS):
+  for ps_info in _GetAllGenericProbeStatementInfoRecords():
     hw_verification_spec.generic_component_value_whitelists.add(
-        component_category=comp_category, field_names=ps_info.whitelist_fields)
+        component_category=ProbeRequestSupportCategory.Value(
+            ps_info.probe_category),
+        field_names=ps_info.whitelist_fields)
+
   ret_files['hw_verification_spec.prototxt'] = text_format.MessageToString(
       hw_verification_spec)
 
@@ -356,8 +320,9 @@ def main():
                   help=('Paths to the input HWID databases. If the board '
                         'has multiple models, users should specify all models '
                         'at once.'))
-  ap.add_argument('--no_verify_checksum', action='store_true',
-                  help="Don't verify the checksum in the HWID databases.")
+  ap.add_argument('--no_verify_checksum', action='store_false',
+                  help="Don't verify the checksum in the HWID databases.",
+                  dest='verify_checksum')
   args = ap.parse_args()
 
   logging.basicConfig(level=logging.INFO)
@@ -366,12 +331,12 @@ def main():
   for hwid_db_path in args.hwid_db_paths:
     logging.info('Load the HWID database file (%s).', hwid_db_path)
     dbs.append(database.Database.LoadFile(
-        hwid_db_path, verify_checksum=not args.no_verify_checksum))
+        hwid_db_path, verify_checksum=not args.verify_checksum))
 
   logging.info('Generate the verification payload data.')
   results = GenerateVerificationPayload(dbs)
 
-  for pathname, content in iteritems(results):
+  for pathname, content in results.items():
     logging.info('Output the verification payload file (%s).', pathname)
     fullpath = os.path.join(args.output_dir, pathname)
     file_utils.TryMakeDirs(os.path.dirname(fullpath))

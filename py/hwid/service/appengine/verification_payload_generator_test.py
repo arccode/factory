@@ -20,118 +20,113 @@ from cros.factory.hwid.v3 import rule as hwid_rule
 from cros.factory.utils import json_utils
 
 
+_vp_generator = verification_payload_generator
+
+MissingComponentValueError = _vp_generator.MissingComponentValueError
+ProbeStatementConversionError = _vp_generator.ProbeStatementConversionError
+
 TESTDATA_DIR = os.path.join(
     os.path.dirname(__file__), 'testdata', 'verification_payload_generator')
 
 
-NotSuitableError = (
-    verification_payload_generator.ProbeStatementGeneratorNotSuitableError)
-
-
 class GenericBatteryProbeStatementGeneratorTest(unittest.TestCase):
-  TARGET_CLS = (
-      verification_payload_generator.GenericBatteryProbeStatementGenerator)
-
   def testTryGenerate(self):
-    ps = self.TARGET_CLS.TryGenerate(
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['battery'][0]
+
+    ps = ps_gen.TryGenerate(
+        'name1',
         {'manufacturer': 'foo',
          'model_name': hwid_rule.Value('bar', is_re=True),
          'other_value': 'z'})
-    self.assertEqual(ps, {'eval': {'generic_battery': {}},
-                          'expect': {'manufacturer': [True, 'str', '!eq foo'],
-                                     'model_name': [True, 'str', '!re bar']}})
+    self.assertEqual(
+        ps,
+        {
+            'battery': {
+                'name1': {
+                    'eval': {'generic_battery': {}},
+                    'expect': {'manufacturer': [True, 'str', '!eq foo'],
+                               'model_name': [True, 'str', '!re bar']}
+                }
+            }
+        })
 
     # Should report not supported if some fields are missing.
-    self.assertRaises(NotSuitableError, self.TARGET_CLS.TryGenerate,
-                      {'manufacturer': 'foo'})
+    self.assertRaises(MissingComponentValueError, ps_gen.TryGenerate,
+                      'name1', {'manufacturer': 'foo'})
 
 
 class GenericStorageMMCProbeStatementGeneratorTest(unittest.TestCase):
-  TARGET_CLS = (
-      verification_payload_generator.GenericStorageMMCProbeStatementGenerator)
-
   def testTryGenerate(self):
-    ps = self.TARGET_CLS.TryGenerate(
-        {'sectors': '112233', 'name': 'ABCxyz', 'manfid': '0x001122',
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['storage'][0]
+    ps = ps_gen.TryGenerate(
+        'name1',
+        {'sectors': '112233', 'name': 'ABCxyz', 'manfid': '0x00022',
          'oemid': '0x4455', 'prv': '0xa'})
-    self.assertEqual(ps, {'eval': {'generic_storage': {}},
-                          'expect': {'sectors': [True, 'int', '!eq 112233'],
-                                     'name': [True, 'str', '!eq ABCxyz'],
-                                     'manfid': [True, 'hex', '!eq 0x001122'],
-                                     'oemid': [True, 'hex', '!eq 0x4455'],
-                                     'prv': [True, 'hex', '!eq 0xa']}})
+    self.assertEqual(
+        ps,
+        {
+            'storage': {
+                'name1': {
+                    'eval': {'generic_storage': {}},
+                    'expect': {'sectors': [True, 'int', '!eq 112233'],
+                               'name': [True, 'str', '!eq ABCxyz'],
+                               'manfid': [True, 'hex', '!eq 0x22'],
+                               'oemid': [True, 'hex', '!eq 0x4455'],
+                               'prv': [True, 'hex', '!eq 0x0A']}
+                }
+            }
+        })
 
     # Should report not supported if some fields are missing.
-    self.assertRaises(NotSuitableError, self.TARGET_CLS.TryGenerate,
+    self.assertRaises(MissingComponentValueError, ps_gen.TryGenerate, 'n1',
                       {'sectors': '112233', 'name': 'ABCxyz', 'oemid': '0x4455',
                        'prv': '0xa'})
 
     # Should report not supported because `manfid` has incorrect bit length.
-    self.assertRaises(NotSuitableError, self.TARGET_CLS.TryGenerate,
+    self.assertRaises(ProbeStatementConversionError, ps_gen.TryGenerate, 'n1',
                       {'sectors': '112233', 'name': 'ABCxyz', 'manfid': '0xaa',
                        'oemid': '0x44556677', 'prv': '0xaabbccdd'})
     # Should report not supported because `name` should be a string of 6 bytes.
-    self.assertRaises(NotSuitableError, self.TARGET_CLS.TryGenerate,
+    self.assertRaises(ProbeStatementConversionError, ps_gen.TryGenerate, 'n1',
                       {'sectors': '1133', 'name': 'A', 'manfid': '0xaabbcc',
                        'oemid': '0x4455', 'prv': '0xaabbccdd'})
     # Should report not supported because `sectors` should be an integer.
-    self.assertRaises(NotSuitableError, self.TARGET_CLS.TryGenerate,
+    self.assertRaises(ProbeStatementConversionError, ps_gen.TryGenerate, 'n1',
                       {'sectors': '?', 'name': 'ABCxyz', 'manfid': '0xaabbcc',
                        'oemid': '0x4455', 'prv': '0xa'})
     # Should report not supported because `manfid` is not a valid hex number.
-    self.assertRaises(NotSuitableError, self.TARGET_CLS.TryGenerate,
+    self.assertRaises(ProbeStatementConversionError, ps_gen.TryGenerate, 'n1',
                       {'sectors': '112233', 'name': 'ABCxyz',
                        'manfid': '0x00ZZZZ', 'oemid': '0x4455', 'prv': '0xa'})
 
 
-class GenericStorageATAProbeStatementGeneratorTest(unittest.TestCase):
-  TARGET_CLS = (
-      verification_payload_generator.GenericStorageATAProbeStatementGenerator)
-
-  def testTryGenerate(self):
-    ps = self.TARGET_CLS.TryGenerate(
-        {'sectors': '112233', 'vendor': 'aabbccdd', 'model': 'this_is_model',
-         'extra': '???'})
-    self.assertEqual(ps, {'eval': {'generic_storage': {}},
-                          'expect': {'sectors': [True, 'int', '!eq 112233'],
-                                     'ata_vendor': [True, 'str',
-                                                    '!eq aabbccdd'],
-                                     'ata_model': [True, 'str',
-                                                   '!eq this_is_model']}})
-
-    # Should report not supported if some fields are missing.
-    self.assertRaises(NotSuitableError, self.TARGET_CLS.TryGenerate,
-                      {'sectors': '112233', 'vendor': 'aabbccdd', 'extra': '?'})
-
-    # Should report not supported if some fields contain incorrect format.
-    self.assertRaises(NotSuitableError, self.TARGET_CLS.TryGenerate,
-                      {'sectors': '112233x', 'vendor': 'aabbccdd',
-                       'model': 'this_is_model'})
-
-
 class GenericStorageNVMeProbeStatementGeneratorTest(unittest.TestCase):
-  TARGET_CLS = (
-      verification_payload_generator.GenericStorageNVMeProbeStatementGenerator)
-
   def testTryGenerate(self):
-    ps = self.TARGET_CLS.TryGenerate(
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['storage'][1]
+    ps = ps_gen.TryGenerate(
+        'name1',
         {'sectors': '112233', 'class': '0x123456', 'device': '0x1234',
          'vendor': '0x5678'})
-    self.assertEqual(ps, {'eval': {'generic_storage': {}},
-                          'expect': {'sectors': [True, 'int', '!eq 112233'],
-                                     'pci_class': [True, 'hex',
-                                                   '!eq 0x123456'],
-                                     'pci_vendor': [True, 'hex',
-                                                    '!eq 0x5678'],
-                                     'pci_device': [True, 'hex',
-                                                    '!eq 0x1234']}})
+    self.assertEqual(
+        ps,
+        {
+            'storage': {
+                'name1': {
+                    'eval': {'generic_storage': {}},
+                    'expect': {'sectors': [True, 'int', '!eq 112233'],
+                               'pci_class': [True, 'hex', '!eq 0x123456'],
+                               'pci_vendor': [True, 'hex', '!eq 0x5678'],
+                               'pci_device': [True, 'hex', '!eq 0x1234']}
+                }
+            }
+        })
 
     # Should report not supported if some fields are missing.
-    self.assertRaises(NotSuitableError, self.TARGET_CLS.TryGenerate,
+    self.assertRaises(MissingComponentValueError, ps_gen.TryGenerate, 'name1',
                       {'sectors': '112233', 'class': '0x123456'})
 
     # Should report not supported if some fields contain incorrect format.
-    self.assertRaises(NotSuitableError, self.TARGET_CLS.TryGenerate,
+    self.assertRaises(ProbeStatementConversionError, ps_gen.TryGenerate, 'n1',
                       {'sectors': '112233', 'class': '12345678',
                        'vendor': '0x1234', 'device': '0x5678'})
 
