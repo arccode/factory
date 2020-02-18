@@ -45,7 +45,12 @@ find_battery_path() {
     if [ -f "${power_supply}/type" ] &&
        [ "$(cat "${power_supply}/type")" = "Battery" ] &&
        [ -f "${power_supply}/present" ] &&
-       [ "$(cat "${power_supply}/present")" != "0" ]; then
+       [ "$(cat "${power_supply}/present")" != "0" ] &&
+       [ -f "${power_supply}/status" ] &&
+       [ "$(cat "${power_supply}/status")" != "Unknown" ] &&
+       [ -f "${power_supply}/voltage_now" ] &&
+       [ -f "${power_supply}/charge_full" ] &&
+       [ -f "${power_supply}/charge_now" ]; then
       battery_path="${power_supply}"
       break
     fi
