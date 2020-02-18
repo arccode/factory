@@ -426,6 +426,9 @@ class HwidApi(remote.Service):
     hwid_components = [
         'battery',
         'storage',
+        'wireless',
+        'cellular',
+        'ethernet',
     ]
     for cls in hwid_components:
       for component in bom.GetComponents(cls):
