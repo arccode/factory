@@ -7,5 +7,6 @@ py/bundle_creator
 py/doc
 py/dome
 py/instalog/virtual_env
+py/probe/runtime_probe
 py/test_list_editor
 .wh..wh.*
