@@ -8,7 +8,7 @@
 import logging
 import unittest
 
-import mox
+import mock
 
 from cros.factory.device import device_types
 from cros.factory.umpire.client import umpire_client
@@ -130,24 +130,17 @@ class UmpireClientInfoTest(unittest.TestCase):
   """Tests UmpireClient"""
 
   def setUp(self):
-    """Setups mox and mock umpire_client_info used in tests."""
-    self.mox = mox.Mox()
-    self.dut = self.mox.CreateMock(device_types.DeviceInterface)
-
-  def tearDown(self):
-    """Clean up for each test."""
-    self.mox.UnsetStubs()
+    """Setups mock and mock umpire_client_info used in tests."""
+    self.dut = mock.Mock(device_types.DeviceInterface)
 
   def testGetXUmpireDUT(self):
     """Inits an UmpireClientInfo and checks GetXUmpireDUT."""
     self.dut.info = mock_system_info_1
-    self.mox.ReplayAll()
 
     client_info = umpire_client.UmpireClientInfo(self.dut)
     output_x_umpire_dut = client_info.GetXUmpireDUT()
     self.assertEqual(output_x_umpire_dut, OUTPUT_X_UMPIRE_DUT)
 
-    self.mox.VerifyAll()
     logging.debug('Done')
 
   def testGetDUTInfoComponents(self):
@@ -155,19 +148,15 @@ class UmpireClientInfoTest(unittest.TestCase):
     self.maxDiff = 2048
     self.dut.info = mock_system_info_1
 
-    self.mox.ReplayAll()
-
     client_info = umpire_client.UmpireClientInfo(self.dut)
     output_get_update_dut_info = client_info.GetDUTInfoComponents()
     self.assertEqual(output_get_update_dut_info, OUTPUT_GET_UPDATE_DUT_INFO)
 
-    self.mox.VerifyAll()
     logging.debug('Done')
 
   def testUpdate(self):
     """Inits an UmpireClientInfo and checks Update."""
 
-    self.mox.ReplayAll()
     self.dut.info = mock_system_info_1
     client_info = umpire_client.UmpireClientInfo(self.dut)
     self.dut.info = mock_system_info_2
@@ -179,7 +168,6 @@ class UmpireClientInfoTest(unittest.TestCase):
     self.dut.info = mock_system_info_4
     self.assertEqual(client_info.Update(), False)
 
-    self.mox.VerifyAll()
     logging.debug('Done')
 
 if __name__ == '__main__':
