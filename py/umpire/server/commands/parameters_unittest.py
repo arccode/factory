@@ -7,8 +7,6 @@ import os
 import shutil
 import unittest
 
-import mox
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server.commands import parameters
 from cros.factory.umpire import common
@@ -25,14 +23,11 @@ class ParametersTest(unittest.TestCase):
 
   def setUp(self):
     self.env = umpire_env.UmpireEnvForTest()
-    self.mox = mox.Mox()
     parameter_json_file = self.env.parameter_json_file
     shutil.copy(TEST_PARAMETER, parameter_json_file)
     self.parameters = parameters.Parameters(self.env)
 
   def tearDown(self):
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
     self.env.Close()
 
   def testQueryParameters(self):

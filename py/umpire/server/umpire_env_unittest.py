@@ -7,8 +7,6 @@ import os
 import shutil
 import unittest
 
-import mox
-
 import factory_common  # pylint: disable=unused-import
 from cros.factory.umpire.server import resource
 from cros.factory.umpire.server import umpire_env
@@ -24,11 +22,8 @@ class UmpireEnvTest(unittest.TestCase):
 
   def setUp(self):
     self.env = umpire_env.UmpireEnvForTest()
-    self.mox = mox.Mox()
 
   def tearDown(self):
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
     self.env.Close()
 
   def testLoadConfigDefault(self):
