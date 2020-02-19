@@ -336,7 +336,7 @@ def _UnmountStatefulPartition(root, state_dev):
   def _KillOpeningBySignal(sig):
     for mount_point in mount_point_list:
       cmd = ['fuser', '-k', '-%d' % sig, '-m', mount_point]
-      process_utils.Spawn(cmd, call=True, log=True)
+      process_utils.Spawn(cmd, log_stderr_on_error=True)
     proc_list = _ListProcOpening(mount_point_list)
     if not proc_list:
       return True  # we are done
@@ -358,7 +358,7 @@ def _UnmountStatefulPartition(root, state_dev):
     logging.info('try to unmount %s', mount_point)
     for unused_i in xrange(10):
       output = process_utils.Spawn(['umount', '-n', '-R', mount_point],
-                                   read_stderr=True, log=True).stderr_data
+                                   log_stderr_on_error=True).stderr_data
       # some mount points need to be unmounted multiple times.
       if (output.endswith(': not mounted\n') or
           output.endswith(': not found\n')):
@@ -366,6 +366,10 @@ def _UnmountStatefulPartition(root, state_dev):
       time.sleep(0.5)
     logging.error('failed to unmount %s', mount_point)
     if critical:
+      logging.debug(
+          'lsof +f -- %s: %s',
+          mount_point,
+          process_utils.SpawnOutput(['lsof', '+f', '--', mount_point]))
       raise WipeError('Unmounting %s is critical. Stop.' % mount_point)
 
   if os.path.exists(os.path.join(root, 'dev', 'mapper', 'encstateful')):
