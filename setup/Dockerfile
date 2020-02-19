@@ -8,8 +8,6 @@ MAINTAINER Mao Huang <littlecvr@google.com>
 # need to explicitly assign PYTHONPATH for uwsgi
 ENV PYTHONPATH="/usr/local/lib/python2.7/site-packages"
 
-ARG alpine_repository="http://dl-3.alpinelinux.org/alpine/edge/testing/"
-
 ARG server_dir="/usr/local/factory"
 ARG dome_dir="${server_dir}/py/dome"
 ARG instalog_dir="${server_dir}/py/instalog"
@@ -64,19 +62,19 @@ RUN apk upgrade --no-cache && apk add --no-cache \
     unzip \
     util-linux \
     uwsgi-python \
-    xz \
-  && apk add --no-cache --repository "${alpine_repository}" \
-    lbzip2
+    xz
 
-# pixz is not available in alpine.
+# pixz and lbzip2 are not available in alpine.
 ADD build/docker/pixz.tbz2 /usr/bin
+ADD build/docker/lbzip2.tbz2 /usr/bin
 
 # Prepare requirements file and install pip packages.
 COPY py/umpire/server/requirements.txt "${umpire_dir}/"
 COPY py/dome/requirements.txt "${dome_dir}/"
 COPY py/instalog/requirements.txt "${instalog_dir}/"
-RUN pip install --no-cache-dir --upgrade pip setuptools && \
-    pip install --no-cache-dir \
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir --upgrade setuptools
+RUN pip install --no-cache-dir \
       -r "${umpire_dir}/requirements.txt" \
       -r "${dome_dir}/requirements.txt" \
       -r "${instalog_dir}/requirements.txt"

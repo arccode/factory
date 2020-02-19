@@ -150,6 +150,8 @@ RESOURCE_DOCKER_SHA1="17239c2d84413affa68bbe444c3402905e863d1f"
 RESOURCE_CROS_DOCKER_URL="https://chromium.googlesource.com/chromiumos/platform/factory/+/master/setup/cros_docker.sh?format=TEXT"
 RESOURCE_PIXZ_URL="${PREBUILT_IMAGE_DIR_URL}/pixz-1.0.6-amd64-static.tbz2"
 RESOURCE_PIXZ_SHA1="3bdf7473df19f2d089f2a9b055c18a4f7f1409e5"
+RESOURCE_LBZIP2_URL="${PREBUILT_IMAGE_DIR_URL}/lbzip2-2.5-amd64-musl.tbz2"
+RESOURCE_LBZIP2_SHA1="2ae425fd822d85064cb5e641f8d529dbd75c08bb"
 
 # Directories inside docker
 DOCKER_BASE_DIR="/usr/local/factory"
@@ -1038,6 +1040,8 @@ do_build() {
     "${RESOURCE_DOCKER_URL}" "${RESOURCE_DOCKER_SHA1}"
   fetch_resource "${BUILD_DIR}/pixz.tbz2" \
     "${RESOURCE_PIXZ_URL}" "${RESOURCE_PIXZ_SHA1}"
+  fetch_resource "${BUILD_DIR}/lbzip2.tbz2" \
+    "${RESOURCE_LBZIP2_URL}" "${RESOURCE_LBZIP2_SHA1}"
 
   if check_git_status; then
     NEW_DOCKER_IMAGE_GITHASH="$(get_git_hash)"
