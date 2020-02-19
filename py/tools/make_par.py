@@ -258,16 +258,21 @@ def main(argv=None):
       if not match:
         continue
 
+      link_name = os.path.basename(f)
+
       module = 'cros.factory.%s' % match.group(1).replace('/', '.')
+      if module == 'cros.factory.cli.factory_env':
+        module = 'cros.factory.cli.' + link_name
+
       name = module.rpartition('.')[2]
       logging.info('Mapping binary %s to %s', name, module)
       modules[name] = module
       # Also map the name of symlink to binary.
-      link_name = os.path.basename(f)
       if link_name != name:
         logging.info('Mapping binary %s to %s', link_name, module)
         modules[link_name] = module
 
+    logging.info('modules: %r', modules)
     # Concatenate the header and the par file.
     with open(args.output, 'wb') as out:
       out.write(HEADER_TEMPLATE.replace('MODULES', repr(modules)))
