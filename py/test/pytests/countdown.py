@@ -144,7 +144,7 @@ class CountDownTest(test_case.TestCase):
           '<div class="cd-legend-item">[%d] %s</div>' % (i, sensor),
           id='cd-legend-item-panel')
     if sensor_names:
-      self.ui.ToggleClass('cd-legend-panel', 'hidden', True)
+      self.ui.ToggleClass('cd-legend-panel', 'hidden', False)
 
   def DetectAbnormalStatus(self, status, last_status):
     def GetTemperature(sensor):
