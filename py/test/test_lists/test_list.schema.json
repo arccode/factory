@@ -49,8 +49,7 @@
           "$ref": "#/definitions/test_ui_layout"
         },
         "locals": {
-          "$ref": "#/definitions/test_constants",
-          "type": "object"
+          "$ref": "#/definitions/test_constants"
         },
         "no_host": {
           "type": "boolean"
@@ -114,27 +113,15 @@
       "type": "object"
     },
     "test_constants": {
-      "anyOf": [
-        {
-          "type": ["string", "number", "boolean", "null"]
+      "type": "object",
+      "patternProperties": {
+        "^__comment_[A-Za-z0-9_-]+$": {
+          "type": "string"
         },
-        {
-          "type": "object",
-          "patternProperties": {
-            "^__comment_[A-Za-z0-9_-]+$": {
-              "type": "string"
-            },
-            "^[A-Za-z0-9][A-Za-z0-9_-]*$": {
-            }
-          },
-          "additionalProperties": false
-        },
-        {
-          "type": "array",
-          "items": {
-          }
+        "^[A-Za-z0-9][A-Za-z0-9_-]*$": {
         }
-      ]
+      },
+      "additionalProperties": false
     },
     "test_ui_layout_type": {
       "type": "string",
@@ -169,8 +156,7 @@
       "$ref": "#/definitions/test_options"
     },
     "constants": {
-      "$ref": "#/definitions/test_constants",
-      "type": "object"
+      "$ref": "#/definitions/test_constants"
     },
     "definitions": {
       "type": "object",
