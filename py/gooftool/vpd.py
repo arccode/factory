@@ -78,6 +78,7 @@ class VPDTool(object):
       self._EnsureIfKeyValid(k)
       cmd += ['-d', k] if v is None else ['-s', '%s=%s' % (k, v)]
     self._InvokeCmd(cmd)
+    self._UpdateCache()
 
   def _CheckFileExistence(self, filename):
     # This could be CheckCall. However, to reduce API dependency, we are
@@ -99,6 +100,10 @@ class VPDTool(object):
     elif self._raw_file:
       cmd += ['--raw', '-f', self._raw_file]
     return cmd
+
+  def _UpdateCache(self):
+    """Updates VPD cache file."""
+    self._InvokeCmd(['dump_vpd_log', '--force'])
 
   @classmethod
   def _EnsureIfKeyValid(cls, key):
