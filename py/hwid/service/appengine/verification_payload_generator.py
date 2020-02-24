@@ -143,7 +143,7 @@ def GetAllProbeStatementGenerators():
       raise ValueError(
           'not a regular string of %d digits hex number' % num_digits)
     # Regulate the output to the fixed-digit hex string with upper cases.
-    return value.upper()[-num_digits:].zfill(num_digits)
+    return value.upper()[2:][-num_digits:].zfill(num_digits)
 
   def GetHWIDHexStrToHexStrConverter(num_digits):
     return functools.partial(HWIDHexStrToHexStr, num_digits)
