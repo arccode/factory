@@ -198,18 +198,20 @@ class ImageToolRMATest(unittest.TestCase):
     self.RemoveBundleEnvironment()
 
     # Verify content of RMA shim.
+    DIR_CROS_PAYLOADS = image_tool.CrosPayloadUtils.GetCrosPayloadsDir()
+    PATH_CROS_RMA_METADATA = image_tool.CrosPayloadUtils.GetCrosRMAMetadata()
     image_tool.Partition('rma1.bin', 1).CopyFile('tag', 'tag.1')
     image_tool.Partition('rma1.bin', 3).CopyFile('tag', 'tag.3')
     image_tool.Partition('rma1.bin', 1).CopyFile(
-        os.path.join(image_tool.DIR_CROS_PAYLOADS, 'test1.json'), self.temp_dir)
+        os.path.join(DIR_CROS_PAYLOADS, 'test1.json'), self.temp_dir)
     image_tool.Partition('rma1.bin', 1).CopyFile(
-        image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
+        PATH_CROS_RMA_METADATA, self.temp_dir)
     self.assertEqual(open('tag.1').read().strip(), 'factory_shim')
     self.assertEqual(open('tag.3').read().strip(), 'factory_shim')
     with open('test1.json') as f:
       data = json.load(f)
     self.assertEqual(data['toolkit']['version'], u'Toolkit Version 1.0')
-    with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
+    with open(os.path.basename(PATH_CROS_RMA_METADATA)) as f:
       data = json.load(f)
     self.assertEqual(data, [{'board': 'test1', 'kernel': 2, 'rootfs': 3}])
 
@@ -217,8 +219,8 @@ class ImageToolRMATest(unittest.TestCase):
     self.ImageTool(
         'rma', 'merge', '-f', '-o', 'rma12.bin', '-i', 'rma1.bin', 'rma2.bin')
     image_tool.Partition('rma12.bin', 1).CopyFile(
-        image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
-    with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
+        PATH_CROS_RMA_METADATA, self.temp_dir)
+    with open(os.path.basename(PATH_CROS_RMA_METADATA)) as f:
       data = json.load(f)
     self.assertEqual(data, [{'board': 'test1', 'kernel': 2, 'rootfs': 3},
                             {'board': 'test2', 'kernel': 4, 'rootfs': 5}])
@@ -237,8 +239,8 @@ class ImageToolRMATest(unittest.TestCase):
     self.ImageTool('rma', 'extract', '-f', '-o', 'extract.bin',
                    '-i', 'rma12.bin', '-s', '2')
     image_tool.Partition('extract.bin', 1).CopyFile(
-        image_tool.PATH_CROS_RMA_METADATA, self.temp_dir)
-    with open(os.path.basename(image_tool.PATH_CROS_RMA_METADATA)) as f:
+        PATH_CROS_RMA_METADATA, self.temp_dir)
+    with open(os.path.basename(PATH_CROS_RMA_METADATA)) as f:
       data = json.load(f)
     self.assertEqual(data, [{'board': 'test2', 'kernel': 2, 'rootfs': 3}])
 
@@ -258,7 +260,7 @@ class ImageToolRMATest(unittest.TestCase):
     image_tool.Partition('rma12.bin', 5).CopyFile('tag', 'tag.5')
     self.assertEqual(open('tag.5').read().strip(), 'factory_shim_3')
     image_tool.Partition('rma12.bin', 1).CopyFile(
-        os.path.join(image_tool.DIR_CROS_PAYLOADS, 'test2.json'), self.temp_dir)
+        os.path.join(DIR_CROS_PAYLOADS, 'test2.json'), self.temp_dir)
     with open('test2.json') as f:
       data = json.load(f)
     self.assertEqual(data['toolkit']['version'], u'Toolkit Version 2.0')

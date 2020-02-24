@@ -37,7 +37,11 @@ description"
 # A variable for the file name of tracking temp files.
 TMP_OBJECTS=""
 
-DIR_CROS_PAYLOADS="dev_image/opt/cros_payloads"
+# The path of the directory of cros_payloads in RMA shared partition.
+DIR_CROS_PAYLOADS="cros_payloads"
+
+# The path of the directory of cros_payloads in installed partition.
+OUT_DIR_CROS_PAYLOADS="dev_image/opt/${DIR_CROS_PAYLOADS}"
 
 # Cleans up any temporary files we have created.
 # Usage: cleanup
@@ -955,7 +959,7 @@ install_payload() {
     register_tmp_object "${mount_point}"
     ${SUDO} mount "${dev}" "${mount_point}"
 
-    local out_dir="${mount_point}/${DIR_CROS_PAYLOADS}"
+    local out_dir="${mount_point}/${OUT_DIR_CROS_PAYLOADS}"
     mkdir -p "${out_dir}"
     output="${out_dir}/${payload}.${file_ext}"
     output_display="${dev}!${output#${mount_point}}"
@@ -1166,7 +1170,7 @@ cmd_get_all_files() {
 # Main entry.
 # Usage: main "$@"
 main() {
-  if [ "$#" -lt 2 ]; then
+  if [ "$#" -lt 1 ]; then
     cmd_help
     exit
   fi
@@ -1242,6 +1246,10 @@ main() {
     get_all_files)
       shift
       cmd_get_all_files "$@"
+      ;;
+    get_cros_payloads_dir)
+      shift
+      echo -n "${DIR_CROS_PAYLOADS}"
       ;;
     *)
       cmd_help
