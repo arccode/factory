@@ -39,10 +39,15 @@ class VPDToolTest(unittest.TestCase):
 
   def testUpdateData(self):
     self.vpd.UpdateData({'cc': None})
-    self._CheckMockedShellCmd(['vpd', '-d', 'cc'])
+    self.assertEqual(self.mocked_shell.call_args_list, [
+        mock.call(['vpd', '-d', 'cc']),
+        mock.call(['dump_vpd_log', '--force'])])
 
+    self.mocked_shell.reset_mock()
     self.vpd.UpdateData({'aa': 'bb'})
-    self._CheckMockedShellCmd(['vpd', '-s', 'aa=bb'])
+    self.assertEqual(self.mocked_shell.call_args_list, [
+        mock.call(['vpd', '-s', 'aa=bb']),
+        mock.call(['dump_vpd_log', '--force'])])
 
   def testInvalidKey(self):
     self.assertRaises(ValueError, self.vpd.GetValue, '')
