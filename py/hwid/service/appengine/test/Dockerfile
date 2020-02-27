@@ -33,10 +33,13 @@ ADD factory/py "${workdir}/cros/factory/py"
 ADD factory/py_pkg "${workdir}/cros/factory/py_pkg"
 ADD chromeos-hwid/py "${workdir}/cros/chromeos-hwid/py"
 ADD factory/build/hwid/protobuf_out "${workdir}/protobuf_out"
+ADD factory-private/config/hwid/service/appengine/configurations.yaml \
+  "${workdir}/resource/"
 
 ENV PYTHONPATH="${workdir}/lib:"\
 "${workdir}/google-cloud-sdk/platform/google_appengine:"\
 "${workdir}/protobuf_out:"\
 "${workdir}/cros/factory/py_pkg"
+ENV HWID_SERVICE_RESOURCE_DIR="${workdir}/resource"
 
 CMD redis-server & bash

@@ -122,6 +122,12 @@ do_deploy() {
     ln -fs "${APPENGINE_DIR}/${file}" "${TEMP_DIR}"
   done
   ln -fs "${FACTORY_DIR}/py_pkg/cros" "${TEMP_DIR}"
+  if [ -d "${FACTORY_PRIVATE_DIR}" ]; then
+    mkdir -p "${TEMP_DIR}/resource"
+    cp "\
+${FACTORY_PRIVATE_DIR}/config/hwid/service/appengine/configurations.yaml" \
+      "${TEMP_DIR}/resource"
+  fi
 
   local endpoints_version="$(get_latest_endpoint_config_version \
     "${GCP_PROJECT}")"
@@ -159,6 +165,7 @@ do_build() {
   ignore_list+="!chromeos-hwid\n"
   ignore_list+="factory/build/*\n"
   ignore_list+="!factory/build/hwid/protobuf_out\n"
+  ignore_list+="!factory-private/config/hwid\n"
   local dockerignore="${PLATFORM_DIR}"/.dockerignore
   add_temp "${dockerignore}"
   echo -e "${ignore_list}" > "${dockerignore}"

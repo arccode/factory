@@ -5,47 +5,34 @@
 
 import os
 
+import yaml
+
 # pylint: disable=import-error
 from cros.factory.hwid.service.appengine import filesystem_adapter
 from cros.factory.hwid.service.appengine import hwid_manager
+from cros.factory.utils import file_utils
 
 
-_CONFIGURATIONS = {
-    's~chromeos-hwid': {
-        'env': 'prod',
-        'bucket': 'chromeoshwid',
-        'ge_bucket': 'chromeos-build-release-console',
-        'board_mapping': {
-            'ARCADA': 'sarien',
-            'SARIEN': 'sarien',
-        },
-        'hw_checker_mail': 'chromeos-hw-checker@google.com',
+_DEFAULT_CONFIGURATION = {
+    'env': 'dev',
+    'bucket': 'chromeoshwid-dev',
+    # Allow unauthenticated access when running a local dev server and
+    # during tests.
+    'ge_bucket': 'chromeos-build-release-console-staging',
+    'board_mapping': {
+        'SARIEN': 'sarien',  # for unittests
     },
-    's~chromeos-hwid-staging': {
-        'env': 'staging',
-        'bucket': 'chromeoshwid-staging',
-        'ge_bucket': 'chromeos-build-release-console-staging',
-        'board_mapping': {
-            'ARCADA': 'sarien',
-            'SARIEN': 'sarien',
-        },
-        'dryrun_upload': True,
-        'hw_checker_mail': 'noreply@google.com',
-    },
-    'default': {
-        'env': 'dev',
-        'bucket': 'chromeoshwid-dev',
-        # Allow unauthenticated access when running a local dev server and
-        # during tests.
-        'ge_bucket': 'chromeos-build-release-console-staging',
-        'board_mapping': {
-            'ARCADA': 'sarien',
-            'SARIEN': 'sarien',
-        },
-        'dryrun_upload': True,
-        'hw_checker_mail': 'noreply@google.com',
-    }
+    'dryrun_upload': True,
+    'hw_checker_mail': 'noreply@google.com',
 }
+
+_RESOURCE_DIR = os.environ.get(
+    'HWID_SERVICE_RESOURCE_DIR',
+    os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', '..',
+                 '..', '..', 'resource'))
+
+_PATH_TO_APP_CONFIGURATIONS_FILE = os.path.join(_RESOURCE_DIR,
+                                                'configurations.yaml')
 
 
 class _Config(object):
@@ -65,9 +52,10 @@ class _Config(object):
     super(_Config, self).__init__()
     try:
       app_id = os.environ['APPLICATION_ID']
-      conf = _CONFIGURATIONS.get(app_id, _CONFIGURATIONS['default'])
-    except KeyError:
-      conf = _CONFIGURATIONS['default']
+      confs = yaml.load(file_utils.ReadFile(_PATH_TO_APP_CONFIGURATIONS_FILE))
+      conf = confs.get(app_id, _DEFAULT_CONFIGURATION)
+    except (KeyError, OSError, IOError):
+      conf = _DEFAULT_CONFIGURATION
 
     self.env = conf['env']
     self.goldeneye_filesystem = filesystem_adapter.CloudStorageAdapter(
