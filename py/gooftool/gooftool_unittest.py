@@ -226,6 +226,12 @@ class GooftoolTest(unittest.TestCase):
     self.mox.ReplayAll()
     self._gooftool.VerifyECKey(pubkey_path=pubkey)
 
+  def testLoadHWIDDatabase(self):
+    db = self._gooftool.db  # Shouldn't raise any exception.
+
+    # Assure loading DB multiple times is prevented.
+    self.assertIs(self._gooftool.db, db)
+
   def testVerifyKey(self):
     self._gooftool._util.GetReleaseKernelPathFromRootPartition(
         '/dev/null').AndReturn('/dev/zero')
