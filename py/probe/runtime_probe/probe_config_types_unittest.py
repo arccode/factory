@@ -6,8 +6,6 @@
 import re
 import unittest
 
-import six
-
 from cros.factory.probe.runtime_probe import probe_config_types
 from cros.factory.utils import json_utils
 
@@ -34,9 +32,6 @@ class ProbeStatementDefinitionBuilderTest(unittest.TestCase):
     self.assertCountEqual(
         [f.name for f in d.probe_functions['func2'].output_fields],
         ['field1', 'field2', 'field3'])
-
-  def assertCountEqual(self, lhs, rhs):
-    six.assertCountEqual(self, lhs, rhs)
 
 
 class ConcreteProbeStatementDefinitionTestBase(unittest.TestCase):
