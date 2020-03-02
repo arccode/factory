@@ -60,14 +60,17 @@ find_battery_path() {
 
 get_battery_percentage() {
   local battery_path="$1"
-  local full="$(cat "${battery_path}/charge_full")"
-  local current="$(cat "${battery_path}/charge_now")"
+  local full
+  local current
+  full="$(cat "${battery_path}/charge_full")"
+  current="$(cat "${battery_path}/charge_now")"
   echo "$((current * 100 / full))"
 }
 
 get_battery_voltage() {
   local battery_path="$1"
-  local battery_voltage="$(cat "${battery_path}/voltage_now")"
+  local battery_voltage
+  battery_voltage="$(cat "${battery_path}/voltage_now")"
   echo "$((battery_voltage / 1000))"
 }
 
@@ -194,7 +197,6 @@ check_ac_state() {
 main() {
   options_find_tty
 
-  local key
   options_parse_command_line "$@"
   options_check_values
 
@@ -203,7 +205,8 @@ main() {
 
   test_ec_flash_presence
 
-  local battery_path="$(find_battery_path)"
+  local battery_path
+  battery_path="$(find_battery_path)"
   if [ -n "${battery_path}" ]; then
     echo "Battery found in ${battery_path}."
     # Needed by 'ectool battery'.
@@ -240,7 +243,7 @@ main() {
   # of devices fail to do cut off in factory. This may be caused by unstable
   # ectool, or shutdown fail in the tmpfs. Here we add more retries for
   # solving this problem. Remove the retry when finding the root cause.
-  for i in $(seq 5)
+  for _ in $(seq 5)
   do
     case "${CUTOFF_METHOD}" in
       reboot)
