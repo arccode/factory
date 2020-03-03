@@ -13,6 +13,12 @@ DISPLAY_MESSAGE="${SCRIPT_DIR}/display_wipe_message.sh"
 EC_PRESENT=0
 POWER_SUPPLY_PATH="/sys/class/power_supply"
 
+cutoff_failed() {
+  "${DISPLAY_MESSAGE}" "cutoff_failed"
+  sleep 1d
+  exit 1
+}
+
 reset_activate_date() {
   activate_date --clean
 }
@@ -62,15 +68,15 @@ get_battery_percentage() {
   local battery_path="$1"
   local full
   local current
-  full="$(cat "${battery_path}/charge_full")"
-  current="$(cat "${battery_path}/charge_now")"
+  full="$(cat "${battery_path}/charge_full")" || return $?
+  current="$(cat "${battery_path}/charge_now")" || return $?
   echo "$((current * 100 / full))"
 }
 
 get_battery_voltage() {
   local battery_path="$1"
   local battery_voltage
-  battery_voltage="$(cat "${battery_path}/voltage_now")"
+  battery_voltage="$(cat "${battery_path}/voltage_now")" || return $?
   echo "$((battery_voltage / 1000))"
 }
 
@@ -129,7 +135,7 @@ check_battery_value() {
   local prev_battery_value=""
   local stressapptest_pid=""
 
-  battery_value="$(${get_value_cmd} "${battery_path}")"
+  battery_value="$(${get_value_cmd} "${battery_path}")" || return $?
 
   if [ -n "${min_battery_value}" ] &&
      [ "${battery_value}" -lt "${min_battery_value}" ]; then
@@ -150,7 +156,7 @@ check_battery_value() {
         prev_battery_value="${battery_value}"
       fi
       sleep 1
-      battery_value="$(${get_value_cmd} "${battery_path}")"
+      battery_value="$(${get_value_cmd} "${battery_path}")" || return $?
     done
     echo ""
   fi
@@ -175,7 +181,7 @@ check_battery_value() {
         prev_battery_value="${battery_value}"
       fi
       sleep 1
-      battery_value="$(${get_value_cmd} "${battery_path}")"
+      battery_value="$(${get_value_cmd} "${battery_path}")" || return $?
     done
     echo ""
   fi
@@ -216,13 +222,13 @@ main() {
        [ -n "${CUTOFF_BATTERY_MAX_PERCENTAGE}" ]; then
       check_battery_value \
         "${CUTOFF_BATTERY_MIN_PERCENTAGE}" "${CUTOFF_BATTERY_MAX_PERCENTAGE}" \
-        "get_battery_percentage" "${battery_path}"
+        "get_battery_percentage" "${battery_path}" || cutoff_failed
     fi
     if [ -n "${CUTOFF_BATTERY_MIN_VOLTAGE}" ] ||
        [ -n "${CUTOFF_BATTERY_MAX_VOLTAGE}" ]; then
       check_battery_value \
         "${CUTOFF_BATTERY_MIN_VOLTAGE}" "${CUTOFF_BATTERY_MAX_VOLTAGE}" \
-        "get_battery_voltage" "${battery_path}"
+        "get_battery_voltage" "${battery_path}" || cutoff_failed
     fi
 
     # Ask operator to plug or unplug AC before doing cut off.
@@ -268,9 +274,7 @@ main() {
     sleep 15
   done
 
-  "${DISPLAY_MESSAGE}" "cutoff_failed"
-  sleep 1d
-  exit 1
+  cutoff_failed
 }
 
 main "$@"
