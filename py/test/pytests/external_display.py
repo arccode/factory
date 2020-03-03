@@ -69,6 +69,7 @@ from __future__ import print_function
 
 import collections
 import logging
+import os
 import random
 
 from six.moves import xrange
@@ -117,7 +118,12 @@ class ExtDisplayTest(test_case.TestCase):
       Arg('already_connect', bool,
           'Also for the reboot hack with fixture. With it set to True, DUT '
           'does not issue plug ext display command.',
-          default=False)
+          default=False),
+      Arg('drm_sysfs_path', str,
+          'Path of drm sysfs entry. When given this arg, the pytest will '
+          'directly get connection status from sysfs path rather than calling '
+          'drm_utils. This is needed when the port is running under MST and '
+          'thus the display id is dynamic generated.')
   ]
 
   def setUp(self):
@@ -211,14 +217,20 @@ class ExtDisplayTest(test_case.TestCase):
   def CheckVideo(self, args):
     self.ui.BindStandardFailKeys()
     original, target = self.VerifyDisplayConfig()
-    self.SetMainDisplay(target)
+    # When there's only one display connected with MST display port, target and
+    # original will be the same. In this situation, it is possible that we get
+    # display info from drm sysfs path and run this function, but the system
+    # haven't reflect this and fails on setting main display.
+    if target != original:
+      self.SetMainDisplay(target)
     try:
       if self._fixture:
         self.CheckVideoFixture(args)
       else:
         self.CheckVideoManual(args)
     finally:
-      self.SetMainDisplay(original)
+      if target != original:
+        self.SetMainDisplay(original)
 
   def CheckVideoManual(self, args):
     pass_digit = random.randrange(10)
@@ -354,11 +366,34 @@ class ExtDisplayTest(test_case.TestCase):
       # Check USBPD status before display info
       if (args.usbpd_port is None or
           self._dut.usb_c.GetPDStatus(args.usbpd_port)['connected'] == connect):
-        port_info = self._dut.display.GetPortInfo()
-        if port_info[args.display_id].connected == connect:
+
+        display_connected = False
+
+        # Access of display info via GetPortInfo() will fail if the display id
+        # is dynamically created for the following two cases:
+        # (1) Fail when args.display_id cannot be found in port_info.
+        # (2) Fail when cable is unplugged but the system fails to reflect
+        #     immediately.
+        if self.args.drm_sysfs_path is not None:
+          # Get display status from sysfs path.
+          card_name = os.path.basename(self.args.drm_sysfs_path.rstrip('/'))
+          # The MST display entry in sysfs path appears after the display is
+          # plugged in, and thus using self._dut.ReadFile leads to "No such
+          # file" exception. Therefore we use ``cat`` here.
+          display_status = self._dut.CallOutput(['cat', self._dut.path.join(
+              self.args.drm_sysfs_path,
+              '%s-%s' % (card_name, args.display_id),
+              'status')])
+          if display_status is not None and \
+              display_status.strip() == 'connected':
+            display_connected = True
+        else:
+          # Get display status from drm_utils.
+          port_info = self._dut.display.GetPortInfo()
+          display_connected = port_info[args.display_id].connected
+
+        if connect == display_connected:
           display_info = state.GetInstance().DeviceGetDisplayInfo()
-          # In the case of connecting an external display, make sure there
-          # is an item in display_info with 'isInternal' False.  If no such
           # display_info item, we assume the device's default mode is mirror
           # mode and try to turn off mirror mode.
           # On the other hand, in the case of disconnecting an external display,
