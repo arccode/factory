@@ -17,13 +17,13 @@ from twisted.trial import unittest
 from cros.factory.umpire import common
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.umpire.server import umpire_env
+from cros.factory.umpire.server import unittest_helper
 from cros.factory.umpire.server import utils
 
 
 # Forward to the correct executer with additional arguments.
 if __name__ == '__main__':
-  import sys
-  os.execvp('trial', ('--temp-directory=/tmp/_trial_temp', sys.argv[0]))
+  unittest_helper.ExecScriptWithTrial()
 
 
 # Lower the time limit for starting monitor to speed up the test, since the

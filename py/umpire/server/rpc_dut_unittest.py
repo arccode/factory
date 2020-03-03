@@ -22,6 +22,7 @@ from cros.factory.umpire import common
 from cros.factory.umpire.server import daemon
 from cros.factory.umpire.server import rpc_dut
 from cros.factory.umpire.server import umpire_env
+from cros.factory.umpire.server import unittest_helper
 from cros.factory.umpire.server.web import xmlrpc as umpire_xmlrpc
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
@@ -29,8 +30,7 @@ from cros.factory.utils import net_utils
 
 # Forward to the correct executer with additional arguments.
 if __name__ == '__main__':
-  import sys
-  os.execvp('trial', ('--temp-directory=/tmp/_trial_temp', sys.argv[0]))
+  unittest_helper.ExecScriptWithTrial()
 
 
 TEST_RPC_PORT = net_utils.FindUnusedPort()

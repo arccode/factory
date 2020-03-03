@@ -23,6 +23,7 @@ from cros.factory.umpire import common
 from cros.factory.umpire.server import daemon
 from cros.factory.umpire.server import umpire_env
 from cros.factory.umpire.server import umpire_rpc
+from cros.factory.umpire.server import unittest_helper
 from cros.factory.umpire.server.web import wsgi
 from cros.factory.utils import net_utils
 from cros.factory.utils import type_utils
@@ -30,8 +31,7 @@ from cros.factory.utils import type_utils
 
 # Forward to the correct executer with additional arguments.
 if __name__ == '__main__':
-  import sys
-  os.execvp('trial', ('--temp-directory=/tmp/_trial_temp', sys.argv[0]))
+  unittest_helper.ExecScriptWithTrial()
 
 
 TESTDIR = os.path.abspath(os.path.join(os.path.split(__file__)[0], 'testdata'))
