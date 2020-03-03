@@ -487,7 +487,7 @@ class Gooftool(object):
     # fields we cared about.
     config_path = 'usr/share/chromeos-config/yaml/config.yaml'
     test_configs = _ParseCrosConfig(os.path.join('/', config_path))
-    with sys_utils.Mountpartition(
+    with sys_utils.MountPartition(
         self._util.GetReleaseRootPartitionPath()) as root:
       release_configs = _ParseCrosConfig(os.path.join(root, config_path))
 
