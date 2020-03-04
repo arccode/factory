@@ -13,9 +13,8 @@
 # Some targets, including 'par' and 'toolkit', are using a 'resource system'.
 # Source files from factory repo and factory-board/files were collected
 # when building the 'resource' target. Other portage packages can also put what
-# should be added into toolkit and par into BOARD_RESOURCES_DIR
-# (/build/$BOARD/var/lib/factory/resources) - for example files downloaded from
-# CPFE or localmirror.
+# should be added into toolkit and par into BOARD_RESOURCES_DIR. For example,
+# files downloaded from CPFE or localmirror.
 #
 # Resource files should be named as TARGET-NAME.tar. For example,
 # 'toolkit-webgl.tar' refers to a webgl resource only for toolkit (not par),
@@ -50,7 +49,7 @@ BOARD_PACKAGE_NAME ?= $(notdir $(realpath $(dir $(BOARD_EBUILD))))
 BOARD_PACKAGE_FILE ?= \
   $(if $(BOARD_EBUILD),$(SYSROOT)/packages/chromeos-base/$(basename $(notdir \
     $(BOARD_EBUILD))).tbz2)
-BOARD_RESOURCES_DIR ?= $(SYSROOT)/var/lib/factory/resources
+BOARD_RESOURCES_DIR ?= $(SYSROOT)/usr/share/factory/resources
 BOARD_TARGET_DIR ?= $(SYSROOT)$(TARGET_DIR)
 SYSROOT ?= $(if $(BOARD),/build/$(BOARD),/)
 # The SETUP_BIN is for setup/ in factory bundle, for setting up and preparing
