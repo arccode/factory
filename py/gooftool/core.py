@@ -862,7 +862,7 @@ class Gooftool(object):
       else:
         logging.error(error_msg)
     else:  # General errors.
-      raise Error('Failed to set board ID and flag on Cr50. '
+      raise Error('Failed to set serial number bits on Cr50. '
                   '(args=%s)' % arg_phase)
 
   def Cr50SetBoardId(self, is_whitelabel):
