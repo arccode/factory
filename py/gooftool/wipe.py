@@ -266,22 +266,43 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
 def _StopAllUpstartJobs(exclude_list=None):
   logging.debug('stopping upstart jobs')
 
-  # Try three times to stop running services because some service will respawn
-  # one time after being stopped, e.g. shill_respawn. Two times should be enough
-  # to stop shill. Adding one more try for safety.
-
   if exclude_list is None:
     exclude_list = []
 
+  # Try three times to stop running services because some service will respawn
+  # one time after being stopped, e.g. shill_respawn. Two times should be enough
+  # to stop shill. Adding one more try for safety.
   for unused_tries in xrange(3):
-    service_list = process_utils.SpawnOutput(['initctl', 'list']).splitlines()
-    service_list = [
-        line.split()[0] for line in service_list if 'start/running' in line]
-    logging.info('Going to stop: services: %r', service_list)
-    for service in service_list:
-      if service in exclude_list or service.startswith('console-'):
+
+    # There may be LOG_PATH optional parameter for upstart job, the initctl
+    # output may different. The possible output:
+    #   "service_name start/running"
+    #   "service_name ($LOG_PATH) start/running"
+    initctl_output = process_utils.SpawnOutput(['initctl', 'list']).splitlines()
+
+    running_service_list = []
+    for line in initctl_output:
+      if 'start/running' not in line:
         continue
-      process_utils.Spawn(['stop', service], call=True, log=True)
+
+      service_name = line.split()[0]
+      log_path = line.split()[1][1:-1] if '(' in line.split()[1] else ''
+      running_service_list.append((service_name, log_path))
+
+    logging.info('Running services (service_name, LOG_PATH): %r',
+                 running_service_list)
+
+    to_stop_service_list = [
+        service for service in running_service_list
+        if not (service[0] in exclude_list or service[0].startswith('console-'))
+    ]
+    logging.info('Going to stop services (service_name, LOG_PATH): %r',
+                 to_stop_service_list)
+
+    for service, log_path in to_stop_service_list:
+      stop_cmd = ['stop', service]
+      stop_cmd += ["LOG_PATH=" + log_path] if log_path else []
+      process_utils.Spawn(stop_cmd, log_stderr_on_error=True)
 
 
 def _UnmountStatefulPartition(root, state_dev):
