@@ -6,12 +6,9 @@
 
 """Unittest for serial_utils."""
 
-import glob
-import os
-import time
 import unittest
 
-import mox
+import mock
 
 from cros.factory.test.utils import serial_utils
 
@@ -29,24 +26,16 @@ _RECEIVE_SIZE = 1
 
 class OpenSerialTest(unittest.TestCase):
 
-  def setUp(self):
-    self.mox = mox.Mox()
-
-  def tearDown(self):
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
-
   def testOpenSerial(self):
     # Sequence matters: create a serial mock then stub out serial.Serial.
-    mock_serial = self.mox.CreateMock(serial.Serial)
-    self.mox.StubOutWithMock(serial, 'Serial')
-    serial.Serial(port=_DEFAULT_PORT, baudrate=19200).AndReturn(mock_serial)
-    # Mocks out isOpen()
-    self.mox.StubOutWithMock(mock_serial.__class__, 'isOpen')
+    mock_serial = mock.Mock(serial.Serial)
     mock_serial.isOpen = lambda: True
 
-    self.mox.ReplayAll()
-    serial_utils.OpenSerial(port=_DEFAULT_PORT, baudrate=19200)
+    with mock.patch('cros.factory.external.serial.Serial') as serial_mock:
+      serial_mock.return_value = mock_serial
+      serial_utils.OpenSerial(port=_DEFAULT_PORT, baudrate=19200)
+
+      serial_mock.assert_called_once_with(port=_DEFAULT_PORT, baudrate=19200)
 
   def testOpenSerialNoPort(self):
     self.assertRaises(ValueError, serial_utils.OpenSerial)
@@ -54,120 +43,135 @@ class OpenSerialTest(unittest.TestCase):
 
 class FindTtyByDriverTest(unittest.TestCase):
 
-  def setUp(self):
-    self.mox = mox.Mox()
-    self.mox.StubOutWithMock(glob, 'glob')
-    glob.glob('/dev/tty*').AndReturn(['/dev/ttyUSB0', '/dev/ttyUSB1'])
-    self.mox.StubOutWithMock(os.path, 'realpath')
-    self.mox.StubOutWithMock(serial_utils, 'DeviceInterfaceProtocol')
+  @mock.patch('glob.glob')
+  @mock.patch('os.path.realpath')
+  def testFindTtyByDriver(self, realpath_mock, glob_mock):
+    glob_mock.return_value = ['/dev/ttyUSB0', '/dev/ttyUSB1']
+    realpath_mock.return_value = _DEFAULT_DRIVER
 
-  def tearDown(self):
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
-
-  def testFindTtyByDriver(self):
-    os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn(
-        _DEFAULT_DRIVER)
-
-    self.mox.ReplayAll()
     self.assertEqual(_DEFAULT_PORT,
                      serial_utils.FindTtyByDriver(_DEFAULT_DRIVER))
+    glob_mock.assert_called_once_with('/dev/tty*')
+    realpath_mock.assert_called_once_with(
+        '/sys/class/tty/ttyUSB0/device/driver')
 
-  def testFindTtyByDriverSecondPort(self):
-    os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn('foo')
-    os.path.realpath('/sys/class/tty/ttyUSB1/device/driver').AndReturn(
-        _DEFAULT_DRIVER)
+  @mock.patch('glob.glob')
+  @mock.patch('os.path.realpath')
+  def testFindTtyByDriverSecondPort(self, realpath_mock, glob_mock):
+    glob_mock.return_value = ['/dev/ttyUSB0', '/dev/ttyUSB1']
+    realpath_mock.side_effect = ['foo', _DEFAULT_DRIVER]
+    realpath_calls = [
+        mock.call('/sys/class/tty/ttyUSB0/device/driver'),
+        mock.call('/sys/class/tty/ttyUSB1/device/driver')]
 
-    self.mox.ReplayAll()
     self.assertEqual('/dev/ttyUSB1',
                      serial_utils.FindTtyByDriver(_DEFAULT_DRIVER))
+    glob_mock.assert_called_once_with('/dev/tty*')
+    self.assertEqual(realpath_mock.call_args_list, realpath_calls)
 
-  def testFindTtyByDriverNotFound(self):
-    os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn('foo')
-    os.path.realpath('/sys/class/tty/ttyUSB1/device/driver').AndReturn('bar')
+  @mock.patch('glob.glob')
+  @mock.patch('os.path.realpath')
+  def testFindTtyByDriverNotFound(self, realpath_mock, glob_mock):
+    glob_mock.return_value = ['/dev/ttyUSB0', '/dev/ttyUSB1']
+    realpath_mock.side_effect = ['foo', 'bar']
+    realpath_calls = [
+        mock.call('/sys/class/tty/ttyUSB0/device/driver'),
+        mock.call('/sys/class/tty/ttyUSB1/device/driver')]
 
-    self.mox.ReplayAll()
     self.assertIsNone(serial_utils.FindTtyByDriver(_DEFAULT_DRIVER))
+    glob_mock.assert_called_once_with('/dev/tty*')
+    self.assertEqual(realpath_mock.call_args_list, realpath_calls)
 
-  def testFindTtyByDriverInterfaceProtocol(self):
-    os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn(
-        _DEFAULT_DRIVER)
-    serial_utils.DeviceInterfaceProtocol(
-        '/sys/class/tty/ttyUSB0/device').AndReturn('00')
-    os.path.realpath('/sys/class/tty/ttyUSB1/device/driver').AndReturn(
-        _DEFAULT_DRIVER)
-    serial_utils.DeviceInterfaceProtocol(
-        '/sys/class/tty/ttyUSB1/device').AndReturn('01')
+  @mock.patch('cros.factory.test.utils.serial_utils.DeviceInterfaceProtocol')
+  @mock.patch('glob.glob')
+  @mock.patch('os.path.realpath')
+  def testFindTtyByDriverInterfaceProtocol(self, realpath_mock, glob_mock,
+                                           device_interface_protocol_mock):
+    glob_mock.return_value = ['/dev/ttyUSB0', '/dev/ttyUSB1']
+    realpath_mock.side_effect = [_DEFAULT_DRIVER, _DEFAULT_DRIVER]
+    realpath_calls = [
+        mock.call('/sys/class/tty/ttyUSB0/device/driver'),
+        mock.call('/sys/class/tty/ttyUSB1/device/driver')]
 
-    self.mox.ReplayAll()
+    device_interface_protocol_mock.side_effect = ['00', '01']
+    device_interface_protocol_calls = [
+        mock.call('/sys/class/tty/ttyUSB0/device'),
+        mock.call('/sys/class/tty/ttyUSB1/device')]
+
     self.assertEqual('/dev/ttyUSB1',
                      serial_utils.FindTtyByDriver(_DEFAULT_DRIVER,
                                                   interface_protocol='01'))
+    glob_mock.assert_called_once_with('/dev/tty*')
+    self.assertEqual(realpath_mock.call_args_list, realpath_calls)
+    self.assertEqual(device_interface_protocol_mock.call_args_list,
+                     device_interface_protocol_calls)
 
-  def testFindTtyByDriverMultiple(self):
-    os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn(
-        _DEFAULT_DRIVER)
-    os.path.realpath('/sys/class/tty/ttyUSB1/device/driver').AndReturn(
-        _DEFAULT_DRIVER)
+  @mock.patch('glob.glob')
+  @mock.patch('os.path.realpath')
+  def testFindTtyByDriverMultiple(self, realpath_mock, glob_mock):
+    glob_mock.return_value = ['/dev/ttyUSB0', '/dev/ttyUSB1']
+    realpath_mock.side_effect = [_DEFAULT_DRIVER, _DEFAULT_DRIVER]
+    realpath_calls = [
+        mock.call('/sys/class/tty/ttyUSB0/device/driver'),
+        mock.call('/sys/class/tty/ttyUSB1/device/driver')]
 
-    self.mox.ReplayAll()
     self.assertEqual([_DEFAULT_PORT, '/dev/ttyUSB1'],
                      serial_utils.FindTtyByDriver(_DEFAULT_DRIVER,
                                                   multiple_ports=True))
+    glob_mock.assert_called_once_with('/dev/tty*')
+    self.assertEqual(realpath_mock.call_args_list, realpath_calls)
 
 
 class FindTtyByPortIndexTest(unittest.TestCase):
 
-  def setUp(self):
-    self.mox = mox.Mox()
-    self.mox.StubOutWithMock(glob, 'glob')
-    glob.glob('/dev/tty*').AndReturn(['/dev/ttyUSB0', '/dev/ttyUSB1'])
-    self.mox.StubOutWithMock(os.path, 'realpath')
+  @mock.patch('glob.glob')
+  @mock.patch('os.path.realpath')
+  def testFindTtyByPortIndex(self, realpath_mock, glob_mock):
+    glob_mock.return_value = ['/dev/ttyUSB0', '/dev/ttyUSB1']
+    realpath_mock.side_effect = [_DEFAULT_DRIVER, '/%s/' % _DEFAULT_INDEX]
+    realpath_calls = [
+        mock.call('/sys/class/tty/ttyUSB0/device/driver'),
+        mock.call('/sys/class/tty/ttyUSB0/device')]
 
-  def tearDown(self):
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
-
-  def testFindTtyByPortIndex(self):
-    os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn(
-        _DEFAULT_DRIVER)
-    os.path.realpath('/sys/class/tty/ttyUSB0/device').AndReturn(
-        '/%s/' % _DEFAULT_INDEX)
-
-    self.mox.ReplayAll()
     self.assertEqual(_DEFAULT_PORT,
                      serial_utils.FindTtyByPortIndex(_DEFAULT_INDEX,
                                                      _DEFAULT_DRIVER))
+    glob_mock.assert_called_once_with('/dev/tty*')
+    self.assertEqual(realpath_mock.call_args_list, realpath_calls)
 
-  def testFindTtyByPortIndexSecondPort(self):
-    os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn('foo')
-    os.path.realpath('/sys/class/tty/ttyUSB1/device/driver').AndReturn(
-        _DEFAULT_DRIVER)
-    os.path.realpath('/sys/class/tty/ttyUSB1/device').AndReturn(
-        '/%s/' % _DEFAULT_INDEX)
+  @mock.patch('glob.glob')
+  @mock.patch('os.path.realpath')
+  def testFindTtyByPortIndexSecondPort(self, realpath_mock, glob_mock):
+    glob_mock.return_value = ['/dev/ttyUSB0', '/dev/ttyUSB1']
+    realpath_mock.side_effect = ['foo', _DEFAULT_DRIVER,
+                                 '/%s/' % _DEFAULT_INDEX]
+    realpath_calls = [
+        mock.call('/sys/class/tty/ttyUSB0/device/driver'),
+        mock.call('/sys/class/tty/ttyUSB1/device/driver'),
+        mock.call('/sys/class/tty/ttyUSB1/device')]
 
-    self.mox.ReplayAll()
     self.assertEqual('/dev/ttyUSB1',
                      serial_utils.FindTtyByPortIndex(_DEFAULT_INDEX,
                                                      _DEFAULT_DRIVER))
+    glob_mock.assert_called_once_with('/dev/tty*')
+    self.assertEqual(realpath_mock.call_args_list, realpath_calls)
 
-  def testFindTtyByPortIndexNotFound(self):
-    os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn('foo')
-    os.path.realpath('/sys/class/tty/ttyUSB1/device/driver').AndReturn('bar')
+  @mock.patch('glob.glob')
+  @mock.patch('os.path.realpath')
+  def testFindTtyByPortIndexNotFound(self, realpath_mock, glob_mock):
+    glob_mock.return_value = ['/dev/ttyUSB0', '/dev/ttyUSB1']
+    realpath_mock.side_effect = ['foo', 'bar']
+    realpath_calls = [
+        mock.call('/sys/class/tty/ttyUSB0/device/driver'),
+        mock.call('/sys/class/tty/ttyUSB1/device/driver')]
 
-    self.mox.ReplayAll()
     self.assertIsNone(serial_utils.FindTtyByPortIndex(_DEFAULT_INDEX,
                                                       _DEFAULT_DRIVER))
+    glob_mock.assert_called_once_with('/dev/tty*')
+    self.assertEqual(realpath_mock.call_args_list, realpath_calls)
 
 
 class SerialDeviceCtorTest(unittest.TestCase):
-
-  def setUp(self):
-    self.mox = mox.Mox()
-
-  def tearDown(self):
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
 
   def testCtor(self):
     device = serial_utils.SerialDevice()
@@ -175,236 +179,238 @@ class SerialDeviceCtorTest(unittest.TestCase):
     self.assertEqual(0.5, device.retry_interval_secs)
     self.assertFalse(device.log)
 
-  def testConnect(self):
-    self.mox.StubOutWithMock(serial_utils, 'FindTtyByDriver')
-    serial_utils.FindTtyByDriver(_DEFAULT_DRIVER).AndReturn(_DEFAULT_PORT)
-    self.mox.StubOutWithMock(serial_utils, 'OpenSerial')
-    mock_serial = self.mox.CreateMock(serial.Serial)
-    serial_utils.OpenSerial(
-        port=_DEFAULT_PORT, baudrate=9600, bytesize=serial.EIGHTBITS,
-        parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
-        timeout=0.5, writeTimeout=0.5).AndReturn(mock_serial)
-    mock_serial.close()
+  @mock.patch('cros.factory.test.utils.serial_utils.OpenSerial')
+  @mock.patch('cros.factory.test.utils.serial_utils.FindTtyByDriver')
+  def testConnect(self, find_tty_by_driver_mock, open_serial_mock):
+    find_tty_by_driver_mock.return_value = _DEFAULT_PORT
+    mock_serial = mock.Mock(serial.Serial)
+    open_serial_mock.return_value = mock_serial
 
-    self.mox.ReplayAll()
     device = serial_utils.SerialDevice()
     device.Connect(driver=_DEFAULT_DRIVER)
+
+    find_tty_by_driver_mock.assert_called_once_with(_DEFAULT_DRIVER)
+    open_serial_mock.assert_called_once_with(
+        port=_DEFAULT_PORT, baudrate=9600, bytesize=serial.EIGHTBITS,
+        parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
+        timeout=0.5, writeTimeout=0.5)
 
   def testConnectPortDriverMissing(self):
     device = serial_utils.SerialDevice()
     self.assertRaises(serial.SerialException, device.Connect)
 
-  def testConnectDriverLookupFailure(self):
-    self.mox.StubOutWithMock(serial_utils, 'FindTtyByDriver')
-    serial_utils.FindTtyByDriver('UnknownDriver').AndReturn('')
+  @mock.patch('cros.factory.test.utils.serial_utils.FindTtyByDriver')
+  def testConnectDriverLookupFailure(self, find_tty_by_driver_mock):
+    find_tty_by_driver_mock.return_value = ''
 
-    self.mox.ReplayAll()
     device = serial_utils.SerialDevice()
     self.assertRaises(serial.SerialException, device.Connect,
                       driver='UnknownDriver')
+    find_tty_by_driver_mock.assert_called_once_with('UnknownDriver')
 
-  def testCtorNoPortLookupIfPortSpecified(self):
+  @mock.patch('cros.factory.test.utils.serial_utils.OpenSerial')
+  def testCtorNoPortLookupIfPortSpecified(self, open_serial_mock):
     # FindTtyByDriver isn't called.
-    self.mox.StubOutWithMock(serial_utils, 'OpenSerial')
-    serial_utils.OpenSerial(
-        port=_DEFAULT_PORT, baudrate=9600, bytesize=serial.EIGHTBITS,
-        parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
-        timeout=0.5, writeTimeout=0.5).AndReturn(None)
+    open_serial_mock.return_value = None
 
-    self.mox.ReplayAll()
     device = serial_utils.SerialDevice()
     device.Connect(driver='UnknownDriver', port=_DEFAULT_PORT)
+    open_serial_mock.assert_called_once_with(
+        port=_DEFAULT_PORT, baudrate=9600, bytesize=serial.EIGHTBITS,
+        parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
+        timeout=0.5, writeTimeout=0.5)
 
 
 class SerialDeviceSendAndReceiveTest(unittest.TestCase):
 
   def setUp(self):
-    self.mox = mox.Mox()
     self.device = serial_utils.SerialDevice()
 
     # Mock Serial and inject it.
-    self.mock_serial = self.mox.CreateMock(serial.Serial)
+    self.mock_serial = mock.Mock(serial.Serial)
     self.device._serial = self.mock_serial  # pylint: disable=protected-access
 
   def tearDown(self):
     del self.device
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
+    self.mock_serial.close.assert_called_once_with()
 
   def testSend(self):
-    self.mock_serial.write(_COMMAND)
-    self.mock_serial.flush()
-    self.mock_serial.close()
-
-    self.mox.ReplayAll()
     self.device.Send(_COMMAND)
 
-  def testSendTimeout(self):
-    self.mock_serial.write(_COMMAND).AndRaise(serial.SerialTimeoutException)
-    self.mock_serial.write_timeout = 0.5
-    self.mock_serial.close()
+    self.mock_serial.write.assert_called_once_with(_COMMAND)
+    self.mock_serial.flush.assert_called_once_with()
 
-    self.mox.ReplayAll()
+  def testSendTimeout(self):
+    self.mock_serial.write.side_effect = serial.SerialTimeoutException
+    self.mock_serial.write_timeout = 0.5
+
     self.assertRaises(serial.SerialTimeoutException, self.device.Send, _COMMAND)
 
-  def testSendDisconnected(self):
-    self.mock_serial.write(_COMMAND).AndRaise(serial.SerialException)
-    self.mock_serial.close()
+    self.mock_serial.write.assert_called_once_with(_COMMAND)
 
-    self.mox.ReplayAll()
+  def testSendDisconnected(self):
+    self.mock_serial.write.side_effect = serial.SerialException
+
     self.assertRaises(serial.SerialException, self.device.Send, _COMMAND)
 
-  def testReceive(self):
-    self.mock_serial.read(1).AndReturn('.')
-    self.mock_serial.close()
+    self.mock_serial.write.assert_called_once_with(_COMMAND)
 
-    self.mox.ReplayAll()
+  def testReceive(self):
+    self.mock_serial.read.return_value = '.'
+
     self.assertEqual('.', self.device.Receive())
 
-  def testReceiveTimeout(self):
-    self.mock_serial.read(1).AndReturn('')
-    self.mock_serial.timeout = 0.5
-    self.mock_serial.close()
+    self.mock_serial.read.assert_called_once_with(1)
 
-    self.mox.ReplayAll()
+  def testReceiveTimeout(self):
+    self.mock_serial.read.return_value = ''
+    self.mock_serial.timeout = 0.5
+
     self.assertRaises(serial.SerialTimeoutException, self.device.Receive)
+
+    self.mock_serial.read.assert_called_once_with(1)
 
   def testReceiveShortageTimeout(self):
     # Requested 5 bytes, got only 4 bytes.
-    self.mock_serial.read(5).AndReturn('None')
+    self.mock_serial.read.return_value = 'None'
     self.mock_serial.timeout = 0.5
-    self.mock_serial.close()
 
-    self.mox.ReplayAll()
     self.assertRaises(serial.SerialTimeoutException, self.device.Receive, 5)
+
+    self.mock_serial.read.assert_called_once_with(5)
 
   def testReceiveWhatsInBuffer(self):
     IN_BUFFER = 'InBuf'
     self.mock_serial.in_waiting = len(IN_BUFFER)
-    self.mock_serial.read(len(IN_BUFFER)).AndReturn(IN_BUFFER)
-    self.mock_serial.close()
+    self.mock_serial.read.return_value = IN_BUFFER
 
-    self.mox.ReplayAll()
     self.assertEqual(IN_BUFFER, self.device.Receive(0))
+
+    self.mock_serial.read.assert_called_once_with(len(IN_BUFFER))
 
 
 class SerialDeviceSendReceiveTest(unittest.TestCase):
 
   def setUp(self):
-    self.mox = mox.Mox()
     self.device = serial_utils.SerialDevice()
 
     # Mock methods to facilitate SendReceive testing.
-    self.mox.StubOutWithMock(time, 'sleep')
-    self.mox.StubOutWithMock(self.device, 'FlushBuffer')
-    self.mox.StubOutWithMock(self.device, 'Send')
-    self.mox.StubOutWithMock(self.device, 'Receive')
-    self.device.FlushBuffer()
+    self.device.Send = mock.Mock()
+    self.device.Receive = mock.Mock()
+    self.device.FlushBuffer = mock.Mock()
 
   def tearDown(self):
     del self.device
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
 
-  def testSendReceive(self):
-    self.device.Send(_COMMAND)
-    time.sleep(_SEND_RECEIVE_INTERVAL_SECS)
-    self.device.Receive(_RECEIVE_SIZE).AndReturn(_RESPONSE)
+  @mock.patch('time.sleep')
+  def testSendReceive(self, sleep_mock):
+    self.device.Receive.return_value = _RESPONSE
 
-    self.mox.ReplayAll()
     self.assertEqual(_RESPONSE, self.device.SendReceive(_COMMAND))
 
-  def testSendReceiveOverrideIntervalSecs(self):
-    override_interval_secs = 1
-    self.device.Send(_COMMAND)
-    time.sleep(override_interval_secs)
-    self.device.Receive(_RECEIVE_SIZE).AndReturn(_RESPONSE)
+    self.device.Send.assert_called_once_with(_COMMAND)
+    sleep_mock.assert_called_once_with(_SEND_RECEIVE_INTERVAL_SECS)
+    self.device.Receive.assert_called_once_with(_RECEIVE_SIZE)
+    self.device.FlushBuffer.assert_called_once_with()
 
-    self.mox.ReplayAll()
+  @mock.patch('time.sleep')
+  def testSendReceiveOverrideIntervalSecs(self, sleep_mock):
+    override_interval_secs = 1
+    self.device.Receive.return_value = _RESPONSE
+
     self.assertEqual(
         _RESPONSE,
         self.device.SendReceive(_COMMAND,
                                 interval_secs=override_interval_secs))
+    self.device.Send.assert_called_once_with(_COMMAND)
+    sleep_mock.assert_called_once_with(override_interval_secs)
+    self.device.Receive.assert_called_once_with(_RECEIVE_SIZE)
+    self.device.FlushBuffer.assert_called_once_with()
 
-  def testSendReceiveWriteTimeoutRetrySuccess(self):
-    # Send timeout & retry.
-    self.device.Send(_COMMAND).AndRaise(serial.SerialTimeoutException)
-    time.sleep(_RETRY_INTERVAL_SECS)
-    # Retry okay.
-    self.device.FlushBuffer()
-    self.device.Send(_COMMAND)
-    time.sleep(_SEND_RECEIVE_INTERVAL_SECS)
-    self.device.Receive(_RECEIVE_SIZE).AndReturn(_RESPONSE)
+  @mock.patch('time.sleep')
+  def testSendReceiveWriteTimeoutRetrySuccess(self, sleep_mock):
+    # Send timeout at first time & retry ok.
+    self.device.Send.side_effect = [serial.SerialTimeoutException, None]
+    send_calls = [mock.call(_COMMAND), mock.call(_COMMAND)]
+    sleep_calls = [
+        mock.call(_RETRY_INTERVAL_SECS),
+        mock.call(_SEND_RECEIVE_INTERVAL_SECS)]
+    self.device.Receive.return_value = _RESPONSE
 
-    self.mox.ReplayAll()
     self.assertEqual(_RESPONSE, self.device.SendReceive(_COMMAND, retry=1))
+    self.assertEqual(self.device.Send.call_args_list, send_calls)
+    self.assertEqual(sleep_mock.call_args_list, sleep_calls)
+    self.assertEqual(2, self.device.FlushBuffer.call_count)
+    self.device.Receive.assert_called_once_with(_RECEIVE_SIZE)
 
-  def testSendReceiveReadTimeoutRetrySuccess(self):
-    # Send okay.
-    self.device.Send(_COMMAND)
-    time.sleep(_SEND_RECEIVE_INTERVAL_SECS)
-    # Read timeout & retry.
-    self.device.Receive(_RECEIVE_SIZE).AndRaise(serial.SerialTimeoutException)
-    time.sleep(_RETRY_INTERVAL_SECS)
-    # Retry okay.
-    self.device.FlushBuffer()
-    self.device.Send(_COMMAND)
-    time.sleep(_SEND_RECEIVE_INTERVAL_SECS)
-    self.device.Receive(_RECEIVE_SIZE).AndReturn(_RESPONSE)
+  @mock.patch('time.sleep')
+  def testSendReceiveReadTimeoutRetrySuccess(self, sleep_mock):
+    send_calls = [mock.call(_COMMAND), mock.call(_COMMAND)]
+    sleep_calls = [
+        mock.call(_SEND_RECEIVE_INTERVAL_SECS),
+        mock.call(_RETRY_INTERVAL_SECS),
+        mock.call(_SEND_RECEIVE_INTERVAL_SECS)]
+    # Read timeout at first time & retry ok.
+    self.device.Receive.side_effect = [
+        serial.SerialTimeoutException,
+        _RESPONSE]
+    receive_calls = [mock.call(_RECEIVE_SIZE), mock.call(_RECEIVE_SIZE)]
 
-    self.mox.ReplayAll()
     self.assertEqual(_RESPONSE, self.device.SendReceive(_COMMAND, retry=1))
+    self.assertEqual(self.device.Send.call_args_list, send_calls)
+    self.assertEqual(sleep_mock.call_args_list, sleep_calls)
+    self.assertEqual(self.device.Receive.call_args_list, receive_calls)
+    self.assertEqual(2, self.device.FlushBuffer.call_count)
 
-  def testSendRequestWriteTimeoutRetryFailure(self):
-    # Send timeout & retry.
-    self.device.Send(_COMMAND).AndRaise(serial.SerialTimeoutException)
-    time.sleep(_RETRY_INTERVAL_SECS)
-    # Retry failed.
-    self.device.FlushBuffer()
-    self.device.Send(_COMMAND).AndRaise(serial.SerialTimeoutException)
+  @mock.patch('time.sleep')
+  def testSendRequestWriteTimeoutRetryFailure(self, sleep_mock):
+    # Send timeout & retry still fail.
+    self.device.Send.side_effect = [
+        serial.SerialTimeoutException,
+        serial.SerialTimeoutException]
+    send_calls = [mock.call(_COMMAND), mock.call(_COMMAND)]
 
-    self.mox.ReplayAll()
     self.assertRaises(serial.SerialTimeoutException, self.device.SendReceive,
                       _COMMAND, retry=1)
+    self.assertEqual(self.device.Send.call_args_list, send_calls)
+    sleep_mock.assert_called_once_with(_RETRY_INTERVAL_SECS)
+    self.assertEqual(2, self.device.FlushBuffer.call_count)
 
 
 class SerialDeviceSendExpectReceiveTest(unittest.TestCase):
 
   def setUp(self):
-    self.mox = mox.Mox()
     self.device = serial_utils.SerialDevice()
 
     # Mock methods to facilitate SendExpectReceive testing.
-    self.mox.StubOutWithMock(self.device, 'SendReceive')
+    self.device.SendReceive = mock.Mock()
 
   def tearDown(self):
     del self.device
-    self.mox.UnsetStubs()
-    self.mox.VerifyAll()
 
   def testSendExpectReceive(self):
-    self.device.SendReceive(
-        _COMMAND, _RECEIVE_SIZE, retry=0, interval_secs=None,
-        suppress_log=True).AndReturn(_RESPONSE)
+    self.device.SendReceive.return_value = _RESPONSE
 
-    self.mox.ReplayAll()
     self.assertTrue(self.device.SendExpectReceive(_COMMAND, _RESPONSE))
+    self.device.SendReceive.assert_called_once_with(
+        _COMMAND, _RECEIVE_SIZE, retry=0, interval_secs=None,
+        suppress_log=True)
 
   def testSendExpectReceiveMismatch(self):
-    self.device.SendReceive(
-        _COMMAND, _RECEIVE_SIZE, retry=0, interval_secs=None,
-        suppress_log=True).AndReturn('x')
+    self.device.SendReceive.return_value = 'x'
 
-    self.mox.ReplayAll()
     self.assertFalse(self.device.SendExpectReceive(_COMMAND, _RESPONSE))
+    self.device.SendReceive.assert_called_once_with(
+        _COMMAND, _RECEIVE_SIZE, retry=0, interval_secs=None,
+        suppress_log=True)
 
   def testSendExpectReceiveTimeout(self):
-    self.device.SendReceive(
-        _COMMAND, _RECEIVE_SIZE, retry=0, interval_secs=None,
-        suppress_log=True).AndRaise(serial.SerialTimeoutException)
+    self.device.SendReceive.side_effect = serial.SerialTimeoutException
 
-    self.mox.ReplayAll()
     self.assertFalse(self.device.SendExpectReceive(_COMMAND, _RESPONSE))
+    self.device.SendReceive.assert_called_once_with(
+        _COMMAND, _RECEIVE_SIZE, retry=0, interval_secs=None,
+        suppress_log=True)
 
 
 if __name__ == '__main__':
