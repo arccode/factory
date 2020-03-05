@@ -37,6 +37,16 @@ def GetFactoryDir():
       'cros.factory.cli.factory_env should not be executed from factory.par')
 
 
+def GetRealScriptPath(tool_path):
+  """Find real script path from a symlink.
+
+  Args:
+    tool_path: A path that is a symlink that links to py/cli/factory_env.py.
+  """
+  tool_name = os.path.basename(tool_path)
+  return os.path.join(GetFactoryDir(), 'py/cli/', tool_name + '.py')
+
+
 def ShowHelpAndExit():
   print(HELP_MSG, end='')
   sys.exit(1)
@@ -55,8 +65,7 @@ def Main():
   if real_file_name == 'factory_env.py':
     # It means that it's a symbolic link to factory_env.
     # We need to execute the file in py/cli/file_name.py.
-    factory_env_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-    sys.argv[0] = os.path.join(factory_env_dir, file_name + '.py')
+    sys.argv[0] = GetRealScriptPath(sys.argv[0])
 
   # Set env path properly
   factory_dir = GetFactoryDir()

@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 
 
+import glob
 import os
 import unittest
 
@@ -15,6 +16,7 @@ FACTORY_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
 
 FACTORY_ENV_TOOL = os.path.join(FACTORY_ROOT, "bin/factory_env")
+FACTORY_ENV_SCRIPT = os.path.join(FACTORY_ROOT, "py/cli/factory_env.py")
 DUMMY_SCRIPT = os.path.join(
     FACTORY_ROOT, "py/cli/testdata/scripts/dummy_script.py")
 DUMMY_EXCUTABLE = os.path.join(
@@ -53,6 +55,23 @@ class FactoryEnvUnittest(unittest.TestCase):
     output = process_utils.CheckOutput(
         [FACTORY_ENV_TOOL, 'python', '-c', 'import sys; print(sys.path)'])
     self.assertIn('factory/py_pkg', output)
+
+
+class SymlinkUnittest(unittest.TestCase):
+  def testLegalityForSymlinkInBin(self):
+    for path in glob.glob(os.path.join(FACTORY_ROOT, "bin/**")):
+      if not os.path.islink(path):
+        continue
+
+      real_path = os.path.realpath(path)
+      if not real_path.endswith('.py'):
+        continue
+
+      # Make sure bin/tool_name links to FACTORY_ENV_SCRIPT
+      self.assertEqual(real_path, FACTORY_ENV_SCRIPT)
+
+      # Make sure py/cli/tool_name.py exist
+      self.assertTrue(os.path.exists(factory_env.GetRealScriptPath(path)))
 
 
 if __name__ == '__main__':
