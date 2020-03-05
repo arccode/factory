@@ -17,7 +17,7 @@ To change cut-off options:
 
 2. If you want to set a different value for reset shim (for example to reset
    after OQC), or for finalization when the RMA shim is already created, use
-   `setup/image_tool edit_cutoff` to modify the cut-off config stored in
+   `setup/image_tool edit_toolkit_config` to modify the cut-off config stored in
    `toolkit_config` payload.
 
 Dependency Isolation
