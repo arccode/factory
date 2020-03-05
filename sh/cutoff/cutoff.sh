@@ -11,6 +11,7 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 DISPLAY_MESSAGE="${SCRIPT_DIR}/display_wipe_message.sh"
 . "${SCRIPT_DIR}/options.sh"
 EC_PRESENT=0
+ECTOOL_BATTERY_SUPPORT=0
 POWER_SUPPLY_PATH="/sys/class/power_supply"
 
 cutoff_failed() {
@@ -42,6 +43,15 @@ test_ec_flash_presence() {
     EC_PRESENT=1
   else
     EC_PRESENT=0
+  fi
+}
+
+test_ectool_battery_support() {
+  # Check if "ectool battery" works
+  if [ "${EC_PRESENT}" -eq 1 ] && ectool battery >/dev/null 2>&1; then
+    ECTOOL_BATTERY_SUPPORT=1
+  else
+    ECTOOL_BATTERY_SUPPORT=0
   fi
 }
 
@@ -78,6 +88,36 @@ get_battery_voltage() {
   local battery_voltage
   battery_voltage="$(cat "${battery_path}/voltage_now")" || return $?
   echo "$((battery_voltage / 1000))"
+}
+
+get_ectool_battery_percentage() {
+  [ "${ECTOOL_BATTERY_SUPPORT}" -eq 1 ] || return 1
+
+  local battery_info
+  local full
+  local current
+  battery_info="$(ectool battery)"
+  full="$(echo "${battery_info}" |
+    sed -n -r 's/.*Design capacity:* *([0-9]+) mAh.*/\1/p')"
+  current="$(echo "${battery_info}" |
+    sed -n -r 's/.*Remaining capacity *([0-9]+) mAh.*/\1/p')"
+  [ -n "${full}" ] || return 1
+  [ -n "${current}" ] || return 1
+
+  echo "$((current * 100 / full))"
+}
+
+get_ectool_battery_voltage() {
+  [ "${ECTOOL_BATTERY_SUPPORT}" -eq 1 ] || return 1
+
+  local battery_info
+  local voltage
+  battery_info="$(ectool battery)"
+  voltage="$(echo "${battery_info}" |
+    sed -n -r 's/.*Present voltage *([0-9]+) mV.*/\1/p')"
+  [ -n "${voltage}" ] || return 1
+
+  echo "${voltage}"
 }
 
 find_ac_path() {
@@ -210,6 +250,7 @@ main() {
   reset_recovery_count
 
   test_ec_flash_presence
+  test_ectool_battery_support
 
   local battery_path
   battery_path="$(find_battery_path)"
@@ -222,13 +263,21 @@ main() {
        [ -n "${CUTOFF_BATTERY_MAX_PERCENTAGE}" ]; then
       check_battery_value \
         "${CUTOFF_BATTERY_MIN_PERCENTAGE}" "${CUTOFF_BATTERY_MAX_PERCENTAGE}" \
-        "get_battery_percentage" "${battery_path}" || cutoff_failed
+        "get_ectool_battery_percentage" "" ||
+      check_battery_value \
+        "${CUTOFF_BATTERY_MIN_PERCENTAGE}" "${CUTOFF_BATTERY_MAX_PERCENTAGE}" \
+        "get_battery_percentage" "${battery_path}" ||
+      cutoff_failed
     fi
     if [ -n "${CUTOFF_BATTERY_MIN_VOLTAGE}" ] ||
        [ -n "${CUTOFF_BATTERY_MAX_VOLTAGE}" ]; then
       check_battery_value \
         "${CUTOFF_BATTERY_MIN_VOLTAGE}" "${CUTOFF_BATTERY_MAX_VOLTAGE}" \
-        "get_battery_voltage" "${battery_path}" || cutoff_failed
+        "get_ectool_battery_voltage" "" ||
+      check_battery_value \
+        "${CUTOFF_BATTERY_MIN_VOLTAGE}" "${CUTOFF_BATTERY_MAX_VOLTAGE}" \
+        "get_battery_voltage" "${battery_path}" ||
+      cutoff_failed
     fi
 
     # Ask operator to plug or unplug AC before doing cut off.
