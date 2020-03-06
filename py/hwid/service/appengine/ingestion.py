@@ -80,7 +80,7 @@ class RefreshHandler(webapp2.RequestHandler):
     super(RefreshHandler, self).__init__(request, response)
     self.hwid_filesystem = CONFIG.hwid_filesystem
     self.hwid_manager = CONFIG.hwid_manager
-    self.board_mapping = CONFIG.board_mapping
+    self.vpg_targets = CONFIG.vpg_targets
     self.dryrun_upload = CONFIG.dryrun_upload
     self.hw_checker_mail = CONFIG.hw_checker_mail
 
@@ -125,12 +125,13 @@ class RefreshHandler(webapp2.RequestHandler):
     """
 
     db_lists = collections.defaultdict(list)
-    for model, board in iteritems(self.board_mapping):
-      hwid_data = self.hwid_manager.GetBoardDataFromCache(model)
+    for model_name, model_info in self.vpg_targets.items():
+      hwid_data = self.hwid_manager.GetBoardDataFromCache(model_name)
       if hwid_data is not None:
-        db_lists[board].append(hwid_data.database)
+        db_lists[model_info.board].append(
+            (hwid_data.database, model_info.waived_comp_categories))
       else:
-        logging.error('Cannot get board data from cache for %r', model)
+        logging.error('Cannot get board data from cache for %r', model_name)
     return db_lists
 
   def GetMasterCommitIfChanged(self, auth_cookie):
@@ -297,10 +298,9 @@ class RefreshHandler(webapp2.RequestHandler):
     db_lists = self.GetPayloadDBLists()
 
     for board, db_list in iteritems(db_lists):
-      try:
-        new_files = vpg_module.GenerateVerificationPayload(db_list)
-      except vpg_module.GenerateVerificationPayloadError as ex:
-        logging.error('Generate Payload fail: %s', str(ex))
+      result = vpg_module.GenerateVerificationPayload(db_list)
+      if result.error_msgs:
+        logging.error('Generate Payload fail: %s', ' '.join(result.error_msgs))
         mail.send_mail(
             sender='ChromeOS HW Checker Bot <{}>'.format(self.hw_checker_mail),
             to=self.hw_checker_mail,
@@ -317,6 +317,7 @@ class RefreshHandler(webapp2.RequestHandler):
                       commit=hwid_master_commit,
                       stack=traceback.format_exc()))
       else:
+        new_files = result.generated_file_contents
         payload_hash = self.GetPayloadHashIfChanged(board, new_files)
         if payload_hash is not None:
           payload_hash_mapping[board] = payload_hash

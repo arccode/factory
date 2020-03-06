@@ -30,6 +30,21 @@
         }
       }
     },
+    "network": {
+      "generic": {
+        "eval": {"generic_network": {}},
+        "expect": {
+          "bus_type": [false, "str"],
+          "pci_device_id": [false, "hex"],
+          "pci_revision": [false, "hex"],
+          "pci_vendor_id": [false, "hex"],
+          "type": [false, "str"],
+          "usb_bcd_device": [false, "hex"],
+          "usb_product_id": [false, "hex"],
+          "usb_vendor_id": [false, "hex"]
+        }
+      }
+    },
     "storage": {
       "model_a_storage_0_unsupported": {
         "eval": {"generic_storage": {}},
@@ -78,6 +93,21 @@
         "expect": {
           "manufacturer": [false, "str"],
           "model_name": [false, "str"]
+        }
+      }
+    },
+    "network": {
+      "generic": {
+        "eval": {"generic_network": {}},
+        "expect": {
+          "bus_type": [false, "str"],
+          "pci_device_id": [false, "hex"],
+          "pci_revision": [false, "hex"],
+          "pci_vendor_id": [false, "hex"],
+          "type": [false, "str"],
+          "usb_bcd_device": [false, "hex"],
+          "usb_product_id": [false, "hex"],
+          "usb_vendor_id": [false, "hex"]
         }
       }
     },

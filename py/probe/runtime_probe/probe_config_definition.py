@@ -76,6 +76,46 @@ def _ConstructAllProbeStatementDefinitions():
                             value_format_error_msg=_GetASCIIStringErrorMsg(32))
   _probe_statement_definitions['storage'] = builder.Build()
 
+  builder = probe_config_types.ProbeStatementDefinitionBuilder('network')
+  builder.AddProbeFunction('generic_network',
+                           ('A method that tries various of way to detect the '
+                            'network-releated component.'))
+  builder.AddProbeFunction('wireless_network',
+                           ('A method that tries various of way to detect the '
+                            'wireless component.'))
+  builder.AddProbeFunction('cellular_network',
+                           ('A method that tries various of way to detect the '
+                            'cellular component.'))
+  builder.AddProbeFunction('ethernet_network',
+                           ('A method that tries various of way to detect the '
+                            'ethernet component.'))
+  builder.AddStrOutputField(
+      'type',
+      'Component type, one of "wireless", "ethernet" or "cellular".',
+      value_pattern=re.compile('(wireless|ethernet|cellular)'),
+      value_format_error_msg=('Must be either "wireless", "ethernet", or '
+                              '"cellular".'))
+  builder.AddStrOutputField('bus_type', 'HW interface type of the component.',
+                            value_pattern=re.compile('(pci|usb|sdio)'),
+                            value_format_error_msg=('Must be either "pci", '
+                                                    '"usb", or "sdio"'))
+  builder.AddHexOutputField('pci_vendor_id', 'PCI Vendor ID.',
+                            num_value_digits=4)
+  builder.AddHexOutputField('pci_device_id', 'PCI Device ID.',
+                            num_value_digits=4)
+  builder.AddHexOutputField('pci_revision', 'PCI Revision Info.',
+                            num_value_digits=2)
+  builder.AddHexOutputField('usb_vendor_id', 'USB Vendor ID.',
+                            num_value_digits=4)
+  builder.AddHexOutputField('usb_product_id', 'USB Product ID.',
+                            num_value_digits=4)
+  builder.AddHexOutputField('usb_bcd_device', 'USB BCD Device Info.',
+                            num_value_digits=4)
+  builder.AddHexOutputField('sdio_vendor_id', 'SDIO Vendor ID.',
+                            num_value_digits=4)
+  builder.AddHexOutputField('sdio_product_id', 'SDIO Device ID.',
+                            num_value_digits=4)
+  _probe_statement_definitions['network'] = builder.Build()
 
 def GetProbeStatementDefinition(name):
   """Get the probe statement definition of the given name.

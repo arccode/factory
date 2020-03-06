@@ -130,15 +130,35 @@ class GenericStorageNVMeProbeStatementGeneratorTest(unittest.TestCase):
                        'vendor': '0x1234', 'device': '0x5678'})
 
 
+  class NetworkProbeStatementGeneratorTest(unittest.TestCase):
+    def testUSB(self):
+      ps_gen = _vp_generator.GetAllProbeStatementGenerators()['wireless'][0]
+      ps = ps_gen.TryGenerate(
+          'name1',
+          {'idVendor': '1122', 'idProduct': '5566'})
+      self.assertEqual(
+          ps,
+          {
+              'network': {
+                  'name1': {
+                      'eval': {'wireless_network': {}},
+                      'expect': {'usb_vendor_id': [True, 'hex', '!eq 0x123456'],
+                                 'usb_product_id': [True, 'hex', '!eq 0x5678']}
+                  }
+              }
+          })
+
+
 class GenerateVerificationPayloadTest(unittest.TestCase):
   def testSucc(self):
-    dbs = [database.Database.LoadFile(os.path.join(TESTDATA_DIR, name),
-                                      verify_checksum=False)
+    dbs = [(database.Database.LoadFile(os.path.join(TESTDATA_DIR, name),
+                                       verify_checksum=False), [])
            for name in ('model_a_db.yaml', 'model_b_db.yaml')]
     expected_outputs = json_utils.LoadFile(
         os.path.join(TESTDATA_DIR, 'expected_model_ab_output.json'))
 
-    files = verification_payload_generator.GenerateVerificationPayload(dbs)
+    files = _vp_generator.GenerateVerificationPayload(
+        dbs).generated_file_contents
 
     self.assertEqual(len(files), 3)
     self.assertEqual(
@@ -160,13 +180,12 @@ class GenerateVerificationPayloadTest(unittest.TestCase):
   def testHasUnsupportedComps(self):
     # The database bad_model_db.yaml contains an unknown storage, which is not
     # allowed.
-    dbs = [database.Database.LoadFile(os.path.join(TESTDATA_DIR, name),
-                                      verify_checksum=False)
+    dbs = [(database.Database.LoadFile(os.path.join(TESTDATA_DIR, name),
+                                       verify_checksum=False), [])
            for name in ('model_a_db.yaml', 'model_b_db.yaml',
                         'bad_model_db.yaml')]
-    self.assertRaises(
-        verification_payload_generator.GenerateVerificationPayloadError,
-        verification_payload_generator.GenerateVerificationPayload, dbs)
+    report = _vp_generator.GenerateVerificationPayload(dbs)
+    self.assertEqual(len(report.error_msgs), 1)
 
 
 if __name__ == '__main__':

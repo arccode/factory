@@ -19,10 +19,6 @@ from cros.factory.probe.runtime_probe import probe_config_definition
 from cros.factory.probe.runtime_probe import probe_config_types
 
 
-class GenerateVerificationPayloadError(Exception):
-  """Error that indicates a failure on generating verification payload."""
-
-
 class ProbeStatementGeneratorNotSuitableError(Exception):
   """The given component values cannot be converted by this generator."""
 
@@ -65,7 +61,12 @@ def _GetAllGenericProbeStatementInfoRecords():
         GenericProbeStatementInfoRecord(
             'storage', 'generic_storage',
             ['type', 'sectors', 'manfid', 'name', 'pci_vendor', 'pci_device',
-             'pci_class', 'ata_vendor', 'ata_model'])
+             'pci_class', 'ata_vendor', 'ata_model']),
+        GenericProbeStatementInfoRecord(
+            'network', 'generic_network',
+            ['type', 'bus_type', 'pci_vendor_id', 'pci_device_id',
+             'pci_revision', 'usb_vendor_id', 'usb_product_id',
+             'usb_bcd_device'])
     ]
 
   return _generic_probe_statement_info_records
@@ -73,10 +74,11 @@ def _GetAllGenericProbeStatementInfoRecords():
 
 class _FieldRecord(object):
   def __init__(self, hwid_field_name, probe_statement_field_name,
-               value_converter):
+               value_converter, is_optional=False):
     self.hwid_field_name = hwid_field_name
     self.probe_statement_field_name = probe_statement_field_name
     self.value_converter = value_converter
+    self.is_optional = is_optional
 
 
 class MissingComponentValueError(ProbeStatementGeneratorNotSuitableError):
@@ -102,6 +104,9 @@ class _ProbeStatementGenerator(object):
       try:
         val = comp_values[fc.hwid_field_name]
       except KeyError:
+        if fc.is_optional:
+          expected_fields[fc.probe_statement_field_name] = None
+          continue
         raise MissingComponentValueError(
             'missing component value field: %r' % fc.hwid_field_name)
       try:
@@ -137,15 +142,16 @@ def GetAllProbeStatementGenerators():
       raise ValueError('not a regular string of number')
     return int(value)
 
-  def HWIDHexStrToHexStr(num_digits, value):
-    if not re.match('0x0*[0-9a-fA-F]{1,%d}$' % num_digits, value):
+  def HWIDHexStrToHexStr(num_digits, has_prefix, value):
+    prefix = '0x' if has_prefix else ''
+    if not re.match('%s0*[0-9a-fA-F]{1,%d}$' % (prefix, num_digits), value):
       raise ValueError(
           'not a regular string of %d digits hex number' % num_digits)
     # Regulate the output to the fixed-digit hex string with upper cases.
-    return value.upper()[2:][-num_digits:].zfill(num_digits)
+    return value.upper()[len(prefix):][-num_digits:].zfill(num_digits)
 
-  def GetHWIDHexStrToHexStrConverter(num_digits):
-    return functools.partial(HWIDHexStrToHexStr, num_digits)
+  def GetHWIDHexStrToHexStrConverter(num_digits, has_prefix=True):
+    return functools.partial(HWIDHexStrToHexStr, num_digits, has_prefix)
 
   def SimplyForwardValue(value):
     return value
@@ -200,7 +206,60 @@ def GetAllProbeStatementGenerators():
       ),
   ]
 
+  # TODO(yhong): Also convert SDIO network component probe statements.
+  network_pci_fields = [
+      _FieldRecord('vendor', 'pci_vendor_id',
+                   GetHWIDHexStrToHexStrConverter(4)),
+      # TODO(yhong): Set `pci_device_id` to non optional field when b/150914933
+      #     is resolved.
+      _FieldRecord('device', 'pci_device_id',
+                   GetHWIDHexStrToHexStrConverter(4),
+                   is_optional=True),
+      _FieldRecord('revision_id', 'pci_revision',
+                   GetHWIDHexStrToHexStrConverter(2),
+                   is_optional=True),
+  ]
+  network_usb_fields = [
+      _FieldRecord('idVendor', 'usb_vendor_id',
+                   GetHWIDHexStrToHexStrConverter(4, has_prefix=False)),
+      _FieldRecord('idProduct', 'usb_product_id',
+                   GetHWIDHexStrToHexStrConverter(4, has_prefix=False)),
+      _FieldRecord('bcdDevice', 'usb_bcd_device',
+                   GetHWIDHexStrToHexStrConverter(4, has_prefix=False),
+                   is_optional=True),
+  ]
+  _all_probe_statement_generators['wireless'] = [
+      _ProbeStatementGenerator(
+          'network', 'wireless_network', network_pci_fields),
+      _ProbeStatementGenerator(
+          'network', 'wireless_network', network_usb_fields),
+  ]
+  _all_probe_statement_generators['cellular'] = [
+      _ProbeStatementGenerator(
+          'network', 'cellular_network', network_pci_fields),
+      _ProbeStatementGenerator(
+          'network', 'cellular_network', network_usb_fields),
+  ]
+  _all_probe_statement_generators['ethernet'] = [
+      _ProbeStatementGenerator(
+          'network', 'ethernet_network', network_pci_fields),
+      _ProbeStatementGenerator(
+          'network', 'ethernet_network', network_usb_fields),
+  ]
+
   return _all_probe_statement_generators
+
+
+class VerificationPayloadGenerationResult(object):
+  """
+  Attributes:
+    generated_file_contents: A string-to-string dictionary which represents the
+        files that should be committed into the bsp package.
+    error_msgs: A list of errors encountered during the generation.
+  """
+  def __init__(self):
+    self.generated_file_contents = {}
+    self.error_msgs = []
 
 
 def GenerateVerificationPayload(dbs):
@@ -214,15 +273,10 @@ def GenerateVerificationPayload(dbs):
   exception to indicate a failure.
 
   Args:
-    dbs: A list of the HWID database object of the same board.
+    dbs: A list of tuple of the HWID database object and the waived categories.
 
   Returns:
-    A string-to-string dictionary which represents the files that should
-    be committed into the bsp package.
-
-  Raises:
-    `GenerateVerificationPayloadError` if it fails to generate the
-     corresponding payloads.
+    Instance of `VerificationPayloadGenerationResult`.
   """
   _STATUS_MAP = {
       hwid_common.COMPONENT_STATUS.supported: hardware_verifier_pb2.QUALIFIED,
@@ -244,13 +298,15 @@ def GenerateVerificationPayload(dbs):
     return ret
 
   ps_generators = GetAllProbeStatementGenerators()
+  ret = VerificationPayloadGenerationResult()
 
-  ret_files = {}
   hw_verification_spec = hardware_verifier_pb2.HwVerificationSpec()
-  for db in dbs:
+  for db, waived_categories in dbs:
     model_prefix = db.project.lower()
     probe_config = probe_config_types.ProbeConfigPayload()
     for hwid_comp_category, ps_gens in ps_generators.items():
+      if hwid_comp_category in waived_categories:
+        continue
       comps = db.GetComponents(hwid_comp_category, include_default=False)
       for comp_name, comp_info in comps.items():
         unique_comp_name = model_prefix + '_' + comp_name
@@ -260,10 +316,10 @@ def GenerateVerificationPayload(dbs):
         results = TryGenerateProbeStatement(
             unique_comp_name, comp_info.values, ps_gens)
         if not results:
-          raise GenerateVerificationPayloadError(
-              'no probe statement generator supports %r typed component %r' %
-              (hwid_comp_category, comp_info))
-        elif len(results) > 1:
+          ret.error_msgs.append('No probe statement generator is suitable for '
+                                'component %r.' % unique_comp_name)
+          continue
+        if len(results) > 1:
           assert False, ("The code shouldn't reach here because we expect "
                          'only one generator can handle the given component '
                          'by design.')
@@ -281,7 +337,8 @@ def GenerateVerificationPayload(dbs):
       probe_config.AddComponentProbeStatement(ps_gen.GenerateProbeStatement())
 
     probe_config_pathname = 'runtime_probe/%s/probe_config.json' % model_prefix
-    ret_files[probe_config_pathname] = probe_config.DumpToString()
+    ret.generated_file_contents[
+        probe_config_pathname] = probe_config.DumpToString()
 
   hw_verification_spec.component_infos.sort(
       key=lambda ci: (ci.component_category, ci.component_uuid))
@@ -293,10 +350,11 @@ def GenerateVerificationPayload(dbs):
             ps_info.probe_category),
         field_names=ps_info.whitelist_fields)
 
-  ret_files['hw_verification_spec.prototxt'] = text_format.MessageToString(
-      hw_verification_spec)
+  ret.generated_file_contents[
+      'hw_verification_spec.prototxt'] = text_format.MessageToString(
+          hw_verification_spec)
 
-  return ret_files
+  return ret
 
 
 def main():
@@ -304,6 +362,7 @@ def main():
   import argparse
   import logging
   import os
+  import sys
 
   from cros.factory.utils import file_utils
 
@@ -322,6 +381,10 @@ def main():
   ap.add_argument('--no_verify_checksum', action='store_false',
                   help="Don't verify the checksum in the HWID databases.",
                   dest='verify_checksum')
+  ap.add_argument('--waived_comp_category', nargs='*', default=[],
+                  dest='waived_categories',
+                  help=('Waived component category, must specify in format of '
+                        '`<model_name>.<category_name>`.'))
   args = ap.parse_args()
 
   logging.basicConfig(level=logging.INFO)
@@ -329,17 +392,29 @@ def main():
   dbs = []
   for hwid_db_path in args.hwid_db_paths:
     logging.info('Load the HWID database file (%s).', hwid_db_path)
-    dbs.append(database.Database.LoadFile(
-        hwid_db_path, verify_checksum=not args.verify_checksum))
+    dbs.append((database.Database.LoadFile(
+        hwid_db_path, verify_checksum=not args.verify_checksum), []))
+  for waived_category in args.waived_categories:
+    model_name, unused_sep, category_name = waived_category.partition('.')
+    for db_obj, waived_list in dbs:
+      if db_obj.project.lower() == model_name.lower():
+        logging.info('Will ignore the componente category %r for %r.',
+                     category_name, db_obj.project)
+        waived_list.append(category_name)
 
   logging.info('Generate the verification payload data.')
-  results = GenerateVerificationPayload(dbs)
+  result = GenerateVerificationPayload(dbs)
 
-  for pathname, content in results.items():
-    logging.info('Output the verification payload file (%s).', pathname)
-    fullpath = os.path.join(args.output_dir, pathname)
-    file_utils.TryMakeDirs(os.path.dirname(fullpath))
-    file_utils.WriteFile(fullpath, content)
+  for error_msg in result.error_msgs:
+    logging.error(error_msg)
+    sys.exit(1)
+
+  if not result.error_msgs:
+    for pathname, content in result.generated_file_contents.items():
+      logging.info('Output the verification payload file (%s).', pathname)
+      fullpath = os.path.join(args.output_dir, pathname)
+      file_utils.TryMakeDirs(os.path.dirname(fullpath))
+      file_utils.WriteFile(fullpath, content)
 
 
 if __name__ == '__main__':

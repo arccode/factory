@@ -56,10 +56,11 @@ components:
         values:
           type: MMC
           name: ABCxyz
-          manfid: '0x001122'
+          manfid: '0x000022'
           oemid: '0x4455'
-          prv: '0x8899aabb'
+          prv: '0x00000a'
           serial: 'this_is_serial_number'
+          sectors: '1000000'
       storage_1_duplicate:  # Duplicated component should be ignored.
         status: duplicate
         values:

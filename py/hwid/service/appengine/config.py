@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 """Cloud stoarge buckets and service environment configuration."""
 
+import collections
 import os
 
 import yaml
@@ -19,8 +20,11 @@ _DEFAULT_CONFIGURATION = {
     # Allow unauthenticated access when running a local dev server and
     # during tests.
     'ge_bucket': 'chromeos-build-release-console-staging',
-    'board_mapping': {
-        'SARIEN': 'sarien',  # for unittests
+    'vpg_targets': {
+        'SARIEN':{  # for unittests
+            'board': 'sarien',
+            'waived_comp_categories': ['ethernet']
+        }
     },
     'dryrun_upload': True,
     'hw_checker_mail': 'noreply@google.com',
@@ -33,6 +37,11 @@ _RESOURCE_DIR = os.environ.get(
 
 _PATH_TO_APP_CONFIGURATIONS_FILE = os.path.join(_RESOURCE_DIR,
                                                 'configurations.yaml')
+
+
+_VerificationPayloadGenerationTargetInfo = collections.namedtuple(
+    '_VerificationPayloadGenerationTargetInfo',
+    ['board', 'waived_comp_categories'])
 
 
 class _Config(object):
@@ -64,7 +73,10 @@ class _Config(object):
         conf['bucket'])
     self.hwid_manager = hwid_manager.HwidManager(self.hwid_filesystem)
     self.hw_checker_mail = conf.get('hw_checker_mail', '')
-    self.board_mapping = conf.get('board_mapping', {})
+    self.vpg_targets = {
+        k: _VerificationPayloadGenerationTargetInfo(
+            v['board'], v.get('waived_comp_categories', []))
+        for k, v in conf.get('vpg_targets', {}).items()}
     self.dryrun_upload = conf.get('dryrun_upload', False)
 
 

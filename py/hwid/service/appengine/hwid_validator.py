@@ -71,8 +71,9 @@ class HwidValidator(object):
     v3_validator.ValidateChange(prev_db, db)
     v3_validator.ValidateIntegrity(db)
 
-    if db.project in CONFIG.board_mapping:
-      try:
-        vpg_module.GenerateVerificationPayload([db])
-      except vpg_module.GenerateVerificationPayloadError as e:
-        raise v3_validator.ValidationError(str(e))
+    vpg_target = CONFIG.vpg_targets.get(db.project)
+    if vpg_target:
+      errors = vpg_module.GenerateVerificationPayload(
+          [(db, vpg_target.waived_comp_categories)]).error_msgs
+      if errors:
+        raise v3_validator.ValidationError(str(errors))

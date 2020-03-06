@@ -12,7 +12,6 @@ import mock
 
 # pylint: disable=import-error
 from cros.factory.hwid.service.appengine import hwid_validator
-from cros.factory.hwid.service.appengine import verification_payload_generator
 from cros.factory.hwid.v3 import validator as v3_validator
 from cros.factory.utils import file_utils
 
@@ -54,19 +53,15 @@ class HwidValidatorTest(unittest.TestCase):
   def testValidateSarien_withGeneratePayloadFail(self):
     with self.assertRaises(v3_validator.ValidationError):
       with mock.patch.object(
-          hwid_validator.vpg_module,
-          'GenerateVerificationPayload',
-          side_effect=verification_payload_generator.\
-              GenerateVerificationPayloadError('fail')):
+          hwid_validator.vpg_module, 'GenerateVerificationPayload',
+          return_value=self.CreateBadVPGResult()):
         hwid_validator.HwidValidator().ValidateChange(SARIEN_DATA_GOOD,
                                                       SARIEN_DATA_GOOD)
 
   def testValidateNonSarien_withGeneratePayloadFail(self):
     with mock.patch.object(
-        hwid_validator.vpg_module,
-        'GenerateVerificationPayload',
-        side_effect=verification_payload_generator.\
-            GenerateVerificationPayloadError('fail')):
+        hwid_validator.vpg_module, 'GenerateVerificationPayload',
+        return_value=self.CreateBadVPGResult()):
       hwid_validator.HwidValidator().ValidateChange(
           GOLDEN_HWIDV3_DATA_AFTER_GOOD,
           GOLDEN_HWIDV3_DATA_BEFORE)
@@ -86,6 +81,12 @@ class HwidValidatorTest(unittest.TestCase):
     self.assertEqual(
         str(error.exception),
         'Invalid DRAM: dram_type_not_mention_size')
+
+  @classmethod
+  def CreateBadVPGResult(cls):
+    ret = hwid_validator.vpg_module.VerificationPayloadGenerationResult()
+    ret.error_msgs = ['err1', 'err2']
+    return ret
 
 
 if __name__ == '__main__':
