@@ -28,7 +28,11 @@ HELP_HEADER = """
 Uninstall the factory toolkit on a CrOS device.
 """
 
-FACTORY_DIRS = ['/var/factory', '/run/factory', paths.FACTORY_DIR]
+FACTORY_PATHS = [
+    '/var/factory', '/run/factory', paths.FACTORY_DIR,
+    '/var/log/factory-init.log', '/var/log/factory-session.log',
+    '/var/log/factory.log'
+]
 
 
 def AssertEnvironment():
@@ -49,7 +53,7 @@ def MakeWarningMessage():
       '\n'
       '*** You are about to uninstall the factory toolkit at:\n')
 
-  for p in FACTORY_DIRS:
+  for p in FACTORY_PATHS:
     ret += '***   %s\n' % p
 
   ret += '***'
@@ -84,7 +88,7 @@ def Main():
                                    '/usr/local/bin', install_symlinks.MODE_MINI)
 
   # Delete all factory related files.
-  for p in FACTORY_DIRS:
+  for p in FACTORY_PATHS:
     process_utils.Spawn(['rm', '-rf', p], check_call=True, log=True)
 
 
