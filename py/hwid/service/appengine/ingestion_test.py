@@ -74,7 +74,7 @@ class IngestionTest(unittest.TestCase):
                 'board': 'BETTERCBOARD',
                 'version': 3
             }
-        })
+        }, delete_missing=True)
     ])
 
   def testRefreshWithoutBoardsInfo(self):

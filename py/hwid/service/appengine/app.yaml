@@ -17,7 +17,7 @@ handlers:
   script: cros.factory.hwid.service.appengine.app.hwid_api_app
 - url: /ingestion/.*
   script: cros.factory.hwid.service.appengine.app.ingestion_app
-  login: admin
+  login: "${LOGIN_REQUIRED}"
 - url: /favicon.ico
   static_files: cros/factory/hwid/service/appengine/static/favicon.ico
   upload: cros/factory/hwid/service/appengine/static/favicon.ico

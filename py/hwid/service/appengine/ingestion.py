@@ -33,6 +33,35 @@ from cros.factory.utils import json_utils
 GIT_NORMAL_FILE_MODE = 0o100644
 
 
+def _AuthCheck(func):
+  """Checks if requests are from known source.
+
+  For /ingestion/refresh API, hwid service only allows cron job (via GET) and
+  taskqueue (via POST) requests.  However, for e2e testing purpose, requests
+  with API key are also allowed.
+  """
+
+  def wrapper(self, *args, **kwargs):
+    from_cron = self.request.headers.get('X-AppEngine-Cron')
+    if from_cron:
+      logging.info('Allow cron job requests')
+      return func(self, *args, **kwargs)
+
+    from_taskqueue = self.request.headers.get('X-AppEngine-QueueName')
+    if from_taskqueue:
+      logging.info('Allow taskqueue requests')
+      return func(self, *args, **kwargs)
+
+    if CONFIG.ingestion_api_key:
+      key = self.request.get('key')
+      if key == CONFIG.ingestion_api_key:
+        logging.info('Allow normal requests with API key')
+        return func(self, *args, **kwargs)
+
+    return self.abort(403, 'Permission denied')
+  return wrapper
+
+
 class DevUploadHandler(webapp2.RequestHandler):
 
   def __init__(self, request, response):  # pylint: disable=super-on-old-class
@@ -86,12 +115,21 @@ class RefreshHandler(webapp2.RequestHandler):
 
   # Cron jobs are always GET requests, we are not acutally doing the work
   # here just queuing a task to be run in the background.
+  @_AuthCheck
   def get(self):
     taskqueue.add(url='/ingestion/refresh')
 
   # Task queue executions are POST requests.
+  @_AuthCheck
   def post(self):
     """Refreshes the ingestion from staging files to live."""
+
+    # Limit boards for ingestion (e2e test only).
+    limit_models = self.request.get('limit_models')
+    do_limit = False
+    if limit_models:
+      limit_models = set(json_utils.LoadStr(limit_models))
+      do_limit = True
 
     # TODO(yllin): Reduce memory footprint.
     # Get board.yaml
@@ -101,21 +139,25 @@ class RefreshHandler(webapp2.RequestHandler):
       # parse it
       metadata = yaml.safe_load(metadata_yaml)
 
-      self.hwid_manager.UpdateBoards(metadata)
+      if limit_models:
+        # only process required models
+        metadata = {k: v for (k, v) in iteritems(metadata) if k in limit_models}
+      self.hwid_manager.UpdateBoards(metadata, delete_missing=not do_limit)
 
     except filesystem_adapter.FileSystemAdaptorException:
       logging.error('Missing file during refresh.')
       self.abort(500, 'Missing file during refresh.')
 
-    self.hwid_manager.ReloadMemcacheCacheFromFiles()
+    self.hwid_manager.ReloadMemcacheCacheFromFiles(
+        limit_models=list(limit_models))
 
     # Skip if env is local (dev)
     if CONFIG.env == 'dev':
       self.response.write('Skip for local env')
       return
 
-    self.UpdatePayloadsAndSync()
-    self.response.write('Ingestion complete.')
+    self.UpdatePayloadsAndSync(do_limit)
+    logging.info('Ingestion complete.')
 
   def GetPayloadDBLists(self):
     """Get payload DBs specified in config.
@@ -134,11 +176,12 @@ class RefreshHandler(webapp2.RequestHandler):
         logging.error('Cannot get board data from cache for %r', model_name)
     return db_lists
 
-  def GetMasterCommitIfChanged(self, auth_cookie):
+  def GetMasterCommitIfChanged(self, auth_cookie, force_update=False):
     """Get master commit of repo if it differs from cached commit on datastore.
 
     Args:
-      auth_cookie: Auth cookie for accessing repo
+      auth_cookie: Auth cookie for accessing repo.
+      force_update: True for always returning commit id for testing purpose.
     Returns:
       latest commit id if it differs from cached commit id, None if not
     """
@@ -150,18 +193,19 @@ class RefreshHandler(webapp2.RequestHandler):
         auth_cookie)
     latest_commit = self.hwid_manager.GetLatestHWIDMasterCommit()
 
-    if latest_commit == hwid_master_commit:
+    if latest_commit == hwid_master_commit and not force_update:
       logging.debug('The HWID master commit %s is already processed, skipped',
                     hwid_master_commit)
       return None
     return hwid_master_commit
 
-  def GetPayloadHashIfChanged(self, board, payload_dict):
+  def GetPayloadHashIfChanged(self, board, payload_dict, force_update=False):
     """Get payload hash if it differs from cached hash on datastore.
 
     Args:
       board: Board name
       payload_dict: A path-content mapping of payload files
+      force_update: True for always returning payload hash for testing purpose.
     Returns:
       hash if it differs from cached hash, None if not
     """
@@ -170,7 +214,7 @@ class RefreshHandler(webapp2.RequestHandler):
         json_utils.DumpStr(payload_dict, sort_keys=True)).hexdigest()
     latest_hash = self.hwid_manager.GetLatestPayloadHash(board)
 
-    if latest_hash == payload_hash:
+    if latest_hash == payload_hash and not force_update:
       logging.debug('Payload is not changed as %s, skipped', latest_hash)
       return None
     return payload_hash
@@ -273,11 +317,15 @@ class RefreshHandler(webapp2.RequestHandler):
                       commit=hwid_master_commit,
                       stack=traceback.format_exc()))
 
-  def UpdatePayloads(self):
+  def UpdatePayloads(self, force_update=False):
     """Update generated payloads to repo.
 
     Also return the hash of master commit and payloads to skip unnecessary
     actions.
+
+    Args:
+      force_update: True for always returning payload_hash_mapping for testing
+                    purpose.
 
     Returns:
       tuple (commit_id, {board: payload_hash,...}), possibly None for commit_id
@@ -291,8 +339,9 @@ class RefreshHandler(webapp2.RequestHandler):
         service_account_name=service_account_name,
         token=token)
 
-    hwid_master_commit = self.GetMasterCommitIfChanged(auth_cookie)
-    if hwid_master_commit is None:
+    hwid_master_commit = self.GetMasterCommitIfChanged(auth_cookie,
+                                                       force_update)
+    if hwid_master_commit is None and not force_update:
       return None, payload_hash_mapping
 
     db_lists = self.GetPayloadDBLists()
@@ -318,7 +367,8 @@ class RefreshHandler(webapp2.RequestHandler):
                       stack=traceback.format_exc()))
       else:
         new_files = result.generated_file_contents
-        payload_hash = self.GetPayloadHashIfChanged(board, new_files)
+        payload_hash = self.GetPayloadHashIfChanged(board, new_files,
+                                                    force_update)
         if payload_hash is not None:
           payload_hash_mapping[board] = payload_hash
           self.TryCreateCL(
@@ -327,7 +377,7 @@ class RefreshHandler(webapp2.RequestHandler):
 
     return hwid_master_commit, payload_hash_mapping
 
-  def UpdatePayloadsAndSync(self):
+  def UpdatePayloadsAndSync(self, force_update=False):
     """Update generated payloads to private overlays.
 
     This method will handle the payload creation request as follows:
@@ -343,10 +393,17 @@ class RefreshHandler(webapp2.RequestHandler):
     To prevent duplicate error notification or unnecessary check next time, this
     method will store the commit hash and payload hash in Datastore once
     generated.
+
+    Args:
+      force_update: True for always getting payload_hash_mapping for testing
+                    purpose.
     """
 
-    commit_id, payload_hash_mapping = self.UpdatePayloads()
+    commit_id, payload_hash_mapping = self.UpdatePayloads(force_update)
     if commit_id:
       self.hwid_manager.SetLatestHWIDMasterCommit(commit_id)
+    if force_update:
+      self.response.write(json_utils.DumpStr(payload_hash_mapping,
+                                             sort_keys=True))
     for board, payload_hash in iteritems(payload_hash_mapping):
       self.hwid_manager.SetLatestPayloadHash(board, payload_hash)

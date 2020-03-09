@@ -78,6 +78,7 @@ class _Config(object):
             v['board'], v.get('waived_comp_categories', []))
         for k, v in conf.get('vpg_targets', {}).items()}
     self.dryrun_upload = conf.get('dryrun_upload', False)
+    self.ingestion_api_key = conf.get('ingestion_api_key', None)
 
 
 CONFIG = _Config()

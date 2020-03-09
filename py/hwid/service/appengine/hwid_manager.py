@@ -516,12 +516,14 @@ class HwidManager(object):
 
     metadata.put()
 
-  def UpdateBoards(self, board_metadata):
+  def UpdateBoards(self, board_metadata, delete_missing=True):
     """Updates the set of supported boards to be exactly the list provided.
 
     Args:
       board_metadata: A list of metadata dictionaries containing path, version
-      and board name.
+                      and board name.
+      delete_missing: bool to indicate whether missing metadata should be
+                      deleted.
     Raises:
       MetadataError: If the metadata is malformed.
     """
@@ -538,8 +540,9 @@ class HwidManager(object):
     q = HwidMetadata.all()
     for hwid_metadata in list(q.run()):
       if hwid_metadata.path in files_to_delete:
-        hwid_metadata.delete()
-        self._fs_adapter.DeleteFile(self._LivePath(hwid_metadata.path))
+        if delete_missing:
+          hwid_metadata.delete()
+          self._fs_adapter.DeleteFile(self._LivePath(hwid_metadata.path))
       else:
         new_data = board_metadata[hwid_metadata.path]
         hwid_metadata.board = new_data['board']
@@ -555,9 +558,15 @@ class HwidManager(object):
       self._ActivateFile(new_data['path'], path)
       metadata.put()
 
-  def ReloadMemcacheCacheFromFiles(self):
-    """For every known board, load its info into the cache."""
+  def ReloadMemcacheCacheFromFiles(self, limit_models=None):
+    """For every known board, load its info into the cache.
+
+    Args:
+      limit_models: List of names of models which will be updated.
+    """
     q = HwidMetadata.all()
+    if limit_models:
+      q.filter('board IN', limit_models)
 
     for metadata in list(q.run()):
       try:
