@@ -105,8 +105,8 @@ class UpdateSKUIDTest(test_case.TestCase):
       cbi_output = GetCbiData(data_type)
       if cbi_output:
         # If the CBI field to be probed is set, the output from
-        # 'ectool cbi get' is 'As integer: %u (0x%x)\n' % (val, val)
-        match = re.search(r'As integer: ([0-9]+) \(0x[0-9a-fA-F]+\)',
+        # 'ectool cbi get' is 'As uint: %u (0x%x)\n' % (val, val)
+        match = re.search(r'As uint: ([0-9]+) \(0x[0-9a-fA-F]+\)',
                           cbi_output)
         if match:
           return int(match.group(1))
