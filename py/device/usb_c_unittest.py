@@ -205,6 +205,76 @@ class USBTypeCTest(unittest.TestCase):
 
     self.mox.VerifyAll()
 
+  def testGetPDStatusV2(self):
+    self.board.CheckOutput(
+        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '0']).AndReturn(
+            'Port C0: disabled, disconnected  State:LowPowerMode\n'
+            'Role:SNK UFP, Polarity:CC1\n'
+            'CC State:None\n'
+            'Cable type:Passive\n'
+            'TBT Adapter type:Gen3\n'
+            'Optical Cable:False\n'
+            'Link LSRX Communication:Bi-directional\n'
+            'TBT Cable Speed:UNKNOWN\n'
+            'Rounded support: 3rd Gen rounded support')
+    self.board.CheckOutput(
+        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '0']).AndReturn(
+            'Port C0: enabled, connected  State:Attached.SRC\n'
+            'Role:SRC DFP VCONN, Polarity:CC1\n'
+            'CC State:UFP attached\n'
+            'DP pin mode:C\n'
+            'Cable type:Passive\n'
+            'TBT Adapter type:Gen3\n'
+            'Optical Cable:False\n'
+            'Link LSRX Communication:Bi-directional\n'
+            'TBT Cable Speed:UNKNOWN\n'
+            'Rounded support: 3rd Gen rounded support\n'
+            'PD Partner Capabilities:')
+    self.board.CheckOutput(
+        ['ectool', '--interface=dev', '--dev=1', 'usbpd', '0']).AndReturn(
+            'Port C0: enabled, connected  State:Attached.SNK\n'
+            'Role:SNK UFP, Polarity:CC1\n'
+            'CC State:DFP attached\n'
+            'Cable type:Passive\n'
+            'TBT Adapter type:Gen3\n'
+            'Optical Cable:False\n'
+            'Link LSRX Communication:Bi-directional\n'
+            'TBT Cable Speed:UNKNOWN\n'
+            'Rounded support: 3rd Gen rounded support\n'
+            'PD Partner Capabilities:\n'
+            ' Unconstrained power\n')
+
+    self.mox.ReplayAll()
+
+    status = self.usb_c.GetPDStatus(0)
+    self.assertFalse(status['enabled'])
+    self.assertFalse(status['connected'])
+    self.assertEqual('SNK', status['role'])
+    self.assertEqual('UFP', status['datarole'])
+    self.assertEqual('', status['vconn'])
+    self.assertEqual('CC1', status['polarity'])
+    self.assertEqual('LowPowerMode', status['state'])
+
+    status = self.usb_c.GetPDStatus(0)
+    self.assertTrue(status['enabled'])
+    self.assertTrue(status['connected'])
+    self.assertEqual('SRC', status['role'])
+    self.assertEqual('DFP', status['datarole'])
+    self.assertEqual('VCONN', status['vconn'])
+    self.assertEqual('CC1', status['polarity'])
+    self.assertEqual('Attached.SRC', status['state'])
+
+    status = self.usb_c.GetPDStatus(0)
+    self.assertTrue(status['enabled'])
+    self.assertTrue(status['connected'])
+    self.assertEqual('SNK', status['role'])
+    self.assertEqual('UFP', status['datarole'])
+    self.assertEqual('', status['vconn'])
+    self.assertEqual('CC1', status['polarity'])
+    self.assertEqual('Attached.SNK', status['state'])
+
+    self.mox.VerifyAll()
+
   def testGetPDPowerStatus(self):
     self.board.CheckOutput(
         ['ectool', '--interface=dev', '--dev=1', 'usbpdpower']).AndReturn(

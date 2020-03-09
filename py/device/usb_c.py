@@ -54,6 +54,13 @@ class USBTypeC(device_types.DeviceComponent):
               r'(?P<connected>connected|disconnected)  State:(?P<state>\w*)\n'
               r'Role:(?P<role>SRC|SNK) (?P<datarole>DFP|UFP) *(?P<vconn>VCONN|)'
               r', Polarity:(?P<polarity>CC1|CC2)'),
+      'USB_PD_INFO_RE_V2':
+          re.compile(
+              r'Port C(?P<port>\d+): (?P<enabled>enabled|disabled), '
+              r'(?P<connected>connected|disconnected)  '
+              r'State:(?P<state>\w*(\.\w*)?)\n'
+              r'Role:(?P<role>SRC|SNK) (?P<datarole>DFP|UFP) *(?P<vconn>VCONN|)'
+              r', Polarity:(?P<polarity>CC1|CC2)'),
   }
 
   # USB PD Power info.
@@ -124,9 +131,11 @@ class USBTypeC(device_types.DeviceComponent):
           status['state'] = match.group('state')
           status['datarole'] = match.group('datarole')
           if (pd_version == 'USB_PD_INFO_RE_V1_1' or
-              pd_version == 'USB_PD_INFO_RE_V1_2'):
+              pd_version == 'USB_PD_INFO_RE_V1_2' or
+              pd_version == 'USB_PD_INFO_RE_V2'):
             status['connected'] = match.group('connected') == 'connected'
-            if pd_version == 'USB_PD_INFO_RE_V1_2':
+            if (pd_version == 'USB_PD_INFO_RE_V1_2' or
+                pd_version == 'USB_PD_INFO_RE_V2'):
               status['vconn'] = match.group('vconn')
         return status
     raise self.Error('Unable to parse USB PD status from: %s' % response)
