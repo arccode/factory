@@ -18,11 +18,9 @@ import threading
 import unittest
 import urllib.parse
 
-from mox3 import mox
+import mock
 from six.moves import xrange
 
-from cros.factory.test import server_proxy
-from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
@@ -149,7 +147,6 @@ class TestSystemLogManager(unittest.TestCase):
   """Unittest for SystemLogManager."""
 
   def setUp(self):
-    self.mox = mox.Mox()
     self.goofy = None
     self.manager = None
     self.fake_server_proxy = None
@@ -169,6 +166,8 @@ class TestSystemLogManager(unittest.TestCase):
     # Modifies the minimum sync log period secs in system_log_manager for
     # unittest.
     system_log_manager.MIN_SYNC_LOG_PERIOD_SECS = MOCK_MIN_SYNC_PERIOD_SEC
+    self.spawn_calls = []
+    self.callback_calls = []
 
   def ClearFiles(self):
     clear_files = glob.glob(
@@ -183,20 +182,15 @@ class TestSystemLogManager(unittest.TestCase):
       self.manager.OnStop()
     except Exception:
       pass
-    self.mox.UnsetStubs()
     self.ClearFiles()
     shutil.rmtree(TEST_DIRECTORY)
 
   def SetMock(self):
     """Sets mocked methods and objects."""
-    self.mox.StubOutWithMock(server_proxy, 'GetServerURL')
-    self.mox.StubOutWithMock(server_proxy, 'GetServerProxy')
-    self.mox.StubOutWithMock(session, 'GetDeviceID')
-    self.mox.StubOutWithMock(system_log_manager, 'Spawn')
-    self.mox.StubOutWithMock(system_log_manager, 'TerminateOrKillProcess')
-    self.fake_server_proxy = self.mox.CreateMockAnything()
-    self.fake_process = self.mox.CreateMockAnything()
-    self.goofy = self.mox.CreateMockAnything()
+    self.fake_server_proxy = mock.MagicMock()
+    self.fake_process = mock.MagicMock()
+    self.fake_process.poll_side_effect = []
+    self.goofy = mock.MagicMock()
     self.goofy.state_instance = state.StubFactoryState()
 
   def AddExtraFilesToRsync(self, extra_files):
@@ -210,8 +204,20 @@ class TestSystemLogManager(unittest.TestCase):
     self.requests.append((self.abort_time,
                           system_log_manager.KickRequest([], None, False)))
 
-  def MockSyncOnce(self, extra_files=None, callback=None,
-                   times=MOCK_POLLING_FAIL_TRIES, code=0, terminated=False):
+  def VerifyMock(self, spawn_mock, terminate_or_kill_process_mock=None,
+                 callback=None):
+    self.assertEqual(spawn_mock.call_args_list, self.spawn_calls)
+
+    if not self.fake_process.returncode and callback:
+      self.assertEqual(callback.call_args_list, self.callback_calls)
+
+    if terminate_or_kill_process_mock:
+      terminate_or_kill_process_mock.assert_called_with(self.fake_process)
+
+  def MockSyncOnce(self, get_server_url_mock, get_server_proxy_mock,
+                   get_device_id_mock, spawn_mock, extra_files=None,
+                   callback=None, times=MOCK_POLLING_FAIL_TRIES, code=0,
+                   terminated=False):
     """Mock rsync once with optional arguments to MockPollToFinish.
 
     Args:
@@ -221,21 +227,23 @@ class TestSystemLogManager(unittest.TestCase):
       code: code argument to MockPollToFinish.
       terminated: terminated argument to MockPollToFinish.
     """
-    server_proxy.GetServerURL().AndReturn(MOCK_SERVER_URL)
-    server_proxy.GetServerProxy().AndReturn(self.fake_server_proxy)
-    self.fake_server_proxy.GetFactoryLogPort().AndReturn(MOCK_PORT)
-    session.GetDeviceID().AndReturn(MOCK_DEVICE_ID)
+    get_server_url_mock.return_value = MOCK_SERVER_URL
+    get_server_proxy_mock.return_value = self.fake_server_proxy
+    self.fake_server_proxy.GetFactoryLogPort.return_value = MOCK_PORT
+    get_device_id_mock.return_value = MOCK_DEVICE_ID
+    spawn_mock.return_value = self.fake_process
+
     if extra_files:
       logging.debug('Mocks getting extra_files %r', extra_files)
       mock_rsync_command = self.AddExtraFilesToRsync(extra_files)
     else:
       mock_rsync_command = self.base_rsync_command
-    system_log_manager.Spawn(mock_rsync_command, ignore_stdout=True,
-                             ignore_stderr=True).AndReturn(self.fake_process)
+    self.spawn_calls.append(mock.call(mock_rsync_command, ignore_stdout=True,
+                                      ignore_stderr=True))
 
     self.MockPollToFinish(times=times, code=code, terminated=terminated)
     if not self.fake_process.returncode and callback:
-      callback(extra_files)
+      self.callback_calls.append(mock.call(extra_files))
 
   def MockPollToFinish(self, times=3, code=0, terminated=False):
     """Mocks that rsync takes times polls before finish or gets terminated.
@@ -247,11 +255,10 @@ class TestSystemLogManager(unittest.TestCase):
       terminated: Rsync subprocess gets terminated after times pollings.
     """
     for _ in xrange(times):
-      self.fake_process.poll().AndReturn(None)
+      self.fake_process.poll_side_effect.append(None)
     if terminated:
-      system_log_manager.TerminateOrKillProcess(self.fake_process)
       return
-    self.fake_process.poll().AndReturn(True)
+    self.fake_process.poll_side_effect.append(True)
     self.fake_process.returncode = code
 
   def GetSystemLogManagerWithStub(self, *args, **kwargs):
@@ -284,13 +291,19 @@ class TestSystemLogManager(unittest.TestCase):
       getattr(self.manager, func)(*args)
     self.kick_replayed_event.set()
 
-  def testSyncOnce(self):
+  @mock.patch('cros.factory.goofy.plugins.system_log_manager.Spawn')
+  @mock.patch('cros.factory.test.session.GetDeviceID')
+  @mock.patch('cros.factory.test.server_proxy.GetServerProxy')
+  @mock.patch('cros.factory.test.server_proxy.GetServerURL')
+  def testSyncOnce(self, get_server_url_mock, get_server_proxy_mock,
+                   get_device_id_mock, spawn_mock):
     """Syncs onces and gets a zero returecode."""
     self.SetMock()
-    self.MockSyncOnce()
+    self.MockSyncOnce(
+        get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+        spawn_mock)
+    self.fake_process.poll.side_effect = self.fake_process.poll_side_effect
     self.MockStopAt(MOCK_SCAN_PERIOD_SEC + MOCK_POLLING_DURATION)
-
-    self.mox.ReplayAll()
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
@@ -299,15 +312,21 @@ class TestSystemLogManager(unittest.TestCase):
     self.manager.Start()
     self.manager.Stop()
 
-    self.mox.VerifyAll()
+    self.VerifyMock(spawn_mock)
 
-  def testSyncOnceFail(self):
+  @mock.patch('cros.factory.goofy.plugins.system_log_manager.Spawn')
+  @mock.patch('cros.factory.test.session.GetDeviceID')
+  @mock.patch('cros.factory.test.server_proxy.GetServerProxy')
+  @mock.patch('cros.factory.test.server_proxy.GetServerURL')
+  def testSyncOnceFail(self, get_server_url_mock, get_server_proxy_mock,
+                       get_device_id_mock, spawn_mock):
     """Syncs onces but gets a nonzero returecode."""
     self.SetMock()
-    self.MockSyncOnce(code=1)
+    self.MockSyncOnce(
+        get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+        spawn_mock, code=1)
+    self.fake_process.poll.side_effect = self.fake_process.poll_side_effect
     self.MockStopAt(MOCK_SCAN_PERIOD_SEC + MOCK_POLLING_DURATION)
-
-    self.mox.ReplayAll()
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
@@ -316,12 +335,23 @@ class TestSystemLogManager(unittest.TestCase):
     self.manager.Start()
     self.manager.Stop()
 
-    self.mox.VerifyAll()
+    self.VerifyMock(spawn_mock)
 
-  def testSyncOnceStopped(self):
+  @mock.patch('cros.factory.goofy.plugins.system_log_manager.Spawn')
+  @mock.patch('cros.factory.goofy.plugins.system_log_manager.'
+              'TerminateOrKillProcess')
+  @mock.patch('cros.factory.test.session.GetDeviceID')
+  @mock.patch('cros.factory.test.server_proxy.GetServerProxy')
+  @mock.patch('cros.factory.test.server_proxy.GetServerURL')
+  def testSyncOnceStopped(self, get_server_url_mock, get_server_proxy_mock,
+                          get_device_id_mock, terminate_or_kill_process_mock,
+                          spawn_mock):
     """Syncs once but rsync takes too long and manager got stopped."""
     self.SetMock()
-    self.MockSyncOnce(times=2, terminated=True)
+    self.MockSyncOnce(
+        get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+        spawn_mock, times=2, terminated=True)
+    self.fake_process.poll.side_effect = self.fake_process.poll_side_effect
 
     # Setting polling period to 1/5 of scan period, and let poll
     # returns None for 2 times. There will be two polls before it aborts by
@@ -338,8 +368,6 @@ class TestSystemLogManager(unittest.TestCase):
     mock_polling_period = MOCK_SCAN_PERIOD_SEC * 1 / 5
     self.MockStopAt(MOCK_SCAN_PERIOD_SEC + mock_polling_period * 2)
 
-    self.mox.ReplayAll()
-
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
         MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT,
@@ -347,12 +375,23 @@ class TestSystemLogManager(unittest.TestCase):
     self.manager.Start()
     self.manager.Stop()
 
-    self.mox.VerifyAll()
+    self.VerifyMock(spawn_mock, terminate_or_kill_process_mock)
 
-  def testSyncOnceTerminated(self):
+  @mock.patch('cros.factory.goofy.plugins.system_log_manager.Spawn')
+  @mock.patch('cros.factory.goofy.plugins.system_log_manager.'
+              'TerminateOrKillProcess')
+  @mock.patch('cros.factory.test.session.GetDeviceID')
+  @mock.patch('cros.factory.test.server_proxy.GetServerProxy')
+  @mock.patch('cros.factory.test.server_proxy.GetServerURL')
+  def testSyncOnceTerminated(self, get_server_url_mock, get_server_proxy_mock,
+                             get_device_id_mock, terminate_or_kill_process_mock,
+                             spawn_mock):
     """Syncs once but rsync takes too long and gets terminated."""
     self.SetMock()
-    self.MockSyncOnce(times=2, terminated=True)
+    self.MockSyncOnce(
+        get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+        spawn_mock, times=2, terminated=True)
+    self.fake_process.poll.side_effect = self.fake_process.poll_side_effect
 
     # Setting polling period to 2/3 of scan period, and let poll
     # returns None for 2 times. There will be two polls before it aborts.
@@ -368,8 +407,6 @@ class TestSystemLogManager(unittest.TestCase):
     mock_polling_period = MOCK_SCAN_PERIOD_SEC * 2 / 3
     self.MockStopAt(MOCK_SCAN_PERIOD_SEC + mock_polling_period * 3)
 
-    self.mox.ReplayAll()
-
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
         MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT,
@@ -377,19 +414,25 @@ class TestSystemLogManager(unittest.TestCase):
     self.manager.Start()
     self.manager.Stop()
 
-    self.mox.VerifyAll()
+    self.VerifyMock(spawn_mock, terminate_or_kill_process_mock)
 
-  def testSyncPeriodic(self):
+  @mock.patch('cros.factory.goofy.plugins.system_log_manager.Spawn')
+  @mock.patch('cros.factory.test.session.GetDeviceID')
+  @mock.patch('cros.factory.test.server_proxy.GetServerProxy')
+  @mock.patch('cros.factory.test.server_proxy.GetServerURL')
+  def testSyncPeriodic(self, get_server_url_mock, get_server_proxy_mock,
+                       get_device_id_mock, spawn_mock):
     """Syncs periodically for 5 times."""
     self.SetMock()
     number_of_period = 5
     for _ in xrange(number_of_period):
-      self.MockSyncOnce()
+      self.MockSyncOnce(
+          get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+          spawn_mock)
+    self.fake_process.poll.side_effect = self.fake_process.poll_side_effect
     self.MockStopAt(MOCK_SCAN_PERIOD_SEC +
                     ((MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_DURATION) *
                      (number_of_period - 1)) + MOCK_POLLING_DURATION)
-
-    self.mox.ReplayAll()
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
@@ -398,21 +441,27 @@ class TestSystemLogManager(unittest.TestCase):
     self.manager.Start()
     self.manager.Stop()
 
-    self.mox.VerifyAll()
+    self.VerifyMock(spawn_mock)
 
-  def testSyncKickNoPeriodic(self):
+  @mock.patch('cros.factory.goofy.plugins.system_log_manager.Spawn')
+  @mock.patch('cros.factory.test.session.GetDeviceID')
+  @mock.patch('cros.factory.test.server_proxy.GetServerProxy')
+  @mock.patch('cros.factory.test.server_proxy.GetServerURL')
+  def testSyncKickNoPeriodic(self, get_server_url_mock, get_server_proxy_mock,
+                             get_device_id_mock, spawn_mock):
     """Syncs by a kick without periodic sync"""
     self.SetMock()
 
     mock_extra_files = ['mock_extra_files']
-    mock_callback = self.mox.CreateMockAnything()
+    mock_callback = mock.MagicMock()
 
-    self.MockSyncOnce(mock_extra_files, mock_callback)
+    self.MockSyncOnce(
+        get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+        spawn_mock, mock_extra_files, mock_callback)
+    self.fake_process.poll.side_effect = self.fake_process.poll_side_effect
     # manager should only sync once, which is kicked by the test.
     self.RecordKickToSync(mock_extra_files, mock_callback)
     self.MockStopAt(MOCK_POLLING_DURATION)
-
-    self.mox.ReplayAll()
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, None, MOCK_SCAN_PERIOD_SEC,
@@ -421,20 +470,26 @@ class TestSystemLogManager(unittest.TestCase):
     self.ReplayKicks()
     self.manager.Stop()
 
-    self.mox.VerifyAll()
+    self.VerifyMock(spawn_mock, callback=mock_callback)
 
-  def testSyncKick(self):
+  @mock.patch('cros.factory.goofy.plugins.system_log_manager.Spawn')
+  @mock.patch('cros.factory.test.session.GetDeviceID')
+  @mock.patch('cros.factory.test.server_proxy.GetServerProxy')
+  @mock.patch('cros.factory.test.server_proxy.GetServerURL')
+  def testSyncKick(self, get_server_url_mock, get_server_proxy_mock,
+                   get_device_id_mock, spawn_mock):
     """Syncs by a kick before the first periodic sync occurs."""
     self.SetMock()
 
     mock_extra_files = ['mock_extra_files']
-    mock_callback = self.mox.CreateMockAnything()
-    self.MockSyncOnce(mock_extra_files, mock_callback)
+    mock_callback = mock.MagicMock()
+    self.MockSyncOnce(
+        get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+        spawn_mock, mock_extra_files, mock_callback)
+    self.fake_process.poll.side_effect = self.fake_process.poll_side_effect
     # manager should only sync once, which is kicked by the test.
     self.RecordKickToSync(mock_extra_files, mock_callback)
     self.MockStopAt(MOCK_POLLING_DURATION)
-
-    self.mox.ReplayAll()
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
@@ -443,25 +498,32 @@ class TestSystemLogManager(unittest.TestCase):
     self.ReplayKicks()
     self.manager.Stop()
 
-    self.mox.VerifyAll()
+    self.VerifyMock(spawn_mock, callback=mock_callback)
 
-  def testSyncKickMultipleTimes(self):
+  @mock.patch('cros.factory.goofy.plugins.system_log_manager.Spawn')
+  @mock.patch('cros.factory.test.session.GetDeviceID')
+  @mock.patch('cros.factory.test.server_proxy.GetServerProxy')
+  @mock.patch('cros.factory.test.server_proxy.GetServerURL')
+  def testSyncKickMultipleTimes(self, get_server_url_mock,
+                                get_server_proxy_mock, get_device_id_mock,
+                                spawn_mock):
     """Syncs by multiple kicks."""
     self.SetMock()
 
     times = 5
     mock_extra_files = [['mock_extra_files_%d' % x] for x in xrange(times)]
-    mock_callback = self.mox.CreateMockAnything()
+    mock_callback = mock.MagicMock()
 
     for kick_number in xrange(times):
-      self.MockSyncOnce(mock_extra_files[kick_number], mock_callback)
+      self.MockSyncOnce(
+          get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+          spawn_mock, mock_extra_files[kick_number], mock_callback)
+    self.fake_process.poll.side_effect = self.fake_process.poll_side_effect
     # manager should process each sync requests by the test.
     for kick_number in xrange(times):
       self.RecordKickToSync(
           mock_extra_files[kick_number], mock_callback)
     self.MockStopAt(MOCK_POLLING_DURATION * times)
-
-    self.mox.ReplayAll()
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, None, MOCK_SCAN_PERIOD_SEC,
@@ -470,9 +532,14 @@ class TestSystemLogManager(unittest.TestCase):
     self.ReplayKicks()
     self.manager.Stop()
 
-    self.mox.VerifyAll()
+    self.VerifyMock(spawn_mock, callback=mock_callback)
 
-  def testSyncPeriodAndKick(self):
+  @mock.patch('cros.factory.goofy.plugins.system_log_manager.Spawn')
+  @mock.patch('cros.factory.test.session.GetDeviceID')
+  @mock.patch('cros.factory.test.server_proxy.GetServerProxy')
+  @mock.patch('cros.factory.test.server_proxy.GetServerURL')
+  def testSyncPeriodAndKick(self, get_server_url_mock, get_server_proxy_mock,
+                            get_device_id_mock, spawn_mock):
     """Syncs periodically for two times and gets kicked.
 
     After the sync of kick succeeds, sync for another two times periodically.
@@ -480,15 +547,22 @@ class TestSystemLogManager(unittest.TestCase):
     self.SetMock()
     number_of_period_before_kick = 2
     for _ in xrange(number_of_period_before_kick):
-      self.MockSyncOnce()
+      self.MockSyncOnce(
+          get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+          spawn_mock)
 
     mock_extra_files = ['mock_extra_files']
-    mock_callback = self.mox.CreateMockAnything()
-    self.MockSyncOnce(mock_extra_files, mock_callback)
+    mock_callback = mock.MagicMock()
+    self.MockSyncOnce(
+        get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+        spawn_mock, mock_extra_files, mock_callback)
 
     number_of_period_after_kick = 2
     for _ in xrange(number_of_period_after_kick):
-      self.MockSyncOnce()
+      self.MockSyncOnce(
+          get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+          spawn_mock)
+    self.fake_process.poll.side_effect = self.fake_process.poll_side_effect
 
     # manager should sync twice in this time
     t = (MOCK_SCAN_PERIOD_SEC + MOCK_POLLING_DURATION +
@@ -501,8 +575,6 @@ class TestSystemLogManager(unittest.TestCase):
           MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_DURATION)
     self.MockStopAt(t)
 
-    self.mox.ReplayAll()
-
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
         MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD)
@@ -510,21 +582,34 @@ class TestSystemLogManager(unittest.TestCase):
     self.ReplayKicks()
     self.manager.Stop()
 
-    self.mox.VerifyAll()
+    self.VerifyMock(spawn_mock, callback=mock_callback)
 
-  def testSyncPeriodAndKickToSync(self):
+  @mock.patch('cros.factory.goofy.plugins.system_log_manager.Spawn')
+  @mock.patch('cros.factory.test.session.GetDeviceID')
+  @mock.patch('cros.factory.test.server_proxy.GetServerProxy')
+  @mock.patch('cros.factory.test.server_proxy.GetServerURL')
+  def testSyncPeriodAndKickToSync(self, get_server_url_mock,
+                                  get_server_proxy_mock, get_device_id_mock,
+                                  spawn_mock):
     """Gets kicked during periodic sync, then it put request to queue."""
     self.SetMock()
     # This sync will get terminated by kick event.
-    self.MockSyncOnce()
+    self.MockSyncOnce(
+        get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+        spawn_mock)
 
     mock_extra_files = ['mock_extra_files']
-    mock_callback = self.mox.CreateMockAnything()
-    self.MockSyncOnce(mock_extra_files, mock_callback)
+    mock_callback = mock.MagicMock()
+    self.MockSyncOnce(
+        get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+        spawn_mock, mock_extra_files, mock_callback)
 
     number_of_period_after_kick = 2
     for _ in xrange(number_of_period_after_kick):
-      self.MockSyncOnce()
+      self.MockSyncOnce(
+          get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+          spawn_mock)
+    self.fake_process.poll.side_effect = self.fake_process.poll_side_effect
 
     # manager should fire a sync after this time.
     t = MOCK_SCAN_PERIOD_SEC * 1
@@ -542,8 +627,6 @@ class TestSystemLogManager(unittest.TestCase):
     t += (MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_DURATION) * 2
     self.MockStopAt(t)
 
-    self.mox.ReplayAll()
-
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
         MOCK_SCAN_PERIOD_SEC, MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD)
@@ -551,19 +634,25 @@ class TestSystemLogManager(unittest.TestCase):
     self.ReplayKicks()
     self.manager.Stop()
 
-    self.mox.VerifyAll()
+    self.VerifyMock(spawn_mock, callback=mock_callback)
 
-  def testClearOnce(self):
+  @mock.patch('cros.factory.goofy.plugins.system_log_manager.Spawn')
+  @mock.patch('cros.factory.test.session.GetDeviceID')
+  @mock.patch('cros.factory.test.server_proxy.GetServerProxy')
+  @mock.patch('cros.factory.test.server_proxy.GetServerURL')
+  def testClearOnce(self, get_server_url_mock, get_server_proxy_mock,
+                    get_device_id_mock, spawn_mock):
     """Clears log files once by periodic scan including syncing."""
     self.SetMock()
     clear_file_prefix = mock_file_prefix + 'clear_'
     for _ in xrange(3):
       CreateTestFile(clear_file_prefix)
     clear_file_paths = [os.path.join(TEST_DIRECTORY, clear_file_prefix + '*')]
-    self.MockSyncOnce()
+    self.MockSyncOnce(
+        get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
+        spawn_mock)
+    self.fake_process.poll.side_effect = self.fake_process.poll_side_effect
     self.MockStopAt((MOCK_SCAN_PERIOD_SEC + MOCK_POLLING_DURATION) * 2)
-
-    self.mox.ReplayAll()
 
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, MOCK_SYNC_PERIOD_SEC,
@@ -572,7 +661,7 @@ class TestSystemLogManager(unittest.TestCase):
     self.manager.Start()
     self.manager.Stop()
 
-    self.mox.VerifyAll()
+    self.VerifyMock(spawn_mock)
     self.assertEqual(sum([glob.glob(x) for x in clear_file_paths], []), [])
 
   def testClearOnceWithoutSync(self):
@@ -585,15 +674,12 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.MockStopAt(MOCK_SCAN_PERIOD_SEC)
 
-    self.mox.ReplayAll()
-
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, None, MOCK_SCAN_PERIOD_SEC,
         MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD, clear_file_paths)
     self.manager.Start()
     self.manager.Stop()
 
-    self.mox.VerifyAll()
     self.assertEqual(sum([glob.glob(x) for x in clear_file_paths], []), [])
 
   def testClearOnceByKickWithoutSync(self):
@@ -607,8 +693,6 @@ class TestSystemLogManager(unittest.TestCase):
     self.RecordKickToClear()
     self.MockStopAt(0)
 
-    self.mox.ReplayAll()
-
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, None, MOCK_SCAN_PERIOD_SEC,
         MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD, clear_file_paths)
@@ -616,7 +700,6 @@ class TestSystemLogManager(unittest.TestCase):
     self.ReplayKicks()
     self.manager.Stop()
 
-    self.mox.VerifyAll()
     self.assertEqual(sum([glob.glob(x) for x in clear_file_paths], []), [])
 
   def testClearOnceExclusiveByKickWithoutSync(self):
@@ -635,8 +718,6 @@ class TestSystemLogManager(unittest.TestCase):
     self.RecordKickToClear()
     self.MockStopAt(0)
 
-    self.mox.ReplayAll()
-
     self.GetSystemLogManagerWithStub(
         self.goofy, mock_sync_log_paths, None, MOCK_SCAN_PERIOD_SEC,
         MOCK_RSYNC_IO_TIMEOUT, MOCK_POLLING_PERIOD, clear_file_paths,
@@ -645,7 +726,6 @@ class TestSystemLogManager(unittest.TestCase):
     self.ReplayKicks()
     self.manager.Stop()
 
-    self.mox.VerifyAll()
     self.assertEqual(
         sum([glob.glob(os.path.join(TEST_DIRECTORY,
                                     clear_file_prefix + '*'))],
