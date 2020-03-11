@@ -66,6 +66,7 @@ class UpdateSKUIDTest(test_case.TestCase):
   def SetToEEPROM(self):
     OEM_ID_TYPE = 1
     SKU_ID_TYPE = 2
+    SKU_ID_SIZE = 4
     FW_CONFIG_TYPE = 6
 
     def GetCbiData(data_type):
@@ -154,14 +155,7 @@ class UpdateSKUIDTest(test_case.TestCase):
     if new_sku_id > 2 ** 32 - 1:
       self.FailTask('SKU ID (%d) should not be greater than UINT32_MAX (%d)' %
                     (new_sku_id, 2 ** 32 - 1))
-    # The data size should be 1, 2 or 4.  See
-    # https://chromium.googlesource.com/chromiumos/platform/ec/+/master/util/cbi-util.c#140
-    if new_sku_id <= 2 ** 8 - 1:
-      data_size = 1
-    elif new_sku_id <= 2 ** 16 - 1:
-      data_size = 2
-    else:
-      data_size = 4
+    data_size = SKU_ID_SIZE
 
     oem_id_in_eeprom = GetDataFromEEPROM(OEM_ID_TYPE)
     oem_id_in_cros_config = GetOEMIDFromCrosConfig(new_sku_id)
