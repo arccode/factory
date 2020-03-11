@@ -907,6 +907,7 @@ class TestList(ITestList):
       for key in self.__dict__:
         if key.startswith('_cached_'):
           self.__dict__[key] = None
+      self.SetSkippedAndWaivedTests()
       note['level'] = 'INFO'
       note['text'] = ('Test list %s is reloaded.' % self._config.test_list_id)
     except Exception:

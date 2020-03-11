@@ -69,6 +69,7 @@ import logging
 
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
+from cros.factory.test import state
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -95,6 +96,7 @@ class PlatformSKUModelTest(test_case.TestCase):
     self._dut = device_utils.CreateDUTInterface()
     self._config = config_utils.LoadConfig(config_name=self.args.config_name)
     self._platform = {}
+    self._goofy_rpc = state.GetInstance()
 
   def ApplyConfig(self):
     model = self._platform.get('model', '')
@@ -112,6 +114,9 @@ class PlatformSKUModelTest(test_case.TestCase):
     if model_config:
       logging.info('Apply model/SKU config: %r', model_config)
       device_data.UpdateDeviceData(model_config)
+      # Device data might affect which tests are skipped/waived. Reload the test
+      # list to correctly identify those tests.
+      self._goofy_rpc.ReloadTestList()
 
   def CheckByOperator(self):
     self.ui.SetInstruction(_('Please confirm following values'))
