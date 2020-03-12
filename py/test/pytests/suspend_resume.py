@@ -171,6 +171,19 @@ class SuspendResumeTest(test_case.TestCase):
     # Clear any active wake alarms
     self._SetWakealarm('0')
 
+  @staticmethod
+  def _ReadAndCastFileSafely(path, return_type=str):
+    try:
+      text = file_utils.ReadFile(path)
+    except IOError as err:
+      logging.info('Reading %s failed. Error: %s', path, err)
+      return None
+    try:
+      return return_type(text)
+    except ValueError as err:
+      logging.info('Casting %s to %r failed. Error: %s', text, return_type, err)
+      return None
+
   def _GetWakeupSourceCounts(self):
     """Return snapshot of current event counts.
 
@@ -179,8 +192,8 @@ class SuspendResumeTest(test_case.TestCase):
     """
     wakeup_sources = [os.path.join(_WAKEUP_PATH, name)
                       for name in os.listdir(_WAKEUP_PATH)]
-    return {wakeup_source: int(file_utils.ReadFile(os.path.join(wakeup_source,
-                                                                'event_count')))
+    return {wakeup_source: self._ReadAndCastFileSafely(
+        os.path.join(wakeup_source, 'event_count'), int)
             for wakeup_source in wakeup_sources}
 
   def _GetPossibleWakeupSources(self):
@@ -194,9 +207,20 @@ class SuspendResumeTest(test_case.TestCase):
     """
     wake_sources = {}
     current_wakeup_source_event_count = self._GetWakeupSourceCounts()
-    for wakeup_source, event_count in current_wakeup_source_event_count.items():
-      if self.wakeup_source_event_count[wakeup_source] != event_count:
-        name = file_utils.ReadFile(os.path.join(wakeup_source, 'name')).strip()
+    sources = (set(current_wakeup_source_event_count) |
+               set(self.wakeup_source_event_count))
+    for wakeup_source in sources:
+      snapshot_event_count = self.wakeup_source_event_count.get(wakeup_source)
+      current_event_count = current_wakeup_source_event_count.get(wakeup_source)
+      if snapshot_event_count == current_event_count:
+        continue
+      name = (self._ReadAndCastFileSafely(
+          os.path.join(wakeup_source, 'name')) or 'unknown').strip()
+      if snapshot_event_count is None or current_event_count is None:
+        logging.info('wakeup_source %s(%r) %sappeared after suspend.',
+                     wakeup_source, name,
+                     'dis' if current_event_count is None else '')
+      else:
         wake_sources.update({wakeup_source: name})
     return wake_sources
 
@@ -257,8 +281,10 @@ class SuspendResumeTest(test_case.TestCase):
       file_utils.WriteFile(self.args.wakeup_count_path, self.wakeup_count)
     except IOError as err:
       if err.errno == errno.EINVAL:
+        wake_sources = self._GetPossibleWakeupSources()
         raise IOError('EINVAL: Failed to write to wakeup_count. Maybe there is '
-                      'another program trying to suspend at the same time?')
+                      'another program trying to suspend at the same time?'
+                      'source=%r' % wake_sources)
       else:
         raise IOError('Failed to write to wakeup_count: %s' %
                       debug_utils.FormatExceptionOnly())
@@ -271,8 +297,8 @@ class SuspendResumeTest(test_case.TestCase):
     except IOError as err:
       if err.errno == errno.EBUSY:
         logging.info('Early wake event when attempting suspend.')
-        wake_source = self._GetPossibleWakeupSources()
-        if self.args.ignore_wakeup_source in wake_source:
+        wake_sources = self._GetPossibleWakeupSources()
+        if self.args.ignore_wakeup_source in wake_sources:
           if retry_count == _MAX_EARLY_RESUME_RETRY_COUNT:
             raise RuntimeError('Maximum re-suspend retry exceeded for '
                                'ignored wakeup source %s' %
@@ -286,8 +312,8 @@ class SuspendResumeTest(test_case.TestCase):
           return
         else:
           raise IOError('EBUSY: Early wake event when attempting suspend: %s, '
-                        'source=%s' %
-                        (debug_utils.FormatExceptionOnly(), wake_source))
+                        'source=%r' %
+                        (debug_utils.FormatExceptionOnly(), wake_sources))
       else:
         raise IOError('Failed to write to /sys/power/state: %s' %
                       debug_utils.FormatExceptionOnly())
