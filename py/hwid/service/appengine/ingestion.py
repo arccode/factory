@@ -42,6 +42,9 @@ def _AuthCheck(func):
   """
 
   def wrapper(self, *args, **kwargs):
+    if CONFIG.env == 'dev':  # for integration test
+      return func(self, *args, **kwargs)
+
     from_cron = self.request.headers.get('X-AppEngine-Cron')
     if from_cron:
       logging.info('Allow cron job requests')
