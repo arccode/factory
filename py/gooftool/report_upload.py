@@ -16,6 +16,7 @@ import xmlrpc.client
 
 from cros.factory.gooftool.common import Shell
 from cros.factory.utils import file_utils
+from cros.factory.utils.string_utils import ParseUrl
 from cros.factory.utils.type_utils import Error
 
 
@@ -305,7 +306,7 @@ def SmbUpload(source_path, smb_url,
   """Uploads the source file to a SMB url.
 
     source_path: File to upload.
-    smb_url: A smb url in smb://user:pass@host:port/share_name/path format.
+    smb_url: A smb url in smb://user:password@host:port/share_name/path format.
     max_retry_times: Number of tries to upload (0 to retry infinitely).
     retry_interval: Duration (in seconds) between each retry.
     retry_timeout: Connection timeout (in seconds).
@@ -314,47 +315,38 @@ def SmbUpload(source_path, smb_url,
   Raises:
     GFTError: When input url is invalid, or if network issue without retry.
   """
-  # scheme: smb, netloc: user:pass@host:port, path: /...
-  url_struct = urllib.parse.urlparse(smb_url)
-  regexp = '(([^:]*)(:([^@]*))?@)?([^:]*)(:(.*))?'
-  tokens = re.match(regexp, url_struct.netloc)
-  userid = tokens.group(2)
-  passwd = tokens.group(4)
-  host = tokens.group(5)
-  port = tokens.group(7)
+  url = ParseUrl(smb_url)
+  logging.debug('SmbUpload: parsed url: %s', url)
 
   # Check and specify default parameters
-  if not host:
+  if not url.get('host'):
     raise Error('SmbUpload: invalid smb url: %s. Missing host.' % smb_url)
-  if not userid:
-    userid = ''
-  if not passwd:
-    passwd = ''
 
   # Parse destination path: According to RFC1738, 3.2.2,
   # Starting with %2F means absolute path, otherwise relative.
-  unquote_path = urllib.parse.unquote(url_struct.path)
-  if unquote_path[0] != '/':
+  url['path'] = urllib.parse.unquote(url.get('path', ''))
+  if url['path'] == '' or url['path'][0] != '/':
     raise Error('SmbUpload: invalid smb url: %s. Missing share name.' % smb_url)
   try:
-    share_name, path = unquote_path[1:].split('/', 1)
+    share_name, path = url['path'][1:].split('/', 1)
   except ValueError:
     raise Error('SmbUpload: invalid smb url: %s. Missing dest path.' % smb_url)
 
   source_name = os.path.split(source_path)[1]
   dest_name = os.path.split(path)[1]
-  logging.debug('source name: %s, dest_name: (/%s) %s -> %s',
+  logging.debug('SmbUpload: source name: %s, dest_name: (/%s) %s -> %s',
                 source_name, share_name, path, dest_name)
   if source_name and (not dest_name):
     path = os.path.join(path, source_name)
 
-  cmd = ['smbclient', '//%s/%s' % (host, share_name),
+  cmd = ['smbclient', '//%s/%s' % (url['host'], share_name),
          '-s', '/dev/null',
-         '-U', '%s%%%s' % (userid, passwd),
+         '-U', '%s%%%s' % (url.get('user', ''), url.get('password', '')),
          '-c', 'put %s %s' % (source_path, path),
          '-E']
-  if port:
-    cmd += ['-p', port]
+  if url.get('port'):
+    cmd += ['-p', url['port']]
+  logging.debug('SmbUpload: %s', cmd)
 
   def SmbCallback(result):
     cmd_result = Shell(cmd)

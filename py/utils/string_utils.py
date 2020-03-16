@@ -19,15 +19,15 @@ def DecodeUTF8(data):
   return data
 
 
-def ParseDict(lines, delimeter=':'):
+def ParseDict(lines, delimiter=':'):
   """Parses list of lines into a dict. Each line is a string containing
-  key, value pair, where key and value are separated by delimeter, and are
+  key, value pair, where key and value are separated by delimiter, and are
   stripped. If key, value pair can not be found in the line, that line will be
   skipped.
 
   Args:
     lines: A list of strings.
-    delimeter: The delimeter string to separate key and value in each line.
+    delimiter: The delimiter string to separate key and value in each line.
 
   Returns:
     A dict, where both keys and values are string.
@@ -35,7 +35,7 @@ def ParseDict(lines, delimeter=':'):
   ret = dict()
   for line in lines:
     try:
-      key, value = line.split(delimeter, 1)
+      key, value = line.split(delimiter, 1)
     except ValueError:
       logging.warning('Can not extract key, value pair in %s', line)
     else:
@@ -67,3 +67,44 @@ def ParseString(value):
     except ValueError:
       pass  # No sweat
   return value
+
+
+def ParseUrl(url):
+  """Parses a URL string according to RFC 1738.
+  Note: We allow '/' character in 'user', so we can specify workgroup of smb
+  user.
+
+  Args:
+    url: An URL string.
+
+  Returns:
+    A dict with optional keys 'scheme', 'user', 'password', 'host', 'port', and
+    'urlpath'.
+  """
+  result = {}
+
+  scheme, delimiter, schemepart = url.partition('://')
+  if not delimiter:
+    return {}
+  result['scheme'] = scheme
+
+  userpass, unused_delimiter, hostpath = schemepart.rpartition('@')
+  if userpass:
+    user, delimiter, password = userpass.partition(':')
+    result['user'] = user
+    if delimiter:
+      result['password'] = password
+
+  hostport, delimiter, path = hostpath.partition('/')
+  if delimiter:
+    result['path'] = '/' + path
+
+  host, unused_delimiter, port = hostport.partition(':')
+  if host:
+    result['host'] = host
+  else:
+    return {}
+  if port:
+    result['port'] = port
+
+  return result

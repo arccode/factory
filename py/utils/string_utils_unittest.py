@@ -15,6 +15,7 @@ import unittest
 from cros.factory.utils.string_utils import DecodeUTF8
 from cros.factory.utils.string_utils import ParseDict
 from cros.factory.utils.string_utils import ParseString
+from cros.factory.utils.string_utils import ParseUrl
 
 
 _LINES = ['TPM Enabled: true',
@@ -59,6 +60,24 @@ class ParseStringTest(unittest.TestCase):
     self.assertEqual(False, ParseString('False'))
     self.assertEqual(None, ParseString('None'))
     self.assertEqual(123, ParseString('123'))
+
+class ParseUrlTest(unittest.TestCase):
+  """Unittest for ParseUrl."""
+
+  def testParseUrl(self):
+    self.assertEqual(dict(scheme='https', host='example.com', port='8080'),
+                     ParseUrl('https://example.com:8080'))
+    self.assertEqual(dict(scheme='ftp', user='user', password='pass',
+                          host='192.168.1.1', path='/foo/bar.zip'),
+                     ParseUrl('ftp://user:pass@192.168.1.1/foo/bar.zip'))
+    self.assertEqual(dict(scheme='ssh', user='user', password='pass',
+                          host='192.168.1.1', port='2222'),
+                     ParseUrl('ssh://user:pass@192.168.1.1:2222'))
+    self.assertEqual(dict(scheme='smb', user='192.168.1.2/user',
+                          password='pass', host='host', port='2222',
+                          path='/public'),
+                     ParseUrl('smb://192.168.1.2/user:pass@host:2222/public'))
+    self.assertEqual(dict(), ParseUrl('invalid.com'))
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
