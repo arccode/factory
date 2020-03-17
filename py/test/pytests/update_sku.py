@@ -53,7 +53,7 @@ from cros.factory.test import device_data
 from cros.factory.test import session
 from cros.factory.test import test_case
 
-
+_DEFAULT_SKUID = 0x7fffffff
 _KEY_COMPONENT_SKU = device_data.JoinKeys(device_data.KEY_COMPONENT, 'sku')
 
 
@@ -181,7 +181,11 @@ class UpdateSKUIDTest(test_case.TestCase):
     elif fw_cfg_in_cros_config is None:
       self.FailTask('FW CONFIG does not exist in cros_config but is '
                     'set in EEPROM.')
-    elif fw_cfg_in_eeprom and fw_cfg_in_eeprom != fw_cfg_in_cros_config:
+    elif fw_cfg_in_eeprom and fw_cfg_in_eeprom != fw_cfg_in_cros_config \
+        and old_sku_id != _DEFAULT_SKUID:
+      # The fw_config is allowed to be any value while the board is
+      # unprovisioned, otherwise the fw_config value must match what
+      # configuration says it should be based on the SKU value
       self.FailTask('FW CONFIG in EEPROM (%d) is not equal to the '
                     'FW CONFIG in cros_config (%d)' %
                     (fw_cfg_in_eeprom, fw_cfg_in_cros_config))
