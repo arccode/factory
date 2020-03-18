@@ -7,15 +7,17 @@
 
 from __future__ import print_function
 
+import argparse
 import logging
-import optparse
 import sys
 import xmlrpclib
 
 from cros.factory.test.fixture.whale.host import dolphin_server
+from cros.factory.utils import type_utils
 
 
 __all__ = ['SerialClientError', 'SerialClient']
+FUNCTIONS = type_utils.Enum(['send', 'receive', 'get_serial_num'])
 
 
 class SerialClientError(Exception):
@@ -99,79 +101,80 @@ def ParseArgs():
   """Parses commandline arguments.
 
   Returns:
-    tuple (options, args) from optparse.parse_args().
+    args from argparse.parse_args().
   """
-  usage = (
-      'usage: %prog [options] <function> <serial_index> <arg1 arg2 ...> ...\n'
-      '\t- function is [send, receive, get_serial_num].\n'
-      '\t- serial_index is serial connection index.\n'
-      '\t- arg<n> is the function arguments.\n'
-  )
-
   description = (
-      '%prog is command-line tool to test serial server. '
+      'A command-line tool to test serial server.'
   )
 
   examples = (
       '\nExamples:\n'
-      '   > %prog send 0 usbc_action usb\n'
+      '   > serial_client.py send 0 usbc_action usb\n'
       '\tSend command \'usbc_action usb\' to serial connection index 0.\n'
   )
 
-  parser = optparse.OptionParser(usage=usage)
-  parser.description = description
-  parser.add_option('-d', '--debug', action='store_true', default=False,
-                    help='enable debug messages')
-  parser.add_option('', '--host', default=dolphin_server.DEFAULT_HOST,
-                    type=str, help='hostname of server')
-  parser.add_option('', '--port', default=dolphin_server.DEFAULT_PORT,
-                    type=int, help='port that server is listening on')
+  parser = argparse.ArgumentParser(
+      formatter_class=argparse.RawTextHelpFormatter, description=description,
+      epilog=examples)
+  parser.add_argument('-d', '--debug', action='store_true', default=False,
+                      help='enable debug messages')
+  parser.add_argument('--host', default=dolphin_server.DEFAULT_HOST,
+                      type=str, help='hostname of server')
+  parser.add_argument('--port', default=dolphin_server.DEFAULT_PORT,
+                      type=int, help='port that server is listening on')
+  parser.add_argument('function', type=str, choices=FUNCTIONS)
+  parser.add_argument('serial_index', type=int, default=-1, nargs='?',
+                      help='serial connection index')
+  parser.add_argument('function_args', nargs=argparse.REMAINDER,
+                      help='function arguments')
 
-  parser.set_usage(parser.get_usage() + examples)
   return parser.parse_args()
 
 
-def CallFunction(commands, sclient):
+def CallFunction(args, sclient):
   """Parses function call to serial server.
 
   Args:
-    commands: list of function commands, like:
-        Send command: ['send', serial_index, contents to send...]
-        Receive command: ['receive', serial_index, number of bytes to receive]
-        Get serial amount command: ['get_serial_num']
+    args: dict of function commands, like:
+        Send command: {
+            function: FUNCTIONS.send,
+            serial_index: 0,
+            function_args: ['contents to send']}
+        Receive command: {
+            function: FUNCTIONS.receive,
+            serial_index: 0,
+            function_args: ['number of bytes to receive']}
+        Get serial amount command: {
+            function: FUNCTIONS.get_serial_num
+            serial_index: -1}
     sclient: SerialClient object.
   """
-  if not commands:
-    raise SerialClientError('No command is given')
-
-  function = commands.pop(0)
-  if function == 'get_serial_num':
+  if args.function == FUNCTIONS.get_serial_num:
     sclient.GetSerialAmount()
     return
 
-  if not commands:
+  if args.serial_index == -1:
     raise SerialClientError('No serial index is assigned')
 
-  serial_index = int(commands.pop(0))
-  if function == 'receive':
-    sclient.Receive(serial_index, int(commands[0]))
-  elif function == 'send':
-    sclient.Send(serial_index, ' '.join(commands))
+  if args.function == FUNCTIONS.receive:
+    sclient.Receive(args.serial_index, int(args.function_args[0]))
+  elif args.function == FUNCTIONS.send:
+    sclient.Send(args.serial_index, ' '.join(args.function_args))
   else:
-    raise SerialClientError('Invalid function ' + function)
+    raise SerialClientError('Invalid function ' + args.function)
 
 
 def real_main():
-  (options, commands) = ParseArgs()
-  if options.debug:
+  args = ParseArgs()
+  if args.debug:
     log_level = logging.DEBUG
   else:
     log_level = logging.INFO
   log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
   logging.basicConfig(level=log_level, format=log_format)
-  sclient = SerialClient(host=options.host, tcp_port=options.port,
-                         verbose=options.debug)
-  CallFunction(commands, sclient)
+  sclient = SerialClient(host=args.host, tcp_port=args.port,
+                         verbose=args.debug)
+  CallFunction(args, sclient)
 
 
 def main():
