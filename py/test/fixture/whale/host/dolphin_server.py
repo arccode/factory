@@ -7,8 +7,8 @@
 
 from __future__ import print_function
 
+import argparse
 import logging
-import optparse
 import os
 import SimpleXMLRPCServer
 import subprocess
@@ -40,29 +40,29 @@ def ParseArgs():
   """Parses commandline arguments.
 
   Returns:
-    tuple (options, args) from optparse.parse_args().
+    args from argparse.parse_args().
   """
   description = (
-      '%prog is a server for Dolphin serial control. '
+      'A server for Dolphin serial control. '
       'This server communicates with the client via xmlrpc.'
   )
 
   examples = (
       '\nExamples:\n'
-      '   > %prog -p 8888\n\tLaunch server listening on port 8888\n'
+      '   > dolphin_server.py -p 8888\n\tLaunch server listening on port 8888\n'
   )
 
-  parser = optparse.OptionParser()
-  parser.description = description
-  parser.add_option('-d', '--debug', action='store_true', default=False,
-                    help='enable debug messages')
-  parser.add_option('', '--host', default=DEFAULT_HOST, type=str,
-                    help='hostname to start server on')
-  parser.add_option('', '--port', default=DEFAULT_PORT, type=int,
-                    help='port for server to listen on')
-  parser.add_option('', '--board', default=DEFAULT_BOARD, type=str,
-                    help='board name for whale server')
-  parser.set_usage(parser.get_usage() + examples)
+  parser = argparse.ArgumentParser(
+      formatter_class=argparse.RawTextHelpFormatter, description=description,
+      epilog=examples)
+  parser.add_argument('-d', '--debug', action='store_true', default=False,
+                      help='enable debug messages')
+  parser.add_argument('--host', default=DEFAULT_HOST, type=str,
+                      help='hostname to start server on')
+  parser.add_argument('--port', default=DEFAULT_PORT, type=int,
+                      help='port for server to listen on')
+  parser.add_argument('--board', default=DEFAULT_BOARD, type=str,
+                      help='board name for whale server')
   return parser.parse_args()
 
 
@@ -93,10 +93,10 @@ def GetDolphinParamsByBoard(board):
 
 
 def RealMain():
-  (options, _) = ParseArgs()
+  args = ParseArgs()
   log_level = logging.INFO
   log_format = '%(asctime)s - %(name)s - %(levelname)s'
-  if options.debug:
+  if args.debug:
     log_level = logging.DEBUG
     log_format += ' - %(filename)s:%(lineno)d:%(funcName)s'
   log_format += ' - %(message)s'
@@ -106,16 +106,16 @@ def RealMain():
   logger.info('Start')
 
   server = SimpleXMLRPCServer.SimpleXMLRPCServer(
-      (options.host, options.port),
+      (args.host, args.port),
       allow_none=True)
 
   ModprobeFtdiDriver()
-  dolphin_params = GetDolphinParamsByBoard(options.board)
+  dolphin_params = GetDolphinParamsByBoard(args.board)
   dolphin_server = serial_server.SerialServer(dolphin_params,
-                                              verbose=options.debug)
+                                              verbose=args.debug)
   server.register_introspection_functions()
   server.register_instance(dolphin_server)
-  logger.info('Listening on %s port %s', options.host, options.port)
+  logger.info('Listening on %s port %s', args.host, args.port)
   server.serve_forever()
 
 
