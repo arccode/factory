@@ -344,6 +344,9 @@
     },
     "LED": {
       "pytest_name": "led",
+      "exclusive_resources": [
+        "LED"
+      ],
       "args": {
         "challenge": true
       }

@@ -1,0 +1,23 @@
+{
+  "ACTIVE": {
+    "led_name": "POWER",
+    "color": "AMBER",
+    "on_time": 2.0,
+    "off_time": 1.0,
+    "brightness": 100
+  },
+  "PASSED": {
+    "led_name": "POWER",
+    "color": "GREEN",
+    "on_time": 1.0,
+    "off_time": 0.0,
+    "brightness": 100
+  },
+  "FAILED": {
+    "led_name": "POWER",
+    "color": "RED",
+    "on_time": 1.0,
+    "off_time": 0.0,
+    "brightness": 100
+  }
+}

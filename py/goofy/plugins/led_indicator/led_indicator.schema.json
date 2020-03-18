@@ -1,0 +1,82 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "definitions": {},
+  "properties": {
+    "ACTIVE": {
+      "properties": {
+        "brightness": {
+          "default": 100,
+          "type": "integer"
+        },
+        "color": {
+          "default": "AMBER",
+          "type": "string"
+        },
+        "led_name": {
+          "default": "POWER",
+          "type": "string"
+        },
+        "off_time": {
+          "default": 0.5,
+          "type": "number"
+        },
+        "on_time": {
+          "default": 0.5,
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "FAILED": {
+      "properties": {
+        "brightness": {
+          "default": 100,
+          "type": "integer"
+        },
+        "color": {
+          "default": "RED",
+          "type": "string"
+        },
+        "led_name": {
+          "default": "POWER",
+          "type": "string"
+        },
+        "off_time": {
+          "default": 0,
+          "type": "number"
+        },
+        "on_time": {
+          "default": 1,
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "PASSED": {
+      "properties": {
+        "brightness": {
+          "default": 100,
+          "type": "integer"
+        },
+        "color": {
+          "default": "GREEN",
+          "type": "string"
+        },
+        "led_name": {
+          "default": "POWER",
+          "type": "string"
+        },
+        "off_time": {
+          "default": 0,
+          "type": "number"
+        },
+        "on_time": {
+          "default": 1,
+          "type": "number"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "type": "object"
+}
