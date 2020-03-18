@@ -6,8 +6,8 @@
 
 """Implementation of ChromeOS Factory Shopfloor Service, version 1.0."""
 
+import argparse
 import logging
-import optparse
 import SimpleXMLRPCServer
 import socket
 import SocketServer
@@ -155,22 +155,19 @@ def RunAsServer(address, port, instance, logRequest=False):
 
 def main():
   """Main entry when being invoked by command line."""
-  parser = optparse.OptionParser()
-  parser.add_option('-a', '--address', dest='address', metavar='ADDR',
-                    default=DEFAULT_SERVER_ADDRESS,
-                    help='address to bind (default: %default)')
-  parser.add_option('-p', '--port', dest='port', metavar='PORT', type='int',
-                    default=DEFAULT_SERVER_PORT,
-                    help='port to bind (default: %default)')
-  parser.add_option('-v', '--verbose', dest='verbose', default=False,
-                    action='store_true',
-                    help='provide verbose logs for debugging.')
-  (options, args) = parser.parse_args()
-  if args:
-    parser.error('Invalid args: %s' % ' '.join(args))
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+      '-a', '--address', metavar='ADDR', default=DEFAULT_SERVER_ADDRESS,
+      help='address to bind (default: %s)' % DEFAULT_SERVER_ADDRESS)
+  parser.add_argument(
+      '-p', '--port', metavar='PORT', type=int, default=DEFAULT_SERVER_PORT,
+      help='port to bind (default: %s)' % DEFAULT_SERVER_PORT)
+  parser.add_argument('-v', '--verbose', default=False, action='store_true',
+                      help='provide verbose logs for debugging.')
+  args = parser.parse_args()
 
   log_format = '%(asctime)s %(levelname)s %(message)s'
-  logging.basicConfig(level=logging.DEBUG if options.verbose else logging.INFO,
+  logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                       format=log_format)
 
   # Disable all DNS lookups, since otherwise the logging code may try to
@@ -178,9 +175,9 @@ def main():
   socket.getfqdn = lambda name: name or 'localhost'
 
   try:
-    RunAsServer(address=options.address, port=options.port,
+    RunAsServer(address=args.address, port=args.port,
                 instance=ShopfloorService(),
-                logRequest=options.verbose)
+                logRequest=args.verbose)
   finally:
     logging.warning('Server stopped.')
 
