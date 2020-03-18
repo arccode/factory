@@ -13,10 +13,10 @@ This module is mostly inspired by rel_tester.py written by mylesgw@chromium.org
 
 from __future__ import print_function
 
+import argparse
 import binascii
 import datetime
 import logging
-import optparse
 import re
 
 from cros.factory.utils import process_utils
@@ -240,33 +240,24 @@ class GattTool(object):
 
 def _ParseCommandLine():
   """Parse the command line options."""
-  usage = ('Usage: %prog -a <target_mac>\n\n'
-           'Example:\n\tpython bluetooth_utils.py -a cd:e3:4a:47:1c:e4')
-  parser = optparse.OptionParser(usage=usage)
-  parser.add_option('-a', '--address', action='store', type='string',
-                    help='target address '
-                         '(Can be found by running "hcitool lescan")')
-  options, args = parser.parse_args()
+  usage = ('Example:\n\tpython bluetooth_utils.py -a cd:e3:4a:47:1c:e4')
+  parser = argparse.ArgumentParser(description=usage)
+  parser.add_argument('-a', '--address', action='store', type=str,
+                      required=True,
+                      help='target address '
+                           '(Can be found by running "hcitool lescan")')
+  args = parser.parse_args()
 
-  if args:
-    parser.error('args %s are not allowed' % str(args))
-    parser.print_help()
-    exit(1)
-
-  if options.address is None:
-    parser.print_help()
-    exit(1)
-
-  return options
+  return args
 
 
 def main():
   """The main program to run the script."""
-  options = _ParseCommandLine()
+  args = _ParseCommandLine()
   print('battery level:',
-        GattTool.GetDeviceInfo(options.address, 'battery level'))
+        GattTool.GetDeviceInfo(args.address, 'battery level'))
   print('firmware revision string:',
-        GattTool.GetDeviceInfo(options.address, 'firmware revision string'))
+        GattTool.GetDeviceInfo(args.address, 'firmware revision string'))
 
 
 if __name__ == '__main__':
