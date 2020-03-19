@@ -44,8 +44,8 @@ def _ExtractArgs(func, kargs):
   Returns:
     A dict that can be safely applied to func by func(**kargs)
   """
-  spec = inspect.getargspec(func)
-  if spec.keywords is None:
+  spec = inspect.getfullargspec(func)
+  if spec.varkw is None:
     # if the function accepts ** arguments, we can just pass everything into it
     # so we only need to filter kargs if spec.keywords is None
     kargs = {k: v for (k, v) in iteritems(kargs) if k in spec.args}
