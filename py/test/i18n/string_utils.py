@@ -6,7 +6,7 @@
 
 from __future__ import print_function
 
-import cgi
+import html
 import logging
 import string
 
@@ -103,4 +103,5 @@ def HTMLEscape(text):
   Returns:
     The new translation dict with all values HTML-escaped.
   """
-  return {locale: cgi.escape(value) for locale, value in iteritems(text)}
+  return {locale: html.escape(value, quote=False)
+          for locale, value in iteritems(text)}

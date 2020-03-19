@@ -25,8 +25,8 @@ from __future__ import print_function
 
 import argparse
 import ast
-import cgi
 import collections
+import html
 import html.parser
 import json
 import os
@@ -168,7 +168,7 @@ class HTMLMessageParser(html.parser.HTMLParser, object):
     self.in_keyword_tag = False
 
   def _MakeStartTag(self, tag, attrs, self_closing=False):
-    attrs_str = ''.join(' %s="%s"' % (key, cgi.escape(value, quote=True))
+    attrs_str = ''.join(' %s="%s"' % (key, html.escape(value))
                         for key, value in attrs)
     return '<%s%s%s>' % (tag, attrs_str, '/' if self_closing else '')
 

@@ -6,9 +6,9 @@
 
 from __future__ import print_function
 
-import cgi
 import collections
 import functools
+import html as html_module
 from itertools import count
 import json
 import logging
@@ -44,7 +44,7 @@ def Escape(text, preserve_line_breaks=True):
     text: The text to escape.
     preserve_line_breaks: True to preserve line breaks.
   """
-  html = cgi.escape(text)
+  html = html_module.escape(text, quote=False)
   if preserve_line_breaks:
     html = html.replace('\n', '<br>')
   return html
