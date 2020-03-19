@@ -6,9 +6,9 @@
 
 """Handles Whale's button click event."""
 
+import argparse
 import functools
 import logging
-import optparse
 import os
 import re
 import sys
@@ -452,47 +452,53 @@ def ParseArgs():
   """Parses command line arguments.
 
   Returns:
-    tuple (options, args) from optparse.parse_args().
+    args from argparse.parse_args().
   """
-  parser = optparse.OptionParser(usage='usage: %prog [options]')
-  parser.description = '%prog handles Whale button click event.'
-  parser.add_option('-d', '--debug', action='store_true', default=False,
-                    help='enable debug messages')
-  parser.add_option('', '--rpc_debug', action='store_true', default=False,
-                    help='enable debug messages for XMLRPC call')
-  parser.add_option('', '--nouse_dolphin', action='store_false', default=True,
-                    dest='use_dolphin', help='whether to skip dolphin control '
-                    '(remote server). default: %default')
-  parser.add_option('', '--use_polld', action='store_true', default=False,
-                    help='whether to use polld (for polling GPIO port on '
-                    'remote server) or poll local GPIO port, default: %default')
-  parser.add_option('', '--host', default='127.0.0.1', type=str,
-                    help='hostname of server, default: %default')
-  parser.add_option('', '--dolphin_port', default=9997, type=int,
-                    help='port that dolphin_server listens, default: %default')
-  parser.add_option('', '--polld_port', default=9998, type=int,
-                    help='port that polld listens, default: %default')
-  parser.add_option('', '--servod_port', default=9999, type=int,
-                    help='port that servod listens, default: %default')
-  parser.add_option('', '--polling_wait_secs', default=5, type=int,
-                    help=('# seconds for polling button clicking event, '
-                          'default: %default'))
+  description = (
+      'Handle Whale button click event.'
+  )
+
+  parser = argparse.ArgumentParser(
+      formatter_class=argparse.RawTextHelpFormatter, description=description)
+  parser.add_argument('-d', '--debug', action='store_true', default=False,
+                      help='enable debug messages')
+  parser.add_argument('--rpc_debug', action='store_true', default=False,
+                      help='enable debug messages for XMLRPC call')
+  parser.add_argument('--nouse_dolphin', action='store_false', default=True,
+                      dest='use_dolphin', help='whether to skip dolphin control'
+                      ' (remote server). default: %(default)s')
+  parser.add_argument('--use_polld', action='store_true', default=False,
+                      help='whether to use polld (for polling GPIO port on '
+                      'remote server) or poll local GPIO port, default: '
+                      '%(default)s')
+  parser.add_argument('--host', default='127.0.0.1', type=str,
+                      help='hostname of server, default: %(default)s')
+  parser.add_argument('--dolphin_port', default=9997, type=int,
+                      help='port that dolphin_server listens, default: '
+                      '%(default)d')
+  parser.add_argument('--polld_port', default=9998, type=int,
+                      help='port that polld listens, default: %(default)d')
+  parser.add_argument('--servod_port', default=9999, type=int,
+                      help='port that servod listens, default: %(default)d')
+  parser.add_argument('--polling_wait_secs', default=5, type=int,
+                      help=('# seconds for polling button clicking event, '
+                            'default: %(default)d'))
 
   return parser.parse_args()
 
 
 def main():
-  options = ParseArgs()[0]
+  args = ParseArgs()
   logging.basicConfig(
-      level=logging.DEBUG if options.debug else logging.INFO,
+      level=logging.DEBUG if args.debug else logging.INFO,
       format='%(asctime)s - %(levelname)s - %(message)s')
 
-  polld_port = options.polld_port if options.use_polld else None
-  dolphin_port = options.dolphin_port if options.use_dolphin else None
+  polld_port = args.polld_port if args.use_polld else None
+  dolphin_port = args.dolphin_port if args.use_dolphin else None
 
-  handler = InterruptHandler(options.host, polld_port, options.servod_port,
-                             dolphin_port, options.rpc_debug,
-                             options.polling_wait_secs)
+  handler = InterruptHandler(args.host, polld_port, args.servod_port,
+                             dolphin_port, args.rpc_debug,
+                             args.polling_wait_secs)
   handler.Init()
   handler.Run()
 
