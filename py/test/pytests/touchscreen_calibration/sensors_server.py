@@ -72,7 +72,7 @@ class TSConfig(object):
     self.parser = configparser.ConfigParser()
     try:
       with open(config_filepath) as f:
-        self.parser.readfp(f)
+        self.parser.read_file(f)
     except Exception:
       raise Error('Failed to read config file: %s.' % config_filepath)
 
