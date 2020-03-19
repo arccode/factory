@@ -162,7 +162,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     # A buffer can be truncated faster after it is consumed for a while.
     file_num = self._consume_partition
     self._consume_partition = (self._consume_partition + 1) % _PARTITION
-    with self._file_num_lock[file_num]:
+    with self._file_num_lock[file_num]:  # pylint: disable=not-context-manager
       for pri_level in xrange(_PRIORITY_LEVEL):
         self.info('Truncating database %d_%d...', pri_level, file_num)
         self.buffer_file[pri_level][file_num].Truncate(
