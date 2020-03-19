@@ -52,9 +52,9 @@ from six import iteritems
 # TODO(kerker) Find a way to remove this in future
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.realpath(__file__)))), 'py_pkg'))
-from cros.factory.utils import fmap
-from cros.factory.utils import pygpt
-from cros.factory.tools import netboot_firmware_settings
+from cros.factory.utils import fmap  # pylint: disable=wrong-import-position
+from cros.factory.utils import pygpt  # pylint: disable=wrong-import-position
+from cros.factory.tools import netboot_firmware_settings  # pylint: disable=wrong-import-position
 
 
 # Partition index for Chrome OS stateful partition.
