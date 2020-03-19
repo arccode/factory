@@ -7,8 +7,8 @@
 
 from __future__ import print_function
 
+import argparse
 import logging
-from optparse import OptionParser
 import os
 import Queue
 import signal
@@ -107,7 +107,6 @@ class Goofy(object):
     plugin_controller: The PluginController object.
     invocations: A map from TestInvocation uuid to the corresponding
       TestInvocations objects representing active tests.
-    options: Command-line options.
     args: Command-line args.
     test_list: The test list.
     test_lists: All new-style test lists.
@@ -143,7 +142,6 @@ class Goofy(object):
     self.chrome = None
     self.hooks = None
 
-    self.options = None
     self.args = None
     self.test_list = None
     self.test_lists = None
@@ -625,7 +623,7 @@ class Goofy(object):
     The argument `test` should be either a leaf test (no subtests) or a parallel
     test (all subtests should be run in parallel).
     """
-    if (self.options.goofy_ui and not self._ui_initialized and
+    if (self.args.goofy_ui and not self._ui_initialized and
         not test.IsNoHost()):
       self.InitUI()
 
@@ -1209,16 +1207,14 @@ class Goofy(object):
   @staticmethod
   def GetCommandLineArgsParser():
     """Returns a parser for Goofy command line arguments."""
-    parser = OptionParser()
-    parser.add_option('-v', '--verbose', dest='verbose',
-                      action='store_true',
-                      help='Enable debug logging')
-    parser.add_option('--restart', dest='restart',
-                      action='store_true',
-                      help='Clear all test state')
-    parser.add_option('--no-goofy-ui', dest='goofy_ui',
-                      action='store_false', default=True,
-                      help='start without Goofy UI')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Enable debug logging')
+    parser.add_argument('--restart', action='store_true',
+                        help='Clear all test state')
+    parser.add_argument('--no-goofy-ui', dest='goofy_ui',
+                        action='store_false', default=True,
+                        help='start without Goofy UI')
     return parser
 
   def _PrepareDUTLink(self):
@@ -1246,7 +1242,7 @@ class Goofy(object):
       args: A list of command-line arguments.  Uses sys.argv if args is None.
       env: An Environment instance to use (or None to use DUTEnvironment).
     """
-    (self.options, self.args) = self.GetCommandLineArgsParser().parse_args(args)
+    self.args = self.GetCommandLineArgsParser().parse_args(args)
 
     signal.signal(signal.SIGINT, self._HandleSignal)
     signal.signal(signal.SIGTERM, self._HandleSignal)
@@ -1261,9 +1257,9 @@ class Goofy(object):
     try:
       goofy_default_options = config_utils.LoadConfig(validate_schema=False)
       for key, value in iteritems(goofy_default_options):
-        if getattr(self.options, key, None) is None:
-          logging.info('self.options.%s = %r', key, value)
-          setattr(self.options, key, value)
+        if getattr(self.args, key, None) is None:
+          logging.info('self.args.%s = %r', key, value)
+          setattr(self.args, key, value)
     except Exception:
       logging.exception('failed to load goofy overriding options')
 
@@ -1284,7 +1280,7 @@ class Goofy(object):
       self.env = test_environment.DUTEnvironment()
     self.env.goofy = self
 
-    if self.options.restart:
+    if self.args.restart:
       state.ClearState()
 
     self._InitGoofyServer()
@@ -1493,8 +1489,8 @@ class Goofy(object):
 
 def main():
   # Logging should be solved first.
-  (options, unused_args) = Goofy.GetCommandLineArgsParser().parse_args()
-  log_utils.InitLogging(verbose=options.verbose)
+  args = Goofy.GetCommandLineArgsParser().parse_args()
+  log_utils.InitLogging(verbose=args.verbose)
 
   Goofy.RunMainAndExit()
 
