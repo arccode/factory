@@ -39,8 +39,8 @@ after connection lost.
 """
 
 
+import argparse
 import logging
-import optparse
 import pprint
 import uuid
 
@@ -170,24 +170,22 @@ class ServerFactory(Factory):
 
 
 def main():
-  parser = optparse.OptionParser()
-  parser.add_option("--remote_host", dest="remote_host", type="string",
-                    help="IP address of remote host.")
-  parser.add_option("--remote_port", dest="remote_port", type="int",
-                    help="Port number of remote host.")
-  parser.add_option("--local_port", dest="local_port", type="int",
-                    help="Local port number to listen.")
-  parser.add_option("-v", "--verbose", dest="verbose", action="store_true",
-                    help="Print detail logs.")
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--remote_host", type=str,
+                      help="IP address of remote host.")
+  parser.add_argument("--remote_port", type=int,
+                      help="Port number of remote host.")
+  parser.add_argument("--local_port", type=int,
+                      help="Local port number to listen.")
+  parser.add_argument("-v", "--verbose", action="store_true",
+                      help="Print detail logs.")
 
-  (options, args) = parser.parse_args()
-  if args:
-    parser.error("Invalid args: %s" % " ".join(args))
+  args = parser.parse_args()
 
-  loggerLevel = logging.DEBUG if options.verbose else logging.INFO
+  loggerLevel = logging.DEBUG if args.verbose else logging.INFO
   logging.basicConfig(level=loggerLevel, format="%(message)s")
-  reactor.connectTCP(options.remote_host, options.remote_port,
-                     ClientFactory(options.local_port), timeout=1)
+  reactor.connectTCP(args.remote_host, args.remote_port,
+                     ClientFactory(args.local_port), timeout=1)
   reactor.run()
 
 if __name__ == "__main__":
