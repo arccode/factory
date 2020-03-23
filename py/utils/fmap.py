@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # Copyright 2010 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -26,14 +27,16 @@ Usage:
 
 from __future__ import print_function
 
+import argparse
+import copy
 import logging
+import pprint
 import struct
 import sys
 
-from six.moves import xrange
 
 # constants imported from lib/fmap.h
-FMAP_SIGNATURE = '__FMAP__'
+FMAP_SIGNATURE = b'__FMAP__'
 FMAP_VER_MAJOR = 1
 FMAP_VER_MINOR_MIN = 0
 FMAP_VER_MINOR_MAX = 1
@@ -43,6 +46,8 @@ FMAP_SEARCH_STRIDE = 4
 FMAP_FLAGS = {
     'FMAP_AREA_STATIC': 1 << 0,
     'FMAP_AREA_COMPRESSED': 1 << 1,
+    'FMAP_AREA_RO': 1 << 2,
+    'FMAP_AREA_PRESERVE': 1 << 3,
 }
 
 FMAP_HEADER_NAMES = (
@@ -69,7 +74,7 @@ FMAP_AREA_FORMAT = '<II%dsH' % (FMAP_STRLEN)
 
 
 def _fmap_decode_header(blob, offset):
-  """ (internal) Decodes a FMAP header from blob by offset"""
+  """(internal) Decodes a FMAP header from blob by offset"""
   header = {}
   for (name, value) in zip(FMAP_HEADER_NAMES,
                            struct.unpack_from(FMAP_HEADER_FORMAT,
@@ -85,26 +90,43 @@ def _fmap_decode_header(blob, offset):
     raise struct.error('Incompatible version')
 
   # convert null-terminated names
-  header['name'] = header['name'].strip(chr(0))
+  header['name'] = header['name'].strip(b'\x00')
+
+  # In Python 2, binary==string, so we don't need to convert.
+  if sys.version_info.major >= 3:
+    # Do the decode after verifying it to avoid decode errors due to corruption.
+    for name in FMAP_HEADER_NAMES:
+      if hasattr(header[name], 'decode'):
+        header[name] = header[name].decode('utf-8')
+
   return (header, struct.calcsize(FMAP_HEADER_FORMAT))
 
 
 def _fmap_decode_area(blob, offset):
-  """ (internal) Decodes a FMAP area record from blob by offset """
+  """(internal) Decodes a FMAP area record from blob by offset"""
   area = {}
   for (name, value) in zip(FMAP_AREA_NAMES,
                            struct.unpack_from(FMAP_AREA_FORMAT, blob, offset)):
     area[name] = value
   # convert null-terminated names
-  area['name'] = area['name'].strip(chr(0))
+  area['name'] = area['name'].strip(b'\x00')
   # add a (readonly) readable FLAGS
   area['FLAGS'] = _fmap_decode_area_flags(area['flags'])
+
+  # In Python 2, binary==string, so we don't need to convert.
+  if sys.version_info.major >= 3:
+    for name in FMAP_AREA_NAMES:
+      if hasattr(area[name], 'decode'):
+        area[name] = area[name].decode('utf-8')
+
   return (area, struct.calcsize(FMAP_AREA_FORMAT))
 
 
 def _fmap_decode_area_flags(area_flags):
-  """ (internal) Decodes a FMAP flags property """
-  return tuple([name for name in FMAP_FLAGS if area_flags & FMAP_FLAGS[name]])
+  """(internal) Decodes a FMAP flags property"""
+  # Since FMAP_FLAGS is a dict with arbitrary ordering, sort the list so the
+  # output is stable.  Also sorting is nicer for humans.
+  return tuple(sorted(x for x in FMAP_FLAGS if area_flags & FMAP_FLAGS[x]))
 
 
 def _fmap_check_name(fmap, name):
@@ -142,7 +164,7 @@ def _fmap_search_header(blob, fmap_name=None):
     align *= 2
 
   while align >= FMAP_SEARCH_STRIDE:
-    for offset in xrange(align, lim + 1, align * 2):
+    for offset in range(align, lim + 1, align * 2):
       if not blob.startswith(FMAP_SIGNATURE, offset):
         continue
       try:
@@ -158,12 +180,13 @@ def _fmap_search_header(blob, fmap_name=None):
 
 
 def fmap_decode(blob, offset=None, fmap_name=None):
-  """ Decodes a blob to FMAP dictionary object.
+  """Decodes a blob to FMAP dictionary object.
 
-  Arguments:
+  Args:
     blob: a binary data containing FMAP structure.
     offset: starting offset of FMAP. When omitted, fmap_decode will search in
             the blob.
+    fmap_name: A string to specify target FMAP name.
   """
   fmap = {}
 
@@ -183,21 +206,33 @@ def fmap_decode(blob, offset=None, fmap_name=None):
 
 
 def _fmap_encode_header(obj):
-  """ (internal) Encodes a FMAP header """
+  """(internal) Encodes a FMAP header"""
+  # Convert strings to bytes.
+  obj = copy.deepcopy(obj)
+  for name in FMAP_HEADER_NAMES:
+    if hasattr(obj[name], 'encode'):
+      obj[name] = obj[name].encode('utf-8')
+
   values = [obj[name] for name in FMAP_HEADER_NAMES]
   return struct.pack(FMAP_HEADER_FORMAT, *values)
 
 
 def _fmap_encode_area(obj):
-  """ (internal) Encodes a FMAP area entry """
+  """(internal) Encodes a FMAP area entry"""
+  # Convert strings to bytes.
+  obj = copy.deepcopy(obj)
+  for name in FMAP_AREA_NAMES:
+    if hasattr(obj[name], 'encode'):
+      obj[name] = obj[name].encode('utf-8')
+
   values = [obj[name] for name in FMAP_AREA_NAMES]
   return struct.pack(FMAP_AREA_FORMAT, *values)
 
 
 def fmap_encode(obj):
-  """ Encodes a FMAP dictionary object to blob.
+  """Encodes a FMAP dictionary object to blob.
 
-  Arguments
+  Args
     obj: a FMAP dictionary object.
   """
   # fix up values
@@ -258,18 +293,32 @@ class FirmwareImage(object):
     return fmap_encode(self._fmap)
 
 
-def main():
-  """Decode FMAP from supplied file and print."""
-  if len(sys.argv) < 2:
-    print('Usage: fmap.py <file>')
-    sys.exit(1)
+def get_parser():
+  """Return a command line parser."""
+  parser = argparse.ArgumentParser(
+      description=__doc__,
+      formatter_class=argparse.RawTextHelpFormatter)
+  parser.add_argument('file', help='The file to decode & print.')
+  parser.add_argument('--raw', action='store_true',
+                      help='Dump the object output for scripts.')
+  return parser
 
-  filename = sys.argv[1]
-  print('Decoding FMAP from: %s' % filename)
-  blob = open(filename).read()
+
+def main(argv):
+  """Decode FMAP from supplied file and print."""
+  parser = get_parser()
+  opts = parser.parse_args(argv)
+
+  if not opts.raw:
+    print('Decoding FMAP from: %s' % opts.file)
+  blob = open(opts.file, 'rb').read()
   obj = fmap_decode(blob)
-  print(obj)
+  if opts.raw:
+    print(obj)
+  else:
+    pp = pprint.PrettyPrinter(indent=2)
+    pp.pprint(obj)
 
 
 if __name__ == '__main__':
-  main()
+  sys.exit(main(sys.argv[1:]))
