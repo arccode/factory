@@ -13,8 +13,8 @@ will be started.
 
 import logging
 
-from scpi_mock import MockServerHandler
-from scpi_mock import MockTestServer
+from cros.factory.test.rf.scpi_mock import MockServerHandler
+from cros.factory.test.rf.scpi_mock import MockTestServer
 
 
 def SetupLookupTable():

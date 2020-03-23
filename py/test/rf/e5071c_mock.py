@@ -25,8 +25,8 @@ import threading
 
 from six.moves import xrange
 
-from scpi_mock import MockServerHandler
-from scpi_mock import MockTestServer
+from cros.factory.test.rf.scpi_mock import MockServerHandler
+from cros.factory.test.rf.scpi_mock import MockTestServer
 
 
 class E5601CMock(object):
