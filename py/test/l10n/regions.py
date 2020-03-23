@@ -375,7 +375,9 @@ def InitialSetup(region_database_path=None, include_all=False):
 InitialSetup()
 
 
-def main(args=sys.argv[1:], out=sys.stdout):
+def main(args=None, out=sys.stdout):
+  if args is None:
+    args = sys.argv[1:]
   parser = argparse.ArgumentParser(description=(
       'Display all known regions and their parameters. '))
   parser.add_argument('--format', choices=('human-readable', 'csv'),
