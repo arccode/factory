@@ -58,7 +58,7 @@ the board overlay are syntatically correct and have no style violations.
 Coding style
 ------------
 Make sure to follow the `Chromium Python Style Guide
-<http://www.chromium.org/chromium-os/python-style-guidelines>`_.
+<https://chromium.googlesource.com/chromiumos/docs/+/master/styleguide/python.md>`_.
 
 In the factory repository, we also try to follow the `Google Python
 Style Guide
