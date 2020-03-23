@@ -60,7 +60,7 @@
           }
         },
         {
-          "inherit": "SuspendResume",
+          "inherit": "SuspendStress",
           "args": {
             "cycles": 15,
             "suspend_delay_min_secs": 28,
