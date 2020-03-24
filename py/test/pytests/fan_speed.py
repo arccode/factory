@@ -98,7 +98,7 @@ class FanSpeedTest(test_case.TestCase):
 
     status = _(
         '{fan_spin_direction}: {observed_rpm} -> {target_rpm} RPM.',
-        spin_direction=_('Spin up fan') if spin_up else _('Spin down fan'),
+        fan_spin_direction=_('Spin up fan') if spin_up else _('Spin down fan'),
         observed_rpm=observed_rpm,
         target_rpm=target_rpm)
 
