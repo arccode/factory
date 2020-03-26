@@ -99,7 +99,10 @@ if __name__ == '__main__':
   option_parser.add_argument('--verify-checksum', '-v', action='store_true',
                              help='Verify checksum of the given HWID.')
   options = option_parser.parse_args()
-  stripped_hwid = options.hwid.upper().replace('-', '')
+
+  project_and_brand_code, encoded_string = options.hwid.upper().split(' ', 1)
+  stripped_hwid = project_and_brand_code + ' ' + encoded_string.replace('-', '')
+
   if options.checksum:
     print(Base32.Checksum(stripped_hwid))
   elif options.verify_checksum:
