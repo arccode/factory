@@ -142,8 +142,10 @@ class ServiceManager(object):
 
     Args:
       enable_services: A list of services that should be started.
-      disable_sercices: A list of services that should be stopped.
+      disable_services: A list of services that should be stopped.
     """
+    enable_services = enable_services or []
+    disable_services = disable_services or []
     service_setup_count = self._GetServiceSetupCount()
     self._SetServiceSetupCount(service_setup_count + 1)
 
@@ -165,18 +167,35 @@ class ServiceManager(object):
                       'service_setup_count: %d', service_setup_count)
       return
 
-    ServiceManager._enable_services = enable_services
-    ServiceManager._disable_services = disable_services
+    if set(enable_services) & set(disable_services):
+      logging.warning('Trying to setup intersecting service lists. '
+                      'Do nothing. New enable_services: %s. '
+                      'New disable_services: %s.',
+                      enable_services, disable_services)
+      return
+
+    ServiceManager._enable_services = []
+    ServiceManager._disable_services = []
 
     for status, services in (
         (Status.START, enable_services),
         (Status.STOP, disable_services)):
-      if services:
-        for service in services:
+      for service in services:
+        try:
           original_status = GetServiceStatus(service, dut=self.dut)
           if original_status != status:
             ServiceManager._original_status_map[service] = original_status
             SetServiceStatus(service, status, self.dut)
+        except Exception:
+          # Reach here probably because disable or enable some non-existing
+          # services. Do not add this service to the restore list.
+          logging.exception('Unable to set service status of %s.', service)
+        else:
+          if status == Status.START:
+            ServiceManager._enable_services.append(service)
+          else:
+            ServiceManager._disable_services.append(service)
+
 
   @sync_utils.Synchronized
   def RestoreServices(self):
