@@ -29,7 +29,7 @@ class Base8192Test(unittest.TestCase):
 
   def testDecode(self):
     self.assertEqual('001011001111100000', Base8192.Decode('F67A'))
-    self.assertEqual('001000000000000000', Base8192.Decode('E2AA'))
+    self.assertEqual('001000000000000000', Base8192.Decode('e2aa'))
 
   def testChecksum(self):
     self.assertEqual('7L', Base8192.Checksum('FOO'))
