@@ -211,6 +211,27 @@ class DatabaseBuilder(object):
            for comps in itervalues(self.database.GetEncodedField(field_name))):
       self.database.AddEncodedFieldComponents(field_name, {comp_cls: []})
 
+  def AddRegions(self, new_regions, region_field_name='region_field'):
+    if self.database.GetComponentClasses(region_field_name) != set(['region']):
+      raise ValueError(
+          '"%s" is not a valid region field name.' % region_field_name)
+
+    added_regions = set()
+    for region_comp in self.database.GetEncodedField(
+        region_field_name).values():
+      if region_comp['region']:
+        added_regions.add(region_comp['region'][0])
+
+    for new_region in new_regions:
+      if new_region in added_regions:
+        logging.warning('The region %s is duplicated, skip to add again.',
+                        new_region)
+        continue
+      added_regions.add(new_region)
+      self.database.AddEncodedFieldComponents(
+          region_field_name, {'region': [new_region]})
+    self._UpdatePattern()
+
   def UpdateByProbedResults(self, probed_results, device_info, vpd,
                             image_name=None):
     """Updates the database by a real probed results.

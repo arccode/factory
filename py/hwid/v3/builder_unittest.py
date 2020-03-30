@@ -14,6 +14,7 @@ from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import probe
+from cros.factory.test.l10n import regions
 from cros.factory.utils import file_utils
 
 
@@ -319,6 +320,24 @@ class DatabaseBuilderTest(unittest.TestCase):
     self.assertRaises(ValueError, db.UpdateByProbedResults,
                       {'comp_cls_200': [{'name': 'x', 'values': {'a': 'b'}}]},
                       {}, {})
+
+  def testAddRegions(self):
+    db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
+    self.assertEqual(db.database.GetEncodedFieldsBitLength()['region_field'], 5)
+
+    self.assertRaises(ValueError, db.AddRegions, [], 'cpu_field')
+    self.assertRaises(common.HWIDException, db.AddRegions, ['invalid_region'])
+
+    # Add same region twice, make sure it is not appended again.
+    original_region_field = db.database.GetEncodedField('region_field')
+    db.AddRegions(['us'])
+    db.AddRegions(['us'])
+    self.assertDictEqual(original_region_field,
+                         db.database.GetEncodedField('region_field'))
+
+    # Add 40 regions, check if the bit of region_field extends or not.
+    db.AddRegions(regions.LEGACY_REGIONS_LIST[:40])
+    self.assertEqual(db.database.GetEncodedFieldsBitLength()['region_field'], 6)
 
   def testRender(self):
     db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)

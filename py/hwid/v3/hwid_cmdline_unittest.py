@@ -91,6 +91,8 @@ class BuildDatabaseWrapperTest(unittest.TestCase):
       options.hwid_db_path = path
       options.add_default_comp = ['a', 'b']
       options.add_null_comp = ['c', 'd']
+      options.add_regions = ['us', 'tw', 'jp']
+      options.region_field_name = 'test_region_field'
 
       hwid_cmdline.BuildDatabaseWrapper(options)
 
@@ -104,6 +106,8 @@ class BuildDatabaseWrapperTest(unittest.TestCase):
           [mock.call('a'), mock.call('b')], any_order=True)
       instance.AddNullComponent.assert_has_calls(
           [mock.call('c'), mock.call('d')], any_order=True)
+      instance.AddRegions.assert_called_once_with(
+          options.add_regions, options.region_field_name)
 
       # Update by the probed results.
       instance.UpdateByProbedResults.assert_called_with(
@@ -122,6 +126,8 @@ class UpdateDatabaseWrapperTest(unittest.TestCase):
       options.hwid_db_path = path
       options.add_default_comp = ['a', 'b']
       options.add_null_comp = ['c', 'd']
+      options.add_regions = ['us', 'tw', 'jp']
+      options.region_field_name = 'test_region_field'
       options.project = 'proj'
 
       hwid_cmdline.UpdateDatabaseWrapper(options)
@@ -136,6 +142,8 @@ class UpdateDatabaseWrapperTest(unittest.TestCase):
           [mock.call('a'), mock.call('b')], any_order=True)
       instance.AddNullComponent.assert_has_calls(
           [mock.call('c'), mock.call('d')], any_order=True)
+      instance.AddRegions.assert_called_once_with(
+          options.add_regions, options.region_field_name)
 
       # Update by the probed results.
       instance.UpdateByProbedResults.assert_called_with(

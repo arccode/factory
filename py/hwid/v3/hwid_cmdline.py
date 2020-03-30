@@ -61,6 +61,10 @@ _DATABASE_BUILDER_COMMON_ARGS = [
     CmdArg('--add-null-component', default=None,
            nargs='+', metavar='COMP', dest='add_null_comp',
            help='Component classes that add a null item.\n'),
+    CmdArg('--add-region', default=None, nargs='+', metavar='REGION',
+           dest='add_regions', help='The new regions to be added.'),
+    CmdArg('--region-field-name', default='region_field',
+           help="Name of region field. (defaults to \"%(default)s\")"),
 ]
 
 _DEVICE_DATA_COMMON_ARGS = [
@@ -182,6 +186,8 @@ def RunDatabaseBuilder(database_builder, options):
   if options.add_null_comp:
     for comp_cls in options.add_null_comp:
       database_builder.AddNullComponent(comp_cls)
+  if options.add_regions:
+    database_builder.AddRegions(options.add_regions, options.region_field_name)
 
   device_data = ObtainAllDeviceData(options)
 
