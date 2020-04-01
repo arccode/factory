@@ -551,6 +551,9 @@
     "SuspendResume": {
       "pytest_name": "suspend_resume"
     },
+    "SuspendStress": {
+      "pytest_name": "suspend_stress"
+    },
     "SyncFactoryServer": {
       "pytest_name": "sync_factory_server",
       "run_if": "constants.enable_factory_server",

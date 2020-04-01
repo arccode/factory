@@ -51,6 +51,9 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import time_utils
 
 
+_MIN_SUSPEND_MARGIN_SECS = 5
+
+
 class SuspendStressTest(test_case.TestCase):
   """Run suspend_stress_test to test the suspending is fine."""
 
@@ -64,14 +67,38 @@ class SuspendStressTest(test_case.TestCase):
           'Max time in sec during resume per cycle', default=10),
       Arg('resume_delay_min_secs', int,
           'Min time in sec during resume per cycle', default=5),
+      Arg('resume_early_margin_secs', int,
+          'The allowable margin for the DUT to wake early', default=0),
+      Arg('resume_worst_case_secs', int,
+          'The worst case time a device is expected to take to resume',
+          default=30),
       Arg('ignore_wakeup_source', str, 'Wakeup source to ignore', default=None),
       Arg('backup_rtc', bool, 'Use second rtc if present for backup',
           default=False),
+      Arg('memory_check', bool, 'Use memory_suspend_test to suspend',
+          default=False),
+      Arg('memory_check_size', int,
+          'Amount of memory to allocate (0 means as much as possible)',
+          default=0),
   ]
 
   ui_class = test_ui.ScrollableLogUI
 
   def setUp(self):
+    self.assertGreaterEqual(self.args.memory_check_size, 0)
+    self.assertTrue(self.args.memory_check or not self.args.memory_check_size,
+                    'Do not specify memory_check_size if memory_check is '
+                    'False.')
+    self.assertGreaterEqual(self.args.suspend_delay_min_secs,
+                            _MIN_SUSPEND_MARGIN_SECS, 'The '
+                            'suspend_delay_min_secs is too low, bad '
+                            'test_list?')
+    self.assertGreaterEqual(self.args.suspend_delay_max_secs,
+                            self.args.suspend_delay_min_secs, 'Invalid suspend '
+                            'timings provided in test_list (max < min).')
+    self.assertGreaterEqual(self.args.resume_delay_max_secs,
+                            self.args.resume_delay_min_secs, 'Invalid resume '
+                            'timings provided in test_list (max < min).')
     self.dut = device_utils.CreateDUTInterface()
     self.goofy = state.GetInstance()
 
@@ -94,11 +121,18 @@ class SuspendStressTest(test_case.TestCase):
         '--suspend_min', str(self.args.suspend_delay_min_secs),
         '--wake_max', str(self.args.resume_delay_max_secs),
         '--wake_min', str(self.args.resume_delay_min_secs),
+        '--wake_early_margin', str(self.args.resume_early_margin_secs),
+        '--wake_worst_case', str(self.args.resume_worst_case_secs),
     ]
     if self.args.ignore_wakeup_source:
       command += ['--ignore_wakeup_source', self.args.ignore_wakeup_source]
     if self.args.backup_rtc:
       command += ['--backup_rtc']
+    if self.args.memory_check:
+      command += [
+          '--memory_check',
+          '--memory_check_size', str(self.args.memory_check_size)]
+
     logging.info('command: %r', command)
     testlog.LogParam('command', command)
 
@@ -133,21 +167,27 @@ class SuspendStressTest(test_case.TestCase):
     testlog.LogParam('returncode', returncode)
     # TODO(chuntsen): Attach EC logs and other system logs on failure.
 
+    errors = []
     if returncode != 0:
-      self.FailTask('Suspend stress test failed')
+      errors.append('Suspend stress test failed: returncode:%d' % returncode)
+    match = re.findall(r'Premature wake detected', stdout)
+    if match:
+      errors.append('Premature wake detected:%d' % len(match))
     match = re.search(r'Finished (\d+) iterations', stdout)
     if match and match.group(1) != str(self.args.cycles):
-      self.FailTask('Only finished %r cycles instead of %d cycles' %
+      errors.append('Only finished %r cycles instead of %d cycles' %
                     (match.group(1), self.args.cycles))
     match = re.search(r'Suspend failures: (\d+)', stdout)
     if match and match.group(1) != '0':
-      self.FailTask(match.group(0))
+      errors.append(match.group(0))
     match = re.search(r'Wakealarm errors: (\d+)', stdout)
     if match and match.group(1) != '0':
-      self.FailTask(match.group(0))
+      errors.append(match.group(0))
     match = re.search(r'Firmware log errors: (\d+)', stdout)
     if match and match.group(1) != '0':
-      self.FailTask(match.group(0))
+      errors.append(match.group(0))
     match = re.search(r's0ix errors: (\d+)', stdout)
     if match and match.group(1) != '0':
-      self.FailTask(match.group(0))
+      errors.append(match.group(0))
+    if errors:
+      self.FailTask('%r' % errors)
