@@ -3,7 +3,9 @@
     "generic_common.test_list"
   ],
   "label": "Test List for Tast Tests",
-  "options": {},
+  "options": {
+    "plugin_config_name": "goofy_plugin_chromeos_tast"
+  },
   "definitions": {
     "TouchFile": {
       "pytest_name": "exec_shell",
