@@ -90,6 +90,7 @@ import os
 from cros.factory.device import device_utils
 from cros.factory.gooftool import common as gooftool_common
 from cros.factory.gooftool import gsctool
+from cros.factory.test.rules import phase
 from cros.factory.test import device_data
 from cros.factory.test import session
 from cros.factory.test import test_case
@@ -255,9 +256,11 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
       _Check()
 
   def _UpdateCr50Firmware(self, firmware_file):
-    if not self.args.skip_prepvt_flag_check:
-      if self._IsPrePVTFirmware(firmware_file):
-        raise ValueError('Cr50 firmware board ID flag is PrePVT.')
+    if self._IsPrePVTFirmware(firmware_file):
+      if phase.GetPhase() >= phase.PVT_DOGFOOD:
+        self.FailTask('PrePVT Cr50 firmware should never be used in PVT.')
+      if not self.args.skip_prepvt_flag_check:
+        self.FailTask('Cr50 firmware board ID flag is PrePVT.')
 
     if self._CompareFirmwareFileVersion(firmware_file):
       session.console.info('Cr50 firmware is up-to-date.')
