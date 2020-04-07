@@ -21,6 +21,9 @@ from cros.factory.utils import process_utils
 from cros.factory.external import cv2 as cv
 
 
+# sysfs camera paths.
+GLOB_CAMERA_PATH = '/sys/bus/usb/drivers/uvcvideo/*/video4linux/video*'
+
 # Paths of mock images.
 _MOCK_IMAGE_PATHS = ['..', 'test', 'fixture', 'camera', 'static']
 
@@ -76,6 +79,68 @@ def ReadImageFile(filename):
   if img is None:
     raise CameraError('Can not open image file %s' % filename)
   return img
+
+
+def FilterNonVideoCapture(uvc_vid_dirs, dut):
+  """Filters video interface without V4L2_CAP_VIDEO_CAPTURE capability.
+
+  Since kernel 4.16, video capture interface also creates a "metadata
+  interface", which will also be r'/dev/video[0-9]+'.  To know if an interface
+  is video capture or metadata interface, we need to check the device
+  capability.
+
+  Args:
+    uvc_vid_dirs: list of video interface paths to filter
+    dut: a cros.factory.utils.sys_interface.SystemInterface object
+
+  Returns:
+    If possible, return a filtered list of interface paths, interfaces without
+    "video capture" capability will be removed.
+    Otherwise, return the original list.
+  """
+  if len(uvc_vid_dirs) == 1:
+    return uvc_vid_dirs
+
+  if dut is None:
+    logging.warning('Cannot filter interface list without DUT instance')
+    return uvc_vid_dirs
+
+  if dut.Call(['type', 'v4l2-ctl']) != 0:
+    logging.warning('Cannot filter interface list without v4l2-ctl command')
+    return uvc_vid_dirs
+
+  def _IsCaptureDevice(caps):
+    if not caps & (V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_VIDEO_CAPTURE_MPLANE):
+      return False
+    if caps & (V4L2_CAP_VIDEO_OUTPUT | V4L2_CAP_VIDEO_OUTPUT_MPLANE):
+      return False
+    if caps & (V4L2_CAP_VIDEO_M2M | V4L2_CAP_VIDEO_M2M_MPLANE):
+      return False
+    return True
+
+  result = []
+  for path in uvc_vid_dirs:
+    try:
+      interface_id = re.search(r'video([0-9]+)$', path).group(1)
+      output = dut.CheckOutput(
+          ['v4l2-ctl', '--info', '--device', interface_id])
+      match = re.search(r'Capabilities\s+:\s+(0x[0-9a-fA-F]+)', output, re.M)
+      caps = int(match.group(1), 16)
+
+      if caps & V4L2_CAP_DEVICE_CAPS:
+        # The driver fills the device_caps field.
+        match = re.search(r'Device Caps\s+:\s+(0x[0-9a-fA-F]+)', output, re.M)
+        if _IsCaptureDevice(int(match.group(1), 16)):
+          result.append(path)
+      else:
+        # Check capabilities instead.
+        if _IsCaptureDevice(caps):
+          result.append(path)
+    except Exception:
+      logging.exception('Failed to get info of video interface %s',
+                        interface_id)
+      raise
+  return result
 
 
 # TODO(yllin): Support device interface for Readers.
@@ -167,67 +232,6 @@ class CVCameraReader(CameraReaderBase):
   def IsEnabled(self):
     return True if self._device else False
 
-  def _FilterNonVideoCapture(self, uvc_vid_dirs, dut):
-    """Filters video interface without V4L2_CAP_VIDEO_CAPTURE capability.
-
-    Since kernel 4.16, video capture interface also creates a "metadata
-    interface", which will also be r'/dev/video[0-9]+'.  To know if an interface
-    is video capture or metadata interface, we need to check the device
-    capability.
-
-    Args:
-      uvc_vid_dirs: list of video interface paths to filter
-      dut: a cros.factory.utils.sys_interface.SystemInterface object
-
-    Returns:
-      If possible, return a filtered list of interface paths, interfaces without
-      "video capture" capability will be removed.
-      Otherwise, return the original list.
-    """
-    if len(uvc_vid_dirs) == 1:
-      return uvc_vid_dirs
-
-    if dut is None:
-      logging.warning('Cannot filter interface list without DUT instance')
-      return uvc_vid_dirs
-
-    if dut.Call(['type', 'v4l2-ctl']) != 0:
-      logging.warning('Cannot filter interface list without v4l2-ctl command')
-      return uvc_vid_dirs
-
-    def _IsCaptureDevice(caps):
-      if not caps & (V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_VIDEO_CAPTURE_MPLANE):
-        return False
-      if caps & (V4L2_CAP_VIDEO_OUTPUT | V4L2_CAP_VIDEO_OUTPUT_MPLANE):
-        return False
-      if caps & (V4L2_CAP_VIDEO_M2M | V4L2_CAP_VIDEO_M2M_MPLANE):
-        return False
-      return True
-
-    result = []
-    for path in uvc_vid_dirs:
-      try:
-        interface_id = re.search(r'video([0-9]+)$', path).group(1)
-        output = dut.CheckOutput(
-            ['v4l2-ctl', '--info', '--device', interface_id])
-        match = re.search(r'Capabilities\s+:\s+(0x[0-9a-fA-F]+)', output, re.M)
-        caps = int(match.group(1), 16)
-
-        if caps & V4L2_CAP_DEVICE_CAPS:
-          # The driver fills the device_caps field.
-          match = re.search(r'Device Caps\s+:\s+(0x[0-9a-fA-F]+)', output, re.M)
-          if _IsCaptureDevice(int(match.group(1), 16)):
-            result.append(path)
-        else:
-          # Check capabilities instead.
-          if _IsCaptureDevice(caps):
-            result.append(path)
-      except Exception:
-        logging.exception('Failed to get info of video interface %s',
-                          interface_id)
-        raise
-    return result
-
   def _SearchDevice(self, dut):
     """Looks for a camera device to use.
 
@@ -239,11 +243,10 @@ class CVCameraReader(CameraReaderBase):
     """
     # Search for the camera device in sysfs. On some boards OpenCV fails to
     # determine the device index automatically.
-    uvc_vid_dirs = glob.glob(
-        '/sys/bus/usb/drivers/uvcvideo/*/video4linux/video*')
+    uvc_vid_dirs = glob.glob(GLOB_CAMERA_PATH)
     if not uvc_vid_dirs:
       raise CameraError('No video capture interface found')
-    uvc_vid_dirs = self._FilterNonVideoCapture(uvc_vid_dirs, dut)
+    uvc_vid_dirs = FilterNonVideoCapture(uvc_vid_dirs, dut)
     if len(uvc_vid_dirs) > 1:
       raise CameraError('Multiple video capture interface found')
     return int(re.search(r'video([0-9]+)$', uvc_vid_dirs[0]).group(1))

@@ -14,11 +14,13 @@ from cros.factory.device import camera
 from cros.factory.test.utils.camera_utils import CameraDevice
 from cros.factory.test.utils.camera_utils import CameraError
 from cros.factory.test.utils.camera_utils import CVCameraReader
+from cros.factory.test.utils.camera_utils import FilterNonVideoCapture
+from cros.factory.test.utils.camera_utils import GLOB_CAMERA_PATH
+
 from cros.factory.utils import type_utils
 
 
 CAMERA_CONFIG_PATH = '/etc/camera/camera_characteristics.conf'
-GLOB_CAMERA_PATH = '/sys/class/video4linux/video*'
 ALLOWED_FACING = type_utils.Enum(['front', 'rear', None])
 
 
@@ -51,6 +53,9 @@ class ChromeOSCamera(camera.Camera):
       return self._index_mapping[facing]
 
     camera_paths = self._device.Glob(GLOB_CAMERA_PATH)
+    if not camera_paths:
+      raise CameraError('No video capture interface found')
+    camera_paths = FilterNonVideoCapture(camera_paths, self._device)
     index_to_vid_pid = {}
     for path in camera_paths:
       index = int(self._device.ReadFile(os.path.join(path, 'index')))
