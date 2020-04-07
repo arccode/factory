@@ -461,10 +461,18 @@ def Cr50SetSnBitsAndBoardId(options):
   Cr50WriteFlashInfo(options)
 
 
-@Command('cr50_write_flash_info')
+@Command('cr50_write_flash_info',
+         CmdArg('--expect_zero_touch', action='store_true',
+                help='zero touch feature is expected, the command will fail '
+                     'immediately if required dependencies are not found.'))
 def Cr50WriteFlashInfo(options):
   """Set the serial number bits, board id and flags on the Cr50 chip."""
-  GetGooftool(options).Cr50WriteFlashInfo()
+  # The '--expect_zero_touch' argument is for testing purpose, therefore, the
+  # argument can only be specified by directly using `cr50_write_flash_info`
+  # subcommand.  And the `expect_zero_touch` attribute won't exist when this
+  # function is invoked by other subcommands, e.g. `finalize`.
+  expect_zero_touch = getattr(options, 'expect_zero_touch', False)
+  GetGooftool(options).Cr50WriteFlashInfo(expect_zero_touch)
   event_log.Log('cr50_write_flash_info')
 
 
