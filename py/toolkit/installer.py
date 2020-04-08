@@ -281,6 +281,15 @@ class FactoryToolkitInstaller(object):
     self._SetTagFile('factory', self._tag_file, not self._no_enable)
     self._EnableApps()
 
+  def InstallPy3Modules(self):
+    if sys_utils.InChroot():
+      return
+
+    misc_dir = os.path.join(self._usr_local_dest, 'factory/misc/')
+    ws4py_dir = os.path.join(misc_dir, 'ws4py-0.5.1')
+    Spawn(['python3', 'setup.py', 'install'], sudo=self._sudo, log=True,
+          check_call=True, cwd=ws4py_dir)
+
   def Install(self):
     print('*** Installing factory toolkit...')
 
@@ -311,6 +320,9 @@ class FactoryToolkitInstaller(object):
         os.path.join(self._usr_local_dest, 'bin'),
         install_symlinks.MODE_FULL,
         sudo=self._sudo)
+
+    print('*** Installing python3 modules...')
+    self.InstallPy3Modules()
 
     self._SetTagFile('factory', self._tag_file, not self._no_enable)
 
