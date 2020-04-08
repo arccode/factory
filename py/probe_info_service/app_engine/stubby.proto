@@ -73,6 +73,23 @@ message ProbeInfoTestResult {
   repeated ProbeParameterSuggestion probe_parameter_suggestions = 3;
 }
 
+message ComponentIdentity {
+  int64 qual_id = 1;  // Required.
+  string device_id = 2;
+  string readable_label = 3;
+}
+
+message ComponentProbeInfo {
+  ComponentIdentity component_identity = 1;  // Required.
+  ProbeInfo probe_info = 2;                  // Required.
+}
+
+message ProbeMetadata {
+  bool is_overridden = 1;                   // Required.
+  bool is_tested = 2;                       // Required.
+  bool is_proved_ready_for_overridden = 3;  // Required.
+}
+
 message GetProbeSchemaRequest {}
 
 message GetProbeSchemaResponse {
@@ -88,9 +105,55 @@ message ValidateProbeInfoResponse {
   ProbeInfoParsedResult probe_info_parsed_result = 1;  // Required.
 }
 
+message GetQualProbeTestBundleRequest {
+  ComponentProbeInfo qual_probe_info = 1;  // Required.
+}
+
+message GetQualProbeTestBundleResponse {
+  enum ResultType {
+    SUCCEED = 0;
+    INVALID_PROBE_INFO = 1;
+    UNKNOWN_ERROR = 2;
+  }
+
+  ResultType result_type = 1;  // Required.
+  string error_msg = 2;        // Set if |result_type| is |UNKNOWN_ERROR|.
+  ProbeInfoParsedResult probe_info_parsed_result = 3;
+
+  bytes test_bundle_payload = 4;
+}
+
+message UploadQualProbeTestResultRequest {
+  ComponentProbeInfo qual_probe_info = 1;  // Required.
+  bytes test_result_payload = 2;           // Required.
+}
+
+message UploadQualProbeTestResultResponse {
+  bool is_uploaded_payload_valid = 1;  // Required.
+  string uploaded_payload_error_msg = 2;
+  ProbeInfoTestResult probe_info_test_result = 3;
+}
+
+message GetProbeMetadataRequest {
+  repeated ComponentProbeInfo component_probe_infos = 1;  // Required.
+}
+
+message GetProbeMetadataResponse {
+  repeated ProbeMetadata probe_metadatas = 1;  // Required.
+}
+
 service ProbeInfoService {
   rpc GetProbeSchema(GetProbeSchemaRequest) returns (GetProbeSchemaResponse) {}
 
   rpc ValidateProbeInfo(ValidateProbeInfoRequest)
       returns (ValidateProbeInfoResponse) {}
+
+  rpc GetQualProbeTestBundle(GetQualProbeTestBundleRequest)
+      returns (GetQualProbeTestBundleResponse) {}
+
+  rpc UploadQualProbeTestResult(UploadQualProbeTestResultRequest)
+      returns (UploadQualProbeTestResultResponse) {}
+
+  rpc GetProbeMetadata(GetProbeMetadataRequest)
+      returns (GetProbeMetadataResponse) {}
 }

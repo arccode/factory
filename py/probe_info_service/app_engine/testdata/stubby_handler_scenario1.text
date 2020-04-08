@@ -1,0 +1,96 @@
+is_qual: True
+probe_info: {
+  probe_function_name: "storage.nvme_storage"
+  probe_parameters: {
+    name: "pci_vendor"
+    string_value: "0123"
+  }
+  probe_parameters: {
+    name: "pci_device"
+    string_value: "456x"
+  }
+  probe_parameters: {
+    name: "pci_class"
+    string_value: "89ABCD"
+  }
+  probe_parameters: {
+    name: "sectors"
+    int_value: 10000
+  }
+}
+### SEPARATOR ###
+qual_probe_info: {
+  component_identity: {
+    qual_id: 123
+    readable_label: "what_a_cool_qual"
+  }
+  probe_info: {
+    probe_function_name: "storage.nvme_storage"
+    probe_parameters: {
+      name: "pci_vendor"
+      string_value: "0123"
+    }
+    probe_parameters: {
+      name: "pci_device"
+      string_value: "4567"
+    }
+    probe_parameters: {
+      name: "pci_class"
+      string_value: "89ABCD"
+    }
+    probe_parameters: {
+      name: "sectors"
+      int_value: 10000
+    }
+  }
+}
+### SEPARATOR ###
+qual_probe_info: {
+  component_identity: {
+    qual_id: 123
+    readable_label: "what_a_cool_qual"
+  }
+  probe_info: {
+    probe_function_name: "storage.nvme_storage"
+    probe_parameters: {
+      name: "pci_vendor"
+      string_value: "9999"
+    }
+    probe_parameters: {
+      name: "pci_device"
+      string_value: "4567"
+    }
+    probe_parameters: {
+      name: "pci_class"
+      string_value: "89ABCD"
+    }
+    probe_parameters: {
+      name: "sectors"
+      int_value: 10000
+    }
+  }
+}
+### SEPARATOR ###
+{
+  "storage": {
+    "AVL_123--what_a_cool_qual": [
+      {
+        "information": {
+          "PROBE_INFO_FINGERPRINT": "3003162d660695b98acbe28fcfa2707f76b0f0d3"
+        }
+      }
+    ]
+  }
+}
+### SEPARATOR ###
+{
+  "storage": {
+    "AVL_123--what_a_cool_qual": [
+      {
+        "information": {
+          "PROBE_INFO_FINGERPRINT": "e8192b97f9cec22d2247326334c6872498d463d7"
+        }
+      }
+    ]
+  }
+}
