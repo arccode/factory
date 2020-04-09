@@ -118,7 +118,8 @@ PRESUBMIT_FILES := \
     $(shell realpath $$PRESUBMIT_FILES | sed "s'^$$(realpath $$(pwd))/''g"))
 
 PRESUBMIT_TARGETS := \
-  presubmit-deps presubmit-lint presubmit-shebang presubmit-test
+  presubmit-deps presubmit-format presubmit-lint presubmit-shebang \
+  presubmit-test
 
 # Virtual targets. The '.phony' is a special hack to allow making targets with
 # wildchar (for instance, overlay-%) to be treated as .PHONY.
@@ -327,6 +328,9 @@ bundle: par toolkit
 lint:
 	$(MK_DIR)/pylint.sh $(LINT_ALLOWLIST)
 
+format:
+	$(MK_DIR)/presubmit_format.py --fix --commit=$(COMMIT) $(FILES)
+
 # Target to lint only files that have changed.  (We allow either
 # "smartlint" or "smart_lint".)
 smartlint smart_lint:
@@ -344,6 +348,10 @@ presubmit-chroot:
 presubmit-lint:
 	@$(MAKE) lint LINT_FILES="$(filter %.py,$(PRESUBMIT_FILES))" 2>/dev/null
 
+presubmit-format:
+	@$(MK_DIR)/presubmit_format.py --commit=$(PRESUBMIT_COMMIT) \
+		$(filter %.py,$(PRESUBMIT_FILES))
+
 presubmit-shebang:
 	@$(MK_DIR)/presubmit-shebang.py -a $(MK_DIR)/presubmit-shebang.json \
 	  $(PRESUBMIT_FILES)
@@ -360,7 +368,10 @@ presubmit-test:
 presubmit:
 ifeq ($(wildcard /etc/debian_chroot),)
 	$(info Running presubmit checks inside chroot...)
-	@cros_sdk PRESUBMIT_FILES="$(PRESUBMIT_FILES)" -- \
+	@cros_sdk \
+		PRESUBMIT_PROJECT="$(PRESUBMIT_PROJECT)" \
+		PRESUBMIT_COMMIT="$(PRESUBMIT_COMMIT)" \
+		PRESUBMIT_FILES="$(PRESUBMIT_FILES)" -- \
 	  $(MAKE) -C ../platform/factory -s $@-chroot
 else
 	@$(MAKE) -s $@-chroot

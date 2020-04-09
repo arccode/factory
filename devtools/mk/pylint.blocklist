@@ -1,6 +1,7 @@
 # Virtual environments
 py/instalog/virtual_env/%
 devtools/mk/pylint.venv/%
+devtools/mk/yapf.venv/%
 py/instalog/plugins/input_drm_screencap/drm.py
 py/test/utils/media_utils_unittest.py
 py/proto/%_pb2.py
