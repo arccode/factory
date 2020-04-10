@@ -2,11 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 import datetime
 import logging
 import os
-import os.path
 import random
 import string
 import subprocess
@@ -28,6 +26,22 @@ class CreateBundleException(Exception):
   pass
 
 
+class TZUTC(datetime.tzinfo):
+  """A tzinfo about UTC."""
+
+  def utcoffset(self, dt):
+    del dt  # unused
+    return datetime.timedelta(0)
+
+  def dst(self, dt):
+    del dt  # unused
+    return datetime.timedelta(0)
+
+  def tzname(self, dt):
+    del dt  # unused
+    return 'UTC'
+
+
 def RandomString(length):
   """Returns a randomly generated string of ascii letters.
   Args:
@@ -37,19 +51,6 @@ def RandomString(length):
     a random ascii letters string
   """
   return ''.join([random.choice(string.ascii_letters) for _ in xrange(length)])
-
-
-def SetMetadataByGsutil(gs_path, metadata):
-  """Set metadata for specified gs_path by using `gsutil` command.
-
-    Args:
-      gs_path: the path of google storage object needs to be set metadata
-      metadata: a dictionary of metadata should be set
-  """
-  parameters = []
-  for key, value in metadata.items():
-    parameters += ['-h'] + ['x-goog-meta-{}:{}'.format(key, value)]
-  subprocess.call(['gsutil', 'setmeta'] + parameters + [gs_path])
 
 
 def CreateBundle(req):
@@ -109,16 +110,20 @@ def CreateBundle(req):
     blob.acl.entity('user', req.email).grant_read()
     blob.acl.save()
 
-    gs_path = u'gs://{}/{}'.format(config.BUNDLE_BUCKET, blob_path)
-    # Since there is no way to modify metadata in blob class, use gsutil command
-    # to set metadata
+    # TODO(jamesqaq): use datetime.timestamp instead if the worker is migrated
+    #                 to python3.
+    epoch_zero = datetime.datetime(1970, 1, 1, tzinfo=TZUTC())
+    created_timestamp_s = (blob.time_created - epoch_zero).total_seconds()
     metadata = {
         'Bundle-Creator': req.email,
         'Tookit-Version': req.toolkit_version,
         'Test-Image-Version': req.test_image_version,
         'Release-Image-Version': req.release_image_version,
+        'Time-Created': created_timestamp_s,
     }
     if req.HasField('firmware_source'):
       metadata['Firmware-Source'] = req.firmware_source
-    SetMetadataByGsutil(gs_path, metadata)
-    return gs_path
+    blob.metadata = metadata
+    blob.update()
+
+    return u'gs://{}/{}'.format(config.BUNDLE_BUCKET, blob_path)
