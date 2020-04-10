@@ -96,7 +96,7 @@ prepare_protobuf() {
     -I="${RT_PROBE_DIR}" \
     -I="${HW_VERIFIER_DIR}" \
     --python_out="${protobuf_out}" \
-    "${HW_VERIFIER_DIR}/hardware_verifier.proto" \
+    "${HW_VERIFIER_DIR}/proto/hardware_verifier.proto" \
     "${RT_PROBE_DIR}/runtime_probe.proto"
 }
 
