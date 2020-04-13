@@ -19,7 +19,7 @@ This is an automatic test that doesn't need any user interaction.
 Dependency
 ----------
 - ``ectool`` utility.
-- ``cros_config`` utility.
+- ``cros_config_mock`` utility.
 
 Examples
 --------
@@ -75,10 +75,10 @@ class UpdateSKUIDTest(test_case.TestCase):
 
     def GetCrosConfigData(sku_id, path, name, return_type):
       output = self._dut.CallOutput(
-          ['cros_config', '--test_sku_id=%d' % sku_id, path, name])
+          ['cros_config_mock', '--sku-id', str(sku_id), path, name])
       if output:
         return return_type(output.strip())
-      logging.warning('Can\'t get %s/%s from cros_config', path, name)
+      logging.warning("Can't get %s/%s from cros_config_mock", path, name)
       return None
 
     def SetCbiData(data_type, data, data_size):
