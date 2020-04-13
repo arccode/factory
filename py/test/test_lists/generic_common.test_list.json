@@ -249,6 +249,23 @@
         "max_point_count": 5
       }
     },
+    "EnableECWriteProtect": {
+      "inherit": "TestGroup",
+      "label": "Enable EC Write Protect",
+      "__comment": "This test group explicitly enables EC write protection after rebooting. Run this test group before finalization if the project uses STM32 chips for EC, otherwise finalization may fail. STM32 chips are likely to be used in ARM projects, and they require an EC reboot to let write protect settings take effect.",
+      "subtests": [
+        {
+          "pytest_name": "exec_shell",
+          "args": {
+            "commands": [
+              "ectool flashprotect enable",
+              "ectool reboot_ec RO at-shutdown"
+            ]
+          }
+        },
+        "RebootStep"
+      ]
+    },
     "ExecShell": {
       "pytest_name": "exec_shell"
     },

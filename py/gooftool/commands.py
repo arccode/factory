@@ -408,13 +408,16 @@ def EnableFwWp(options):
   WriteProtect(crosfw.LoadMainFirmware())
   event_log.Log('wp', fw='main')
 
-  # Some EC (mostly PD) does not support "RO NOW". Instead they will only set
+  # Some EC (mostly PD) does not support "RO_NOW". Instead they will only set
   # "RO_AT_BOOT" when you request to enable RO (These platforms consider
   # --wp-range with right range identical to --wp-enable), and requires a
   # 'ectool reboot_ec RO at-shutdown; reboot' to let the RO take effect.
   # After reboot, "flashrom -p host --wp-status" will return protected range.
   # If you don't reboot, returned range will be (0, 0), and running command
   # "ectool flashprotect" will not have RO_NOW.
+  # generic_common.test_list.json provides "EnableECWriteProtect" test group
+  # which can be run individually before finalization. Try that out if you're
+  # having trouble enabling RO_NOW flag.
 
   for fw in [crosfw.LoadEcFirmware(), crosfw.LoadPDFirmware()]:
     if fw.GetChipId() is None:
