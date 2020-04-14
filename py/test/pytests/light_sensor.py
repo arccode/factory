@@ -41,7 +41,7 @@ Minimum runnable example::
 This will read ALS value from ``/sys/bus/iio/devices/*/illuminance0_raw``.
 There will be 3 subtests,
 
-1. ``'Light sensor dark'`` (belaw 4)
+1. ``'Light sensor dark'`` (below 4)
 2. ``'Light sensor exact'`` (between 10 and 15)
 3. ``'Light sensor light'`` (above 200)
 
@@ -86,12 +86,12 @@ Note that you have to specify ``subtest_list``, ``subtests_instruction``,
 
 from __future__ import print_function
 
-import glob
 import logging
 import math
 import os
 import time
 
+from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
@@ -126,7 +126,8 @@ class iio_generic(object):
     self._mindelay : delay between each read action
   """
 
-  def __init__(self, device_path, device_input, range_value, init_cmd):
+  def __init__(self, device_path, device_input, range_value, init_cmd,
+               device_name, device):
     """Initial light sensor object.
 
     Args:
@@ -137,19 +138,56 @@ class iio_generic(object):
                    None means no value is set.
       init_cmd: initial command to setup light sensor device
     """
+    self._dut = device
     if device_path is None:
       device_path = _DEFAULT_DEVICE_PATH
 
     if '*' in device_path:
-      # use glob to find correct path
-      matches = glob.glob(os.path.join(device_path, device_input))
-      assert matches, 'Cannot find any light sensor'
-      assert len(matches) == 1, 'More than one light sensor found'
-      device_path = os.path.dirname(matches[0])
+      # use glob to find devices which contain device_input.
+      matches = {}
+      for input_path in self._dut.Glob(os.path.join(device_path, device_input)):
+        path = os.path.dirname(input_path)
+        try:
+          name = self._dut.ReadFile(os.path.join(path, 'name')).rstrip()
+        except Exception:
+          name = None
+        matches.update({path: name})
+
+      if device_name is not None:
+        filtered_matches = {
+            path: name for path, name in matches.items() if name == device_name}
+      else:
+        filtered_matches = matches
+      if not filtered_matches:
+        raise ValueError(
+            'Cannot find any light sensor from %r. '
+            'matches: %r, filtered_matches: %r'
+            % (device_path, matches, filtered_matches))
+      if len(filtered_matches) > 1:
+        raise ValueError(
+            'More than one light sensor found from %r. '
+            'matches: %r, filtered_matches: %r'
+            % (device_path, matches, filtered_matches))
+      device_path, device_name = list(filtered_matches.items())[0]
+    else:
+      try:
+        name = self._dut.ReadFile(os.path.join(device_path, 'name')).rstrip()
+      except Exception:
+        name = None
+      if device_name is not None:
+        if device_name != name:
+          raise ValueError(
+              'The name of %s is %s but configure as %s'
+              % (device_path, name, device_name))
+      else:
+        device_name = name
+
+    logging.info('Select light sensor %s(%s)', device_path, device_name)
 
     # initial values
     self._rd = os.path.join(device_path, device_input)
     self._range_setting = os.path.join(device_path, 'range')
+    self._calibrate = os.path.join(device_path, 'calibrate')
     self._init_cmd = init_cmd
     self._min = 0
     self._max = math.pow(2, 16)
@@ -162,8 +200,7 @@ class iio_generic(object):
       if range_value not in (1000, 4000, 16000, 64000):
         raise ValueError('Range value is invalid: %d' % range_value)
 
-      with open(self._range_setting, 'w') as f:
-        f.write('%d\n' % range_value)
+      self._dut.WriteFile(self._range_setting, '%d\n' % range_value)
 
     ambient = self.Read('mean', delay=0, samples=10)
     logging.info('ambient light sensor = %d', ambient)
@@ -177,6 +214,21 @@ class iio_generic(object):
     val = self.Read('first', samples=1)
     if val <= self._min or val >= self._max:
       raise ValueError('Failed initial read')
+
+  def _WriteCalibrate(self, value):
+    """Write calibrate value."""
+    try:
+      self._dut.WriteFile(self._calibrate, value)
+    except Exception:
+      logging.info('Unable to write to %s', self._calibrate)
+
+  def Start(self):
+    """Starts to catch in_illuminance_raw."""
+    self._WriteCalibrate('1')
+
+  def Stop(self):
+    """Stops catching in_illuminance_raw."""
+    self._WriteCalibrate('0')
 
   def Read(self, param, delay=None, samples=1):
     """Reads the light sensor and return value based on param
@@ -199,17 +251,14 @@ class iio_generic(object):
       delay = self._mindelay
     while True:
       try:
-        with open(self._rd, 'r') as f:
-          value = int(f.readline().rstrip())
-      except IOError:
-        continue
-      else:
-        f.close()
+        value = int(self._dut.ReadFile(self._rd).split('\n', 1)[0])
         buffers.append(value)
         count += 1
         time.sleep(delay)
         if count == samples:
           break
+      except IOError:
+        continue
     if param == 'mean':
       return sum(buffers) // len(buffers)
     elif param == 'max':
@@ -228,6 +277,7 @@ class LightSensorTest(test_case.TestCase):
   """Tests light sensor."""
   ARGS = [
       Arg('device_path', str, 'device path', default=None),
+      Arg('device_name', str, 'device name', default=None),
       Arg('device_input', str, 'device input file',
           default=_DEFAULT_DEVICE_INPUT),
       Arg('timeout_per_subtest', int, 'timeout for each subtest', default=10),
@@ -243,8 +293,10 @@ class LightSensorTest(test_case.TestCase):
   ]
 
   def setUp(self):
+    self._device = device_utils.CreateDUTInterface()
     self._als = iio_generic(self.args.device_path, self.args.device_input,
-                            self.args.range_value, self.args.init_command)
+                            self.args.range_value, self.args.init_command,
+                            self.args.device_name, self._device)
 
     subtest_args = [
         self.args.subtest_list, self.args.subtest_cfg,
@@ -298,7 +350,13 @@ class LightSensorTest(test_case.TestCase):
     else:
       raise ValueError('Unknown type in subtest configuration')
 
+  def tearDown(self):
+    self._als.Stop()
+
   def runTest(self):
+    # If we put self._als.Start() in setUp and something throws an exception in
+    # setUp then self._als.Stop() would not be executed.
+    self._als.Start()
     self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
     self.ui.HideElement('space-prompt')
     self.ui.StartFailingCountdownTimer(
