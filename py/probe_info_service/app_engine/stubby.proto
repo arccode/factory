@@ -59,6 +59,20 @@ message ProbeInfoParsedResult {
   repeated ProbeParameterSuggestion probe_parameter_errors = 3;
 }
 
+message ProbeInfoTestResult {
+  enum ResultType {
+    UNKNOWN = 0;  // Reserved for forward compatibility.
+
+    PASSED = 1;
+    PROBE_PRAMETER_SUGGESTION = 2;
+    INTRIVIAL_ERROR = 3;
+    LEGACY = 4;
+  }
+  ResultType result_type = 1;  // Required.
+  string intrivial_error_msg = 2;
+  repeated ProbeParameterSuggestion probe_parameter_suggestions = 3;
+}
+
 message GetProbeSchemaRequest {}
 
 message GetProbeSchemaResponse {

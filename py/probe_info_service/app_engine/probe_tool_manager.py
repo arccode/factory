@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import hashlib
 import re
 
 # pylint: disable=no-name-in-module
@@ -9,6 +10,7 @@ from cros.factory.probe_info_service.app_engine import stubby_pb2
 # pylint: enable=no-name-in-module
 from cros.factory.probe.runtime_probe import probe_config_definition
 from cros.factory.probe.runtime_probe import probe_config_types
+from cros.factory.utils import json_utils
 
 
 ProbeSchema = stubby_pb2.ProbeSchema
@@ -17,6 +19,7 @@ ProbeParameterValueType = stubby_pb2.ProbeParameterValueType
 ProbeInfo = stubby_pb2.ProbeInfo
 ProbeInfoParsedResult = stubby_pb2.ProbeInfoParsedResult
 ProbeParameterSuggestion = stubby_pb2.ProbeParameterSuggestion
+ProbeInfoTestResult = stubby_pb2.ProbeInfoTestResult
 
 
 class _IncompatibleError(Exception):
@@ -227,7 +230,7 @@ def _GetAllProbeFuncs():
               'manufacturer': _ParamValueConverter('string',
                                                    _StringToRegexpOrString),
               'model_name': _ParamValueConverter('string',
-                                                 _StringToRegexpOrString)
+                                                 _StringToRegexpOrString),
           }),
       ProbeFunc(
           'storage', 'mmc_storage',
@@ -239,8 +242,39 @@ def _GetAllProbeFuncs():
   ]
 
 
+class PayloadInvalidError(Exception):
+  """Exception class raised when the given payload is invalid."""
+
+
+class ProbeDataSource(object):
+  """A record class for a source of probe statement and its metadata.
+
+  Instances of this class are the source for generating the final probe
+  bundle.  There are two ways to generate an instance:
+    1. Convert from the probe info from other services.
+    2. Load from the backend storage system.
+
+  Properties:
+    component_name: A string of the name of the component.
+    probe_info: `None` or an instance of `ProbeInfo`.
+    probe_info_fp: `None` or a string of the source probe info.
+  """
+  def __init__(self, component_name, probe_info, probe_info_fp):
+    self.component_name = component_name
+    self.probe_info = probe_info
+    self.probe_info_fp = probe_info_fp
+
+
+class QualProbeTestBundlePayloadGenerationResult(object):
+  def __init__(self, probe_info_parsed_result, payload):
+    self.probe_info_parsed_result = probe_info_parsed_result
+    self.payload = payload
+
+
 class ProbeToolManager(object):
   """Provides functionalities related to the probe tool."""
+
+  _PROBE_INFO_FINGERPRINT_KEY = 'PROBE_INFO_FINGERPRINT'
 
   def __init__(self):
     self._probe_funcs = {pf.name: pf for pf in _GetAllProbeFuncs()}
@@ -275,6 +309,83 @@ class ProbeToolManager(object):
           probe_info.probe_parameters, allow_missing_params)
     return probe_info_parsed_result
 
+  def CreateProbeDataSourceFromProbeInfo(self, component_name, probe_info):
+    return ProbeDataSource(component_name, probe_info,
+                           self._CalcProbeInfoFingerprint(probe_info))
+
+  def GenerateQualProbeTestBundlePayload(self, probe_data_source):
+    """Generates the payload for testing the probe info of a qualification.
+
+    Args:
+      probe_data_source: The source of the test bundle.
+
+    Returns:
+      An instance of `QualProbeTestBundlePayloadGenerationResult`.
+    """
+    if probe_data_source.probe_info is None:
+      raise NotImplementedError
+
+    ret = QualProbeTestBundlePayloadGenerationResult(None, None)
+    ret.probe_info_parsed_result, probe_func = self._LookupProbeFunc(
+        probe_data_source.probe_info.probe_function_name)
+    if probe_func:
+      ret.probe_info_parsed_result, ps = probe_func.ParseProbeParams(
+          probe_data_source.probe_info.probe_parameters, False,
+          comp_name_for_probe_statement=probe_data_source.component_name)
+    if ps is not None:
+      # Inject probe info fingerprint into the `information` field so that
+      # we can extract it back in the probe result payload.
+      for category_ps in ps.values():
+        for comp_name, comp_ps in category_ps.items():
+          if comp_name == probe_data_source.component_name:
+            information_field = comp_ps.setdefault('information', {})
+            information_field[self._PROBE_INFO_FINGERPRINT_KEY] = (
+                probe_data_source.probe_info_fp)
+      builder = probe_config_types.ProbeConfigPayload()
+      builder.AddComponentProbeStatement(ps)
+      ret.payload = builder.DumpToString().encode('utf-8')
+
+    return ret
+
+  def AnalyzeQualProbeTestResultPayload(
+      self, probe_data_source, probe_result_payload):
+    """Analyzes the given probe result payload for a qualification.
+
+    Args:
+      probe_data_source: The original source for the probe statement.
+      probe_result_payload: A byte string of the payload to be analyzed.
+
+    Returns:
+      An instance of `ProbeInfoTestResult`.
+
+    Raises:
+      `PayloadInvalidError` if the given input is invalid.
+    """
+    if probe_data_source.probe_info is None:
+      raise NotImplementedError
+
+    comp_probe_results = []
+    try:
+      probed_result = json_utils.LoadStr(probe_result_payload.decode('utf-8'))
+      for category_pr in probed_result.values():
+        comp_probe_results.extend(
+            category_pr.get(probe_data_source.component_name, []))
+    except Exception as e:
+      raise PayloadInvalidError('Unable to load and parse the content: %s' % e)
+    if not comp_probe_results:
+      return ProbeInfoTestResult(
+          result_type=ProbeInfoTestResult.INTRIVIAL_ERROR,
+          intrivial_error_msg='No component is found.')
+    comp_probe_result = comp_probe_results[0]
+    try:
+      fp = comp_probe_result['information'][self._PROBE_INFO_FINGERPRINT_KEY]
+    except Exception as e:
+      raise NotImplementedError
+
+    if fp != probe_data_source.probe_info_fp:
+      return ProbeInfoTestResult(result_type=ProbeInfoTestResult.LEGACY)
+    return ProbeInfoTestResult(result_type=ProbeInfoTestResult.PASSED)
+
   def _LookupProbeFunc(self, probe_function_name):
     """A helper method to find the probe function instance by name.
 
@@ -298,3 +409,28 @@ class ProbeToolManager(object):
           result_type=ProbeInfoParsedResult.ResultType.INCOMPATIBLE_ERROR,
           general_error_msg='unknown probe function: %r' % probe_function_name)
     return parsed_result, probe_func
+
+  def _CalcProbeInfoFingerprint(self, probe_info):
+    """Derives a fingerprint string for the given probe info.
+
+    Args:
+      probe_info: An instance of `ProbeInfo` to be validated.
+
+    Returns:
+      A string of the fingerprint.
+    """
+    probe_param_values = {}
+    for probe_param in probe_info.probe_parameters:
+      probe_param_values.setdefault(probe_param.name, [])
+      value_attr_name = probe_param.WhichOneof('value')
+      probe_param_values[probe_param.name].append(
+          getattr(probe_param, value_attr_name) if value_attr_name else None)
+    serializable_data = {
+        'probe_function_name': probe_info.probe_function_name,
+        'probe_parameters':
+            {k: sorted(v) for k, v in probe_param_values.items()},
+    }
+    hash_engine = hashlib.sha1()
+    hash_engine.update(
+        json_utils.DumpStr(serializable_data, sort_keys=True).encode('utf-8'))
+    return hash_engine.hexdigest()
