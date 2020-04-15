@@ -23,6 +23,8 @@ LOCAL_DEPLOYMENT_VENV_PYTHON_PATH="\
 ${LOCAL_DEPLOYMENT_VENV_PATH}/bin/${VENV_PYTHON_NAME}"
 LOCAL_DEPLOYMENT_PROJECT_ROOT_PATH="${LOCAL_DEPLOYMENT_DIR}/project_root"
 
+LOCAL_DEPLOYMENT_SERVICE_SIDS=()
+
 # Following variables will be assigned by `load_config <DEPLOYMENT_TYPE>`
 GCP_PROJECT=
 
@@ -82,6 +84,21 @@ local_deployment_prepare() {
   info "Install dependent package/modules."
   local_deployment_run_venv_python -m pip install -r \
       "${LOCAL_DEPLOYMENT_PROJECT_ROOT_PATH}/requirements.txt"
+
+  info "Start the dependent services."
+  local sid="$(setsid bash -c "gcloud beta emulators datastore start \
+      --no-store-on-disk 2>/dev/null >/dev/null & echo \$\$")"
+  sleep 3  # ensure the datastore emulator is ready
+  LOCAL_DEPLOYMENT_SERVICE_SIDS+=("${sid}")
+  $(gcloud beta emulators datastore env-init)
+}
+
+local_deployment_stop() {
+  info "Stop all dependent services."
+  local pid
+  for pid in "${LOCAL_DEPLOYMENT_SERVICE_SIDS[@]}"; do
+    pkill -s "${pid}"
+  done
 }
 
 local_deployment_run_venv_python() {
@@ -122,6 +139,8 @@ do_run_local() {
   info "Start the local instance."
   local_deployment_run_venv_python \
       -m cros.factory.probe_info_service.app_engine.main
+
+  local_deployment_stop
 }
 
 do_run_unittests() {
@@ -153,6 +172,8 @@ do_run_unittests() {
       failed_unittest_modules+=("${unittest_module}")
     fi
   done
+
+  local_deployment_stop
 
   if [ ${#failed_unittest_modules[@]} -eq 0 ]; then
     info "All unittests are passed!"
