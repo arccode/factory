@@ -1,9 +1,17 @@
 syntax = "proto3";
 package cros.factory.probe_info_service.app_engine.stubby_pb2;
 
+enum ProbeParameterValueType {
+  UNKNOWN = 0;  // Reserved for forward compatibility.
+
+  STRING = 1;
+  INT = 2;
+}
+
 message ProbeParameterDefinition {
-  string name = 1;         // Required.
-  string description = 2;  // Required.
+  string name = 1;                         // Required.
+  string description = 2;                  // Required.
+  ProbeParameterValueType value_type = 3;  // Required.
 }
 
 message ProbeFunctionDefinition {
@@ -20,13 +28,35 @@ message ProbeParameter {
   string name = 1;  // Required.
 
   oneof value {  // Required.
-    string str_value = 2;
+    string string_value = 2;
+    int32 int_value = 3;
   }
 }
 
-message ProbeParameterError {
-  ProbeParameter probe_parameter = 1;  // Required.
-  string error_msg = 2;                // Required.
+message ProbeInfo {
+  string probe_function_name = 1;  // Required.
+  repeated ProbeParameter probe_parameters = 2;
+}
+
+message ProbeParameterSuggestion {
+  int32 index = 1;
+  string hint = 2;
+}
+
+message ProbeInfoParsedResult {
+  enum ResultType {
+    UNKNOWN = 0;  // Reserved for forward compatiblity.
+
+    PASSED = 1;
+    PROBE_PARAMETER_ERROR = 2;
+
+    INCOMPATIBLE_ERROR = 3;
+    UNKNOWN_ERROR = 4;
+  }
+
+  ResultType result_type = 1;  // Required.
+  string general_error_msg = 2;
+  repeated ProbeParameterSuggestion probe_parameter_errors = 3;
 }
 
 message GetProbeSchemaRequest {}
@@ -35,6 +65,18 @@ message GetProbeSchemaResponse {
   ProbeSchema probe_schema = 1;  // Required.
 }
 
+message ValidateProbeInfoRequest {
+  bool is_qual = 1;          // Required.
+  ProbeInfo probe_info = 2;  // Required.
+}
+
+message ValidateProbeInfoResponse {
+  ProbeInfoParsedResult probe_info_parsed_result = 1;  // Required.
+}
+
 service ProbeInfoService {
   rpc GetProbeSchema(GetProbeSchemaRequest) returns (GetProbeSchemaResponse) {}
+
+  rpc ValidateProbeInfo(ValidateProbeInfoRequest)
+      returns (ValidateProbeInfoResponse) {}
 }

@@ -20,3 +20,10 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
     response = stubby_pb2.GetProbeSchemaResponse()
     response.probe_schema.CopyFrom(self._probe_tool_manager.GetProbeSchema())
     return response
+
+  def ValidateProbeInfo(self, request):
+    response = stubby_pb2.ValidateProbeInfoResponse()
+    response.probe_info_parsed_result.CopyFrom(
+        self._probe_tool_manager.ValidateProbeInfo(request.probe_info,
+                                                   not request.is_qual))
+    return response

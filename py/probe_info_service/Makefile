@@ -22,7 +22,7 @@ PROTO_PYGEN_FILE = $(patsubst \
 
 APPENGINE_CONFIGS = app_engine/requirements.txt app_engine/app.yaml
 
-DEP_PACKAGE_PATH_NAMES = cros/factory/utils
+DEP_PACKAGE_PATH_NAMES = cros/factory/utils cros/factory/probe/runtime_probe
 
 .PHONY: prepare _pack clean
 
