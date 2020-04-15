@@ -123,7 +123,8 @@ class ExtDisplayTest(test_case.TestCase):
           'Path of drm sysfs entry. When given this arg, the pytest will '
           'directly get connection status from sysfs path rather than calling '
           'drm_utils. This is needed when the port is running under MST and '
-          'thus the display id is dynamic generated.')
+          'thus the display id is dynamic generated.',
+          default=None)
   ]
 
   def setUp(self):
