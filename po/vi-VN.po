@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-04-13 17:52+CST\n"
+"PO-Revision-Date: 2020-04-16 00:45+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -518,6 +518,10 @@ msgid "TPM Verify EK"
 msgstr "Chứng chỉ TPM"
 
 #: ../build/pytests_label_generated.json
+msgid "Update Cbi"
+msgstr "Cập nhật CBI"
+
+#: ../build/pytests_label_generated.json
 msgid "Update CR50 Firmware"
 msgstr "Cập nhật firmware CR50"
 
@@ -538,10 +542,6 @@ msgstr "Cập nhật firmware Fpmcu"
 #: ../build/pytests_label_generated.json
 msgid "Update Kernel"
 msgstr "KernelCập nhật Kernel"
-
-#: ../build/pytests_label_generated.json
-msgid "Update Sku"
-msgstr "Cập nhật thủ tục kiểm tra"
 
 #: ../build/pytests_label_generated.json
 msgid "Urandom"
@@ -3427,12 +3427,21 @@ msgid "Manual Test Right USB TypeC"
 msgstr "Kiểm tra USB TypeC thủ công ngay"
 
 #: ../py/test/test_lists/generic_common.test_list.json
+msgid "Update CBI"
+msgstr "Cập nhật CBI"
+
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Check Cr50 Firmware Version"
 msgstr "Xác nhận phiên bản firmware"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Update Cr50 Firmware"
 msgstr "Cập nhật firmware CR50"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+#: ../py/test/test_lists/generic_unprovisioned.test_list.json
+msgid "Update SKU ID"
+msgstr "Cập nhật SKU ID"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Upload Reg (ECHO) Codes to activate"
@@ -3557,10 +3566,6 @@ msgstr "Thử áp lực"
 #: ../py/test/test_lists/generic_tast.test_list.json
 msgid "Test List for Tast Tests"
 msgstr "Test List for Tast Tests"
-
-#: ../py/test/test_lists/generic_unprovisioned.test_list.json
-msgid "Update SKU ID"
-msgstr "KernelCập nhật Kernel"
 
 #: ../py/test/test_lists/generic_unprovisioned.test_list.json
 msgid "Provision Chromebook with SKU ID"

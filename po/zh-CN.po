@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-04-13 17:52+CST\n"
+"PO-Revision-Date: 2020-04-16 00:45+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -518,6 +518,10 @@ msgid "TPM Verify EK"
 msgstr "TPM 证书"
 
 #: ../build/pytests_label_generated.json
+msgid "Update Cbi"
+msgstr "更新 CBI"
+
+#: ../build/pytests_label_generated.json
 msgid "Update CR50 Firmware"
 msgstr "更新 CR50 韧体"
 
@@ -538,10 +542,6 @@ msgstr "更新 Fpmcu 韧体"
 #: ../build/pytests_label_generated.json
 msgid "Update Kernel"
 msgstr "更新 Kernel"
-
-#: ../build/pytests_label_generated.json
-msgid "Update Sku"
-msgstr "更新 SKU ID"
 
 #: ../build/pytests_label_generated.json
 msgid "Urandom"
@@ -3353,12 +3353,21 @@ msgid "Manual Test Right USB TypeC"
 msgstr "手动右 USB TypeC 测试"
 
 #: ../py/test/test_lists/generic_common.test_list.json
+msgid "Update CBI"
+msgstr "更新 CBI"
+
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Check Cr50 Firmware Version"
 msgstr "检查 CR50 韧体版本"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Update Cr50 Firmware"
 msgstr "更新 CR50 韧体"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+#: ../py/test/test_lists/generic_unprovisioned.test_list.json
+msgid "Update SKU ID"
+msgstr "更新样式 ID"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Upload Reg (ECHO) Codes to activate"
@@ -3483,10 +3492,6 @@ msgstr "压力测试"
 #: ../py/test/test_lists/generic_tast.test_list.json
 msgid "Test List for Tast Tests"
 msgstr "Test List for Tast Tests"
-
-#: ../py/test/test_lists/generic_unprovisioned.test_list.json
-msgid "Update SKU ID"
-msgstr "更新样式 ID"
 
 #: ../py/test/test_lists/generic_unprovisioned.test_list.json
 msgid "Provision Chromebook with SKU ID"

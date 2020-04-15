@@ -693,6 +693,17 @@
       ]
     },
     "USBTypeCTest": "USBTypeCManualTest",
+    "UpdateCBI": {
+      "pytest_name": "update_cbi",
+      "label": "Update CBI",
+      "args": {
+        "cbi_data_names": [
+          "SKU_ID",
+          "DRAM_PART_NUM",
+          "PCB_SUPPLIER"
+        ]
+      }
+    },
     "UpdateCr50Firmware": {
       "inherit": "TestGroup",
       "label": "Update Cr50 Firmware",
@@ -728,7 +739,13 @@
       ]
     },
     "UpdateSKUID": {
-      "pytest_name": "update_sku"
+      "pytest_name": "update_cbi",
+      "label": "Update SKU ID",
+      "args": {
+        "cbi_data_names": [
+          "SKU_ID"
+        ]
+      }
     },
     "UploadRegCodes": {
       "inherit": "SyncFactoryServer",
