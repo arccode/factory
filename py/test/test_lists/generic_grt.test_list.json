@@ -60,7 +60,9 @@
       "inherit": "FlattenGroup",
       "subtests": [
         "ReSignReleaseKernel",
-        "UploadRegCodes"
+        "UploadRegCodes",
+        "ClearTPMOwnerRequest",
+        "RebootStep"
       ]
     },
     "GRTStart": {
