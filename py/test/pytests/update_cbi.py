@@ -21,6 +21,7 @@ Dependency
 ----------
 - ``ectool`` utility.
 - ``cros_config_mock`` utility.
+- ``chromeos-base/cros-config-api``.
 
 Examples
 --------
@@ -55,14 +56,16 @@ To set SKU ID and run the pytest `model_sku`, add this in test list::
 import logging
 
 from cros.factory.device import device_utils
-from cros.factory.test.utils.cbi_utils import CbiDataName
-from cros.factory.test.utils.cbi_utils import GetCbiData
-from cros.factory.test.utils.cbi_utils import SetCbiData
 from cros.factory.test import device_data
 from cros.factory.test import session
 from cros.factory.test import test_case
+from cros.factory.test.utils.cbi_utils import CbiDataName
+from cros.factory.test.utils.cbi_utils import GetCbiData
+from cros.factory.test.utils.cbi_utils import SetCbiData
+from cros.factory.test.utils import cros_config_api_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.schema import JSONSchemaDict
+from cros.factory.utils import type_utils
 
 
 _DEFAULT_SKU_ID = 0x7fffffff
@@ -85,15 +88,51 @@ _ARG_CBI_DATA_NAMES_SCHEMA = JSONSchemaDict(
         }
     })
 
+SKU_ID_SOURCE = type_utils.Enum(['device_data', 'hardcode'])
+CONFIG_SOURCE = type_utils.Enum(['cros_config_mock', 'config_binaryproto'])
+
 
 class UpdateCBITest(test_case.TestCase):
   """A test to set CBI fields from device data to EEPROM."""
   ARGS = [
       Arg('cbi_data_names', list, 'List of CBI data names to update',
-          schema=_ARG_CBI_DATA_NAMES_SCHEMA)]
+          schema=_ARG_CBI_DATA_NAMES_SCHEMA),
+      Arg('force', bool,
+          'If true then overwrite settings even if the sku_id is the same.',
+          default=False),
+      Arg('sku_id_source', SKU_ID_SOURCE, 'The source of sku_id.',
+          default=SKU_ID_SOURCE.device_data),
+      Arg('hardcode_sku_id', int, 'The hard-code sku_id.', default=None),
+      Arg('config_source', CONFIG_SOURCE, 'The source of updating data.',
+          default=CONFIG_SOURCE.cros_config_mock),
+      Arg('program', str, 'The program of the device.', default=None),
+      Arg('project', str, 'The project of the device.', default=None)]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
+    # Check settings of sku_id_source.
+    if (self.args.sku_id_source != SKU_ID_SOURCE.hardcode and
+        self.args.hardcode_sku_id is not None):
+      raise ValueError(
+          'hardcode_sku_id must be None for sku_id_source: %s'
+          % self.args.sku_id_source)
+    if (self.args.sku_id_source == SKU_ID_SOURCE.hardcode and
+        self.args.hardcode_sku_id is None):
+      raise ValueError(
+          'hardcode_sku_id must not be None for sku_id_source: %s'
+          % self.args.sku_id_source)
+
+    # Check settings of config_source.
+    if self.args.config_source == CONFIG_SOURCE.config_binaryproto:
+      if not cros_config_api_utils.MODULE_READY:
+        raise ImportError(
+            'cros_config_api_utils is not ready. '
+            'chromeos-base/cros-config-api is required for %s.'
+            % self.args.config_source)
+      self._config_binaryproto = cros_config_api_utils.SKUConfigs(
+          self.args.program, self.args.project)
+    else:
+      self._config_binaryproto = None
 
   def GetCrosConfigData(self, sku_id, path, name, return_type):
     output = self._dut.CallOutput(
@@ -102,6 +141,10 @@ class UpdateCBITest(test_case.TestCase):
       return return_type(output.strip())
     logging.warning("Can't get %s/%s from cros_config_mock", path, name)
     return None
+
+  def GetFirmwareConfigFromBinaryProto(self, sku_id):
+    project_config = self._config_binaryproto.GetSKUConfig(sku_id)
+    return project_config.hardware_features.fw_config.value
 
   def GetFirmwareConfigFromCrosConfig(self, sku_id):
     return self.GetCrosConfigData(sku_id, '/firmware', 'firmware-config', int)
@@ -132,11 +175,14 @@ class UpdateCBITest(test_case.TestCase):
 
   def SetSKUID(self):
     old_sku_id = GetCbiData(self._dut, CbiDataName.SKU_ID)
-    new_sku_id = self.GetDeviceData(_KEY_COMPONENT_SKU, int)
+    if self.args.sku_id_source == SKU_ID_SOURCE.device_data:
+      new_sku_id = self.GetDeviceData(_KEY_COMPONENT_SKU, int)
+    else:
+      new_sku_id = self.args.hardcode_sku_id
     if old_sku_id is None:
       self.FailTask('No valid SKU ID found in EEPROM.')
 
-    if old_sku_id == new_sku_id:
+    if not self.args.force and old_sku_id == new_sku_id:
       return
 
     if new_sku_id > 2 ** 32 - 1:
@@ -144,21 +190,24 @@ class UpdateCBITest(test_case.TestCase):
                     (new_sku_id, 2 ** 32 - 1))
 
     old_fw_config = GetCbiData(self._dut, CbiDataName.FW_CONFIG)
-    new_fw_config = self.GetFirmwareConfigFromCrosConfig(new_sku_id)
+    if self.args.config_source == CONFIG_SOURCE.config_binaryproto:
+      new_fw_config = self.GetFirmwareConfigFromBinaryProto(new_sku_id)
+    else:
+      new_fw_config = self.GetFirmwareConfigFromCrosConfig(new_sku_id)
 
     if old_fw_config is None and new_fw_config is None:
       logging.info('FW CONFIG is not supported on this board.')
     elif new_fw_config is None:
-      self.FailTask('FW_CONFIG does not exist in cros_config but is '
-                    'set in EEPROM.')
+      self.FailTask('FW_CONFIG does not exist in %s but is '
+                    'set in EEPROM.' % self.args.config_source)
     elif old_fw_config and old_fw_config != new_fw_config \
         and old_sku_id != _DEFAULT_SKU_ID:
       # The fw_config is allowed to be any value while the board is
       # unprovisioned, otherwise the fw_config value must match what
       # configuration says it should be based on the SKU value
       self.FailTask('FW CONFIG in EEPROM (%d) is not equal to the '
-                    'FW CONFIG in cros_config (%d).' %
-                    (old_fw_config, new_fw_config))
+                    'FW CONFIG in %s (%d).' %
+                    (old_fw_config, self.args.config_source, new_fw_config))
 
     session.console.info('Set the new SKU_ID to EEPROM (%r -> %r).',
                          old_sku_id, new_sku_id)
