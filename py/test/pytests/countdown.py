@@ -237,10 +237,10 @@ class CountDownTest(test_case.TestCase):
                           (i, fan_rpm, self.args.fan_min_expected_rpm))
 
     if not self.args.allow_invalid_temp:
-      for i, temp in enumerate(status.temperatures):
+      for sensor, temp in status.temperatures.items():
         if temp <= 0:
-          warnings.append('Thermal zone %d reports abnormal temperature %d'
-                          % (i, temp))
+          warnings.append('Thermal zone %s reports abnormal temperature %d'
+                          % (sensor, temp))
 
     in_grace_period = self._elapsed_secs < self.args.grace_secs
     if warnings:
