@@ -15,12 +15,14 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
   def __init__(self):
     self._probe_tool_manager = probe_tool_manager.ProbeToolManager()
 
+  @protorpc_utils.ProtoRPCServiceMethod
   def GetProbeSchema(self, get_probe_schema_request):
     del get_probe_schema_request
     response = stubby_pb2.GetProbeSchemaResponse()
     response.probe_schema.CopyFrom(self._probe_tool_manager.GetProbeSchema())
     return response
 
+  @protorpc_utils.ProtoRPCServiceMethod
   def ValidateProbeInfo(self, request):
     response = stubby_pb2.ValidateProbeInfoResponse()
     response.probe_info_parsed_result.CopyFrom(

@@ -5,22 +5,72 @@
 import logging
 import uuid
 
-# pylint: disable=import-error,no-name-in-module
-import flask
+# pylint: disable=wrong-import-order
+import flask  # pylint: disable=import-error,no-name-in-module
 from google.protobuf import symbol_database
+# pylint: enable=wrong-import-order
 
 
-class ProtoRPCServiceBase(object):
+class _ProtoRPCServiceBaseMeta(type):
+  """Metaclass for ProtoRPC classes.
+
+  This metaclass customizes class creation flow to parse and convert the
+  service descriptor object into a friendly data structure for information
+  looking up in runtime.
+  """
+  # pylint: disable=return-in-init
+  def __init__(cls, name, bases, attrs, **kwargs):
+    service_descriptor = attrs.get('SERVICE_DESCRIPTOR')
+    if service_descriptor:
+      sym_db = symbol_database.Default()
+      for method_desc in service_descriptor.methods:
+        method = getattr(cls, method_desc.name, None)
+        rpc_method_spec = getattr(method, 'rpc_method_spec', None)
+        if rpc_method_spec:
+          rpc_method_spec.request_type = sym_db.GetSymbol(
+              method_desc.input_type.full_name)
+          rpc_method_spec.response_type = sym_db.GetSymbol(
+              method_desc.output_type.full_name)
+    return super().__init__(name, bases, attrs, **kwargs)
+
+
+class ProtoRPCServiceBase(metaclass=_ProtoRPCServiceBaseMeta):
   """Base class of a ProtoRPC Service.
 
   Sub-class must override `SERVICE_DESCRIPTOR` to the correct descriptor
   instance.  To implement the service's methods, author should define class
-  methods with the same names.  The method will be called with only one argument
-  in type of the request message defined in the protobuf file, and the return
-  value should be in type of the response message defined in the protobuf file
-  as well.
+  methods with the same names and decorates it with `ProtoRPCServiceMethod`.
+  The method will be called with only one argument in type of the request
+  message defined in the protobuf file, and the return value should be in
+  type of the response message defined in the protobuf file as well.
   """
   SERVICE_DESCRIPTOR = None
+
+
+class _ProtoRPCServiceMethodSpec:
+  """Placeholder for spec of a ProtoRPC method."""
+  def __init__(self, request_type, response_type):
+    self.request_type = request_type
+    self.response_type = response_type
+
+
+def ProtoRPCServiceMethod(method):
+  """Decorator for ProtoRPC methods.
+
+  It wraps the target method with type-checking assertions as well as attaching
+  additional a spec information placeholder.
+  """
+  def wrapper(self, request):
+    assert isinstance(request, wrapper.rpc_method_spec.request_type)
+    response = method(self, request)
+    assert isinstance(response, wrapper.rpc_method_spec.response_type)
+    return response
+
+  # Since the service's descriptor will be parsed when the class is created,
+  # which is later than the invocation time of this decorator, here it just
+  # place the placeholder with dummy contents.
+  wrapper.rpc_method_spec = _ProtoRPCServiceMethodSpec(None, None)
+  return wrapper
 
 
 class _ProtoRPCServiceFlaskAppViewFunc(object):
@@ -29,29 +79,23 @@ class _ProtoRPCServiceFlaskAppViewFunc(object):
   def __init__(self, app_inst, service_inst):
     self._app_inst = app_inst
     self._service_inst = service_inst
-    self._method_msg_classes = {}
-
-    sym_db = symbol_database.Default()
-    for method_desc in self._service_inst.SERVICE_DESCRIPTOR.methods:
-      self._method_msg_classes[method_desc.name] = (
-          sym_db.GetSymbol(method_desc.input_type.full_name),
-          sym_db.GetSymbol(method_desc.output_type.full_name))
 
   def __call__(self, method_name):
-    msg_classes = self._method_msg_classes.get(method_name)
-    if not msg_classes:
+    method = getattr(self._service_inst, method_name, None)
+    rpc_method_spec = getattr(method, 'rpc_method_spec', None)
+    if not rpc_method_spec:
       return flask.Response(status=404)
-    request_msg_class, response_msg_class = msg_classes
+
     try:
-      request_msg = request_msg_class.FromString(flask.request.get_data())
-      method = getattr(self._service_inst, method_name)
+      request_msg = rpc_method_spec.request_type.FromString(
+          flask.request.get_data())
       response_msg = method(request_msg)
-      assert isinstance(response_msg, response_msg_class)
       response_raw_body = response_msg.SerializeToString()
     except Exception:
       if self._app_inst.debug:
         logging.exception('Caught exception from RPC method %r.', method_name)
       return flask.Response(status=500)
+
     response = flask.Response(response=response_raw_body)
     response.headers['Content-type'] = 'application/octet-stream'
     return response
