@@ -640,7 +640,8 @@ class Gooftool(object):
       bitmap_locales = f.read()
       # We reach here even if cbfstool command fails
       if bitmap_locales:
-        return bitmap_locales.split('\n')
+        # The line format is "code,rtl". We remove ",rtl" here.
+        return re.findall(r'^(\S+?)(?:,\S*)?$', bitmap_locales, re.MULTILINE)
       # Looks like image does not have locales file. Do the old-fashioned way
       self._util.shell('futility gbb -g --bmpfv=%s %s' %
                        (f.name, image_file))
