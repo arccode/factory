@@ -8,7 +8,7 @@ import time
 from cros.factory.device import device_types
 
 
-_IIO_DEVICES_PATTERN = '/sys/bus/iio/devices/iio:device*'
+IIO_DEVICES_PATTERN = '/sys/bus/iio/devices/iio:device*'
 
 
 def FindDevice(dut, path_pattern, **attr_filter):
@@ -16,7 +16,8 @@ def FindDevice(dut, path_pattern, **attr_filter):
 
   Args:
     path_pattern: The path to search, can contain wildcards.
-    attr_filter: A filter to filter out unwanted devices.
+    attr_filter: A filter to filter out unwanted devices. If the value of the
+      attribute is None then only check if the path exists.
 
   Returns:
     Path of the matched device.
@@ -29,7 +30,12 @@ def FindDevice(dut, path_pattern, **attr_filter):
     match = True
     for name, value in attr_filter.items():
       try:
-        if dut.ReadSpecialFile(dut.path.join(path, name)).strip() != value:
+        attr_path = dut.path.join(path, name)
+        if value is None:
+          if not dut.path.exists(attr_path):
+            match = False
+            break
+        elif dut.ReadSpecialFile(attr_path).strip() != value:
           match = False
           break
       except Exception:
@@ -62,8 +68,8 @@ class BasicSensorController(device_types.DeviceComponent):
     """
     super(BasicSensorController, self).__init__(dut)
     self.signal_names = signal_names
-    self._iio_path = FindDevice(self._device, _IIO_DEVICES_PATTERN,
-                                name=name, location=location)
+    self._iio_path = FindDevice(self._device, IIO_DEVICES_PATTERN, name=name,
+                                location=location)
     self.scale = 1.0 if not scale else float(self._GetSysfsValue('scale'))
 
   def _GetSysfsValue(self, filename, path=None):

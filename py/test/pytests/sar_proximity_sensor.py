@@ -19,15 +19,17 @@ Test Procedure
 --------------
 This test requires the operator to provide some actions.
 
-1. The test shows instruction to ask the operator to cover the sensor.
-2. The test starts to wait for proximity events.
-3. If the first captured event is not a ``close`` event, the test ends with
+1. The test shows instruction to ask the operator to remove the cover.
+2. Wait until the sensor value is small enough.
+3. The test shows instruction to ask the operator to cover the sensor.
+4. The test starts to wait for proximity events.
+5. If the first captured event is not a ``close`` event, the test ends with
    failure.
-4. The test shows instruction to ask the operator to remove the cover.
-5. The test starts to wait for proximity events.
-6. If the first captured event is not a ``far`` event, the test ends with
+6. The test shows instruction to ask the operator to remove the cover.
+7. The test starts to wait for proximity events.
+8. If the first captured event is not a ``far`` event, the test ends with
    failure.
-7. If timeout reaches before all the tasks done, the test also ends with
+9. If timeout reaches before all the tasks done, the test also ends with
    failure.
 
 Dependency
@@ -35,13 +37,17 @@ Dependency
 
 Examples
 --------
-Let's assume we want to test the sensor device ``/dev/proximity-wifi-left``,
-just add a test item in the test list::
+Let's assume we want to test the sensor device ``/dev/iio:device7``, which
+``echo /sys/bus/iio/devices/iio:device7/name`` outputs sx9310, just add a test
+item in the test list::
 
   {
     "pytest_name": "sar_proximity_sensor",
+    "disable_services": [
+      "powerd"
+    ],
     "args": {
-      "device_path": "/dev/proximity-wifi-left"
+      "device_name": "sx9310"
     }
   }
 
@@ -50,8 +56,11 @@ show in the test list::
 
   {
     "pytest_name": "sar_proximity_sensor",
+    "disable_services": [
+      "powerd"
+    ],
     "args": {
-      "device_path": "/dev/proximity-wifi-left",
+      "device_name": "sx9310",
       "close_instruction": "i18n! Please cover the left edge by hand",
       "far_instruction": "i18n! Please remove the cover"
     }
@@ -67,6 +76,7 @@ import os
 import select
 
 from cros.factory.device import device_utils
+from cros.factory.device import sensor_utils
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test import test_case
@@ -78,13 +88,30 @@ IIO_GET_EVENT_FD_IOCTL = 0x80046990
 
 PROXIMITY_EVENT_TYPE = type_utils.Enum(['close', 'far'])
 PROXIMITY_EVENT_BUF_SIZE = 16
+_DEFAULT_CALIBRATE_PATH = 'events/in_proximity0_thresh_either_en'
+_DEFAULT_SENSOR_VALUE_PATH = 'in_proximity0_raw'
 
 
 class SARProximitySensor(test_case.TestCase):
   ARGS = [
-      Arg('device_path', str,
-          'The device path of the sensor, usually matches the '
-          'pattern ``/dev/proximity-*``.'),
+      Arg('device_name', str,
+          'If present, the device name specifying which sensor to test. Auto'
+          'detect the device if not present', default=None),
+      Arg('calibrate_path', str,
+          ('The path to enable testing.  '
+           'Must be relative to the iio device path.'),
+          default=_DEFAULT_CALIBRATE_PATH),
+      Arg('enable_sensor_sleep_secs', (int, float),
+          'The seconds of sleep after enabling sensor.',
+          default=1),
+      Arg('sensor_value_path', str,
+          ('The path of the sensor value to show on the UI.  Must be relative '
+           'to the iio device path.  If it is None then show nothing.'),
+          default=_DEFAULT_SENSOR_VALUE_PATH),
+      Arg('sensor_initial_max', int,
+          ('The test will start after the sensor value lower than this value.  '
+           'If it is None then do not wait.'),
+          default=50),
       i18n_arg_utils.I18nArg(
           'close_instruction',
           'Message for the action to trigger the ``close`` event.',
@@ -101,34 +128,107 @@ class SARProximitySensor(test_case.TestCase):
   _POLLING_TIME_INTERVAL = 0.1
 
   def setUp(self):
-    self.ui.ToggleTemplateClass('font-large', True)
-
     self._dut = device_utils.CreateDUTInterface()
+    # TODO(cyueh): Find a way to support open, close, read fd on remote DUT.
+    if not self._dut.link.IsLocal():
+      raise ValueError('The test does not work on remote DUT.')
     self._event_fd = None
 
-    self._dut.CheckCall(['stop', 'powerd'])
+    attr_filter = {
+        self.args.calibrate_path: None,
+        'name': self.args.device_name
+    }
+    if self.args.sensor_value_path:
+      attr_filter.update({self.args.sensor_value_path: None})
+    self._iio_device_path = sensor_utils.FindDevice(
+        self._dut, sensor_utils.IIO_DEVICES_PATTERN, **attr_filter)
+    logging.info('The iio device path: %s', self._iio_device_path)
+    self._sensor_value_path = self._dut.path.join(
+        self._iio_device_path,
+        self.args.sensor_value_path) if self.args.sensor_value_path else None
+    self.assertTrue(self.args.sensor_initial_max is None or
+                    self._sensor_value_path)
+
+  def _WriteCalibrate(self, value):
+    """Enable or disable the sensor.
+
+    Returns:
+      True if we need to disable the sensor after the test.
+    """
+    # echo value > calibrate
+    try:
+      path = self._dut.path.join(self._iio_device_path,
+                                 self.args.calibrate_path)
+      if value == '1' and self._dut.ReadFile(path).strip() == '1':
+        return False
+      try:
+        # self.ui is not available after StartFailingCountdownTimer timeout
+        self.ui.SetHTML(self.args.far_instruction, id='sar-instruction')
+        self.ui.SetHTML(_('Setting the sensor'), id='sar-value')
+      except Exception:
+        pass
+      self._dut.WriteFile(path, value)
+      self.Sleep(self.args.enable_sensor_sleep_secs)
+      return True
+    except Exception:
+      logging.exception('_WriteCalibrate %s fails', value)
+    return False
+
+  def _GetSensorValue(self, log=True):
+    """Get and log sensor value.
+
+    Returns:
+      The sensor value.
+    """
+    output = self._dut.ReadFile(self._sensor_value_path).strip()
+    if log:
+      self.ui.SetHTML(output, id='sar-value')
+      logging.info('sensor value: %s', output)
+    return int(output)
 
   def runTest(self):
-    self._event_fd = self._GetEventFd()
-
     self.ui.StartFailingCountdownTimer(self.args.timeout)
+    # We must enable the sensor before open the device. Otherwise the sensor may
+    # create ghost event. Also if the sensor is enabled by default then we don't
+    # want to disable it after the test.
+    disable_after_test = self._WriteCalibrate('1')
+    try:
+      # Before the test, make sure the sensor is un-covered
+      if self.args.sensor_initial_max is not None:
+        self.ui.SetHTML(self.args.far_instruction, id='sar-instruction')
+        self.ui.SetHTML(_('Setting the sensor'), id='sar-value')
+        while True:
+          values = [self._GetSensorValue(False) for unused_index in range(32)]
+          if max(values) < self.args.sensor_initial_max:
+            break
+          logging.info('sensor initial values with min %s and max %s',
+                       min(values), max(values))
+          self.Sleep(self._POLLING_TIME_INTERVAL)
 
-    event_type_map = {1: PROXIMITY_EVENT_TYPE.far,
-                      2: PROXIMITY_EVENT_TYPE.close}
+      self._event_fd = self._GetEventFd()
 
-    test_flow = [(PROXIMITY_EVENT_TYPE.close, self.args.close_instruction),
-                 (PROXIMITY_EVENT_TYPE.far, self.args.far_instruction)]
-    for expect_event_type, instruction in test_flow:
-      self.ui.SetState(instruction)
+      event_type_map = {
+          1: PROXIMITY_EVENT_TYPE.far,
+          2: PROXIMITY_EVENT_TYPE.close
+      }
 
-      buf = self._ReadEventBuffer()
+      test_flow = [(PROXIMITY_EVENT_TYPE.close, self.args.close_instruction),
+                   (PROXIMITY_EVENT_TYPE.far, self.args.far_instruction)]
+      for expect_event_type, instruction in test_flow:
+        self.ui.SetHTML(instruction, id='sar-instruction')
 
-      if buf[6] not in event_type_map:
-        self.FailTask('Invalid event buffer: %r' % buf)
-      got_event_type = event_type_map[buf[6]]
-      if got_event_type != expect_event_type:
-        self.FailTask('Expect to get a %r event, but got a %r event.' %
-                      (expect_event_type, got_event_type))
+        buf = self._ReadEventBuffer()
+
+        if buf[6] not in event_type_map:
+          self.FailTask('Invalid event buffer: %r' % buf)
+        got_event_type = event_type_map[buf[6]]
+        if got_event_type != expect_event_type:
+          self.FailTask('Expect to get a %r event, but got a %r event.' %
+                        (expect_event_type, got_event_type))
+        logging.info('Pass %s.', expect_event_type)
+    finally:
+      if disable_after_test:
+        self._WriteCalibrate('0')
 
   def tearDown(self):
     if self._event_fd is not None:
@@ -137,10 +237,10 @@ class SARProximitySensor(test_case.TestCase):
       except Exception as e:
         logging.warning('Failed to close the event fd: %r', e)
 
-    self._dut.CheckCall(['start', 'powerd'])
-
   def _GetEventFd(self):
-    fd = os.open(self.args.device_path, 0)
+    path = self._dut.path.join('/dev',
+                               self._dut.path.basename(self._iio_device_path))
+    fd = os.open(path, 0)
     self.assertTrue(fd >= 0, "Can't open the device, error = %d" % fd)
 
     # Python fcntl only allows a 32-bit input to fcntl - using 0x40 here
@@ -158,6 +258,11 @@ class SARProximitySensor(test_case.TestCase):
     return event_fd
 
   def _ReadEventBuffer(self):
+    """Poll the event fd until one event occurs.
+
+    Returns:
+      The event buffer.
+    """
     while True:
       try:
         fds = select.select([self._event_fd], [], [],
@@ -166,12 +271,14 @@ class SARProximitySensor(test_case.TestCase):
         self.FailTask('Unable to read from the event fd: %r.' % e)
 
       if not fds:
+        if self._sensor_value_path:
+          self._GetSensorValue()
         # make sure the user can manually stop the test
         self.Sleep(self._POLLING_TIME_INTERVAL)
         continue
 
-      buf = [ord(x) for x in os.read(self._event_fd,
-                                     PROXIMITY_EVENT_BUF_SIZE)]
+      buf = os.read(self._event_fd, PROXIMITY_EVENT_BUF_SIZE)
+
       if len(buf) != PROXIMITY_EVENT_BUF_SIZE:
         self.FailTask('The event buffer has the wrong size: %r.' % len(buf))
       return buf

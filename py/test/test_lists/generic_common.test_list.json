@@ -568,6 +568,13 @@
         "sequential_block_count": 8
       }
     },
+    "SARSensor": {
+      "pytest_name": "sar_proximity_sensor",
+      "run_if": "not constants.has_device_data or device.component.has_proximity_sensor",
+      "disable_services": [
+        "powerd"
+      ]
+    },
     "SDPerformance": {
       "inherit": "RemovableStorage",
       "label": "SD Performance",

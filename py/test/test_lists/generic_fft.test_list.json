@@ -43,6 +43,7 @@
         "Bluetooth",
         "AudioJack",
         "SpeakerDMic",
+        "SARSensor",
         "Touchpad",
         "Touchscreen",
         "StylusAndGarage",

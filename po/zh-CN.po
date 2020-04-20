@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-09-28 19:36+CST\n"
+"PO-Revision-Date: 2020-10-23 13:10+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -2388,6 +2388,10 @@ msgstr "请用手遮住感应器"
 #: ../py/test/pytests/sar_proximity_sensor.py
 msgid "Please un-cover the sensor"
 msgstr "请将手远离感应器"
+
+#: ../py/test/pytests/sar_proximity_sensor.py
+msgid "Setting the sensor"
+msgstr "设定感测器中"
 
 #: ../py/test/pytests/scan.py
 msgid "The scanned value is empty."
