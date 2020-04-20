@@ -71,12 +71,12 @@ class FanSpeedTest(test_case.TestCase):
   ]
 
   def setUp(self):
-    self.assertTrue(
-        self.args.target_rpm > 0 or self.args.spin_max_then_half,
-        'Either set a valid target_rpm or spin_max_then_half=True.')
-    self._fan = device_utils.CreateDUTInterface().fan
     if isinstance(self.args.target_rpm, int):
       self.args.target_rpm = [self.args.target_rpm]
+    self.assertTrue(
+        self.args.spin_max_then_half or min(self.args.target_rpm) > 0,
+        'Either set a valid target_rpm or spin_max_then_half=True.')
+    self._fan = device_utils.CreateDUTInterface().fan
 
   def tearDown(self):
     logging.info('Set auto fan speed control.')
