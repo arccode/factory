@@ -46,7 +46,7 @@ the helper script as follow:
 Or run the specific unittest(s) and dump the log by the following command:
 
 ```shell
-(factory-repo)$ ./deploy/probe_info_service.sh --dump_logs \
+(factory-repo)$ ./deploy/probe_info_service.sh unittest --dump_logs \
     [<absolute_unittest_module_names>...]
 ```
 
