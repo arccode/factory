@@ -63,27 +63,18 @@ need to ignore the Google Python style guide:
     `HttpServerError`.
 *   We use a 2-space indent instead of a 4-space indent.
 *   We use pylint instead of pychecker.
-*   You may use `#!/usr/bin/env python2` or `#!/usr/bin/python2` for shebang.
-    - We are still using python2 right now.  Migration is on the way
-      [crbug:999876](http://crbug.com/999876).
+*   You may use `#!/usr/bin/env python3` or `#!/usr/bin/python3` for shebang.
 
 Finally, you must use pylint. In platform/factory, you can run `make lint` to do
 this. platform/factory/Makefile has a blacklist for files that are not yet
 pylint-compliant; if you make substantial changes to an existing file, please
 fix lint problems and remove the file from the blacklist.
 
-### **Python 3 compatibility**
-
-Use Python 3 style if possible, but all programs must be compatible with Python
-2.7.  We have configured pylint.rc that `make lint` should catch most python3
-incompatible syntax.  Therefore, please do remember to run `make lint` before
-summitting your change.
-
 ### **Shebang**
 
 The recommended way is:
 
-`#!/usr/bin/env python2`
+`#!/usr/bin/env python3`
 
 Some of the factory code, for example setup/\*, need to run on a non-ChromiumOS
 machine in factory. It may be any Linux distribution, or even Windows Box. So we
@@ -91,9 +82,6 @@ allow using env in shebang to reduce compatibility issues. However on Linux,
 parameters in shebang when using env will be considered as file name for
 execution, so we need to allow both (using env, or just python). See
 <https://chromium-review.googlesource.com/265172> for some discussion.
-
-The shebang line will be changed to `python` instead of `python2` when python3
-migration is finished ([crbug:999876](http://crbug.com/999876)).
 
 ### Temporary Files
 
@@ -142,7 +130,7 @@ For easy cutting-and-pasting, here's the header you should use for Python files
 [this](https://chromium.googlesource.com/chromium/src/+/master/styleguide/c++/c++.md#file-headers)).
 
 ```
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Copyright 2020 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -189,8 +177,10 @@ into system path before running the real python script.
     *   **Exception**: your script needs to be able to run in an environment
         without python, e.g. initramfs.
 *   Write unit tests if possible.
-    *   We encourage using [mock](https://pypi.python.org/pypi/mock) module now
-        over [mox](https://code.google.com/p/pymox/wiki/MoxDocumentation).
+    *   We encourage using [mock](https://pypi.python.org/pypi/mock) module now.
+        You should prevent to use
+        [mox](https://code.google.com/p/pymox/wiki/MoxDocumentation) and
+        [mox3](https://pypi.org/project/mox3/) modules.
 *   Command-line processing
     *   Always use `argparse` for anything with a `Main()` method. Even if you
         have no command-line arguments, at least this will display a help
