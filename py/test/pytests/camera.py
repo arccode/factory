@@ -338,6 +338,7 @@ class CameraTest(test_case.TestCase):
 
       unused_retval, jpg_data = cv.imencode(
           '.jpg', cv_image, (cv.IMWRITE_JPEG_QUALITY, _JPEG_QUALITY))
+      jpg_base64 = codecs.encode(jpg_data.tobytes(), 'base64')
 
       try:
         # TODO(pihsun): Don't use CallJSFunction for transmitting image back
@@ -346,7 +347,7 @@ class CameraTest(test_case.TestCase):
         # data.
         self.ui.CallJSFunction(
             'showImage',
-            'data:image/jpeg;base64,' + codecs.encode(jpg_data, 'base64'))
+            'data:image/jpeg;base64,' + jpg_base64.decode('utf-8'))
       except AttributeError:
         # The websocket is closed because test has passed/failed.
         return
