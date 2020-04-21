@@ -30,7 +30,7 @@ import sys
 import tempfile
 import textwrap
 import time
-import urllib.parse
+import urllib.parse  # pylint: disable=import-error,no-name-in-module
 
 # The edit_lsb command works better if readline enabled, but will still work if
 # that is not available.
@@ -2528,7 +2528,9 @@ class SubCommandNamespace(SubCommand):
   def __init__(self, parser, subparsers):
     super(SubCommandNamespace, self).__init__(parser, subparsers)
     title = '%s subcommands' % self.name
-    self.subparser.add_subparsers(title=title)
+    namespace_subparser = self.subparser.add_subparsers(
+        title=title, dest='namespace_subcommand')
+    namespace_subparser.required = True
 
   def Run(self):
     raise RuntimeError(
@@ -3736,7 +3738,8 @@ def main():
           'subcommand.'))
   parser.add_argument('--verbose', '-v', action='count', default=0,
                       help='Verbose output')
-  subparsers = parser.add_subparsers(title='subcommands')
+  subparsers = parser.add_subparsers(title='subcommands', dest='subcommand')
+  subparsers.required = True
 
   verb = sys.argv[1] if (len(sys.argv) > 1) else None
   selected_command_args = None
