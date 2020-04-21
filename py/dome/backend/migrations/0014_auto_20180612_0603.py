@@ -17,6 +17,6 @@ class Migration(migrations.Migration):
       migrations.AlterField(
           model_name='temporaryuploadedfile',
           name='file',
-          field=backend.models.TemporaryUploadedFileField(storage=django.core.files.storage.FileSystemStorage(location=b'/tmp/shared'), upload_to=backend.models.GenerateUploadToPath),
+          field=backend.models.TemporaryUploadedFileField(storage=django.core.files.storage.FileSystemStorage(location='/tmp/shared'), upload_to=backend.models.GenerateUploadToPath),
       ),
   ]

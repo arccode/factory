@@ -53,16 +53,16 @@ RUN apk upgrade --no-cache && apk add --no-cache \
     nginx \
     openssl \
     pigz \
-    py-lxml \
+    py3-lxml \
     py3-pip \
-    py-psutil \
-    py-twisted \
-    python \
+    py3-psutil \
+    py3-twisted \
+    python3 \
     rsync \
     tar \
     unzip \
     util-linux \
-    uwsgi-python \
+    uwsgi-python3 \
     xz
 
 # pixz and lbzip2 are not available in alpine.
