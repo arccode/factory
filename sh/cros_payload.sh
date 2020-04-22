@@ -32,7 +32,7 @@
 # Constants
 COMPONENTS_ALL="test_image release_image toolkit hwid firmware complete \
 netboot_kernel netboot_firmware netboot_cmdline toolkit_config lsb_factory \
-description"
+description configproto"
 
 # A variable for the file name of tracking temp files.
 TMP_OBJECTS=""
@@ -693,7 +693,7 @@ for k in j:
       # 'shar' may add leading X on some versions.
       sed -n 's/^X*checksum: //p' "${file}"
       ;;
-    complete | netboot_cmdline)
+    complete | netboot_cmdline | configproto)
       local temp="$(md5sum "${file}")"
       echo "${temp%% *}"
       ;;
@@ -804,6 +804,9 @@ cmd_add() {
       file="$(get_uncompressed_file "${file}")"
       add_file_component "${json_path}" "${component}" "${file}"
       ;;
+    configproto)
+      add_file_component "${json_path}" "${component}" "${file}"
+      ;;
     *)
       die "Unknown component: ${component}"
       ;;
@@ -885,6 +888,12 @@ install_add_stub() {
     toolkit_config)
       stub_prefix="1_"
       cmd="python3 -c \"$(get_install_toolkit_config_script)\" ./${component}"
+      ;;
+    configproto)
+      stub_prefix="1_"
+      configproto_dir="/usr/local/factory/${component}"
+      cmd="mkdir -p ${configproto_dir}"
+      cmd="${cmd} && tar -xvf ${component} -C ${configproto_dir}"
       ;;
     *)
       return
@@ -1086,7 +1095,7 @@ install_components() {
           "${dest}" "${json_file}" "${component}"
         ;;
       toolkit | hwid | firmware | complete | *_image.* | netboot_* | \
-          toolkit_config | lsb_factory | description)
+          toolkit_config | lsb_factory | description | configproto)
         install_payload "file" "${json_url}" \
           "${dest}" "${json_file}" "${component}"
         ;;
@@ -1135,7 +1144,7 @@ get_component_file() {
       printf '%s' "${json_str}" | json_get_image_files "${component}" -
       ;;
     toolkit | hwid | firmware | complete | netboot_* | toolkit_config | \
-      lsb_factory | description)
+      lsb_factory | description | configproto)
       printf '%s' "${json_str}" | json_get_file "${component}" -
       ;;
     *)
