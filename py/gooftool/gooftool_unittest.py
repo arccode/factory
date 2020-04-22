@@ -227,9 +227,9 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._crosfw.LoadMainFirmware.side_effect = [
         MockMainFirmware(),
         MockMainFirmware(
-            MockFirmwareImage({'GBB': 'GBB', 'FW_MAIN_A': 'MA',
-                               'FW_MAIN_B': 'MB', 'VBLOCK_A': 'VA',
-                               'VBLOCK_B': 'VB'}))]
+            MockFirmwareImage({'GBB': b'GBB', 'FW_MAIN_A': b'MA',
+                               'FW_MAIN_B': b'MB', 'VBLOCK_A': b'VA',
+                               'VBLOCK_B': b'VB'}))]
 
     # TODO(hungte) Improve unit test scope.
     def fake_tmpexc(*unused_args, **unused_kargs):
@@ -291,9 +291,9 @@ class GooftoolTest(unittest.TestCase):
     self.assertEqual(open_mock.call_args_list, open_mock_calls)
 
   def testVerifyManagementEngineLocked(self):
-    data_no_me = {'RO_SECTION': ''}
-    data_me_locked = {'SI_ME': chr(0xff) * 1024}
-    data_me_unlocked = {'SI_ME': chr(0x55) * 1024}
+    data_no_me = {'RO_SECTION': b''}
+    data_me_locked = {'SI_ME': b'\xff' * 1024}
+    data_me_unlocked = {'SI_ME': b'\x55' * 1024}
 
     self._gooftool._crosfw.LoadMainFirmware.return_value = MockMainFirmware(
         MockFirmwareImage(data_no_me))

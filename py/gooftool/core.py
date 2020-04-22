@@ -206,7 +206,7 @@ class Gooftool(object):
       logging.debug('extract firmware from %s', firmware_path)
       for section in ('GBB', 'FW_MAIN_A', 'FW_MAIN_B', 'VBLOCK_A', 'VBLOCK_B'):
         file_utils.WriteFile(os.path.join(tmpdir, section),
-                             firmware_image.get_section(section))
+                             firmware_image.get_section(section), encoding=None)
 
       _TmpExec('get keys from firmware GBB',
                'futility gbb -g --rootkey %s  --recoverykey %s GBB' %
@@ -322,7 +322,7 @@ class Gooftool(object):
       logging.info('System does not have Management Engine.')
       return
     # If ME is locked, it should contain only 0xFFs.
-    data = mainfw.get_section('SI_ME').strip(chr(0xFF))
+    data = mainfw.get_section('SI_ME').strip(b'\xff')
     if data:
       raise Error('ME (ManagementEngine) firmware may be not locked.')
     # TODO(hungte) In future we may add more checks using ifdtool. See
@@ -1016,9 +1016,9 @@ class Gooftool(object):
         raise Error('Failed to get boardID with gsctool command: %r' % e)
 
       RLZ = self._util.shell(['mosys', 'platform', 'brand']).stdout.strip()
-      if RLZ == b'':
+      if RLZ == '':
         raise Error('RLZ code is empty.')
-      if board_id.type != int(codecs.encode(RLZ, 'hex'), 16):
+      if board_id.type != int(codecs.encode(RLZ.encode('ascii'), 'hex'), 16):
         raise Error('RLZ does not match Board ID.')
 
       try:
