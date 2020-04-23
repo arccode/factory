@@ -6,7 +6,7 @@
 DEPLOY_DIR="$(dirname "$(readlink -f "$0")")"
 FACTORY_DIR="$(readlink -f "${DEPLOY_DIR}/..")"
 APPENGINE_DIR="${FACTORY_DIR}/py/hwid/service/appengine"
-HW_VERIFIER_DIR="${FACTORY_DIR}/../../platform2/hardware_verifier"
+HW_VERIFIER_DIR="${FACTORY_DIR}/../../platform2/hardware_verifier/proto"
 RT_PROBE_DIR="${FACTORY_DIR}/../../platform2/system_api/dbus/runtime_probe"
 TEST_DIR="${APPENGINE_DIR}/test"
 PLATFORM_DIR="$(dirname ${FACTORY_DIR})"
@@ -96,7 +96,7 @@ prepare_protobuf() {
     -I="${RT_PROBE_DIR}" \
     -I="${HW_VERIFIER_DIR}" \
     --python_out="${protobuf_out}" \
-    "${HW_VERIFIER_DIR}/proto/hardware_verifier.proto" \
+    "${HW_VERIFIER_DIR}/hardware_verifier.proto" \
     "${RT_PROBE_DIR}/runtime_probe.proto"
 }
 
