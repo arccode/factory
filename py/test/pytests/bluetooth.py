@@ -9,7 +9,7 @@ Description
 A bluetooth test to detect adapter, scan bluetooth device, check average RSSI
 value, and connect with the bluetooth input device.
 
-To run this bluetooth test, the DUT most have at least one bluetooth adapter.
+To run this bluetooth test, the DUT must have at least one bluetooth adapter.
 
 If argument ``scan_devices`` is set, there should be at least one remote
 bluetooth device.
@@ -631,9 +631,8 @@ class BluetoothTest(test_case.TestCase):
   def ScanDevices(self):
     """Scan bluetooth devices around.
 
-    In this task, the test will control the first adapter from BluetoothManager
-    and scan devices around for timeout_secs. The task passed if there is at
-    least one device.
+    In this task, the test will use btmgmt tool to find devices around. The task
+    passed if there is at least one device.
 
     If target_addresses is provided, the test will also check if it can find
     at least one device specified in target_addresses list.
@@ -694,9 +693,6 @@ class BluetoothTest(test_case.TestCase):
       """Helper to check if the target MAC has been scanned."""
       return mac_to_scan and mac_to_scan in candidate_rssis
 
-    bluetooth_manager = self.dut.bluetooth
-    adapter = bluetooth_manager.GetFirstAdapter(self.host_mac)
-
     # Records RSSI of each scan and calculates average rssi.
     candidate_rssis = {}
 
@@ -704,7 +700,7 @@ class BluetoothTest(test_case.TestCase):
       self.ui.SetState(_('Scanning...'))
 
       with self.TimedProgressBar(timeout_secs):
-        devices = bluetooth_manager.ScanDevices(adapter, timeout_secs)
+        devices = self.btmgmt.FindDevices()
 
       logging.info('Found %d device(s).', len(devices))
       for mac, props in iteritems(devices):
@@ -813,9 +809,8 @@ class BluetoothTest(test_case.TestCase):
   def DetectRSSIofTargetMAC(self):
     """Detect the RSSI strength at a given target MAC address.
 
-    In this task, a generic test host uses the first adapter from
-    BluetoothManager and scans devices around for timeout_secs. The task
-    passed if it can detect the RSSI strength at the target MAC.
+    In this task, a generic test host uses btmgmt tool to find devices around.
+    The task passed if it can detect the RSSI strength at the target MAC.
 
     Note: this task is intended to be executed on a generic test host to test
     if the RSSI of a target device, e.g., a Ryu base, could be detected.
@@ -858,9 +853,7 @@ class BluetoothTest(test_case.TestCase):
       self.ui.SetState(
           _('Detect RSSI (count {count}/{total})', count=i, total=scan_counts))
       with self.TimedProgressBar(timeout_secs):
-        devices = bluetooth_manager.ScanDevices(adapter,
-                                                timeout_secs=timeout_secs,
-                                                match_address=mac_to_scan)
+        devices = self.btmgmt.FindDevices()
       for mac, props in iteritems(devices):
         if mac == mac_to_scan and 'RSSI' in props:
           session.console.info('RSSI of count %d: %.2f', i, props['RSSI'])

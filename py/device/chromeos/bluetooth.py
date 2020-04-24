@@ -16,7 +16,7 @@ import yaml
 
 from cros.factory.device.bluetooth import BluetoothManager
 from cros.factory.device.bluetooth import BluetoothManagerException
-from cros.factory.device import device_utils
+from cros.factory.test.utils import bluetooth_utils
 from cros.factory.utils.sync_utils import PollForCondition
 from cros.factory.utils.sync_utils import Retry
 
@@ -101,7 +101,7 @@ class ChromeOSBluetoothManager(BluetoothManager):
   def __init__(self, dut):
     super(ChromeOSBluetoothManager, self).__init__(dut)
     DBusGMainLoop(set_as_default=True)
-    self._main_loop = gobject.MainLoop()
+    self._main_loop = None
     self._manager = None
     bus = dbus.SystemBus()
     try:
@@ -239,6 +239,8 @@ class ChromeOSBluetoothManager(BluetoothManager):
       Raises BluetoothManagerException if fails to create service agent or
           fails to create paired device.
     """
+    # TODO(kerker) This statement will fail now, wait for b:154882586
+    self._main_loop = gobject.MainLoop()
     matching_device = self._FindDeviceInterface(device_address, adapter)
     if not matching_device:
       raise BluetoothManagerException('CreatePairedDevice: '
@@ -597,15 +599,14 @@ class ChromeOSBluetoothManager(BluetoothManager):
 
 
 USAGE = """
-Controls bluetooth adapter to scan remote devices.
+Controls btmgmt tool to scan remote devices.
 """
 
 
 class BluetoothTest(object):
   """A class to test bluetooth in command line."""
   args = None
-  manager = None
-  adapter = None
+  btmgmt = None
 
   def Main(self):
     self.ParseArgs()
@@ -621,14 +622,16 @@ class BluetoothTest(object):
     parser.add_argument(
         '--forever', dest='forever', action='store_true',
         help='Scans forever')
+    parser.add_argument(
+        '--manufacturer_id', default=None, type=int,
+        help='Set manufacturer id to specify the interface. Get it from '
+             '`btmgmt info`.')
     self.args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
 
   def Run(self):
-    """Controls the adapter to scan remote devices."""
-    self.manager = device_utils.CreateDUTInterface().bluetooth
-    self.adapter = self.manager.GetFirstAdapter()
-    logging.info('Using adapter: %s', self.adapter)
+    """Controls btmgmt tool to scan remote devices."""
+    self.btmgmt = bluetooth_utils.BtMgmt(self.args.manufacturer_id)
 
     if self.args.forever:
       while True:
@@ -638,7 +641,7 @@ class BluetoothTest(object):
 
   def _RunOnce(self):
     """Scans once."""
-    result = self.manager.ScanDevices(self.adapter)
+    result = self.btmgmt.FindDevices()
     if self.args.properties:
       logging.info(yaml.dump(result, default_flow_style=False))
 

@@ -39,7 +39,7 @@ class BtMgmt(object):
     self._GetInfo(self._manufacturer_id)
 
   def _GetInfo(self, manufacturer_id):
-    """Get the bluetooth hci device and MAC of the adapter with spceified
+    """Get the bluetooth hci device and MAC of the adapter with specified
     manufacturer id.
 
     Examples of the output from "btmgmt info" could be as follows depending
@@ -80,6 +80,33 @@ class BtMgmt(object):
   def GetHciDevice(self):
     """Get the HCI device of the bluetooth adapter."""
     return self._hci_device
+
+  def FindDevices(self, index=0):
+    if self._hci_device:
+      index = int(self._hci_device.lstrip('hci'))
+
+    patt = re.compile(
+        r'^hci\d+\sdev_found:\s(.+)\stype\s.+\srssi\s(\-\d+)\s.*$')
+    devices = {}
+    for line in process_utils.CheckOutput(
+        ['btmgmt', '--index', str(index), 'find']).splitlines():
+      if line.startswith('hci'):
+        result = patt.match(line)
+        if not result:
+          continue
+
+        mac = result.group(1)
+        rssi = int(result.group(2))
+        logging.info('Address: %s, RSSI: %d', mac, rssi)
+        if mac not in devices:
+          devices[mac] = {}
+        devices[mac]['RSSI'] = rssi
+
+      elif line.startswith('name'):
+        name = line.lstrip('name ')
+        devices[mac]['Name'] = name
+
+    return devices
 
 
 class GattTool(object):
