@@ -35,6 +35,7 @@ PayloadTypes, PayloadTypeNames = _InitializeTypes([
     PayloadType('netboot_cmdline', 'netboot/tftp/chrome-bot/*/cmdline'),
     PayloadType('netboot_firmware', 'netboot/image.net.bin'),
     PayloadType('netboot_kernel', 'netboot/tftp/chrome-bot/*/vmlinu*'),
+    PayloadType('project_config', 'project_config/*'),
     PayloadType('release_image', 'release_image/*'),
     PayloadType('test_image', 'test_image/*'),
     PayloadType('toolkit', 'toolkit/*')
