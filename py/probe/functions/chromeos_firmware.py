@@ -53,7 +53,7 @@ def _MainRoHash(image):
   """Algorithm: sha256(fmap, RO_SECTION[-GBB])."""
   hash_src = image.get_fmap_blob()
   gbb = image.get_section('GBB')
-  zero_gbb = chr(0) * len(gbb)
+  zero_gbb = b'\x00' * len(gbb)
   image.put_section('GBB', zero_gbb)
   hash_src += image.get_section('RO_SECTION')
   image.put_section('GBB', gbb)
