@@ -254,11 +254,16 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
       _Check()
     except type_utils.TestFailure:
       if self.args.check_version_retry_timeout <= 0:
+        self._ClearAttemptDeviceData()
         raise
       self.ui.SetState('Version is old, sleep for %d seconds and re-check.' %
                        self.args.check_version_retry_timeout)
       self.Sleep(self.args.check_version_retry_timeout)
-      _Check()
+      try:
+        _Check()
+      except type_utils.TestFailure:
+        self._ClearAttemptDeviceData()
+        raise
 
   def _UpdateCr50Firmware(self, firmware_file):
     if self._IsPrePVTFirmware(firmware_file):
