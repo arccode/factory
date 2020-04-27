@@ -66,6 +66,7 @@ def SortImports():
   text_range = vim.current.range
 
   def _ImportLineToKey(line):
+    line, unused_sep, unused_rest = line.partition(' as ')
     if line.startswith('import '):
       return line.replace('import ', '').lower()
     return line.replace('from ', '').replace(' import ', '.').lower()
