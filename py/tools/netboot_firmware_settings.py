@@ -77,7 +77,7 @@ class Image(object):
     area = self.areas[key]
     if len(value) > area['size']:
       raise ValueError('Too much data for FMAP area %s' % key)
-    value = value.ljust(area['size'], '\0')
+    value = value.ljust(area['size'], b'\0')
     self.data = (self.data[:area['offset']] + value +
                  self.data[area['offset'] + area['size']:])
 
@@ -107,7 +107,7 @@ class Settings(object):
       signature: A constant which has a signature value at the front of the
         settings when written into the image.
   """
-  signature = 'netboot\0'
+  signature = b'netboot\0'
 
   class Attribute(object):
     """A class which represents a particular setting.
@@ -130,7 +130,7 @@ class Settings(object):
     def padded_value(value):
       value_len = len(value)
       pad_len = ((value_len + 3) // 4) * 4 - value_len
-      return value + '\0' * pad_len
+      return value + b'\0' * pad_len
 
     def pack(self):
       """Pack an attribute into a binary representation.
@@ -144,7 +144,7 @@ class Settings(object):
       if self.value:
         value = self.value.pack()
       else:
-        value = ''
+        value = b''
       value_len = len(value)
       padded_value = self.padded_value(value)
       format_str = '<II%ds' % len(padded_value)
@@ -163,7 +163,7 @@ class Settings(object):
       value = blob[offset:offset + value_len]
       offset += len(cls.padded_value(value))
       if value:
-        setting = IpAddressValue if code == CODE_TFTP_SERVER_IP else StringValue
+        setting = IpAddressValue if code == CODE_TFTP_SERVER_IP else BytesValue
         value = setting.unpack(value)
       return cls(code, value), offset
 
@@ -220,41 +220,43 @@ class Settings(object):
     return value
 
 
-class StringValue(object):
-  """Class for setting values that are stored simply as strings."""
+class BytesValue(object):
+  """Class for setting values that are stored as bytes strings."""
 
   def __init__(self, val):
-    """Initialize an instance of StringValue.
+    """Initialize an instance of BytesValue.
 
     Args:
         self: The instance to initialize.
         val: The value of the setting.
     """
+    if isinstance(val, str):
+      val = bytes(val, 'ascii')
     self.val = val
 
   def pack(self):
-    """Pack the setting by returning its value as a string.
+    """Pack the setting by returning its value as a bytes string.
 
     Args:
         self: The instance to pack.
 
     Returns:
-        The val field as a string.
+        The val field as a bytes string.
     """
-    return str(self.val)
+    return self.val
 
   @classmethod
   def unpack(cls, val):
     return cls(val)
 
-  def __str__(self):
-    return str(self.val)
+  def __bytes__(self):
+    return self.val
 
   def __repr__(self):
-    return repr(self.val.strip('\0'))
+    return repr(self.val.strip(b'\0'))
 
 
-class IpAddressValue(StringValue):
+class IpAddressValue(BytesValue):
   """Class for IP address setting value."""
 
   def __init__(self, val):
@@ -313,7 +315,7 @@ def DefineCommandLineArgs(parser):
 def NetbootFirmwareSettings(options):
   """Main function to access netboot firmware settings."""
   print('Reading from %s...' % options.input)
-  with open(options.input, 'r') as f:
+  with open(options.input, 'rb') as f:
     image = Image(f.read())
 
   settings = Settings(image[SETTINGS_FMAP_SECTION])
@@ -324,9 +326,9 @@ def NetbootFirmwareSettings(options):
   if options.tftpserverip:
     settings['tftp_server_ip'] = IpAddressValue(options.tftpserverip)
   if options.bootfile:
-    settings['bootfile'] = StringValue(options.bootfile + '\0')
+    settings['bootfile'] = BytesValue(options.bootfile + '\0')
   if options.argsfile:
-    settings['argsfile'] = StringValue(options.argsfile + '\0')
+    settings['argsfile'] = BytesValue(options.argsfile + '\0')
   # pylint: enable=unsubscriptable-object
 
   kernel_args = ''
@@ -337,7 +339,7 @@ def NetbootFirmwareSettings(options):
   kernel_args += ' '.join(options.kernel_args)
   kernel_args += '\0'
   # pylint: disable=unsubscriptable-object
-  settings['kernel_args'] = StringValue(kernel_args)
+  settings['kernel_args'] = BytesValue(kernel_args)
   # pylint: enable=unsubscriptable-object
 
   new_blob = settings.pack()
@@ -355,7 +357,7 @@ def NetbootFirmwareSettings(options):
 
   if do_output:
     print('Generating output to %s...' % output_name)
-    with open(output_name, 'w') as f:
+    with open(output_name, 'wb') as f:
       f.write(image.data)
 
 def main(argv):
