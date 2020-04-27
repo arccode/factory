@@ -92,7 +92,6 @@ import ast
 import os
 import re
 
-from cros.factory.external import evdev
 from cros.factory.test.l10n import regions
 from cros.factory.test import session
 from cros.factory.test import test_case
@@ -102,6 +101,8 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import schema
+
+from cros.factory.external import evdev
 
 
 _RE_EVTEST_EVENT = re.compile(

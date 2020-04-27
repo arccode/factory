@@ -51,7 +51,6 @@ to draw a line from left-top to left-bottom::
 
 import threading
 
-from cros.factory.external import evdev
 from cros.factory.test.i18n import _
 from cros.factory.test import state
 from cros.factory.test import test_case
@@ -62,6 +61,8 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils.type_utils import Enum
+
+from cros.factory.external import evdev
 
 
 class StylusMonitor(touch_monitor.SingleTouchMonitor):

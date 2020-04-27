@@ -42,10 +42,11 @@ If you want to change the time limit to 100 seconds::
 
 import logging
 
-from cros.factory.external import evdev
 from cros.factory.test import test_case
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
+
+from cros.factory.external import evdev
 
 
 class MouseTest(test_case.TestCase):

@@ -50,12 +50,13 @@ StylusAndGarage is defined in generic_common.test_list.json::
   }
 """
 
-from cros.factory.external import evdev
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import type_utils
+
+from cros.factory.external import evdev
 
 
 STYLUS_STATUS = type_utils.Enum(['inserted', 'ejected'])

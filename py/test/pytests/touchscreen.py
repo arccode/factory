@@ -112,13 +112,14 @@ If seeing unexpected touch events in `evtest`, here are some thoughts:
 4. Flash touchscreen firmware to a different version. Maybe it's too sensitive.
 """
 
-# pylint: disable=no-name-in-module
-from cros.factory.external.evdev import ecodes
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.test.utils import touch_monitor
 from cros.factory.utils.arg_utils import Arg
+
+# pylint: disable=no-name-in-module
+from cros.factory.external.evdev import ecodes
 
 
 class StylusMonitor(touch_monitor.SingleTouchMonitor):

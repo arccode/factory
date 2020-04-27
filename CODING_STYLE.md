@@ -162,6 +162,27 @@ The `factory_env.py` script detects the real python script to execute
 (`py/tools/image_tool.py` in this case), and inject the factory package folder
 into system path before running the real python script.
 
+### Import Ordering
+Imports should be split into following sections:
+1. System packages
+2. Third party packages
+3. Project (`cros.factory`) packages
+4. `cros.factory.external` packages
+
+In each section, import lines should be sorted, the sorting key for each import
+line is constructued as following:
+
+```
+import a.b.c  # sorting key: 'a.b.c'
+from x.y import z  # sorting key: 'x.y.z'
+
+import a.b.c as xyz  # sorting key: 'a.b.c', "as xyz" is ignored.
+from x.y import z as abc  # sorting key: 'x.y.z', "as abc" is ignored.
+```
+
+[sort_import.vim](devtools/vim/ftplugin/python/sort_import.vim) is a Vim plugin
+implementation to sort imports alphabetically.
+
 ### Additional requirements
 
 *   Don't write shell scripts for anything except very, very simple scripts. Use

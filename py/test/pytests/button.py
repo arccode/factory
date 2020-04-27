@@ -62,7 +62,6 @@ import logging
 import time
 
 from cros.factory.device import device_utils
-from cros.factory.external import evdev
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
@@ -72,6 +71,9 @@ from cros.factory.test.utils import evdev_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sync_utils
+
+from cros.factory.external import evdev
+
 
 _DEFAULT_TIMEOUT = 30
 
