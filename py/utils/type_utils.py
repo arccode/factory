@@ -13,7 +13,7 @@ import re
 from six import iteritems
 
 # The regular expression used by Overrides.
-_OVERRIDES_CLASS_RE = re.compile(r'^\s*class[^#]+\(\s*([^\s#]+)\s*\)\s*\:')
+_OVERRIDES_CLASS_RE = re.compile(r'^\s*class([^#]+)\(\s*([^\s#]+)\s*\)\s*\:')
 
 
 class Error(Exception):
@@ -280,21 +280,18 @@ def Overrides(method):
    def m(self):
      return 2
   """
-  stack = inspect.stack()
-  # stack: [overrides, ....[other decorators]..., inside-class, outside-class]
-  # The real class (inside-class) is not defined yet so we have to find its
-  # parent directly from source definition.
-  for i, frame_record in enumerate(stack[2:]):
-    source = frame_record[4] or ['']
+  frame = inspect.currentframe()
+  while frame:
+    info = inspect.getframeinfo(frame)
+    source = info[3] or ['']
     matched = _OVERRIDES_CLASS_RE.match(source[0])
     if matched:
-      # Find class name from previous frame record.
-      current_class = stack[i + 1][3]
-      base_class = matched.group(1)
-      frame = frame_record[0]
+      current_class = matched.group(1)
+      base_class = matched.group(2)
       break
+    frame = frame.f_back
   else:
-    raise ValueError('@Overrides failed to find base class from %r' % stack)
+    raise ValueError('@Overrides failed to find base class')
 
   # Resolve base_class in context (look up both locals and globals)
   context = frame.f_globals.copy()
