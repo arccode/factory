@@ -165,7 +165,7 @@ class ExecShell(test_case.TestCase):
     """Updates output from file handle to given HTML node."""
     self.ui.SetHTML('', id=name)
     while True:
-      c = os.read(handle.fileno(), 4096)
+      c = os.read(handle.fileno(), 4096).decode('utf-8')
       if not c:
         break
       self.ui.SetHTML(
