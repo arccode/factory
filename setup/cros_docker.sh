@@ -284,12 +284,16 @@ do_umpire_run() {
   local p3=$((UMPIRE_PORT + 4))  # Rsync
   local p4=$((UMPIRE_PORT + 6))  # Instalog output_pull_socket plugin
   local p5=$((UMPIRE_PORT + 8))  # Instalog customized output plugin
+  local p6=$((UMPIRE_PORT + 11)) # Multicast begin port
+  local p7=$((UMPIRE_PORT + 30)) # Multicast end port
 
   local umpire_base_port=8080
   local umpire_cli_port=$((umpire_base_port + 2))
   local umpire_rsync_port=$((umpire_base_port + 4))
   local umpire_instalog_pull_socket_port=$((umpire_base_port + 6))
   local umpire_instalog_customized_output_port=$((umpire_base_port + 8))
+  local umpire_multicast_begin_port=$((umpire_base_port + 11))
+  local umpire_multicast_end_port=$((umpire_base_port + 30))
 
   ${DOCKER} run \
     --detach \
@@ -305,6 +309,8 @@ do_umpire_run() {
     --publish "${p3}:${umpire_rsync_port}" \
     --publish "${p4}:${umpire_instalog_pull_socket_port}" \
     --publish "${p5}:${umpire_instalog_customized_output_port}" \
+    --publish "${p6}-${p7}:\
+${umpire_multicast_begin_port}-${umpire_multicast_end_port}/udp" \
     --env "UMPIRE_PROJECT_NAME=${PROJECT}" \
     --privileged \
     "${DOCKER_IMAGE_NAME}" \

@@ -22,7 +22,8 @@ ConfigType = collections.namedtuple('ConfigType',
 
 ConfigTypes, ConfigTypeNames = _InitializeTypes([
     ConfigType('umpire_config', 'umpire', 'json'),
-    ConfigType('payload_config', 'payload', 'json')])
+    ConfigType('payload_config', 'payload', 'json'),
+    ConfigType('multicast_config', 'multicast', 'json')])
 
 PayloadType = collections.namedtuple('PayloadType',
                                      ['type_name', 'import_pattern'])

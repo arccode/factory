@@ -47,6 +47,8 @@ UMPIRE_RSYNC_PORT_OFFSET = 4
 UMPIRE_INSTALOG_PULL_SOCKET_PORT_OFFSET = 6
 UMPIRE_START_WAIT_SECS = 5
 UMPIRE_INSTALOG_CUSTOMIZED_OUTPUT_PORT_OFFSET = 8
+UMPIRE_MULTICAST_BEGIN_PORT_OFFSET = 11
+UMPIRE_MULTICAST_END_PORT_OFFSET = 30
 
 # TODO(littlecvr): use volume container instead of absolute path.
 # TODO(littlecvr): these constants are shared between here and cros_docker.sh,
@@ -445,6 +447,11 @@ class Project(django.db.models.Model):
           '--publish', '%d:%d' % (
               port + UMPIRE_INSTALOG_CUSTOMIZED_OUTPUT_PORT_OFFSET,
               UMPIRE_BASE_PORT + UMPIRE_INSTALOG_CUSTOMIZED_OUTPUT_PORT_OFFSET),
+          '--publish', '%d-%d:%d-%d/udp' % (
+              port + UMPIRE_MULTICAST_BEGIN_PORT_OFFSET,
+              port + UMPIRE_MULTICAST_END_PORT_OFFSET,
+              UMPIRE_BASE_PORT + UMPIRE_MULTICAST_BEGIN_PORT_OFFSET,
+              UMPIRE_BASE_PORT + UMPIRE_MULTICAST_END_PORT_OFFSET),
           '--env', 'UMPIRE_PROJECT_NAME=%s' % self.name,
           '--restart', 'unless-stopped',
           '--name', container_name]
