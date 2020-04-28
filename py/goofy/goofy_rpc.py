@@ -591,7 +591,7 @@ class GoofyRPC(object):
 
     tmp_file = self.CallExtension('TakeScreenshot', timeout=timeout)
     image = base64.b64decode(file_utils.ReadFile(tmp_file).split(',')[1])
-    file_utils.WriteFile(output_filename, image)
+    file_utils.WriteFile(output_filename, image, encoding=None)
     file_utils.TryUnlink(tmp_file)
 
   def DeviceGetDisplayInfo(self, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
