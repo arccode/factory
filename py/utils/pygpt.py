@@ -1074,7 +1074,7 @@ class GPTCommands(object):
           '-i', '--number', type=int,
           help='Set bootable partition')
       parser.add_argument(
-          '-b', '--bootloader', type=argparse.FileType('r'),
+          '-b', '--bootloader', type=argparse.FileType('rb'),
           help='Install bootloader code in the PMBR')
       parser.add_argument(
           '-p', '--pmbr', action='store_true',
