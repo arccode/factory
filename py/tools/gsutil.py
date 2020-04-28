@@ -5,8 +5,10 @@
 """A tool for gsutil."""
 
 from __future__ import division
+from __future__ import print_function
 
-from distutils import version
+import argparse
+from distutils import version as version_utils
 import logging
 import os
 import re
@@ -103,12 +105,12 @@ class GSUtil(object):
     def GetVersion(gs_path):
       version_str = gs_path.rstrip('/').rpartition('/')[2]
       try:
-        return version.StrictVersion(version_str)
+        return version_utils.StrictVersion(version_str)
       except ValueError:
         logging.warning('Bogus version string: %s', version_str)
         # Try to handle version number like 3674.0.2013_02_07_1033.
         version_str = version_str.replace('_', '')
-        return version.StrictVersion(version_str)
+        return version_utils.StrictVersion(version_str)
 
     return sorted([p for p in gs_path_list if p.startswith(gs_url_pattern)],
                   key=GetVersion)[-1]
@@ -276,3 +278,54 @@ def BuildResourceBaseURL(channel, board, version):
   return BASE_URL_FORMAT.format(channel=channel,
                                 board=board,
                                 version=version)
+
+
+class _DownloadCommand(object):
+  @classmethod
+  def Register(cls, parser):
+    subparser = parser.add_parser('download', description='Download an image.')
+    subparser.set_defaults(subcommand=cls)
+    subparser.add_argument('--board', type=str, required=True)
+    subparser.add_argument('--channel', choices=GSUtil.CHANNELS,
+                           default=GSUtil.CHANNELS.dev)
+    subparser.add_argument('--version', type=str, help='e.g. "1234.56.78"')
+    subparser.add_argument('--branch', type=str, help='e.g. "1234.56"')
+    subparser.add_argument('--key', type=str, help='e.g. "premp", "mp-v2"')
+
+    subparser.add_argument('--dest', type=str,
+                           help='directory or file path of destination',
+                           default='.')
+
+    subparser.add_argument('--dry-run', action='store_true',
+                           help='Print the URI to be downloaded and exit.')
+
+    subparser.add_argument('type', choices=GSUtil.IMAGE_TYPES)
+
+  @classmethod
+  def Run(cls, args):
+    gsutil = GSUtil(args.board)
+
+    if args.version:
+      base_url = BuildResourceBaseURL(args.channel, args.board, args.version)
+    else:
+      base_url = gsutil.GetLatestBuildPath(args.channel, args.branch)
+
+    binary_uri = gsutil.GetBinaryURI(base_url, args.type, args.key)
+    if args.dry_run:
+      print(binary_uri)
+      return
+
+    gsutil.CP(binary_uri, args.dest)
+
+
+def main():
+  parser = argparse.ArgumentParser()
+  subparsers = parser.add_subparsers(title='sub commands', dest='subparser')
+  _DownloadCommand.Register(subparsers)
+
+  args = parser.parse_args()
+  args.subcommand.Run(args)
+
+
+if __name__ == '__main__':
+  main()
