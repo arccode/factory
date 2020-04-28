@@ -60,6 +60,9 @@ def ValidateConfig(config):
               },
               'active_bundle_id': {
                   'type': 'string'
+              },
+              'multicast': {
+                  'type': 'string'
               }
           },
           'required': ['services', 'bundles', 'active_bundle_id'],

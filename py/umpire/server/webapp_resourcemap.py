@@ -40,6 +40,9 @@ def GetResourceMap(env):
             'shop_floor_handler: /umpire',
             'payloads: %s' % bundle['payloads']]
 
+  if 'multicast' in env.config:
+    result.append('multicast: %s' % env.config['multicast'])
+
   return ''.join('%s\n' % s for s in result)
 
 
