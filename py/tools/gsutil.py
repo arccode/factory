@@ -265,3 +265,14 @@ class GSUtil(object):
     self.CP(uri, 'file://' + in_progress_path)
     shutil.move(in_progress_path, cached_path)
     return cached_path
+
+
+def BuildResourceBaseURL(channel, board, version):
+  BASE_URL_FORMAT = 'gs://chromeos-releases/{channel}-channel/{board}/{version}'
+  assert channel in GSUtil.CHANNELS
+  assert isinstance(board, str)
+  assert isinstance(version, str)
+
+  return BASE_URL_FORMAT.format(channel=channel,
+                                board=board,
+                                version=version)

@@ -918,7 +918,7 @@ class FinalizeBundle(object):
     possible_urls = []
     for channel in RESOURCE_CHANNELS:
       url = '%s/%s' % (
-          FinalizeBundle._ResourceBaseURL(
+          gsutil.BuildResourceBaseURL(
               channel, self.build_board.gsutil_name, requested_version),
           '*test*.tar.xz')
       possible_urls.append(url)
@@ -932,7 +932,7 @@ class FinalizeBundle(object):
     for ext in ['.bin', '.tar.xz']:
       for channel in RESOURCE_CHANNELS:
         url = '%s/%s%s' % (
-            FinalizeBundle._ResourceBaseURL(
+            gsutil.BuildResourceBaseURL(
                 channel, self.build_board.gsutil_name, requested_version),
             '*recovery*', ext)
         possible_urls.append(url)
@@ -943,7 +943,7 @@ class FinalizeBundle(object):
     possible_urls = []
     for channel in RESOURCE_CHANNELS:
       url = '%s/%s' % (
-          FinalizeBundle._ResourceBaseURL(
+          gsutil.BuildResourceBaseURL(
               channel, self.build_board.gsutil_name, requested_version),
           '*factory*.zip')
       possible_urls.append(url)
@@ -955,12 +955,6 @@ class FinalizeBundle(object):
     return self._LocateOneResource(
         'factory toolkit', LOCAL, TOOLKIT_SEARCH_DIRS,
         lambda unused_path, unused_version: True)
-
-  @staticmethod
-  def _ResourceBaseURL(channel, board, version):
-    return (
-        'gs://chromeos-releases/%(channel)s-channel/%(board)s/%(version)s' %
-        dict(channel=channel, board=board, version=version))
 
   @staticmethod
   def _ListAllFilesIn(search_dirs):
