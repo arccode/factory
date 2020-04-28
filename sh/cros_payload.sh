@@ -25,6 +25,7 @@
 : "${JQ:=""}"
 : "${SUDO:="sudo"}"
 : "${PV:="cat"}"
+: "${UFTPD:="uftpd"}"
 
 # Debug settings
 : "${DEBUG:=}"
@@ -210,11 +211,58 @@ get_uncompressed_file() {
   fi
 }
 
+mcast_client() {
+  local url="$1"
+  local output="$2"
+
+  local addr="${url%:*}"
+  local port="${url#*:}"
+
+  local temp_dir="$(mktemp -d)"
+  local pid_file_path="$(mktemp)"
+  local status_file_path="$(mktemp -u)"
+  mkfifo "${status_file_path}"
+
+  info "Summon uftpd."
+  "${UFTPD}" -M "${addr}" -p "${port}" -F "${status_file_path}" \
+    -P "${pid_file_path}" -D "${temp_dir}" -t -x "0"
+
+  while read -r line; do
+    local result="$(echo "$line" | cut -d ';' -f 1)"
+    local status="$(echo "$line" | cut -d ';' -f 7)"
+
+    if [ "${result}" = "CONNECT" ]; then
+      info "Registered to the server. Waiting for file transfer..."
+      continue
+    fi
+    # Format: RESULT;timestamp;server_id;session_id;filename;size;status
+    if [ "${result}" = "RESULT" ] && [ "${status}" = "copied" ]; then
+      info "File transfer completed. Kill uftpd."
+      kill "$(cat "${pid_file_path}")"
+
+      local file_name="$(echo $line | cut -d ';' -f 5)"
+      if [ -z "${output}" ]; then
+        "${PV}" "${temp_dir}/${file_name}"
+      else
+        "${PV}" "${temp_dir}/${file_name}" > ${output}
+      fi
+      rm -rf "${temp_dir}"
+
+      return
+    fi
+  done < "${status_file_path}"
+}
+
 # Downloads from given URL. If output is not given, use STDOUT.
 # Usage: fetch URL [output]
 fetch() {
   local url="$1"
   local output="$2"
+  if [ -n "${MCAST}" ]; then
+    mcast_client "${url}" "${output}"
+    return
+  fi
+
   if [ -n "${output}" ]; then
     curl -L --fail "${url}" -o "${output}"
   else
@@ -935,12 +983,22 @@ install_payload() {
   local json_url_base="$(dirname "${json_url}")"
   local output=""
   local output_display=""
+  local mcast_enabled=""
 
   local remote_file="$(json_get_file_value ".${payload}" "${json_file}")"
   local remote_url="${json_url_base}/${remote_file}"
   local file_ext="${remote_file##*.}"
   local output_is_final=""
   local mount_point
+
+  # Check if multicast resource is available.
+  local mcast_config="$(json_get_file_value ".multicast.${payload}" \
+                        "${json_file}")"
+  if [ "${mcast_config}" != "null" ] && has_tool "${UFTPD}"; then
+    mcast_enabled=1
+    remote_file="${mcast_config}"
+    remote_url="${remote_file}"
+  fi
 
   if [ "${remote_file}" = "null" ]; then
     if [ -n "${OPTIONAL}" ]; then
@@ -994,17 +1052,19 @@ install_payload() {
     # payloads (for a test_image component, execution time reduced from 72s to
     # 59s for bs=2M), but that does not help bz2 payloads and also makes it
     # harder to install small partitions.
-    fetch "${remote_url}" | do_compress "${remote_url}" -d | \
+    MCAST="${mcast_enabled}" fetch "${remote_url}" | \
+      do_compress ".${file_ext}" -d | \
       dd of="${dest}" bs=1048576 iflag=fullblock oflag=dsync
   elif [ -n "${DO_INSTALL}" ]; then
     echo "Installing from ${payload} to ${output_display} ..."
-    fetch "${remote_url}" | do_compress "${remote_url}" -d >"${output}"
+    MCAST="${mcast_enabled}" fetch "${remote_url}" | \
+      do_compress ".${file_ext}" -d >"${output}"
     if [ -n "${mount_point}" ]; then
       install_add_stub "${payload}" "${output}"
     fi
   else
     echo "Downloading from ${payload} to ${output_display} ..."
-    fetch "${remote_url}" "${output}"
+    MCAST="${mcast_enabled}" fetch "${remote_url}" "${output}"
   fi
 
   if [ -n "${mount_point}" ]; then
