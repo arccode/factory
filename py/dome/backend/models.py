@@ -65,6 +65,7 @@ SHARED_TMP_DIR = '/tmp/shared'
 SHARED_TMP_STORAGE = django.core.files.storage.FileSystemStorage(
     location=SHARED_TMP_DIR)
 
+MROUTE_CONTAINER_NAME = 'dome_mroute'
 TFTP_DOCKER_DIR = os.getenv(
     'HOST_TFTP_DIR', os.path.join(DOCKER_SHARED_DIR, 'tftp'))
 TFTP_BASE_DIR_IN_TFTP_CONTAINER = '/var/tftp'
@@ -186,6 +187,7 @@ class DomeConfig(django.db.models.Model):
 
   id = django.db.models.IntegerField(
       default=0, primary_key=True, serialize=False)
+  mroute_enabled = django.db.models.BooleanField(default=False)
   tftp_enabled = django.db.models.BooleanField(default=False)
 
   def CreateTFTPContainer(self):
@@ -226,6 +228,40 @@ class DomeConfig(django.db.models.Model):
     self.save()
     return self
 
+  def CreateMrouteContainer(self):
+    if DoesContainerExist(MROUTE_CONTAINER_NAME):
+      logger.info('Mroute container already exists')
+      return self
+
+    try:
+      cmd = [
+          'docker', 'run', '--detach',
+          '--restart', 'unless-stopped',
+          '--name', MROUTE_CONTAINER_NAME,
+          '--net', 'host',
+          FACTORY_SERVER_IMAGE_NAME,
+          'mrouted', '-d'
+      ]
+      logger.info('Running command %r', cmd)
+      subprocess.check_call(cmd)
+    except Exception:
+      logger.error('Failed to create mroute container')
+      logger.exception(traceback.format_exc())
+      self.DeleteMrouteContainer()
+      raise
+
+    self.mroute_enabled = True
+    self.save()
+
+    return self
+
+  def DeleteMrouteContainer(self):
+    logger.info('Deleting Mroute container')
+    subprocess.call(['docker', 'rm', '-f', MROUTE_CONTAINER_NAME])
+    self.mroute_enabled = False
+    self.save()
+    return self
+
   def UpdateConfig(self, **kwargs):
     # enable or disable TFTP if necessary
     self.tftp_enabled = DoesContainerExist(TFTP_CONTAINER_NAME)
@@ -235,6 +271,15 @@ class DomeConfig(django.db.models.Model):
         self.CreateTFTPContainer()
       else:
         self.DeleteTFTPContainer()
+
+    self.mroute_enabled = DoesContainerExist(MROUTE_CONTAINER_NAME)
+    if ('mroute_enabled' in kwargs and
+        self.mroute_enabled != kwargs['mroute_enabled']):
+      if kwargs['mroute_enabled']:
+        self.CreateMrouteContainer()
+      else:
+        self.DeleteMrouteContainer()
+
 
     # update attributes assigned in kwargs
     for attr, value in iteritems(kwargs):

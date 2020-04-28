@@ -5,9 +5,10 @@
 import {createAction} from 'typesafe-actions';
 
 import task from '@app/task';
-import {Dispatch} from '@app/types';
+import {Dispatch, RootState} from '@app/types';
 import {authorizedAxios} from '@common/utils';
 
+import {getConfig} from './selectors';
 import {Config} from './types';
 
 const receiveConfig = createAction('RECEIVE_CONFIG', (resolve) =>
@@ -28,15 +29,20 @@ export const fetchConfig = () => async (dispatch: Dispatch) => {
   dispatch(receiveConfig(response.data));
 };
 
-export const updateConfig = (config: Config) =>
-  (dispatch: Dispatch) => (
+export const updateConfig = (config: Partial<Config>) =>
+  (dispatch: Dispatch, getState: () => RootState) => {
+    const newConfig = {...getConfig(getState()), ...config};
     dispatch(task.actions.runTask(
-      'Update config', 'PUT', '/config/0/', config, () => {
+      'Update config', 'PUT', '/config/0/', newConfig, () => {
         // optimistic update
-        dispatch(receiveConfig(config));
+        dispatch(receiveConfig(newConfig));
       }))
-  );
+  };
 
 export const enableTftp = () => updateConfig({tftpEnabled: true});
 
 export const disableTftp = () => updateConfig({tftpEnabled: false});
+
+export const enableMroute = () => updateConfig({mrouteEnabled: true});
+
+export const disableMroute = () => updateConfig({mrouteEnabled: false});

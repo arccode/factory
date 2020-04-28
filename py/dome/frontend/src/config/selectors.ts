@@ -8,11 +8,16 @@ import {displayedState} from '@common/optimistic_update';
 
 import {NAME} from './constants';
 import {ConfigState} from './reducer';
+import {Config} from './types';
 
 export const localState = (state: RootState): ConfigState =>
   displayedState(state)[NAME];
 
+export const getConfig =
+  (state: RootState): Config => localState(state).config
 export const isTftpEnabled =
   (state: RootState): boolean => localState(state).config.tftpEnabled;
+export const isMrouteEnabled =
+  (state: RootState): boolean => localState(state).config.mrouteEnabled;
 export const isConfigUpdating =
   (state: RootState): boolean => localState(state).updating;

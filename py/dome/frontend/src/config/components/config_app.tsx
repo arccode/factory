@@ -18,12 +18,15 @@ import {RootState} from '@app/types';
 import {DispatchProps} from '@common/types';
 
 import {
+  disableMroute,
   disableTftp,
+  enableMroute,
   enableTftp,
   fetchConfig,
 } from '../actions';
 import {
   isConfigUpdating,
+  isMrouteEnabled,
   isTftpEnabled,
 } from '../selectors';
 
@@ -37,9 +40,12 @@ class ConfigApp extends React.Component<ConfigAppProps> {
 
   render() {
     const {
+      isMrouteEnabled,
       isTftpEnabled,
       isConfigUpdating,
+      disableMroute,
       disableTftp,
+      enableMroute,
       enableTftp,
       logout,
     } = this.props;
@@ -59,6 +65,17 @@ class ConfigApp extends React.Component<ConfigAppProps> {
             }
             label="TFTP server"
           />
+          <FormControlLabel
+            control={
+              <Switch
+                color="primary"
+                checked={isMrouteEnabled}
+                onChange={isMrouteEnabled ? disableMroute : enableMroute}
+                disabled={isConfigUpdating}
+              />
+            }
+            label="Multicast Routing"
+          />
         </CardContent>
         <CardActions>
           <Button color="primary" size="small" onClick={logout}>
@@ -72,11 +89,14 @@ class ConfigApp extends React.Component<ConfigAppProps> {
 
 const mapStateToProps = (state: RootState) => ({
   isTftpEnabled: isTftpEnabled(state),
+  isMrouteEnabled: isMrouteEnabled(state),
   isConfigUpdating: isConfigUpdating(state),
 });
 
 const mapDispatchToProps = {
+  disableMroute,
   disableTftp,
+  enableMroute,
   enableTftp,
   fetchConfig,
   logout: auth.actions.logout,
