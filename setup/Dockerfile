@@ -69,6 +69,10 @@ RUN apk upgrade --no-cache && apk add --no-cache \
 ADD build/docker/pixz.tbz2 /usr/bin
 ADD build/docker/lbzip2.tbz2 /usr/bin
 
+# Add self-built UFTP and mrouted binary
+ADD build/docker/uftp.tgz /usr/bin
+ADD build/docker/mrouted.tgz /usr/bin
+
 # Prepare requirements file and install pip packages.
 COPY py/umpire/server/requirements.txt "${umpire_dir}/"
 COPY py/dome/requirements.txt "${dome_dir}/"

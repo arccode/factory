@@ -153,6 +153,10 @@ RESOURCE_PIXZ_URL="${PREBUILT_IMAGE_DIR_URL}/pixz-1.0.6-amd64-static.tbz2"
 RESOURCE_PIXZ_SHA1="3bdf7473df19f2d089f2a9b055c18a4f7f1409e5"
 RESOURCE_LBZIP2_URL="${PREBUILT_IMAGE_DIR_URL}/lbzip2-2.5-amd64-musl.tbz2"
 RESOURCE_LBZIP2_SHA1="2ae425fd822d85064cb5e641f8d529dbd75c08bb"
+RESOURCE_UFTP_URL="${PREBUILT_IMAGE_DIR_URL}/uftp-4.10.1.tar.gz"
+RESOURCE_UFTP_SHA1="93480a7b67734c6565c47b1a61e0975222adcb79"
+RESOURCE_MROUTED_URL="${PREBUILT_IMAGE_DIR_URL}/mrouted-3.9.8.tar.gz"
+RESOURCE_MROUTED_SHA1="478fe3a79b4b66c1e8a89b890c7cec62c2c54f02"
 
 # Directories inside docker
 DOCKER_BASE_DIR="/usr/local/factory"
@@ -1049,6 +1053,10 @@ do_build() {
     "${RESOURCE_PIXZ_URL}" "${RESOURCE_PIXZ_SHA1}"
   fetch_resource "${BUILD_DIR}/lbzip2.tbz2" \
     "${RESOURCE_LBZIP2_URL}" "${RESOURCE_LBZIP2_SHA1}"
+  fetch_resource "${BUILD_DIR}/uftp.tgz" \
+    "${RESOURCE_UFTP_URL}" "${RESOURCE_UFTP_SHA1}"
+  fetch_resource "${BUILD_DIR}/mrouted.tgz" \
+    "${RESOURCE_MROUTED_URL}" "${RESOURCE_MROUTED_SHA1}"
 
   if check_git_status; then
     NEW_DOCKER_IMAGE_GITHASH="$(get_git_hash)"
