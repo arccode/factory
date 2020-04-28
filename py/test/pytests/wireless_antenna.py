@@ -362,19 +362,19 @@ class Capture(object):
         freq = int(m.group(1))
         ssid = m.group(2)
         break
-    packet_bytes = ''
+    packet_bytes = b''
     while True:
       line = self.monitor_process.stdout.readline()
       if not line.startswith('\t0x'):
         break
 
-      # Break up lines of the form "\t0x0000: abcd ef" into a string
-      # "\xab\xcd\xef".
+      # Break up lines of the form "\t0x0000: abcd ef" into a bytes
+      # b"\xab\xcd\xef".
       parts = line[3:].split()
       for part in parts[1:]:
-        packet_bytes += chr(int(part[:2], 16))
+        packet_bytes += bytes((int(part[:2], 16),))
         if len(part) > 2:
-          packet_bytes += chr(int(part[2:], 16))
+          packet_bytes += bytes((int(part[2:], 16),))
       packet = RadiotapPacket.Decode(packet_bytes)
       if packet:
         return {'ssid': ssid, 'freq': freq, 'signal': packet}
