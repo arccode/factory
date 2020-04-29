@@ -8,49 +8,10 @@ import os
 
 import cloudstorage  # pylint: disable=import-error
 
-
-class FileSystemAdapterException(Exception):
-  pass
+from cros.factory.hwid.v3 import filesystem_adapter
 
 
-class FileSystemAdapter(object):
-  """Acts as a wrapper around the file storage system.
-
-  It supports simple, generic operations on files and is meant to provide a
-  unified interface to either local or cloud files and provide any necessary
-  caching.
-  """
-
-  def ReadFile(self, path):
-    with self.EXCEPTION_MAPPER:
-      return self._ReadFile(path)
-
-  def _ReadFile(self, path):
-    raise NotImplementedError('Abstract method not implemented.')
-
-  def WriteFile(self, path, content):
-    with self.EXCEPTION_MAPPER:
-      return self._WriteFile(path, content)
-
-  def _WriteFile(self, path, content):
-    raise NotImplementedError('Abstract method not implemented.')
-
-  def DeleteFile(self, path):
-    with self.EXCEPTION_MAPPER:
-      return self._DeleteFile(path)
-
-  def _DeleteFile(self, path):
-    raise NotImplementedError('Abstract method not implemented.')
-
-  def ListFiles(self, prefix=None):
-    with self.EXCEPTION_MAPPER:
-      return self._ListFiles(prefix=prefix)
-
-  def _ListFiles(self, prefix=None):
-    raise NotImplementedError('Abstract method not implemented.')
-
-
-class CloudStorageAdapter(FileSystemAdapter):
+class CloudStorageAdapter(filesystem_adapter.FileSystemAdapter):
   """Adapter for Google Cloud Storage."""
 
   class ExceptionMapper(object):
@@ -62,15 +23,19 @@ class CloudStorageAdapter(FileSystemAdapter):
       if isinstance(value, cloudstorage.errors.NotFoundError):
         raise KeyError(value)
       if isinstance(value, cloudstorage.Error):
-        raise FileSystemAdapterException(str(value))
+        raise filesystem_adapter.FileSystemAdapterException(str(value))
 
   CHUNK_SIZE = 2 ** 20
 
   EXCEPTION_MAPPER = ExceptionMapper()
 
+  @classmethod
+  def GetExceptionMapper(cls):
+    return cls.EXCEPTION_MAPPER
+
   def __init__(self, bucket, chunk_size=None):
     self._bucket = bucket
-    self._chunk_size = chunk_size or CloudStorageAdapter.CHUNK_SIZE
+    self._chunk_size = chunk_size or self.CHUNK_SIZE
 
   def _ReadFile(self, path):
     """Read a file from the backing storage system."""

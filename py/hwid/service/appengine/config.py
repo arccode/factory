@@ -9,7 +9,7 @@ import os
 import yaml
 
 # pylint: disable=import-error
-from cros.factory.hwid.service.appengine import filesystem_adapter
+from cros.factory.hwid.service.appengine import cloudstorage_adapter
 from cros.factory.hwid.service.appengine import hwid_manager
 from cros.factory.utils import file_utils
 
@@ -67,9 +67,9 @@ class _Config(object):
       conf = _DEFAULT_CONFIGURATION
 
     self.env = conf['env']
-    self.goldeneye_filesystem = filesystem_adapter.CloudStorageAdapter(
+    self.goldeneye_filesystem = cloudstorage_adapter.CloudStorageAdapter(
         conf['ge_bucket'])
-    self.hwid_filesystem = filesystem_adapter.CloudStorageAdapter(
+    self.hwid_filesystem = cloudstorage_adapter.CloudStorageAdapter(
         conf['bucket'])
     self.hwid_manager = hwid_manager.HwidManager(self.hwid_filesystem)
     self.hw_checker_mail = conf.get('hw_checker_mail', '')

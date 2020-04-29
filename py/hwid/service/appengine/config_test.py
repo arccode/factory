@@ -7,8 +7,8 @@
 import os
 import unittest
 
-from cros.factory.hwid.service.appengine import filesystem_adapter
 from cros.factory.hwid.service.appengine import hwid_manager
+from cros.factory.hwid.v3 import filesystem_adapter
 
 
 class ConfigTest(unittest.TestCase):

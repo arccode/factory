@@ -12,8 +12,8 @@ from google.appengine.api import taskqueue
 import webapp2  # pylint: disable=import-error
 
 from cros.factory.hwid.service.appengine.config import CONFIG
-from cros.factory.hwid.service.appengine import filesystem_adapter
 from cros.factory.hwid.service.appengine import memcache_adapter
+from cros.factory.hwid.v3 import filesystem_adapter
 
 
 MEMCACHE_NAMESPACE = 'SourceGoldenEye'

@@ -11,7 +11,7 @@ import mock
 from mock import patch
 
 from cros.factory.hwid.service.appengine import appengine_test_base
-from cros.factory.hwid.service.appengine import filesystem_adapter
+from cros.factory.hwid.service.appengine import cloudstorage_adapter
 from cros.factory.hwid.service.appengine import hwid_manager
 
 GOLDEN_HWIDV2_FILE = os.path.join(
@@ -42,7 +42,7 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
   def setUp(self):
     super(HwidManagerTest, self).setUp()
 
-    self.filesystem_adapter = filesystem_adapter.CloudStorageAdapter(
+    self.filesystem_adapter = cloudstorage_adapter.CloudStorageAdapter(
         'test-bucket')
 
   def _LoadTestDataStore(self):

@@ -21,11 +21,11 @@ import yaml
 
 # pylint: disable=import-error
 from cros.factory.hwid.service.appengine.config import CONFIG
-from cros.factory.hwid.service.appengine import filesystem_adapter
 from cros.factory.hwid.service.appengine import git_util
 from cros.factory.hwid.service.appengine import hwid_manager
 from cros.factory.hwid.service.appengine import \
     verification_payload_generator as vpg_module
+from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.utils import json_utils
 
 

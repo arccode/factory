@@ -14,8 +14,8 @@ import webtest  # pylint: disable=import-error
 
 # pylint: disable=import-error
 from cros.factory.hwid.service.appengine.config import CONFIG
-from cros.factory.hwid.service.appengine import filesystem_adapter
 from cros.factory.hwid.service.appengine import ingestion
+from cros.factory.hwid.v3 import filesystem_adapter
 
 SERVER_BOARDS_YAML = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                   'testdata/boards_server.yaml')
