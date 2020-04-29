@@ -5,6 +5,8 @@
 """A wrapper for cros-config-api."""
 import os
 
+from google.protobuf import json_format
+
 try:
   from chromiumos.config.payload import config_bundle_pb2
   MODULE_READY = True
@@ -15,13 +17,13 @@ from cros.factory.utils import file_utils
 
 
 def ReadConfig(path):
-  """Reads a binary proto from a file.
+  """Reads a json proto from a file.
 
   Args:
-    path: Path to the binary proto.
+    path: Path to the json proto.
   """
   config = config_bundle_pb2.ConfigBundle()
-  config.ParseFromString(file_utils.ReadFile(path, encoding=None))
+  json_format.Parse(file_utils.ReadFile(path), config)
   return config
 
 
@@ -35,11 +37,11 @@ def MergeConfigs(configs):
 class SKUConfigs(object):
   def __init__(self, program, project):
     self._project = project
-    config_binaryproto_dir = os.path.join(paths.FACTORY_DIR, 'configproto')
+    config_jsonproto_dir = os.path.join(paths.FACTORY_DIR, 'configproto')
     program_config_file = os.path.join(
-        config_binaryproto_dir, '%s_config.binaryproto' % program)
+        config_jsonproto_dir, '%s_config.jsonproto' % program)
     project_config_file = os.path.join(
-        config_binaryproto_dir, '%s_%s_config.binaryproto' % (program, project))
+        config_jsonproto_dir, '%s_%s_config.jsonproto' % (program, project))
     boxster_config = MergeConfigs(
         [ReadConfig(program_config_file), ReadConfig(project_config_file)])
     program_candidates = []

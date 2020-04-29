@@ -89,7 +89,7 @@ _ARG_CBI_DATA_NAMES_SCHEMA = JSONSchemaDict(
     })
 
 SKU_ID_SOURCE = type_utils.Enum(['device_data', 'hardcode'])
-CONFIG_SOURCE = type_utils.Enum(['cros_config_mock', 'config_binaryproto'])
+CONFIG_SOURCE = type_utils.Enum(['cros_config_mock', 'config_jsonproto'])
 
 
 class UpdateCBITest(test_case.TestCase):
@@ -123,16 +123,16 @@ class UpdateCBITest(test_case.TestCase):
           % self.args.sku_id_source)
 
     # Check settings of config_source.
-    if self.args.config_source == CONFIG_SOURCE.config_binaryproto:
+    if self.args.config_source == CONFIG_SOURCE.config_jsonproto:
       if not cros_config_api_utils.MODULE_READY:
         raise ImportError(
             'cros_config_api_utils is not ready. '
             'chromeos-base/cros-config-api is required for %s.'
             % self.args.config_source)
-      self._config_binaryproto = cros_config_api_utils.SKUConfigs(
+      self._config_jsonproto = cros_config_api_utils.SKUConfigs(
           self.args.program, self.args.project)
     else:
-      self._config_binaryproto = None
+      self._config_jsonproto = None
 
   def GetCrosConfigData(self, sku_id, path, name, return_type):
     output = self._dut.CallOutput(
@@ -142,8 +142,8 @@ class UpdateCBITest(test_case.TestCase):
     logging.warning("Can't get %s/%s from cros_config_mock", path, name)
     return None
 
-  def GetFirmwareConfigFromBinaryProto(self, sku_id):
-    project_config = self._config_binaryproto.GetSKUConfig(sku_id)
+  def GetFirmwareConfigFromJsonProto(self, sku_id):
+    project_config = self._config_jsonproto.GetSKUConfig(sku_id)
     return project_config.hardware_features.fw_config.value
 
   def GetFirmwareConfigFromCrosConfig(self, sku_id):
@@ -190,8 +190,8 @@ class UpdateCBITest(test_case.TestCase):
                     (new_sku_id, 2 ** 32 - 1))
 
     old_fw_config = GetCbiData(self._dut, CbiDataName.FW_CONFIG)
-    if self.args.config_source == CONFIG_SOURCE.config_binaryproto:
-      new_fw_config = self.GetFirmwareConfigFromBinaryProto(new_sku_id)
+    if self.args.config_source == CONFIG_SOURCE.config_jsonproto:
+      new_fw_config = self.GetFirmwareConfigFromJsonProto(new_sku_id)
     else:
       new_fw_config = self.GetFirmwareConfigFromCrosConfig(new_sku_id)
 
