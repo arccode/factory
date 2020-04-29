@@ -403,8 +403,12 @@ class HwidApi(remote.Service):
           error='Missing Regexp List', possible_labels=possible_labels)
     for (regexp, device, unused_regexp_to_board) in regexp_to_device:
       del unused_regexp_to_board  # unused
-      if re.match(regexp, request.hwid):
-        labels.append(hwid_api_messages.DUTLabel(name='variant', value=device))
+      try:
+        if re.match(regexp, request.hwid):
+          labels.append(hwid_api_messages.DUTLabel(name='variant',
+                                                   value=device))
+      except re.error:
+        logging.exception('invalid regex pattern: %r', regexp)
     if bom.phase:
       labels.append(hwid_api_messages.DUTLabel(name='phase', value=bom.phase))
 
