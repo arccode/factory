@@ -79,7 +79,7 @@ class IngestionTest(unittest.TestCase):
 
   def testRefreshWithoutBoardsInfo(self):
     CONFIG.hwid_filesystem.ReadFile = mock.Mock(
-        side_effect=filesystem_adapter.FileSystemAdaptorException)
+        side_effect=filesystem_adapter.FileSystemAdapterException)
 
     with self.assertRaises(webtest.app.AppError):
       self.testapp.post('/ingestion/refresh')

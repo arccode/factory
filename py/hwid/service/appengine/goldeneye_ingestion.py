@@ -13,7 +13,7 @@ import webapp2  # pylint: disable=import-error
 
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import filesystem_adapter
-from cros.factory.hwid.service.appengine import memcache_adaptor
+from cros.factory.hwid.service.appengine import memcache_adapter
 
 
 MEMCACHE_NAMESPACE = 'SourceGoldenEye'
@@ -36,7 +36,7 @@ class AllDevicesRefreshHandler(webapp2.RequestHandler):
     """Refreshes the ingestion from staging files to live."""
     try:
       IngestAllDevicesJson()
-    except filesystem_adapter.FileSystemAdaptorException as e:
+    except filesystem_adapter.FileSystemAdapterException as e:
       logging.error('Missing all_devices.json file during refresh.')
       logging.error(e)
       self.abort(500, 'Missing all_devices.json file during refresh.')
@@ -47,7 +47,7 @@ class AllDevicesRefreshHandler(webapp2.RequestHandler):
 def IngestAllDevicesJson():
   """Retrieve the file, parse and save the board to HWID regexp mapping."""
 
-  memcache = memcache_adaptor.MemcacheAdaptor(namespace='SourceGoldenEye')
+  memcache = memcache_adapter.MemcacheAdapter(namespace='SourceGoldenEye')
   all_devices_json = CONFIG.goldeneye_filesystem.ReadFile('/all_devices.json')
   parsed_json = json.loads(all_devices_json)
 

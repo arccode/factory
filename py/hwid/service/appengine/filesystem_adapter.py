@@ -9,7 +9,7 @@ import os
 import cloudstorage  # pylint: disable=import-error
 
 
-class FileSystemAdaptorException(Exception):
+class FileSystemAdapterException(Exception):
   pass
 
 
@@ -62,7 +62,7 @@ class CloudStorageAdapter(FileSystemAdapter):
       if isinstance(value, cloudstorage.errors.NotFoundError):
         raise KeyError(value)
       if isinstance(value, cloudstorage.Error):
-        raise FileSystemAdaptorException(str(value))
+        raise FileSystemAdapterException(str(value))
 
   CHUNK_SIZE = 2 ** 20
 

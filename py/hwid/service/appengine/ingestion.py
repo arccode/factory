@@ -146,7 +146,7 @@ class RefreshHandler(webapp2.RequestHandler):
         metadata = {k: v for (k, v) in metadata.items() if k in limit_models}
       self.hwid_manager.UpdateBoards(metadata, delete_missing=not do_limit)
 
-    except filesystem_adapter.FileSystemAdaptorException:
+    except filesystem_adapter.FileSystemAdapterException:
       logging.error('Missing file during refresh.')
       self.abort(500, 'Missing file during refresh.')
 

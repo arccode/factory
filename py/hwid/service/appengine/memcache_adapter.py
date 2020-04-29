@@ -18,11 +18,11 @@ MAX_NUMBER_CHUNKS = 10
 MEMCACHE_CHUNKSIZE = 950000
 
 
-class MemcacheAdaptorException(Exception):
+class MemcacheAdapterException(Exception):
   pass
 
 
-class MemcacheAdaptor(object):
+class MemcacheAdapter(object):
   """Memcache connector that can store objects larger than 1M.
 
   This connector will save items to the memcache by first serializing the object
@@ -64,7 +64,7 @@ class MemcacheAdaptor(object):
 
     chunks = self.BreakIntoChunks(key, serialized_value)
     if len(chunks) > MAX_NUMBER_CHUNKS:
-      raise MemcacheAdaptorException('Object too large to store in memcache.')
+      raise MemcacheAdapterException('Object too large to store in memcache.')
 
     logging.debug('Memcache writing %s', key)
     self.client.mset(chunks)

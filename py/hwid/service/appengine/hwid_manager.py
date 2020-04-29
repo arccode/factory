@@ -15,7 +15,7 @@ import re
 # pylint: disable=import-error, no-name-in-module
 from google.appengine.ext import db
 
-from cros.factory.hwid.service.appengine import memcache_adaptor
+from cros.factory.hwid.service.appengine import memcache_adapter
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
@@ -247,7 +247,7 @@ class HwidManager(object):
 
   def __init__(self, fs_adapter):
     self._fs_adapter = fs_adapter
-    self._memcache_adaptor = memcache_adaptor.MemcacheAdaptor(
+    self._memcache_adapter = memcache_adapter.MemcacheAdapter(
         namespace='HWIDObject')
 
   @staticmethod
@@ -568,7 +568,7 @@ class HwidManager(object):
 
     for metadata in list(q.run()):
       try:
-        self._memcache_adaptor.Put(metadata.board, self._LoadHwidFile(metadata))
+        self._memcache_adapter.Put(metadata.board, self._LoadHwidFile(metadata))
       except Exception:  # pylint: disable=broad-except
         # Catch any exception and continue with other files.  The reason for the
         # broad exception is that the various exceptions we could catch are
@@ -592,12 +592,12 @@ class HwidManager(object):
     self._fs_adapter.WriteFile(self._LivePath(live_file_id), board_data)
 
   def _ClearMemcache(self):
-    """Clear all cache items via memcache_adaptor.
+    """Clear all cache items via memcache_adapter.
 
     This method is for testing purpose since each integration test should have
     empty cache in the beginning.
     """
-    self._memcache_adaptor.ClearAll()
+    self._memcache_adapter.ClearAll()
 
   def GetBoardDataFromCache(self, board):
     """Get the HWID file data from cache.
@@ -617,13 +617,13 @@ class HwidManager(object):
        HWIDData object that was cached or null if not found in memory or in the
        memcache.
     """
-    hwid_data = self._memcache_adaptor.Get(board)
+    hwid_data = self._memcache_adapter.Get(board)
     if not hwid_data:
       logging.info('Memcache read miss %s', board)
     return hwid_data
 
   def SaveBoardDataToCache(self, board, hwid_data):
-    self._memcache_adaptor.Put(board, hwid_data)
+    self._memcache_adapter.Put(board, hwid_data)
 
 
 class _HwidData(object):

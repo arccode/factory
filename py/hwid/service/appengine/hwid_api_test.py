@@ -383,8 +383,8 @@ class HwidApiTest(unittest.TestCase):
 
   @mock.patch.object(hwid_util, 'GetSkuFromBom')
   def testGetDUTLabels(self, mock_get_sku_from_bom):
-    self.api._goldeneye_memcache_adaptor = mock.MagicMock()
-    self.api._goldeneye_memcache_adaptor.Get.return_value = [
+    self.api._goldeneye_memcache_adapter = mock.MagicMock()
+    self.api._goldeneye_memcache_adapter.Get.return_value = [
         ('r1.*', 'b1', []), ('^Fo.*', 'found_device', [])
     ]
     bom = hwid_manager.Bom()
@@ -415,7 +415,7 @@ class HwidApiTest(unittest.TestCase):
     self.assertTrue(self.CheckForLabelValue(response, 'touchscreen'))
     self.assertEqual(4, len(response.labels))
 
-    self.api._goldeneye_memcache_adaptor.Get.return_value = None
+    self.api._goldeneye_memcache_adapter.Get.return_value = None
 
     response = self.api.GetDUTLabels(request)
     self.assertEqual(0, len(response.labels))
@@ -423,8 +423,8 @@ class HwidApiTest(unittest.TestCase):
 
   @mock.patch.object(hwid_util, 'GetSkuFromBom')
   def testGetDUTLabelsWithConfigless(self, mock_get_sku_from_bom):
-    self.api._goldeneye_memcache_adaptor = mock.MagicMock()
-    self.api._goldeneye_memcache_adaptor.Get.return_value = [
+    self.api._goldeneye_memcache_adapter = mock.MagicMock()
+    self.api._goldeneye_memcache_adapter.Get.return_value = [
         ('r1.*', 'b1', []), ('^Fo.*', 'found_device', [])
     ]
     bom = hwid_manager.Bom()
@@ -454,7 +454,7 @@ class HwidApiTest(unittest.TestCase):
     self.assertTrue(self.CheckForLabelValue(response, 'touchscreen'))
     self.assertEqual(4, len(response.labels))
 
-    self.api._goldeneye_memcache_adaptor.Get.return_value = None
+    self.api._goldeneye_memcache_adapter.Get.return_value = None
 
     response = self.api.GetDUTLabels(request)
     self.assertEqual(0, len(response.labels))

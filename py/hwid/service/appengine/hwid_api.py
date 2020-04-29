@@ -24,7 +24,7 @@ from cros.factory.hwid.service.appengine import hwid_api_messages
 from cros.factory.hwid.service.appengine import hwid_updater
 from cros.factory.hwid.service.appengine import hwid_util
 from cros.factory.hwid.service.appengine import hwid_validator
-from cros.factory.hwid.service.appengine import memcache_adaptor
+from cros.factory.hwid.service.appengine import memcache_adapter
 from cros.factory.hwid.v3 import validator as v3_validator
 
 
@@ -67,7 +67,7 @@ class HwidApi(remote.Service):
     self._hwid_manager = CONFIG.hwid_manager
     self._hwid_validator = hwid_validator.HwidValidator()
     self._hwid_updater = hwid_updater.HwidUpdater()
-    self._goldeneye_memcache_adaptor = memcache_adaptor.MemcacheAdaptor(
+    self._goldeneye_memcache_adapter = memcache_adapter.MemcacheAdapter(
         namespace=goldeneye_ingestion.MEMCACHE_NAMESPACE)
 
   def _FastFailKnownBadHwid(self, hwid):
@@ -394,7 +394,7 @@ class HwidApi(remote.Service):
 
     labels.append(hwid_api_messages.DUTLabel(name='sku', value=sku['sku']))
 
-    regexp_to_device = self._goldeneye_memcache_adaptor.Get('regexp_to_device')
+    regexp_to_device = self._goldeneye_memcache_adapter.Get('regexp_to_device')
 
     if not regexp_to_device:
       # TODO(haddowk) Kick off the ingestion to ensure that the memcache is
