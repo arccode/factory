@@ -174,8 +174,9 @@ def GenerateUploadToPath(unused_instance, filename):
 
 
 def DoesContainerExist(container_name):
-  container_list = subprocess.check_output([
-      'docker', 'ps', '--all', '--format', '{{.Names}}']).splitlines()
+  container_list = subprocess.check_output(
+      ['docker', 'ps', '--all', '--format', '{{.Names}}'],
+      encoding='utf-8').splitlines()
   return container_name in container_list
 
 
