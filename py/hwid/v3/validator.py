@@ -26,8 +26,11 @@ class ValidationError(ValueError):
   """Indicates that validation of the HWID config failed."""
 
 
-def ValidateChange(prev_db, db):
+def ValidateChange(prev_db, db, ctx):
   """Verify that the change is valid."""
+  # TODO(ckclark): check if new component names follow the predefined naming
+  # rule.
+  del ctx
   try:
     verify_db_pattern.HWIDDBsPatternTest.VerifyParsedDatabasePattern(
         prev_db, db)
