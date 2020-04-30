@@ -122,7 +122,9 @@ def ResetLog(logfile=None):
   if logging.getLogger().handlers:
     for handler in logging.getLogger().handlers:
       logging.getLogger().removeHandler(handler)
-  logging.basicConfig(filename=logfile, level=logging.NOTSET)
+  log_format = '[%(asctime)-15s] %(levelname)s:%(name)s:%(message)s'
+  # logging.NOTSET is the lowerest level.
+  logging.basicConfig(filename=logfile, level=logging.NOTSET, format=log_format)
 
 
 def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
