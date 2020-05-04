@@ -28,12 +28,8 @@ class ValidationError(ValueError):
 
 def ValidateChange(prev_db, db, ctx):
   """Verify that the change is valid."""
-  # TODO(ckclark): check if new component names follow the predefined naming
-  # rule.
-  del ctx
   try:
-    verify_db_pattern.HWIDDBsPatternTest.VerifyParsedDatabasePattern(
-        prev_db, db)
+    verify_db_pattern.HWIDDBsPatternTest.ValidateChange(prev_db, db, ctx)
   except common.HWIDException as e:
     raise ValidationError(str(e))
 
@@ -52,7 +48,7 @@ def _ValidateDramTag(db):
       info_size = int(dram_info.values['size'])
       if ram_size.byte_count != info_size << 20:  # defaults to MB
         raise ValidationError(
-            '%s does not match size property %dM' % (dram_tag, info_size))
+            '%r does not match size property %dM' % (dram_tag, info_size))
 
 
 def ValidateIntegrity(db):

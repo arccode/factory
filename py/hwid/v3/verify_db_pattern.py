@@ -24,7 +24,10 @@ import unittest
 
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
+from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.hwid.v3 import hwid_utils
+from cros.factory.hwid.v3 import name_pattern_adapter
+from cros.factory.hwid.v3 import validator_context
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import process_utils
 from cros.factory.utils.schema import SchemaException
@@ -58,7 +61,7 @@ class HWIDDBsPatternTest(unittest.TestCase):
         return
       self.assertEqual(projects_info[project_name]['branch'], 'master')
       logging.info('Checking %s:%s...', target_commit, db_path)
-      self.VerifyDatabasePattern(hwid_dir, target_commit, db_path)
+      HWIDDBsPatternTest.VerifyDatabasePattern(hwid_dir, target_commit, db_path)
 
     if self.project:
       if self.project not in projects_info:
@@ -73,27 +76,24 @@ class HWIDDBsPatternTest(unittest.TestCase):
     else:
       # If PRESUBMIT_FILES is not found, defaults to test all v3 projects in
       # projects.yaml.
-      files = [b['path'] for b in projects_info.values()
-               if b['version'] == 3]
+      files = [b['path'] for b in projects_info.values() if b['version'] == 3]
 
     for f in files:
       TestDatabase(f)
 
-  def VerifyDatabasePattern(self, hwid_dir, commit, db_path):
-    """Verify the specific HWID database.
+  @staticmethod
+  def GetOldNewDB(hwid_dir, commit, db_path):
+    """Get old and new DB.
 
-    This method checks 2 things:
-      1. Verify whether the newest version of the HWID database is compatible
-          with the current version of HWID module.
-      2. If the previous version of the HWID database exists and is compatible
-          with the current version of HWID module, verify whether all the
-          encoded fields in the previous version of HWID database are not
-          changed.
+    Get the DB in commit and the previous version (None not applicable).
 
     Args:
       hwid_dir: Path of the base directory of HWID databases.
       commit: The commit hash value of the newest version of HWID database.
       db_path: Path of the HWID database to be verified.
+    Returns:
+      tuple (old_db, new_db), old_db could be None if the commit is the init
+      commit for the project.
     """
     # A compatible version of HWID database can be loaded successfully.
     new_db = Database.LoadData(
@@ -109,8 +109,7 @@ class HWIDDBsPatternTest(unittest.TestCase):
         raise e
       logging.info('Adding new HWID database %s; skip pattern check',
                    os.path.basename(db_path))
-      HWIDDBsPatternTest.VerifyNewCreatedDatabasePattern(new_db)
-      return
+      return None, new_db
 
     try:
       old_db = Database.LoadData(raw_old_db)
@@ -118,8 +117,26 @@ class HWIDDBsPatternTest(unittest.TestCase):
       logging.warning('The previous version of HWID database %s is an '
                       'incompatible version (exception: %r), ignore the '
                       'pattern check', db_path, e)
-      return
-    HWIDDBsPatternTest.VerifyParsedDatabasePattern(old_db, new_db)
+      return None, new_db
+    return old_db, new_db
+
+  @staticmethod
+  def VerifyDatabasePattern(hwid_dir, commit, db_path):
+    """Verify the specific HWID database.
+
+    This method obtains the old_db and new_db, creates a context about
+    filesystem used in name_pattern_adapter.NamePatternAdapter, and passes to
+    ValidateChange static method.
+
+    Args:
+      hwid_dir: Path of the base directory of HWID databases.
+      commit: The commit hash value of the newest version of HWID database.
+      db_path: Path of the HWID database to be verified.
+    """
+    old_db, new_db = HWIDDBsPatternTest.GetOldNewDB(hwid_dir, commit, db_path)
+    ctx = validator_context.ValidatorContext(
+        filesystem_adapter=filesystem_adapter.LocalFileSystemAdapter(hwid_dir))
+    HWIDDBsPatternTest.ValidateChange(old_db, new_db, ctx)
 
   @staticmethod
   def VerifyNewCreatedDatabasePattern(new_db):
@@ -168,6 +185,64 @@ class HWIDDBsPatternTest(unittest.TestCase):
         if orig_is_legacy_style != is_legacy_style:
           raise common.HWIDException(
               'Style of existing region field should remain unchanged.')
+
+  @staticmethod
+  def ValidateChange(old_db, new_db, ctx):
+    """Validate changes between old_db and new_db.
+
+    This method checks 3 things:
+      1. Verify whether the newest version of the HWID database is compatible
+          with the current version of HWID module.
+      2. If the previous version of the HWID database exists and is compatible
+          with the current version of HWID module, verify whether all the
+          encoded fields in the previous version of HWID database are not
+          changed.
+      3. Check if component names matches the predefined rule by
+          name_pattern_adapter.
+
+    Args:
+      old_db: db before the change.
+      new_db: db after the change.
+      ctx: validator_context.ValidatorContext instance which contains the
+           name_pattern information.
+    """
+
+    if old_db is None:
+      HWIDDBsPatternTest.VerifyNewCreatedDatabasePattern(new_db)
+    else:
+      HWIDDBsPatternTest.VerifyParsedDatabasePattern(old_db, new_db)
+    HWIDDBsPatternTest.ValidateComponentChange(old_db, new_db, ctx)
+
+  @staticmethod
+  def ValidateComponentChange(old_db, db, ctx):
+    """Check if modified (created) component names are valid.
+
+    Args:
+      old_db: db before the change.
+      new_db: db after the change.
+      ctx: validator_context.ValidatorContext instance which contains the
+           name_pattern information.
+    """
+    def FindModifiedComponentNames(old_db, db, comp_cls):
+      name_set = set()
+      for tag in db.GetComponents(comp_cls):
+        name_set.add(tag)
+
+      if old_db is not None:
+        for tag in old_db.GetComponents(comp_cls):
+          name_set.discard(tag)
+
+      return name_set
+
+    adapter = name_pattern_adapter.NamePatternAdapter(ctx.filesystem_adapter)
+    for comp_cls in db.GetActiveComponentClasses():
+      name_pattern = adapter.GetNamePatterns(comp_cls)
+      if name_pattern:
+        modified_names = FindModifiedComponentNames(old_db, db, comp_cls)
+        for tag in modified_names:
+          if not name_pattern.Matches(tag):
+            raise common.HWIDException(
+                '%r does not match any available %s pattern' % (tag, comp_cls))
 
 
 if __name__ == '__main__':

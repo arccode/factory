@@ -12,6 +12,7 @@ import mock
 
 # pylint: disable=import-error
 from cros.factory.hwid.service.appengine import hwid_validator
+from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.hwid.v3 import validator as v3_validator
 from cros.factory.utils import file_utils
 
@@ -32,8 +33,18 @@ GOLDEN_HWIDV3_DATA_AFTER_DRAM_BAD1 = file_utils.ReadFile(
 GOLDEN_HWIDV3_DATA_AFTER_DRAM_BAD2 = file_utils.ReadFile(
     os.path.join(TESTDATA_PATH, 'v3-golden-after-dram-bad2.yaml')
     ).decode('utf-8')
+GOLDEN_HWIDV3_DATA_AFTER_INVALID_NAME_PATTERN = file_utils.ReadFile(
+    os.path.join(
+        TESTDATA_PATH, 'v3-golden-after-comp-bad.yaml')).decode('utf-8')
+GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN = file_utils.ReadFile(
+    os.path.join(
+        TESTDATA_PATH, 'v3-golden-after-comp-good.yaml')).decode('utf-8')
 
 
+@mock.patch(
+    ('cros.factory.hwid.service.appengine'
+     '.hwid_validator.CONFIG.hwid_filesystem'),
+    filesystem_adapter.LocalFileSystemAdapter(TESTDATA_PATH))
 class HwidValidatorTest(unittest.TestCase):
   """Test for HwidValidator."""
 
@@ -71,8 +82,8 @@ class HwidValidatorTest(unittest.TestCase):
       hwid_validator.HwidValidator().ValidateChange(
           GOLDEN_HWIDV3_DATA_AFTER_DRAM_BAD1, GOLDEN_HWIDV3_DATA_BEFORE)
     self.assertEqual(
-        str(error.exception),
-        'dram_type_256mb_and_real_is_512mb does not match size property 1024M')
+        str(error.exception), ("'dram_type_256mb_and_real_is_512mb' does not "
+                               "match size property 1024M"))
 
   def testValidateDramChange2(self):
     with self.assertRaises(v3_validator.ValidationError) as error:
@@ -81,6 +92,17 @@ class HwidValidatorTest(unittest.TestCase):
     self.assertEqual(
         str(error.exception),
         'Invalid DRAM: dram_type_not_mention_size')
+
+  def testValidateComponentNameInvalid(self):
+    with self.assertRaises(v3_validator.ValidationError):
+      hwid_validator.HwidValidator().ValidateChange(
+          GOLDEN_HWIDV3_DATA_AFTER_INVALID_NAME_PATTERN,
+          GOLDEN_HWIDV3_DATA_BEFORE)
+
+  def testValidateComponentNameValid(self):
+    hwid_validator.HwidValidator().ValidateChange(
+        GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN,
+        GOLDEN_HWIDV3_DATA_BEFORE)
 
   @classmethod
   def CreateBadVPGResult(cls):

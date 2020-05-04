@@ -11,7 +11,7 @@ board: CHROMEBOOK
 # 若修改将使设备配置變為无效，并且不得销售此设备。
 #
 #####
-checksum: a640df7bc8f604f03c3576bf363bf46e6dd6e07d
+checksum: 503d5a39d0ce6537c8fcab26a152073306f66a0e
 
 ##### END CHECKSUM BLOCK. See the warning above. 请参考上面的警告。
 
@@ -44,13 +44,9 @@ components:
         values:
           cores: '4'
           model: 'abc'
-      cpu_invalid1:
+      cpu_z:
         values:
-          cores: '4'
-          model: 'def'
-      cpu_invalid2:
-        values:
-          cores: '4'
+          cores: '5'
           model: 'def'
 
 rules:
