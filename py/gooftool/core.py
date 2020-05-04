@@ -842,12 +842,22 @@ class Gooftool(object):
 
     script_path = '/usr/share/cros/cr50-set-sn-bits.sh'
 
-    # If the script does not exist, that board is not able to do Zero-Touch.
+    vpd_key = 'attested_device_id'
+    has_vpd_key = self._vpd.GetValue(vpd_key) is not None
 
+    # If the script does not exist, that board is not able to do Zero-Touch.
     if not self.CheckCr50SetSnBitsDependency():
       logging.warning('The Cr50 script to set serial number bits is not found, '
                       'those bits will not be set on this device.')
+      if has_vpd_key:
+        raise Error('Zero-Touch is not enabled, but %r is set.' % vpd_key)
       return
+
+    # The script exists, Zero-Touch is enabled.
+    if not has_vpd_key:
+      # TODO(stimim): What if Zero-Touch is enabled on a program (e.g. hatch),
+      # but not expected for a project (e.g. kohaku).
+      raise Error('Zero-Touch is enabled, but %r is not set' % vpd_key)
 
     if phase.GetPhase() >= phase.PVT_DOGFOOD:
       arg_phase = 'pvt'

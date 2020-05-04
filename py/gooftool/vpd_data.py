@@ -44,7 +44,7 @@ KNOWN_RO_DATA = {
     'service_tag': ANY,
     'dsm_calib': r'[0-9a-f ]*',
     'oem_device_requisition': ANY,
-    'zero_touch_sn': ANY,
+    'attested_device_id': ANY,
 }
 
 # Variable key names in regular expression.
