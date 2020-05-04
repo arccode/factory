@@ -148,13 +148,18 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
   def runTest(self):
     """Update Cr50 firmware."""
     if self.args.firmware_file is None:
-      self.assertEqual(
-          self.args.from_release, True,
+      self.assertTrue(
+          self.args.from_release,
           'Must set "from_release" to True if not specifiying firmware_file')
       self.args.firmware_file = DEFAULT_FIRMWARE_PATH
 
     self.assertEqual(self.args.firmware_file[0], '/',
                      'firmware_file should be a full path')
+
+    if phase.GetPhase() >= phase.PVT_DOGFOOD:
+      self.assertFalse(
+          self.args.skip_prepvt_flag_check,
+          'Skipping prePVT flag check is not allowed in PVT or MP builds.')
 
     self._LogCr50Info()
 
