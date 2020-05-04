@@ -4,6 +4,10 @@
 """Facade for interfacing with various storage mechanisms."""
 
 import abc
+import os
+import os.path
+
+from cros.factory.utils import file_utils
 
 
 class FileSystemAdapterException(Exception):
@@ -58,3 +62,45 @@ class FileSystemAdapter(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def _ListFiles(self, prefix=None):
     raise NotImplementedError('Abstract method not implemented.')
+
+
+class LocalFileSystemAdapter(FileSystemAdapter):
+
+  class ExceptionMapper(object):
+    def __enter__(self):
+      pass
+
+    def __exit__(self, value_type, value, traceback):
+      if isinstance(value, (OSError, IOError)):
+        raise FileSystemAdapterException(str(value))
+
+  EXCEPTION_MAPPER = ExceptionMapper()
+
+  @classmethod
+  def GetExceptionMapper(cls):
+    return cls.EXCEPTION_MAPPER
+
+  def __init__(self, base):
+    super(LocalFileSystemAdapter, self).__init__()
+    self._base = base
+
+  def _ReadFile(self, path):
+    return file_utils.ReadFile(os.path.join(self._base, path))
+
+  def _WriteFile(self, path, content):
+    filepath = os.path.join(self._base, path)
+    file_utils.WriteFile(filepath, content)
+
+  def _DeleteFile(self, path):
+    filepath = os.path.join(self._base, path)
+    file_utils.TryUnlink(filepath)
+
+  def _ListFiles(self, prefix=None):
+    """Currently _ListFiles implementation only supports directory as prefix."""
+
+    dirpath = self._base
+    if prefix:
+      dirpath = os.path.join(dirpath, prefix)
+    if not os.path.isdir(dirpath):
+      raise OSError("%s is not a folder" % dirpath)
+    return os.listdir(dirpath)
