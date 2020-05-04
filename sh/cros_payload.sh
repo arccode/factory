@@ -693,8 +693,13 @@ for k in j:
       # 'shar' may add leading X on some versions.
       sed -n 's/^X*checksum: //p' "${file}"
       ;;
-    complete | netboot_cmdline | project_config)
+    complete | netboot_cmdline)
       local temp="$(md5sum "${file}")"
+      echo "${temp%% *}"
+      ;;
+    project_config)
+      local cmd="tar -xvf "${file}" --to-command='md5sum'"
+      local temp="$(${cmd} | paste - - | sed 's/\s\+-$//' | sort | md5sum)"
       echo "${temp%% *}"
       ;;
     netboot_kernel)

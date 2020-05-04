@@ -30,6 +30,7 @@ To directly install 'release_image' (block device component)::
 
 import json
 import logging
+import os
 import urllib.request
 
 from cros.factory.device import device_utils
@@ -42,7 +43,8 @@ from cros.factory.utils import type_utils
 
 # A list of known components.
 COMPONENTS = type_utils.Enum([
-    'hwid', 'toolkit', 'release_image', 'firmware', 'netboot_firmware'])
+    'firmware', 'hwid', 'netboot_firmware', 'project_config', 'release_image',
+    'toolkit'])
 MATCH_METHOD = type_utils.Enum(['exact', 'substring'])
 
 
@@ -184,4 +186,48 @@ def UpdateHWIDDatabase(dut=None, target_dir=None):
 
   # TODO(hungte) Send event to Goofy that info is changed.
   dut.info.Invalidate('hwid_database_version')
+  return True
+
+
+def UpdateProjectConfig(dut=None, target_dir=None):
+  """Updates project_config files on a DUT.
+
+  Args:
+    dut: A reference to the device under test.
+        :rtype: cros.factory.device.device_types.DeviceBoard
+
+  Returns:
+    True if new files are applied.
+  """
+  updater = Updater(COMPONENTS.project_config)
+  if dut is None:
+    dut = device_utils.CreateDUTInterface()
+  if target_dir is None:
+    target_dir = '/usr/local/factory/project_config'
+  dut.CheckCall(['mkdir', '-p', target_dir])
+  elements = dut.Glob(os.path.join(target_dir, '*'))
+  if elements:
+    def GetMD5sum(path):
+      return dut.CheckOutput(['md5sum', path]).split(' ')[0]
+    with dut.temp.TempFile() as remote_path:
+      lines = [os.path.basename(element) + '\t' + GetMD5sum(element)
+               for element in elements]
+      content = ''.join(line + '\n' for line in sorted(lines))
+      file_utils.WriteFile(remote_path, content)
+      current_version = GetMD5sum(remote_path)
+  else:
+    current_version = None
+  logging.info('project_config current_version: %r, GetUpdateVersion: %r',
+               current_version, updater.GetUpdateVersion())
+
+  if not updater.IsUpdateAvailable(current_version):
+    return False
+
+  # Remove old files.
+  dut.CheckCall(['rm', '-f'] + elements)
+  with file_utils.UnopenedTemporaryFile() as local_path:
+    with dut.temp.TempFile() as remote_path:
+      updater.PerformUpdate(destination=local_path)
+      dut.SendFile(local_path, remote_path)
+      dut.CheckCall(['tar', '-xvf', remote_path, '-C', target_dir])
   return True

@@ -63,6 +63,7 @@ from cros.factory.test.utils.cbi_utils import CbiDataName
 from cros.factory.test.utils.cbi_utils import GetCbiData
 from cros.factory.test.utils.cbi_utils import SetCbiData
 from cros.factory.test.utils import cros_config_api_utils
+from cros.factory.test.utils import update_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.schema import JSONSchemaDict
 from cros.factory.utils import type_utils
@@ -106,7 +107,9 @@ class UpdateCBITest(test_case.TestCase):
       Arg('config_source', CONFIG_SOURCE, 'The source of updating data.',
           default=CONFIG_SOURCE.cros_config_mock),
       Arg('program', str, 'The program of the device.', default=None),
-      Arg('project', str, 'The project of the device.', default=None)]
+      Arg('project', str, 'The project of the device.', default=None),
+      Arg('enable_factory_server', bool,
+          'Update project_config data from factory server.', default=False)]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
@@ -129,9 +132,16 @@ class UpdateCBITest(test_case.TestCase):
             'cros_config_api_utils is not ready. '
             'chromeos-base/cros-config-api is required for %s.'
             % self.args.config_source)
+      if self.args.enable_factory_server:
+        if not update_utils.UpdateProjectConfig(self._dut):
+          session.console.info('project_config is not updated')
       self._config_jsonproto = cros_config_api_utils.SKUConfigs(
           self.args.program, self.args.project)
     else:
+      if self.args.enable_factory_server:
+        raise ValueError(
+            'Nothing could be downloaded from server for config_source: %s'
+            % self.args.config_source)
       self._config_jsonproto = None
 
   def GetCrosConfigData(self, sku_id, path, name, return_type):
