@@ -49,7 +49,7 @@
         "gooftool_skip_list": "eval! constants.grt.gooftool_skip_list",
         "gooftool_waive_list": "eval! constants.grt.gooftool_waive_list",
         "hwid_need_vpd": "eval! constants.hwid_need_vpd",
-        "is_chromebox": "eval! constants.is_chromebox",
+        "has_ec_pubkey": "eval! constants.has_ec_pubkey",
         "rma_mode": "eval! constants.rma_mode",
         "secure_wipe": "eval! constants.grt.secure_wipe",
         "upload_method": "eval! 'shopfloor' if constants.enable_factory_server else 'none'",

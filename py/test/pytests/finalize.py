@@ -166,8 +166,8 @@ class Finalize(test_case.TestCase):
       Arg('is_cros_core', bool,
           'For ChromeOS Core device, skip setting firmware bitmap locale.',
           default=False),
-      Arg('is_chromebox', bool,
-          'Perform ChromeBox specific checks.',
+      Arg('has_ec_pubkey', bool,
+          'Perform VerifyECKey.',
           default=None),
       Arg('enforced_release_channels', list,
           'A list of string indicating the enforced release image channels. '
@@ -357,9 +357,9 @@ class Finalize(test_case.TestCase):
     if self.args.is_cros_core:
       command += ' --cros_core'
       logging.info('ChromeOS Core device. Skip some check.')
-    if self.args.is_chromebox:
-      command += ' --chromebox'
-      logging.info('ChromeBox device. Perform additional checks.')
+    if self.args.has_ec_pubkey:
+      command += ' --has_ec_pubkey'
+      logging.info('Device has EC public key for EFS and need to verify it.')
     if self.args.enforced_release_channels:
       command += ' --enforced_release_channels %s' % (
           ' '.join(self.args.enforced_release_channels))

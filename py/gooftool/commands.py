@@ -189,10 +189,9 @@ _cros_core_cmd_arg = CmdArg(
          'items. For example, registration codes or firmware bitmap '
          'locale settings).')
 
-_chromebox_cmd_arg = CmdArg(
-    '--chromebox', action='store_true', default=None,
-    help='Finalize for ChromeBox devices (may add or remove few test '
-    'items. For example, VerifyECKey).')
+_has_ec_pubkey_cmd_arg = CmdArg(
+    '--has_ec_pubkey', action='store_true', default=None,
+    help='The device has EC public key for EFS and need to run VerifyECKey.')
 
 _enforced_release_channels_cmd_arg = CmdArg(
     '--enforced_release_channels', nargs='*', default=None,
@@ -553,7 +552,7 @@ def WipeInit(options):
          _hwid_vpd_data_file_cmd_arg,
          _rma_mode_cmd_arg,
          _cros_core_cmd_arg,
-         _chromebox_cmd_arg,
+         _has_ec_pubkey_cmd_arg,
          _ec_pubkey_path_cmd_arg,
          _ec_pubkey_hash_cmd_arg,
          _release_rootfs_cmd_arg,
@@ -576,7 +575,7 @@ def Verify(options):
     VerifyManagementEngineLocked(options)
   VerifyHWID(options)
   VerifySystemTime(options)
-  if options.chromebox:
+  if options.has_ec_pubkey:
     VerifyECKey(options)
   VerifyKeys(options)
   VerifyRootFs(options)
@@ -794,7 +793,7 @@ def UploadReport(options):
          _hwid_vpd_data_file_cmd_arg,
          _rma_mode_cmd_arg,
          _cros_core_cmd_arg,
-         _chromebox_cmd_arg,
+         _has_ec_pubkey_cmd_arg,
          _ec_pubkey_path_cmd_arg,
          _ec_pubkey_hash_cmd_arg,
          _release_rootfs_cmd_arg,
