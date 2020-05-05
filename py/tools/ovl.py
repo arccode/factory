@@ -44,6 +44,8 @@ from six.moves import input
 from ws4py.client import WebSocketBaseClient
 import yaml
 
+from cros.factory.utils import process_utils
+
 
 _CERT_DIR = os.path.expanduser('~/.config/ovl')
 
@@ -873,14 +875,13 @@ class OverlordCLIClient(object):
         '%s%s' % (user + '@' if user else '', host)
     ]).wait()
 
-    p = subprocess.Popen([
+    p = process_utils.Spawn([
         'ssh',
         '-S', control_file,
         '-O', 'check', host,
-    ], stderr=subprocess.PIPE)
-    unused_stdout, stderr = p.communicate()
+    ], read_stderr=True, ignore_stdout=True)
 
-    s = re.search(r'pid=(\d+)', stderr)
+    s = re.search(r'pid=(\d+)', p.stderr_data)
     if s:
       return int(s.group(1))
 

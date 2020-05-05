@@ -53,7 +53,8 @@ def run(command, ignore_status=False):
   proc = subprocess.Popen(system_cmd,
                           stderr=subprocess.PIPE,
                           stdout=subprocess.PIPE,
-                          shell=True)
+                          shell=True,
+                          encoding='utf-8')
 
   # The order of output is reversed because we swapped stdout and stderr.
   (err, out) = proc.communicate()

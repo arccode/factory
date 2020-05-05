@@ -15,7 +15,6 @@ import re
 import socket
 import socketserver
 import struct
-import subprocess
 import time
 import xmlrpc.client
 
@@ -203,9 +202,9 @@ def FindUsableEthDevice(raise_exception=False,
   last_level = 0
   devices = GetEthernetInterfaces(name_patterns)
   for dev in devices:
-    p = subprocess.Popen('ethtool %s' % dev, shell=True,
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stat = p.communicate()[0]
+    p = process_utils.Spawn('ethtool %s' % dev, shell=True, read_stdout=True,
+                            ignore_stderr=True)
+    stat = p.stdout_data
 
     # A 4G introduced ethernet interface would not be able to report its
     # setting data because it won't get online during the factory flow.

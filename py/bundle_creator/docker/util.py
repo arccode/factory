@@ -84,7 +84,8 @@ def CreateBundle(req):
          os.path.join(temp_dir, 'MANIFEST.yaml')],
         bufsize=1,
         stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT)
+        stderr=subprocess.STDOUT,
+        encoding='utf-8')
     output = ''
     while True:
       line = process.stdout.readline()
