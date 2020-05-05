@@ -11,6 +11,8 @@ import os
 import subprocess
 import unittest
 
+from cros.factory.utils import process_utils
+
 
 SCRIPT_DIR = os.path.dirname(__file__)
 
@@ -18,9 +20,8 @@ SCRIPT_DIR = os.path.dirname(__file__)
 class GoofyJSTest(unittest.TestCase):
   def runTest(self):
     static_dir = os.path.join(SCRIPT_DIR, '..', 'static')
-    output = subprocess.check_output(
-        ['make', '-C', static_dir, 'check_js'], stderr=subprocess.STDOUT,
-        encoding='utf-8')
+    output = process_utils.CheckOutput(
+        ['make', '-C', static_dir, 'check_js'], stderr=subprocess.STDOUT)
     self.assertNotIn(
         ' WARNING ', output,
         "There's warning in closure compiler output, please fix them.\n"

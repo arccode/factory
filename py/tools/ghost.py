@@ -37,6 +37,8 @@ import uuid
 import jsonrpclib
 from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
 
+from cros.factory.utils import process_utils
+
 
 _GHOST_RPC_PORT = int(os.getenv('GHOST_RPC_PORT', 4499))
 
@@ -396,7 +398,7 @@ class Ghost(object):
 
   def GetGateWayIP(self):
     if self._platform == 'Darwin':
-      output = subprocess.check_output(['route', '-n', 'get', 'default'])
+      output = process_utils.CheckOutput(['route', '-n', 'get', 'default'])
       ret = re.search('gateway: (.*)', output)
       if ret:
         return [ret.group(1)]
@@ -454,8 +456,8 @@ class Ghost(object):
 
     # Darwin
     if self._platform == 'Darwin':
-      output = subprocess.check_output(['ioreg', '-rd1', '-c',
-                                        'IOPlatformExpertDevice'])
+      output = process_utils.CheckOutput(['ioreg', '-rd1', '-c',
+                                          'IOPlatformExpertDevice'])
       ret = re.search('"IOPlatformSerialNumber" = "(.*)"', output)
       if ret:
         return ret.group(1)

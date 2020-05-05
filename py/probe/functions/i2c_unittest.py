@@ -59,7 +59,8 @@ class I2CFunctionTest(unittest.TestCase):
       result = func()
       self.assertEqual(result, [])
 
-    with mock.patch('subprocess.check_output') as mock_output:
+    with mock.patch(
+        'cros.factory.utils.process_utils.CheckOutput') as mock_output:
       mock_output.return_value = textwrap.dedent("""\
            0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
       00:                                  UU
@@ -75,7 +76,8 @@ class I2CFunctionTest(unittest.TestCase):
       result = func()
       self.assertEqual(result, [expected])
 
-    with mock.patch('subprocess.check_output') as mock_output:
+    with mock.patch(
+        'cros.factory.utils.process_utils.CheckOutput') as mock_output:
       mock_output.return_value = textwrap.dedent("""\
            0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
       00:                                  0b

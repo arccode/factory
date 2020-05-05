@@ -1563,7 +1563,7 @@ class GPTCommands(object):
 
       drives = [args.drive.name] if args.drive else (
           '/dev/%s' % name for name in subprocess.check_output(
-              'lsblk -d -n -r -o name', shell=True).split())
+              'lsblk -d -n -r -o name', shell=True, encoding='utf-8').split())
 
       match_pattern = None
       if args.match_file:

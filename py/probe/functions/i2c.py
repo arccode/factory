@@ -9,6 +9,7 @@ import subprocess
 
 from cros.factory.probe.lib import probe_function
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import process_utils
 
 
 SYSFS_I2C_DIR_PATH = '/sys/bus/i2c/devices'
@@ -216,7 +217,7 @@ class I2CFunction(probe_function.ProbeFunction):
       cmd.append('-r')
     cmd += ['-y', bus, addr, addr]
     try:
-      output = subprocess.check_output(cmd)
+      output = process_utils.CheckOutput(cmd)
     except subprocess.CalledProcessError:
       return False
 

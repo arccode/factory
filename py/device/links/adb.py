@@ -13,6 +13,7 @@ import uuid
 
 from cros.factory.device import device_types
 from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 
 
 class LegacyADBProcess(object):
@@ -40,8 +41,8 @@ class LegacyADBProcess(object):
 
     # To get real exit code, we want to find out using logcat (see
     # implementation in ADBLink).
-    result = subprocess.check_output('adb logcat -d -b main -s %s' %
-                                     self._session_id, shell=True).strip()
+    result = process_utils.CheckOutput('adb logcat -d -b main -s %s' %
+                                       self._session_id, shell=True).strip()
     logging.debug('%s: Exit Results = %s', type(self), result)
 
     # Format: I/session_id(PID): EXITCODE
@@ -174,4 +175,4 @@ class ADBLink(device_types.DeviceLink):
 
   def IsReady(self):
     """See DeviceLink.IsReady"""
-    return subprocess.check_output(['adb', 'get-state']).strip() == 'device'
+    return process_utils.CheckOutput(['adb', 'get-state']).strip() == 'device'
