@@ -4,8 +4,6 @@
 
 import collections
 
-import six
-
 from cros.factory.utils import shelve_utils
 
 
@@ -74,10 +72,6 @@ class ISelector(object):
 
   def __bool__(self):
     return bool(self.Get(default=False))
-
-  # TODO(kerker) : remove it after py3 upgrade complete
-  if six.PY2:
-    __nonzero__ = __bool__
 
 
 class DataShelfSelector(ISelector):

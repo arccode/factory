@@ -13,8 +13,6 @@ from multiprocessing import pool
 import os
 import time
 
-from six import PY2
-
 from cros.factory.test.env import paths
 from cros.factory.utils import debug_utils
 from cros.factory.utils import file_utils
@@ -283,13 +281,7 @@ def GetDHCPBootParameters(interface):
         dhcp = dpkt.dhcp.DHCP(udp.data)
 
         if dhcp['siaddr'] != 0 and dhcp['file'].strip('\x00'):
-          # TODO(kerker) Remove when py3 upgrade complete
-          if PY2:
-            # pylint: disable=invalid-str-codec
-            ip = '.'.join([str(ord(x)) for x in
-                           ('%x' % dhcp['siaddr']).decode('hex')])
-          else:
-            ip = '.'.join([str(x) for x in dhcp['siaddr'].to_bytes(4, 'big')])
+          ip = '.'.join([str(x) for x in dhcp['siaddr'].to_bytes(4, 'big')])
           return (ip, dhcp['file'].strip('\x00'), dhcp['sname'].strip('\x00'))
 
   return None
