@@ -139,11 +139,11 @@ def AppendLogToABT(abt_file, log_file, enabled=False):
       logging.error('%s is not a valid file.', f)
       return
 
-  with open(abt_file, 'a') as f:
-    f.write('%s=<multi-line>\n' % log_file)
-    f.write('---------- START ----------\n')
-    f.write(file_utils.ReadFile(log_file))
-    f.write('---------- END ----------\n')
+  with open(abt_file, 'ab') as f:
+    f.write(b'%s=<multi-line>\n' % log_file.encode('utf-8'))
+    f.write(b'---------- START ----------\n')
+    f.write(file_utils.ReadFile(log_file, encoding=None))
+    f.write(b'---------- END ----------\n')
 
 
 def GenerateDRAMCalibrationLog(tmp_dir):
