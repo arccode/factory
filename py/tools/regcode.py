@@ -69,8 +69,8 @@ def GenerateDummy(options):
   # results in a reg code that looks like
   # '=CiwKIP______TESTING_______'...)
   proto.content.code = (
-      '\xff\xff\xff\xff\xffLD\x93 \xd1\xbf\xff\xff\xff\xff\xff' + ''.join(
-          chr(random.getrandbits(8))
+      b'\xff\xff\xff\xff\xffLD\x93 \xd1\xbf\xff\xff\xff\xff\xff' + b''.join(
+          bytes([random.getrandbits(8)])
           for i in range(
               registration_codes.REGISTRATION_CODE_PAYLOAD_BYTES - 16)))
   proto.content.device = options.project.lower()
@@ -78,7 +78,7 @@ def GenerateDummy(options):
       binascii.crc32(proto.content.SerializeToString()) & 0xFFFFFFFF)
 
   encoded_string = '=' + base64.urlsafe_b64encode(
-      proto.SerializeToString()).strip()
+      proto.SerializeToString()).strip().decode('utf-8')
 
   # Make sure the string can be parsed as a sanity check (this will catch,
   # e.g., invalid device names)
