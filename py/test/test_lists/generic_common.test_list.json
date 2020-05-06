@@ -7,9 +7,9 @@
     "__comment_default_factory_server_url": "The default URL to factory server, if not defined in locals.",
     "enable_factory_server": true,
     "__comment_enable_factory_server": "Enable factory_server. Change this to false by adding 'disable_factory_server.test_list' to beginning of inherit list in main test list. Note that some factory environment might not need a shopfloor.",
+    "has_ec_pubkey": false,
     "hwid_need_vpd": false,
     "__comment_hwid_need_vpd": "Set to true if some rules in the HWID database rely on VPD data",
-    "has_ec_pubkey": false,
     "rma_mode": false,
     "sd": {
       "sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/mmc_host"
