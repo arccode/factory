@@ -283,8 +283,8 @@ toolkit: $(WEBGL_AQUARIUM_DIR) $(WS4PY_MODULE_DIR) resource par
 	  cp -fL /usr/bin/makeself $(TOOLKIT_TEMP_DIR)/makeself.sh && \
 	  cp -fL /usr/share/makeself/makeself*.sh $(TOOLKIT_TEMP_DIR)/. ; \
 	fi
-	# TODO(hungte) Figure out a way to get repo status in OUTOFTREE_BUILD.
-	$(if $(OUTOFTREE_BUILD),,$(if $(BOARD),\
+	# TODO(hungte) Figure out a way to get repo status in ebuild system.
+	$(if $(FROM_EBUILD),,$(if $(BOARD),\
 	  bin/factory_env py/toolkit/print_repo_status.py -b $(BOARD) \
 	    >$(TOOLKIT_TEMP_DIR)/REPO_STATUS))
 	# Install factory test enabled flag.
