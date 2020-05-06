@@ -168,10 +168,10 @@ def GenerateDRAMCalibrationLog(tmp_dir):
   # noise appended, like this: TEXT + 0x00 + (0xff)*N
   dramk_file = os.path.join(tmp_dir, 'DRAMK_LOG')
   if os.path.isfile(dramk_file):
-    with open(dramk_file, 'r+') as f:
+    with open(dramk_file, 'rb+') as f:
       data = f.read()
       f.seek(0)
-      f.write(data.strip('\xff').strip('\x00'))
+      f.write(data.strip(b'\xff').strip(b'\x00'))
       f.truncate()
 
   return [log for log in dram_logs
