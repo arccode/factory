@@ -2224,16 +2224,16 @@ class ChromeOSFactoryBundle(object):
 
   @staticmethod
   def GetFirmwareVersion(image_path):
-    with open(image_path) as f:
+    with open(image_path, 'rb') as f:
       fw_image = fmap.FirmwareImage(f.read())
-      ro = fw_image.get_section('RO_FRID').strip('\xff').strip('\0')
+      ro = fw_image.get_section('RO_FRID').strip(b'\xff').strip(b'\0')
       for rw_name in ['RW_FWID', 'RW_FWID_A']:
         if fw_image.has_section(rw_name):
-          rw = fw_image.get_section(rw_name).strip('\xff').strip('\0')
+          rw = fw_image.get_section(rw_name).strip(b'\xff').strip(b'\0')
           break
       else:
         raise RuntimeError('Unknown RW firmware version in %s' % image_path)
-    return {'ro': ro, 'rw': rw}
+    return {'ro': ro.decode('utf-8'), 'rw': rw.decode('utf-8')}
 
   @staticmethod
   def GetFirmwareUpdaterVersion(updater):
