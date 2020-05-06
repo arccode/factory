@@ -62,7 +62,19 @@ class CloudStorageAdapter(filesystem_adapter.FileSystemAdapter):
   def _ListFiles(self, prefix=None):
     """List files in the backing storage system."""
 
-    return cloudstorage.listbucket(self._GsPath(), prefix=prefix)
+    if prefix is not None and not prefix.endswith('/'):
+      prefix += '/'
+
+    files = cloudstorage.listbucket(self._GsPath(), prefix=prefix,
+                                    delimiter='/')
+
+    if prefix is None:
+      full_prefix = self._GsPath()
+    else:
+      full_prefix = self._GsPath(prefix)
+
+    return [os.path.relpath(f.filename, full_prefix)
+            for f in files if not f.is_dir]
 
   def _GsPath(self, *pieces):
     return os.path.normpath('/'.join(['', self._bucket] + list(pieces)))

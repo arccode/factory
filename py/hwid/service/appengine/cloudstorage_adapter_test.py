@@ -64,15 +64,24 @@ class CloudStorageAdapterTest(appengine_test_base.AppEngineTestBase):
     self.assertEqual(2, len(list(files)))
 
   def testListFilesFiltered(self):
-    """Tests the ListFiles method with a prefix."""
+    """Tests the ListFiles method with a prefix (directory)."""
     adapter = cloudstorage_adapter.CloudStorageAdapter(TEST_BUCKET)
 
-    adapter.WriteFile('foo', 'bar')
+    adapter.WriteFile('foo/bar/file', 'bar')
+    adapter.WriteFile('foo/baz/file', 'bar')
+    adapter.WriteFile('foo/file0', 'bar')
+    adapter.WriteFile('foo/file1', 'bar')
+    adapter.WriteFile('foo1', 'bar')
     adapter.WriteFile('baz', 'qux')
 
     files = adapter.ListFiles(prefix='f')
 
-    self.assertEqual(1, len(list(files)))
+    self.assertFalse(list(files))
+
+    prefix_wo_trailing_slash = sorted(list(adapter.ListFiles(prefix='foo')))
+    prefix_w_trailing_slash = sorted(list(adapter.ListFiles(prefix='foo/')))
+    self.assertEqual(prefix_w_trailing_slash, prefix_wo_trailing_slash)
+    self.assertEqual(prefix_w_trailing_slash, ['file0', 'file1'])
 
   def testPath(self):
     """Tests that path creation works as expected."""
