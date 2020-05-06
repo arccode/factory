@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import re
 import threading
 
 from six import viewkeys
@@ -47,7 +48,8 @@ class UdevMonitorBase(device_types.DeviceComponent):
 
     Args:
       sys_path: The expected sysfs path that udev events should
-          come from, e.g., /sys/devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2
+          come from, e.g., /sys/devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2.
+          The path could be a regular expression.
       handler: The callback function to be executed when event triggered.
           Should have signature handler(event, device), where event should be
           cros.factory.device.udev.UdevMonitorBase.Event and device should be
@@ -66,6 +68,7 @@ class UdevMonitorBase(device_types.DeviceComponent):
 
     Args:
       sys_path: The sysfs path that would be removed from udev events update.
+          The path could be a regular expression.
     """
 
     if sys_path in self._handler:
@@ -191,7 +194,7 @@ class LocalUdevMonitor(UdevMonitorBase):
       return
 
     for path in self.GetPathUnderMonitor():
-      if device.sys_path.startswith(path):
+      if re.match(path, device.sys_path):
         self.NotifyEvent(event, path, device)
 
 
@@ -248,6 +251,9 @@ class PollingUdevMonitor(UdevMonitorBase):
       if not real_path:
         real_path = self._device.path.realpath(block_dev)
       curr_realpaths[block_dev] = real_path
+      # TODO(chenghan): This doesn't work with regex sys_path monitored, but
+      #                 currently this class is not used anywhere so it should
+      #                 be fine.
       sys_paths = [path for path in self.GetPathUnderMonitor() if
                    real_path.startswith(path)]
       for sys_path in sys_paths:
