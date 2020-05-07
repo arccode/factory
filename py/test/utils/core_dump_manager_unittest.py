@@ -34,7 +34,7 @@ class CoreDumpManagerTest(unittest.TestCase):
   def tearDown(self):
     shutil.rmtree(self.crash_dir)
 
-  @mock.patch('cros.factory.test.utils.core_dump_manager.CoreDumpManager._SetCoreDump')
+  @mock.patch(core_dump_manager.__name__ + '.CoreDumpManager._SetCoreDump')
   def testScan(self, set_core_dump_mock):
     logging.info('Test ScanFiles()')
 
@@ -49,7 +49,7 @@ class CoreDumpManagerTest(unittest.TestCase):
     self.assertEqual(os.listdir(self.crash_dir),
                      [os.path.basename(self.watched_file.name)])
 
-  @mock.patch('cros.factory.test.utils.core_dump_manager.CoreDumpManager._SetCoreDump')
+  @mock.patch(core_dump_manager.__name__ + '.CoreDumpManager._SetCoreDump')
   def testScanNoWatch(self, set_core_dump_mock):
     logging.info('Test ScanFiles()')
 
@@ -63,7 +63,7 @@ class CoreDumpManagerTest(unittest.TestCase):
     # All files should get deleted in ScanFiles().
     self.assertEqual(os.listdir(self.crash_dir), [])
 
-  @mock.patch('cros.factory.test.utils.core_dump_manager.CoreDumpManager._SetCoreDump')
+  @mock.patch(core_dump_manager.__name__ + '.CoreDumpManager._SetCoreDump')
   def testClear(self, set_core_dump_mock):
     logging.info('Test ClearFiles()')
 

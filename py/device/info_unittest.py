@@ -13,7 +13,6 @@ import unittest
 
 import mock
 
-from cros.factory.device import device_types
 from cros.factory.device import info as info_module
 
 MOCK_RELEASE_IMAGE_LSB_RELEASE = ('GOOGLE_RELEASE=5264.0.0\n'

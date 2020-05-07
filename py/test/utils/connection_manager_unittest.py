@@ -131,7 +131,7 @@ class ConnectionManagerTest(unittest.TestCase):
     glob_mock.assert_called_with('/sys/class/net/*')
     self.assertEqual(glob_call_count, glob_mock.call_count)
 
-  @mock.patch('cros.factory.test.utils.connection_manager.GetBaseNetworkManager')
+  @mock.patch(connection_manager.__name__ + '.GetBaseNetworkManager')
   @mock.patch('subprocess.call')
   @mock.patch('glob.glob')
   def testInitWithEnableNetworking(self, glob_mock, call_mock,
@@ -154,7 +154,7 @@ class ConnectionManagerTest(unittest.TestCase):
                                          **self.fakeData)
     self.VerifyDisableNetworking(glob_mock, call_mock)
 
-  @mock.patch('cros.factory.test.utils.connection_manager.GetBaseNetworkManager')
+  @mock.patch(connection_manager.__name__ + '.GetBaseNetworkManager')
   @mock.patch('os.remove')
   @mock.patch('subprocess.call')
   @mock.patch('glob.glob')
@@ -178,7 +178,7 @@ class ConnectionManagerTest(unittest.TestCase):
     self.assertRaises(AssertionError, connection_manager.ConnectionManager,
                       process_name='XYZ')
 
-  @mock.patch('cros.factory.test.utils.connection_manager.GetBaseNetworkManager')
+  @mock.patch(connection_manager.__name__ + '.GetBaseNetworkManager')
   @mock.patch('subprocess.call')
   @mock.patch('glob.glob')
   def testIsConnectedOK(self, glob_mock, call_mock,
@@ -192,7 +192,7 @@ class ConnectionManagerTest(unittest.TestCase):
     self.assertEqual(x.IsConnected(), True)
     self.VerifyDisableNetworking(glob_mock, call_mock)
 
-  @mock.patch('cros.factory.test.utils.connection_manager.GetBaseNetworkManager')
+  @mock.patch(connection_manager.__name__ + '.GetBaseNetworkManager')
   @mock.patch('subprocess.call')
   @mock.patch('glob.glob')
   def testIsConnectedFailNotConnected(self, glob_mock, call_mock,
@@ -206,7 +206,7 @@ class ConnectionManagerTest(unittest.TestCase):
     self.assertEqual(x.IsConnected(), False)
     self.VerifyDisableNetworking(glob_mock, call_mock)
 
-  @mock.patch('cros.factory.test.utils.connection_manager.GetBaseNetworkManager')
+  @mock.patch(connection_manager.__name__ + '.GetBaseNetworkManager')
   @mock.patch('subprocess.call')
   @mock.patch('glob.glob')
   def testIsConnectedFailNetworkManagerNotRunning(

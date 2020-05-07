@@ -81,7 +81,7 @@ class StressManager(object):
     if num_threads is None:
       num_threads = cpu_count
     elif num_threads < 0:
-      if -num_threads >= cpu_count:
+      if -1 * num_threads >= cpu_count:
         logging.warning(
             'Only %d CPUs availible on DUT, set num_threads to 1 (was %d)',
             cpu_count, num_threads)
