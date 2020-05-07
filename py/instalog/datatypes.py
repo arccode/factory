@@ -16,7 +16,6 @@ import filecmp
 import logging
 import time
 
-import six
 from six import iteritems
 
 from cros.factory.instalog import json_utils
@@ -228,8 +227,6 @@ class EventStream(object):
     self._plugin_api = plugin_api
     self._count = 0
 
-  # TODO(kerker) remove pylint disable after py3 upgrade complete
-  # pylint: disable=non-iterator-returned
   def __iter__(self):
     return self.iter()
 
@@ -288,8 +285,7 @@ class EventStream(object):
     return self._plugin_api.EventStreamAbort(self._plugin, self)
 
 
-# TODO(kerker) : Inherit from object after py3 upgrade complete
-class EventStreamIterator(six.Iterator):
+class EventStreamIterator(object):
   """Iterator to get events out of an EventStream.
 
   Properties:
@@ -330,8 +326,6 @@ class EventStreamIterator(six.Iterator):
     self._current_count = 0
     self._start = time_utils.MonotonicTime()
 
-  # TODO(kerker) remove pylint disable after py3 upgrade complete
-  # pylint: disable=non-iterator-returned
   def __iter__(self):
     """Returns self for special __iter__ function."""
     return self

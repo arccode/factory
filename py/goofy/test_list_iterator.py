@@ -5,8 +5,6 @@
 
 import logging
 
-import six
-
 from cros.factory.test import state
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.test_lists import test_object
@@ -50,8 +48,7 @@ class PickableFrame(object):
     self.locals = {}
 
 
-# TODO(kerker) : Inherit from object after py3 upgrade complete
-class TestListIterator(six.Iterator):
+class TestListIterator(object):
   """An iterator of test list.
 
   https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/test/test_lists/TEST_LIST.md
