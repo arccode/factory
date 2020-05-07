@@ -79,7 +79,8 @@ from cros.factory.utils import config_utils
 
 
 _KEY_COMPONENT_SKU = device_data.JoinKeys(device_data.KEY_COMPONENT, 'sku')
-_PRODUCT_NAME_PATH = '/sys/devices/virtual/dmi/id/product_name'
+_PRODUCT_NAME_PATH = '/sys/class/dmi/id/product_name'
+_DEVICE_TREE_COMPATIBLE_PATH = '/proc/device-tree/compatible'
 
 _MOSYS_ARGS = ['model', 'sku', 'chassis', 'brand']
 
@@ -92,6 +93,11 @@ class PlatformSKUModelTest(test_case.TestCase):
           'Name of JSON config to load for setting device data.', default=None),
       Arg('schema_name', str,
           'Name of JSON schema to load for setting device data.', default=None),
+      Arg('product_name', str,
+          'The product_name of the device. If not specified, read from '
+          '%s on x86 devices and %s on ARM devices.'
+          % (_PRODUCT_NAME_PATH, _DEVICE_TREE_COMPATIBLE_PATH),
+          default=None),
   ]
 
   def setUp(self):
@@ -103,12 +109,31 @@ class PlatformSKUModelTest(test_case.TestCase):
 
   def ApplyConfig(self):
     model = self._platform.get('model', '')
-    product_name = self._dut.ReadFile(_PRODUCT_NAME_PATH).strip()
     sku = self._platform.get('sku', '')
-    model_config = self._config.get('model', {}).get(model, {})
+    if self.args.product_name is None:
+      try:
+        product_names = [self._dut.ReadFile(_PRODUCT_NAME_PATH).strip()]
+      except Exception:
+        product_names = self._dut.ReadFile(
+            _DEVICE_TREE_COMPATIBLE_PATH).split('\0')
+    else:
+      product_names = [self.args.product_name]
+    try:
+      model_config = self._config['model'][model]
+    except Exception:
+      model_config = {}
+      logging.warning("Can't get model.%s from model_sku", model)
     if 'product_sku' in self._config:
-      sku_config = self._config.get(
-          'product_sku', {}).get(product_name, {}).get(sku, {})
+      for product_name in product_names:
+        try:
+          sku_config = self._config['product_sku'][product_name][sku]
+          break
+        except Exception:
+          pass
+      else:
+        logging.warning(
+            "Can't get sku_config from model_sku. product_names: %r, sku: %s",
+            product_names, sku)
     else:
       # TODO(chuntsen): Remove getting config from 'sku' after a period of time.
       sku_config = self._config.get('sku', {}).get(sku, {})
