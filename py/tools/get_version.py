@@ -97,8 +97,9 @@ def GetFirmwareBinaryVersion(path):
   """
   result = None
   try:
-    return fmap.FirmwareImage(file_utils.ReadFile(path)).get_section(
-        'RO_FRID').strip('\xff').strip('\x00')
+    return fmap.FirmwareImage(
+        file_utils.ReadFile(path, encoding=None)).get_section(
+            'RO_FRID').strip(b'\xff').strip(b'\x00').decode('utf-8')
   except Exception:
     logging.exception(
         'Failed to extract firmware version from: %s', path)
