@@ -246,9 +246,9 @@ def VerifyDeviceData(device_data):
   """
   for key, value in iteritems(device_data):
     if key.startswith(JoinKeys(KEY_COMPONENT, 'has_')):
-      if not isinstance(value, (bool, int)):
-        raise ValueError('Values in the "component" domain should be in type '
-                         'of either `bool` or `int`.')
+      if value is not None and not isinstance(value, (bool, int)):
+        raise ValueError('Values in the "component" domain should be None or'
+                         ' in type of either `bool` or `int`.')
 
 
 def UpdateDeviceData(new_device_data):
@@ -401,16 +401,17 @@ def UpdateDeviceDataFromVPD(key_map, vpd_data):
 
   data = {}
   for section in [NAME_RO, NAME_RW]:
-    if section in key_map:
-      vpd_section = vpd_data.get(section, {})
-      for rule in iteritems(key_map[section]):
-        for vpd_key in vpd_section:
-          if _MatchKey(rule, vpd_key):
-            data_key = _DeriveDeviceDataKey(rule, vpd_key)
-            if vpd_section[vpd_key].upper() in ['TRUE', 'FALSE']:
-              data[data_key] = (vpd_section[vpd_key].upper() == 'TRUE')
-            else:
-              data[data_key] = vpd_section[vpd_key]
+    if section not in key_map:
+      continue
+    vpd_section = vpd_data.get(section, {})
+    for rule in iteritems(key_map[section]):
+      for vpd_key in vpd_section:
+        if _MatchKey(rule, vpd_key):
+          data_key = _DeriveDeviceDataKey(rule, vpd_key)
+          if vpd_section[vpd_key].upper() in ['TRUE', 'FALSE']:
+            data[data_key] = (vpd_section[vpd_key].upper() == 'TRUE')
+          else:
+            data[data_key] = vpd_section[vpd_key]
   UpdateDeviceData(data)
 
 

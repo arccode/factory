@@ -90,11 +90,14 @@ class PlatformSKUModelTest(test_case.TestCase):
   ARGS = [
       Arg('config_name', str,
           'Name of JSON config to load for setting device data.', default=None),
+      Arg('schema_name', str,
+          'Name of JSON schema to load for setting device data.', default=None),
   ]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self._config = config_utils.LoadConfig(config_name=self.args.config_name)
+    self._config = config_utils.LoadConfig(config_name=self.args.config_name,
+                                           schema_name=self.args.schema_name)
     self._platform = {}
     self._goofy_rpc = state.GetInstance()
 
