@@ -99,12 +99,12 @@ GIGABYTE_STORAGE = 1000000000
 DEFAULT_BLOCK_SIZE = pygpt.GPT.DEFAULT_BLOCK_SIZE
 # Components for preflash image.
 PREFLASH_COMPONENTS = [
-    'release_image', 'test_image', 'toolkit', 'hwid', 'configproto']
+    'release_image', 'test_image', 'toolkit', 'hwid', 'project_config']
 # Components for cros_payload.
 PAYLOAD_COMPONENTS = [
     'release_image', 'test_image',
     'toolkit', 'firmware', 'hwid', 'complete', 'toolkit_config', 'lsb_factory',
-    'description', 'configproto']
+    'description', 'project_config']
 # Payload types
 PAYLOAD_TYPE_TOOLKIT = 'toolkit'
 PAYLOAD_TYPE_TOOLKIT_CONFIG = 'toolkit_config'
@@ -1393,7 +1393,7 @@ class ChromeOSFactoryBundle(object):
   def __init__(self, temp_dir, board, release_image, test_image, toolkit,
                factory_shim=None, enable_firmware=True, firmware=None,
                hwid=None, complete=None, netboot=None, toolkit_config=None,
-               description=None, configproto=None, setup_dir=None,
+               description=None, project_config=None, setup_dir=None,
                server_url=None):
     self._temp_dir = temp_dir
     # Member data will be looked up by getattr so we don't prefix with '_'.
@@ -1411,7 +1411,7 @@ class ChromeOSFactoryBundle(object):
     # Always get lsb_factory from factory shim.
     self._lsb_factory = None
     self.description = description
-    self.configproto = configproto
+    self.project_config = project_config
     self.setup_dir = setup_dir
     self.server_url = server_url
 
@@ -1475,10 +1475,11 @@ class ChromeOSFactoryBundle(object):
         help='path to a HWID bundle if available. default: %(default)s')
     parser.AddArgument(
         (cls.PREFLASH, cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
-        '--configproto',
-        default='-configproto/*.tar.gz',
+        '--project_config',
+        default='-project_config/*.tar.gz',
         type=ArgTypes.GlobPath,
-        help='path to a configproto bundle if available. default: %(default)s')
+        help=('path to a project_config bundle if available. '
+              'default: %(default)s'))
     parser.AddArgument(
         (cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
         '--factory_shim',
@@ -1777,7 +1778,7 @@ class ChromeOSFactoryBundle(object):
     part.ResizeFileSystem(
         part.GetFileSystemSize() + stateful_free_space * MEGABYTE)
     with GPT.Partition.MapAll(output) as output_dev:
-      targets = ['release_image.crx_cache', 'hwid', 'configproto', 'toolkit']
+      targets = ['release_image.crx_cache', 'hwid', 'project_config', 'toolkit']
       CrosPayloadUtils.InstallComponents(
           json_path, output_dev, targets, optional=True)
 
@@ -2438,7 +2439,7 @@ class ChromeOSFactoryBundle(object):
     AddResource('firmware', self.firmware)
     AddResource('complete', self.complete)
     AddResource('hwid', self.hwid)
-    AddResource('configproto', self.configproto)
+    AddResource('project_config', self.project_config)
 
     if self.server_url:
       shim_path = AddResource('factory_shim', self.factory_shim, do_copy=True)
@@ -2755,7 +2756,7 @@ class CreatePreflashImageCommand(SubCommand):
           enable_firmware=False,
           hwid=self.args.hwid,
           complete=None,
-          configproto=self.args.configproto)
+          project_config=self.args.project_config)
       new_size = bundle.CreateDiskImage(
           self.args.output, self.args.sectors, self.args.sector_size,
           self.args.stateful_free_space, self.args.verbose)
@@ -2822,7 +2823,7 @@ class CreateRMAImageCommmand(SubCommand):
           complete=self.args.complete,
           toolkit_config=self.args.toolkit_config,
           description=self.args.description,
-          configproto=self.args.configproto)
+          project_config=self.args.project_config)
       bundle.CreateRMAImage(self.args.output,
                             active_test_list=self.args.active_test_list)
       ChromeOSFactoryBundle.ShowRMAImage(output)
@@ -2991,7 +2992,7 @@ class ReplaceRMAComponentCommand(SubCommand):
           hwid=self.args.hwid,
           complete=self.args.complete,
           toolkit_config=self.args.toolkit_config,
-          configproto=self.args.configproto)
+          project_config=self.args.project_config)
 
       if self.args.factory_shim:
         if len(rma_metadata) > 1:
@@ -3113,7 +3114,7 @@ class CreateBundleCommand(SubCommand):
           hwid=self.args.hwid,
           complete=self.args.complete,
           netboot=self.args.netboot,
-          configproto=self.args.configproto,
+          project_config=self.args.project_config,
           setup_dir=self.args.setup_dir,
           server_url=self.args.server_url)
       output_file = bundle.CreateBundle(

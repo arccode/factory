@@ -122,8 +122,8 @@ class ImageToolTest(unittest.TestCase):
           d, 'unencrypted', 'import_extensions'))
 
   def SetupBundleEnvironment(self, image_path):
-    for dir_name in ['factory_shim', 'test_image', 'release_image',
-                     'toolkit', 'hwid', 'complete', 'firmware', 'configproto']:
+    for dir_name in ['factory_shim', 'test_image', 'release_image', 'toolkit',
+                     'hwid', 'complete', 'firmware', 'project_config']:
       dir_path = os.path.join(self.temp_dir, dir_name)
       if not os.path.exists(dir_path):
         os.makedirs(dir_path)
