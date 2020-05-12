@@ -19,6 +19,7 @@ import argparse
 import logging
 import os
 import subprocess
+import sys
 import unittest
 
 from six import itervalues
@@ -181,4 +182,5 @@ if __name__ == '__main__':
 
   runner = unittest.TextTestRunner()
   test = HWIDDBsPatternTest(project=args.project, commit=args.commit)
-  runner.run(test)
+  result = runner.run(test)
+  sys.exit(0 if result.wasSuccessful() else 1)
