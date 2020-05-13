@@ -20,7 +20,6 @@ import time
 import traceback
 
 from six import iteritems
-from six.moves import xrange
 
 # Use subprocess.CalledProcessError for invocation exceptions.
 class CalledProcessError(subprocess.CalledProcessError):
@@ -534,7 +533,7 @@ def PipeStdoutLines(process, callback, read_timeout=0.1):
 
     num_lines = data.count('\n')
     buf[0] += data
-    for unused_i in xrange(num_lines):
+    for unused_i in range(num_lines):
       line, unused_sep, buf[0] = buf[0].partition('\n')
       callback(line)
     return True

@@ -10,8 +10,6 @@ import sys
 import tempfile
 import unittest
 
-from six.moves import xrange
-
 from cros.factory.test.utils.pytest_utils import LoadPytestModule
 from cros.factory.utils import file_utils
 
@@ -42,7 +40,7 @@ class LoadPytestModuleTest(unittest.TestCase):
       os.makedirs(os.path.dirname(os.path.join(tmpdir, script_path)))
 
     dirs = os.path.dirname(script_path).split('/')
-    for idx in xrange(len(dirs) + 1):
+    for idx in range(len(dirs) + 1):
       file_utils.TouchFile(
           os.path.join(os.path.join(tmpdir, *dirs[:idx]), '__init__.py'))
 

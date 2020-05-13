@@ -23,8 +23,6 @@ import re
 import socketserver
 import threading
 
-from six.moves import xrange
-
 from cros.factory.test.rf.scpi_mock import MockServerHandler
 from cros.factory.test.rf.scpi_mock import MockTestServer
 
@@ -110,7 +108,7 @@ class E5601CMock(object):
 
     cls._sweep_segment = []
     x_axis_points = []
-    for idx in xrange(cls.SWEEP_SEGMENT_PREFIX_LEN + 1, len(parameters), 3):
+    for idx in range(cls.SWEEP_SEGMENT_PREFIX_LEN + 1, len(parameters), 3):
       start_freq = float(parameters[idx])
       end_freq = float(parameters[idx + 1])
       sample_points = int(parameters[idx + 2])
@@ -145,7 +143,7 @@ class E5601CMock(object):
     match_obj = re.match(cls.RE_SET_TRACE_COUNT, input_str)
     lens = int(match_obj.group(1))
     # Prepare equal length of list for further trace setting
-    cls._trace_config = ['UndefinedTrace' for unused_idx in xrange(lens)]
+    cls._trace_config = ['UndefinedTrace' for unused_idx in range(lens)]
 
   @classmethod
   def GetTraceCount(cls, input_str):

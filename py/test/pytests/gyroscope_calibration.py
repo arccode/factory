@@ -29,8 +29,6 @@ To run calibration on base gyroscope::
   }
 """
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
@@ -82,7 +80,7 @@ class Gyroscope(test_case.TestCase):
             'start calibration.'))
       self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
-    for i in xrange(self.args.setup_time_secs):
+    for i in range(self.args.setup_time_secs):
       self.ui.SetState(
           _('Calibration will be started within {secs} seconds.'
             'Please do not move the device.',

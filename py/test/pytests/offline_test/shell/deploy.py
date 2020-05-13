@@ -93,7 +93,7 @@ class ScriptBuilder(object):
     builder.TestStressApp(0.5, 20, True)
     builder.WaitFor(10)
     builder.TestShutdown()
-    for unused_i in xrange(10):
+    for unused_i in range(10):
       builder.TestStressApp(0.5, 20, True)
     print builder.Build()
   """

@@ -21,7 +21,6 @@ import unittest
 import uuid
 
 import mock
-from six.moves import xrange
 import yaml
 
 from cros.factory.test import event_log
@@ -156,7 +155,7 @@ class GlobalSeqTest(unittest.TestCase):
         while time.time() < end_time:
           values.append(seq.Next())
 
-    threads = [threading.Thread(target=target) for _ in xrange(10)]
+    threads = [threading.Thread(target=target) for unused_i in range(10)]
     for t in threads:
       t.start()
     for t in threads:

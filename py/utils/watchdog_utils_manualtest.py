@@ -8,8 +8,6 @@ import functools
 import logging
 import unittest
 
-from six.moves import xrange
-
 # Since this script would be run as main, we can't use relative import here.
 from cros.factory.utils import watchdog_utils
 
@@ -90,7 +88,7 @@ class WatchdogTest(unittest.TestCase):
 
   @AllowIOError
   def testGetTimeout(self):
-    for timeout in xrange(10, 15):
+    for timeout in range(10, 15):
       self.watchdog.SetTimeout(timeout)
       ret = self.watchdog.GetTimeout()
       logging.info('set timeout(%d), get timeout(%d)', timeout, ret)
@@ -98,7 +96,7 @@ class WatchdogTest(unittest.TestCase):
 
   @AllowIOError
   def testGetPreTimeout(self):
-    for timeout in xrange(1, 5):
+    for timeout in range(1, 5):
       self.watchdog.SetPreTimeout(timeout)
       ret = self.watchdog.GetPreTimeout()
       logging.info('set pretimeout(%d), get pretimeout(%d)', timeout, ret)

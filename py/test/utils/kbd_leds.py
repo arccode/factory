@@ -13,8 +13,6 @@ import os
 import sys
 import threading
 
-from six.moves import xrange
-
 
 # Constants from /usr/include/linux/kd.h.
 KDSETLED = 0x4B32
@@ -51,7 +49,7 @@ def SetLeds(state):
   with _tty_fds_lock:
     if _tty_fds is None:
       _tty_fds = []
-      for tty in xrange(MAX_VTS):
+      for tty in range(MAX_VTS):
         dev = '/dev/tty%d' % tty
         try:
           _tty_fds.append(os.open(dev, os.O_RDWR))

@@ -7,8 +7,6 @@
 import random
 import time
 
-from six.moves import xrange
-
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
@@ -61,7 +59,7 @@ class BuzzerTest(test_case.TestCase):
 
     while True:
       start_time = time.time()
-      for unused_i in xrange(self._pass_digit):
+      for unused_i in range(self._pass_digit):
         self.BeepOne(self.args.start_command, self.args.stop_command)
         self.Sleep(self.args.mute_duration_secs)
       # Try to make the test always run for about same duration, to avoid

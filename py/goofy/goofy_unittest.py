@@ -23,7 +23,6 @@ import unittest
 
 import mock
 from six import itervalues
-from six.moves import xrange
 from ws4py.client import WebSocketBaseClient
 
 from cros.factory.device import info as device_info
@@ -297,7 +296,7 @@ class WebSocketTest(GoofyUITest):
 
   def CheckTestStatusChange(self, test_id, test_state):
     # The Goofy Server should receive the events in 2 seconds.
-    for unused_t in xrange(20):
+    for unused_t in range(20):
       statuses = []
       for event in self.events:
         if event.type == Event.Type.STATE_CHANGE and event.path == test_id:

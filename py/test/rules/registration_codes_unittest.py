@@ -9,7 +9,6 @@ import binascii
 import unittest
 
 from six import assertRaisesRegex
-from six.moves import xrange
 
 from cros.factory.proto import reg_code_pb2
 from cros.factory.test.rules.registration_codes import (
@@ -27,7 +26,7 @@ class RegistrationCodeTest(unittest.TestCase):
     self.proto = reg_code_pb2.RegCode()
     self.proto.content.code_type = reg_code_pb2.UNIQUE_CODE
     self.proto.content.code = ''.join(
-        [chr(x) for x in xrange(32)]).encode('utf-8')
+        [chr(x) for x in range(32)]).encode('utf-8')
     self.proto.content.device = 'chromebook'
 
   def _Encode(self, xor_checksum=0):

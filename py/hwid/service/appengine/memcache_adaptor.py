@@ -9,7 +9,6 @@ import os
 import pickle
 
 import redis
-from six.moves import xrange
 
 
 PICKLE_PROTOCOL_VERSION = 2
@@ -54,7 +53,7 @@ class MemcacheAdaptor(object):
     # Split serialized object into chunks no bigger than chunksize. The unique
     # key for the split chunks is <key>.<number> so the first chunk for key SNOW
     # will be SNOW.0 the second chunk will be in SNOW.1
-    for i in xrange(0, len(serialized_data), MEMCACHE_CHUNKSIZE):
+    for i in range(0, len(serialized_data), MEMCACHE_CHUNKSIZE):
       chunk_key = '%s:%s.%s' % (self.namespace, key, i // MEMCACHE_CHUNKSIZE)
       chunks[chunk_key] = serialized_data[i : i+MEMCACHE_CHUNKSIZE]
     return chunks
@@ -73,7 +72,7 @@ class MemcacheAdaptor(object):
   def Get(self, key):
     """Retrieve and re-assemble a large object from memcache."""
     keys = ['%s:%s.%s' % (self.namespace, key, i)
-            for i in xrange(MAX_NUMBER_CHUNKS)]
+            for i in range(MAX_NUMBER_CHUNKS)]
     chunks = self.client.mget(keys)
     serialized_data = ''.join(filter(None, chunks))
     if not serialized_data:

@@ -83,8 +83,6 @@ charging, add this in test list::
 import logging
 import os
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.test.env import paths
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
@@ -177,7 +175,7 @@ class ChargerTest(test_case.TestCase):
     self.ui.SetState(MakeSpriteHTMLTag('charging_sprite.png', 256, 256))
     logging.info('Charging starting at %d%%', start_charge)
 
-    for elapsed in xrange(self.args.timeout_secs):
+    for elapsed in range(self.args.timeout_secs):
       charge = self._power.GetChargePct()
 
       if charge >= target_charge:

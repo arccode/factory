@@ -15,7 +15,6 @@ import sys
 import time
 
 from six import iteritems
-from six.moves import xrange
 
 from cros.factory.test.fixture.whale import keyboard_emulator
 from cros.factory.test.fixture.whale import serial_client
@@ -254,7 +253,7 @@ class InterruptHandler(object):
     # boot up after battery connection.
     # Assuming all serial connections are connected to Dolphin.
     serial_amount = self._dolphin.GetSerialAmount()
-    for serial_index in xrange(serial_amount):
+    for serial_index in range(serial_amount):
       self._dolphin.Send(serial_index, 'usbc_action dev')
 
   @TimeClassMethodDebug

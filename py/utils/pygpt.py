@@ -41,7 +41,6 @@ import sys
 import uuid
 
 from six import iteritems
-from six.moves import xrange
 
 
 class StructError(Exception):
@@ -540,7 +539,7 @@ class GPT(object):
     gpt.header = cls.Header.Create(size, block_size, pad_blocks)
     gpt.partitions = [
         cls.Partition(block_size=block_size, image=image_name, number=i + 1)
-        for i in xrange(gpt.header.PartitionEntriesNumber)]
+        for i in range(gpt.header.PartitionEntriesNumber)]
     return gpt
 
   @staticmethod
@@ -629,7 +628,7 @@ class GPT(object):
     gpt.header = header
     gpt.partitions = [
         ReadPartition(image, i + 1)
-        for i in xrange(header.PartitionEntriesNumber)]
+        for i in range(header.PartitionEntriesNumber)]
     return gpt
 
   def GetUsedPartitions(self):
@@ -787,7 +786,7 @@ class GPT(object):
     # Check if partition entries overlap with each other.
     lba_list = [(p.FirstLBA, p.LastLBA, p) for p in parts]
     lba_list.sort(key=lambda t: t[0])
-    for i in xrange(len(lba_list) - 1):
+    for i in range(len(lba_list) - 1):
       if lba_list[i][1] >= lba_list[i + 1][0]:
         raise GPTError('Overlap in partition entries: [%s,%s]%s, [%s,%s]%s.' %
                        (lba_list[i] + lba_list[i + 1]))
@@ -1211,7 +1210,7 @@ class GPTCommands(object):
           '-l', '--label',
           help='Label')
       parser.add_argument(
-          '-S', '--successful', type=int, choices=xrange(2),
+          '-S', '--successful', type=int, choices=list(range(2)),
           help='set Successful flag')
       parser.add_argument(
           '-T', '--tries', type=int,
@@ -1220,11 +1219,11 @@ class GPTCommands(object):
           '-P', '--priority', type=int,
           help='set Priority flag (0-15)')
       parser.add_argument(
-          '-R', '--required', type=int, choices=xrange(2),
+          '-R', '--required', type=int, choices=list(range(2)),
           help='set Required flag')
       parser.add_argument(
           '-B', '--boot-legacy', dest='legacy_boot', type=int,
-          choices=xrange(2),
+          choices=list(range(2)),
           help='set Legacy Boot flag')
       parser.add_argument(
           '-A', '--attribute', dest='raw_16', type=int,

@@ -69,8 +69,6 @@ If calibration is required::
 import contextlib
 import time
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.external import evdev
 from cros.factory.test.i18n import _
@@ -143,7 +141,7 @@ class TouchpadHoverTest(test_case.TestCase):
         self._dut.WriteFile(self.args.calibration_trigger, '1')
         self.Sleep(self.args.calibration_sleep_secs)
 
-    for round_index in xrange(self.args.repeat_times):
+    for round_index in range(self.args.repeat_times):
       progress = '(%d/%d) ' % (round_index, self.args.repeat_times)
       self._TestForValue(
           [progress, _('Please put the hover-tool into the holder.')], 1)

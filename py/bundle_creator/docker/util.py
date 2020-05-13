@@ -10,8 +10,6 @@ import string
 import subprocess
 import yaml
 
-from six.moves import xrange
-
 from google.cloud import storage  # pylint: disable=import-error, no-name-in-module
 from google.protobuf import text_format
 
@@ -50,7 +48,8 @@ def RandomString(length):
   Returns:
     a random ascii letters string
   """
-  return ''.join([random.choice(string.ascii_letters) for _ in xrange(length)])
+  return ''.join([random.choice(string.ascii_letters)
+                  for unused_i in range(length)])
 
 
 def CreateBundle(req):

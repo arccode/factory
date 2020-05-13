@@ -38,7 +38,7 @@ class CheckerTest(unittest.TestCase):
     expression = '{k: v for (k, v) in dut.dct.itertiems() if v}'
     self.checker.AssertValidEval(expression)
 
-    expression = '(x * x for x in xrange(3))'
+    expression = '(x * x for x in range(3))'
     # generator is not allowed
     with self.assertRaises(checker.CheckerError):
       self.checker.AssertValidEval(expression)

@@ -16,8 +16,6 @@ from __future__ import print_function
 import argparse
 import time
 
-from six.moves import xrange
-
 from cros.factory.test.rf.n1914a import N1914A
 
 
@@ -53,7 +51,7 @@ if __name__ == '__main__':
     mode_func(port=args.port)
     print('Profiling mode %s ...' % mode_name)
     start_time = time.time()
-    for unused_iteration in xrange(args.iteration):
+    for unused_iteration in range(args.iteration):
       power = n1914a.MeasureOnceInBinary(port=args.port)
     time_elapsed[mode_name] = time.time() - start_time
     last_measurment[mode_name] = power

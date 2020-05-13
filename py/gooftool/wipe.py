@@ -15,8 +15,6 @@ import tempfile
 import textwrap
 import time
 
-from six.moves import xrange
-
 from cros.factory.gooftool import chroot
 from cros.factory.gooftool.common import ExecFactoryPar
 from cros.factory.gooftool.common import Shell
@@ -99,7 +97,7 @@ def Daemonize(logfile=None):
   if maxfd == resource.RLIM_INFINITY:
     maxfd = 1024
 
-  for fd in xrange(maxfd):
+  for fd in range(maxfd):
     try:
       os.close(fd)
     except OSError:
@@ -272,7 +270,7 @@ def _StopAllUpstartJobs(exclude_list=None):
   # Try three times to stop running services because some service will respawn
   # one time after being stopped, e.g. shill_respawn. Two times should be enough
   # to stop shill. Adding one more try for safety.
-  for unused_tries in xrange(3):
+  for unused_tries in range(3):
 
     # There may be LOG_PATH optional parameter for upstart job, the initctl
     # output may different. The possible output:
@@ -376,7 +374,7 @@ def _UnmountStatefulPartition(root, state_dev):
 
   def _Unmount(mount_point, critical):
     logging.info('try to unmount %s', mount_point)
-    for unused_i in xrange(10):
+    for unused_i in range(10):
       output = process_utils.Spawn(['umount', '-n', '-R', mount_point],
                                    log=True,
                                    log_stderr_on_error=True).stderr_data

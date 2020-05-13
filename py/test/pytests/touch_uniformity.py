@@ -29,8 +29,6 @@ a set of machines. The test logs the actual max and min values found.
 import collections
 import logging
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test.i18n import _
@@ -104,8 +102,8 @@ class TouchUniformity(test_case.TestCase):
     logging.info('Checking values from frame %d are between %s and %s',
                  check_item.frame_idx, check_item.min_val, check_item.max_val)
     check_passed = True
-    for row_index in xrange(check_item.rows or len(data)):
-      for col_index in xrange(check_item.cols or len(data[0])):
+    for row_index in range(check_item.rows or len(data)):
+      for col_index in range(check_item.cols or len(data[0])):
         val = data[row_index][col_index]
         if not check_item.min_val <= val <= check_item.max_val:
           logging.info(

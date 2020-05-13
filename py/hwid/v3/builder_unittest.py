@@ -8,7 +8,6 @@ import unittest
 
 import mock
 from six import itervalues
-from six.moves import xrange
 
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import common
@@ -244,13 +243,13 @@ class DatabaseBuilderTest(unittest.TestCase):
     db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
 
     # Add a lot of mainboard so that the field need more bits.
-    for i in xrange(10):
+    for i in range(10):
       db.UpdateByProbedResults(
           {'mainboard': [{'name': 'generic', 'values': {'rev': str(i)}}]},
           {}, {})
 
     # Add a lot of cpu so that the field need more bits.
-    for i in xrange(50):
+    for i in range(50):
       db.UpdateByProbedResults(
           {'cpu': [{'name': 'generic', 'values': {'vendor': str(i)}}]}, {}, {})
 
@@ -294,7 +293,7 @@ class DatabaseBuilderTest(unittest.TestCase):
       db = builder.DatabaseBuilder(database_path=_TEST_DATABASE_PATH)
       db.UpdateByProbedResults(
           {'comp_cls_2': [{'name': 'generic', 'values': {str(x): str(x)}}
-                          for x in xrange(10)]},
+                          for x in range(10)]},
           {}, {}, image_name=image_name)
       self.assertEqual(db.database.GetBitMapping(0),
                        db.database.GetBitMapping(db.database.max_image_id))
@@ -306,7 +305,7 @@ class DatabaseBuilderTest(unittest.TestCase):
 
     db.UpdateByProbedResults(
         {'comp_cls_200': [{'name': 'generic', 'values': {str(x): str(x)}}
-                          for x in xrange(10)]},
+                          for x in range(10)]},
         {}, {}, image_name='NEW_IMAGE_NAME')
     self.assertNotIn('comp_cls_200_field',
                      db.database.GetEncodedFieldsBitLength(0))

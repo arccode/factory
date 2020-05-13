@@ -15,8 +15,6 @@ from __future__ import print_function
 import argparse
 import os
 
-from six.moves import xrange
-
 from cros.factory.utils.cros_board_utils import BuildBoard
 from cros.factory.utils.process_utils import CheckOutput
 
@@ -49,7 +47,7 @@ def GetUncommittedFiles(repo):
 
 
 def GetUnmergedCommits(repo):
-  for idx in xrange(NUM_COMMITS_PER_REPO):
+  for idx in range(NUM_COMMITS_PER_REPO):
     commit_log = GitLog(repo, skip=idx, max_count=1)
     for msg in MERGED_MSG:
       if msg in commit_log:

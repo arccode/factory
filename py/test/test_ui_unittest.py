@@ -17,7 +17,6 @@ import unittest
 import mock
 from six import assertRegex
 from six import iteritems
-from six.moves import xrange
 
 from cros.factory.test import event as test_event
 from cros.factory.test import state
@@ -425,7 +424,7 @@ class EventLoopRunTest(EventLoopTestBase):
       name = 'iter-repeat-%d-%d-%d' % (event_time, event_delay, iter_count)
 
       def _Iterator():
-        for unused_i in xrange(iter_count):
+        for unused_i in range(iter_count):
           _Log(name)
           yield
 
@@ -433,7 +432,7 @@ class EventLoopRunTest(EventLoopTestBase):
           event_time, (lambda: self.event_loop.AddTimedIterable(
               _Iterator(), event_delay)))
       expected_calls.setdefault(name, []).extend(
-          [event_time + event_delay * i for i in xrange(iter_count)])
+          [event_time + event_delay * i for i in range(iter_count)])
 
     for unused_i in range(100):
       _AddRandomRepeatingIterable()

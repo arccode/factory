@@ -8,8 +8,6 @@ import logging
 import struct
 import time
 
-from six.moves import xrange
-
 from cros.factory.device import device_types
 
 
@@ -118,5 +116,5 @@ class Atmel1664sTouchController(TouchController):
       data = struct.unpack(fmt, buf)
       result.append([
           list(data[i * self._cols:(i + 1) * self._cols])
-          for i in xrange(self._rows)])
+          for i in range(self._rows)])
     return result

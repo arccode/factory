@@ -11,7 +11,6 @@ import time
 import unittest
 
 import mock
-from six.moves import xrange
 
 from cros.factory.test import event_log
 from cros.factory.test import event_log_watcher
@@ -164,12 +163,12 @@ class EventLogWatcherTest(unittest.TestCase):
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
                               handle_event_log, num_log_per_callback=2)
 
-    for i in xrange(3):
+    for i in range(3):
       self.WriteLog(MOCK_PREAMBLE(i), MOCK_LOG_NAME(i))
     watcher.ScanEventLogs()
 
     # Assert that the new log has been marked as handled.
-    for i in xrange(3):
+    for i in range(3):
       log = watcher.GetEventLog(MOCK_LOG_NAME(i))
       self.assertEqual(log[event_log_watcher.KEY_OFFSET],
                        len(MOCK_PREAMBLE(i)))
@@ -184,12 +183,12 @@ class EventLogWatcherTest(unittest.TestCase):
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
                               handle_event_log, num_log_per_callback=0)
 
-    for i in xrange(3):
+    for i in range(3):
       self.WriteLog(MOCK_PREAMBLE(i), MOCK_LOG_NAME(i))
     watcher.ScanEventLogs()
 
     # Assert that the new log has been marked as handled.
-    for i in xrange(3):
+    for i in range(3):
       log = watcher.GetEventLog(MOCK_LOG_NAME(i))
       self.assertEqual(log[event_log_watcher.KEY_OFFSET],
                        len(MOCK_PREAMBLE(i)))

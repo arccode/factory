@@ -72,8 +72,6 @@ import logging
 import os
 import random
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
@@ -241,7 +239,7 @@ class ExtDisplayTest(test_case.TestCase):
           key=('<span id="pass_key">%s</span>' % pass_digit))
     ])
 
-    key = int(self.ui.WaitKeysOnce([str(i) for i in xrange(10)]))
+    key = int(self.ui.WaitKeysOnce([str(i) for i in range(10)]))
     if key != pass_digit:
       self.FailTask('Wrong key pressed. pressed: %d, correct: %d' %
                     (key, pass_digit))
@@ -263,7 +261,7 @@ class ExtDisplayTest(test_case.TestCase):
     self.ui.SetState(
         _('Fixture is checking if video is displayed on {display}?',
           display=args.display_label))
-    for num_tries in xrange(1, retry_times + 1):
+    for num_tries in range(1, retry_times + 1):
       try:
         self._fixture.CheckExtDisplay()
         self.PassTask()

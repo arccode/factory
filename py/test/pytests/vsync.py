@@ -30,8 +30,6 @@ To run a VSync pin test, add this in test list::
 import os
 import stat
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test import session
@@ -73,7 +71,7 @@ class SpatialSensorCalibration(test_case.TestCase):
     # on/off switch, so this turns on the sensor.
     self._vsync.SetFrequency(1)
     start_count = 0
-    for idx in xrange(self.args.repeat_times):
+    for idx in range(self.args.repeat_times):
       self.ui.SetState(
           _('Verifying VSync pin... ({count}/{total})',
             count=idx, total=self.args.repeat_times))

@@ -27,8 +27,6 @@ from __future__ import division
 import logging
 import time
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
@@ -115,7 +113,7 @@ class FanSpeedTest(test_case.TestCase):
     # probe_interval_secs.
     end_time = time.time() + self.args.duration_secs
     # Samples of all fan speed with sample period: probe_interval_secs.
-    ith_fan_samples = [[] for unused_i in xrange(fan_count)]
+    ith_fan_samples = [[] for unused_i in range(fan_count)]
     while time.time() < end_time:
       observed_rpm = self._fan.GetFanRPM(self.args.fan_id)
       for i, ith_fan_rpm in enumerate(observed_rpm):

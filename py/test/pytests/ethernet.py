@@ -7,8 +7,6 @@
 import logging
 import re
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test import session
@@ -184,7 +182,7 @@ class EthernetTest(test_case.TestCase):
       self.CheckLinkSWconfig()
 
     # Only retry 5 times
-    for unused_i in xrange(5):
+    for unused_i in range(5):
       eth = self.GetInterface()
       if eth:
         if self.args.link_only:

@@ -68,8 +68,6 @@ import logging
 import os
 import random
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
@@ -152,7 +150,7 @@ def TestAudioDigitPlayback(ui, dut, port_name, card, device, channel='all',
   else:
     device = port_name
 
-  all_keys = [test_ui.ESCAPE_KEY, 'R'] + [str(num) for num in xrange(10)]
+  all_keys = [test_ui.ESCAPE_KEY, 'R'] + [str(num) for num in range(10)]
   while True:
     ui.SetState(
         _('Please wait for the {device} playback to finish.',

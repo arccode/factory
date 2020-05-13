@@ -5,7 +5,6 @@
 import os
 import time
 
-from six.moves import xrange
 from six import viewitems
 
 from cros.factory.device import device_types
@@ -115,7 +114,7 @@ class BasicSensorController(device_types.DeviceComponent):
       A dict of the format {'signal_name': average value}
     """
     ret = {signal: 0 for signal in self.signal_names}
-    for _ in xrange(capture_count):
+    for unused_i in range(capture_count):
       time.sleep(1.0 / sample_rate)
       for signal_name in ret:
         ret[signal_name] += float(self._GetSysfsValue(signal_name + '_raw'))

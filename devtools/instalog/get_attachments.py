@@ -19,8 +19,6 @@ import shutil
 import subprocess
 import sys
 
-from six.moves import xrange
-
 
 DATE_FORMAT = '%Y%m%d%H%M%S'
 HASH_FILE_READ_BLOCK_SIZE = 1024 * 64  # 64kb
@@ -109,7 +107,7 @@ def Download(args, results):
   # Remove duplicates in the remote_list.
   remote_list = list(set(remote_list))
 
-  for i in xrange(0, len(remote_list), 100):
+  for i in range(0, len(remote_list), 100):
     print('Downloading the %d-%d of %s attachments...' %
           (i, min(i + 100, len(remote_list)) - 1, len(remote_list)))
     commands = [args.gsutil_path, '-m', 'cp', '-n']

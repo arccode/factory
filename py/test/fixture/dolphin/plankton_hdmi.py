@@ -18,8 +18,6 @@ import re
 import threading
 import time
 
-from six.moves import xrange
-
 
 class PlanktonHDMIException(Exception):
   pass
@@ -164,7 +162,7 @@ class PlanktonHDMI(object):
     # Retries are added to avoid false alarms when getting flaky images
     # probably from USB-C DP stream in the bounce time of projecting to the
     # external monitor.
-    for _ in xrange(8):
+    for unused_i in range(8):
       captured_image = self.Capture()
       if self.CompareImage(captured_image, golden_image, threshold,
                            return_corr):
@@ -251,7 +249,7 @@ class PlanktonHDMI(object):
     """
     corr_values = []
     result = True
-    for color_channel in xrange(3):  # b, g, r channels
+    for color_channel in range(3):  # b, g, r channels
       hist1 = cv.calcHist([image1], [color_channel], None, [256], [0, 255])
       hist2 = cv.calcHist([image2], [color_channel], None, [256], [0, 255])
       corr = cv.compareHist(hist1, hist2, method=cv.HISTCMP_CORREL)

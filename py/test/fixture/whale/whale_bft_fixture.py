@@ -10,7 +10,6 @@ import logging
 import os
 
 from six import iteritems
-from six.moves import xrange
 
 from cros.factory.test.fixture import bft_fixture as bft
 from cros.factory.test.fixture.whale import color_sensor
@@ -47,13 +46,13 @@ class WhaleBFTFixture(bft.BFTFixture):
 
   # Add 8 GPIOs on krill board PCA9534
   _WHALE_DEVICE.update({
-      'krill_pca9534_p%d' % i: 'krill_pca9534_p%d' % i for i in xrange(8)
+      'krill_pca9534_p%d' % i: 'krill_pca9534_p%d' % i for i in range(8)
   })
 
   # Add whale_fixture_ctrl
   _WHALE_DEVICE.update({
       'whale_fixture_ctrl%d' % i: 'whale_fixture_ctrl%d' % i
-      for i in xrange(1, 7)
+      for i in range(1, 7)
   })
 
   # Mapping from status color to (pass, fail) led status.
@@ -156,7 +155,7 @@ class WhaleBFTFixture(bft.BFTFixture):
 
     # Servo returns a string of list of integers
     adc = ast.literal_eval(self._servo.Get(self._WHALE_CONTROL.ADC))
-    for i in xrange(len(self._WHALE_ADC)):
+    for i in range(len(self._WHALE_ADC)):
       result[self._WHALE_ADC[i][0]] = adc[i] * self._WHALE_ADC[i][1]
 
     return result

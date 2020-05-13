@@ -14,7 +14,6 @@ import unittest
 import mock
 from six import assertCountEqual
 from six import iteritems
-from six.moves import xrange
 
 from cros.factory.test import device_data
 from cros.factory.test import state
@@ -110,7 +109,7 @@ class TestListLoaderTest(unittest.TestCase):
          'b': constants['timestamp'],
          'c': constants['timestamp'] + 3,
          'd': options['ui_locale'].upper(),
-         'e': [x * x for x in xrange(3)],
+         'e': [x * x for x in range(3)],
          'f': {'en-US': 'us', 'zh-CN': 'cn'},
          'g': 'us',
          'h': 'us_testing', },

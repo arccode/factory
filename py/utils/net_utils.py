@@ -18,8 +18,6 @@ import struct
 import time
 import xmlrpc.client
 
-from six.moves import xrange
-
 from . import file_utils
 from . import process_utils
 from .type_utils import Error
@@ -709,7 +707,7 @@ def GetUnusedIPV4RangeCIDR(preferred_prefix_bits=24, exclude_ip_prefix=None,
   # starting from preferred_prefix_bits, try to find an subnet that are
   # available. If we can't, increase the prefix_bits, i.e., find a smaller
   # subnet.
-  for prefix_bits in xrange(preferred_prefix_bits, max_prefix_bits + 1):
+  for prefix_bits in range(preferred_prefix_bits, max_prefix_bits + 1):
     step = 2 ** (32 - prefix_bits)
     for ip_range in IPV4_PRIVATE_RANGE:
       # we split this private range into several subnets according to

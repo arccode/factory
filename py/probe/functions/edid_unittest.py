@@ -8,7 +8,6 @@ import unittest
 
 import mock
 from six import assertCountEqual
-from six.moves import xrange
 
 from cros.factory.probe.functions import edid
 
@@ -74,8 +73,8 @@ class EDIDFunctionTest(unittest.TestCase):
     result = edid.EDIDFunction()()
     assertCountEqual(self, result, self.FAKE_OUTPUTS)
 
-    for i in xrange(2):
-      for j in xrange(2):
+    for i in range(2):
+      for j in range(2):
         result = edid.EDIDFunction(path=self.FAKE_PATHS[i][j])()
         assertCountEqual(self, result, [self.FAKE_OUTPUTS[i + j]])
 

@@ -8,8 +8,6 @@ Configless fields are some numeric fields in HWID that can be decoded without
 board / project specific database (e.g. HWID database).
 """
 
-from six.moves import xrange
-
 from cros.factory.hwid.v3 import common
 from cros.factory.test import device_data_constants
 
@@ -179,7 +177,7 @@ class FeatureList(object):
     bin_string = bin(encoded_value).replace('0b', '')[1:]
     result = {
         self.features[i]: int(bin_string[i])
-        for i in xrange(len(bin_string))
+        for i in range(len(bin_string))
     }
     return result
 

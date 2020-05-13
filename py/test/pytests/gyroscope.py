@@ -43,7 +43,6 @@ To run a test on base gyroscope::
 import collections
 
 from six import iteritems
-from six.moves import xrange
 
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
@@ -98,7 +97,7 @@ class Gyroscope(test_case.TestCase):
             'start testing.'))
       self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
-    for i in xrange(self.args.setup_time_secs):
+    for i in range(self.args.setup_time_secs):
       self.ui.SetState(
           _('Test will be started within {secs} seconds. '
             'Please do not move the device.',

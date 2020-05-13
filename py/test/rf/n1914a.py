@@ -13,8 +13,6 @@ from __future__ import division
 
 import struct
 
-from six.moves import xrange
-
 from cros.factory.test.rf import agilent_scpi
 from cros.factory.test.rf import lan_scpi
 
@@ -152,5 +150,5 @@ class N1914A(agilent_scpi.AgilentSCPI):
   def MeasureInBinary(self, port, avg_length):
     """Performs measurements in binary format and returns its average."""
     assert avg_length > 0, 'avg_length need to be greater than 1'
-    power = [self.MeasureOnceInBinary(port) for _ in xrange(avg_length)]
+    power = [self.MeasureOnceInBinary(port) for unused_i in range(avg_length)]
     return sum(power) / avg_length

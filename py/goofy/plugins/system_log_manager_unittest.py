@@ -19,7 +19,6 @@ import unittest
 import urllib.parse
 
 import mock
-from six.moves import xrange
 
 from cros.factory.test import state
 from cros.factory.utils import debug_utils
@@ -158,7 +157,7 @@ class TestSystemLogManager(unittest.TestCase):
     file_utils.TryMakeDirs(TEST_DIRECTORY)
     self.ClearFiles()
     self._tempfiles = [CreateTestFile(mock_file_prefix)
-                       for unused_index in xrange(3)]
+                       for unused_index in range(3)]
     self.base_rsync_command = (
         MOCK_RSYNC_COMMAND_ARG +
         sum([glob.glob(x) for x in mock_sync_log_paths], []) +
@@ -254,7 +253,7 @@ class TestSystemLogManager(unittest.TestCase):
       code: Return code of rsync subprocess.
       terminated: Rsync subprocess gets terminated after times pollings.
     """
-    for _ in xrange(times):
+    for unused_i in range(times):
       self.fake_process.poll_side_effect.append(None)
     if terminated:
       return
@@ -425,7 +424,7 @@ class TestSystemLogManager(unittest.TestCase):
     """Syncs periodically for 5 times."""
     self.SetMock()
     number_of_period = 5
-    for _ in xrange(number_of_period):
+    for unused_i in range(number_of_period):
       self.MockSyncOnce(
           get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
           spawn_mock)
@@ -511,16 +510,16 @@ class TestSystemLogManager(unittest.TestCase):
     self.SetMock()
 
     times = 5
-    mock_extra_files = [['mock_extra_files_%d' % x] for x in xrange(times)]
+    mock_extra_files = [['mock_extra_files_%d' % x] for x in range(times)]
     mock_callback = mock.MagicMock()
 
-    for kick_number in xrange(times):
+    for kick_number in range(times):
       self.MockSyncOnce(
           get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
           spawn_mock, mock_extra_files[kick_number], mock_callback)
     self.fake_process.poll.side_effect = self.fake_process.poll_side_effect
     # manager should process each sync requests by the test.
-    for kick_number in xrange(times):
+    for kick_number in range(times):
       self.RecordKickToSync(
           mock_extra_files[kick_number], mock_callback)
     self.MockStopAt(MOCK_POLLING_DURATION * times)
@@ -546,7 +545,7 @@ class TestSystemLogManager(unittest.TestCase):
     """
     self.SetMock()
     number_of_period_before_kick = 2
-    for _ in xrange(number_of_period_before_kick):
+    for unused_i in range(number_of_period_before_kick):
       self.MockSyncOnce(
           get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
           spawn_mock)
@@ -558,7 +557,7 @@ class TestSystemLogManager(unittest.TestCase):
         spawn_mock, mock_extra_files, mock_callback)
 
     number_of_period_after_kick = 2
-    for _ in xrange(number_of_period_after_kick):
+    for unused_i in range(number_of_period_after_kick):
       self.MockSyncOnce(
           get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
           spawn_mock)
@@ -605,7 +604,7 @@ class TestSystemLogManager(unittest.TestCase):
         spawn_mock, mock_extra_files, mock_callback)
 
     number_of_period_after_kick = 2
-    for _ in xrange(number_of_period_after_kick):
+    for unused_i in range(number_of_period_after_kick):
       self.MockSyncOnce(
           get_server_url_mock, get_server_proxy_mock, get_device_id_mock,
           spawn_mock)
@@ -645,7 +644,7 @@ class TestSystemLogManager(unittest.TestCase):
     """Clears log files once by periodic scan including syncing."""
     self.SetMock()
     clear_file_prefix = mock_file_prefix + 'clear_'
-    for _ in xrange(3):
+    for unused_i in range(3):
       CreateTestFile(clear_file_prefix)
     clear_file_paths = [os.path.join(TEST_DIRECTORY, clear_file_prefix + '*')]
     self.MockSyncOnce(
@@ -668,7 +667,7 @@ class TestSystemLogManager(unittest.TestCase):
     """Clears log files once by periodic scan without syncing."""
     self.SetMock()
     clear_file_prefix = mock_file_prefix + 'clear_'
-    for _ in xrange(3):
+    for unused_i in range(3):
       CreateTestFile(clear_file_prefix)
     clear_file_paths = [os.path.join(TEST_DIRECTORY, clear_file_prefix + '*')]
 
@@ -686,7 +685,7 @@ class TestSystemLogManager(unittest.TestCase):
     """Clears log files once by KickToClear without syncing."""
     self.SetMock()
     clear_file_prefix = mock_file_prefix + 'clear_'
-    for _ in xrange(3):
+    for unused_i in range(3):
       CreateTestFile(clear_file_prefix)
     clear_file_paths = [os.path.join(TEST_DIRECTORY, clear_file_prefix + '*')]
 
@@ -706,10 +705,10 @@ class TestSystemLogManager(unittest.TestCase):
     """Clears log files once by KickToClear without syncing."""
     self.SetMock()
     clear_file_prefix = mock_file_prefix + 'clear_'
-    for _ in xrange(3):
+    for unused_i in range(3):
       CreateTestFile(clear_file_prefix)
     preserve_file_prefix = clear_file_prefix + 'preserve_'
-    for _ in xrange(3):
+    for unused_i in range(3):
       CreateTestFile(preserve_file_prefix)
     clear_file_paths = [os.path.join(TEST_DIRECTORY, clear_file_prefix + '*')]
     clear_file_excluded_paths = [

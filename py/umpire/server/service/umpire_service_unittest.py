@@ -9,7 +9,6 @@ import logging
 import os
 import re
 
-from six.moves import xrange
 from twisted.internet import defer
 from twisted.internet import reactor
 from twisted.trial import unittest
@@ -53,7 +52,7 @@ class MultiProcService(umpire_service.UmpireService):
 
   def CreateProcesses(self, umpire_config, env):
     del umpire_config, env  # Unused.
-    for p in xrange(0, 7):
+    for p in range(0, 7):
       config_dict = {
           'executable': '/bin/sh',
           'name': 'P_%d' % p,

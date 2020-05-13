@@ -16,8 +16,6 @@ import threading
 import time
 import _thread
 
-from six.moves import xrange
-
 from . import thread_utils
 from . import time_utils
 from . import type_utils
@@ -197,7 +195,7 @@ def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
   """
   result = None
   sleep = _GetPollingSleepFunction()
-  for retry_time in xrange(max_retry_times):
+  for retry_time in range(max_retry_times):
     try:
       result = target(*args, **kwargs)
     except Exception:

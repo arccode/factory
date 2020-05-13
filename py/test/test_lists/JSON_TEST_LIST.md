@@ -221,7 +221,7 @@ simplicity, the expression has the following restrictions:
 2. Not all operators are allowed, currently, the following expressions are not
    allowed:
 
-   1. Generator  (e.g. `(x * x for x in xrange(10))`)
+   1. Generator  (e.g. `(x * x for x in range(10))`)
    2. Lambda function (e.g. `lambda x: x * x`)
    3. Other expressions that don't make sense without a context, e.g. `yield`,
       `return`

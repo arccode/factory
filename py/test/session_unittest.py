@@ -16,7 +16,6 @@ import unittest
 
 import mock
 from six import assertRegex
-from six.moves import xrange
 
 from cros.factory.test import session
 
@@ -73,7 +72,7 @@ class SessionTest(unittest.TestCase):
     self.assertNotEqual(installation_id, session.GetInstallationID())
 
   def testInitCount(self):
-    for i in xrange(-1, 5):
+    for i in range(-1, 5):
       self.assertEqual(i, session.GetInitCount())
       session.IncrementInitCount()
       self.assertEqual(str(i + 1),

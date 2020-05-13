@@ -40,8 +40,6 @@ import threading
 import time
 import unittest
 
-from six.moves import xrange
-
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import log_utils
 from cros.factory.instalog import plugin_base
@@ -372,10 +370,10 @@ class TestBufferSimpleFile(unittest.TestCase):
     def ProducerThread():
       # Random sleep so that each thread produce isn't in sync.
       time.sleep(random.randrange(3) * 0.1)
-      for _unused_i in xrange(10):
+      for unused_i in range(10):
         self.sf.Produce([self.e1, self.e2, self.e3])
     threads = []
-    for _unused_i in xrange(10):
+    for unused_i in range(10):
       t = threading.Thread(target=ProducerThread)
       threads.append(t)
       t.start()
@@ -421,11 +419,11 @@ class TestBufferSimpleFile(unittest.TestCase):
       record_count_queue.put(record_count)
 
     self.sf.Produce([self.e1, self.e2, self.e3] * 25)
-    for i in xrange(2):
+    for i in range(2):
       self.sf.AddConsumer(str(i))
 
     threads = []
-    for i in xrange(2):
+    for i in range(2):
       t = threading.Thread(target=ConsumerThread, args=(str(i),))
       threads.append(t)
       t.start()

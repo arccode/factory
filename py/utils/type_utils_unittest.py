@@ -7,8 +7,6 @@
 
 import unittest
 
-from six.moves import xrange
-
 from cros.factory.utils import type_utils
 
 
@@ -276,10 +274,10 @@ class UniqueSetTest(unittest.TestCase):
       self.assertEqual(self.container.Get(), 0)
 
   def testGetAfterDelete(self):
-    for x in xrange(5):
+    for x in range(5):
       self.container.Add(x)
 
-    for x in xrange(4, 0, -1):
+    for x in range(4, 0, -1):
       self.container.Del(x)
       self.assertEqual(self.container.Get(), x - 1)
 

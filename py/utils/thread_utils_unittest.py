@@ -7,8 +7,6 @@ import queue
 import threading
 import unittest
 
-from six.moves import xrange
-
 from cros.factory.utils import thread_utils
 
 
@@ -36,7 +34,7 @@ class ThreadUtilsUnittest(unittest.TestCase):
 
   def testMultiThread(self):
     threads = []
-    for index in xrange(10):
+    for index in range(10):
       threads.append(
           threading.Thread(target=self._TestOneThread, args=(index, )))
       threads[-1].start()

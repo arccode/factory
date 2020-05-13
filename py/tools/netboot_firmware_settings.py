@@ -14,7 +14,6 @@ import struct
 import sys
 
 from six import iteritems
-from six.moves import xrange
 
 from cros.factory.utils import fmap
 
@@ -180,7 +179,7 @@ class Settings(object):
       format_items = '<I'
       items, = struct.unpack_from(format_items, blob, offset)
       offset += struct.calcsize(format_items)
-      for unused_i in xrange(items):
+      for unused_i in range(items):
         new_attr, new_offset = self.Attribute.unpack(blob, offset)
         offset = new_offset
         decoded[new_attr.code] = new_attr

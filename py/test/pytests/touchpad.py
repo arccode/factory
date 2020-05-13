@@ -48,8 +48,6 @@ If you want to change the time limit to 100 seconds::
 
 import logging
 
-from six.moves import xrange
-
 from cros.factory.external import evdev
 from cros.factory.test import session
 from cros.factory.test.i18n import _
@@ -172,7 +170,7 @@ class TouchpadTest(test_case.TestCase):
 
     self.scroll_tested = [False] * self.y_segments
     self.touch_tested = [[False] * self.y_segments
-                         for unused_i in xrange(self.x_segments)]
+                         for unused_i in range(self.x_segments)]
     # Quadrant has index 1 to 4.
     self.quadrant_count = [None, 0, 0, 0, 0]
     self.single_click_count = 0

@@ -23,8 +23,6 @@ import sys
 import tempfile
 import time
 
-from six.moves import xrange
-
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import test_list_common
 from cros.factory.tools import install_symlinks
@@ -475,7 +473,7 @@ def main():
   args = parser.parse_args()
 
   src_root = paths.FACTORY_DIR
-  for _ in xrange(3):
+  for unused_i in range(3):
     src_root = os.path.dirname(src_root)
 
   if args.extract_overlord is not None:

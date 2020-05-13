@@ -42,8 +42,6 @@ To run this sample code with default arguments, add this in test list::
 import logging
 import unittest
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils import arg_utils
@@ -140,7 +138,7 @@ class SampleCustomizedTest(unittest.TestCase):
       raise type_utils.TestFailure('The camera is not qualified')
 
     failed = False
-    for freq in xrange(1000, 4000, 50):
+    for freq in range(1000, 4000, 50):
       quality = self.MeasureAudioQuality(freq)
       # you can also measure and log a series of values
       with self.group_checker:

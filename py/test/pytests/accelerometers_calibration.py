@@ -54,8 +54,6 @@ To run horizontal calibration on base accelerometer::
   }
 """
 
-from six.moves import xrange
-
 from cros.factory.device import accelerometer
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
@@ -133,7 +131,7 @@ class AccelerometersCalibration(test_case.TestCase):
     self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
 
     # Waits for a few seconds to let machine become stable.
-    for i in xrange(self.args.setup_time_secs):
+    for i in range(self.args.setup_time_secs):
       self.ui.SetState(
           _('Calibration will be started within {time} seconds.'
             'Please do not move device.',

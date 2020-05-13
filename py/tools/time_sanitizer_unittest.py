@@ -12,7 +12,6 @@ import time
 import unittest
 
 import mock
-from six.moves import xrange
 
 from cros.factory.tools import time_sanitizer
 from cros.factory.utils import file_utils
@@ -74,7 +73,7 @@ class TimeSanitizerTest(TimeSanitizerTestBase):
 
     # Now move forward 1 second, and then forward 0 seconds.  Should
     # be fine.
-    for unused_iteration in xrange(2):
+    for unused_iteration in range(2):
       self.fake_time.Time.return_value = BASE_TIME + 1
 
       self.sanitizer.RunOnce()

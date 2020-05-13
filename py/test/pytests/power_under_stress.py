@@ -4,8 +4,6 @@
 
 import time
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
@@ -79,7 +77,7 @@ class PowerUnderStressTest(test_case.TestCase):
         disk_thread=self.args.disk_thread):
 
       start_time = time.time()
-      for elapsed in xrange(1, self.args.wait_secs + 1):
+      for elapsed in range(1, self.args.wait_secs + 1):
         if self._bft_fixture:
           ina_values = self._bft_fixture.ReadINAValues()
           voltage = ina_values['voltage']

@@ -20,7 +20,6 @@ import time
 import unittest
 
 import psutil
-from six.moves import xrange
 
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import log_utils
@@ -61,8 +60,8 @@ class TestOutputArchive(unittest.TestCase):
     # additional_memory = big_event(1mb) * 10 events * 20 iterations = ~200mb
     # maximum_memory = (original_memory + additional_memory) plus 10% padding
     mem_usage_max = (mem_usage_start + (event_size * 10 * 20)) * 1.1
-    for _unused_i in xrange(20):
-      events = [copy.deepcopy(big_event) for _unused_j in xrange(10)]
+    for unused_i in range(20):
+      events = [copy.deepcopy(big_event) for unused_j in range(10)]
       self.stream.Queue(events)
 
     sandbox.Flush(1, False)  # trigger archive creation

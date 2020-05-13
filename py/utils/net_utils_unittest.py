@@ -15,7 +15,6 @@ import unittest
 import xmlrpc.server
 
 import mock
-from six.moves import xrange
 
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
@@ -134,7 +133,7 @@ class UtilityFunctionTest(unittest.TestCase):
 
     exclude_ip_list = [('10.0.0.1', 8), ('172.16.0.0', 12)]
     ip = int(net_utils.IP('192.168.0.0'))
-    for prefix_bits in xrange(17, 31):
+    for prefix_bits in range(17, 31):
       exclude_ip_list.append((str(net_utils.IP(ip)), prefix_bits))
       ip += 2 ** (32 - prefix_bits)
     network_cidr = net_utils.GetUnusedIPV4RangeCIDR(16, exclude_ip_list)
@@ -142,7 +141,7 @@ class UtilityFunctionTest(unittest.TestCase):
 
     exclude_ip_list = [('10.0.0.1', 8), ('172.16.0.0', 12)]
     ip = int(net_utils.IP('192.168.0.0'))
-    for prefix_bits in xrange(17, 33):
+    for prefix_bits in range(17, 33):
       exclude_ip_list.append((str(net_utils.IP(ip)), prefix_bits))
       ip += 2 ** (32 - prefix_bits)
     with self.assertRaises(RuntimeError):

@@ -12,8 +12,6 @@ for ryu board.
 import glob
 import os
 
-from six.moves import xrange
-
 try:
   from cros.factory.utils import type_utils
 except ImportError:
@@ -28,12 +26,12 @@ IMPORT_PATH = 'cros.factory.test.fixture.whale.%s'
 # Whale's krill INA dict
 WHALE_INA = {
     'krill_vc_connector_ina%d' % i: 'krill_vc_connector_ina%d' % i
-    for i in xrange(1, 17)
+    for i in range(1, 17)
 }
 
 # Whale's krill ADC list
 WHALE_ADC = [
-    ('whale_adc%d' % i, 1) for i in xrange(7)
+    ('whale_adc%d' % i, 1) for i in range(7)
 ]
 
 # Whale's feedback dict

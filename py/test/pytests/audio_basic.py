@@ -43,8 +43,6 @@ To check that audio can be recorded and played, add this into test list::
 import logging
 import os
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
@@ -125,7 +123,7 @@ class AudioBasicTest(test_case.TestCase):
     # playback the record file by each channel.
     with file_utils.UnopenedTemporaryFile(suffix='.wav') as full_wav_path:
       self._dut.link.Pull(dut_record_file_path, full_wav_path)
-      for channel_idx in xrange(1, self.args.input_channels + 1):
+      for channel_idx in range(1, self.args.input_channels + 1):
         with file_utils.UnopenedTemporaryFile(suffix='.wav') as wav_path:
           # Get channel channel_idx from full_wav_path to a stereo wav_path
           # Since most devices support 2 channels.
@@ -144,7 +142,7 @@ class AudioBasicTest(test_case.TestCase):
   def TestPlay(self):
     logging.info('start play sample')
     locale = self.ui.GetUILocale()
-    for channel_idx in xrange(1, self.args.output_channels + 1):
+    for channel_idx in range(1, self.args.output_channels + 1):
       ogg_path = os.path.join(_SOUND_DIRECTORY, locale, '%d.ogg' % channel_idx)
       number_wav_path = '%s.wav' % ogg_path
       process_utils.Spawn(

@@ -8,7 +8,6 @@ import pickle
 import unittest
 
 import mock
-from six.moves import xrange
 
 from cros.factory.goofy import test_list_iterator
 from cros.factory.test import state
@@ -99,7 +98,7 @@ class TestListIteratorTest(unittest.TestCase):
 
     try:
       with self.assertRaises(StopIteration):
-        for unused_i in xrange(max_iteration):
+        for unused_i in range(max_iteration):
           test_path = next(iterator)
           actual_sequence.append(test_path)
           test = test_list.LookupPath(test_path)
@@ -251,7 +250,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         test_list, test_list=test_list)
     actual_sequence = []
 
-    for unused_i in xrange(3):
+    for unused_i in range(3):
       test_path = next(iterator)
       actual_sequence.append(test_path)
       test = test_list.LookupPath(test_path)
@@ -284,7 +283,7 @@ class TestListIteratorBaseTest(TestListIteratorTest):
     iterator.SetTestList(test_list)
 
     with self.assertRaises(StopIteration):
-      for unused_i in xrange(10):
+      for unused_i in range(10):
         test_path = next(iterator)
         actual_sequence.append(test_path)
         test = test_list.LookupPath(test_path)
@@ -300,10 +299,10 @@ class TestListIteratorBaseTest(TestListIteratorTest):
         self.test_list, test_list=self.test_list)
 
     with self.assertRaises(StopIteration):
-      for unused_i in xrange(10):
+      for unused_i in range(10):
         test_path = next(iterator)
         # Get() shall return the same value as previous next()
-        for unused_j in xrange(2):
+        for unused_j in range(2):
           self.assertEqual(test_path, iterator.Get())
     # Get() shall return None when we reach the end (StopIteration).
     self.assertIsNone(iterator.Get())

@@ -45,8 +45,6 @@ and the encoded string.
 
 import re
 
-from six.moves import xrange
-
 from cros.factory.hwid.v3 import base32
 from cros.factory.hwid.v3 import base8192
 from cros.factory.hwid.v3 import common
@@ -90,8 +88,8 @@ class _IdentityConverter(object):
   def FormatComponentsField(self, encoded_string):
     """Insert dash to encoded components string"""
     return '-'.join([encoded_string[idx:idx + self._base.DASH_INSERTION_WIDTH]
-                     for idx in xrange(0, len(encoded_string),
-                                       self._base.DASH_INSERTION_WIDTH)])
+                     for idx in range(0, len(encoded_string),
+                                      self._base.DASH_INSERTION_WIDTH)])
 
   def EncodeComponentsBitset(self, encoding_pattern_index, image_id,
                              components_bitset):

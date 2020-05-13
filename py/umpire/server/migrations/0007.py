@@ -10,16 +10,14 @@ See https://chromium-review.googlesource.com/989530 for more details.
 import os
 import shutil
 
-from six.moves import xrange
-
 
 _OLD_BUFFER_DIR = '/var/db/factory/umpire/umpire_data/instalog/data/buffer'
 
 
 def Migrate():
   if os.path.isdir(_OLD_BUFFER_DIR):
-    for i in xrange(4):
-      for j in xrange(4):
+    for i in range(4):
+      for j in range(4):
         if i == 0 and j == 0:
           continue
         new_buffer_dir = os.path.join(_OLD_BUFFER_DIR, '%d_%d' % (i, j))

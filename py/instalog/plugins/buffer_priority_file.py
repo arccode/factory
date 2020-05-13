@@ -25,7 +25,6 @@ import os
 import shutil
 
 from six import iteritems
-from six.moves import xrange
 
 from cros.factory.instalog import json_utils
 from cros.factory.instalog import lock_utils
@@ -68,8 +67,8 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
   ]
 
   def __init__(self, *args, **kwargs):
-    self.buffer_file = [[[] for _unused_j in xrange(_PARTITION)]
-                        for _unused_i in xrange(_PRIORITY_LEVEL)]
+    self.buffer_file = [[[] for unused_j in range(_PARTITION)]
+                        for unused_i in range(_PRIORITY_LEVEL)]
     self.attachments_tmp_dir = None
     self.metadata_tmp_dir = None
 
@@ -103,14 +102,14 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     else:
       os.makedirs(self.metadata_tmp_dir)
 
-    for pri_level in xrange(_PRIORITY_LEVEL):
-      for file_num in xrange(_PARTITION):
+    for pri_level in range(_PRIORITY_LEVEL):
+      for file_num in range(_PARTITION):
         self.buffer_file[pri_level][file_num] = buffer_file_common.BufferFile(
             self.args,
             self.logger.name,
             os.path.join(self.GetDataDir(), '%d_%d' % (pri_level, file_num)))
 
-    for file_num in xrange(_PARTITION):
+    for file_num in range(_PARTITION):
       self._file_num_lock[file_num] = lock_utils.Lock(self.logger.name)
 
     for name in self.buffer_file[0][0].consumers.keys():
@@ -148,14 +147,18 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     """Returns a iterator to get produce order of partitioned buffers."""
     first_level = self._produce_partition
     self._produce_partition = (self._produce_partition + 1) % _PARTITION
-    return itertools.chain(xrange(first_level, _PARTITION),
-                           xrange(0, first_level))
+    # TODO(kerker): Remove `list()` when pylint range-builtin-not-iterating is
+    # more accuracy.
+    return itertools.chain(list(range(first_level, _PARTITION)),
+                           list(range(0, first_level)))
 
   def ConsumeOrderIter(self):
     """Returns a iterator to get consume order of partitioned buffers."""
     first_level = self._consume_partition
-    return itertools.chain(xrange(first_level, _PARTITION),
-                           xrange(0, first_level))
+    # TODO(kerker): Remove `list()` when pylint range-builtin-not-iterating is
+    # more accuracy.
+    return itertools.chain(list(range(first_level, _PARTITION)),
+                           list(range(0, first_level)))
 
   def Truncate(self):
     """Truncates all data files to only contain unprocessed records."""
@@ -163,7 +166,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     file_num = self._consume_partition
     self._consume_partition = (self._consume_partition + 1) % _PARTITION
     with self._file_num_lock[file_num]:  # pylint: disable=not-context-manager
-      for pri_level in xrange(_PRIORITY_LEVEL):
+      for pri_level in range(_PRIORITY_LEVEL):
         self.info('Truncating database %d_%d...', pri_level, file_num)
         self.buffer_file[pri_level][file_num].Truncate(
             process_pool=self.process_pool)
@@ -174,9 +177,8 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     Returns:
       An integer of priority level.
     """
-    pri_levels = xrange(_PRIORITY_LEVEL)
     pri = event.get('priority')
-    return pri if pri in pri_levels else _PRIORITY_LEVEL - 1
+    return pri if pri in range(_PRIORITY_LEVEL) else _PRIORITY_LEVEL - 1
 
   def PrioritizeEvents(self, events):
     """Prioritizes the list of events, and seperates to several lists.
@@ -184,7 +186,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     Returns:
       A list of several lists, and each list has events in its priority level.
     """
-    priority_events = [[] for _unused_i in xrange(_PRIORITY_LEVEL)]
+    priority_events = [[] for unused_i in range(_PRIORITY_LEVEL)]
     for event in events:
       priority_events[self.EventLevel(event)].append(event)
     return priority_events
@@ -201,7 +203,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
       tmp_metadata_path = os.path.join(self.metadata_tmp_dir,
                                        os.path.basename(tmp_path))
       all_metadata = {}
-      for pri_level in xrange(_PRIORITY_LEVEL):
+      for pri_level in range(_PRIORITY_LEVEL):
         metadata_path = self.buffer_file[pri_level][file_num].metadata_path
         if os.path.isfile(metadata_path):
           all_metadata[metadata_path] = file_utils.ReadFile(metadata_path)
@@ -233,7 +235,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     for file_num in self.ProduceOrderIter():
       if self._file_num_lock[file_num].acquire(block=False):
         return file_num
-    for _unused_i in xrange(_LOCK_ACQUIRE_LOOP_TIMES):
+    for unused_i in range(_LOCK_ACQUIRE_LOOP_TIMES):
       for file_num in self.ProduceOrderIter():
         if self._file_num_lock[file_num].acquire(
             timeout=_LOCK_ACQUIRE_TIMEOUT):
@@ -271,7 +273,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
 
         priority_events = self.PrioritizeEvents(events)
         # Step 3: Write the new events to the file.
-        for pri_level in xrange(_PRIORITY_LEVEL):
+        for pri_level in range(_PRIORITY_LEVEL):
           if not priority_events[pri_level]:
             continue
           self.buffer_file[pri_level][file_num].ProduceEvents(
@@ -292,7 +294,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
           if os.path.isfile(tmp_metadata_path):
             self.RecoverTemporaryMetadata(tmp_metadata_path)
           if file_num is not None:
-            for pri_level in xrange(_PRIORITY_LEVEL):
+            for pri_level in range(_PRIORITY_LEVEL):
               self.buffer_file[pri_level][file_num].RestoreMetadata()
         except Exception:
           self.exception('Exception encountered in RecoverTemporaryMetadata '
@@ -305,14 +307,14 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
   def AddConsumer(self, consumer_id):
     """See BufferPlugin.AddConsumer."""
     self.consumers[consumer_id] = Consumer(consumer_id, self)
-    for pri_level in xrange(_PRIORITY_LEVEL):
-      for file_num in xrange(_PARTITION):
+    for pri_level in range(_PRIORITY_LEVEL):
+      for file_num in range(_PARTITION):
         self.buffer_file[pri_level][file_num].AddConsumer(consumer_id)
 
   def RemoveConsumer(self, consumer_id):
     """See BufferPlugin.RemoveConsumer."""
-    for pri_level in xrange(_PRIORITY_LEVEL):
-      for file_num in xrange(_PARTITION):
+    for pri_level in range(_PRIORITY_LEVEL):
+      for file_num in range(_PARTITION):
         self.buffer_file[pri_level][file_num].RemoveConsumer(consumer_id)
 
   def ListConsumers(self, details=0):
@@ -321,9 +323,9 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     progress_dict = {}
     for name in self.consumers:
       progress_dict[name] = {}
-      for pri_level in xrange(_PRIORITY_LEVEL):
+      for pri_level in range(_PRIORITY_LEVEL):
         progress_dict[name][pri_level] = {}
-        for file_num in xrange(_PARTITION):
+        for file_num in range(_PARTITION):
           progress_dict[name][pri_level][file_num] = (
               self.buffer_file[pri_level][file_num].ListConsumers()[name])
           if details >= 2:
@@ -357,7 +359,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
   def CreateStream(self):
     """Creates a BufferEventStream object to be used by Instalog core."""
     fail = False
-    for pri_level in xrange(_PRIORITY_LEVEL):
+    for pri_level in range(_PRIORITY_LEVEL):
       for file_num in self.priority_buffer.ConsumeOrderIter():
         self.streams.append(
             self.priority_buffer.buffer_file[pri_level][file_num].consumers[

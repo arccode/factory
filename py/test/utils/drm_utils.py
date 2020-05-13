@@ -15,8 +15,6 @@ import ctypes
 import mmap
 import os
 
-from six.moves import xrange
-
 from cros.factory.external import PIL
 if PIL.MODULE_READY:
   from cros.factory.external.PIL import Image  # pylint: disable=no-name-in-module
@@ -81,7 +79,7 @@ class DRMModeResource(DRMModeBaseStruct):
   @property
   def crtcs(self):
     ret = []
-    for i in xrange(self.count_crtcs):
+    for i in range(self.count_crtcs):
       crtc = _GetDRMLibrary().drmModeGetCrtc(self.fd, self._crtcs[i]).contents
       crtc.fd = self.fd
       crtc.need_free = True
@@ -91,7 +89,7 @@ class DRMModeResource(DRMModeBaseStruct):
   @property
   def connectors(self):
     ret = []
-    for i in xrange(self.count_connectors):
+    for i in range(self.count_connectors):
       conn = _GetDRMLibrary().drmModeGetConnector(
           self.fd, self._connectors[i]).contents
       conn.fd = self.fd
@@ -289,7 +287,7 @@ class DRMModeConnector(DRMModeBaseStruct):
   @property
   def edid(self):
     blob_id = None
-    for i in xrange(self.count_props):
+    for i in range(self.count_props):
       # 1 is the property id of "EDID" in Kernel Mode Setting (KMS):
       # https://www.kernel.org/doc/htmldocs/drm/drm-kms-properties.html
       if self.props[i] == 1:

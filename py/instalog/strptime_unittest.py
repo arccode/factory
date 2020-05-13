@@ -28,8 +28,6 @@ import threading
 import time
 import unittest
 
-from six.moves import xrange
-
 
 error = False
 
@@ -51,7 +49,7 @@ def StrptimeRun(strptime, patched):
       error = True
 
   threads = []
-  for _ in xrange(2):
+  for unused_i in range(2):
     t = threading.Thread(target=Target, args=(strptime,))
     t.start()
     threads.append(t)
@@ -68,7 +66,7 @@ class TestStrptime(unittest.TestCase):
     test_args = [fn_name]
     if patched:
       test_args += ['patched']
-    for _ in xrange(20):
+    for unused_i in range(20):
       p = subprocess.Popen([sys.executable, sys.argv[0]] + test_args,
                            stderr=subprocess.PIPE)
       p.communicate()

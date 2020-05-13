@@ -6,8 +6,6 @@
 
 import posixpath
 
-from six.moves import xrange
-
 from cros.factory.device import device_types
 
 
@@ -137,7 +135,7 @@ class AndroidPath(Path):
     current = output.strip()
 
     # Try to append each subdirectory to current path.
-    for i in xrange(1, len(bits)):
+    for i in range(1, len(bits)):
       if bits[i] == '.' or not bits[i]:  # /./ or //
         continue
 

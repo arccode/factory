@@ -17,8 +17,6 @@ import threading
 import time
 import unittest
 
-from six.moves import xrange
-
 from cros.factory.testlog.testlog_pkg import testlog_seq
 from cros.factory.testlog.testlog_pkg.utils import file_utils
 
@@ -69,7 +67,7 @@ class BootSequenceTest(unittest.TestCase):
     last_valid_seq = last_seq - 10
     with open(self.json_path, 'w') as fd:
       fd.write('\0' * 100)  # corrupt before last valid line should be ignored
-      for i in reversed(xrange(5)):
+      for i in reversed(range(5)):
         fd.write(json.dumps({'seq': last_valid_seq - i}) + '\n')
       # last_seq is invalid because this line begins with '\0'
       fd.write('\0' * 100)
@@ -121,7 +119,7 @@ class BootSequenceTest(unittest.TestCase):
       while time.time() < end_time:
         values.append(seq.Next())
 
-    threads = [threading.Thread(target=target) for _ in xrange(10)]
+    threads = [threading.Thread(target=target) for unused_i in range(10)]
     for t in threads:
       t.start()
     for t in threads:

@@ -16,8 +16,6 @@ import threading
 import time
 import urllib.parse
 
-from six.moves import xrange
-
 from cros.factory.test.env import paths
 from cros.factory.test import server_proxy
 from cros.factory.utils import file_utils
@@ -65,7 +63,7 @@ class Time(object):
   def _CheckHwclock(self):
     """Check hwclock is working by a write(retry once if fail) and a read."""
     with self.lock:
-      for _ in xrange(2):
+      for unused_i in range(2):
         if process_utils.Spawn(['hwclock', '-w', '--utc', '--noadjfile'],
                                log=True,
                                log_stderr_on_error=True).returncode == 0:

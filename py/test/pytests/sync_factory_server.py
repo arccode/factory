@@ -136,8 +136,6 @@ import logging
 import threading
 import time
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.gooftool import commands
 from cros.factory.goofy import updater
@@ -523,7 +521,7 @@ class SyncFactoryServer(test_case.TestCase):
           # sync_utils.EventWait() may log timeout message every second, so we
           # disable logging.INFO temporarily.
           logging.disable(logging.INFO)
-          for sec in xrange(retry_secs):
+          for sec in range(retry_secs):
             if sync_utils.EventWait(self.do_setup_url, timeout=1):
               break
             self.ui.SetHTML(msg(retry_secs - sec - 1, label), id='retry')

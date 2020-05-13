@@ -11,7 +11,6 @@ import re
 import struct
 import time
 
-from six.moves import xrange
 from six import viewitems
 
 from cros.factory.device import device_types
@@ -193,7 +192,7 @@ class AccelerometerController(sensor_utils.BasicSensorController):
         raw_data = struct.unpack_from(FORMAT_RAW_DATA, line)
         original_raw_data = {}
         # Accumulating.
-        for i in xrange(self.num_signals):
+        for i in range(self.num_signals):
           name = self.index_to_signal[i]['name']
           scan_type = self.index_to_signal[i]['scan_type']
           original_raw_data[name] = raw_data[i] >> scan_type.shift

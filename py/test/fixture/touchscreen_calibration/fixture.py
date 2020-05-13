@@ -8,8 +8,6 @@ import collections
 import threading
 import time
 
-from six.moves import xrange
-
 from cros.factory.test import event
 from cros.factory.test.i18n import _
 from cros.factory.test import session
@@ -135,14 +133,14 @@ class FixutreNativeUSB(serial_utils.SerialDevice):
     old_state_list = self._ExtractStateList(self.last_state_string)
     new_state_list = self._ExtractStateList(self.state_string)
     return [(self.state_name_dict[i], new_state_list[i])
-            for i in xrange(len(new_state_list))
+            for i in range(len(new_state_list))
             if old_state_list == [] or new_state_list[i] != old_state_list[i]]
 
   def CompleteState(self):
     """Get the complete state snap shot."""
     state_list = self._ExtractStateList(self.state_string)
     return [(self.state_name_dict[i], state_list[i])
-            for i in xrange(len(state_list))]
+            for i in range(len(state_list))]
 
 
 class BaseFixture(serial_utils.SerialDevice):

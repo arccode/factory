@@ -144,7 +144,6 @@ import logging
 import time
 
 import numpy as np
-from six.moves import xrange
 
 from cros.factory.device import ambient_light_sensor
 from cros.factory.device import device_utils
@@ -441,7 +440,7 @@ class ALSFixture(test_case.TestCase):
     try:
       buf = []
       start_time = time.time()
-      for unused_i in xrange(samples):
+      for unused_i in range(samples):
         self.Sleep(delay)
         buf.append(self.als_controller.GetLuxValue())
         with self.group_checker:

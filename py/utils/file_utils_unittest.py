@@ -21,7 +21,6 @@ import unittest
 
 import mock
 from six import assertRaisesRegex
-from six.moves import xrange
 
 from cros.factory.device import device_utils
 from cros.factory.utils import file_utils
@@ -566,7 +565,7 @@ class FileLockTest(unittest.TestCase):
         file_utils.FileLock(self.temp_file, timeout_secs=1).Acquire)
 
   def testLocksReleaseFileDescriptor(self):
-    for _ in xrange(3333):
+    for unused_i in range(3333):
       c = file_utils.FileLock(self.temp_file)
       c.Acquire()
       c.Release()

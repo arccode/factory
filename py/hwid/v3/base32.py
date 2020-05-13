@@ -10,8 +10,6 @@ from __future__ import print_function
 import argparse
 from zlib import crc32
 
-from six.moves import xrange
-
 from cros.factory.hwid.v3 import common
 
 
@@ -55,7 +53,7 @@ class Base32(object):
     """
     assert cls.GetPaddingLength(len(binary_string)) == 0
     result = []
-    for i in xrange(0, len(binary_string), cls.BASE32_BIT_WIDTH):
+    for i in range(0, len(binary_string), cls.BASE32_BIT_WIDTH):
       result.append(cls.BASE32_ALPHABET[
           int(binary_string[i:i + cls.BASE32_BIT_WIDTH], 2)])
     return ''.join(result)

@@ -150,7 +150,6 @@ import time
 
 from six import viewitems
 from six import viewvalues
-from six.moves import xrange
 
 from cros.factory.device.audio import base
 from cros.factory.device import device_utils
@@ -735,7 +734,7 @@ class AudioLoopTest(test_case.TestCase):
     input_channels = self._current_test_args.get(
         'input_channels', _DEFAULT_TEST_INPUT_CHANNELS)
 
-    for channel in xrange(num_channels):
+    for channel in range(num_channels):
       # file path in host
       record_file_path = '/tmp/record-%d-%d-%s.raw' % (
           self._output_volumes[self._output_volume_index],

@@ -43,7 +43,6 @@ import re
 
 from six import iteritems
 from six import itervalues
-from six.moves import xrange
 
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.rule import Rule
@@ -1456,7 +1455,7 @@ class Pattern(object):
       real_length = min(bit_length, remaining_length)
 
       # Big endian.
-      for offset_delta in xrange(real_length - 1, -1, -1):
+      for offset_delta in range(real_length - 1, -1, -1):
         ret.append(BitEntry(name, offset_delta + field_offset_map[name]))
 
       field_offset_map[name] += real_length

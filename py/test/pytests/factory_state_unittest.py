@@ -11,7 +11,6 @@ import unittest
 
 import mock
 from six import assertCountEqual
-from six.moves import xrange
 
 from cros.factory.goofy import goofy_server
 from cros.factory.test.pytests import factory_state
@@ -340,7 +339,7 @@ class FactoryStateEnd2EndTest(FactoryStateUnittest):
     self.state_instance = []
     self.root_dir = tempfile.mkdtemp()
 
-    for i in xrange(2):
+    for i in range(2):
       server = goofy_server.GoofyServer(('127.0.0.1', 5000 + i))
       self.goofy_server.append(server)
 
@@ -365,7 +364,7 @@ class FactoryStateEnd2EndTest(FactoryStateUnittest):
       if self.station_state.GetLayerCount() > 1:
         self.test.DoMerge(self.station_state, self.device_state)
     finally:
-      for i in xrange(2):
+      for i in range(2):
         net_utils.ShutdownTCPServer(self.goofy_server[i])
         self.goofy_server_thread[i].join()
         self.goofy_server[i].server_close()

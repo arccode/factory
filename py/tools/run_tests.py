@@ -24,7 +24,6 @@ import time
 
 from six import iteritems
 from six import itervalues
-from six.moves import xrange
 
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils import file_utils
@@ -156,7 +155,7 @@ class PortDistributeServer(socketserver.ThreadingUnixStreamServer):
   def __init__(self):
     self.lock = threading.RLock()
     self.unused_ports = set(
-        xrange(net_utils.UNUSED_PORT_LOW, net_utils.UNUSED_PORT_HIGH))
+        range(net_utils.UNUSED_PORT_LOW, net_utils.UNUSED_PORT_HIGH))
     self.socket_file = tempfile.mktemp(prefix='random_port_socket')
     self.thread = None
     socketserver.ThreadingUnixStreamServer.__init__(self, self.socket_file,
@@ -179,7 +178,7 @@ class PortDistributeServer(socketserver.ThreadingUnixStreamServer):
       while True:
         port = random.randint(net_utils.UNUSED_PORT_LOW,
                               net_utils.UNUSED_PORT_HIGH - length)
-        port_range = xrange(port, port + length)
+        port_range = set(range(port, port + length))
         if self.unused_ports.issuperset(port_range):
           self.unused_ports.difference_update(port_range)
           break

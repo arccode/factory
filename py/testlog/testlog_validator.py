@@ -10,8 +10,6 @@ import pprint
 import re
 import shutil
 
-from six.moves import xrange
-
 from .utils import time_utils
 
 
@@ -136,7 +134,7 @@ class Validator(object):
     target_path = os.path.join(folder, ideal_target_name)
     if os.path.exists(target_path):
       target_path = None
-      for _ in xrange(5):  # Try at most 5 times of adding a random UUID.
+      for unused_i in range(5):  # Try at most 5 times of adding a random UUID.
         uuid_target_path = os.path.join(folder, '%s_%s' % (
             time_utils.TimedUUID()[-12:], ideal_target_name))
         if not os.path.exists(uuid_target_path):

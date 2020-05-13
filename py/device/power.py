@@ -9,8 +9,6 @@ import logging
 import re
 import time
 
-from six.moves import xrange
-
 from cros.factory.device import device_types
 from cros.factory.utils import type_utils
 
@@ -133,7 +131,7 @@ class PowerInfoMixinBase(object):
   def GetChargeMedian(self, read_count=10):
     """Read charge level several times and return the median."""
     charge_nows = []
-    for _ in xrange(read_count):
+    for unused_i in range(read_count):
       charge_now = self.GetCharge()
       if charge_now:
         charge_nows.append(charge_now)

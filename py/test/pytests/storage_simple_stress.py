@@ -60,8 +60,6 @@ import logging
 import time
 import unittest
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import sys_utils
@@ -126,7 +124,7 @@ class SimpleStorageStressTest(unittest.TestCase):
 
   def TestReadWriteIn(self, dirpath):
     file_size = self.args.file_size
-    for iteration in xrange(self.args.operations):
+    for iteration in range(self.args.operations):
       with self._dut.temp.TempFile(dir=dirpath) as temp_file:
         logging.info(
             '[%d/%d]: Tempfile[%s] created for %d bytes write/read test',

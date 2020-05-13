@@ -86,7 +86,6 @@ import threading
 import time
 
 from six import iteritems
-from six.moves import xrange
 
 from cros.factory.device import device_utils
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
@@ -696,7 +695,7 @@ class BluetoothTest(test_case.TestCase):
     # Records RSSI of each scan and calculates average rssi.
     candidate_rssis = {}
 
-    for unused_count in xrange(scan_counts):
+    for unused_count in range(scan_counts):
       self.ui.SetState(_('Scanning...'))
 
       with self.TimedProgressBar(timeout_secs):
@@ -849,7 +848,7 @@ class BluetoothTest(test_case.TestCase):
     logging.info('mac (%s): %s', self.host_mac, adapter)
 
     rssis = []
-    for i in xrange(1, 1 + scan_counts):
+    for i in range(1, 1 + scan_counts):
       self.ui.SetState(
           _('Detect RSSI (count {count}/{total})', count=i, total=scan_counts))
       with self.TimedProgressBar(timeout_secs):
@@ -1036,7 +1035,7 @@ class BluetoothTest(test_case.TestCase):
     """
     self.ui.DrawProgressBar(max_retry_times)
     result = None
-    for unused_retry in xrange(max_retry_times):
+    for unused_retry in range(max_retry_times):
       try:
         result = target(*args, **kwargs)
       except Exception:

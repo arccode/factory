@@ -2,8 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-from six.moves import xrange
-
 
 class Option(object):
   """Utility class for generating and manipulating HTML option tag.
@@ -81,8 +79,8 @@ class Table(object):
   This class allows us to easily set the content of each cell. For example:
 
     table = Table(element_id='example_table', rows=2, cols=2)
-    for r in xrange(2):
-      for c in xrange(2):
+    for r in range(2):
+      for c in range(2):
         table.SetContent(r, c, 'row %d col %d' % (r, c))
     return table.GenerateHTML()
 
@@ -107,9 +105,9 @@ class Table(object):
   def GenerateHTML(self):
     """Generates HTML tags."""
     html = ['<table id="%s" style="%s">' % (self._element_id, self._style)]
-    for r in xrange(self.rows):
+    for r in range(self.rows):
       html.append('<tr>')
-      for c in xrange(self.cols):
+      for c in range(self.cols):
         html.append('<td>')
         if (r, c) in self._content:
           html.append(self._content[(r, c)])

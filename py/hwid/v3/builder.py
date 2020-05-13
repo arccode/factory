@@ -11,7 +11,6 @@ import uuid
 
 from six import iteritems
 from six import itervalues
-from six.moves import xrange
 
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
@@ -329,9 +328,9 @@ class DatabaseBuilder(object):
     # one is considered as the same as the first one.
     for i, probed_value_i in enumerate(probed_values):
       if (any(_IsSubset(probed_value_i, probed_values[j]) and
-              probed_value_i != probed_values[j] for j in xrange(i)) or
+              probed_value_i != probed_values[j] for j in range(i)) or
           any(_IsSubset(probed_value_i, probed_values[j])
-              for j in xrange(i + 1, len(probed_values)))):
+              for j in range(i + 1, len(probed_values)))):
         continue
       self._AddComponent(comp_cls, probed_value_i)
 

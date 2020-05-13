@@ -16,8 +16,6 @@ from __future__ import print_function
 
 import socket
 
-from six.moves import xrange
-
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import output_socket
 from cros.factory.instalog.plugins import socket_common
@@ -117,7 +115,7 @@ class OutputPullSocket(plugin_base.OutputPlugin):
       # will connect, wait event number and time out.
       success = False
       while not success:
-        for _unused_i in xrange(_ACCEPT_LOG_INTERVAL):
+        for unused_i in range(_ACCEPT_LOG_INTERVAL):
           success = self.GetSocket()
           if self.IsStopping():
             event_stream.Abort()

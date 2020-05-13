@@ -61,8 +61,6 @@ To test volume down button (using ``evdev``) 3 times in 10 seconds::
 import logging
 import time
 
-from six.moves import xrange
-
 from cros.factory.device import device_utils
 from cros.factory.external import evdev
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
@@ -144,7 +142,7 @@ class GpioButton(GenericButton):
                           '%d' % number)
 
     # Exporting new GPIO may cause device busy for a while.
-    for unused_counter in xrange(5):
+    for unused_counter in range(5):
       try:
         self._dut.WriteFile(
             self._dut.path.join(gpio_base, 'gpio%d' % number, 'active_low'),
@@ -246,7 +244,7 @@ class ButtonTest(test_case.TestCase):
 
   def tearDown(self):
     timestamps = self._action_timestamps + [float('inf')]
-    for release_index in xrange(2, len(timestamps), 2):
+    for release_index in range(2, len(timestamps), 2):
       time_to_press = (timestamps[release_index - 1] -
                        timestamps[release_index - 2])
       time_to_release = (timestamps[release_index] -
@@ -278,7 +276,7 @@ class ButtonTest(test_case.TestCase):
   def runTest(self):
     self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
 
-    for done in xrange(self.args.repeat_times):
+    for done in range(self.args.repeat_times):
       if self.args.repeat_times == 1:
         label = _('Press the {name} button', name=self.args.button_name)
       else:
