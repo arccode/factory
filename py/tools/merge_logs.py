@@ -10,8 +10,6 @@ import itertools
 import re
 import sys
 
-from six.moves import zip
-
 
 MAX_TIMESTAMP = datetime.datetime(datetime.MAXYEAR, 12, 31)
 
