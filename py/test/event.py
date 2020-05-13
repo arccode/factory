@@ -19,7 +19,6 @@ import time
 import traceback
 
 from six import iteritems
-from six import with_metaclass
 
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -301,7 +300,7 @@ class EventServer(socketserver.ThreadingUnixStreamServer):
         q.put(message)
 
 
-class EventClientBase(with_metaclass(abc.ABCMeta, object)):
+class EventClientBase(object, metaclass=abc.ABCMeta):
   """A client used to post and receive messages from an event server.
 
   All events sent through this class must be subclasses of Event. It

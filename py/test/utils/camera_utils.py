@@ -13,8 +13,6 @@ import os
 import re
 import string
 
-from six import with_metaclass
-
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
@@ -144,7 +142,7 @@ def FilterNonVideoCapture(uvc_vid_dirs, dut):
 
 
 # TODO(yllin): Support device interface for Readers.
-class CameraReaderBase(with_metaclass(abc.ABCMeta, object)):
+class CameraReaderBase(object, metaclass=abc.ABCMeta):
   """Abstract camera reader."""
 
   @abc.abstractmethod

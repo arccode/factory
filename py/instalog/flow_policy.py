@@ -10,7 +10,6 @@ Decides whether or not a plugin should process an Event.
 import logging
 
 from six import iteritems
-from six import with_metaclass
 
 # Name of the key used to specify the rule type in the config dictionary.
 _RULE_TYPE_KEY = 'rule'
@@ -69,7 +68,7 @@ class RuleMeta(type):
     return cls
 
 
-class Rule(with_metaclass(RuleMeta, object)):
+class Rule(object, metaclass=RuleMeta):
   """Superclass for rules which may or may not match an Event.
 
   Subclasses should define the constants NAME, KEYS, as well as the

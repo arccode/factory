@@ -17,7 +17,6 @@ import abc
 import time
 
 import serial
-from six import with_metaclass
 
 from cros.factory.test.utils import serial_utils
 
@@ -26,7 +25,7 @@ class FixtureConnectionError(Exception):
   pass
 
 
-class FixtureConnection(with_metaclass(abc.ABCMeta, object)):
+class FixtureConnection(object, metaclass=abc.ABCMeta):
   """Abstract fixture connection."""
 
   @abc.abstractmethod

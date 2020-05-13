@@ -13,7 +13,6 @@ import logging
 import os
 
 from six import iteritems
-from six import with_metaclass
 
 from cros.factory.test import i18n
 from cros.factory.test.i18n import translation
@@ -387,7 +386,7 @@ class FactoryTestList(test_object_module.FactoryTest):
     return json.dumps(self.ToTestListConfig(recursive=False), sort_keys=True)
 
 
-class ITestList(with_metaclass(abc.ABCMeta, object)):
+class ITestList(object, metaclass=abc.ABCMeta):
   """An interface of test list object."""
 
   # Declare instance variables to make __setattr__ happy.
