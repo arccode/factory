@@ -8,8 +8,6 @@ import os
 import subprocess
 import unittest
 
-from six import assertRegex
-
 from cros.factory.umpire.server import config as umpire_config
 from cros.factory.umpire.server.service import umpire_http
 from cros.factory.umpire.server import umpire_env
@@ -40,8 +38,7 @@ class HTTPServiceTest(unittest.TestCase):
     config_path = umpire_http.HTTPService.GenerateNginxConfig(
         umpire_config_dict, self.env)
 
-    assertRegex(
-        self,
+    self.assertRegex(
         config_path,
         os.path.join(self.env.config_dir, 'nginx_#[0-9a-f]{32}#.conf'))
 

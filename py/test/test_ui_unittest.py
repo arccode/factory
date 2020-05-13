@@ -15,7 +15,6 @@ import sys
 import unittest
 
 import mock
-from six import assertRegex
 from six import iteritems
 
 from cros.factory.test import event as test_event
@@ -163,8 +162,8 @@ class EventLoopTest(EventLoopTestBase):
     self.event_loop.AddEventHandler('type1', _Handler)
     self._MockNewEvent(_EventType.TEST_UI_EVENT, subtype='type1', data='data')
     self.mock_logging.warning.assert_called_once()
-    assertRegex(self, self.mock_logging.warning.call_args[0][0],
-                r'The handler .* takes too long to finish')
+    self.assertRegex(self.mock_logging.warning.call_args[0][0],
+                     r'The handler .* takes too long to finish')
 
   def testCatchException(self):
     self.assertEqual('foo', self.event_loop.CatchException(lambda: 'foo')())
@@ -999,7 +998,7 @@ class StandardUITest(UITestBase):
       try:
         next(iterable)
       except type_utils.TestFailure as e:
-        assertRegex(self, str(e), r'^Timed out')
+        self.assertRegex(str(e), r'^Timed out')
         break
 
       self.AssertEventsPosted(

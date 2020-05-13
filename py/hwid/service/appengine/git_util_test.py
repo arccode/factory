@@ -12,7 +12,6 @@ import unittest
 # pylint: disable=import-error, no-name-in-module
 from dulwich.objects import Tree
 import mock
-from six import assertRegex
 
 from cros.factory.hwid.service.appengine import git_util
 
@@ -92,7 +91,7 @@ class GitUtilTest(unittest.TestCase):
 
     auth_cookie = ''  # auth_cookie is not needed in chromium repo
     commit = git_util.GetCommitId(git_url_prefix, project, branch, auth_cookie)
-    assertRegex(self, commit, '^[0-9a-f]{40}$')
+    self.assertRegex(commit, '^[0-9a-f]{40}$')
 
   @mock.patch('cros.factory.hwid.service.appengine.git_util.PoolManager')
   def testGetCommitIdFormatError(self, mocked_poolmanager):

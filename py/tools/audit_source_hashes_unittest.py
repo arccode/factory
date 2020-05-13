@@ -12,7 +12,6 @@ import tempfile
 import unittest
 
 from six import assertRaisesRegex
-from six import assertRegex
 
 from cros.factory.test.env import paths
 from cros.factory.tools import audit_source_hashes
@@ -35,8 +34,7 @@ class AuditSourceHashesTest(unittest.TestCase):
     file_utils.TouchFile(bad_report)
     assertRaisesRegex(
         self, SystemExit, '^1$', audit_source_hashes.main, [bad_report], out)
-    assertRegex(
-        self,
+    self.assertRegex(
         out.getvalue(),
         r'(?s).+AuditException: Unable to read events from report.+'
         r'\(tar returned 2\).+'
@@ -82,8 +80,7 @@ class AuditSourceHashesTest(unittest.TestCase):
       out = StringIO()
       assertRaisesRegex(
           self, SystemExit, '^1$', audit_source_hashes.main, [log_path], out)
-      assertRegex(
-          self,
+      self.assertRegex(
           out.getvalue(),
           r'In sample .+:\n'
           r'- tools/audit_source_hashes_unittest\.py: hash mismatch '
@@ -138,8 +135,7 @@ class FakeSourceTreeTest(unittest.TestCase):
     assertRaisesRegex(
         self, SystemExit, '^1$', audit_source_hashes.main,
         ['-g', golden_source, self.py2], out)
-    assertRegex(
-        self,
+    self.assertRegex(
         out.getvalue(),
         r'In sample .+:\n'
         r'- b\.py: missing from sample\n'

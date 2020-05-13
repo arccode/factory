@@ -27,7 +27,6 @@ import unittest
 import xmlrpc.client
 
 import requests  # pylint: disable=import-error
-from six import assertRegex
 from six import iteritems
 
 from cros.factory.umpire import common
@@ -311,7 +310,7 @@ class UmpireRPCTest(UmpireDockerTestCase):
     resource = payload['hwid']['file']
     resource_path = os.path.join(HOST_RESOURCE_DIR, resource)
 
-    assertRegex(self, resource, r'hwid\..*\.gz')
+    self.assertRegex(resource, r'hwid\..*\.gz')
     with gzip.open(os.path.join(SHARED_TESTDATA_DIR, 'hwid.gz')) as f1:
       with gzip.open(resource_path) as f2:
         self.assertEqual(f1.read(), f2.read())

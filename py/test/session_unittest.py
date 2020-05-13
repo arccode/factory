@@ -15,7 +15,6 @@ import tempfile
 import unittest
 
 import mock
-from six import assertRegex
 
 from cros.factory.test import session
 
@@ -44,7 +43,7 @@ class SessionTest(unittest.TestCase):
     shutil.rmtree(self.tmp)
 
   def testGetBootID(self):
-    assertRegex(self, session.GetBootID(), UUID_RE)
+    self.assertRegex(session.GetBootID(), UUID_RE)
 
   @mock.patch('session.file_utils.ReadFile', return_value='device_id\n')
   @mock.patch('os.path.exists', return_value=True)
@@ -57,7 +56,7 @@ class SessionTest(unittest.TestCase):
 
   def testGetInstallationID(self):
     installation_id = session.GetInstallationID()
-    assertRegex(self, installation_id, UUID_RE)
+    self.assertRegex(installation_id, UUID_RE)
 
     # Remove installation_id and make sure we get the same thing
     # back again, re-reading it from disk
