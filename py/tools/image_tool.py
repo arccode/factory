@@ -39,9 +39,6 @@ try:
 except ImportError:
   pass
 
-# For unittest purpose. Then mock module can change six.moves.input function.
-# TODO(kerker) Remove after py3 upgrade complete.
-import six
 from six import iteritems
 
 # This file needs to run on various environments, for example a fresh Ubuntu
@@ -1276,7 +1273,7 @@ class UserInput(object):
       keys += list(options_dict)
       prompt = 'Please select an option [%s]%s: ' % (
           ', '.join(keys), ' or empty to skip' if optional else '')
-      answer = six.moves.input(prompt).strip()
+      answer = input(prompt).strip()
       if optional and not answer:
         return None
       try:
@@ -1307,7 +1304,7 @@ class UserInput(object):
     print('\n' + title)
     while True:
       prompt = 'Please input "y" or "n": '
-      answer = six.moves.input(prompt).strip().lower()
+      answer = input(prompt).strip().lower()
       if answer == 'y':
         return True
       if answer == 'n':
@@ -1336,7 +1333,7 @@ class UserInput(object):
           str(min_value) if min_value is not None else '-INF',
           str(max_value) if max_value is not None else 'INF',
           ' or empty to skip' if optional else '')
-      answer = six.moves.input(prompt).strip()
+      answer = input(prompt).strip()
       if optional and not answer:
         return None
       try:
@@ -1368,7 +1365,7 @@ class UserInput(object):
     print('\n' + title)
     while True:
       prompt = 'Enter a string%s: ' % (' or empty to skip' if optional else '')
-      answer = six.moves.input(prompt).strip()
+      answer = input(prompt).strip()
       if answer:
         if max_length is None or len(answer) <= max_length:
           break

@@ -29,8 +29,6 @@ import argparse
 import json
 import logging
 
-from six.moves import input
-
 from cros.factory.test.fixture import utils as fixture_utils
 
 

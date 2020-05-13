@@ -23,7 +23,6 @@ import textwrap
 import xmlrpc.server
 
 import gnupg
-from six.moves import input
 
 
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))

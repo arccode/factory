@@ -23,7 +23,6 @@ import sys
 import tempfile
 import time
 
-from six.moves import input
 from six.moves import xrange
 
 from cros.factory.test.env import paths

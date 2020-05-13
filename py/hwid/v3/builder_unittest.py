@@ -62,19 +62,19 @@ class BuilderMethodTest(unittest.TestCase):
 
   def testPromptAndAsk(self):
     function = builder.PromptAndAsk
-    with mock.patch('six.moves.input', return_value='') as mock_input:
+    with mock.patch('builtins.input', return_value='') as mock_input:
       self.assertTrue(function('This is the question.', default_answer=True))
       mock_input.assert_called_once_with('This is the question. [Y/n] ')
 
-    with mock.patch('six.moves.input', return_value='') as mock_input:
+    with mock.patch('builtins.input', return_value='') as mock_input:
       self.assertFalse(function('This is the question.', default_answer=False))
       mock_input.assert_called_once_with('This is the question. [y/N] ')
 
-    with mock.patch('six.moves.input', return_value='y'):
+    with mock.patch('builtins.input', return_value='y'):
       self.assertTrue(function('This is the question.', default_answer=True))
       self.assertTrue(function('This is the question.', default_answer=False))
 
-    with mock.patch('six.moves.input', return_value='n'):
+    with mock.patch('builtins.input', return_value='n'):
       self.assertFalse(function('This is the question.', default_answer=True))
       self.assertFalse(function('This is the question.', default_answer=False))
 

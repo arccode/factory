@@ -15,8 +15,6 @@ import argparse
 import os
 import sys
 
-from six.moves import input
-
 from cros.factory.test.env import paths
 from cros.factory.tools import install_symlinks
 from cros.factory.utils import file_utils

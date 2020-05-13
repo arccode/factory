@@ -15,8 +15,6 @@ import logging
 import random
 import sys
 
-from six.moves import input
-
 from cros.factory.device import device_utils
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.proto import reg_code_pb2

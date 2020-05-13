@@ -234,7 +234,7 @@ class ImageToolTest(unittest.TestCase):
 class UserInputTest(unittest.TestCase):
   """Unit tests for image_tool.UserInput."""
 
-  @mock.patch('six.moves.input')
+  @mock.patch('builtins.input')
   def testSelect(self, input_mock):
     title = 'test_select'
     options_list = ['a', 'b']
@@ -263,7 +263,7 @@ class UserInputTest(unittest.TestCase):
     answer = image_tool.UserInput.Select(title, options_list, options_dict)
     self.assertEqual(answer, 'b')
 
-  @mock.patch('six.moves.input')
+  @mock.patch('builtins.input')
   def testYesNo(self, input_mock):
     title = 'test_yes_no'
 
@@ -274,7 +274,7 @@ class UserInputTest(unittest.TestCase):
     answer = image_tool.UserInput.YesNo(title)
     self.assertEqual(answer, False)
 
-  @mock.patch('six.moves.input')
+  @mock.patch('builtins.input')
   def testGetNumber(self, input_mock):
     title = 'test_get_number'
 
@@ -296,7 +296,7 @@ class UserInputTest(unittest.TestCase):
     answer = image_tool.UserInput.GetNumber(title, min_value=2, max_value=5)
     self.assertEqual(answer, 3)
 
-  @mock.patch('six.moves.input')
+  @mock.patch('builtins.input')
   def testGetString(self, input_mock):
     title = 'test_get_string'
 
