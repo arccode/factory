@@ -72,8 +72,13 @@ class ShelveUtilsTest(unittest.TestCase):
     self.assertFalse(shelve_utils.IsShelfValid(self.shelf_path))
     self.assertFalse(shelve_utils.BackupShelfIfValid(self.shelf_path))
 
-  # TODO(kerker): Add a test to test if the process will abort entirely with
-  # a corrupt gdbm database.
+  def testIsShelfValid_Corrupt(self):
+    # This corrupt gdbm database causes the process to abort entirely.
+    path = os.path.join(os.path.dirname(__file__),
+                        'testdata', 'corrupt-gdbm-shelf')
+    self.assertTrue(os.path.exists(path))
+    self.assertFalse(shelve_utils.IsShelfValid(path))
+    self.assertFalse(shelve_utils.BackupShelfIfValid(path))
 
 
 class DictShelveViewTest(unittest.TestCase):

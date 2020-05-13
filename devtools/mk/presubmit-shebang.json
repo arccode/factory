@@ -11,7 +11,8 @@
     "py/test/pytests/offline_test/shell/shutdown.sh",
     "py/test/pytests/offline_test/shell/starter.sh",
     "py/test/pytests/offline_test/shell/stressapptest.sh",
-    "py/test/pytests/offline_test/shell/wait_for.sh"
+    "py/test/pytests/offline_test/shell/wait_for.sh",
+    "py/utils/testdata/corrupt-gdbm-shelf"
   ],
   "white_list": [
     "/bin/bash",
