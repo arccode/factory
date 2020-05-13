@@ -540,6 +540,11 @@ def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
   logging.debug('test_umount: %s', test_umount)
 
   try:
+    # Enable upstart log under /var/log/upstart.log for Tast.
+    process_utils.Spawn(['initctl', 'log-priority', 'info'],
+                        log=True,
+                        log_stderr_on_error=True)
+
     _StopAllUpstartJobs(exclude_list=[
         # Milestone marker that use to determine the running of other services.
         'boot-services',
@@ -595,6 +600,8 @@ def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
     logging.info('Going to sleep forever!')
     time.sleep(1e8)
   except Exception:
+    # This error message is used to detect error in Factory.Finalize Tast test.
+    # Keep sync if changed this.
     logging.exception('wipe_init failed')
     _OnError(station_ip, station_port, finish_token, state_dev,
              wipe_in_tmpfs_log=wipe_in_tmpfs_log, wipe_init_log=logfile)
