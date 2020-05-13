@@ -7,8 +7,6 @@
 import re
 import unittest
 
-from six import assertRaisesRegex
-
 from cros.factory.test.i18n import string_utils
 from cros.factory.test.i18n import translation
 from cros.factory.test.i18n import unittest_test_case
@@ -51,9 +49,9 @@ class SafeFormatterTest(unittest.TestCase):
   def testEmptyPositionalArg(self):
     self.assertEqual('1 3 5', self.formatter.format('{} {} {}', 1, 3, 5))
     # TODO(kerker) : Don't let SafeFormatter throw this exception.
-    assertRaisesRegex(self, ValueError, "cannot switch from manual field "
-                      "specification to automatic field numbering",
-                      self.formatter.format, '{0} {1} {}', 1, 3, 5)
+    self.assertRaisesRegex(ValueError, "cannot switch from manual field "
+                           "specification to automatic field numbering",
+                           self.formatter.format, '{0} {1} {}', 1, 3, 5)
 
 
 class StringUtilsTest(unittest_test_case.I18nTestCase):
@@ -81,10 +79,10 @@ class StringUtilsTest(unittest_test_case.I18nTestCase):
             'format string {str1} {str2} [{val1:05}]',
             str1='text 1', str2=translation.Translation('text 2'), val1=42))
 
-    assertRaisesRegex(self, ValueError, "doesn't contain the default locale",
-                      string_utils.StringFormat, {'zh-CN': 'a'})
-    assertRaisesRegex(self, ValueError, "doesn't contain the default locale",
-                      string_utils.StringFormat, '{s}', s={'zh-CN': 'a'})
+    self.assertRaisesRegex(ValueError, "doesn't contain the default locale",
+                           string_utils.StringFormat, {'zh-CN': 'a'})
+    self.assertRaisesRegex(ValueError, "doesn't contain the default locale",
+                           string_utils.StringFormat, '{s}', s={'zh-CN': 'a'})
     self.assertEqual(
         {'en-US': '[?]', 'zh-CN': '[?]'},
         string_utils.StringFormat('{str}'))

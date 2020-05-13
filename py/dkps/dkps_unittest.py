@@ -13,7 +13,6 @@ import tempfile
 import unittest
 
 import gnupg
-from six import assertRaisesRegex
 
 from cros.factory.dkps import dkps
 from cros.factory.utils import net_utils
@@ -121,7 +120,7 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
         'sample_filter.py')
 
     # Test add duplicate project.
-    with assertRaisesRegex(self, ValueError, 'already exists'):
+    with self.assertRaisesRegex(ValueError, 'already exists'):
       self.dkps.AddProject(
           'TestProject', self.uploader_public_key_file_path,
           self.requester_public_key_file_path, 'sample_parser.py',

@@ -6,8 +6,6 @@
 
 import unittest
 
-from six import assertRaisesRegex
-
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test.i18n import translation
 from cros.factory.test.i18n import unittest_test_case
@@ -35,8 +33,8 @@ class ArgUtilsTest(unittest_test_case.I18nTestCase):
     test.Parse({'text': 'text 1'})
     self.assertEqual({'en-US': 'text 1', 'zh-CN': 'text-1'}, test.args.text)
 
-    assertRaisesRegex(self, ValueError, 'Required argument text not specified',
-                      test.Parse, {})
+    self.assertRaisesRegex(ValueError, 'Required argument text not specified',
+                           test.Parse, {})
 
   def testI18nArgWithDefault(self):
     test = MockPyTest([

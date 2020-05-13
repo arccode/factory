@@ -19,7 +19,6 @@ import time
 import unittest
 
 import mock
-from six import assertRaisesRegex
 
 from cros.factory.instalog import log_utils
 from cros.factory.instalog import plugin_base
@@ -317,7 +316,7 @@ class TestPluginSandbox(unittest.TestCase):
 
   def testInvalidCoreAPI(self):
     """Tests that a sandbox passed an invalid CoreAPI object will complain."""
-    with assertRaisesRegex(self, TypeError, 'Invalid CoreAPI object'):
+    with self.assertRaisesRegex(TypeError, 'Invalid CoreAPI object'):
       plugin_sandbox.PluginSandbox('plugin_id', core_api=True)
 
 

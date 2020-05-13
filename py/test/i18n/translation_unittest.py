@@ -7,7 +7,6 @@
 import unittest
 
 from six import assertCountEqual
-from six import assertRaisesRegex
 
 from cros.factory.test.i18n import translation
 from cros.factory.test.i18n import unittest_test_case
@@ -59,10 +58,11 @@ class TranslationTest(unittest_test_case.I18nTestCase):
                          {'en-US': 'text 1'}, translate=False))
 
   def testTranslatedNoDefaultLocale(self):
-    assertRaisesRegex(self, ValueError, "doesn't contain the default locale",
-                      translation.Translated, {'zh-CN': 'zh'})
-    assertRaisesRegex(self, ValueError, "doesn't contain the default locale",
-                      translation.Translated, {'zh-CN': 'zh'}, translate=False)
+    self.assertRaisesRegex(ValueError, "doesn't contain the default locale",
+                           translation.Translated, {'zh-CN': 'zh'})
+    self.assertRaisesRegex(ValueError, "doesn't contain the default locale",
+                           translation.Translated, {'zh-CN': 'zh'},
+                           translate=False)
 
   def testTranslatedUnicode(self):
     self.assertEqual({'en-US': 'en', 'zh-CN': '\u4e2d\u6587'},

@@ -8,8 +8,6 @@ import base64
 import binascii
 import unittest
 
-from six import assertRaisesRegex
-
 from cros.factory.proto import reg_code_pb2
 from cros.factory.test.rules.registration_codes import (
     CheckLegacyRegistrationCode)
@@ -85,8 +83,8 @@ class RegistrationCodeTest(unittest.TestCase):
 
   def testInvalid_Padding(self):
     # Add some padding.  Code should be invalid.
-    assertRaisesRegex(
-        self, RegistrationCodeException, 'bad base64 encoding',
+    self.assertRaisesRegex(
+        RegistrationCodeException, 'bad base64 encoding',
         lambda: RegistrationCode(self._Encode() + '='))
 
   def testInvalid_NonURLSafeBase64(self):
@@ -99,34 +97,34 @@ class RegistrationCodeTest(unittest.TestCase):
     # encoding.
     invalid_code = '=' + base64.b64encode(base64.urlsafe_b64decode(
         valid_code[1:])).decode('utf-8')
-    assertRaisesRegex(
-        self, RegistrationCodeException, 'bad base64 encoding',
+    self.assertRaisesRegex(
+        RegistrationCodeException, 'bad base64 encoding',
         lambda: RegistrationCode(invalid_code))
 
   def testInvalid_Not36Chars(self):
     # Remove the first character.  Code should be invalid.
     self.proto.content.code = self.proto.content.code[1:]
-    assertRaisesRegex(
-        self, RegistrationCodeException, 'got 31 bytes',
+    self.assertRaisesRegex(
+        RegistrationCodeException, 'got 31 bytes',
         lambda: RegistrationCode(self._Encode()))
 
   def testInvalid_Checksum(self):
     # Futz with the checksum, invalidating the code.
-    assertRaisesRegex(
-        self, RegistrationCodeException, 'expected checksum',
+    self.assertRaisesRegex(
+        RegistrationCodeException, 'expected checksum',
         lambda: RegistrationCode(self._Encode(xor_checksum=1)))
 
   def testInvalid_NoDevice_Unique(self):
     self.proto.content.ClearField('device')
-    assertRaisesRegex(
-        self, RegistrationCodeException, 'expected non-empty device',
+    self.assertRaisesRegex(
+        RegistrationCodeException, 'expected non-empty device',
         lambda: RegistrationCode(self._Encode()))
 
   def testInvalid_NoDevice_Group(self):
     self.proto.content.code_type = reg_code_pb2.GROUP_CODE
     self.proto.content.ClearField('device')
-    assertRaisesRegex(
-        self, RegistrationCodeException, 'expected non-empty device',
+    self.assertRaisesRegex(
+        RegistrationCodeException, 'expected non-empty device',
         lambda: RegistrationCode(self._Encode()))
 
   def testValid_OneTimeNoDevice(self):
@@ -147,8 +145,8 @@ class RegistrationCodeTest(unittest.TestCase):
   def testLegacy_BadChecksum(self):
     encoded_string = ('000000000000000000000000000000000000'
                       '0000000000000000000000000000190a55ae')
-    assertRaisesRegex(
-        self, RegistrationCodeException, 'CRC of', RegistrationCode,
+    self.assertRaisesRegex(
+        RegistrationCodeException, 'CRC of', RegistrationCode,
         encoded_string)
 
   def testCheckRegistrationCode(self):
@@ -162,20 +160,20 @@ class RegistrationCodeTest(unittest.TestCase):
                           device='chromebook')
 
     # Wrong type
-    assertRaisesRegex(
-        self, RegistrationCodeException,
+    self.assertRaisesRegex(
+        RegistrationCodeException,
         "expected type 'GROUP_CODE' but got 'UNIQUE_CODE'",
         CheckRegistrationCode, encoded_string,
         type=RegistrationCode.Type.GROUP_CODE)
     # Wrong device
-    assertRaisesRegex(
-        self, RegistrationCodeException,
+    self.assertRaisesRegex(
+        RegistrationCodeException,
         "expected device 'foobar' but got 'chromebook'",
         CheckRegistrationCode, encoded_string, device='foobar')
 
   def testCheckRegistrationCode_Invalid(self):
-    assertRaisesRegex(
-        self, RegistrationCodeException, 'Invalid registration code',
+    self.assertRaisesRegex(
+        RegistrationCodeException, 'Invalid registration code',
         CheckRegistrationCode, 'abcde')
 
   def testCheckRegistrationCode_Dummy(self):
@@ -183,8 +181,8 @@ class RegistrationCodeTest(unittest.TestCase):
                   'IZnagx0HbWaTIEAEaB2Zyb2JiZXIQ3rXp-ws=')
     CheckRegistrationCode(dummy_code, type=RegistrationCode.Type.UNIQUE_CODE,
                           device='frobber', allow_dummy=True)
-    assertRaisesRegex(
-        self, RegistrationCodeException, 'is dummy',
+    self.assertRaisesRegex(
+        RegistrationCodeException, 'is dummy',
         lambda: CheckRegistrationCode(dummy_code,
                                       type=RegistrationCode.Type.UNIQUE_CODE,
                                       device='frobber',

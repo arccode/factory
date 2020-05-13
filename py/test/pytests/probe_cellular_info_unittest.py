@@ -11,7 +11,6 @@ Requested data are probed, written to the event log, and saved to device data.
 import unittest
 
 import mock
-from six import assertRaisesRegex
 
 from cros.factory.test.pytests import probe_cellular_info
 from cros.factory.utils.arg_utils import Args
@@ -147,8 +146,8 @@ Modem /org/chromium/ModemManager/Gobi/1:
     check_output_mock.return_value = stdout
 
     self.test.args = Args(*self.test.ARGS).Parse({})
-    assertRaisesRegex(self, AssertionError, r"Missing elements.+: \['imei'\]",
-                      self.test.runTest)
+    self.assertRaisesRegex(AssertionError, r"Missing elements.+: \['imei'\]",
+                           self.test.runTest)
 
     check_output_mock.assert_called_once_with(['modem', 'status'], log=True)
     self.assertEqual(log_param_mock.call_args_list, log_param_calls)
@@ -176,8 +175,8 @@ Modem /org/chromium/ModemManager/Gobi/1:
     check_output_mock.return_value = stdout
 
     self.test.args = Args(*self.test.ARGS).Parse({})
-    assertRaisesRegex(self, AssertionError, r"Missing elements.+: \['imei'\]",
-                      self.test.runTest)
+    self.assertRaisesRegex(AssertionError, r"Missing elements.+: \['imei'\]",
+                           self.test.runTest)
 
     check_output_mock.assert_called_once_with(['modem', 'status'], log=True)
     log_mock.assert_called_once_with(

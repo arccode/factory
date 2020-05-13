@@ -16,7 +16,6 @@ import time
 import unittest
 
 import mock
-from six import assertRaisesRegex
 
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Shell
@@ -334,8 +333,8 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._util.GetReleaseImageVersion.return_value = '6887.0.0'
     self._gooftool._util.shell.return_value = StubStdout('')
 
-    assertRaisesRegex(self, Error, 'Error validating device secret',
-                      self._gooftool.GenerateStableDeviceSecret)
+    self.assertRaisesRegex(Error, 'Error validating device secret',
+                           self._gooftool.GenerateStableDeviceSecret)
     self._gooftool._util.GetReleaseImageVersion.assert_any_call()
     self._gooftool._util.shell.assert_called_once_with(
         'tpm-manager get_random 32', log=False)
@@ -344,8 +343,8 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._util.GetReleaseImageVersion.return_value = '6887.0.0'
     self._gooftool._util.shell.return_value = StubStdout('00' * 31)
 
-    assertRaisesRegex(self, Error, 'Error validating device secret',
-                      self._gooftool.GenerateStableDeviceSecret)
+    self.assertRaisesRegex(Error, 'Error validating device secret',
+                           self._gooftool.GenerateStableDeviceSecret)
     self._gooftool._util.GetReleaseImageVersion.assert_any_call()
     self._gooftool._util.shell.assert_called_once_with(
         'tpm-manager get_random 32', log=False)
@@ -354,8 +353,8 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._util.GetReleaseImageVersion.return_value = '6887.0.0'
     self._gooftool._util.shell.return_value = StubStdout('Error!')
 
-    assertRaisesRegex(self, Error, 'Error validating device secret',
-                      self._gooftool.GenerateStableDeviceSecret)
+    self.assertRaisesRegex(Error, 'Error validating device secret',
+                           self._gooftool.GenerateStableDeviceSecret)
     self._gooftool._util.GetReleaseImageVersion.assert_any_call()
     self._gooftool._util.shell.assert_called_once_with(
         'tpm-manager get_random 32', log=False)
@@ -363,8 +362,8 @@ class GooftoolTest(unittest.TestCase):
   def testGenerateStableDeviceSecretBadReleaseImageVersion(self):
     self._gooftool._util.GetReleaseImageVersion.return_value = '6886.0.0'
 
-    assertRaisesRegex(self, Error, 'Release image version',
-                      self._gooftool.GenerateStableDeviceSecret)
+    self.assertRaisesRegex(Error, 'Release image version',
+                           self._gooftool.GenerateStableDeviceSecret)
     self._gooftool._util.GetReleaseImageVersion.assert_any_call()
 
   def testGenerateStableDeviceSecretVPDWriteFailed(self):
@@ -372,8 +371,8 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._util.shell.return_value = StubStdout('00' * 32 + '\n')
     self._gooftool._vpd.UpdateData.side_effect = Exception()
 
-    assertRaisesRegex(self, Error, 'Error writing device secret',
-                      self._gooftool.GenerateStableDeviceSecret)
+    self.assertRaisesRegex(Error, 'Error writing device secret',
+                           self._gooftool.GenerateStableDeviceSecret)
     self._gooftool._util.GetReleaseImageVersion.assert_any_call()
     self._gooftool._util.shell.assert_called_once_with(
         'tpm-manager get_random 32', log=False)
@@ -457,33 +456,33 @@ class GooftoolTest(unittest.TestCase):
     self._SetupVPDMocks(ro=ro_vpd_value, rw=self._SIMPLE_VALID_RW_VPD_DATA)
 
     # Should fail, since region is missing.
-    assertRaisesRegex(self, Error, 'Missing required RO VPD values: region',
-                      self._gooftool.VerifyVPD)
+    self.assertRaisesRegex(Error, 'Missing required RO VPD values: region',
+                           self._gooftool.VerifyVPD)
 
   def testVerifyVPD_InvalidRegion(self):
     ro_vpd_value = self._SIMPLE_VALID_RO_VPD_DATA.copy()
     ro_vpd_value['region'] = 'nonexist'
     self._SetupVPDMocks(ro=ro_vpd_value, rw=self._SIMPLE_VALID_RW_VPD_DATA)
 
-    assertRaisesRegex(self, ValueError, 'Unknown region: "nonexist".',
-                      self._gooftool.VerifyVPD)
+    self.assertRaisesRegex(ValueError, 'Unknown region: "nonexist".',
+                           self._gooftool.VerifyVPD)
 
   def testVerifyVPD_InvalidMACKey(self):
     ro_vpd_value = self._SIMPLE_VALID_RO_VPD_DATA.copy()
     ro_vpd_value['wifi_mac'] = '00:11:de:ad:be:ef'
     self._SetupVPDMocks(ro=ro_vpd_value, rw=self._SIMPLE_VALID_RW_VPD_DATA)
 
-    assertRaisesRegex(self, KeyError,
-                      'Unexpected RO VPD: wifi_mac=00:11:de:ad:be:ef.',
-                      self._gooftool.VerifyVPD)
+    self.assertRaisesRegex(KeyError,
+                           'Unexpected RO VPD: wifi_mac=00:11:de:ad:be:ef.',
+                           self._gooftool.VerifyVPD)
 
   def testVerifyVPD_InvalidRegistrationCode(self):
     rw_vpd_value = self._SIMPLE_VALID_RW_VPD_DATA.copy()
     rw_vpd_value['gbind_attribute'] = 'badvalue'
     self._SetupVPDMocks(ro=self._SIMPLE_VALID_RO_VPD_DATA, rw=rw_vpd_value)
 
-    assertRaisesRegex(self, ValueError, 'gbind_attribute is invalid:',
-                      self._gooftool.VerifyVPD)
+    self.assertRaisesRegex(ValueError, 'gbind_attribute is invalid:',
+                           self._gooftool.VerifyVPD)
 
   def testVerifyVPD_InvalidTestingRegistrationCode(self):
     rw_vpd_value = self._SIMPLE_VALID_RW_VPD_DATA.copy()
@@ -492,25 +491,25 @@ class GooftoolTest(unittest.TestCase):
         'zbTOX_9OQI_3EAAaCmNocm9tZWJvb2sQouDUgwQ=')
     self._SetupVPDMocks(ro=self._SIMPLE_VALID_RO_VPD_DATA, rw=rw_vpd_value)
 
-    assertRaisesRegex(self, ValueError, 'gbind_attribute is invalid: ',
-                      self._gooftool.VerifyVPD)
+    self.assertRaisesRegex(ValueError, 'gbind_attribute is invalid: ',
+                           self._gooftool.VerifyVPD)
 
   def testVerifyVPD_UnexpectedValues(self):
     ro_vpd_value = self._SIMPLE_VALID_RO_VPD_DATA.copy()
     ro_vpd_value['initial_locale'] = 'en-US'
     self._SetupVPDMocks(ro=ro_vpd_value, rw=self._SIMPLE_VALID_RW_VPD_DATA)
 
-    assertRaisesRegex(self, KeyError, 'Unexpected RO VPD: initial_locale=en-US',
-                      self._gooftool.VerifyVPD)
+    self.assertRaisesRegex(KeyError, 'Unexpected RO VPD: initial_locale=en-US',
+                           self._gooftool.VerifyVPD)
 
   def testVerifyReleaseChannel_CanaryChannel(self):
     self._gooftool._util.GetReleaseImageChannel.return_value = 'canary-channel'
     self._gooftool._util.GetAllowedReleaseImageChannels.return_value = [
         'dev', 'beta', 'stable']
 
-    assertRaisesRegex(self, Error,
-                      'Release image channel is incorrect: canary-channel',
-                      self._gooftool.VerifyReleaseChannel)
+    self.assertRaisesRegex(Error,
+                           'Release image channel is incorrect: canary-channel',
+                           self._gooftool.VerifyReleaseChannel)
 
   def testVerifyReleaseChannel_DevChannel(self):
     self._gooftool._util.GetReleaseImageChannel.return_value = 'dev-channel'
@@ -525,9 +524,10 @@ class GooftoolTest(unittest.TestCase):
         'dev', 'beta', 'stable']
     enforced_channels = ['stable', 'beta']
 
-    assertRaisesRegex(self, Error,
-                      'Release image channel is incorrect: dev-channel',
-                      self._gooftool.VerifyReleaseChannel, enforced_channels)
+    self.assertRaisesRegex(Error,
+                           'Release image channel is incorrect: dev-channel',
+                           self._gooftool.VerifyReleaseChannel,
+                           enforced_channels)
 
   def testVerifyReleaseChannel_BetaChannel(self):
     self._gooftool._util.GetReleaseImageChannel.return_value = 'beta-channel'
@@ -542,9 +542,10 @@ class GooftoolTest(unittest.TestCase):
         'dev', 'beta', 'stable']
     enforced_channels = ['stable']
 
-    assertRaisesRegex(self, Error,
-                      'Release image channel is incorrect: beta-channel',
-                      self._gooftool.VerifyReleaseChannel, enforced_channels)
+    self.assertRaisesRegex(Error,
+                           'Release image channel is incorrect: beta-channel',
+                           self._gooftool.VerifyReleaseChannel,
+                           enforced_channels)
 
   def testVerifyReleaseChannel_StableChannel(self):
     self._gooftool._util.GetReleaseImageChannel.return_value = 'stable-channel'
@@ -559,9 +560,10 @@ class GooftoolTest(unittest.TestCase):
         'dev', 'beta', 'stable']
     enforced_channels = ['canary']
 
-    assertRaisesRegex(self, Error,
-                      r'Enforced channels are incorrect: \[\'canary\'\].',
-                      self._gooftool.VerifyReleaseChannel, enforced_channels)
+    self.assertRaisesRegex(Error,
+                           r'Enforced channels are incorrect: \[\'canary\'\].',
+                           self._gooftool.VerifyReleaseChannel,
+                           enforced_channels)
 
   def testSetFirmwareBitmapLocalePass(self):
     """Test for a normal process of setting firmware bitmap locale."""

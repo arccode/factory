@@ -9,8 +9,6 @@ import shutil
 import tempfile
 import unittest
 
-from six import assertRaisesRegex
-
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.phase import Phase
 from cros.factory.test.rules.phase import PHASE_NAMES
@@ -41,8 +39,8 @@ class BasicPhaseTest(unittest.TestCase):
     self.assertNotEqual(Phase('DVT'), phase.EVT)
 
   def testInvalidName(self):
-    assertRaisesRegex(
-        self, ValueError,
+    self.assertRaisesRegex(
+        ValueError,
         (r"'evt' is not a valid phase name \(valid names are "
          r'\[PROTO,EVT,DVT,PVT_DOGFOOD,PVT\]\)'), Phase, 'evt')
 
@@ -107,12 +105,12 @@ class AssertionTest(unittest.TestCase):
 
   def testAssertionFails(self):
     # Condition is True, so these always pass.
-    assertRaisesRegex(
-        self, PhaseAssertionError,
+    self.assertRaisesRegex(
+        PhaseAssertionError,
         r'Assertion starting at PROTO failed \(currently in EVT\): msg',
         phase.AssertStartingAtPhase, phase.PROTO, False, 'msg')
-    assertRaisesRegex(
-        self, PhaseAssertionError,
+    self.assertRaisesRegex(
+        PhaseAssertionError,
         r'Assertion starting at EVT failed \(currently in EVT\): msg',
         phase.AssertStartingAtPhase, phase.EVT, False, 'msg')
     phase.AssertStartingAtPhase(phase.DVT, False, 'msg')  # Not evaluated
@@ -120,13 +118,13 @@ class AssertionTest(unittest.TestCase):
   def testAssertionFailsCallable(self):
     # Only PROTO and EVT ones get evaluated and fail.
     called = []
-    assertRaisesRegex(
-        self, PhaseAssertionError,
+    self.assertRaisesRegex(
+        PhaseAssertionError,
         r'Assertion starting at PROTO failed \(currently in EVT\): msg',
         phase.AssertStartingAtPhase, phase.PROTO,
         lambda: called.append('PROTO'), 'msg')
-    assertRaisesRegex(
-        self, PhaseAssertionError,
+    self.assertRaisesRegex(
+        PhaseAssertionError,
         r'Assertion starting at EVT failed \(currently in EVT\): msg',
         phase.AssertStartingAtPhase, phase.EVT,
         lambda: called.append('EVT'), 'msg')

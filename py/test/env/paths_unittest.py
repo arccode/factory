@@ -7,7 +7,6 @@ import os
 import unittest
 
 import mock
-from six import assertRaisesRegex
 
 from cros.factory.test.env import paths
 
@@ -43,8 +42,8 @@ class GetFactoryPythonArchivePathUnittest(unittest.TestCase):
     paths.sys_utils.GetRunningFactoryPythonArchivePath = lambda: None
     paths.os.path.exists = mock.MagicMock(return_value=False)
 
-    with assertRaisesRegex(
-        self, EnvironmentError, 'cannot find factory python archive'):
+    with self.assertRaisesRegex(
+        EnvironmentError, 'cannot find factory python archive'):
       unused_var = paths.GetFactoryPythonArchivePath()
 
   def testLocalFactoryPythonArchiveRunningPar(self):

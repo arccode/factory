@@ -9,7 +9,6 @@ import logging
 import unittest
 
 import mock
-from six import assertRaisesRegex
 from six import iteritems
 
 from cros.factory.device import device_utils
@@ -143,8 +142,8 @@ class FactoryEntryUnitTest(unittest.TestCase):
     self.mock_dut.link.IsReady.return_value = False
 
     self.test.setUp()
-    assertRaisesRegex(self, type_utils.TestFailure, 'DUT is not connected',
-                      self.test.runTest)
+    self.assertRaisesRegex(type_utils.TestFailure, 'DUT is not connected',
+                           self.test.runTest)
 
 
 if __name__ == '__main__':

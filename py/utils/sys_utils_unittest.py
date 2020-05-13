@@ -14,7 +14,6 @@ import tempfile
 import unittest
 
 import mock
-from six import assertRaisesRegex
 
 from cros.factory.device import device_utils
 from cros.factory.utils.process_utils import Spawn
@@ -50,8 +49,8 @@ class GetInterruptsTest(unittest.TestCase):
   def testFailToReadProcInterrupts(self, read_lines_mock):
     read_lines_mock.return_value = None
 
-    assertRaisesRegex(
-        self, OSError, r'Unable to read /proc/interrupts',
+    self.assertRaisesRegex(
+        OSError, r'Unable to read /proc/interrupts',
         sys_utils.GetInterrupts)
 
     read_lines_mock.assert_called_once_with('/proc/interrupts')

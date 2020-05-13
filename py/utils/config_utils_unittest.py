@@ -9,8 +9,6 @@ import logging
 import os
 import unittest
 
-from six import assertRaisesRegex
-
 from cros.factory.utils import config_utils
 from cros.factory.utils import type_utils
 
@@ -135,16 +133,16 @@ class ConfigUtilsTest(unittest.TestCase):
     self.assertEqual(type(config['sample_str']), str)
 
   def testLoopDetection(self):
-    with assertRaisesRegex(
-        self, AssertionError, 'Detected loop inheritance dependency .*'):
+    with self.assertRaisesRegex(
+        AssertionError, 'Detected loop inheritance dependency .*'):
       config_utils.LoadConfig(
           'testdata/config_utils_unittest_loop',
           validate_schema=False,
           allow_inherit=True)
 
   def testC3LinearizationFail(self):
-    with assertRaisesRegex(
-        self, RuntimeError, 'C3 linearization failed for .*'):
+    with self.assertRaisesRegex(
+        RuntimeError, 'C3 linearization failed for .*'):
       config_utils.LoadConfig(
           'testdata/config_utils_unittest_c3',
           validate_schema=False,

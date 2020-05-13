@@ -15,7 +15,6 @@ import unittest
 
 import mock
 from six import assertCountEqual
-from six import assertRaisesRegex
 
 from cros.factory.device import device_utils
 from cros.factory.device import power
@@ -278,8 +277,8 @@ class ECToolPowerInfoTest(unittest.TestCase):
         Port 3: SRC
         """)
     self.board.CheckOutput = mock.MagicMock(return_value=_USB_PD_POWER_INFO)
-    assertRaisesRegex(self, self.power.Error, 'unexpected PD state',
-                      self.power.GetUSBPDPowerInfo)
+    self.assertRaisesRegex(self.power.Error, 'unexpected PD state',
+                           self.power.GetUSBPDPowerInfo)
 
   def testUSBPDPowerInfoIncorrectSNKOutput(self):
     _USB_PD_POWER_INFO = textwrap.dedent("""
@@ -288,8 +287,8 @@ class ECToolPowerInfoTest(unittest.TestCase):
         Port 2: SRC
         """)
     self.board.CheckOutput = mock.MagicMock(return_value=_USB_PD_POWER_INFO)
-    assertRaisesRegex(self, self.power.Error, 'unexpected output for SNK',
-                      self.power.GetUSBPDPowerInfo)
+    self.assertRaisesRegex(self.power.Error, 'unexpected output for SNK',
+                           self.power.GetUSBPDPowerInfo)
 
 
 class PowerDaemonPowerInfoTest(unittest.TestCase):

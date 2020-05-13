@@ -20,7 +20,6 @@ import time
 import unittest
 
 import mock
-from six import assertRaisesRegex
 
 from cros.factory.device import device_utils
 from cros.factory.utils import file_utils
@@ -310,8 +309,8 @@ class ExtractFileTest(unittest.TestCase):
               log=True, check_call=True)])
 
   def testMissingCompressFile(self):
-    assertRaisesRegex(
-        self, file_utils.ExtractFileError, 'Missing compressed file',
+    self.assertRaisesRegex(
+        file_utils.ExtractFileError, 'Missing compressed file',
         file_utils.ExtractFile, 'itdoesnotexist', 'foo_dir')
 
   def testPermissionDenied(self):
@@ -321,8 +320,8 @@ class ExtractFileTest(unittest.TestCase):
       output_dir = os.path.join(temp_dir, 'extracted')
       try:
         os.chmod(targz, 0)
-        assertRaisesRegex(
-            self, file_utils.ExtractFileError, 'Permission denied',
+        self.assertRaisesRegex(
+            file_utils.ExtractFileError, 'Permission denied',
             file_utils.ExtractFile, targz, output_dir)
       finally:
         os.chmod(targz, 0o600)
@@ -340,8 +339,8 @@ class ForceSymlinkTest(unittest.TestCase):
     target_path = os.path.join(self.temp_dir, 'non_exist_target')
     link_path = os.path.join(self.temp_dir, 'link_to_target')
 
-    assertRaisesRegex(
-        self, Exception, 'Missing symlink target', file_utils.ForceSymlink,
+    self.assertRaisesRegex(
+        Exception, 'Missing symlink target', file_utils.ForceSymlink,
         target_path, link_path)
 
   def testNormal(self):
@@ -386,8 +385,8 @@ class AtomicCopyTest(unittest.TestCase):
     shutil.rmtree(self.temp_dir)
 
   def testNoSource(self):
-    assertRaisesRegex(
-        self, IOError, 'Missing source', file_utils.AtomicCopy,
+    self.assertRaisesRegex(
+        IOError, 'Missing source', file_utils.AtomicCopy,
         '/foo/non_exist_source', '/foo/non_exist_dest')
     self.assertFalse(os.path.exists('/foo/non_exist_source'))
     self.assertFalse(os.path.exists('/foo/non_exist_dest'))
@@ -508,8 +507,8 @@ class FileLockTest(unittest.TestCase):
     p = multiprocessing.Process(target=Target)
     p.start()
     time.sleep(0.5)
-    assertRaisesRegex(
-        self, IOError, r'Resource temporarily unavailable',
+    self.assertRaisesRegex(
+        IOError, r'Resource temporarily unavailable',
         file_utils.FileLock(self.temp_file).Acquire)
     p.terminate()
 
@@ -537,8 +536,8 @@ class FileLockTest(unittest.TestCase):
     p.start()
     time.sleep(0.5)
     lock = file_utils.FileLock(self.temp_file, timeout_secs=1)
-    assertRaisesRegex(
-        self, file_utils.FileLockTimeoutError,
+    self.assertRaisesRegex(
+        file_utils.FileLockTimeoutError,
         r'Could not acquire file lock of .* in 1 second\(s\)', lock.Acquire)
     p.terminate()
 
@@ -553,14 +552,14 @@ class FileLockTest(unittest.TestCase):
 
     # Try to grab lock on a locked file.
     file_utils.FileLock(self.temp_file).Acquire()
-    assertRaisesRegex(
-        self, IOError, r'Resource temporarily unavailable',
+    self.assertRaisesRegex(
+        IOError, r'Resource temporarily unavailable',
         file_utils.FileLock(self.temp_file).Acquire)
 
   def testFileLockSingleProcessWithTimeout(self):
     file_utils.FileLock(self.temp_file).Acquire()
-    assertRaisesRegex(
-        self, file_utils.FileLockTimeoutError,
+    self.assertRaisesRegex(
+        file_utils.FileLockTimeoutError,
         r'Could not acquire file lock of .* in 1 second\(s\)',
         file_utils.FileLock(self.temp_file, timeout_secs=1).Acquire)
 
@@ -610,12 +609,12 @@ class GlobSingleFileTest(unittest.TestCase):
       self.assertEqual(
           os.path.join(d, 'a'),
           file_utils.GlobSingleFile(os.path.join(d, '[a]')))
-      assertRaisesRegex(
-          self, ValueError,
+      self.assertRaisesRegex(
+          ValueError,
           r"Expected one match for .+/\* but got \['.+/(a|b)', '.+/(a|b)'\]",
           file_utils.GlobSingleFile, os.path.join(d, '*'))
-      assertRaisesRegex(
-          self, ValueError, r'Expected one match for .+/nomatch but got \[\]',
+      self.assertRaisesRegex(
+          ValueError, r'Expected one match for .+/nomatch but got \[\]',
           file_utils.GlobSingleFile, os.path.join(d, 'nomatch'))
 
 

@@ -11,7 +11,6 @@ from __future__ import print_function
 import unittest
 
 import mock
-from six import assertRaisesRegex
 
 from cros.factory.device import device_types
 from cros.factory.device import led as led_module
@@ -94,12 +93,12 @@ class LEDTest(unittest.TestCase):
     self.board.CallOutput.return_value = ''
 
     led = led_module.LED(self.board)
-    with assertRaisesRegex(self, ValueError, 'Invalid color'):
+    with self.assertRaisesRegex(ValueError, 'Invalid color'):
       led.SetColor('invalid color')
-    with assertRaisesRegex(self, TypeError, 'Invalid brightness'):
+    with self.assertRaisesRegex(TypeError, 'Invalid brightness'):
       led.SetColor(led.Color.RED, brightness='1')
-    with assertRaisesRegex(self, ValueError,
-                           r'brightness \(255\) out-of-range'):
+    with self.assertRaisesRegex(ValueError,
+                                r'brightness \(255\) out-of-range'):
       led.SetColor(led.Color.RED, brightness=255)
 
   def testSetColorUnsupportedBoard(self):
@@ -110,7 +109,7 @@ class LEDTest(unittest.TestCase):
     led = led_module.LED(self.board)
     self.board.CallOutput.assert_called_once_with(
         ['ectool', 'led', 'battery', 'query'])
-    with assertRaisesRegex(self, device_types.DeviceException, msg):
+    with self.assertRaisesRegex(device_types.DeviceException, msg):
       led.SetColor(led.Color.RED, brightness=None)
 
 

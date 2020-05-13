@@ -12,7 +12,6 @@ import urllib.request
 
 from jsonrpclib import jsonrpc
 from six import assertCountEqual
-from six import assertRaisesRegex
 
 from cros.factory.goofy import goofy_server
 from cros.factory.utils import file_utils
@@ -231,7 +230,7 @@ class GoofyServerTest(unittest.TestCase):
           'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, url))
 
   def testURLNotFound(self):
-    with assertRaisesRegex(self, urllib.error.HTTPError, '404: Not Found'):
+    with self.assertRaisesRegex(urllib.error.HTTPError, '404: Not Found'):
       response = urllib.request.urlopen(
           'http://%s:%d%s' % (net_utils.LOCALHOST, self.port, '/not_exists'))
       response.close()

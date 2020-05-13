@@ -18,7 +18,6 @@ import jsonrpclib
 from jsonrpclib import jsonrpc
 from jsonrpclib import SimpleJSONRPCServer
 from six import assertCountEqual
-from six import assertRaisesRegex
 
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import net_utils
@@ -178,15 +177,15 @@ class MultiPathJSONRPCServerTest(unittest.TestCase):
   def testURLNotFound(self):
     proxy = jsonrpc.ServerProxy(
         'http://%s:%d/not_exists' % (net_utils.LOCALHOST, self.port))
-    assertRaisesRegex(
-        self, jsonrpclib.ProtocolError, 'Not Found', proxy.Func)
+    self.assertRaisesRegex(
+        jsonrpclib.ProtocolError, 'Not Found', proxy.Func)
 
   def testRPCException(self):
     self._SetInstance('/', self.RPCInstance())
     proxy = jsonrpc.ServerProxy(
         'http://%s:%d/' % (net_utils.LOCALHOST, self.port))
-    assertRaisesRegex(
-        self, jsonrpc.ProtocolError, 'RuntimeError: Something Wrong',
+    self.assertRaisesRegex(
+        jsonrpc.ProtocolError, 'RuntimeError: Something Wrong',
         proxy.Error)
 
   def tearDown(self):

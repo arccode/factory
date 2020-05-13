@@ -6,7 +6,6 @@
 
 import unittest
 
-from six import assertRaisesRegex
 from six import iteritems
 
 from cros.factory.utils.arg_utils import Arg
@@ -92,9 +91,9 @@ class ArgsTest(unittest.TestCase):
          'int_typed': 3,
          'enum_typed': 'a'},
         self.Parse(dict(required='x', int_typed=3, enum_typed='a')))
-    assertRaisesRegex(self, ValueError,
-                      r'Argument enum_typed should have type \(Enum',
-                      self.Parse, dict(required='x', enum_typed='c'))
+    self.assertRaisesRegex(ValueError,
+                           r'Argument enum_typed should have type \(Enum',
+                           self.Parse, dict(required='x', enum_typed='c'))
 
   def testIntOrString(self):
     for value in (3, 'x'):

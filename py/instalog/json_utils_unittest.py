@@ -12,8 +12,6 @@ import datetime
 import logging
 import unittest
 
-from six import assertRaisesRegex
-
 from cros.factory.instalog import json_utils
 from cros.factory.instalog import log_utils
 
@@ -113,18 +111,18 @@ class TestFastStringParseDatetime(unittest.TestCase):
                      json_utils.FastStringParseDate(time_now_string))
 
     # Wrong length.
-    with assertRaisesRegex(self, ValueError, r'Wrong format string'):
+    with self.assertRaisesRegex(ValueError, r'Wrong format string'):
       json_utils.FastStringParseDate(time_now_string + ' ')
     # Wrong symbol.
-    with assertRaisesRegex(self, ValueError, r'Wrong format string'):
+    with self.assertRaisesRegex(ValueError, r'Wrong format string'):
       wrong_time_string = time_now_string[:4] + ':' + time_now_string[5:]
       json_utils.FastStringParseDate(wrong_time_string)
     # Year with non-integer.
-    with assertRaisesRegex(self, ValueError, r'invalid literal for int'):
+    with self.assertRaisesRegex(ValueError, r'invalid literal for int'):
       wrong_time_string = time_now_string[:3] + '?' + time_now_string[4:]
       json_utils.FastStringParseDate(wrong_time_string)
     # The 13th month.
-    with assertRaisesRegex(self, ValueError, r'month must be in 1..12'):
+    with self.assertRaisesRegex(ValueError, r'month must be in 1..12'):
       wrong_time_string = time_now_string[:5] + '13' + time_now_string[7:]
       json_utils.FastStringParseDate(wrong_time_string)
 
@@ -135,18 +133,18 @@ class TestFastStringParseDatetime(unittest.TestCase):
                      json_utils.FastStringParseTime(time_now_string))
 
     # Wrong length.
-    with assertRaisesRegex(self, ValueError, r'Wrong format string'):
+    with self.assertRaisesRegex(ValueError, r'Wrong format string'):
       json_utils.FastStringParseTime(time_now_string + ' ')
     # Wrong symbol.
-    with assertRaisesRegex(self, ValueError, r'Wrong format string'):
+    with self.assertRaisesRegex(ValueError, r'Wrong format string'):
       wrong_time_string = time_now_string[:2] + '-' + time_now_string[3:]
       json_utils.FastStringParseTime(wrong_time_string)
     # Microsecond with non-integer.
-    with assertRaisesRegex(self, ValueError, r'invalid literal for int'):
+    with self.assertRaisesRegex(ValueError, r'invalid literal for int'):
       wrong_time_string = time_now_string[:-1] + '?'
       json_utils.FastStringParseTime(wrong_time_string)
     # The 60th second.
-    with assertRaisesRegex(self, ValueError, r'second must be in 0..59'):
+    with self.assertRaisesRegex(ValueError, r'second must be in 0..59'):
       wrong_time_string = time_now_string[:6] + '60' + time_now_string[8:]
       json_utils.FastStringParseTime(wrong_time_string)
 
@@ -157,14 +155,14 @@ class TestFastStringParseDatetime(unittest.TestCase):
                      json_utils.FastStringParseDatetime(time_now_string))
 
     # Wrong length.
-    with assertRaisesRegex(self, ValueError, r'Wrong format string'):
+    with self.assertRaisesRegex(ValueError, r'Wrong format string'):
       json_utils.FastStringParseDatetime(time_now_string + ' ')
     # Wrong alphabet.
-    with assertRaisesRegex(self, ValueError, r'Wrong format string'):
+    with self.assertRaisesRegex(ValueError, r'Wrong format string'):
       wrong_time_string = time_now_string[:-1] + 'Y'
       json_utils.FastStringParseDatetime(wrong_time_string)
     # The 13th month.
-    with assertRaisesRegex(self, ValueError, r'month must be in 1..12'):
+    with self.assertRaisesRegex(ValueError, r'month must be in 1..12'):
       wrong_time_string = time_now_string[:5] + '13' + time_now_string[7:]
       json_utils.FastStringParseDatetime(wrong_time_string)
 

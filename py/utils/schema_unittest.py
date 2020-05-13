@@ -6,8 +6,6 @@
 import re
 import unittest
 
-from six import assertRaisesRegex
-
 from cros.factory.utils.schema import AnyOf
 from cros.factory.utils.schema import Dict
 from cros.factory.utils.schema import FixedDict
@@ -22,14 +20,14 @@ from cros.factory.utils.schema import Tuple
 class SchemaTest(unittest.TestCase):
 
   def testScalar(self):
-    assertRaisesRegex(
-        self, SchemaException,
+    self.assertRaisesRegex(
+        SchemaException,
         r'element_type .* of Scalar \'foo\' is not a scalar type',
         Scalar, 'foo', list)
     schema = Scalar('foo', int)
     self.assertEqual("Scalar('foo', <class 'int'>)", repr(schema))
-    assertRaisesRegex(
-        self, SchemaException, r'Type mismatch on .*: expected .*, got .*',
+    self.assertRaisesRegex(
+        SchemaException, r'Type mismatch on .*: expected .*, got .*',
         schema.Validate, 'bar')
     self.assertEqual(None, schema.Validate(0))
 
@@ -39,8 +37,8 @@ class SchemaTest(unittest.TestCase):
                      repr(schema))
     self.assertEqual(None, schema.Validate(1))
     self.assertEqual(None, schema.Validate(2))
-    assertRaisesRegex(
-        self, SchemaException, r'Value mismatch on 3: expected one of \[1, 2\]',
+    self.assertRaisesRegex(
+        SchemaException, r'Value mismatch on 3: expected one of \[1, 2\]',
         schema.Validate, 3)
 
   def testRegexpStr(self):
@@ -51,29 +49,29 @@ class SchemaTest(unittest.TestCase):
     self.assertRaises(SchemaException, schema.Validate, 'abbx')
 
   def testDict(self):
-    assertRaisesRegex(
-        self, SchemaException, r'key_type .* of Dict .* is not Scalar', Dict,
+    self.assertRaisesRegex(
+        SchemaException, r'key_type .* of Dict .* is not Scalar', Dict,
         'foo', 'key', Scalar('value', int))
-    assertRaisesRegex(
-        self, SchemaException, r'key_type .* of Dict .* is not Scalar', Dict,
+    self.assertRaisesRegex(
+        SchemaException, r'key_type .* of Dict .* is not Scalar', Dict,
         'foo', AnyOf([Scalar('key1', int), List('key2')], label='bar'),
         Scalar('value', int))
-    assertRaisesRegex(
-        self, SchemaException, r'value_type .* of Dict .* is not Schema object',
+    self.assertRaisesRegex(
+        SchemaException, r'value_type .* of Dict .* is not Schema object',
         Dict, 'foo', Scalar('key', str), 'value')
     schema = Dict('foo', Scalar('key', int), Scalar('value', str))
     self.assertEqual(
         "Dict('foo', key_type=Scalar('key', <class 'int'>), "
         "value_type=Scalar('value', <class 'str'>), size=[0, inf])",
         repr(schema))
-    assertRaisesRegex(
-        self, SchemaException, r'Type mismatch on .*: expected dict, got .*',
+    self.assertRaisesRegex(
+        SchemaException, r'Type mismatch on .*: expected dict, got .*',
         schema.Validate, 'bar')
-    assertRaisesRegex(
-        self, SchemaException, r'Type mismatch on .*: expected .*int.*, got .*',
+    self.assertRaisesRegex(
+        SchemaException, r'Type mismatch on .*: expected .*int.*, got .*',
         schema.Validate, {'0': 'bar'})
-    assertRaisesRegex(
-        self, SchemaException, r'Type mismatch on .*: expected .*str.*, got .*',
+    self.assertRaisesRegex(
+        SchemaException, r'Type mismatch on .*: expected .*str.*, got .*',
         schema.Validate, {0: 1})
     self.assertEqual(None, schema.Validate({0: 'bar'}))
     schema = Dict('foo',
@@ -84,11 +82,11 @@ class SchemaTest(unittest.TestCase):
     self.assertEqual(None, schema.Validate({'foo': 'bar'}))
 
   def testFixedDict(self):
-    assertRaisesRegex(
-        self, SchemaException, r'items of FixedDict .* should be a dict',
+    self.assertRaisesRegex(
+        SchemaException, r'items of FixedDict .* should be a dict',
         FixedDict, 'foo', 'items', 'optional_items')
-    assertRaisesRegex(
-        self, SchemaException,
+    self.assertRaisesRegex(
+        SchemaException,
         r'optional_items of FixedDict .* should be a dict', FixedDict, 'foo',
         {'items': 0}, 'optional_items')
     schema = FixedDict('foo',
@@ -99,21 +97,21 @@ class SchemaTest(unittest.TestCase):
                      "optional_items={'optional_item': "
                      "Scalar('buz', <class 'str'>)})",
                      repr(schema))
-    assertRaisesRegex(
-        self, SchemaException, r'Type mismatch on .*: expected dict, got .*',
+    self.assertRaisesRegex(
+        SchemaException, r'Type mismatch on .*: expected dict, got .*',
         schema.Validate, 'foo')
-    assertRaisesRegex(
-        self, SchemaException,
+    self.assertRaisesRegex(
+        SchemaException,
         r'Required item .* does not exist in FixedDict .*', schema.Validate,
         {'optional_item': 'buz'})
-    assertRaisesRegex(
-        self, SchemaException, r'Type mismatch on .*: expected .*, got .*',
+    self.assertRaisesRegex(
+        SchemaException, r'Type mismatch on .*: expected .*, got .*',
         schema.Validate, {'required_item': 'buz'})
-    assertRaisesRegex(
-        self, SchemaException, r'Keys .* are undefined in FixedDict .*',
+    self.assertRaisesRegex(
+        SchemaException, r'Keys .* are undefined in FixedDict .*',
         schema.Validate, {'required_item': 0, 'unknown_item': 'buz'})
-    assertRaisesRegex(
-        self, SchemaException, r'Type mismatch on .*: expected .*, got .*',
+    self.assertRaisesRegex(
+        SchemaException, r'Type mismatch on .*: expected .*, got .*',
         schema.Validate, {'required_item': 0, 'optional_item': 0})
     self.assertEqual(None, schema.Validate(
         {'required_item': 0, 'optional_item': 'foo'}))
@@ -129,60 +127,60 @@ class SchemaTest(unittest.TestCase):
                       {'optional_item': 'foo', 'extra_key': 'extra_val'})
 
   def testList(self):
-    assertRaisesRegex(
-        self, SchemaException,
+    self.assertRaisesRegex(
+        SchemaException,
         r'element_type .* of List .* is not a Schema object', List, 'foo',
         {'foo': 'bar'})
     schema = List('foo', Scalar('buz', int), min_length=1)
     self.assertEqual("List('foo', Scalar('buz', <class 'int'>), [1, inf])",
                      repr(schema))
-    assertRaisesRegex(
-        self, SchemaException, r'Type mismatch on .*: expected list, got .*',
+    self.assertRaisesRegex(
+        SchemaException, r'Type mismatch on .*: expected list, got .*',
         schema.Validate, 'bar')
-    assertRaisesRegex(
-        self, SchemaException,
+    self.assertRaisesRegex(
+        SchemaException,
         r'Type mismatch on .*: expected .*int.*, got .*str.*', schema.Validate,
         [0, 1, 'foo'])
-    assertRaisesRegex(
-        self, SchemaException, r'Length mismatch.*', schema.Validate, [])
+    self.assertRaisesRegex(
+        SchemaException, r'Length mismatch.*', schema.Validate, [])
     self.assertEqual(None, schema.Validate([0, 1, 2]))
 
   def testTuple(self):
-    assertRaisesRegex(
-        self, SchemaException,
+    self.assertRaisesRegex(
+        SchemaException,
         r'element_types .* of Tuple .* is not a tuple or list', Tuple, 'foo',
         'foo')
     schema = Tuple('foo', (Scalar('bar', int), Scalar('buz', str)))
     self.assertEqual("Tuple('foo', (Scalar('bar', <class 'int'>), "
                      "Scalar('buz', <class 'str'>)))",
                      repr(schema))
-    assertRaisesRegex(
-        self, SchemaException, r'Type mismatch on .*: expected tuple, got .*',
+    self.assertRaisesRegex(
+        SchemaException, r'Type mismatch on .*: expected tuple, got .*',
         schema.Validate, 'bar')
-    assertRaisesRegex(
-        self, SchemaException,
+    self.assertRaisesRegex(
+        SchemaException,
         r'Number of elements in tuple .* does not match that '
         'defined in Tuple schema .*', schema.Validate, (0,))
-    assertRaisesRegex(
-        self, SchemaException, r'Type mismatch on .*: expected .*, got .*',
+    self.assertRaisesRegex(
+        SchemaException, r'Type mismatch on .*: expected .*, got .*',
         schema.Validate, ('0', 'foo'))
     self.assertEqual(None, schema.Validate((0, 'foo')))
 
   def testAnyOf(self):
-    assertRaisesRegex(
-        self, SchemaException, r'types in AnyOf.* should be a list of Schemas',
+    self.assertRaisesRegex(
+        SchemaException, r'types in AnyOf.* should be a list of Schemas',
         AnyOf, Scalar('bar', int))
 
-    assertRaisesRegex(
-        self, SchemaException, r'types in AnyOf.* should be a list of Schemas',
+    self.assertRaisesRegex(
+        SchemaException, r'types in AnyOf.* should be a list of Schemas',
         AnyOf, [Scalar('bar', int), 'not a Schema'])
 
     schema = AnyOf([Scalar('bar', str), Scalar('buz', int)])
     self.assertEqual("AnyOf([Scalar('bar', <class 'str'>), "
                      "Scalar('buz', <class 'int'>)])",
                      repr(schema))
-    assertRaisesRegex(
-        self, SchemaException, r'.* does not match any type in .*',
+    self.assertRaisesRegex(
+        SchemaException, r'.* does not match any type in .*',
         schema.Validate, {'a': 0})
     self.assertEqual(None, schema.Validate('foo'))
     self.assertEqual(None, schema.Validate(0))
@@ -194,23 +192,23 @@ class SchemaTest(unittest.TestCase):
                      repr(schema_label))
 
   def testOptional(self):
-    assertRaisesRegex(
-        self, SchemaException,
+    self.assertRaisesRegex(
+        SchemaException,
         r'types in Optional.* should be a Schema or a list of Schemas',
         Optional, 'not a Schema')
 
     schema1 = Optional(Scalar('bar', str))
     self.assertEqual("Optional([Scalar('bar', <class 'str'>)])", repr(schema1))
-    assertRaisesRegex(
-        self, SchemaException,
+    self.assertRaisesRegex(
+        SchemaException,
         r'.* is not None and does not match any type in .*', schema1.Validate,
         {'a': 0})
     self.assertEqual(None, schema1.Validate(None))
     self.assertEqual(None, schema1.Validate('foo'))
 
     schema2 = Optional([Scalar('bar', str), Scalar('buz', int)])
-    assertRaisesRegex(
-        self, SchemaException,
+    self.assertRaisesRegex(
+        SchemaException,
         r'.* is not None and does not match any type in .*', schema2.Validate,
         {'a': 0})
     self.assertEqual(None, schema2.Validate(None))
