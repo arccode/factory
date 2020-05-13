@@ -9,7 +9,6 @@ import os
 import unittest
 
 import mock
-from six import assertCountEqual
 
 from cros.factory.goofy import goofy
 from cros.factory.goofy import goofy_server
@@ -39,12 +38,10 @@ class PluginControllerTest(unittest.TestCase):
 
   def testInit(self):
     controller = self.CreateController()
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         list(controller._plugins),
         [self.BASE_PLUGIN_MODULE])
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         controller._frontend_configs,
         [{'url': '/plugin/mock_plugin_mock_plugin/mock_plugin.html',
           'location': 'testlist'}])
@@ -56,8 +53,7 @@ class PluginControllerTest(unittest.TestCase):
   def testInitError(self):
     self._config['plugins']['not_exist_plugin.NotExistPlugin'] = {}
     controller = self.CreateController()
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         list(controller._plugins),
         [self.BASE_PLUGIN_MODULE])
 

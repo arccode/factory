@@ -11,7 +11,6 @@ import urllib.error
 import urllib.request
 
 from jsonrpclib import jsonrpc
-from six import assertCountEqual
 
 from cros.factory.goofy import goofy_server
 from cros.factory.utils import file_utils
@@ -180,8 +179,7 @@ class GoofyServerTest(unittest.TestCase):
   def testGoofyServerRPC(self):
     proxy = jsonrpc.ServerProxy(
         'http://%s:%d/' % (net_utils.LOCALHOST, self.port))
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         ['URLForData',
          'URLForFile',
          'RegisterPath',

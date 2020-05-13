@@ -10,7 +10,6 @@ import threading
 import unittest
 
 import mock
-from six import assertCountEqual
 
 from cros.factory.goofy import goofy_server
 from cros.factory.test.pytests import factory_state
@@ -80,14 +79,12 @@ class FactoryStateUnittest(unittest.TestCase):
     self.assertEqual(
         self.station_state.data_shelf[state.KEY_DEVICE_DATA]['foo'].Get(),
         'device')
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         self.device_state.GetTestPaths(),
         ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c',
          'test:b', 'test:b.a', 'test:b.b', 'test:b.c'])
     # Test states for 'b', 'b.*' are copied from DUT.
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         self.station_state.GetTestPaths(),
         ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c',
          'test:b', 'test:b.a', 'test:b.b', 'test:b.c'])
@@ -145,12 +142,10 @@ class FactoryStateUnittest(unittest.TestCase):
     self.assertEqual(
         self.station_state.data_shelf[state.KEY_DEVICE_DATA]['foo'].Get(),
         'device')
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         self.device_state.GetTestPaths(),
         ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c'])
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         self.station_state.GetTestPaths(),
         ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c'])
     self.assertEqual('ACTIVE',
@@ -202,13 +197,11 @@ class FactoryStateUnittest(unittest.TestCase):
     self.assertEqual(
         self.device_state.data_shelf[state.KEY_DEVICE_DATA]['foo'].Get(),
         'station')
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         self.device_state.GetTestPaths(),
         ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c',
          'test:b', 'test:b.a', 'test:b.b', 'test:b.c'])
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         self.station_state.GetTestPaths(),
         ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c'])
     self.assertEqual('PASSED',
@@ -268,13 +261,11 @@ class FactoryStateUnittest(unittest.TestCase):
         self.device_state.data_shelf[state.KEY_DEVICE_DATA]['foo'].Get(),
         'station')
     # Test states Should not change.
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         self.device_state.GetTestPaths(),
         ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c',
          'test:b', 'test:b.a', 'test:b.b', 'test:b.c'])
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         self.station_state.GetTestPaths(),
         ['test:', 'test:a', 'test:a.a', 'test:a.b', 'test:a.c'])
     self.assertEqual('PASSED',

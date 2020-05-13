@@ -6,7 +6,6 @@
 import unittest
 
 import mock
-from six import assertCountEqual
 
 from cros.factory.probe.functions import camera_cros
 
@@ -24,7 +23,7 @@ class CameraCrosTest(unittest.TestCase):
     results = func()
     expected = [{'name': 'xy12345 1-1111', 'vendor': '11'},
                 {'name': 'ab67890 2-2222', 'vendor': '22'}]
-    assertCountEqual(self, results, expected)
+    self.assertCountEqual(results, expected)
 
   @mock.patch('cros.factory.utils.process_utils.CheckOutput',
               return_value='            Name | Vendor ID\n')

@@ -14,7 +14,6 @@ import textwrap
 import unittest
 
 import mock
-from six import assertCountEqual
 
 from cros.factory.device import device_utils
 from cros.factory.device import power
@@ -226,8 +225,7 @@ class ECToolPowerInfoTest(unittest.TestCase):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_EC_BATTERY_READ)
     # pylint: disable=protected-access
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         ['0x03', 'AC_PRESENT', 'BATT_PRESENT', 'CHARGING'],
         self.power._GetECToolBatteryFlags())
 

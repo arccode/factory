@@ -12,7 +12,6 @@ import tempfile
 import unittest
 
 import mock
-from six import assertCountEqual
 from six import iteritems
 
 from cros.factory.test import device_data
@@ -120,16 +119,14 @@ class TestListLoaderTest(unittest.TestCase):
     self.assertEqual(dict, type(resolved_test_args['f']))
 
   def testListTestListIDs(self):
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         ['a', 'b', 'base', 'locals', 'override_args', 'flatten_group',
          'skipped_waived_tests', 'invalid'],
         self.loader.FindTestLists())
 
   def testBuildAllTestLists(self):
     test_lists, unused_error = self.manager.BuildAllTestLists()
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         ['a', 'b', 'locals', 'override_args', 'flatten_group',
          'skipped_waived_tests'],
         test_lists)

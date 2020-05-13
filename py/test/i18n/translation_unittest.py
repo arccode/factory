@@ -6,8 +6,6 @@
 
 import unittest
 
-from six import assertCountEqual
-
 from cros.factory.test.i18n import translation
 from cros.factory.test.i18n import unittest_test_case
 
@@ -72,8 +70,7 @@ class TranslationTest(unittest_test_case.I18nTestCase):
                      }))
 
   def testGetAllTranslations(self):
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         [{'en-US': 'text 1', 'zh-CN': 'text-1'},
          {'en-US': 'text 2', 'zh-CN': 'text-2'},
          {

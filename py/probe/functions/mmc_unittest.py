@@ -7,7 +7,6 @@ import os
 import tempfile
 import unittest
 
-from six import assertCountEqual
 from six import iteritems
 
 from cros.factory.probe.functions import mmc
@@ -49,10 +48,10 @@ class MMCFunctionTest(unittest.TestCase):
     self._CreateMMCDevice('mmc3', '/sys/devices/mmc3', values3)
 
     func = mmc.MMCFunction()
-    assertCountEqual(self, func(), self._AddExtraFields([values1, values2]))
+    self.assertCountEqual(func(), self._AddExtraFields([values1, values2]))
 
     func = mmc.MMCFunction(dir_path=self.my_root + '/sys/devices/mmc1')
-    assertCountEqual(self, func(), self._AddExtraFields([values1]))
+    self.assertCountEqual(func(), self._AddExtraFields([values1]))
 
   def _AddExtraFields(self, values):
     for value in values:

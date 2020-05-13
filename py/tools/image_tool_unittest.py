@@ -19,7 +19,6 @@ import time
 import unittest
 
 import mock
-from six import assertCountEqual
 
 from cros.factory.tools import image_tool
 from cros.factory.utils import process_utils
@@ -223,8 +222,7 @@ class ImageToolTest(unittest.TestCase):
     contents = process_utils.CheckOutput('tar -xvf %s' % bundle_name,
                                          shell=True)
     contents = [line.split()[-1] for line in contents.splitlines()]
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         contents,
         ['./', './README.md', './factory_shim/', './factory_shim/image.bin',
          './release_image/', './release_image/image.bin', './test_image/',

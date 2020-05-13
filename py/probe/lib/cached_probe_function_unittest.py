@@ -9,7 +9,6 @@ import tempfile
 import unittest
 
 import mock
-from six import assertCountEqual
 
 from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils import file_utils
@@ -143,8 +142,7 @@ class GlobPathCachedProbeFunctionTest(unittest.TestCase):
     func = self.Function()
 
     result = func()
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         result,
         self._GenerateExpectedProbedResults(['dev1', 'dev2', 'dev6']))
 

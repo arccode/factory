@@ -7,7 +7,6 @@ import os
 import tempfile
 import unittest
 
-from six import assertCountEqual
 from six import iteritems
 
 from cros.factory.probe.functions import pci
@@ -51,10 +50,10 @@ class PCIFunctionTest(unittest.TestCase):
     self._CreatePCIDevice('dev3', '/sys/devices/pci1/xxxx', values3)
 
     func = pci.PCIFunction()
-    assertCountEqual(self, func(), self._AddExtraFields([values1, values2]))
+    self.assertCountEqual(func(), self._AddExtraFields([values1, values2]))
 
     func = pci.PCIFunction(dir_path=self.my_root + '/sys/devices/pci1/xxyy')
-    assertCountEqual(self, func(), self._AddExtraFields([values1]))
+    self.assertCountEqual(func(), self._AddExtraFields([values1]))
 
   def _AddExtraFields(self, values):
     for value in values:

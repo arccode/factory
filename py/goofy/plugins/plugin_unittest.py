@@ -8,7 +8,6 @@
 import unittest
 
 import mock
-from six import assertCountEqual
 
 from cros.factory.goofy import goofy
 from cros.factory.goofy.plugins import plugin
@@ -123,7 +122,7 @@ class PluginTest(unittest.TestCase):
 
     expected_value = [[1, 2], [3, 4], [3, 2]]
     for idx, rpc_instance in enumerate(rpc_instances):
-      assertCountEqual(self, list(rpc_instance.__dict__), ['A', 'B'])
+      self.assertCountEqual(list(rpc_instance.__dict__), ['A', 'B'])
       self.assertEqual(rpc_instance.A(), expected_value[idx][0])
       self.assertEqual(rpc_instance.B(), expected_value[idx][1])
 

@@ -7,7 +7,6 @@ import os
 import tempfile
 import unittest
 
-from six import assertCountEqual
 from six import iteritems
 
 from cros.factory.probe.functions import touchscreen_i2c
@@ -47,8 +46,7 @@ class I2cTouchscreenFunctionTest(unittest.TestCase):
     func = touchscreen_i2c.I2cTouchscreenFunction()
     device_path = os.path.join(self.my_root,
                                'sys', 'bus', 'i2c', 'devices', 'dev1')
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         func(),
         [dict(values1, device_path=device_path, vendor='04f3', product='1234')])
 

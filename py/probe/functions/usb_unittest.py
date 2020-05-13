@@ -7,7 +7,6 @@ import os
 import tempfile
 import unittest
 
-from six import assertCountEqual
 from six import iteritems
 
 from cros.factory.probe.functions import usb
@@ -58,16 +57,15 @@ class USBFunctionTest(unittest.TestCase):
     self._CreateUSBDevice('usb1', '/sys/devices/usb1', values5)
 
     func = usb.USBFunction()
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         func(),
         self._AddExtraFields([values1, values2, values5]))
 
     func = usb.USBFunction(dir_path=self.my_root + '/sys/bus/usb/devices/1-1')
-    assertCountEqual(self, func(), self._AddExtraFields([values1]))
+    self.assertCountEqual(func(), self._AddExtraFields([values1]))
 
     func = usb.USBFunction(dir_path=self.my_root + '/sys/devices/usb3/1-1.2')
-    assertCountEqual(self, func(), self._AddExtraFields([values2]))
+    self.assertCountEqual(func(), self._AddExtraFields([values2]))
 
   def _AddExtraFields(self, values):
     for value in values:

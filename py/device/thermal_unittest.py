@@ -14,7 +14,6 @@ import os.path
 import unittest
 
 import mock
-from six import assertCountEqual
 from six import iteritems
 
 from cros.factory.device import device_types
@@ -233,8 +232,7 @@ class ThermalTest(unittest.TestCase):
         'Package 0', '37000', '38000', '34000', '104000']
 
     self.assertEqual(self.thermal.GetMainSensorName(), 'coretemp.0 Package 0')
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         self.thermal.GetAllSensorNames(),
         ['coretemp.0 Package 0', 'ectool ECInternal'])
     self.board.ReadFile.assert_called_once_with(
@@ -252,8 +250,7 @@ class ThermalTest(unittest.TestCase):
 
     self.assertEqual(
         self.thermal.GetTemperature('ectool ECInternal'), 59)
-    assertCountEqual(
-        self,
+    self.assertCountEqual(
         self.thermal.GetAllTemperatures(),
         {'coretemp.0 Package 0': 34,
          'ectool ECInternal': 58})

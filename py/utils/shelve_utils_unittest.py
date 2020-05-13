@@ -11,8 +11,6 @@ import shutil
 import tempfile
 import unittest
 
-from six import assertCountEqual
-
 from cros.factory.utils import shelve_utils
 
 
@@ -119,11 +117,11 @@ class DictShelveViewTest(unittest.TestCase):
     self.shelf_view.SetValue('a', 0)
     self.shelf_view.SetValue('a.b', 1)
     self.shelf_view.SetValue('a.b.c', 2)
-    assertCountEqual(self, ['a.b.c'], self.shelf_view.GetKeys())
+    self.assertCountEqual(['a.b.c'], self.shelf_view.GetKeys())
 
   def testGetKeys(self):
     self.shelf_view.SetValue('a.b', {'c': 1, 'd': 2})
-    assertCountEqual(self, ['a.b.c', 'a.b.d'], self.shelf_view.GetKeys())
+    self.assertCountEqual(['a.b.c', 'a.b.d'], self.shelf_view.GetKeys())
 
   def testDeleteKeys(self):
     # delete everything
@@ -151,11 +149,11 @@ class DictShelveViewTest(unittest.TestCase):
     self.shelf_view.SetValue('a.b', 1)
     with self.assertRaises(KeyError):
       self.shelf_view.DeleteKeys(['a', 'a.b.c'])
-    assertCountEqual(self, [], self.shelf_view.GetKeys())
+    self.assertCountEqual([], self.shelf_view.GetKeys())
 
   def testGetChildren(self):
     self.shelf_view.SetValue('', {'a': 1, 'b': {'c': 2, 'd': 3}})
-    assertCountEqual(self, self.shelf_view.GetChildren(''), ['a', 'b'])
+    self.assertCountEqual(self.shelf_view.GetChildren(''), ['a', 'b'])
 
 
 class DictKeyUnittest(unittest.TestCase):

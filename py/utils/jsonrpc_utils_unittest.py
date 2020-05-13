@@ -17,7 +17,6 @@ import unittest
 import jsonrpclib
 from jsonrpclib import jsonrpc
 from jsonrpclib import SimpleJSONRPCServer
-from six import assertCountEqual
 
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import net_utils
@@ -135,8 +134,7 @@ class MultiPathJSONRPCServerTest(unittest.TestCase):
 
   def testServer(self):
     def _CheckListMethods(methods, proxy):
-      assertCountEqual(
-          self,
+      self.assertCountEqual(
           methods + [u'system.listMethods',
                      u'system.methodHelp',
                      u'system.methodSignature'],
