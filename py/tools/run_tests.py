@@ -23,7 +23,6 @@ import threading
 import time
 
 from six import iteritems
-from six import itervalues
 
 from cros.factory.utils.debug_utils import SetupLogging
 from cros.factory.utils import file_utils
@@ -396,7 +395,7 @@ class RunTests(object):
     if not self._running_proc:
       return
     status = '-> %d tests running' % len(self._running_proc)
-    running_tests = ', '.join([p[1] for p in itervalues(self._running_proc)])
+    running_tests = ', '.join([p[1] for p in self._running_proc.values()])
     if len(status) + 3 + len(running_tests) > 80:
       running_tests = running_tests[:80 - len(status) - 6] + '...'
     sys.stderr.write('%s [%s]' %

@@ -7,7 +7,6 @@ import logging
 import os
 
 from six import iteritems
-from six import itervalues
 
 from cros.factory.probe import function
 from cros.factory.probe.lib import probe_function
@@ -41,7 +40,7 @@ class CachedProbeFunction(probe_function.ProbeFunction):
       return function.NOTHING
 
     if not category:
-      return sum(itervalues(self._CACHED_DEVICES), [])
+      return sum(self._CACHED_DEVICES.values(), [])
     return self._CACHED_DEVICES.get(category, function.NOTHING)
 
   @classmethod

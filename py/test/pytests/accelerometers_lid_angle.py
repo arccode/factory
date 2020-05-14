@@ -28,7 +28,6 @@ import math
 
 import numpy as np
 from six import iteritems
-from six import itervalues
 
 from cros.factory.device import accelerometer
 from cros.factory.device import device_utils
@@ -95,7 +94,7 @@ class AccelerometersLidAngleTest(test_case.TestCase):
     # The calulation requires hinge in a horizontal position.
     min_value = -self.args.spec_offset[0]
     max_value = self.args.spec_offset[0]
-    for data in itervalues(cal_data):
+    for data in cal_data.values():
       if not min_value <= data['in_accel_x'] <= max_value:
         self.FailTask('The hinge is not in a horizontal plane.')
 

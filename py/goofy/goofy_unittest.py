@@ -22,7 +22,6 @@ import traceback
 import unittest
 
 import mock
-from six import itervalues
 from ws4py.client import WebSocketBaseClient
 
 from cros.factory.device import info as device_info
@@ -193,7 +192,7 @@ class GoofyTest(unittest.TestCase):
     self.assertTrue(self.goofy.RunOnce())
     self.assertEqual(
         [] if does_not_start else [test_id],
-        [invoc.test.path for invoc in itervalues(self.goofy.invocations)])
+        [invoc.test.path for invoc in self.goofy.invocations.values()])
     self._Wait()
     test_state = self.state.GetTestState(test_id)
     self.assertEqual(passed, test_state.status)
@@ -529,7 +528,7 @@ class PyTestTest(GoofyUITest):
   def runTest(self):
     self.goofy.RunOnce()
     self.assertEqual(
-        ['a'], [invoc.test.id for invoc in itervalues(self.goofy.invocations)])
+        ['a'], [invoc.test.id for invoc in self.goofy.invocations.values()])
     self.goofy.Wait()
     self.assertEqual(
         TestState.PASSED,
@@ -537,7 +536,7 @@ class PyTestTest(GoofyUITest):
 
     self.goofy.RunOnce()
     self.assertEqual(
-        ['b'], [invoc.test.id for invoc in itervalues(self.goofy.invocations)])
+        ['b'], [invoc.test.id for invoc in self.goofy.invocations.values()])
     self.goofy.Wait()
     failed_state = state.GetInstance().GetTestState(path='test:b')
     self.assertEqual(TestState.FAILED, failed_state.status)
@@ -654,7 +653,7 @@ class ParallelTest(GoofyUITest):
     self.goofy.RunOnce()
     self.assertEqual(
         {'a', 'b', 'c'},
-        {invoc.test.id for invoc in itervalues(self.goofy.invocations)})
+        {invoc.test.id for invoc in self.goofy.invocations.values()})
     self.goofy.Wait()
 
     state_instance = state.GetInstance()

@@ -42,7 +42,6 @@ import logging
 import re
 
 from six import iteritems
-from six import itervalues
 
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.rule import Rule
@@ -397,7 +396,7 @@ class Database(object):
 
     # Each encoded field should be well defined.
     for encoded_field_name in self.encoded_fields:
-      for comps in itervalues(self.GetEncodedField(encoded_field_name)):
+      for comps in self.GetEncodedField(encoded_field_name).values():
         for comp_cls, comp_names in iteritems(comps):
           missing_comp_names = (
               set(comp_names) - set(self.GetComponents(comp_cls).keys()))
@@ -1135,7 +1134,7 @@ class Components(object):
                                  (comp_cls, comp_name))
 
     if values is None and any(
-        c.values is None for c in itervalues(self.GetComponents(comp_cls))):
+        c.values is None for c in self.GetComponents(comp_cls).values()):
       logging.warning('Found more than one default component of %r, '
                       'mark can_encode=False.', comp_cls)
       self._can_encode = False

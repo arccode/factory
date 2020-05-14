@@ -8,7 +8,6 @@ import copy
 import inspect
 
 from six import iteritems
-from six import itervalues
 
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.utils import pytest_utils
@@ -156,7 +155,7 @@ class Checker(object):
     if not isinstance(args, dict):
       return
 
-    for value in itervalues(args):
+    for value in args.values():
       if isinstance(value, str):
         if value.startswith(_EVALUATE_PREFIX):
           self.AssertValidEval(value[len(_EVALUATE_PREFIX):])

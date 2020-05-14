@@ -3,7 +3,6 @@
 # found in the LICENSE file.
 
 from six import iteritems
-from six import itervalues
 
 from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
@@ -146,7 +145,7 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
         matched_components[comp_cls].append(default_comp)
 
     if (not allow_mismatched_components and
-        any(itervalues(mismatched_components))):
+        any(mismatched_components.values())):
       raise common.HWIDException(
           'Probed components %r are not matched with any component records in '
           'the database.' % mismatched_components)

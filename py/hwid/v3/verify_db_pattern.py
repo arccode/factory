@@ -22,8 +22,6 @@ import subprocess
 import sys
 import unittest
 
-from six import itervalues
-
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import hwid_utils
@@ -75,7 +73,7 @@ class HWIDDBsPatternTest(unittest.TestCase):
     else:
       # If PRESUBMIT_FILES is not found, defaults to test all v3 projects in
       # projects.yaml.
-      files = [b['path'] for b in itervalues(projects_info)
+      files = [b['path'] for b in projects_info.values()
                if b['version'] == 3]
 
     for f in files:

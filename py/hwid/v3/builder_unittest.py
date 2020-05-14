@@ -7,7 +7,6 @@ import os
 import unittest
 
 import mock
-from six import itervalues
 
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import common
@@ -181,8 +180,8 @@ class DatabaseBuilderTest(unittest.TestCase):
                             {'name': 'special', 'values': {'key4': 'value5'}}]},
           {}, {}, image_name='NEW_IMAGE')
       self.assertEqual(
-          sorted([attr.values for attr in itervalues(db.database.GetComponents(
-              'comp_cls_100'))], key=lambda d: sorted(d.items())),
+          sorted([attr.values for attr in db.database.GetComponents(
+              'comp_cls_100').values()], key=lambda d: sorted(d.items())),
           sorted([{'key1': 'value1'}, {'key4': 'value4'}, {'key4': 'value5'}],
                  key=lambda d: sorted(d.items())))
 
@@ -202,8 +201,8 @@ class DatabaseBuilderTest(unittest.TestCase):
                         {'name': 'generic', 'values': {'value': '3'}}]}, {}, {},
         image_name='NEW_IMAGE')
     self.assertEqual(
-        sorted([attr.values for attr in itervalues(db.database.GetComponents(
-            'comp_cls_1'))], key=lambda d: sorted(d.items())),
+        sorted([attr.values for attr in db.database.GetComponents(
+            'comp_cls_1').values()], key=lambda d: sorted(d.items())),
         sorted([{'value': '1'}, {'value': '2'}, {'value': '3'}],
                key=lambda d: sorted(d.items())))
 
