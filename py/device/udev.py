@@ -5,8 +5,6 @@
 import re
 import threading
 
-from six import viewkeys
-
 from cros.factory.device import device_types
 from cros.factory.utils import process_utils
 from cros.factory.utils.type_utils import Enum
@@ -268,10 +266,10 @@ class PollingUdevMonitor(UdevMonitorBase):
       return
 
     curr_devices = self._Scan()
-    for sys_path in viewkeys(curr_devices) - viewkeys(self._devices):
+    for sys_path in set(curr_devices.keys()) - set(self._devices.keys()):
       self.NotifyEvent(self.Event.INSERT, sys_path, curr_devices[sys_path])
 
-    for sys_path in viewkeys(self._devices) - viewkeys(curr_devices):
+    for sys_path in set(self._devices.keys()) - set(curr_devices.keys()):
       self.NotifyEvent(self.Event.REMOVE, sys_path, self._devices[sys_path])
 
     self._devices = curr_devices
