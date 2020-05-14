@@ -32,13 +32,12 @@ and suspend to idle by writing freeze to ``/sys/power/state``::
   }
 """
 
+from io import StringIO
 import logging
 import os
 import re
 import subprocess
 import time
-
-import six
 
 from cros.factory.device import device_utils
 from cros.factory.test import session
@@ -103,7 +102,7 @@ class SuspendStressTest(test_case.TestCase):
     logging.info('command: %r', command)
     testlog.LogParam('command', command)
 
-    output = six.StringIO()
+    output = StringIO()
     process = self.dut.Popen(
         command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     thread = process_utils.StartDaemonThread(
