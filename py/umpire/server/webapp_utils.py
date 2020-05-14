@@ -6,8 +6,6 @@
 
 import http.cookies
 
-from six import iteritems
-
 from cros.factory.umpire import common
 
 
@@ -43,5 +41,5 @@ def ParseDUTHeader(header):
   if invalid_keys:
     raise ValueError('Invalid key(s): %r' % invalid_keys)
 
-  return {k: v.value for k, v in iteritems(dut_info)
+  return {k: v.value for k, v in dut_info.items()
           if k not in common.LEGACY_DUT_INFO_KEYS}

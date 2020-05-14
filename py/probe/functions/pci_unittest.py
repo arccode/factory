@@ -7,8 +7,6 @@ import os
 import tempfile
 import unittest
 
-from six import iteritems
-
 from cros.factory.probe.functions import pci
 from cros.factory.utils import file_utils
 
@@ -27,7 +25,7 @@ class PCIFunctionTest(unittest.TestCase):
     real_path = self.my_root + real_path
 
     file_utils.TryMakeDirs(real_path)
-    for key, value in iteritems(values):
+    for key, value in values.items():
       if key == 'revision_id':
         open(os.path.join(real_path, 'config'), 'wb').write(
             b'x' * 8 + bytes([int(value, 16)]))

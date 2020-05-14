@@ -49,8 +49,6 @@ import os
 import re
 import time
 
-from six import iteritems
-
 from cros.factory.device import device_utils
 from cros.factory.test import event as test_event
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
@@ -233,7 +231,7 @@ class ShutdownTest(test_case.TestCase):
     def LogAndEndTest(status, error_msg, **kw):
       event_log.Log('rebooted', status=status, error_msg=error_msg, **kw)
       testlog.LogParam('status', status)
-      for k, v in iteritems(kw):
+      for k, v in kw.items():
         testlog.LogParam(k, v)
       logging.info('Rebooted: status=%s, %s', status,
                    (('error_msg=%s' % error_msg) if error_msg else None))

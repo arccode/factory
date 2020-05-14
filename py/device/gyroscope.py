@@ -9,8 +9,6 @@ import math
 import os
 import re
 
-from six import iteritems
-
 from cros.factory.device import device_types
 from cros.factory.device import sensor_utils
 
@@ -162,7 +160,7 @@ class GyroscopeController(sensor_utils.BasicSensorController):
     result = {}
 
     try:
-      for key, re_exp in iteritems(re_dict):
+      for key, re_exp in re_dict.items():
         result[key] = re_exp.search(raw_info).group(1)
     except AttributeError as e:
       raise MotionSensorException('Failed to parse key "%s": %s' % (key, e))

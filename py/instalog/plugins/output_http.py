@@ -17,7 +17,6 @@ import os
 import time
 
 import requests
-from six import iteritems
 
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import plugin_base
@@ -184,7 +183,7 @@ class OutputHTTP(plugin_base.OutputPlugin):
     request_body = []
     att_seq = 0
     for event in events:
-      for att_id, att_path in iteritems(event.attachments):
+      for att_id, att_path in event.attachments.items():
         att_newname = '%s_%03d' % (os.path.basename(att_path), att_seq)
         att_seq += 1
         if self._gpg:

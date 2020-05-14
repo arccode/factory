@@ -16,7 +16,6 @@ import sys
 import tempfile
 import time
 
-from six import iteritems
 import yaml
 
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
@@ -311,7 +310,7 @@ class Gooftool(object):
     # TPM device path has been changed in kernel 3.18.
     if not os.path.exists(tpm_root):
       tpm_root = legacy_tpm_root
-    for key, value in iteritems(expected_status):
+    for key, value in expected_status.items():
       if open(os.path.join(tpm_root, key)).read().strip() != value:
         raise Error('TPM is not cleared.')
 
@@ -361,12 +360,12 @@ class Gooftool(object):
       checked = []
       known = required.copy()
       known.update(optional)
-      for k, v in iteritems(data):
+      for k, v in data.items():
         if k in known:
           checked.append(MatchWhole(k, known[k], v))
         else:
           # Try if matches optional_re
-          for rk, rv in iteritems(optional_re):
+          for rk, rv in optional_re.items():
             if MatchWhole(k, rk, k, raise_exception=False):
               checked.append(MatchWhole(k, rv, v))
               break
@@ -735,8 +734,8 @@ class Gooftool(object):
       return any(name for name in known_names if k.startswith(name))
 
     rw_vpd = self._vpd.GetAllData(partition=vpd.VPD_READWRITE_PARTITION_NAME)
-    dot_entries = dict((k, v) for k, v in iteritems(rw_vpd) if '.' in k)
-    entries = dict((k, v) for k, v in iteritems(dot_entries)
+    dot_entries = dict((k, v) for k, v in rw_vpd.items() if '.' in k)
+    entries = dict((k, v) for k, v in dot_entries.items()
                    if _IsFactoryVPD(k))
     unknown_keys = set(dot_entries) - set(entries)
     if unknown_keys:

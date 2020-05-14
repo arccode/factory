@@ -7,8 +7,6 @@ import builtins
 import copy
 import inspect
 
-from six import iteritems
-
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.utils import pytest_utils
 from cros.factory.utils import arg_utils
@@ -255,7 +253,7 @@ class Checker(object):
 
     resolved_args = {}
 
-    for key, value in iteritems(test.dargs):
+    for key, value in test.dargs.items():
       try:
         tmp_dict = test_list.ResolveTestArgs(
             {key: value}, locals_=test.locals_,

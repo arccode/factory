@@ -52,8 +52,6 @@ import os
 import sys
 import zipimport
 
-from six import iteritems
-
 from . import file_utils
 
 # To simplify portability issues, validating JSON schema is optional.
@@ -155,7 +153,7 @@ def OverrideConfig(base, overrides, copy_on_write=False):
 
   changed = False
   result = base.copy() if copy_on_write else base
-  for k, v in iteritems(overrides):
+  for k, v in overrides.items():
     if isinstance(v, collections.Mapping):
       v = v.copy()
       if pop_bool(v, _OVERRIDE_DELETE_KEY):
@@ -189,7 +187,7 @@ def GetNamedTuple(mapping):
   """
   if not isinstance(mapping, collections.Mapping):
     return mapping
-  new_mapping = dict((k, GetNamedTuple(v)) for k, v in iteritems(mapping))
+  new_mapping = dict((k, GetNamedTuple(v)) for k, v in mapping.items())
   return collections.namedtuple('Config', new_mapping.keys())(**new_mapping)
 
 

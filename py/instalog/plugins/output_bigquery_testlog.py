@@ -15,8 +15,6 @@ import datetime
 import json
 import math
 
-from six import iteritems
-
 # pylint: disable=import-error, no-name-in-module
 from google.cloud.bigquery.schema import SchemaField
 
@@ -151,13 +149,13 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
     # station.status
     row['filePath'] = event.get('filePath')  # also in station.message
     row['serialNumbers'] = []
-    for key, value in iteritems(event.get('serialNumbers', {})):
+    for key, value in event.get('serialNumbers', {}).items():
       row['serialNumbers'].append({})
       row['serialNumbers'][-1]['key'] = key
       row['serialNumbers'][-1]['value'] = value
 
     row['parameters'] = []
-    for key, dct in iteritems(event.get('parameters', {})):
+    for key, dct in event.get('parameters', {}).items():
       dct = dct or {}
       row['parameters'].append({})
       row['parameters'][-1]['key'] = key
@@ -169,7 +167,7 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
 
 
     row['parameters'] = []
-    for key, dct in iteritems(event.get('parameters', {})):
+    for key, dct in event.get('parameters', {}).items():
       row['parameters'].append({})
       row['parameters'][-1]['key'] = key
       row['parameters'][-1]['description'] = dct.get('description')
@@ -222,7 +220,7 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
     row['testType'] = event.get('testType')
 
     row['arguments'] = []
-    for key, dct in iteritems(event.get('arguments', {})):
+    for key, dct in event.get('arguments', {}).items():
       row['arguments'].append({})
       row['arguments'][-1]['key'] = key
       row['arguments'][-1]['description'] = dct.get('description')
@@ -236,7 +234,7 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
     row['operatorId'] = event.get('operatorId')
 
     row['attachments'] = []
-    for key, dct in iteritems(event.get('attachments', {})):
+    for key, dct in event.get('attachments', {}).items():
       row['attachments'].append({})
       row['attachments'][-1]['key'] = key
       row['attachments'][-1]['description'] = dct.get('description')

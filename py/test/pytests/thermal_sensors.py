@@ -42,8 +42,6 @@ To check if the temperature is in range [30, 80], add this in test list::
 import logging
 import unittest
 
-from six import iteritems
-
 from cros.factory.device import device_utils
 from cros.factory.utils.arg_utils import Arg
 
@@ -84,7 +82,7 @@ class BoardTempSensorsTest(unittest.TestCase):
 
     logging.info('Got temperatures: %r', values)
     min_temp, max_temp = self.args.temp_range
-    for name, temperature in iteritems(values):
+    for name, temperature in values.items():
       self.assertTrue(
           min_temp <= temperature <= max_temp,
           'Abnormal temperature reading on sensor %s: %s' % (name, temperature))

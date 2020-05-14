@@ -2,8 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-from six import iteritems
-
 from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.rule import Context
@@ -51,7 +49,7 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
         the mismatched components.
   """
   def _IsValuesMatch(probed_values, comp_values):
-    for key, value in iteritems(comp_values):
+    for key, value in comp_values.items():
       if not isinstance(value, Value):
         value = Value(value)
       if key not in probed_values or not value.Matches(probed_values[key]):
@@ -89,7 +87,7 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
     matched_components = {}
     mismatched_components = {}
 
-    for comp_cls, comps in iteritems(probed_results):
+    for comp_cls, comps in probed_results.items():
       matched_components[comp_cls] = [comp['name'] for comp in comps]
   else:
     if mode == common.OPERATION_MODE.rma:
@@ -100,7 +98,7 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
       component_classes = database.GetComponentClasses()
       # In normal mode, treat unrecognized components as mismatched components.
       mismatched_components = {comp_cls: comps
-                               for comp_cls, comps in iteritems(probed_results)
+                               for comp_cls, comps in probed_results.items()
                                if comp_cls not in component_classes}
 
     # Construct a dict of component classes to list of component names.
@@ -112,8 +110,8 @@ def GenerateBOMFromProbedResults(database, probed_results, device_info, vpd,
       for probed_comp in probed_results.get(comp_cls, []):
         matched_comp_name = []
         matched_comp_score = float('-inf')
-        for comp_name, comp_info in iteritems(database.GetComponents(
-            comp_cls, include_default=False)):
+        for comp_name, comp_info in database.GetComponents(
+            comp_cls, include_default=False).items():
           if comp_info.status == common.COMPONENT_STATUS.duplicate:
             # A component that is 'duplicate' is covered by another component.
             # Therefore, the duplicate one should not be used for encoding.

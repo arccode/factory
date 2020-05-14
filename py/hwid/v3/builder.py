@@ -9,8 +9,6 @@ import math
 import re
 import uuid
 
-from six import iteritems
-
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3 import probe
@@ -316,7 +314,7 @@ class DatabaseBuilder(object):
     """
     def _IsSubset(subset, superset):
       return all([subset.get(key) == value
-                  for key, value in iteritems(superset)])
+                  for key, value in superset.items()])
 
     # Only add the unique component to the database.
     # For example, if the given probed values are
@@ -357,7 +355,7 @@ class DatabaseBuilder(object):
     """
     # Add extra components.
     existed_comp_classes = self.database.GetComponentClasses()
-    for comp_cls, probed_comps in iteritems(probed_results):
+    for comp_cls, probed_comps in probed_results.items():
       if comp_cls not in existed_comp_classes:
         # We only need the probe values here.
         probed_values = [probed_comp['values'] for probed_comp in probed_comps]
@@ -390,7 +388,7 @@ class DatabaseBuilder(object):
         common.OPERATION_MODE.normal, True)
 
     if mismatched_probed_results:
-      for comp_cls, probed_comps in iteritems(mismatched_probed_results):
+      for comp_cls, probed_comps in mismatched_probed_results.items():
         self._AddComponents(
             comp_cls, [probed_comp['values'] for probed_comp in probed_comps])
 
@@ -441,7 +439,7 @@ class DatabaseBuilder(object):
 
       for comps in self.database.GetEncodedField(field_name).values():
         if all(comp_names == bom.components[comp_cls]
-               for comp_cls, comp_names in iteritems(comps)):
+               for comp_cls, comp_names in comps.items()):
           break
 
       else:
@@ -524,7 +522,7 @@ class DatabaseBuilder(object):
         handled_encoded_fields.add(field_name)
 
       # Put the priority components.
-      for comp_cls, bit_length in iteritems(PRIORITY_COMPS):
+      for comp_cls, bit_length in PRIORITY_COMPS.items():
         if comp_cls in handled_comp_classes:
           continue
 

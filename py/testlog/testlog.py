@@ -46,8 +46,6 @@ import tempfile
 import threading
 import time
 
-from six import iteritems
-
 from . import hooks
 from . import testlog_seq
 from . import testlog_utils
@@ -791,7 +789,7 @@ class EventBase(object):
     for cls in mro:
       if cls is object:
         break
-      for field_name, metadata in iteritems(cls.FIELDS):
+      for field_name, metadata in cls.FIELDS.items():
         if metadata[0] and field_name not in self._data:
           missing_fields.append(field_name)
 
@@ -859,7 +857,7 @@ class EventBase(object):
       elif data_type == dict:
         if not data[key]:
           raise testlog_utils.TestlogError('Empty dict is invalid: %r' % key)
-        for sub_key, value in iteritems(data[key]):
+        for sub_key, value in data[key].items():
           self[key] = {'key': sub_key, 'value': value}
       else:
         self[key] = data[key]

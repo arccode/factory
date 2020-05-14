@@ -114,8 +114,6 @@ from __future__ import print_function
 
 import datetime
 
-from six import iteritems
-
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import input_eventlog_file
@@ -175,12 +173,12 @@ class InputEventlogFileVSWR(input_eventlog_file.InputEventlogFile):
     test_run['parameters'] = {}
 
     test_run['series'] = {}
-    for antenna, measurements in iteritems(dct['test']['traces']):
+    for antenna, measurements in dct['test']['traces'].items():
       test_run['series'][antenna] = {}
       test_run['series'][antenna]['keyUnit'] = 'MHz'
       test_run['series'][antenna]['valueUnit'] = 'dB'
       test_run['series'][antenna]['data'] = []
-      for freq, db in iteritems(measurements):
+      for freq, db in measurements.items():
         test_run['series'][antenna]['data'].append({})
         test_run['series'][antenna]['data'][-1]['key'] = freq
         test_run['series'][antenna]['data'][-1]['numericValue'] = db

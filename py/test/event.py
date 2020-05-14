@@ -18,8 +18,6 @@ import threading
 import time
 import traceback
 
-from six import iteritems
-
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import time_utils
@@ -52,7 +50,7 @@ def json_default_repr(obj):
   returned.
   """
   if isinstance(obj, object):
-    return dict([(k, v) for k, v in iteritems(obj.__dict__)
+    return dict([(k, v) for k, v in obj.__dict__.items()
                  if k[0] != '_'])
   return obj
 
@@ -126,7 +124,7 @@ class Event(object):
   def __init__(self, type, **kw):  # pylint: disable=redefined-builtin
     self.type = type
     self.timestamp = time.time()
-    for k, v in iteritems(kw):
+    for k, v in kw.items():
       setattr(self, k, v)
 
   def __repr__(self):

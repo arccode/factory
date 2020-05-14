@@ -7,7 +7,6 @@
 import unittest
 
 import mock
-from six import iteritems
 
 from cros.factory.utils import service_utils
 from cros.factory.utils.service_utils import Status
@@ -58,7 +57,7 @@ class ServiceManagerTest(unittest.TestCase):
         Status.START: 'start',
         Status.STOP: 'stop'}
 
-    for status, cmd in iteritems(commands):
+    for status, cmd in commands.items():
       check_output_mock.reset_mock()
       parse_status_mock.reset_mock()
 
@@ -78,7 +77,7 @@ class ServiceManagerTest(unittest.TestCase):
         Status.START: 'start',
         Status.STOP: 'stop'}
 
-    for status, cmd in iteritems(commands):
+    for status, cmd in commands.items():
       self.dut.CheckOutput.reset_mock()
       parse_status_mock.reset_mock()
 

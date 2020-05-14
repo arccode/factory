@@ -9,8 +9,6 @@
 import os
 import unittest
 
-from six import iteritems
-
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
 
@@ -29,7 +27,7 @@ class _TestCaseBase(unittest.TestCase):
     elif isinstance(a, dict):
       self.assertIsInstance(b, dict)
       self.assertEqual(len(a), len(b))
-      for key, value in iteritems(a):
+      for key, value in a.items():
         self.assertJSONObjEqual(value, b[key])
     else:
       self.assertIs(type(a), type(b))

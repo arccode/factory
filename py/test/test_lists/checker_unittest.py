@@ -5,8 +5,6 @@
 
 import unittest
 
-from six import iteritems
-
 from cros.factory.test.test_lists import checker
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import arg_utils
@@ -84,7 +82,7 @@ class CheckerTest(unittest.TestCase):
     }
 
     resolved_args = self.checker.StaticallyResolveTestArgs(test, test_list)
-    for key, expected_value in iteritems(expected_args):
+    for key, expected_value in expected_args.items():
       if expected_value == checker.UnresolvableException:
         self.assertEqual(resolved_args[key].eval_string, test.dargs[key])
       else:

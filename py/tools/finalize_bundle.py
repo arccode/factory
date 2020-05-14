@@ -21,7 +21,6 @@ import textwrap
 import time
 import urllib.parse
 
-from six import iteritems
 import yaml
 
 from cros.factory.tools import get_version
@@ -721,7 +720,7 @@ class FinalizeBundle(object):
     def _ExtractFirmwareVersions(updater_file, updater_name):
       firmware_versions = _GetFirmwareVersions(updater_file, self.has_firmware)
       return [('%s %s' % (updater_name, firmware_type), version)
-              for firmware_type, version in iteritems(firmware_versions)
+              for firmware_type, version in firmware_versions.items()
               if version is not None]
 
     # Get some vital information

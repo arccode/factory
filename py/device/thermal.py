@@ -15,8 +15,6 @@ import re
 import struct
 import time
 
-from six import iteritems
-
 from cros.factory.device import device_types
 
 
@@ -164,7 +162,7 @@ class CoreTempSensors(ThermalSensorSource):
 
   def GetMainSensorName(self):
     """Returns the sensor name of main (first package) coretemp node."""
-    for name, path in iteritems(self.GetSensors()):
+    for name, path in self.GetSensors().items():
       if 'coretemp.0' in path and path.endswith('temp1_input'):
         return name
     return None
@@ -198,7 +196,7 @@ class ThermalZoneSensors(ThermalSensorSource):
 
   def GetMainSensorName(self):
     """Returns the main thermal zone (zone0) name."""
-    for name, path in iteritems(self.GetSensors()):
+    for name, path in self.GetSensors().items():
       if path == '/sys/class/thermal/thermal_zone0/temp':
         return name
     return None
@@ -252,7 +250,7 @@ class ECToolTemperatureSensors(ThermalSensorSource):
 
     # Remap ID to cached names.
     return dict((name, self._ConvertRawValue(raw_values.get(sensor_id)))
-                for name, sensor_id in iteritems(self.GetSensors()))
+                for name, sensor_id in self.GetSensors().items())
 
   def GetCriticalValue(self, sensor):
     raise NotImplementedError

@@ -10,7 +10,6 @@ This class provides shortcuts to HTTP request and response.
 import logging
 import time
 
-from six import iteritems
 from twisted.web import http
 
 from cros.factory.utils import type_utils
@@ -49,7 +48,7 @@ class WSGISession(type_utils.AttrDict):
       start_response: WSGI start_response object.
     """
     super(WSGISession, self).__init__(environ)
-    for key, value in iteritems(environ):
+    for key, value in environ.items():
       if key.startswith('wsgi.'):
         key = 'wsgi_' + key[5:]
       self[key] = value

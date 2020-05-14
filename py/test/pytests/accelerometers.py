@@ -52,8 +52,6 @@ You can also change the limits of each axis to loose the criteria::
 
 """
 
-from six import iteritems
-
 from cros.factory.device import accelerometer
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
@@ -99,7 +97,7 @@ class AccelerometersTest(test_case.TestCase):
       self.args.limits = DEFAULT_LIMITS
     assert self.args.limits.keys() == {'x', 'y', 'z'}, (
         'Limits should be a dictionary with keys "x", "y" and "z"')
-    for unused_axis, [limit_min, limit_max] in iteritems(self.args.limits):
+    for unused_axis, [limit_min, limit_max] in self.args.limits.items():
       assert limit_min <= limit_max
 
     self.dut = device_utils.CreateDUTInterface()
@@ -127,7 +125,7 @@ class AccelerometersTest(test_case.TestCase):
       self.FailTask('Read raw data failed.')
 
     passed = True
-    for axis, [limit_min, limit_max] in iteritems(self.args.limits):
+    for axis, [limit_min, limit_max] in self.args.limits.items():
       key = 'in_accel_' + axis  # in_accel_(x|y|z)
       passed &= testlog.CheckNumericParam(
           name=key, value=raw_data[key], min=limit_min, max=limit_max)

@@ -50,8 +50,6 @@ For example:
 
 import copy
 
-from six import iteritems
-
 from .type_utils import MakeList
 
 # To simplify portability issues, validating JSON schema is optional.
@@ -233,7 +231,7 @@ class Dict(BaseType):
       raise SchemaException('Size mismatch on %r: expected size <= %r' %
                             (self.label, self.max_size))
 
-    for k, v in iteritems(data):
+    for k, v in data.items():
       self.key_type.Validate(k)
       self.value_type.Validate(v)
 
@@ -305,7 +303,7 @@ class FixedDict(BaseType):
                             (self.label, type(data)))
     data_key_list = list(data)
     # Check that every key-value pair in items exists in data
-    for key, value_schema in iteritems(self.items):
+    for key, value_schema in self.items.items():
       if key not in data:
         raise SchemaException(
             'Required item %r does not exist in FixedDict %r' %
@@ -314,7 +312,7 @@ class FixedDict(BaseType):
       data_key_list.remove(key)
     # Check that all the remaining unmatched key-value pairs matches any
     # definition in items or optional_items.
-    for key, value_schema in iteritems(self.optional_items):
+    for key, value_schema in self.optional_items.items():
       if key not in data:
         continue
       value_schema.Validate(data[key])

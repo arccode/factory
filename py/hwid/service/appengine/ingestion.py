@@ -15,7 +15,6 @@ import traceback
 from google.appengine.api.app_identity import app_identity
 from google.appengine.api import mail
 from google.appengine.api import taskqueue
-from six import iteritems
 import urllib3  # pylint: disable=import-error
 import webapp2  # pylint: disable=import-error
 import yaml
@@ -144,7 +143,7 @@ class RefreshHandler(webapp2.RequestHandler):
 
       if limit_models:
         # only process required models
-        metadata = {k: v for (k, v) in iteritems(metadata) if k in limit_models}
+        metadata = {k: v for (k, v) in metadata.items() if k in limit_models}
       self.hwid_manager.UpdateBoards(metadata, delete_missing=not do_limit)
 
     except filesystem_adapter.FileSystemAdaptorException:
@@ -260,7 +259,7 @@ class RefreshHandler(webapp2.RequestHandler):
     reviewers = self.hwid_manager.GetCLReviewers()
     ccs = self.hwid_manager.GetCLCCs()
     new_git_files = []
-    for filepath, filecontent in iteritems(new_files):
+    for filepath, filecontent in new_files.items():
       new_git_files.append((
           os.path.join(prefix, filepath), GIT_NORMAL_FILE_MODE, filecontent))
 
@@ -349,7 +348,7 @@ class RefreshHandler(webapp2.RequestHandler):
 
     db_lists = self.GetPayloadDBLists()
 
-    for board, db_list in iteritems(db_lists):
+    for board, db_list in db_lists.items():
       result = vpg_module.GenerateVerificationPayload(db_list)
       if result.error_msgs:
         logging.error('Generate Payload fail: %s', ' '.join(result.error_msgs))
@@ -408,5 +407,5 @@ class RefreshHandler(webapp2.RequestHandler):
     if force_update:
       self.response.write(json_utils.DumpStr(payload_hash_mapping,
                                              sort_keys=True))
-    for board, payload_hash in iteritems(payload_hash_mapping):
+    for board, payload_hash in payload_hash_mapping.items():
       self.hwid_manager.SetLatestPayloadHash(board, payload_hash)

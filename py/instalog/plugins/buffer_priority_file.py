@@ -24,8 +24,6 @@ import multiprocessing
 import os
 import shutil
 
-from six import iteritems
-
 from cros.factory.instalog import json_utils
 from cros.factory.instalog import lock_utils
 from cros.factory.instalog import log_utils
@@ -219,7 +217,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     """Recovers metadatas in the temporary file."""
     all_metadata = json_utils.decoder.decode(
         file_utils.ReadFile(tmp_metadata_path))
-    for path, metadata in iteritems(all_metadata):
+    for path, metadata in all_metadata.items():
       self.info('Recover metadata: `%s` New: `%s` Old: `%s`', path, metadata,
                 file_utils.ReadFile(path) if os.path.exists(path) else 'None')
       if metadata is None:
@@ -255,7 +253,7 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
         # Step 1: Copy attachments.
         source_paths = []
         for event in events:
-          for att_id, att_path in iteritems(event.attachments):
+          for att_id, att_path in event.attachments.items():
             source_paths.append(att_path)
             event.attachments[att_id] = os.path.join(
                 tmp_dir, att_path.replace('/', '_'))

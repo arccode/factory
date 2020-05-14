@@ -40,7 +40,6 @@ import threading
 import unittest
 
 import numpy
-from six import iteritems
 
 from cros.factory import device
 from cros.factory.device import device_utils
@@ -232,7 +231,7 @@ class GPS(unittest.TestCase):
       # Print parsed values.
       current_values_str = ' '.join(
           '%s=%.1f' % (key, value)
-          for key, value in iteritems(current_values))
+          for key, value in current_values.items())
       session.console.info('[%d] %s', time_left, current_values_str)
 
     logging.debug('Timeout has been reached (%d secs)', self.args.timeout)
@@ -258,12 +257,12 @@ class GPS(unittest.TestCase):
       field_stats = None
     else:
       field_stats = {key: {} for key in self.args.nmea_fields}
-      for key, values in iteritems(all_values):
-        for fn_name, fn in iteritems(STAT_FNS):
+      for key, values in all_values.items():
+        for fn_name, fn in STAT_FNS.items():
           field_stats[key][fn_name] = fn(values)
         field_stats_str = ' '.join(
             '%s=%.1f' % (k, v)
-            for k, v in iteritems(field_stats[key]))
+            for k, v in field_stats[key].items())
         session.console.info('%s: %s', key, field_stats_str)
 
     # Do limit testing.

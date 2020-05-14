@@ -14,8 +14,6 @@ from __future__ import print_function
 import json
 import os
 
-from six import iteritems
-
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import input_log_file
@@ -33,7 +31,7 @@ class InputTestlogFile(input_log_file.InputLogFile):
     #                 (b) Import testlog and use FromJSON directly.
     attachments = {}
     if 'attachments' in data:
-      for att_id, att_data in iteritems(data['attachments']):
+      for att_id, att_data in data['attachments'].items():
         # Only add the attachment if the path exists.
         if os.path.isfile(att_data['path']):
           attachments[att_id] = att_data['path']

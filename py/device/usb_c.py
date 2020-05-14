@@ -5,8 +5,6 @@
 import logging
 import re
 
-from six import iteritems
-
 from cros.factory.device import device_types
 
 
@@ -118,7 +116,7 @@ class USBTypeC(device_types.DeviceComponent):
         'state': <state>
     """
     response = self._CallPD(['usbpd', '%d' % port])
-    for pd_version, re_pattern in iteritems(self.USB_PD_INFO_RE_ALL):
+    for pd_version, re_pattern in self.USB_PD_INFO_RE_ALL.items():
       match = re_pattern.match(response)
       if match:
         status = dict(

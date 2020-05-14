@@ -18,8 +18,6 @@ import sys
 import tempfile
 import time
 
-from six import iteritems
-
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import log_utils
 from cros.factory.instalog import plugin_base
@@ -266,7 +264,7 @@ class PluginRunner(plugin_sandbox.CoreAPI, log_utils.LoggerMixin):
     self.debug('Emit %d events: %s', len(events), events)
     for event in events:
       # Move attachments to a temporary directory to simulate buffer.
-      for att_id, att_path in iteritems(event.attachments):
+      for att_id, att_path in event.attachments.items():
         # Use a filename that contains the original one for clarity.
         tmp_path = file_utils.CreateTemporaryFile(
             prefix=os.path.basename(att_path), dir=self._att_dir)

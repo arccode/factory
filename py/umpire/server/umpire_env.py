@@ -15,8 +15,6 @@ import shutil
 import tempfile
 import urllib.parse
 
-from six import iteritems
-
 from cros.factory.umpire import common
 from cros.factory.umpire.server.commands import parameters
 from cros.factory.umpire.server import config
@@ -330,8 +328,8 @@ class UmpireEnv(object):
     """
     files = set()
     payloads = self.GetPayloadsDict(payloads_name)
-    for type_name, payload_dict in iteritems(payloads):
-      for part, res_name in iteritems(payload_dict):
+    for type_name, payload_dict in payloads.items():
+      for part, res_name in payload_dict.items():
         if part == 'file' or re.match(r'part\d+$', part) or part == 'crx_cache':
           files.add((type_name, part, res_name))
     return files

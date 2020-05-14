@@ -42,8 +42,6 @@ To run a test on base gyroscope::
 
 import collections
 
-from six import iteritems
-
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
@@ -112,7 +110,7 @@ class Gyroscope(test_case.TestCase):
 
   def _UpdateState(self, max_values):
     html = []
-    for k, v in iteritems(max_values):
+    for k, v in max_values.items():
       state = ('test-status-passed'
                if v > self.args.rotation_threshold else 'test-status-failed')
       html.append('<div class="%s">%s=%s</div>' % (state, test_ui.Escape(k), v))
@@ -133,7 +131,7 @@ class Gyroscope(test_case.TestCase):
     max_values = collections.defaultdict(float)
     def CheckSensorMaxValues():
       data = self.gyroscope.GetData()
-      for sensor_name, value in iteritems(data):
+      for sensor_name, value in data.items():
         max_values[sensor_name] = max(max_values[sensor_name], abs(value))
       self._UpdateState(max_values)
       return min(max_values.values()) > self.args.rotation_threshold

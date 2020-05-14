@@ -157,8 +157,6 @@ import logging
 import queue
 import re
 
-from six import iteritems
-
 from cros.factory.test import device_data
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
@@ -310,7 +308,7 @@ class UpdateDeviceData(test_case.TestCase):
 
     if self.args.config_name:
       fields += [(k, v, None, None) for k, v in
-                 iteritems(device_data.LoadConfig(self.args.config_name))]
+                 device_data.LoadConfig(self.args.config_name).items()]
 
     if self.args.fields:
       fields += self.args.fields

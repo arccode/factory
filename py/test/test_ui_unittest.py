@@ -15,7 +15,6 @@ import sys
 import unittest
 
 import mock
-from six import iteritems
 
 from cros.factory.test import event as test_event
 from cros.factory.test import state
@@ -441,7 +440,7 @@ class EventLoopRunTest(EventLoopTestBase):
     self.event_loop.Run()
 
     self.assertEqual(sorted(called_times), called_times)
-    for name, expected_times in iteritems(expected_calls):
+    for name, expected_times in expected_calls.items():
       expected_times = sorted(expected_times)
       actual_times = calls.get(name, [])
       if name.startswith('handler'):
@@ -522,7 +521,7 @@ class UITestBase(unittest.TestCase):
     """
     strip_js = re.sub(r'\s', '', js)
     strip_event_js = event_js
-    for name, arg in iteritems(event_args):
+    for name, arg in event_args.items():
       strip_event_js = re.sub(r'\b%s\b' % re.escape('args.%s' % name),
                               json.dumps(arg), strip_event_js)
     strip_event_js = re.sub(r'\s', '', strip_event_js)

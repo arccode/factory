@@ -9,7 +9,6 @@ import logging
 import unittest
 
 import mock
-from six import iteritems
 
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
@@ -23,7 +22,7 @@ from cros.factory.utils import type_utils
 
 class FakeArgs(object):
   def __init__(self, dargs):
-    for key, value in iteritems(dargs):
+    for key, value in dargs.items():
       self.__dict__[key] = value
 
 

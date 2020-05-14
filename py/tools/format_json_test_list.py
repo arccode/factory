@@ -10,7 +10,6 @@ import collections
 import json
 import sys
 
-from six import iteritems
 
 def ReorderDictKey(obj, key_order=None):
   if key_order is None:
@@ -81,7 +80,7 @@ def Format(test_list):
   if 'definitions' in test_list:
     test_list['definitions'] = collections.OrderedDict(
         (k, RecursiveFormatTestObject(v))
-        for k, v in iteritems(test_list['definitions']))
+        for k, v in test_list['definitions'].items())
   if 'tests' in test_list:
     test_list['tests'] = [
         RecursiveFormatTestObject(test_obj) for test_obj in test_list['tests']

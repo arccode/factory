@@ -8,8 +8,6 @@ import logging
 import numbers
 import os
 
-from six import iteritems
-
 from cros.factory.test import i18n
 from cros.factory.test.test_lists import test_list_common
 from cros.factory.test.utils import pytest_utils
@@ -106,7 +104,7 @@ class RPC(object):
           return False
       return True
 
-    for filepath, content in iteritems(requests):
+    for filepath, content in requests.items():
       if IsForbidden(filepath):
         raise RuntimeError('Writing to %r is disallowed.' % filepath)
       file_utils.WriteFile(filepath, content)

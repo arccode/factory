@@ -91,8 +91,6 @@ import subprocess
 import sys
 import time
 
-from six import iteritems
-
 from cros.factory.device import CalledProcessError
 from cros.factory.device import device_utils
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
@@ -1038,7 +1036,7 @@ class WiFiThroughput(test_case.TestCase):
 
     # Check for any failures and report an aggregation.
     all_failures = []
-    for ssid, ap_log in iteritems(self.log['test']):
+    for ssid, ap_log in self.log['test'].items():
       for error_msg in ap_log['failures']:
         all_failures.append((ssid, error_msg))
     if all_failures:

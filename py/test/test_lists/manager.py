@@ -9,8 +9,6 @@ import logging
 import os
 import zipimport
 
-from six import iteritems
-
 from cros.factory.test.test_lists import checker as checker_module
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.test_lists import test_list_common
@@ -216,7 +214,7 @@ class Manager(object):
         failed_test_lists[test_list_id] = str(e)
 
     valid_test_lists = {}  # test lists that will be returned
-    for test_list_id, test_list in iteritems(self.test_lists):
+    for test_list_id, test_list in self.test_lists.items():
       if isinstance(test_list, test_list_module.TestList):
         # if the test list does not have subtests, don't return it.
         # (this is a base test list)

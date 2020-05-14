@@ -51,8 +51,6 @@ arguemnt description for the details)::
 
 import functools
 
-from six import iteritems
-
 from cros.factory.device import device_utils
 from cros.factory.gooftool import common as gooftool_common
 from cros.factory.gooftool import gsctool
@@ -80,7 +78,7 @@ class CheckCr50FirmwareBoardIDTest(test_case.TestCase):
           'either an integer or a string.  If the value is a string, '
           'the value can be either the hex code of the board ID flags or %s.' %
           ', '.join('%s for %08x' % (k, v)
-                    for k, v in iteritems(_PREDEFINED_PHASES)),
+                    for k, v in _PREDEFINED_PHASES.items()),
           default=None),
   ]
 

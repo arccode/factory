@@ -14,8 +14,6 @@ import re
 import sys
 import time
 
-from six import iteritems
-
 from cros.factory.test.fixture.whale import keyboard_emulator
 from cros.factory.test.fixture.whale import serial_client
 from cros.factory.test.fixture.whale import servo_client
@@ -305,7 +303,7 @@ class InterruptHandler(object):
       return False
 
     operator_mode = not self._servo.IsOn(self._WHALE_DEBUG_MODE_EN)
-    for button, clicked in iteritems(status):
+    for button, clicked in status.items():
       if not clicked:
         continue
 
@@ -335,7 +333,7 @@ class InterruptHandler(object):
     logging.debug('[Scanning feedback....]')
     feedback_status = self._servo.MultipleIsOn(self._FEEDBACK_LIST)
     feedback_changed = False
-    for name, value in iteritems(feedback_status):
+    for name, value in feedback_status.items():
       if self._last_feedback[name] == value:
         continue
 

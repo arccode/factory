@@ -22,7 +22,6 @@ import time
 import uuid
 import xmlrpc.client
 
-from six import iteritems
 import yaml
 
 from cros.factory.test.diagnosis.diagnosis_tool import DiagnosisToolRPC
@@ -404,7 +403,7 @@ class GoofyRPC(object):
         enabled: Whether this is the current-enabled test list.
     """
     ret = []
-    for k, v in iteritems(self.goofy.test_lists):
+    for k, v in self.goofy.test_lists.items():
       ret.append(
           dict(id=k, name=v.label,
                enabled=(k == self.goofy.test_list.test_list_id)))
@@ -422,7 +421,7 @@ class GoofyRPC(object):
   def GetTestStateMap(self):
     """Returns the test states in JSON serializable struct."""
     states = self.goofy.state_instance.GetTestStates()
-    return {key: state.ToStruct() for key, state in iteritems(states)}
+    return {key: state.ToStruct() for key, state in states.items()}
 
   def GetGoofyStatus(self):
     """Returns a dictionary containing Goofy status information.

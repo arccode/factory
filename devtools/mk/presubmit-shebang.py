@@ -10,8 +10,6 @@ import json
 import os
 import stat
 
-from six import iteritems
-
 
 def main():
   parser = argparse.ArgumentParser()
@@ -63,7 +61,7 @@ def main():
     for filepath in redundant_files:
       print('     %s' % filepath)
     print()
-  for shebang, filepaths in iteritems(unknown_shebangs):
+  for shebang, filepaths in unknown_shebangs.items():
     print('%4d #!%s' % (len(filepaths), shebang))
     for filepath in filepaths:
       print('     %s' % filepath)

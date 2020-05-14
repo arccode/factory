@@ -6,8 +6,6 @@
 import os
 import unittest
 
-from six import iteritems
-
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3.database import Components
 from cros.factory.hwid.v3.database import Database
@@ -23,7 +21,7 @@ _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 def Unordered(data):
   if isinstance(data, dict):
-    return {k: Unordered(v) for k, v in iteritems(data)}
+    return {k: Unordered(v) for k, v in data.items()}
   elif isinstance(data, list):
     return [Unordered(a) for a in data]
   return data

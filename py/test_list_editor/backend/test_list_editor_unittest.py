@@ -9,7 +9,6 @@ import tempfile
 import unittest
 
 import mock
-from six import iteritems
 
 from cros.factory.test_list_editor.backend import common
 from cros.factory.test_list_editor.backend import test_list_editor
@@ -31,7 +30,7 @@ _FAKE_REPO_SCHEMA = {
 
 
 def _CreateDirectories(path, schema):
-  for k, v in iteritems(schema):
+  for k, v in schema.items():
     new_path = os.path.join(path, k)
     os.makedirs(new_path)
     _CreateDirectories(new_path, v)

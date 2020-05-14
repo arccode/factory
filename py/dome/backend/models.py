@@ -29,7 +29,6 @@ import xmlrpc.client
 import django
 import rest_framework.exceptions
 import rest_framework.status
-from six import iteritems
 
 from cros.factory.umpire import common as umpire_common
 from cros.factory.umpire.server import resource as umpire_resource
@@ -282,7 +281,7 @@ class DomeConfig(django.db.models.Model):
 
 
     # update attributes assigned in kwargs
-    for attr, value in iteritems(kwargs):
+    for attr, value in kwargs.items():
       if hasattr(self, attr):
         setattr(self, attr, value)
     self.save()
@@ -597,7 +596,7 @@ class Project(django.db.models.Model):
       project.MapNetbootResourceToTFTP(kwargs['netboot_bundle'])
 
     # update attributes assigned in kwargs
-    for attr, value in iteritems(kwargs):
+    for attr, value in kwargs.items():
       if hasattr(project, attr):
         setattr(project, attr, value)
     project.save()
@@ -798,7 +797,7 @@ class Bundle(object):
 
     # update resources
     if resources is not None:
-      for resource_key, resource in iteritems(resources):
+      for resource_key, resource in resources.items():
         Bundle._UpdateResource(project_name, bundle['id'], resource_key,
                                resource['file_id'])
 

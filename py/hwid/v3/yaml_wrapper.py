@@ -11,7 +11,6 @@ from the origin yaml module.
 import collections
 import functools
 
-from six import iteritems
 from yaml import *  # pylint: disable=wildcard-import,unused-wildcard-import
 from yaml import constructor
 from yaml import nodes
@@ -127,7 +126,7 @@ class _DefaultMappingHandler(_HWIDV3YAMLTagHandler):
 
   @classmethod
   def YAMLRepresenter(cls, dumper, data):
-    return dumper.represent_dict(iteritems(data))
+    return dumper.represent_dict(data.items())
 
 
 class RegionField(dict):
@@ -203,7 +202,7 @@ class _RegionComponent(dict):
   def __init__(self, status_lists=None):
     # Load system regions.
     components_dict = {'items': {}}
-    for code, region in iteritems(regions.BuildRegionsDict(include_all=True)):
+    for code, region in regions.BuildRegionsDict(include_all=True).items():
       region_comp = {'values': {'region_code': region.region_code}}
       if code not in regions.REGIONS:
         region_comp['status'] = common.COMPONENT_STATUS.unsupported

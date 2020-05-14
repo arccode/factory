@@ -15,8 +15,6 @@ import tempfile
 import threading
 import time
 
-from six import iteritems
-
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
 from cros.factory.test.env import paths
@@ -586,7 +584,7 @@ class _TestInvocationTestLogHelper(object):
           dargs, allow_types=(int, float, str, type(None)))
       for k, v in flattened_dargs:
         testlog_event.AddArgument(k, v)
-    for k, v in iteritems(init_data['serialNumbers']):
+    for k, v in init_data['serialNumbers'].items():
       testlog_event.AddSerialNumber(k, v)
 
     tag = init_data['tag']

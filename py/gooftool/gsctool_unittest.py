@@ -6,7 +6,6 @@
 import unittest
 
 import mock
-from six import iteritems
 
 from cros.factory.gooftool import common
 from cros.factory.gooftool import gsctool
@@ -102,7 +101,7 @@ class GSCToolTest(unittest.TestCase):
         'BID_FLAGS': '0000ff00',
         'BID_RLZ': 'ABCD'}
     self._SetGSCToolUtilityResult(
-        stdout=(''.join('%s=%s\n' % (k, v) for k, v in iteritems(fields))))
+        stdout=(''.join('%s=%s\n' % (k, v) for k, v in fields.items())))
     board_id = self.gsctool.GetBoardID()
     self._CheckCalledCommand(['/usr/sbin/gsctool', '-a', '-M', '-i'])
     self.assertEqual(board_id.type, 0x41424344)
@@ -116,7 +115,7 @@ class GSCToolTest(unittest.TestCase):
         'BID_FLAGS': '0000ff00',
         'BID_RLZ': '????'}
     self._SetGSCToolUtilityResult(
-        stdout=(''.join('%s=%s\n' % (k, v) for k, v in iteritems(fields2))))
+        stdout=(''.join('%s=%s\n' % (k, v) for k, v in fields2.items())))
     board_id = self.gsctool.GetBoardID()
     self._CheckCalledCommand(['/usr/sbin/gsctool', '-a', '-M', '-i'])
     self.assertEqual(board_id.type, 0xffffffff)
@@ -125,13 +124,13 @@ class GSCToolTest(unittest.TestCase):
     # BID_TYPE_INV should be complement to BID_TYPE
     bad_fields = dict(fields, BID_TYPE_INV='aabbccdd')
     self._SetGSCToolUtilityResult(
-        stdout=(''.join('%s=%s\n' % (k, v) for k, v in iteritems(bad_fields))))
+        stdout=(''.join('%s=%s\n' % (k, v) for k, v in bad_fields.items())))
     self.assertRaises(gsctool.GSCToolError, self.gsctool.GetBoardID)
 
     # BID_TYPE should be the ascii codes of BID_RLZ
     bad_fields = dict(fields, BID_RLZ='XXYY')
     self._SetGSCToolUtilityResult(
-        stdout=(''.join('%s=%s\n' % (k, v) for k, v in iteritems(bad_fields))))
+        stdout=(''.join('%s=%s\n' % (k, v) for k, v in bad_fields.items())))
     self.assertRaises(gsctool.GSCToolError, self.gsctool.GetBoardID)
 
     self._SetGSCToolUtilityResult(status=1)

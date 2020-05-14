@@ -20,8 +20,6 @@ import os
 import socket
 import time
 
-from six import iteritems
-
 from cros.factory.instalog import log_utils
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import socket_common
@@ -217,7 +215,7 @@ class OutputSocketSender(log_utils.LoggerMixin):
     serialized_event = event.Serialize()
     total_bytes += self.SendField(serialized_event)
     self.SendInt(len(attachments))
-    for att_id, att_path in iteritems(attachments):
+    for att_id, att_path in attachments.items():
       total_bytes += self.SendAttachment(att_id, att_path)
     return total_bytes
 

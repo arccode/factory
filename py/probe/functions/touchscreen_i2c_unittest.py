@@ -7,8 +7,6 @@ import os
 import tempfile
 import unittest
 
-from six import iteritems
-
 from cros.factory.probe.functions import touchscreen_i2c
 from cros.factory.utils import file_utils
 
@@ -28,7 +26,7 @@ class I2cTouchscreenFunctionTest(unittest.TestCase):
     path = os.path.join(self.my_root, 'sys', 'bus', 'i2c', 'devices', name)
     file_utils.TryMakeDirs(path)
 
-    for key, value in iteritems(values):
+    for key, value in values.items():
       file_utils.WriteFile(os.path.join(path, key), value)
 
     driver_target = self.my_root + driver_target

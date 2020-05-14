@@ -33,7 +33,6 @@ import re
 import string
 import uuid
 
-from six import iteritems
 import yaml
 
 from cros.factory.device import device_utils
@@ -489,13 +488,13 @@ class VSWR(test_case.TestCase):
     """
     # pylint: disable=redefined-builtin
     if min is None and max is None:
-      for freq, data in iteritems(trace):
+      for freq, data in trace.items():
         with self._group_checker:
           testlog.LogParam('name', name)
           testlog.LogParam('trace_data', data)
           testlog.LogParam('frequency', freq)
     else:
-      for freq, data in iteritems(trace):
+      for freq, data in trace.items():
         with self._group_checker:
           testlog.LogParam('name', name)
           testlog.CheckNumericParam('trace_data', data, min=min, max=max)

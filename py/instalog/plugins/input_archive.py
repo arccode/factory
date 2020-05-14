@@ -31,8 +31,6 @@ import glob
 import os
 import tarfile
 
-from six import iteritems
-
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.utils.arg_utils import Arg
@@ -101,7 +99,7 @@ class InputArchive(plugin_base.InputPlugin):
     with open(path, 'r') as f:
       for line in f:
         event = self.ParseEvent(path, line)
-        for att_id, att_path in iteritems(event.attachments):
+        for att_id, att_path in event.attachments.items():
           event.attachments[att_id] = os.path.join(event_dir, att_path)
         events.append(event)
       self.info('Parsed %d events', len(events))

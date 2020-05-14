@@ -9,7 +9,6 @@ import os
 import unittest
 
 import mock
-from six import iteritems
 
 from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
@@ -38,7 +37,7 @@ class _HWIDTestCaseBase(unittest.TestCase):
     self.assertEqual(bom1.encoding_pattern_index, bom2.encoding_pattern_index)
     self.assertEqual(bom1.image_id, bom2.image_id)
     self.assertEqual(set(bom1.components.keys()), set(bom2.components.keys()))
-    for comp_cls, bom1_comp_names in iteritems(bom1.components):
+    for comp_cls, bom1_comp_names in bom1.components.items():
       self.assertEqual(bom1_comp_names, bom2.components[comp_cls])
 
   def setUp(self):
@@ -151,7 +150,7 @@ class VerifyHWIDTest(_HWIDTestCaseBase):
 class ListComponentsTest(_HWIDTestCaseBase):
   def _TestListComponents(self, comp_cls, expected_results):
     def _ConvertToSets(orig_dict):
-      return {key: set(value) for key, value in iteritems(orig_dict)}
+      return {key: set(value) for key, value in orig_dict.items()}
 
     results = hwid_utils.ListComponents(self.database, comp_cls)
     self.assertEqual(_ConvertToSets(results), _ConvertToSets(expected_results))

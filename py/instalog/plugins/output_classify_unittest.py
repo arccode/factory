@@ -15,7 +15,6 @@ import tempfile
 import unittest
 
 import mock
-from six import iteritems
 
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import log_utils
@@ -107,7 +106,7 @@ class TestOutputClassify(unittest.TestCase):
       self.assertEqual(event2, datatypes.Event.Deserialize(lines[0]))
 
   def ChangeRelativePath(self, event, base_dir):
-    for att_id, relative_path in iteritems(event.attachments):
+    for att_id, relative_path in event.attachments.items():
       event.attachments[att_id] = os.path.join(
           base_dir, relative_path)
 

@@ -4,8 +4,6 @@
 
 """Implementation of HWID v3 encoder and decoder."""
 
-from six import iteritems
-
 from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.identity import Identity
@@ -38,11 +36,11 @@ def BOMToIdentity(database, bom, brand_code=None, encoded_configless=None):
   # Try to encode every field and fail if some fields are missing or
   # the bit length of a field recorded in the pattern is not enough.
   encoded_fields = {}
-  for field_name, bit_length in iteritems(database.GetEncodedFieldsBitLength(
-      bom.image_id)):
-    for index, components in iteritems(database.GetEncodedField(field_name)):
+  for field_name, bit_length in database.GetEncodedFieldsBitLength(
+      bom.image_id).items():
+    for index, components in database.GetEncodedField(field_name).items():
       if all(comp_names == bom.components[comp_cls]
-             for comp_cls, comp_names in iteritems(components)):
+             for comp_cls, comp_names in components.items()):
         encoded_fields[field_name] = index
         break
 
@@ -113,7 +111,7 @@ def IdentityToBOM(database, identity):
 
   # Construct the components dict.
   components = {comp_cls: [] for comp_cls in database.GetComponentClasses()}
-  for field, index in iteritems(encoded_fields):
+  for field, index in encoded_fields.items():
     database_encoded_field = database.GetEncodedField(field)
     if index not in database_encoded_field:
       raise common.HWIDException('Invalid encoded field index: {%r: %r}' %

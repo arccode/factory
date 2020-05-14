@@ -19,8 +19,6 @@ import re
 import threading
 import time
 
-from six import iteritems
-
 from cros.factory.utils import type_utils
 
 
@@ -89,7 +87,7 @@ class Context(object):
   """
 
   def __init__(self, **kwargs):
-    for key, value in iteritems(kwargs):
+    for key, value in kwargs.items():
       setattr(self, key, value)
 
 

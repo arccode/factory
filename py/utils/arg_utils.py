@@ -23,8 +23,6 @@ use the args attribute to access the attribute values.
       self.assertEqual(self.args.explode, device.exploded)
 """
 
-from six import iteritems
-
 from .type_utils import Enum
 
 
@@ -168,7 +166,7 @@ class Dargs(object):
   """A class to hold all the parsed arguments for a factory test."""
 
   def __init__(self, **kwargs):
-    for key, value in iteritems(kwargs):
+    for key, value in kwargs.items():
       setattr(self, key, value)
 
   def ToDict(self):

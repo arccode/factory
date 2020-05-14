@@ -150,8 +150,6 @@ import json
 import operator
 import os
 
-from six import iteritems
-
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
 from cros.factory.test import session
@@ -244,7 +242,7 @@ class ProbeTest(test_case.TestCase):
       for result in probed_results[category]:
         counter[result['name']] += 1
       comp_summary = '<br>'.join('%d %s found.' % (num_comp, comp_name)
-                                 for comp_name, num_comp in iteritems(counter))
+                                 for comp_name, num_comp in counter.items())
       summary_str = comp_summary or 'No component found.'
       rule_str = 'count (%s) %s %s' % (count, op_str, value)
       status_str = 'passed' if status else 'failed'

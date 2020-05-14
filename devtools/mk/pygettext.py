@@ -35,8 +35,6 @@ import subprocess
 import sys
 import tempfile
 
-from six import iteritems
-
 
 POT_HEADER = r"""# SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR ORGANIZATION
@@ -70,7 +68,7 @@ def Escape(s):
 
 def Unescape(s):
   def UnescapeChar(match):
-    escape_char = next((k for k, v in iteritems(ESCAPE_CHAR_MAP)
+    escape_char = next((k for k, v in ESCAPE_CHAR_MAP.items()
                         if v == match.group(0)), None)
     return escape_char or chr(int(match.group(1), 8))
   return re.sub(r'\\([\\trn"]|[0-7]{3})', UnescapeChar, s)
@@ -94,7 +92,7 @@ def WritePot(fp, messages, width):
     message_dict.setdefault(text, set()).add(fileloc)
 
   messages = []
-  for text, files in iteritems(message_dict):
+  for text, files in message_dict.items():
     files = sorted(files)
     messages.append((files, text))
   messages.sort()
@@ -379,7 +377,7 @@ def main():
       sys.exit('Unknown file type %s for file %s' % (ext, filename))
 
   messages = []
-  for filetype, files in iteritems(input_files_by_type):
+  for filetype, files in input_files_by_type.items():
     messages.extend(PARSERS[filetype](files, options))
 
   with open(options.output_file, 'w') as fp:

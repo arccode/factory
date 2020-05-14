@@ -5,8 +5,6 @@
 import logging
 import threading
 
-from six import iteritems
-
 from . import sync_utils
 from . import type_utils
 from .process_utils import CheckOutput
@@ -220,7 +218,7 @@ class ServiceManager(object):
 
     # Restore services if there's only 1 setup record left, which means this
     # should be the last restore request.
-    for service, status in iteritems(ServiceManager._original_status_map):
+    for service, status in ServiceManager._original_status_map.items():
       SetServiceStatus(service, status, self.dut)
     ServiceManager._original_status_map.clear()
     ServiceManager._enable_services = []

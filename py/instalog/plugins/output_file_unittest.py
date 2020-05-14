@@ -13,8 +13,6 @@ import os
 import tempfile
 import unittest
 
-from six import iteritems
-
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import log_utils
 from cros.factory.instalog import plugin_sandbox
@@ -86,7 +84,7 @@ class TestOutputFile(unittest.TestCase):
       self.assertEqual([], deserialized_event.history)
 
   def ChangeRelativePath(self, event, base_dir):
-    for att_id, relative_path in iteritems(event.attachments):
+    for att_id, relative_path in event.attachments.items():
       event.attachments[att_id] = os.path.join(
           base_dir, relative_path)
 

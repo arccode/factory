@@ -14,8 +14,6 @@ import os
 import shutil
 import tempfile
 
-from six import iteritems
-
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog import plugin_sandbox
 from cros.factory.instalog.utils import file_utils
@@ -61,7 +59,7 @@ class MockCore(plugin_sandbox.CoreAPI):
     del plugin
     for event in events:
       # Move attachments to a temporary directory to simulate buffer.
-      for att_id, att_path in iteritems(event.attachments):
+      for att_id, att_path in event.attachments.items():
         # Use a filename that contains the original one for clarity.
         tmp_path = file_utils.CreateTemporaryFile(
             prefix=os.path.basename(att_path) + '_', dir=self._att_dir)

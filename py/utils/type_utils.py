@@ -10,7 +10,6 @@ import inspect
 import queue
 import re
 
-from six import iteritems
 
 # The regular expression used by Overrides.
 _OVERRIDES_CLASS_RE = re.compile(r'^\s*class([^#]+)\(\s*([^\s#]+)\s*\)\s*\:')
@@ -223,7 +222,7 @@ class AttrDict(dict):
 
   def __init__(self, *args, **kwargs):
     super(AttrDict, self).__init__(*args, **kwargs)
-    for key, val in iteritems(self):
+    for key, val in self.items():
       self[key] = self._Convert(val)
     self.__dict__ = self
 

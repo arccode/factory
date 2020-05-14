@@ -5,8 +5,6 @@
 
 import unittest
 
-from six import iteritems
-
 from cros.factory.probe.functions.approx_match import ApproxMatchFunction
 
 
@@ -86,7 +84,7 @@ class ApproxMatchTest(unittest.TestCase):
     self.assertEqual(perfect_match, perfect_match_expect)
     self.assertEqual(matched_num, matched_num_expect)
     self.assertEqual(item, item_expect)
-    for rule_name, expect in iteritems(rule_expect):
+    for rule_name, expect in rule_expect.items():
       self.assertEqual(rule[rule_name]['result'], expect)
 
 

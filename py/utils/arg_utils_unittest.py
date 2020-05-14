@@ -6,8 +6,6 @@
 
 import unittest
 
-from six import iteritems
-
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.arg_utils import Args
 from cros.factory.utils.type_utils import Enum
@@ -31,7 +29,7 @@ class ArgsTest(unittest.TestCase):
       A dictionary of attributes from the resultant object.
     """
     values = self.parser.Parse(dargs)
-    return dict((k, v) for k, v in iteritems(values.__dict__)
+    return dict((k, v) for k, v in values.__dict__.items()
                 if not k.startswith('_'))
 
   def testIntOrNone(self):

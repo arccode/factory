@@ -16,8 +16,6 @@ import tempfile
 import time
 import unittest
 
-from six import iteritems
-
 from cros.factory.testlog.testlog_pkg import testlog
 from cros.factory.testlog.testlog_pkg import testlog_utils
 from cros.factory.testlog.testlog_pkg.utils import file_utils
@@ -408,7 +406,7 @@ class TestlogEventTest(TestlogTestBase):
         description=DESCRIPTION)
     # Examine the result
     paths = set()
-    for att_name, att_dict in iteritems(event['attachments']):
+    for att_name, att_dict in event['attachments'].items():
       description = att_dict['description']
       self.assertEqual(DESCRIPTION, description)
       path = att_dict['path']
@@ -515,7 +513,7 @@ class TestlogEventTest(TestlogTestBase):
                         'numericValue': 30.5,
                         'expectedMaximum': 31}]}})
     paths = set()
-    for att_name, att_dict in iteritems(event['attachments']):
+    for att_name, att_dict in event['attachments'].items():
       path = att_dict['path']
       text = open(path, 'r').read()
       self.assertEqual(CONTENT, text)

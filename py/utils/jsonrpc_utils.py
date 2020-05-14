@@ -13,7 +13,6 @@ import uuid
 
 import jsonrpclib
 from jsonrpclib import SimpleJSONRPCServer
-from six import iteritems
 
 from . import net_utils
 from .net_utils import TimeoutXMLRPCTransport
@@ -55,7 +54,7 @@ class JSONRPCServer(object):
     self._server.register_function(lambda: True, 'IsAlive')
     self._server.register_function(lambda: self._uuid, 'GetUuid')
     if self._methods:
-      for k, v in iteritems(self._methods):
+      for k, v in self._methods.items():
         self._server.register_function(v, k)
     self._server_thread = threading.Thread(target=self._ServeRPCForever,
                                            name='RPCServer')

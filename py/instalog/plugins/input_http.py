@@ -37,8 +37,6 @@ import tempfile
 import threading
 import time
 
-from six import iteritems
-
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import log_utils
 from cros.factory.instalog import plugin_base
@@ -195,7 +193,7 @@ class HTTPHandler(http.server.BaseHTTPRequestHandler, log_utils.LoggerMixin):
             if key != 'event':
               event.attachments[key] = key
 
-        for att_id, att_key in iteritems(event.attachments):
+        for att_id, att_key in event.attachments.items():
           if att_key not in form or isinstance(form[att_key], list):
             raise ValueError('Attachment(%s) should have exactly one in the '
                              'request' % att_key)

@@ -17,8 +17,6 @@ import os
 import subprocess
 import sys
 
-from six import iteritems
-
 from cros.factory.test.env import paths
 from cros.factory.utils import cros_board_utils
 from cros.factory.utils import process_utils
@@ -164,7 +162,7 @@ def TopologicalSort(changes):
 
   # sort CLs in topological order
   def walk(d):
-    for k, v in iteritems(d):
+    for k, v in d.items():
       yield {
           'url': v['url'],
           'fetch': v['fetch'],

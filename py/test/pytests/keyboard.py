@@ -92,8 +92,6 @@ import ast
 import os
 import re
 
-from six import iteritems
-
 from cros.factory.external import evdev
 from cros.factory.test.l10n import regions
 from cros.factory.test import session
@@ -176,7 +174,7 @@ class KeyboardTest(test_case.TestCase):
     self.bindings = self.ReadBindings(self.layout)
 
     # Apply any replacement keymap
-    for old_key, new_key in iteritems(self.args.replacement_keymap):
+    for old_key, new_key in self.args.replacement_keymap.items():
       if old_key in self.bindings:
         self.bindings[new_key] = self.bindings[old_key]
         del self.bindings[old_key]
@@ -328,7 +326,7 @@ class KeyboardTest(test_case.TestCase):
   def FailTestTimeout(self):
     """Fail the test due to timeout, and log untested keys."""
     failed_keys = [
-        key for key, num_left in iteritems(self.number_to_press) if num_left
+        key for key, num_left in self.number_to_press.items() if num_left
     ]
     for failed_key in failed_keys:
       testlog.LogParam('malfunction_key', failed_key)

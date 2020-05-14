@@ -6,8 +6,6 @@ import hashlib
 import json
 import os
 
-from six import iteritems
-
 _ENV_DIR = '/var/db/factory/umpire'
 _CONFIG_PATH = os.path.join(_ENV_DIR, 'active_umpire.json')
 
@@ -20,7 +18,7 @@ def MigrateConfig(config, migrate_keys):
   """Migrates a config by moving key values to new location."""
   modified = False
 
-  for old_key, new_key in iteritems(migrate_keys):
+  for old_key, new_key in migrate_keys.items():
     if old_key not in config:
       continue
 

@@ -9,8 +9,6 @@ import ast
 import logging
 import os
 
-from six import iteritems
-
 from cros.factory.test.fixture import bft_fixture as bft
 from cros.factory.test.fixture.whale import color_sensor
 from cros.factory.test.fixture.whale import keyboard_emulator
@@ -151,7 +149,7 @@ class WhaleBFTFixture(bft.BFTFixture):
       BFTFixtureException if power rail is problematic.
     """
     inas = self._servo.MultipleGet(self._WHALE_INAS)
-    result = dict((k, int(v)) for k, v in iteritems(inas))
+    result = dict((k, int(v)) for k, v in inas.items())
 
     # Servo returns a string of list of integers
     adc = ast.literal_eval(self._servo.Get(self._WHALE_CONTROL.ADC))
@@ -202,7 +200,7 @@ class WhaleBFTFixture(bft.BFTFixture):
       is_pass = self._servo.Get(self._WHALE_CONTROL.PASS_LED)
       is_fail = self._servo.Get(self._WHALE_CONTROL.FAIL_LED)
 
-      for color, value in iteritems(WhaleBFTFixture._STATUS_COLOR):
+      for color, value in WhaleBFTFixture._STATUS_COLOR.items():
         if value == (is_pass, is_fail):
           return color
       # If no match, treat as OFF status

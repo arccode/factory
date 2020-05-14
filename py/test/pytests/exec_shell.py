@@ -113,8 +113,6 @@ import os
 import subprocess
 import time
 
-from six import iteritems
-
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
@@ -204,7 +202,7 @@ class ExecShell(test_case.TestCase):
     threads = [
         process_utils.StartDaemonThread(
             target=self.UpdateOutput, args=(handle, name, output))
-        for name, handle in iteritems(handles)
+        for name, handle in handles.items()
     ]
 
     process.wait()

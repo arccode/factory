@@ -28,8 +28,6 @@ import datetime
 import os
 import shutil
 
-from six import iteritems
-
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import output_file
 from cros.factory.instalog.utils import arg_utils
@@ -98,7 +96,7 @@ class OutputClassify(output_file.OutputFile):
             type_utils.GetDict(event, classifier_name, '__UNKNOWN__'))
       self.subdir_path = os.path.join(self.subdir_path, subdir_name)
 
-    for att_id, att_path in iteritems(event.attachments):
+    for att_id, att_path in event.attachments.items():
       if os.path.isfile(att_path):
         att_hash = file_utils.SHA1InHex(att_path)
         att_newpath = os.path.join(output_file.ATT_DIR_NAME, att_hash)

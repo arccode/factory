@@ -15,8 +15,6 @@ from __future__ import print_function
 import os
 import shutil
 
-from six import iteritems
-
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import buffer_file_common
 from cros.factory.instalog.utils.arg_utils import Arg
@@ -94,7 +92,7 @@ class BufferSimpleFile(plugin_base.BufferPlugin):
         # Step 1: Copy attachments.
         source_paths = []
         for event in events:
-          for att_id, att_path in iteritems(event.attachments):
+          for att_id, att_path in event.attachments.items():
             source_paths.append(att_path)
             event.attachments[att_id] = os.path.join(
                 tmp_dir, att_path.replace('/', '_'))

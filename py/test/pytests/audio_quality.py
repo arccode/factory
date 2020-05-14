@@ -62,7 +62,6 @@ import tempfile
 import threading
 import zipfile
 
-from six import iteritems
 import yaml
 
 from cros.factory.device import device_utils
@@ -754,7 +753,7 @@ class AudioQualityTest(test_case.TestCase):
     cmd = event.data.get('cmd', '')
     if cmd == 'reset':
       self.SetMessage(_LABEL_SPACE_TO_START)
-    for key, handler in iteritems(self._handlers):
+    for key, handler in self._handlers.items():
       if key.match(cmd):
         handler()
         break

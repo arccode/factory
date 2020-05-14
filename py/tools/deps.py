@@ -23,7 +23,6 @@ import re
 import subprocess
 import sys
 
-from six import iteritems
 import yaml
 
 
@@ -252,7 +251,7 @@ def LoadRules(path):
 
   groups = config[CONFIG_GROUPS]
   rules = {}
-  for key, value in iteritems(config[CONFIG_RULES]):
+  for key, value in config[CONFIG_RULES].items():
     # Expand value into imports
     imports = []
     for package in value:

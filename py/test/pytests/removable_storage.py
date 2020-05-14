@@ -111,8 +111,6 @@ import re
 import subprocess
 import threading
 
-from six import iteritems
-
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
 from cros.factory.test import session
@@ -436,7 +434,7 @@ class RemovableStorageTest(test_case.TestCase):
         'if': ifile, 'of': ofile, 'seek': seek, 'skip': skip,
         'bs': bs, 'count': count, 'conv': conv
     }
-    for key, value in iteritems(args):
+    for key, value in args.items():
       if value:
         cmd.append('%s=%s' % (key, value))
     return cmd

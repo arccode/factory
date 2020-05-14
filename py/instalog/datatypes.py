@@ -16,8 +16,6 @@ import filecmp
 import logging
 import time
 
-from six import iteritems
-
 from cros.factory.instalog import json_utils
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.utils import time_utils
@@ -150,7 +148,7 @@ class Event(json_utils.Serializable):
       return False
     if not len(self.attachments) == len(other.attachments):
       return False
-    for att_id, att_path in iteritems(self.attachments):
+    for att_id, att_path in self.attachments.items():
       if att_id not in other.attachments:
         return False
       other_path = other.attachments[att_id]
@@ -188,7 +186,7 @@ class Event(json_utils.Serializable):
 
   def iteritems(self):
     """Implements iteritems function."""
-    return iteritems(self.payload)
+    return iter(self.payload.items())
 
   def setdefault(self, key, default):
     """Implements setdefault function."""

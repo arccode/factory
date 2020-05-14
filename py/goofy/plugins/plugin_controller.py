@@ -6,7 +6,6 @@ import logging
 import os
 
 from jsonrpclib import ProtocolError
-from six import iteritems
 
 from cros.factory.goofy.plugins import plugin
 from cros.factory.test.env import goofy_proxy
@@ -74,7 +73,7 @@ class PluginController(object):
         plugin_config,
         config_utils.LoadConfig(config_name, 'plugins', allow_inherit=True))
 
-    for name, plugin_args in iteritems(plugin_config['plugins']):
+    for name, plugin_args in plugin_config['plugins'].items():
       if not plugin_args.get('enabled', True):
         logging.debug('Plugin disabled: %s', name)
         continue
@@ -98,7 +97,7 @@ class PluginController(object):
 
   def _RegisterMenuItem(self):
     """Registers plugins' menu items."""
-    for name, instance in iteritems(self._plugins):
+    for name, instance in self._plugins.items():
       try:
         for menu_item in instance.GetMenuItems():
           self._menu_items[menu_item.id] = menu_item
@@ -107,7 +106,7 @@ class PluginController(object):
 
   def _RegisterFrontendPath(self, goofy_server):
     base = os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR, 'goofy', 'plugins')
-    for name, instance in iteritems(self._plugins):
+    for name, instance in self._plugins.items():
       plugin_paths = name.split('.')
       if len(plugin_paths) < 2:
         continue
@@ -142,7 +141,7 @@ class PluginController(object):
 
   def _RegisterRPC(self, goofy_server):
     """Registers plugins to Goofy server."""
-    for plugin_path, plugin_instance in iteritems(self._plugins):
+    for plugin_path, plugin_instance in self._plugins.items():
       rpc_instance = plugin_instance.GetRPCInstance()
       if rpc_instance is not None:
         goofy_server.AddRPCInstance(

@@ -9,8 +9,6 @@ import logging
 import re
 import subprocess
 
-from six import iteritems
-
 from cros.factory.device import device_types
 from cros.factory.utils import process_utils
 
@@ -67,7 +65,7 @@ class Storage(device_types.DeviceComponent):
       logging.warning('Invalid keys: %r (keys can only be string)',
                       invalid_keys)
       logging.warning('These keys will be removed')
-      data = {k: v for (k, v) in iteritems(data) if k not in invalid_keys}
+      data = {k: v for (k, v) in data.items() if k not in invalid_keys}
 
     device_data_file_path = self.GetDictFilePath()
 

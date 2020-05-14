@@ -14,7 +14,6 @@ import os.path
 import unittest
 
 import mock
-from six import iteritems
 
 from cros.factory.device import device_types
 from cros.factory.device import thermal
@@ -101,7 +100,7 @@ class CoreTempSensorTest(unittest.TestCase):
         '0/temp1_input': '52000',
         '0/temp2_input': '37000',
         '1/hwmon/hwmon0/temp1_input': '47000'}
-    for suffix, value in iteritems(values):
+    for suffix, value in values.items():
       self.mock_files[_CORETEMP_PREFIX + suffix] = value
     self.mockProbe()
     self.assertEqual(self.sensor.GetAllValues(), {'coretemp.0 Package 0': 52,

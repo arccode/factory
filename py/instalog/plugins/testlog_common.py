@@ -7,8 +7,6 @@
 import datetime
 import json
 
-from six import iteritems
-
 from cros.factory.instalog import json_utils
 from cros.factory.instalog.utils import time_utils
 
@@ -37,12 +35,12 @@ def From0_1to0_21(event):
       if event['status'] == 'FAILED':
         event['status'] = 'FAIL'
     if 'arguments' in event:
-      for name, dct in iteritems(event['arguments']):
+      for name, dct in event['arguments'].items():
         dct['value'] = json.dumps(dct['value'])
 
     new_parameters = {}
     if 'series' in event:
-      for name, dct in iteritems(event['series']):
+      for name, dct in event['series'].items():
         key_name = name + '_key'
         value_name = name + '_value'
         new_parameters[key_name] = {'group': name, 'type': 'argument',
@@ -63,7 +61,7 @@ def From0_1to0_21(event):
             new_parameters[value_name]['data'].append(data)
       del event.payload['series']
     if 'parameters' in event:
-      for name, dct in iteritems(event['parameters']):
+      for name, dct in event['parameters'].items():
         name = 'parameter_' + name
         new_parameters[name] = {'type': 'measurement'}
         if 'description' in dct:

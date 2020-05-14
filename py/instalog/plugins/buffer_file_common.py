@@ -80,8 +80,6 @@ import os
 import shutil
 import zlib
 
-from six import iteritems
-
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import lock_utils
 from cros.factory.instalog import log_utils
@@ -216,7 +214,7 @@ def MoveAndWrite(config_dct, events):
     f.seek(0, 2)  # 2 means use EOF as the reference point.
     assert f.tell() == cur_pos
     for event in events:
-      for att_id, att_path in iteritems(event.attachments):
+      for att_id, att_path in event.attachments.items():
         target_name = '%s_%s' % (cur_seq, att_id)
         target_path = os.path.join(config_dct['attachments_dir'], target_name)
         event.attachments[att_id] = target_name
@@ -594,12 +592,12 @@ class BufferFile(log_utils.LoggerMixin):
       # that event doesn't exist yet, it will be set to the next (non-existent)
       # sequence ID.  We must subtract 1 to get the "last completed" event.
       cur_seqs = {key: consumer.cur_seq - 1
-                  for key, consumer in iteritems(self.consumers)}
+                  for key, consumer in self.consumers.items()}
       # Grab last_seq at the end, in order to guarantee that for any consumer,
       # last_seq >= cur_seq, and that all last_seq are equal.
       last_seq = self.last_seq
       return {key: (cur_seq, last_seq)
-              for key, cur_seq in iteritems(cur_seqs)}
+              for key, cur_seq in cur_seqs.items()}
 
   def Consume(self, name):
     """See BufferPlugin.Consume."""

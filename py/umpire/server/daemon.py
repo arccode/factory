@@ -15,7 +15,6 @@ updater.
 import logging
 import signal
 
-from six import iteritems
 from twisted.internet import defer
 from twisted.internet import reactor
 from twisted.python import failure as twisted_failure
@@ -187,7 +186,7 @@ class UmpireDaemon(object):
       Yields:
         Active service names.
       """
-      for name, service_config in iteritems(config.services):
+      for name, service_config in config.services.items():
         if getattr(service_config, 'active', True):
           yield name
 

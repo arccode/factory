@@ -4,8 +4,6 @@
 
 """Validator for HWID DB."""
 
-from six import iteritems
-
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import bom
 from cros.factory.hwid.v3 import verify_db_pattern
@@ -39,7 +37,7 @@ def ValidateChange(prev_db, db):
 
 @_RegisterValidateIntegrityFunc
 def _ValidateDramTag(db):
-  for dram_tag, dram_info in iteritems(db.GetComponents('dram')):
+  for dram_tag, dram_info in db.GetComponents('dram').items():
     if dram_tag in _BLACKLIST_DRAM_TAG:
       continue
     try:

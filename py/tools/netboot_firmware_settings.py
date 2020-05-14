@@ -13,8 +13,6 @@ import socket
 import struct
 import sys
 
-from six import iteritems
-
 from cros.factory.utils import fmap
 
 
@@ -214,7 +212,7 @@ class Settings(object):
     """
     value = self.signature
     value += struct.pack('<I', len(self.attributes))
-    for unused_i, attr in iteritems(self.attributes):
+    for unused_i, attr in self.attributes.items():
       value += attr.pack()
     return value
 

@@ -12,7 +12,6 @@ import tempfile
 import unittest
 
 import mock
-from six import iteritems
 
 from cros.factory.test import device_data
 from cros.factory.test import state
@@ -150,7 +149,7 @@ class TestListLoaderTest(unittest.TestCase):
         list(expected),
         [test.path for test in factory_test_list.Walk() if test.IsLeaf()])
 
-    for key, value in iteritems(expected):
+    for key, value in expected.items():
       self.assertEqual(
           value,
           factory_test_list.LookupPath(key).action_on_failure)
@@ -170,7 +169,7 @@ class TestListLoaderTest(unittest.TestCase):
         'SMT.LEDTest_2': ['WHITE'],
     }
 
-    for path, colors in iteritems(expected):
+    for path, colors in expected.items():
       self.assertEqual(
           colors, test_list.LookupPath(path).dargs['colors'])
 

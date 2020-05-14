@@ -4,8 +4,6 @@
 
 import re
 
-from six import iteritems
-
 from cros.factory.probe import function
 from cros.factory.utils.arg_utils import Arg
 
@@ -110,7 +108,7 @@ class MatchFunction(function.Function):
     self.is_dict = isinstance(self.args.rule, dict)
     if self.is_dict:
       self.rule = {key: self.ConstructRule(value)
-                   for key, value in iteritems(self.args.rule)}
+                   for key, value in self.args.rule.items()}
     else:
       self.rule = self.ConstructRule(self.args.rule)
 
@@ -125,7 +123,7 @@ class MatchFunction(function.Function):
     if not self.is_dict:
       return len(item) == 1 and _Match(self.rule, next(iter(item.values())))
     return all([key in item and _Match(rule, item[key])
-                for key, rule in iteritems(self.rule)])
+                for key, rule in self.rule.items()])
 
   @classmethod
   def ConstructRule(cls, rule):

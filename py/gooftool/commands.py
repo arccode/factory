@@ -24,8 +24,6 @@ import threading
 import time
 import xmlrpc.client
 
-from six import iteritems
-
 from cros.factory.gooftool.common import ExecFactoryPar
 from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool.core import Gooftool
@@ -901,7 +899,7 @@ def GetFirmwareHash(options):
   """Get firmware hash from a file"""
   if os.path.exists(options.file):
     value_dict = chromeos_firmware.CalculateFirmwareHashes(options.file)
-    for key, value in iteritems(value_dict):
+    for key, value in value_dict.items():
       print('  %s: %s' % (key, value))
   else:
     raise Error('File does not exist: %s' % options.file)

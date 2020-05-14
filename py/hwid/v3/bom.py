@@ -25,8 +25,6 @@ import collections
 import logging
 import re
 
-from six import iteritems
-
 from cros.factory.utils import type_utils
 
 
@@ -48,7 +46,7 @@ class BOM(object):
     self.image_id = image_id
     self.components = {}
 
-    for comp_cls, comp_names in iteritems(components):
+    for comp_cls, comp_names in components.items():
       self.SetComponent(comp_cls, comp_names)
 
   def SetComponent(self, comp_cls, comp_names):

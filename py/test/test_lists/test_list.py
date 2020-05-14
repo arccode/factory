@@ -12,8 +12,6 @@ import json
 import logging
 import os
 
-from six import iteritems
-
 from cros.factory.test import i18n
 from cros.factory.test.i18n import translation
 from cros.factory.test.rules import phase
@@ -227,7 +225,7 @@ class Options(object):
     """
     result = {
         k: v
-        for k, v in iteritems(self.__class__.__dict__) if k[0].islower()
+        for k, v in self.__class__.__dict__.items() if k[0].islower()
     }
     result.update(self.__dict__)
     return result
@@ -347,7 +345,7 @@ class FactoryTestList(test_object_module.FactoryTest):
     # or the TestState object itself. Convert accordingly.
     return dict(
         (self.LookupPath(k), TestState.FromDictOrObject(v))
-        for k, v in iteritems(self.state_instance.GetTestStates()))
+        for k, v in self.state_instance.GetTestStates().items())
 
   def LookupPath(self, path):
     """Looks up a test from its path."""
@@ -449,7 +447,7 @@ class ITestList(object, metaclass=abc.ABCMeta):
 
     def ConvertToBasicType(value):
       if isinstance(value, collections.Mapping):
-        return {k: ConvertToBasicType(v) for k, v in iteritems(value)}
+        return {k: ConvertToBasicType(v) for k, v in value.items()}
       elif isinstance(value, str):
         return value
       elif isinstance(value, (list, tuple)):
@@ -461,7 +459,7 @@ class ITestList(object, metaclass=abc.ABCMeta):
     def ResolveArg(key, value):
       if isinstance(value, collections.Mapping):
         return {k: ResolveArg('%s[%r]' % (key, k), v)
-                for k, v in iteritems(value)}
+                for k, v in value.items()}
 
       if isinstance(value, collections.Sequence):
         if not isinstance(value, str):
@@ -481,7 +479,7 @@ class ITestList(object, metaclass=abc.ABCMeta):
 
       return MayTranslate(value)
     return ConvertToBasicType(
-        {k: ResolveArg(k, v) for k, v in iteritems(test_args)})
+        {k: ResolveArg(k, v) for k, v in test_args.items()})
 
   @debug_utils.CatchException(_LOGGED_NAME)
   def SetSkippedAndWaivedTests(self):
@@ -549,7 +547,7 @@ class ITestList(object, metaclass=abc.ABCMeta):
     _CollectPatterns(self.options.skipped_tests, _MarkSkipped)
     _CollectPatterns(self.options.waived_tests, _MarkWaived)
 
-    for test_path, test in iteritems(self.path_map):
+    for test_path, test in self.path_map.items():
       test_path = test_path.split(':')[-1]  # To remove test_list_id
       for match, action in patterns:
         if match(test_path):
@@ -742,7 +740,7 @@ class TestList(ITestList):
 
     # Handle override_args
     if 'override_args' in self._config:
-      for key, override in iteritems(self._config['override_args']):
+      for key, override in self._config['override_args'].items():
         test = self._cached_test_list.LookupPath(key)
         if test:
           config_utils.OverrideConfig(test.dargs, override)
@@ -940,7 +938,7 @@ class TestList(ITestList):
     # Note that this method can't catch all kind of potential modification.
     # For example, this property won't become `True` if the user add an
     # additional test list in /var/factory/config/ to override an existing one.
-    for config_file, timestamp in iteritems(self._config.GetDepend()):
+    for config_file, timestamp in self._config.GetDepend().items():
       if os.path.exists(config_file):
         if timestamp != os.stat(config_file).st_mtime:
           return True
@@ -977,7 +975,7 @@ class TestList(ITestList):
         options=NotAccessable(),
         dut=None,
         station=None)
-    for key, value in iteritems(resolved_options):
+    for key, value in resolved_options.items():
       setattr(self._cached_options, key, value)
 
     self._cached_options.CheckValid()

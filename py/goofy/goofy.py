@@ -19,8 +19,6 @@ import traceback
 import uuid
 import xmlrpc.client
 
-from six import iteritems
-
 from cros.factory.device import device_utils
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.goofy import goofy_server
@@ -306,7 +304,7 @@ class Goofy(object):
     self.state_instance = state.FactoryState()
 
     # Write back the preserved data.
-    for key, value in iteritems(preserved_data):
+    for key, value in preserved_data.items():
       if value is not None:
         self.state_instance.DataShelfSetValue(key, value)
 
@@ -1134,7 +1132,7 @@ class Goofy(object):
       if failed_test_lists:
         logging.info('Failed test list IDs: [%s]',
                      ' '.join(failed_test_lists.keys()))
-        for test_list_id, reason in iteritems(failed_test_lists):
+        for test_list_id, reason in failed_test_lists.items():
           logging.error('Error in test list %s: %s', test_list_id, reason)
           startup_errors.append('Error in test list %s:\n%s'
                                 % (test_list_id, reason))
@@ -1255,7 +1253,7 @@ class Goofy(object):
 
     try:
       goofy_default_options = config_utils.LoadConfig(validate_schema=False)
-      for key, value in iteritems(goofy_default_options):
+      for key, value in goofy_default_options.items():
         if getattr(self.args, key, None) is None:
           logging.info('self.args.%s = %r', key, value)
           setattr(self.args, key, value)

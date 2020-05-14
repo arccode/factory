@@ -48,8 +48,6 @@ toolkit is properly installed::
 import logging
 import os
 
-from six import iteritems
-
 from cros.factory.device import device_utils
 from cros.factory.test.event_log import Log
 from cros.factory.test import session
@@ -129,6 +127,6 @@ class StartTest(test_case.TestCase):
 
   def InitializeSharedData(self):
     self.ui.SetState(_('Initialize some shared data...'))
-    for key, value in iteritems(self.args.init_shared_data):
+    for key, value in self.args.init_shared_data.items():
       session.console.debug('DataShelfSetValue[%s] = "%s"', key, value)
       state.DataShelfSetValue(key, value)
