@@ -5,8 +5,6 @@
 import os
 import time
 
-from six import viewitems
-
 from cros.factory.device import device_types
 
 
@@ -29,7 +27,7 @@ def FindDevice(dut, path_pattern, **attr_filter):
   devices = []
   for path in dut.Glob(path_pattern):
     match = True
-    for name, value in viewitems(attr_filter):
+    for name, value in attr_filter.items():
       try:
         if dut.ReadSpecialFile(dut.path.join(path, name)).strip() != value:
           match = False

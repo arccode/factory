@@ -148,8 +148,6 @@ import re
 import tempfile
 import time
 
-from six import viewitems
-
 from cros.factory.device.audio import base
 from cros.factory.device import device_utils
 from cros.factory.test import session
@@ -684,7 +682,7 @@ class AudioLoopTest(test_case.TestCase):
         break
       rate_msg = ', '.join(
           'Mic %d: %.1f%%' %
-          (channel, rate) for channel, rate in viewitems(last_success_rate))
+          (channel, rate) for channel, rate in last_success_rate.items())
       self.ui.CallJSFunction('testInProgress', rate_msg)
 
     if last_success_rate is None:

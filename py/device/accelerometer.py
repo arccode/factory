@@ -11,8 +11,6 @@ import re
 import struct
 import time
 
-from six import viewitems
-
 from cros.factory.device import device_types
 from cros.factory.device import sensor_utils
 
@@ -273,7 +271,7 @@ class AccelerometerController(sensor_utils.BasicSensorController):
     # The data is converted to 1/1024G unit before writing.
     logging.info('Calibration results: %s.', calib_bias)
     scaled = dict((k, str(int(v * 1024 / _GRAVITY)))
-                  for k, v in viewitems(calib_bias))
+                  for k, v in calib_bias.items())
     self._device.vpd.ro.Update(scaled)
     mapping = []
     for signal_name in self.signal_names:
