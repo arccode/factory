@@ -15,7 +15,6 @@ import shutil
 import sys
 
 from six import iteritems
-from six import iterkeys
 
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import converter
@@ -385,7 +384,7 @@ def EnumerateHWIDWrapper(options):
 
   logging.debug('Printing %d sorted HWIDs...', len(hwids))
   if options.no_bom:
-    for k in sorted(iterkeys(hwids)):
+    for k in sorted(hwids):
       Output(k)
   else:
     for k, v in sorted(iteritems(hwids)):

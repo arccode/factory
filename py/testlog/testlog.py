@@ -47,7 +47,6 @@ import threading
 import time
 
 from six import iteritems
-from six import iterkeys
 from six import itervalues
 
 from . import hooks
@@ -822,7 +821,7 @@ class EventBase(object):
                 'The parameters length in the group(%s) are not the same' %
                 group)
 
-    for key in iterkeys(self._data):
+    for key in self._data:
       # Ignore keys that start with an underscore.
       if key.startswith('_'):
         continue
@@ -848,7 +847,7 @@ class EventBase(object):
     Returns:
       The event being modified (self).
     """
-    for key in iterkeys(data):
+    for key in data:
       # Ignore keys that start with an underscore.
       if key.startswith('_'):
         continue

@@ -63,7 +63,6 @@ import threading
 import zipfile
 
 from six import iteritems
-from six import iterkeys
 import yaml
 
 from cros.factory.device import device_utils
@@ -258,7 +257,7 @@ class AudioQualityTest(test_case.TestCase):
       conn.send(instruction + '\x05' + 'Active' + '\x04\x03')
 
       match_command = False
-      for key in iterkeys(self._handlers):
+      for key in self._handlers:
         if key.match(instruction):
           match_command = True
           session.console.info('match command %s', instruction)

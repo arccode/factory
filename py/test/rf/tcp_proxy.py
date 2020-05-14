@@ -44,8 +44,6 @@ import logging
 import pprint
 import uuid
 
-from six import iterkeys
-
 from twisted.internet.protocol import connectionDone
 from twisted.internet.protocol import Factory
 from twisted.internet.protocol import Protocol
@@ -88,7 +86,7 @@ class ClientFactory(ReconnectingClientFactory):
   def boardcastData(self, data):
     logging.debug("boardcastData() is called, active clients:\n%s",
                   pprint.pformat(self.active_duts))
-    for dut_uuid in list(iterkeys(self.active_duts)):
+    for dut_uuid in list(self.active_duts.keys()):
       # Clean inactive duts
       if self.active_duts[dut_uuid][1] is False:
         logging.debug(

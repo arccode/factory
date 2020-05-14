@@ -9,7 +9,6 @@ import numbers
 import os
 
 from six import iteritems
-from six import iterkeys
 
 from cros.factory.test import i18n
 from cros.factory.test.test_lists import test_list_common
@@ -124,7 +123,7 @@ class RPC(object):
 
   def ListPytests(self):
     """Returns a sorted list of pytest names."""
-    return sorted(iterkeys(self._pytests))
+    return sorted(self._pytests)
 
   def GetPytestInfo(self, pytest_name):
     # TODO(youcheng): Provide HTML documents.

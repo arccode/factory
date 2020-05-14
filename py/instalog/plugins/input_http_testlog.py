@@ -55,8 +55,6 @@ from __future__ import print_function
 import logging
 import time
 
-from six import iterkeys
-
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import input_http
 from cros.factory.instalog.plugins import testlog_common
@@ -100,7 +98,7 @@ class InputHTTPTestlog(input_http.InputHTTP):
       if len(event.attachments) != len(event['attachments']):
         raise ValueError("event['attachment'] are not consistent with "
                          'attachments in requests.')
-      for key in iterkeys(event['attachments']):
+      for key in event['attachments']:
         if key not in event.attachments:
           raise ValueError("event['attachment'] are not consistent with "
                            'attachments in requests.')
