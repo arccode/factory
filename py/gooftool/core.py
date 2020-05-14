@@ -927,7 +927,7 @@ class Gooftool(object):
       logging.exception('Failed to set Cr50 Board ID.')
       raise
 
-  def Cr50WriteFlashInfo(self, expect_zero_touch=False):
+  def Cr50WriteFlashInfo(self, expect_zero_touch=False, rma_mode=False):
     """Write device info into cr50 flash."""
     if expect_zero_touch and not self.CheckCr50SetSnBitsDependency():
       logging.error('zero_touch feature is expected, but we cannot find '
@@ -957,7 +957,8 @@ class Gooftool(object):
           raise Error('whitelabel_tag reported by cros_config and VPD does not '
                       'match.  Have you reboot the device after updating VPD '
                       'fields?')
-    self.Cr50SetSnBits()
+    if not rma_mode:
+      self.Cr50SetSnBits()
     self.Cr50SetBoardId(is_whitelabel)
 
   def Cr50WriteWhitelabelFlags(self):
