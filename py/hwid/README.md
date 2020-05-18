@@ -106,8 +106,8 @@ needs to be manually updated in the following scenarios:
 # Build the HWID database
 $ hwid build-database \
     --project <project name> \
-    --output-database-path <output folder> \
     --probed-results-file <probed result file> \
+    [--hwid-db-path <hwid db folder>] \
     [--image-id <IMAGE_ID>] \  # Name of the image_id, default is 'EVT'
     [--add-default-component COMP [COMP ...]] \  # Add the default item
     [--add-null-component COMP [COMP ...]] \  # Add the null item
@@ -117,7 +117,7 @@ $ hwid build-database \
 # Update the HWID database
 $ hwid update-database \
     --project <project name> \
-    --output-database-path <output folder> \
+    [--hwid-db-path <hwid db folder>] \
     [--probed-results-file <probed result file>] \
     [--output-database <output file>] \  # Write into different file
     [--image-id <IMAGE_ID>] \  # Name of the image_id
@@ -125,6 +125,9 @@ $ hwid update-database \
     [--add-null-component COMP [COMP ...]] \  # Add the null item
     [--region REGION [REGION ...]] \  # Add supported regions
     [--chassis ID1 [ID2 ...]] \  # Add supported chassis
+
+# the --hwid-db-path argument is only required if the HWID database is not
+# placed in /usr/local/factory/hwid/
 ```
 
 ### Post-Processing
@@ -176,7 +179,6 @@ $ hwid probe --output-file /tmp/probe.json
 # Create the database at /usr/local/factory/hwid/GOOGLE
 $ hwid build-database \
     --probed-results-file /tmp/probe.json \
-    --output-database-path /usr/local/factory/hwid \
     --project GOOGLE \
     --image-id EVT \
     --add-default-component battery \
@@ -199,7 +201,6 @@ $ hwid probe --output-file /tmp/probe.json
 # Update the database at /usr/local/factory/hwid/GOOGLE
 $ hwid update-database \
     --probed-results-file /tmp/probe.json \
-    --output-database-path /usr/local/factory/hwid \
     --project GOOGLE
 ```
 
@@ -266,14 +267,12 @@ The command for this scenario is:
 ```shell
 # Add a default item with "--add-default-component" argument
 $ hwid build-database \
-    --output-database-path /usr/local/factory/hwid \
     --project GOOGLE \
     --probed-results-file /tmp/probe.json \  # the probe result without cellular
     --add-default-component cellular
 
 # Update the database by the probed result
 $ hwid update-database \
-    --output-database-path /usr/local/factory/hwid \
     --project GOOGLE \
     --probed-results-file /tmp/probe.json  # the probe result with cellular "aa"
 ```
@@ -334,7 +333,6 @@ The command for this scenario is:
 ```shell
 # Add a default item with "--add-null-component" argument.
 $ hwid update-database \
-    --output-database-path /usr/local/factory/hwid \
     --project GOOGLE \
     --add-null-component cellular
 ```
@@ -480,14 +478,12 @@ The command for this scenario is:
 ```shell
 # Create the database at EVT build
 $ hwid build-database \
-    --output-database-path /usr/local/factory/hwid \
     --project GOOGLE \
     --image-id EVT \
     --probed-results-file /tmp/probe.json  # the probe result without cellular
 
 # Update the database at DVT build.
 $ hwid update-database \
-    --output-database-path /usr/local/factory/hwid \
     --project GOOGLE \
     --image-id DVT \
     --add-null-component cellular \
@@ -555,7 +551,6 @@ The command for this scenario is:
 ```shell
 # Update the database without assigning the image_id.
 $ hwid update-database \
-    --output-database-path /usr/local/factory/hwid \
     --project GOOGLE \
     --probed-results-file /tmp/probe.json  # the probe result with cellular "aa"
 
