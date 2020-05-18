@@ -92,13 +92,14 @@ def main(args):
                         ignore_stdout=True)
     # Run the copy of this script under overlay-board directory.
     overlay_dir = os.path.join(paths.FACTORY_DIR, 'overlay-' + options.board)
+    overlay_factory_env = os.path.join(overlay_dir, 'bin', 'factory_env')
     tools_dir = os.path.join(overlay_dir, 'py', 'tools')
     overlay_checker_path = os.path.join(tools_dir, os.path.basename(__file__))
     # Remove --board argument.
     board_index = args.index('--board')
-    new_args = ([overlay_checker_path] + args[:board_index] +
-                args[board_index + 2:])
-    os.execv(overlay_checker_path, new_args)
+    new_args = ([overlay_factory_env, overlay_checker_path] +
+                args[:board_index] + args[board_index + 2:])
+    os.execv(overlay_factory_env, new_args)
 
   manager_ = manager.Manager()
   for test_list_id in options.test_list_id:
