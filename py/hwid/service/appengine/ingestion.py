@@ -32,9 +32,9 @@ from cros.factory.utils import json_utils
 def _AuthCheck(func):
   """Checks if requests are from known source.
 
-  For /ingestion/refresh API, hwid service only allows cron job (via GET) and
-  taskqueue (via POST) requests.  However, for e2e testing purpose, requests
-  with API key are also allowed.
+  For /ingestion/refresh  and /ingestion/sync_name_pattern API, hwid service
+  only allows cron job (via GET) and taskqueue (via POST) requests.  However,
+  for e2e testing purpose, requests with API key are also allowed.
   """
 
   def wrapper(self, *args, **kwargs):
@@ -87,6 +87,60 @@ class DevUploadHandler(webapp2.RequestHandler):
 
     for filename in self._hwid_filesystem.ListFiles():
       self.response.write('%s\n' % filename)
+
+
+class SyncNamePatternHandler(webapp2.RequestHandler):
+  """Sync name pattern from chromeos-hwid repo
+
+  In normal circumstances the cron job triggers the refresh hourly, however it
+  can be triggered by admins.  The actual work is done by the default
+  background task queue.
+
+  The task queue POSTS back into this hander to do the actual work.
+
+  This handler will copy the name_pattern directory under chromeos-hwid dir to
+  cloud storage.
+  """
+  NAME_PATTERN_FOLDER = "name_pattern"
+
+  def __init__(self, request, response):  # pylint: disable=super-on-old-class
+    super(SyncNamePatternHandler, self).__init__(request, response)
+    self.hwid_filesystem = CONFIG.hwid_filesystem
+
+  # Cron jobs are always GET requests, we are not acutally doing the work
+  # here just queuing a task to be run in the background.
+  @_AuthCheck
+  def get(self):
+    taskqueue.add(url='/ingestion/sync_name_pattern')
+
+  # Task queue executions are POST requests.
+  @_AuthCheck
+  def post(self):
+    """Refreshes the ingestion from staging files to live."""
+    service_account_name = app_identity.get_service_account_name()
+    token, unused_expires_at = app_identity.get_access_token(
+        'https://www.googleapis.com/auth/gerritcodereview')
+    auth_cookie = 'o=git-{service_account_name}={token}'.format(
+        service_account_name=service_account_name,
+        token=token)
+    git_url = "https://chrome-internal.googlesource.com/chromeos/chromeos-hwid"
+    repo = git_util.MemoryRepo(auth_cookie)
+
+    existing_files = set(self.hwid_filesystem.ListFiles(
+        self.NAME_PATTERN_FOLDER))
+    repo.shallow_clone(git_url, branch='master')
+    for name, mode, content in repo.list_files(self.NAME_PATTERN_FOLDER):
+      if mode == git_util.NORMAL_FILE_MODE:
+        self.hwid_filesystem.WriteFile(
+            '/%s/%s' % (self.NAME_PATTERN_FOLDER, name), content)
+        existing_files.discard(name)
+      else:
+        logging.debug('Skip non-file %r under %r folder', name,
+                      self.NAME_PATTERN_FOLDER)
+    # remove files not existed on repo but still on cloud storage
+    for name in existing_files:
+      self.hwid_filesystem.DeleteFile('/%s/%s' % (
+          self.NAME_PATTERN_FOLDER, name))
 
 
 class RefreshHandler(webapp2.RequestHandler):
@@ -332,7 +386,7 @@ class RefreshHandler(webapp2.RequestHandler):
 
     payload_hash_mapping = {}
     service_account_name = app_identity.get_service_account_name()
-    token, unused_expiresAt = app_identity.get_access_token(
+    token, unused_expires_at = app_identity.get_access_token(
         'https://www.googleapis.com/auth/gerritcodereview')
     auth_cookie = 'o=git-{service_account_name}={token}'.format(
         service_account_name=service_account_name,

@@ -17,6 +17,7 @@ ingestion_app = webapp2.WSGIApplication(
     [
         ('/ingestion/upload', ingestion.DevUploadHandler),
         ('/ingestion/refresh', ingestion.RefreshHandler),
+        ('/ingestion/sync_name_pattern', ingestion.SyncNamePatternHandler),
         ('/ingestion/all_devices_refresh',
          goldeneye_ingestion.AllDevicesRefreshHandler),
     ],
