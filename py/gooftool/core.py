@@ -722,7 +722,11 @@ class Gooftool(object):
             'flashrom -p ec --wp-status || '
             'echo "EC is not available."').stdout,
         'bios_wp_status': self._util.shell(
-            'flashrom -p host --wp-status').stdout}
+            'flashrom -p host --wp-status').stdout,
+        'cr50_board_id': self._util.shell('gsctool -a -i -M').stdout,
+        'cr50_sn_bits': self._util.shell(
+            '/usr/share/cros/cr50-read-rma-sn-bits.sh').stdout,
+    }
 
   def ClearFactoryVPDEntries(self):
     """Clears factory related VPD entries in the RW VPD.
