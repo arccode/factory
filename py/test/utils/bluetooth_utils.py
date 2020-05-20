@@ -42,6 +42,9 @@ class BtMgmt(object):
     """Get the bluetooth hci device and MAC of the adapter with specified
     manufacturer id.
 
+    If manufacturer_id is None and only one MAC is found, store the one found.
+    Raise error when more then one MAC is found and no manufacturer_id is set.
+
     Examples of the output from "btmgmt info" could be as follows depending
     on the version of btmgmt.
 
@@ -54,12 +57,10 @@ class BtMgmt(object):
                 addr 00:1A:7D:DA:71:14 version 6 manufacturer 10 class 0x480104
         ...
     """
-    if manufacturer_id is None:
-      return
-
     patt = re.compile(
         r'.*\s+addr\s+(.+)\s+version.+manufacturer\s(\d+)\s+class.+')
     hci_device = None
+    host_mac_list = []
     for line in process_utils.CheckOutput(['btmgmt', 'info']).splitlines():
       if line.startswith('hci'):
         hci_device = line.split(':')[0]
@@ -72,6 +73,13 @@ class BtMgmt(object):
           self._hci_device = hci_device
           self._host_mac = result.group(1)
           return
+        host_mac_list.append((hci_device, result.group(1)))
+    if len(host_mac_list) > 1:
+      raise NotImplementedError('More then one MAC address while no'
+                                'mamufacturer_id specified.')
+    elif len(host_mac_list) == 1:
+      self._hci_device = host_mac_list[0][0]
+      self._host_mac = host_mac_list[0][1]
 
   def GetMac(self):
     """Get the MAC address of the bluetooth adapter."""

@@ -15,7 +15,28 @@ from cros.factory.test.utils import bluetooth_utils
 
 class BtMgmtTest(unittest.TestCase):
   def setUp(self):
-    self.btmgmt = bluetooth_utils.BtMgmt()
+    with mock.patch('cros.factory.utils.process_utils.CheckOutput') as (
+        checkoutput_mock):
+      checkoutput_mock.return_value = (
+          'Index list with 1 item\n'
+          'hci0:   Primary controller\n'
+          '        addr 3C:28:6D:01:02:03 version 10 manufacturer 29 class'
+          ' 0x000000\n'
+          '        supported settings: powered connectable fast-connectable'
+          ' discoverable bondable link-security ssp br/edr hs le advertising'
+          ' secure-conn debug-keys privacy configuration static-addr'
+          ' phy-configuratio\n'
+          '        current settings: bondable ssp br/edr le secure-conn'
+          ' wide-band-speech\n'
+          '        name Chromebook\n'
+          '        short name\n'
+          'hci0:   Configuration options\n'
+          '        supported options: public-address\n'
+          '        missing options: public-address\n')
+      self.btmgmt = bluetooth_utils.BtMgmt()
+
+  def testSearchMacAddress(self):
+    self.assertEqual(self.btmgmt.GetMac(), '3C:28:6D:01:02:03')
 
   @mock.patch('cros.factory.utils.process_utils.CheckOutput')
   def testFindTtyByDriver(self, checkoutput_mock):
