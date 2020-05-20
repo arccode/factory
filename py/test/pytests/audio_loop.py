@@ -138,6 +138,32 @@ Audiofuntest on 'mlb' mics of input_dev and speaker channel 0 of output_dev::
         ]
       }
     }
+
+AudioJack test using ucm config directly. Make sure your audio.json is not set
+for your sound card. Otherwise the test will use audio.json instead of ucm::
+
+    {
+      "pytest_name": "audio_loop",
+      "disable_services": ["cras"],
+      "args": {
+        "input_dev": ["kblrt5514rt5663max", "Extmic"],
+        "output_dev": ["kblrt5514rt5663max", "Headphone"],
+        "output_volume": 15,
+        "mic_source": "Extmic",
+        "require_dongle": true,
+        "check_dongle": true,
+        "initial_actions": [
+          ["kblrt5514rt5663max", null]
+        ],
+        "tests_to_conduct": [
+          {
+            "freq_threshold": 50,
+            "type": "sinewav",
+            "rms_threshold": [0.08, null]
+          }
+        ]
+      }
+    }
 """
 
 from __future__ import print_function
@@ -203,6 +229,48 @@ _DEFAULT_TRIM_SECONDS = 0.5
 _DEFAULT_MIN_FREQUENCY = 4000
 # Default maximum frequency.
 _DEFAULT_MAX_FREQUENCY = 10000
+
+_ARG_INPUT_DEVICE_SCHEMA = JSONSchemaDict('input_dev schema object', {
+    'type': 'array',
+    'items': [
+        {'type': 'string'},
+        {
+            'anyOf': [
+                {
+                    'type': 'string',
+                    'pattern': '^[0-9]+$'
+                },
+                {
+                    'type': 'string',
+                    'enum': list(base.InputDevices)
+                }
+            ]
+        }
+    ],
+    'minItems': 2,
+    'maxItems': 2
+})
+
+_ARG_OUTPUT_DEVICE_SCHEMA = JSONSchemaDict('output_dev schema object', {
+    'type': 'array',
+    'items': [
+        {'type': 'string'},
+        {
+            'anyOf': [
+                {
+                    'type': 'string',
+                    'pattern': '^[0-9]+$'
+                },
+                {
+                    'type': 'string',
+                    'enum': list(base.OutputDevices)
+                }
+            ]
+        }
+    ],
+    'minItems': 2,
+    'maxItems': 2
+})
 
 _ARG_TESTS_TO_CONDUCT_SCHEMA = JSONSchemaDict('tests_to_conduct schema', {
     'type': 'array',
@@ -303,13 +371,23 @@ class AudioLoopTest(test_case.TestCase):
           'will be invoked.',
           default=None),
       Arg('input_dev', list,
-          'Input ALSA device. [card_name, sub_device].'
-          'For example: ["audio_card", "0"].', ['0', '0']),
+          'Input ALSA device. [card_name, sub_device]. '
+          'For example: ["audio_card", "0"]. The sub_device could be a string '
+          'of an integer or one of %r. If this argument is a string of an '
+          'integer then it represents the PCM Id. Otherwise the test will find '
+          'the PCM Id from UCM config using this argument as the keyword.'
+          % list(base.InputDevices), default=['0', '0'],
+          schema=_ARG_INPUT_DEVICE_SCHEMA),
       Arg('num_input_channels', int,
           'Number of input channels.', default=2),
       Arg('output_dev', list,
-          'Output ALSA device. [card_name, sub_device].'
-          'For example: ["audio_card", "0"].', ['0', '0']),
+          'Output ALSA device. [card_name, sub_device]. '
+          'For example: ["audio_card", "0"]. The sub_device could be a string '
+          'of an integer or one of %r. If this argument is a string of an '
+          'integer then it represents the PCM Id. Otherwise the test will find '
+          'the PCM Id from UCM config using this argument as the keyword.'
+          % list(base.OutputDevices), default=['0', '0'],
+          schema=_ARG_OUTPUT_DEVICE_SCHEMA),
       Arg('output_volume', (int, list),
           'An int of output volume or a list of output volume candidates',
           default=None),
@@ -390,18 +468,6 @@ class AudioLoopTest(test_case.TestCase):
     if self.args.audio_conf:
       self._dut.audio.LoadConfig(self.args.audio_conf)
 
-    # Transfer input and output device format
-    self._in_card = self._dut.audio.GetCardIndexByName(self.args.input_dev[0])
-    self._in_device = self.args.input_dev[1]
-    self._out_card = self._dut.audio.GetCardIndexByName(self.args.output_dev[0])
-    self._out_device = self.args.output_dev[1]
-
-    # Backward compatible for non-porting case, which use ALSA device name.
-    # only works on chromebook device
-    # TODO(mojahsu) Remove them later.
-    self._alsa_input_device = 'hw:%s,%s' % (self._in_card, self._in_device)
-    self._alsa_output_device = 'hw:%s,%s' % (self._out_card, self._out_device)
-
     self._output_volumes = self.args.output_volume
     if not isinstance(self._output_volumes, list):
       self._output_volumes = [self._output_volumes]
@@ -432,6 +498,29 @@ class AudioLoopTest(test_case.TestCase):
           self._dut.audio.Initialize(card)
         else:
           self._dut.audio.ApplyAudioConfig(action, card)
+
+    # Transfer input and output device format
+    self._in_card = self._dut.audio.GetCardIndexByName(self.args.input_dev[0])
+    if self.args.input_dev[1].isdigit():
+      self._in_device = self.args.input_dev[1]
+    else:
+      # Detect _in_device from ucm config.
+      self._in_device = self._dut.audio.config_mgr.GetPCMId(
+          'CapturePCM', self.args.input_dev[1], self._in_card)
+
+    self._out_card = self._dut.audio.GetCardIndexByName(self.args.output_dev[0])
+    if self.args.output_dev[1].isdigit():
+      self._out_device = self.args.output_dev[1]
+    else:
+      # Detect _out_device from ucm config.
+      self._out_device = self._dut.audio.config_mgr.GetPCMId(
+          'PlaybackPCM', self.args.output_dev[1], self._out_card)
+
+    # Backward compatible for non-porting case, which use ALSA device name.
+    # only works on chromebook device
+    # TODO(mojahsu) Remove them later.
+    self._alsa_input_device = 'hw:%s,%s' % (self._in_card, self._in_device)
+    self._alsa_output_device = 'hw:%s,%s' % (self._out_card, self._out_device)
 
     self._current_test_args = None
 

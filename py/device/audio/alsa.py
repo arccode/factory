@@ -81,6 +81,8 @@ class AlsaMixerController(base.BaseMixerController):
 
   def GetCardIndexByName(self, card_name):
     """See BaseMixerController.GetCardIndexByName"""
+    if not isinstance(card_name, str):
+      raise ValueError('card_name %r is not a str' % card_name)
     if card_name.isdigit():
       return card_name
     output = self._device.CallOutput(['aplay', '-l'])
@@ -113,9 +115,11 @@ class AlsaAudioControl(base.BaseAudioControl):
       # If a factory audio config is there, use it.
       config_mgr = config_manager.JSONAudioConfigManager(
           self.mixer_controller, config_name)
-      return config_mgr
+      # Ignore if the config is empty.
+      if config_mgr.audio_config:
+        return config_mgr
     except Exception:
-      pass
+      logging.exception('config %s is not valid', config_name)
 
     # Factory audio config does not exist. Use UCM config manager.
     return config_manager.UCMConfigManager(

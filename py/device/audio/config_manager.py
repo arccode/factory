@@ -9,6 +9,7 @@ import logging
 import re
 import subprocess
 
+from cros.factory.device import device_types
 from cros.factory.utils import config_utils
 from cros.factory.utils import type_utils
 
@@ -26,6 +27,8 @@ _SCRIPT_CARD_INDEX = '999'
 DEFAULT_JSON_CONFIG_NAME = 'audio'
 
 MicJackType = type_utils.Enum(['none', 'lrgm', 'lrmg'])
+PCMType = type_utils.Enum(['PlaybackPCM', 'CapturePCM'])
+DEVICE_STATE = type_utils.Enum(['Enabled', 'Disabled', 'Initial'])
 # Used for external command return value
 MIC_JACK_TYPE_RETURN_LRGM = '1'
 MIC_JACK_TYPE_RETURN_LRMG = '2'
@@ -442,6 +445,8 @@ class UCMConfigManager(BaseConfigManager):
     self._device_map = device_map
     if self._device_map is None:
       self._device_map = self._DefaultDeviceMap
+    self._device_state = {
+        device: DEVICE_STATE.Initial for device in self._device_map}
 
     self._verb = verb
     if self._verb is None:
@@ -489,7 +494,10 @@ class UCMConfigManager(BaseConfigManager):
 
   def _GetCardName(self, card):
     """Get card name of the card index with UCM suffix."""
-    return self._card_map[card]
+    try:
+      return self._card_map[card]
+    except KeyError:
+      raise KeyError('%s is not in %r' % (card, self._card_map))
 
   def _GetDeviceName(self, device):
     try:
@@ -580,35 +588,69 @@ class UCMConfigManager(BaseConfigManager):
       logging.error(
           'Failed to run alsaucm. Commands: [%s] Output: [%s] Error: [%s]',
           commands, out_msg, err_msg)
-      raise subprocess.CalledProcessError(
+      raise device_types.CalledProcessError(
           returncode=rc, cmd=str(commands), output=str(out_msg))
+    return out_msg
 
   def _InvokeCardCommands(self, card, *commands):
-    self._InvokeAlsaUCM(
+    return self._InvokeAlsaUCM(
         'open %s' % self._GetCardName(card),
         *commands)
 
-  def _InvokeDeviceCommands(self, card, *commands):
-    self._InvokeCardCommands(
-        card,
-        'set _verb %s' % self._verb,
-        *commands)
+  def _InvokeDeviceCommands(self, card, *suffix_commands):
+    commands = ['reset', 'set _verb %s' % self._verb]
+    # 'set _verb' resets devices state to initial state for some sound card but
+    # we can not 'set _enadev' without 'set _verb' first. So we just reset all
+    # devices here.
+    for device, state in self._device_state.items():
+      if state == DEVICE_STATE.Initial:
+        continue
+      device_name = self._GetDeviceName(device)
+      # The ucm config expects enable before disable so we always enable it
+      # after reset. Also 'alsaucm' may return 1 if the command ends with
+      # quotes. The quotes are used to pass device name with space, such as
+      # "Internal Mic". So we append a 'h' at the end of these kind of commands.
+      # 'h' prints the help page of alsaucm.
+      commands.append('set _enadev "%s" h' % device_name)
+      if state == DEVICE_STATE.Disabled:
+        commands.append('set _disdev "%s" h' % device_name)
+    return self._InvokeCardCommands(card, *commands, *suffix_commands)
 
   def Initialize(self, card='0'):
     """Initialize the sound card."""
+    self._device_state = {
+        device: DEVICE_STATE.Initial for device in self._device_state}
     self._InvokeCardCommands(card, 'reset')
 
   def EnableDevice(self, device, card='0'):
     """Enable a certain device on sound card."""
-    self._InvokeDeviceCommands(
-        card,
-        'set _enadev "%s"' % self._GetDeviceName(device))
+    if device not in self._device_state:
+      raise KeyError(str(device))
+    self._device_state[device] = DEVICE_STATE.Enabled
+    self._InvokeDeviceCommands(card)
 
   def DisableDevice(self, device, card='0'):
     """Disable a certain device on sound card."""
-    self._InvokeDeviceCommands(
-        card,
-        'set _disdev "%s"' % self._GetDeviceName(device))
+    # device not present may be disable with DisableAllAudioInputs and
+    # DisableAllAudioOutputs.
+    if device not in self._device_state:
+      raise KeyError(str(device))
+    self._device_state[device] = DEVICE_STATE.Disabled
+    self._InvokeDeviceCommands(card)
+
+  def GetPCMId(self, category, device, card):
+    """Return the card index and device index of a device."""
+    if category not in PCMType:
+      raise ValueError('category must in one of %r' % PCMType)
+    card_name = self._GetCardName(card)
+    device_name = self._GetDeviceName(device)
+    identity = '%s/%s' % (category, device_name)
+    output = self._InvokeDeviceCommands(card, 'get "%s" h' % identity).strip()
+    match = re.search(r'^(.+)=hw:.+,(\d+)$', output, re.MULTILINE)
+    if match and match.group(1) == identity:
+      return match.group(2)
+    raise ValueError(
+        'Wrong output format. output:%r card_name:%r' % (output, card_name))
 
   def LoadConfig(self, config_name):
     raise Exception('UCM config does not support LaodConfig operation.')
