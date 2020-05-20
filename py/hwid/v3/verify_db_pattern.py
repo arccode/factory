@@ -17,9 +17,11 @@ This test may be invoked in multiple ways:
 
 import argparse
 import logging
+import multiprocessing
 import os
 import subprocess
 import sys
+import traceback
 import unittest
 
 from cros.factory.hwid.v3 import common
@@ -31,6 +33,24 @@ from cros.factory.hwid.v3 import validator_context
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import process_utils
 from cros.factory.utils.schema import SchemaException
+
+
+def _TestDatabase(targs):
+  db_path, projects_info, commit, hwid_dir = targs
+  project_name = os.path.basename(db_path)
+  if project_name not in projects_info:
+    logging.info('Removing %s in this commit, skipped', project_name)
+    return None
+  try:
+    title = '%s %s:%s' % (project_name, commit, db_path)
+    logging.info('Checking %s', title)
+    if projects_info[project_name]['branch'] != 'master':
+      raise Exception('Project %r is not on master' % (
+          projects_info[project_name]['branch'],))
+    HWIDDBsPatternTest.VerifyDatabasePattern(hwid_dir, commit, db_path)
+    return None
+  except Exception:
+    return (title, traceback.format_exception(*sys.exc_info()))
 
 
 class HWIDDBsPatternTest(unittest.TestCase):
@@ -55,31 +75,34 @@ class HWIDDBsPatternTest(unittest.TestCase):
     projects_info = yaml.load(process_utils.CheckOutput(
         ['git', 'show', '%s:projects.yaml' % target_commit], cwd=hwid_dir))
 
-    def TestDatabase(db_path):
-      project_name = os.path.basename(db_path)
-      if project_name not in projects_info:
-        return
-      self.assertEqual(projects_info[project_name]['branch'], 'master')
-      logging.info('Checking %s:%s...', target_commit, db_path)
-      HWIDDBsPatternTest.VerifyDatabasePattern(hwid_dir, target_commit, db_path)
 
     if self.project:
       if self.project not in projects_info:
         self.fail('Invalid project %r' % self.project)
-      TestDatabase('v3/%s' % self.project)
-      return
-
-    files = os.environ.get('PRESUBMIT_FILES')
-    if files:
-      files = [f.partition('/platform/chromeos-hwid/')[-1]
-               for f in files.splitlines()]
+      test_args = [('v3/%s' % self.project, projects_info, target_commit,
+                    hwid_dir)]
     else:
-      # If PRESUBMIT_FILES is not found, defaults to test all v3 projects in
-      # projects.yaml.
-      files = [b['path'] for b in projects_info.values() if b['version'] == 3]
+      files = os.environ.get('PRESUBMIT_FILES')
+      if files:
+        test_args = [(f.partition('/platform/chromeos-hwid/')[-1],
+                      projects_info, target_commit, hwid_dir)
+                     for f in files.splitlines()]
+      else:
+        # If PRESUBMIT_FILES is not found, defaults to test all v3 projects in
+        # projects.yaml.
+        test_args = [(b['path'], projects_info, target_commit, hwid_dir) for b
+                     in projects_info.values() if b['version'] == 3]
 
-    for f in files:
-      TestDatabase(f)
+    pool = multiprocessing.Pool()
+    exception_list = pool.map(_TestDatabase, test_args)
+    exception_list = list(filter(None, exception_list))
+
+    if exception_list:
+      error_msg = []
+      for title, err_msg_lines in exception_list:
+        error_msg.append('Error occurs in %s\n' % title +
+                         ''.join('  ' + l for l in err_msg_lines))
+      raise Exception('\n'.join(error_msg))
 
   @staticmethod
   def GetOldNewDB(hwid_dir, commit, db_path):
