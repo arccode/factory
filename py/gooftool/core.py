@@ -628,6 +628,35 @@ class Gooftool:
                      ectool_flashprotect, re.MULTILINE):
       raise Error('write protectioin switch of EC is disabled.')
 
+  def VerifySnBits(self):
+    if not self.CheckCr50SetSnBitsDependency():
+      return
+    # Add '-n' to dry run.
+    result = self._util.shell(['/usr/share/cros/cr50-set-sn-bits.sh', '-n'])
+    stdout = result.stdout.strip()
+    stderr = result.stderr.strip()
+    logging.info('status: %d', result.status)
+    logging.info('stdout: %s', stdout)
+    logging.info('stderr: %s', stderr)
+
+    if result.status != 0:
+      # TODO(b/157210082): In the future, it should be okay to have
+      # cr50-set-sn-bits.sh, but not enabling zero-touch.
+
+      # Fail reason, either:
+      # - attested_device_id is not set
+      # - SN bits has been set differently
+      # cr50-set-sn-bits.sh prints errors on stdout instead of stderr.
+      raise Error(stdout)
+
+    if 'This device has been RMAed' in stdout:
+      logging.warning('SN Bits cannot be set anymore.')
+      return
+
+    if 'SN Bits have not been set yet' in stdout:
+      if 'BoardID is set' in stdout:
+        logging.warning('SN Bits cannot be set anymore.')
+
   def GetBitmapLocales(self, image_file):
     """Get bitmap locales
 
