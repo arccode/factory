@@ -151,6 +151,26 @@ class GitUtilTest(unittest.TestCase):
         'John Doe <no-reply@google.com>',
         '')
 
+  def testListFiles(self):
+    new_files = [
+        ('a/b/c', 0o100644, 'content of a/b/c'),
+        ('///a/b////d', 0o100644, 'content of a/b/d'),
+        ('a/b/e/./././f', 0o100644, 'content of a/b/e/f'),
+        ]
+    repo = git_util.MemoryRepo('')
+    tree = Tree()
+    try:
+      tree, unused_new_obj_ids = repo.add_files(new_files, tree)
+      tree.check()
+    except Exception as ex:
+      self.fail("testListFiles raise Exception unexpectedly: %r" % ex)
+    repo.do_commit('Test_commit', tree=tree.id)
+
+    self.assertEqual(sorted(repo.list_files('a/b')),
+                     [('c', git_util.NORMAL_FILE_MODE, 'content of a/b/c'),
+                      ('d', git_util.NORMAL_FILE_MODE, 'content of a/b/d'),
+                      ('e', git_util.DIR_MODE, None)])
+
 
 if __name__ == '__main__':
   unittest.main()

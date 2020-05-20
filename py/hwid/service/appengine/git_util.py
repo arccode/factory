@@ -28,6 +28,9 @@ HEAD = 'HEAD'
 DEFAULT_REMOTE_NAME = 'origin'
 REF_HEADS_PREFIX = 'refs/heads/'
 REF_REMOTES_PREFIX = 'refs/remotes/'
+NORMAL_FILE_MODE = 0o100644
+EXEC_FILE_MODE = 0o100755
+DIR_MODE = 0o040000
 
 
 class GitUtilException(Exception):
@@ -107,8 +110,7 @@ class MemoryRepo(_MemoryRepo):
         sub = Tree()
       new_ids = self.recursively_add_file(
           sub, path_splits[1:], file_name, mode, blob)
-      # 0o040000 is the mode of directory in git object pool
-      cur.add(child_name, 0o040000, sub.id)
+      cur.add(child_name, DIR_MODE, sub.id)
     else:
       # reach the directory of the target file
       if file_name in cur:
@@ -152,6 +154,29 @@ class MemoryRepo(_MemoryRepo):
       all_new_obj_ids += new_obj_ids
 
     return tree, all_new_obj_ids
+
+  def list_files(self, path):
+    """List files under specific path.
+
+    Args:
+      path: the path of dir
+    Returns:
+      A generator that generates (name, mode, content) of files under the
+      path.  if the entry is a directory, content will be None instead.
+    """
+
+    head_commit = self[HEAD]
+    root = self[head_commit.tree]
+    try:
+      mode, sha = root.lookup_path(self.get_object, path)
+    except KeyError:
+      raise GitUtilException('Path %r not found' % (path,))
+    if mode != DIR_MODE:
+      raise GitUtilException('Path %r is not a directory' % (path,))
+    tree = self[sha]
+    for name, mode, file_sha in tree.iteritems():
+      obj = self[file_sha]
+      yield (name, mode, obj.data if obj.type_name == 'blob' else None)
 
 
 def _GetChangeId(tree_id, parent_commit, author, committer, commit_msg):

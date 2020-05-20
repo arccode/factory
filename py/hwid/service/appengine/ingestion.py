@@ -29,9 +29,6 @@ from cros.factory.hwid.service.appengine import \
 from cros.factory.utils import json_utils
 
 
-GIT_NORMAL_FILE_MODE = 0o100644
-
-
 def _AuthCheck(func):
   """Checks if requests are from known source.
 
@@ -260,8 +257,8 @@ class RefreshHandler(webapp2.RequestHandler):
     ccs = self.hwid_manager.GetCLCCs()
     new_git_files = []
     for filepath, filecontent in new_files.items():
-      new_git_files.append((
-          os.path.join(prefix, filepath), GIT_NORMAL_FILE_MODE, filecontent))
+      new_git_files.append((os.path.join(prefix, filepath),
+                            git_util.NORMAL_FILE_MODE, filecontent))
 
     commit_msg = (
         'verification payload: update payload from hwid\n'
