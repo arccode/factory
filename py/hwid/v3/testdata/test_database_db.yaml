@@ -1,4 +1,4 @@
-checksum: 88c68e215886452200a2b7837e61eccd84ca7de7
+checksum: de6dc2363f7d7b07be9df374b651802695fa9575
 
 project: CHROMEBOOK
 
@@ -23,6 +23,7 @@ pattern:
     fields:
       - field2: 1
       - field3: 2
+      - field4: 2
 
 encoded_fields:
   field1:
@@ -36,6 +37,10 @@ encoded_fields:
     0: {cls3: comp4}
     1: {cls3: comp5}
 
+  field4:
+    0: {cls4: comp6}
+    1: {cls4: comp7}
+
 components:
   cls1:
     items:
@@ -48,5 +53,9 @@ components:
     items:
       comp4: {values: {xxx: yyy}}
       comp5: {values: {zzz: xxx}}
+  cls4:
+    items:
+      comp6: {values: {eee: fff}}
+      comp7: {values: {ggg: hhh}, information: {comp_group: comp6}}
 
 rules: []

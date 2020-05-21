@@ -66,7 +66,7 @@ class ProbeStatementDefinition(object):
     self.expected_fields = expected_fields
 
   def GenerateProbeStatement(self, component_name, probe_function_name,
-                             expected_fields):
+                             expected_fields, information=None):
     """Generate the probe statement from the given inputs.
 
     The term "probe config" represents to a huge payload that contains a bunch
@@ -83,19 +83,18 @@ class ProbeStatementDefinition(object):
     Returns:
       An object represents the generated probe statement.
     """
-    return {
-        self.category_name: {
-            component_name: {
-                'eval': {
-                    probe_function_name: {}
-                },
-                'expect': {
-                    k: self.expected_fields[k].probe_statement_generator(v)
-                    for k, v in expected_fields.items()
-                }
-            }
+    statement = {
+        'eval': {
+            probe_function_name: {}
+        },
+        'expect': {
+            k: self.expected_fields[k].probe_statement_generator(v)
+            for k, v in expected_fields.items()
         }
     }
+    if information is not None:
+      statement['information'] = information
+    return {self.category_name: {component_name: statement}}
 
 
 class ProbeConfigPayload(object):

@@ -330,6 +330,9 @@ class Database(object):
       which is a named tuple contains two attributes:
         values: A string-to-string dict of expected probed results.
         status: One of `common.COMPONENT_STATUS`.
+        information: optional dict, these data will be used to further help
+                     Runtime Probe and Hardware Verifier have more information
+                     to handle miscellaneous probe issues.
     """
     comps = self._components.GetComponents(comp_cls)
     if not include_default:
@@ -340,8 +343,10 @@ class Database(object):
   def GetDefaultComponent(self, comp_cls):
     return self._components.GetDefaultComponent(comp_cls)
 
-  def AddComponent(self, comp_cls, comp_name, value, status):
-    return self._components.AddComponent(comp_cls, comp_name, value, status)
+  def AddComponent(self, comp_cls, comp_name, value, status,
+                   information=None):
+    return self._components.AddComponent(comp_cls, comp_name, value, status,
+                                         information)
 
   def SetComponentStatus(self, comp_cls, comp_name, status):
     return self._components.SetComponentStatus(comp_cls, comp_name, status)
@@ -853,8 +858,9 @@ class EncodedFields(object):
 
 
 class ComponentInfo(type_utils.Obj):
-  def __init__(self, values, status):
-    super(ComponentInfo, self).__init__(values=values, status=status)
+  def __init__(self, values, status, information=None):
+    super(ComponentInfo, self).__init__(values=values, status=status,
+                                        information=information)
 
 
 class Components(object):
@@ -875,6 +881,8 @@ class Components(object):
         <component_name>:
           value: <a_dict_of_expected_probed_result_values>
           status: unsupported|deprecated|unqualified|supported|duplicate
+          information:
+            comp_group: other_group_name
         ...
     ...
   ```
@@ -895,6 +903,8 @@ class Components(object):
           values:
             tech: Battery Li-ion
             size: '123456789'
+          information:
+            comp_group: battery_regular
 
     cellular:
       items:
@@ -976,7 +986,14 @@ class Components(object):
                               'is default component item (deprecated)', bool),
                           'status': schema.Scalar(
                               'item status', str,
-                              choices=common.COMPONENT_STATUS)}))},
+                              choices=common.COMPONENT_STATUS),
+                          'information': schema.AnyOf([
+                              schema.FixedDict(
+                                  'extra information',
+                                  optional_items={
+                                      'comp_group': schema.Scalar(
+                                          'component group name', str)}),
+                              schema.Scalar('none', type(None))])}))},
           optional_items={
               'probeable': schema.Scalar(
                   'is component probeable (deprecate)', bool)}))
@@ -1002,7 +1019,8 @@ class Components(object):
       for comp_name, comp_attr in comps_data['items'].items():
         self._AddComponent(comp_cls, comp_name, comp_attr['values'],
                            comp_attr.get('status',
-                                         common.COMPONENT_STATUS.supported))
+                                         common.COMPONENT_STATUS.supported),
+                           comp_attr.get('information'))
 
         if comp_attr.get('default') is True:
           # We now use "values: null" to indicate a default component and
@@ -1037,6 +1055,9 @@ class Components(object):
           if comp_info.status != common.COMPONENT_STATUS.supported:
             components_dict[comp_name]['status'] = comp_info.status
           components_dict[comp_name]['values'] = comp_info.values
+          if comp_info.information is not None:
+            components_dict[
+                comp_name]['information'] = comp_info.information
 
         else:
           if comp_info.status != components_dict[comp_name].get(
@@ -1070,6 +1091,9 @@ class Components(object):
       which is a named tuple contains two attributes:
         values: A string-to-string dict of expected probed results.
         status: One of `common.COMPONENT_STATUS`.
+        information: optional dict, these data will be used to further help
+                     Runtime Probe and Hardware Verifier have more information
+                     to handle miscellaneous probe issues.
     """
     return self._components.get(comp_cls, {})
 
@@ -1087,7 +1111,7 @@ class Components(object):
         return comp_name
     return None
 
-  def AddComponent(self, comp_cls, comp_name, values, status):
+  def AddComponent(self, comp_cls, comp_name, values, status, information=None):
     """Adds a new component.
 
     Args:
@@ -1099,7 +1123,7 @@ class Components(object):
     if comp_cls == 'region':
       raise common.HWIDException('Region component class is not modifiable.')
 
-    self._AddComponent(comp_cls, comp_name, values, status)
+    self._AddComponent(comp_cls, comp_name, values, status, information)
 
   def SetComponentStatus(self, comp_cls, comp_name, status):
     """Sets the status of a specific component.
@@ -1121,11 +1145,13 @@ class Components(object):
 
     self._components[comp_cls][comp_name].status = status
 
-  def _AddComponent(self, comp_cls, comp_name, values, status):
+  def _AddComponent(self, comp_cls, comp_name, values, status, information):
     self._SCHEMA.value_type.items[
         'items'].value_type.items['values'].Validate(values)
     self._SCHEMA.value_type.items[
         'items'].value_type.optional_items['status'].Validate(status)
+    self._SCHEMA.value_type.items[
+        'items'].value_type.optional_items['information'].Validate(information)
 
     if comp_name in self.GetComponents(comp_cls):
       raise common.HWIDException('Component (%r, %r) already exists.' %
@@ -1156,7 +1182,8 @@ class Components(object):
           self._can_encode = False
 
     self._components.setdefault(comp_cls, yaml.Dict())
-    self._components[comp_cls][comp_name] = ComponentInfo(values, status)
+    self._components[comp_cls][comp_name] = ComponentInfo(values, status,
+                                                          information)
 
 
 _PatternDatum = collections.namedtuple('_PatternDatum',

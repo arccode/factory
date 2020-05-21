@@ -174,7 +174,8 @@ class ComponentsTest(unittest.TestCase):
     c.AddComponent('cls1', 'comp1', {'a': 'b', 'c': 'd'}, 'supported')
     c.AddComponent('cls1', 'comp2', {'a': 'x', 'c': 'd'}, 'unsupported')
     c.AddComponent('cls2', 'comp1', {'a': 'b', 'c': 'd'}, 'deprecated')
-    c.AddComponent('cls1', 'comp_default', None, 'supported')
+    c.AddComponent('cls1', 'comp_default', None, 'supported', {
+        'comp_group': 'hello'})
     self.assertEqual(
         Unordered(c.Export()), {
             'cls1': {
@@ -182,7 +183,8 @@ class ComponentsTest(unittest.TestCase):
                     'comp1': {'values': {'a': 'b', 'c': 'd'}},
                     'comp2': {'values': {'a': 'x', 'c': 'd'},
                               'status': 'unsupported'},
-                    'comp_default': {'values': None}}},
+                    'comp_default': {'values': None,
+                                     'information': {'comp_group': 'hello'}}}},
             'cls2': {
                 'items': {
                     'comp1': {'values': {'a': 'b', 'c': 'd'},
@@ -205,7 +207,10 @@ class ComponentsTest(unittest.TestCase):
     c = Components({'cls1': {'items': {'comp1': {'values': {'a': 'b'},
                                                  'status': 'unqualified'},
                                        'comp2': {'values': {'a': 'c'}}}},
-                    'cls2': {'items': {'comp3': {'values': {'x': 'y'}}}}})
+                    'cls2': {'items': {'comp3': {'values': {'x': 'y'}},
+                                       'comp4': {'values': {'c': 'd'},
+                                                 'information': {
+                                                     'comp_group': 'comp5'}}}}})
     self.assertEqual(sorted(c.component_classes), ['cls1', 'cls2'])
     self.assertEqual(len(c.GetComponents('cls1')), 2)
     self.assertEqual(sorted(c.GetComponents('cls1').keys()), ['comp1', 'comp2'])
@@ -214,7 +219,9 @@ class ComponentsTest(unittest.TestCase):
     self.assertEqual(c.GetComponents('cls1')['comp2'].values, {'a': 'c'})
     self.assertEqual(c.GetComponents('cls1')['comp2'].status, 'supported')
 
-    self.assertEqual(len(c.GetComponents('cls2')), 1)
+    self.assertEqual(len(c.GetComponents('cls2')), 2)
+    self.assertEqual(c.GetComponents('cls2')['comp4'].information['comp_group'],
+                     'comp5')
 
 
 class EncodedFieldsTest(unittest.TestCase):

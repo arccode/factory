@@ -185,5 +185,28 @@ class GenerateVerificationPayloadTest(unittest.TestCase):
     self.assertEqual(len(report.error_msgs), 1)
 
 
+class GenerateProbeStatementWithInformation(unittest.TestCase):
+  def testWithComponent(self):
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['storage'][1]
+    ps = ps_gen.TryGenerate(
+        'name1',
+        {'sectors': '112233', 'class': '0x123456', 'device': '0x1234',
+         'vendor': '0x5678'}, {'comp_group': 'name2'})
+    self.assertEqual(
+        ps,
+        {
+            'storage': {
+                'name1': {
+                    'eval': {'generic_storage': {}},
+                    'expect': {'sectors': [True, 'int', '!eq 112233'],
+                               'pci_class': [True, 'hex', '!eq 0x123456'],
+                               'pci_vendor': [True, 'hex', '!eq 0x5678'],
+                               'pci_device': [True, 'hex', '!eq 0x1234']},
+                    'information': {'comp_group': 'name2'},
+                }
+            }
+        })
+
+
 if __name__ == '__main__':
   unittest.main()

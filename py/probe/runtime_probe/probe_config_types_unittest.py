@@ -50,8 +50,9 @@ class ConcreteProbeStatementDefinitionTestBase(unittest.TestCase):
 
 
 class ProbeStatementDefinitionTest(ConcreteProbeStatementDefinitionTestBase):
-  def _GenerateExpectResult(self, comp_name, func_name, expect_field):
-    return {
+  def _GenerateExpectResult(self, comp_name, func_name, expect_field,
+                            information=None):
+    ret = {
         'category_x': {
             comp_name: {
                 'eval': {
@@ -61,6 +62,9 @@ class ProbeStatementDefinitionTest(ConcreteProbeStatementDefinitionTestBase):
             }
         }
     }
+    if information is not None:
+      ret['category_x'][comp_name]['information'] = information
+    return ret
 
   def testGenerateProbeStatementNoField(self):
     result = self.probe_statement_definition.GenerateProbeStatement(
@@ -150,6 +154,22 @@ class ProbeStatementDefinitionTest(ConcreteProbeStatementDefinitionTestBase):
     with self.assertRaises(ValueError):
       self.probe_statement_definition.GenerateProbeStatement(
           'comp_1', 'func_1', {'hex_field_three_digits': 'B3FF'})
+
+  def testGenerateProbeStatementExtraInformation(self):
+    self.maxDiff = None
+    result = self.probe_statement_definition.GenerateProbeStatement(
+        'comp_1', 'func_1', {
+            'str_field': 'sss',
+            'int_field': 3,
+            'hex_field': '0BAD'}, {'comp_group': 'other_name'})
+    self.assertEqual(
+        result,
+        self._GenerateExpectResult(
+            'comp_1', 'func_1', {
+                'str_field': [True, 'str', '!eq sss'],
+                'int_field': [True, 'int', '!eq 3'],
+                'hex_field': [True, 'hex', '!eq 0x0BAD']}, {
+                    'comp_group': 'other_name'}))
 
 
 class ProbeConfigPayloadTest(ConcreteProbeStatementDefinitionTestBase):

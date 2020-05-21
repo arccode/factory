@@ -98,7 +98,7 @@ class _ProbeStatementGenerator(object):
     self._probe_function_name = probe_function_name
     self._field_converters = field_converters
 
-  def TryGenerate(self, comp_name, comp_values):
+  def TryGenerate(self, comp_name, comp_values, information=None):
     expected_fields = {}
     for fc in self._field_converters:
       try:
@@ -117,7 +117,7 @@ class _ProbeStatementGenerator(object):
             (fc.hwid_field_name, e))
     try:
       return self._probe_statement_generator.GenerateProbeStatement(
-          comp_name, self._probe_function_name, expected_fields)
+          comp_name, self._probe_function_name, expected_fields, information)
     except Exception as e:
       raise ProbeStatementConversionError(
           'unable to convert to the probe statement : %r' % e)
@@ -287,11 +287,12 @@ def GenerateVerificationPayload(dbs):
   }
   ProbeRequestSupportCategory = runtime_probe_pb2.ProbeRequest.SupportCategory
 
-  def TryGenerateProbeStatement(comp_name, comp_values, ps_gens):
+  def TryGenerateProbeStatement(comp_name, comp_values, ps_gens,
+                                information=None):
     ret = []
     for ps_gen in ps_gens:
       try:
-        ps = ps_gen.TryGenerate(comp_name, comp_values)
+        ps = ps_gen.TryGenerate(comp_name, comp_values, information)
         ret.append((ps_gen, ps))
       except ProbeStatementGeneratorNotSuitableError:
         continue
@@ -314,7 +315,7 @@ def GenerateVerificationPayload(dbs):
           continue
 
         results = TryGenerateProbeStatement(
-            unique_comp_name, comp_info.values, ps_gens)
+            unique_comp_name, comp_info.values, ps_gens, comp_info.information)
         if not results:
           ret.error_msgs.append('No probe statement generator is suitable for '
                                 'component %r.' % unique_comp_name)
@@ -393,7 +394,7 @@ def main():
   for hwid_db_path in args.hwid_db_paths:
     logging.info('Load the HWID database file (%s).', hwid_db_path)
     dbs.append((database.Database.LoadFile(
-        hwid_db_path, verify_checksum=not args.verify_checksum), []))
+        hwid_db_path, verify_checksum=args.verify_checksum), []))
   for waived_category in args.waived_categories:
     model_name, unused_sep, category_name = waived_category.partition('.')
     for db_obj, waived_list in dbs:
