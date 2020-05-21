@@ -192,7 +192,9 @@ class Finalize(test_case.TestCase):
       Arg('gooftool_skip_list', list,
           'A list of skipped checks for "gooftool finalize", '
           'see "gooftool finalize --help" for available items.',
-          default=[])
+          default=[]),
+      Arg('enable_zero_touch', bool,
+          'Set SN bits to enable zero-touch.', default=False)
   ]
 
   FINALIZE_TIMEOUT = 180
@@ -373,6 +375,8 @@ class Finalize(test_case.TestCase):
       command += ' --waive_list ' + ' '.join(self.args.gooftool_waive_list)
     if self.args.gooftool_skip_list:
       command += ' --skip_list ' + ' '.join(self.args.gooftool_skip_list)
+    if self.args.enable_zero_touch:
+      command += ' --enable_zero_touch'
     command += ' --phase "%s"' % phase.GetPhase()
 
     self._FinalizeWipeInPlace(command)

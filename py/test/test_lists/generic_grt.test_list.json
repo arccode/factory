@@ -8,6 +8,7 @@
       "__comment_force_write_protect": "*** Write protection is required for mass production and shippable devices. By default we enable write protection starting from PVT stages, but you can start trying write protection earlier by this option.",
       "ec_pubkey_path": null,
       "ec_pubkey_hash": null,
+      "enable_zero_touch": false,
       "gooftool_skip_list": [],
       "gooftool_waive_list": [],
       "re_sign_release_kernel": false,
@@ -44,6 +45,7 @@
       "args": {
         "enable_factory_server": "eval! constants.enable_factory_server",
         "enforced_release_channels": "eval! ['stable'] if options.phase == 'PVT' else None",
+        "enable_zero_touch": "eval! constants.grt.enable_zero_touch",
         "ec_pubkey_path": "eval! constants.grt.ec_pubkey_path",
         "ec_pubkey_hash": "eval! constants.grt.ec_pubkey_hash",
         "gooftool_skip_list": "eval! constants.grt.gooftool_skip_list",
