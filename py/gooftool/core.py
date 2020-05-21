@@ -467,6 +467,12 @@ class Gooftool(object):
     def _ParseCrosConfig(config_path):
       with open(config_path) as f:
         obj = yaml.load(f)
+
+      # According to https://crbug.com/1070692, 'platform-name' is not a part of
+      # identity info.  We shouldn't check it.
+      for config in obj['chromeos']['configs']:
+        config['identity'].pop('platform-name', None)
+
       fields = ['name', 'identity', 'brand-code']
       configs = [
           {
