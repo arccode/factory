@@ -252,12 +252,13 @@
     "EnableECWriteProtect": {
       "inherit": "TestGroup",
       "label": "Enable EC Write Protect",
-      "__comment": "This test group explicitly enables EC write protection after rebooting. Run this test group before finalization if the project uses STM32 chips for EC, otherwise finalization may fail. STM32 chips are likely to be used in ARM projects, and they require an EC reboot to let write protect settings take effect.",
+      "__comment": "This test group explicitly disables factory mode and enables EC write protection after rebooting. Run this test group before finalization if the project uses STM32 chips for EC, otherwise finalization may fail. STM32 chips are likely to be used in ARM projects, and they require an EC reboot to let write protect settings take effect. Note that this disables the factory mode in advance, usually we disable the factory mode in finalize step. So it's better to run this test as close to finalize step.",
       "subtests": [
         {
           "pytest_name": "exec_shell",
           "args": {
             "commands": [
+              "gsctool -a -F disable",
               "ectool flashprotect enable",
               "ectool reboot_ec RO at-shutdown"
             ]
