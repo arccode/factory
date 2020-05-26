@@ -150,6 +150,21 @@ def IsTouchscreenDevice(dev):
               dev.capabilities().get(evdev.ecodes.EV_ABS, [])))
 
 
+def IsMouseDevice(dev):
+  """Check if a device is a mouse device.
+
+  Args:
+    dev: evdev.InputDevice
+
+  Returns:
+    True if dev is a mouse device.
+  """
+  keycaps = dev.capabilities().get(evdev.ecodes.EV_KEY, [])
+  return (evdev.ecodes.BTN_MOUSE in keycaps and
+          evdev.ecodes.BTN_RIGHT in keycaps and
+          evdev.ecodes.BTN_MIDDLE in keycaps)
+
+
 class DeviceNotFoundError(RuntimeError):
   pass
 

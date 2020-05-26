@@ -1,0 +1,40 @@
+/*
+ * Copyright 2020 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+#first-container {
+  flex: 1;
+  display: flex;
+  align-self: stretch;
+}
+
+#second-container {
+  flex: 1;
+  display: flex;
+  align-self: stretch;
+}
+
+.table-div {
+  display: grid;
+  margin: 3px;
+}
+
+.table-div div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: gray;
+  border: solid 1px;
+}
+
+.table-div div.state-tested {
+  background-color: green;
+  opacity: 0.5;
+}
+
+.table-div div.state-down {
+  background-color: yellow;
+  opacity: 0.5;
+}

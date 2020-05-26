@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-04-16 00:45+CST\n"
+"PO-Revision-Date: 2020-05-26 19:57+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -287,6 +287,10 @@ msgstr "Cấu hình và kiểu (SKU)"
 #: ../build/pytests_label_generated.json
 msgid "Modem Security"
 msgstr "Cấu hình và kiểu (SKU)"
+
+#: ../build/pytests_label_generated.json
+msgid "Mouse"
+msgstr "Chuột máy tính"
 
 #: ../build/pytests_label_generated.json
 #: ../py/test/test_lists/generic_common.test_list.json

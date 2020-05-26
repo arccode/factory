@@ -412,6 +412,9 @@
         "modemmanager"
       ]
     },
+    "Mouse": {
+      "pytest_name": "mouse"
+    },
     "PartitionTable": {
       "pytest_name": "partition_table"
     },
