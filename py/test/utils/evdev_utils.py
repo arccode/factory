@@ -169,6 +169,7 @@ def FindDevice(*args):
     An evdev.InputDevice
   """
   candidates = GetDevices()
+  filtered_candidates = []
 
   for item in args:
     # pylint: disable=cell-var-from-loop
@@ -186,14 +187,33 @@ def FindDevice(*args):
       dev_filter = item
     else:
       raise ValueError('Invalid argument %r' % item)
+    filtered_candidates.append(
+        (item,
+         [candidate for candidate in candidates if not dev_filter(candidate)]))
     candidates = list(filter(dev_filter, candidates))
+
+  def FormatDevice(dev):
+    return '(path=%s, name=%r)' % (dev.fn, dev.name)
+
+  def FormatDevices(devices):
+    return '[' + ', '.join(sorted(map(FormatDevice, devices))) + ']'
+
+  def FormatFilteredCandidates():
+    return '{' + ', '.join(
+        '%r: %s' % (key, FormatDevices(devices))
+        for key, devices in filtered_candidates if devices) + '}'
 
   if len(candidates) == 1:
     return candidates[0]
   elif not candidates:
-    raise DeviceNotFoundError("Can't find device.")
+    raise DeviceNotFoundError(
+        "Can't find device. Filtered candidates: %s."
+        % FormatFilteredCandidates())
   else:
-    raise MultipleDevicesFoundError('Not having exactly one candidate!')
+    raise MultipleDevicesFoundError(
+        'Not having exactly one candidate! Left candidates: %s. '
+        'Filtered candidates %s.'
+        % (FormatDevices(candidates), FormatFilteredCandidates()))
 
 
 def DeviceReopen(dev):

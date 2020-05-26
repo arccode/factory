@@ -164,8 +164,13 @@ class KeyboardTest(test_case.TestCase):
                     'Strict sequential press requires one key at a time.')
 
     # Get the keyboard input device.
-    self.keyboard_device = evdev_utils.FindDevice(
-        self.args.device_filter, evdev_utils.IsKeyboardDevice)
+    try:
+      self.keyboard_device = evdev_utils.FindDevice(
+          self.args.device_filter, evdev_utils.IsKeyboardDevice)
+    except evdev_utils.MultipleDevicesFoundError:
+      session.console.info(
+          "Please set the test argument 'device_filter' to one of the name.")
+      raise
 
     # Initialize keyboard layout and bindings
     self.layout = self.GetKeyboardLayout()
