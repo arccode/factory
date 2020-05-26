@@ -1,0 +1,69 @@
+component_identity: {
+  qual_id: 123
+  readable_label: "what_a_cool_qual"
+}
+probe_info: {
+  probe_function_name: "storage.nvme_storage"
+  probe_parameters: {
+    name: "pci_vendor"
+    string_value: "0123"
+  }
+  probe_parameters: {
+    name: "pci_device"
+    string_value: "4567"
+  }
+  probe_parameters: {
+    name: "pci_class"
+    string_value: "89ABCD"
+  }
+  probe_parameters: {
+    name: "sectors"
+    int_value: 10000
+  }
+}
+### SEPARATOR ###
+{
+  "storage": {
+    "no_such_component": [
+      {
+      }
+    ]
+  }
+}
+### SEPARATOR ###
+{{{this_is_not_a_valid_json_string
+### SEPARATOR ###
+{
+  "storage": {
+    "AVL_123--what_a_cool_qual": {
+      "eval": {
+        "a_super_special_probe_function": {}
+      }
+    }
+  }
+}
+### SEPARATOR ###
+{
+  "storage": {
+    "AVL_123--what_a_cool_qual": {
+      "eval": {
+        "a_super_special_probe_function": {}
+      },
+      "information": {
+        "PROBE_INFO_FINGERPRINT": "47ab130aa36bae1297bb55f08011b7ee47474bd2"
+      }
+    }
+  }
+}
+### SEPARATOR ###
+{
+  "storage": {
+    "AVL_123--what_a_cool_qual": [
+      {
+        "information": {
+          "PROBE_INFO_FINGERPRINT": "47ab130aa36bae1297bb55f08011b7ee47474bd2"
+        }
+      }
+    ]
+  }
+}

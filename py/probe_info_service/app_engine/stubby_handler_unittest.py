@@ -8,6 +8,7 @@ import unittest
 from google.protobuf import text_format
 
 from cros.factory.probe_info_service.app_engine import probe_metainfo_connector
+from cros.factory.probe_info_service.app_engine import ps_storage_connector
 from cros.factory.probe_info_service.app_engine import stubby_handler
 # pylint: disable=no-name-in-module
 from cros.factory.probe_info_service.app_engine import stubby_pb2
@@ -96,6 +97,100 @@ class StubbyHandlerTest(unittest.TestCase):
     req = stubby_pb2.GetProbeMetadataRequest(
         component_probe_infos=[qual_probe_info1])
     resp = self._stubby_handler.GetProbeMetadata(req)
+    self.assertFalse(resp.probe_metadatas[0].is_tested)
+
+  def testScenario2(self):
+    ps_storage_connector_inst = (
+        ps_storage_connector.GetProbeStatementStorageConnector())
+    testdata_it = iter(self._LoadScenarioBundle('scenario2'))
+
+    qual_probe_info = stubby_pb2.ComponentProbeInfo()
+    text_format.Parse(next(testdata_it), qual_probe_info)
+    qual_id = qual_probe_info.component_identity.qual_id
+
+    # 1. The user creates a qual test bundle, then uploading an negative probe
+    #    result.
+    req = stubby_pb2.GetQualProbeTestBundleRequest(
+        qual_probe_info=qual_probe_info)
+    self._stubby_handler.GetQualProbeTestBundle(req)
+
+    req = stubby_pb2.UploadQualProbeTestResultRequest(
+        qual_probe_info=qual_probe_info,
+        test_result_payload=next(testdata_it).encode('utf-8'))
+    resp = self._stubby_handler.UploadQualProbeTestResult(req)
+    self.assertTrue(resp.is_uploaded_payload_valid)
+    self.assertEqual(resp.probe_info_test_result.result_type,
+                     resp.probe_info_test_result.INTRIVIAL_ERROR)
+
+    # Verify the probe metadata.
+    get_probe_metadata_req = stubby_pb2.GetProbeMetadataRequest(
+        component_probe_infos=[qual_probe_info])
+    resp = self._stubby_handler.GetProbeMetadata(get_probe_metadata_req)
+    self.assertFalse(resp.probe_metadatas[0].is_overridden)
+    self.assertFalse(resp.probe_metadatas[0].is_tested)
+    self.assertTrue(resp.probe_metadatas[0].is_proved_ready_for_overridden)
+
+    # 2. The user creates an overridden probe statement for the qualification.
+    req = stubby_pb2.CreateOverriddenProbeStatementRequest(
+        component_probe_info=qual_probe_info)
+    resp = self._stubby_handler.CreateOverriddenProbeStatement(req)
+    self.assertEqual(resp.result_type, resp.SUCCEED)
+
+    # Try to make the request again and the service should block it.
+    resp = self._stubby_handler.CreateOverriddenProbeStatement(req)
+    self.assertEqual(resp.result_type, resp.ALREADY_OVERRIDDEN_ERROR)
+
+    # Verify the probe metadata.
+    resp = self._stubby_handler.GetProbeMetadata(get_probe_metadata_req)
+    self.assertTrue(resp.probe_metadatas[0].is_overridden)
+    self.assertFalse(resp.probe_metadatas[0].is_tested)
+
+    # 3. The user modifies the overridden probe statement, then downloads the
+    #    qual test bundle.
+    probe_data = ps_storage_connector_inst.LoadOverriddenQualProbeData(qual_id)
+    probe_data.probe_statement = next(testdata_it)
+    ps_storage_connector_inst.UpdateOverriddenQualProbeData(qual_id, probe_data)
+
+    req = stubby_pb2.GetQualProbeTestBundleRequest(
+        qual_probe_info=qual_probe_info)
+    resp = self._stubby_handler.GetQualProbeTestBundle(req)
+    self.assertEqual(resp.result_type, resp.INVALID_PROBE_INFO)
+    self.assertEqual(
+        resp.probe_info_parsed_result.result_type,
+        resp.probe_info_parsed_result.OVERRIDDEN_PROBE_STATEMENT_ERROR)
+
+    probe_data = ps_storage_connector_inst.LoadOverriddenQualProbeData(qual_id)
+    probe_data.probe_statement = next(testdata_it)
+    ps_storage_connector_inst.UpdateOverriddenQualProbeData(qual_id, probe_data)
+
+    req = stubby_pb2.GetQualProbeTestBundleRequest(
+        qual_probe_info=qual_probe_info)
+    resp = self._stubby_handler.GetQualProbeTestBundle(req)
+    self.assertEqual(resp.result_type, resp.SUCCEED)
+    self.assertEqual(resp.test_bundle_payload.decode('utf-8').strip(),
+                     next(testdata_it).strip())
+
+    # 4. The user upload a positive probe result, the probe statement should
+    #    become tested now.
+    req = stubby_pb2.UploadQualProbeTestResultRequest(
+        qual_probe_info=qual_probe_info,
+        test_result_payload=next(testdata_it).encode('utf-8'))
+    resp = self._stubby_handler.UploadQualProbeTestResult(req)
+    self.assertTrue(resp.is_uploaded_payload_valid)
+    self.assertTrue(resp.probe_info_test_result.result_type,
+                    resp.probe_info_test_result.PASSED)
+
+    resp = self._stubby_handler.GetProbeMetadata(get_probe_metadata_req)
+    self.assertTrue(resp.probe_metadatas[0].is_overridden)
+    self.assertTrue(resp.probe_metadatas[0].is_tested)
+
+    # 5. The user modifies the overridden probe statement, drop the tested flag.
+    probe_data = ps_storage_connector_inst.LoadOverriddenQualProbeData(qual_id)
+    probe_data.is_tested = False
+    ps_storage_connector_inst.UpdateOverriddenQualProbeData(qual_id, probe_data)
+
+    resp = self._stubby_handler.GetProbeMetadata(get_probe_metadata_req)
+    self.assertTrue(resp.probe_metadatas[0].is_overridden)
     self.assertFalse(resp.probe_metadatas[0].is_tested)
 
   def _LoadScenarioBundle(self, scenario_name):

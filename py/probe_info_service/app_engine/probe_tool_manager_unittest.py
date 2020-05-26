@@ -80,44 +80,59 @@ class ProbeToolManagerTest(unittest.TestCase):
     resp = self._probe_tool_manager.ValidateProbeInfo(probe_info, False)
     self.assertEqual(resp.result_type, resp.PASSED)
 
-  def testCreateProbeDataSourceFromProbeInfo(self):
+  def testCreateProbeDataSource(self):
     probe_info1 = self._GenerateSampleMMCStorageProbeInfo()
     probe_info2 = self._GenerateSampleMMCStorageProbeInfo(
         probe_params_construct_kwargs={'manfid': None})
-    s1 = self._probe_tool_manager.CreateProbeDataSourceFromProbeInfo(
-        'aaa', probe_info1)
-    s2 = self._probe_tool_manager.CreateProbeDataSourceFromProbeInfo(
-        'aaa', probe_info2)
-    s3 = self._probe_tool_manager.CreateProbeDataSourceFromProbeInfo(
-        'bbb', probe_info1)
-    self.assertNotEqual(s1.probe_info_fp, s2.probe_info_fp)
-    self.assertEqual(s1.probe_info_fp, s3.probe_info_fp)
+    s1 = self._probe_tool_manager.CreateProbeDataSource('aaa', probe_info1)
+    s2 = self._probe_tool_manager.CreateProbeDataSource('aaa', probe_info2)
+    s3 = self._probe_tool_manager.CreateProbeDataSource('bbb', probe_info1)
+    self.assertNotEqual(s1.fingerprint, s2.fingerprint)
+    self.assertEqual(s1.fingerprint, s3.fingerprint)
 
   def testGenerateQualProbeTestBundlePayloadFail(self):
     probe_info = self._GenerateSampleMMCStorageProbeInfo(
         probe_params_construct_kwargs={'manfid': {'string_value': 'bad_value'}})
     resp = self._probe_tool_manager.GenerateQualProbeTestBundlePayload(
-        self._probe_tool_manager.CreateProbeDataSourceFromProbeInfo(
-            'comp_name', probe_info))
+        self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info))
     self.assertEqual(resp.probe_info_parsed_result.result_type,
                      resp.probe_info_parsed_result.PROBE_PARAMETER_ERROR)
 
     probe_info = self._GenerateSampleMMCStorageProbeInfo(
         probe_params_construct_kwargs={'manfid': None})
     resp = self._probe_tool_manager.GenerateQualProbeTestBundlePayload(
-        self._probe_tool_manager.CreateProbeDataSourceFromProbeInfo(
-            'comp_name', probe_info))
+        self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info))
     self.assertEqual(resp.probe_info_parsed_result.result_type,
                      resp.probe_info_parsed_result.INCOMPATIBLE_ERROR)
 
+  def testDumpProbeDataSource(self):
+    probe_info = self._GenerateSampleMMCStorageProbeInfo()
+    s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
+    ps = self._probe_tool_manager.DumpProbeDataSource(s).output
+    self.assertEqual(
+        json_utils.LoadStr(ps),
+        {
+            'storage': {
+                'comp_name': {
+                    'eval': {'mmc_storage': {}},
+                    'expect': {
+                        'manfid': [True, 'hex', '!eq 0x0A'],
+                        'name': [True, 'str', '!eq ABCxyz'],
+                        'oemid': [True, 'hex', '!eq 0x1234'],
+                        'prv': [True, 'hex', '!eq 0x01'],
+                        'sectors': [True, 'int', '!eq 123'],
+                    },
+                },
+            },
+        })
+
+
   def testGenerateQualProbeTestBundlePayloadSuccess(self):
     probe_info = self._GenerateSampleMMCStorageProbeInfo()
-    s = self._probe_tool_manager.CreateProbeDataSourceFromProbeInfo(
-        'comp_name', probe_info)
+    s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
     resp = self._probe_tool_manager.GenerateQualProbeTestBundlePayload(s)
-    self.maxDiff = None
     self.assertEqual(
-        json_utils.LoadStr(resp.payload.decode('utf-8')),
+        json_utils.LoadStr(resp.output.decode('utf-8')),
         {
             'storage': {
                 'comp_name': {
@@ -139,23 +154,21 @@ class ProbeToolManagerTest(unittest.TestCase):
 
   def testAnalyzeQualProbeTestResultInvalidPayload(self):
     probe_info = self._GenerateSampleMMCStorageProbeInfo()
-    s = self._probe_tool_manager.CreateProbeDataSourceFromProbeInfo(
-        'comp_name', probe_info)
+    s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
     with self.assertRaises(probe_tool_manager.PayloadInvalidError):
       self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
           s, 'this_is_an_invalid_data')
 
   def testAnalyzeQualProbeTestResultPass(self):
     probe_info = self._GenerateSampleMMCStorageProbeInfo()
-    s = self._probe_tool_manager.CreateProbeDataSourceFromProbeInfo(
-        'comp_name', probe_info)
+    s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
     resp = self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
         s, json_utils.DumpStr({
             'storage': {
                 'comp_name': [
                     {
                         'information': {
-                            'PROBE_INFO_FINGERPRINT': s.probe_info_fp,
+                            'PROBE_INFO_FINGERPRINT': s.fingerprint,
                         },
                     },
                 ],
@@ -165,8 +178,7 @@ class ProbeToolManagerTest(unittest.TestCase):
 
   def testAnalyzeQualProbeTestResultLegacy(self):
     probe_info = self._GenerateSampleMMCStorageProbeInfo()
-    s = self._probe_tool_manager.CreateProbeDataSourceFromProbeInfo(
-        'comp_name', probe_info)
+    s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
     resp = self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
         s, json_utils.DumpStr({
             'storage': {
@@ -183,8 +195,7 @@ class ProbeToolManagerTest(unittest.TestCase):
 
   def testAnalyzeQualProbeTestResultIntirivalError(self):
     probe_info = self._GenerateSampleMMCStorageProbeInfo()
-    s = self._probe_tool_manager.CreateProbeDataSourceFromProbeInfo(
-        'comp_name', probe_info)
+    s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
     resp = self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
         s, json_utils.DumpStr({}).encode('utf-8'))
     self.assertEqual(resp.result_type, resp.INTRIVIAL_ERROR)

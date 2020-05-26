@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import collections
 import hashlib
 import re
 
@@ -255,20 +256,34 @@ class ProbeDataSource(object):
     2. Load from the backend storage system.
 
   Properties:
-    component_name: A string of the name of the component.
-    probe_info: `None` or an instance of `ProbeInfo`.
-    probe_info_fp: `None` or a string of the source probe info.
+    fingerprint: A string of fingerprint of this instance, like a kind of
+        unique identifier.
+    component_name: A string of the name of the component.  `None` if the
+        instance is generated from the payload stored in the backend system.
+    probe_info: An instance of `ProbeInfo`.  `None` if the
+        instance is generated from the payload stored in the backend system.
+    probe_statement: A string of probe statement from the backend system.
+        `None` if the instance is generated from probe info.
   """
-  def __init__(self, component_name, probe_info, probe_info_fp):
+  def __init__(self, fingerprint, component_name, probe_info, probe_statement):
     self.component_name = component_name
     self.probe_info = probe_info
-    self.probe_info_fp = probe_info_fp
+    self.fingerprint = fingerprint
+    self.probe_statement = probe_statement
 
 
-class QualProbeTestBundlePayloadGenerationResult(object):
-  def __init__(self, probe_info_parsed_result, payload):
-    self.probe_info_parsed_result = probe_info_parsed_result
-    self.payload = payload
+# A placeholder for any artifact generated from a probe info.
+#
+# Many tasks performed by this module involve parsing a given `ProbeInfo`
+# instance to get any kind of output.  The probe info might not necessary be
+# valid, the module need to return a structured summary for the parsed result
+# all the time.  This class provides a placeholder for those methods.
+#
+# Properties:
+#   probe_info_parsed_result: An instance of `ProbeInfoParsedResult`.
+#   output: `None` or any kind of the output.
+ProbeInfoArtifact = collections.namedtuple(
+    'ProbeInfoArtifact', ['probe_info_parsed_result', 'output'])
 
 
 class ProbeToolManager(object):
@@ -309,9 +324,44 @@ class ProbeToolManager(object):
           probe_info.probe_parameters, allow_missing_params)
     return probe_info_parsed_result
 
-  def CreateProbeDataSourceFromProbeInfo(self, component_name, probe_info):
-    return ProbeDataSource(component_name, probe_info,
-                           self._CalcProbeInfoFingerprint(probe_info))
+  def CreateProbeDataSource(self, component_name, probe_info):
+    """Creates the probe data source from the given probe_info."""
+    return ProbeDataSource(self._CalcProbeInfoFingerprint(probe_info),
+                           component_name, probe_info, None)
+
+  def LoadProbeDataSource(self, probe_statement):
+    """Load the probe data source from the given probe statement."""
+    hash_engine = hashlib.sha1()
+    hash_engine.update(
+        ('}}}not_a_json_header' + probe_statement).encode('utf-8'))
+    return ProbeDataSource(hash_engine.hexdigest(), None, None, probe_statement)
+
+  def DumpProbeDataSource(self, probe_data_source):
+    """Dump the probe data source to a loadable probe statement string."""
+    result = self._ConvertProbeDataSourceToProbeStatement(probe_data_source)
+    if result.output is None:
+      return result
+
+    builder = probe_config_types.ProbeConfigPayload()
+    builder.AddComponentProbeStatement(result.output)
+    return ProbeInfoArtifact(result.probe_info_parsed_result,
+                             builder.DumpToString())
+
+  def GenerateDummyProbeStatement(self, reference_probe_data_source):
+    """Generate a dummy loadable probe statement string.
+
+    This is a backup-plan in case `DumpProbeDataSource` fails.
+    """
+    return json_utils.DumpStr({
+        '<unknown_component_category>': {
+            reference_probe_data_source.component_name: {
+                'eval': {
+                    'unknown_probe_function': {},
+                },
+                'expect': {},
+            },
+        },
+    })
 
   def GenerateQualProbeTestBundlePayload(self, probe_data_source):
     """Generates the payload for testing the probe info of a qualification.
@@ -320,32 +370,47 @@ class ProbeToolManager(object):
       probe_data_source: The source of the test bundle.
 
     Returns:
-      An instance of `QualProbeTestBundlePayloadGenerationResult`.
+      An instance of `ProbeInfoArtifact`, which `output` property is a string
+      of the result payload.
     """
     if probe_data_source.probe_info is None:
-      raise NotImplementedError
+      try:
+        ps = json_utils.LoadStr(probe_data_source.probe_statement)
+        pi_parsed_result = ProbeInfoParsedResult(
+            result_type=ProbeInfoParsedResult.PASSED)
+      except Exception as e:
+        ps = None
+        pi_parsed_result = ProbeInfoParsedResult(
+            result_type=ProbeInfoParsedResult.OVERRIDDEN_PROBE_STATEMENT_ERROR,
+            general_error_msg=str(e))
 
-    ret = QualProbeTestBundlePayloadGenerationResult(None, None)
-    ret.probe_info_parsed_result, probe_func = self._LookupProbeFunc(
-        probe_data_source.probe_info.probe_function_name)
-    if probe_func:
-      ret.probe_info_parsed_result, ps = probe_func.ParseProbeParams(
-          probe_data_source.probe_info.probe_parameters, False,
-          comp_name_for_probe_statement=probe_data_source.component_name)
+    else:
+      pi_parsed_result, ps = self._ConvertProbeDataSourceToProbeStatement(
+          probe_data_source)
+
     if ps is not None:
+      # TODO(yhong): Replace with go/cros-probe-config-bundle-design
       # Inject probe info fingerprint into the `information` field so that
       # we can extract it back in the probe result payload.
-      for category_ps in ps.values():
-        for comp_name, comp_ps in category_ps.items():
-          if comp_name == probe_data_source.component_name:
+      try:
+        for category_ps in ps.values():
+          for comp_ps in category_ps.values():
             information_field = comp_ps.setdefault('information', {})
             information_field[self._PROBE_INFO_FINGERPRINT_KEY] = (
-                probe_data_source.probe_info_fp)
-      builder = probe_config_types.ProbeConfigPayload()
-      builder.AddComponentProbeStatement(ps)
-      ret.payload = builder.DumpToString().encode('utf-8')
+                probe_data_source.fingerprint)
+        builder = probe_config_types.ProbeConfigPayload()
+        builder.AddComponentProbeStatement(ps)
+        payload = builder.DumpToString().encode('utf-8')
+        return ProbeInfoArtifact(pi_parsed_result, payload)
 
-    return ret
+      except Exception as e:
+        pi_parsed_result = ProbeInfoParsedResult(
+            result_type=(ProbeInfoParsedResult.OVERRIDDEN_PROBE_STATEMENT_ERROR
+                         if probe_data_source.probe_info is None
+                         else ProbeInfoParsedResult.UNKNOWN_ERROR),
+            general_error_msg=str(e))
+
+    return ProbeInfoArtifact(pi_parsed_result, None)
 
   def AnalyzeQualProbeTestResultPayload(
       self, probe_data_source, probe_result_payload):
@@ -361,15 +426,17 @@ class ProbeToolManager(object):
     Raises:
       `PayloadInvalidError` if the given input is invalid.
     """
-    if probe_data_source.probe_info is None:
-      raise NotImplementedError
+    # TODO(yhong): Replace with go/cros-probe-config-bundle-design
 
     comp_probe_results = []
     try:
       probed_result = json_utils.LoadStr(probe_result_payload.decode('utf-8'))
       for category_pr in probed_result.values():
-        comp_probe_results.extend(
-            category_pr.get(probe_data_source.component_name, []))
+        if probe_data_source.component_name is not None:
+          comp_probe_results.extend(
+              category_pr.get(probe_data_source.component_name, []))
+        else:
+          comp_probe_results.extend(sum(list(category_pr.values()), []))
     except Exception as e:
       raise PayloadInvalidError('Unable to load and parse the content: %s' % e)
     if not comp_probe_results:
@@ -380,9 +447,11 @@ class ProbeToolManager(object):
     try:
       fp = comp_probe_result['information'][self._PROBE_INFO_FINGERPRINT_KEY]
     except Exception as e:
-      raise NotImplementedError
+      return ProbeInfoTestResult(
+          result_type=ProbeInfoTestResult.INTRIVIAL_ERROR,
+          intrivial_error_msg='Unable to extract the fingerprint value out.')
 
-    if fp != probe_data_source.probe_info_fp:
+    if fp != probe_data_source.fingerprint:
       return ProbeInfoTestResult(result_type=ProbeInfoTestResult.LEGACY)
     return ProbeInfoTestResult(result_type=ProbeInfoTestResult.PASSED)
 
@@ -434,3 +503,14 @@ class ProbeToolManager(object):
     hash_engine.update(
         json_utils.DumpStr(serializable_data, sort_keys=True).encode('utf-8'))
     return hash_engine.hexdigest()
+
+  def _ConvertProbeDataSourceToProbeStatement(self, probe_data_source):
+    probe_info_parsed_result, probe_func = self._LookupProbeFunc(
+        probe_data_source.probe_info.probe_function_name)
+    if probe_func:
+      probe_info_parsed_result, ps = probe_func.ParseProbeParams(
+          probe_data_source.probe_info.probe_parameters, False,
+          comp_name_for_probe_statement=probe_data_source.component_name)
+    else:
+      ps = None
+    return ProbeInfoArtifact(probe_info_parsed_result, ps)

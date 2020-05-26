@@ -52,6 +52,8 @@ message ProbeInfoParsedResult {
 
     INCOMPATIBLE_ERROR = 3;
     UNKNOWN_ERROR = 4;
+
+    OVERRIDDEN_PROBE_STATEMENT_ERROR = 5;
   }
 
   ResultType result_type = 1;  // Required.
@@ -134,6 +136,22 @@ message UploadQualProbeTestResultResponse {
   ProbeInfoTestResult probe_info_test_result = 3;
 }
 
+message CreateOverriddenProbeStatementRequest {
+  ComponentProbeInfo component_probe_info = 1;  // Required.
+}
+
+message CreateOverriddenProbeStatementResponse {
+  enum ResultType {
+    UNKNOWN = 0;
+
+    SUCCEED = 1;
+    ALREADY_OVERRIDDEN_ERROR = 2;
+  }
+  ResultType result_type = 1;  // Required.
+  string error_msg = 2;
+  string result_msg = 3;
+}
+
 message GetProbeMetadataRequest {
   repeated ComponentProbeInfo component_probe_infos = 1;  // Required.
 }
@@ -153,6 +171,9 @@ service ProbeInfoService {
 
   rpc UploadQualProbeTestResult(UploadQualProbeTestResultRequest)
       returns (UploadQualProbeTestResultResponse) {}
+
+  rpc CreateOverriddenProbeStatement(CreateOverriddenProbeStatementRequest)
+      returns (CreateOverriddenProbeStatementResponse) {}
 
   rpc GetProbeMetadata(GetProbeMetadataRequest)
       returns (GetProbeMetadataResponse) {}

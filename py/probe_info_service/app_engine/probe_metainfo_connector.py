@@ -15,10 +15,14 @@ class QualProbeMetaInfo(object):
         target qualification is overridden or not.
     last_tested_probe_info_fp: A string of the fingerprint of the probe
         info that is known to be tested last.
+    last_probe_info_fp_for_overridden: A string of the fingerprint of the probe
+        info that turns out an evidence for probe statement overridden.
   """
-  def __init__(self, is_overridden, last_tested_probe_info_fp):
+  def __init__(self, is_overridden, last_tested_probe_info_fp,
+               last_probe_info_fp_for_overridden):
     self.is_overridden = is_overridden
     self.last_tested_probe_info_fp = last_tested_probe_info_fp
+    self.last_probe_info_fp_for_overridden = last_probe_info_fp_for_overridden
 
 
 class ProbeMetaInfoConnector(object):
@@ -39,7 +43,8 @@ class ProbeMetaInfoConnector(object):
     """
     key = self._client.key(self._QUAL_PROBE_META_INFO_KIND, qual_id)
     db_data = (self._client.get(key) or
-               {'is_overridden': False, 'last_tested_probe_info_fp': None})
+               {'is_overridden': False, 'last_tested_probe_info_fp': None,
+                'last_probe_info_fp_for_overridden': None})
     return QualProbeMetaInfo(**db_data)
 
   def UpdateQualProbeMetaInfo(self, qual_id, qual_probe_meta_info):
