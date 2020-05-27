@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 
 import binascii
+import copy
 import unittest
 
 import mock
@@ -39,46 +40,58 @@ class EdidTest(unittest.TestCase):
     self.assertEqual(result['product_id'], '50ab')
 
 
-class _FakeFunc(object):
-  def __init__(self, results):
-    self.results = results
-
-  def __call__(self, *unused_args, **unused_kwargs):
-    result, self.results = self.results[0], self.results[1:]
-    return result
-
-
 class EDIDFunctionTest(unittest.TestCase):
   FAKE_EDID = [
       {'vendor': 'IBM', 'product_id': '001', 'width': '111'},
       {'vendor': 'IBN', 'product_id': '002', 'width': '222'},
-      {'vendor': 'IBO', 'product_id': '003', 'width': '333'},
   ]
-  FAKE_PATHS = [['/sys/class/drm/A/edid', '/sys/class/drm/BB/edid'],
-                ['/dev/i2c-1', '/dev/i2c-22']]
-  FAKE_OUTPUTS = [
-      dict(FAKE_EDID[0], sysfs_path='/sys/class/drm/A/edid'),
-      dict(FAKE_EDID[1],
-           sysfs_path='/sys/class/drm/BB/edid', dev_path='/dev/i2c-1'),
-      dict(FAKE_EDID[2], dev_path='/dev/i2c-22')]
+  FAKE_SYSFS_PATHS = ['/sys/class/drm/A/edid', '/sys/class/drm/BB/edid']
+  FAKE_SYSFS_OUTPUTS = [
+      dict(FAKE_EDID[0], sysfs_path=FAKE_SYSFS_PATHS[0]),
+      dict(FAKE_EDID[1], sysfs_path=FAKE_SYSFS_PATHS[1])]
+  FAKE_I2C_PATHS = ['/dev/i2c-1', '/dev/i2c-22']
+  FAKE_I2C_OUTPUTS = [
+      dict(FAKE_EDID[0], dev_path=FAKE_I2C_PATHS[0]),
+      dict(FAKE_EDID[1], dev_path=FAKE_I2C_PATHS[1])]
+
+  def InitEDIDFunction(self):
+    edid.EDIDFunction.path_to_identity = None
+    edid.EDIDFunction.identity_to_edid = None
 
   @mock.patch('cros.factory.utils.sys_utils.LoadKernelModule')
   @mock.patch('cros.factory.probe.functions.edid.LoadFromFile',
-              side_effect=_FakeFunc(FAKE_EDID[:2]))
+              side_effect=copy.deepcopy(FAKE_EDID))
   @mock.patch('cros.factory.probe.functions.edid.LoadFromI2C',
-              side_effect=_FakeFunc(FAKE_EDID[1:]))
-  @mock.patch('glob.glob', side_effect=_FakeFunc(FAKE_PATHS))
-  def testNormal(self, *unused_mocks):
+              side_effect=copy.deepcopy(FAKE_EDID))
+  @mock.patch('glob.glob',
+              side_effect=[FAKE_SYSFS_PATHS, FAKE_I2C_PATHS])
+  def testSysfs(self, *unused_mocks):
+    self.InitEDIDFunction()
     result = edid.EDIDFunction()()
-    self.assertCountEqual(result, self.FAKE_OUTPUTS)
+    self.assertCountEqual(result, self.FAKE_SYSFS_OUTPUTS)
 
     for i in range(2):
-      for j in range(2):
-        result = edid.EDIDFunction(path=self.FAKE_PATHS[i][j])()
-        self.assertCountEqual(result, [self.FAKE_OUTPUTS[i + j]])
+      result = edid.EDIDFunction(path=self.FAKE_SYSFS_PATHS[i])()
+      self.assertCountEqual(result, [self.FAKE_SYSFS_OUTPUTS[i]])
+
+  @mock.patch('cros.factory.utils.sys_utils.LoadKernelModule')
+  @mock.patch('cros.factory.probe.functions.edid.LoadFromFile',
+              side_effect=[None, None])
+  @mock.patch('cros.factory.probe.functions.edid.LoadFromI2C',
+              side_effect=copy.deepcopy(FAKE_EDID))
+  @mock.patch('glob.glob',
+              side_effect=[FAKE_SYSFS_PATHS, FAKE_I2C_PATHS])
+  def testI2C(self, *unused_mocks):
+    self.InitEDIDFunction()
+    result = edid.EDIDFunction()()
+    self.assertCountEqual(result, self.FAKE_I2C_OUTPUTS)
+
+    for i in range(2):
+      result = edid.EDIDFunction(path=self.FAKE_I2C_PATHS[i])()
+      self.assertCountEqual(result, [self.FAKE_I2C_OUTPUTS[i]])
 
     result = edid.EDIDFunction(path='22')()
-    self.assertCountEqual(result, [self.FAKE_OUTPUTS[2]])
+    self.assertCountEqual(result, [self.FAKE_I2C_OUTPUTS[1]])
 
 
 if __name__ == '__main__':

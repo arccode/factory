@@ -192,9 +192,9 @@ class EDIDFunction(probe_function.ProbeFunction):
 
   Description
   -----------
-  This function tries to probe all EDID blobs from all i2c bus and searches
-  exported edid files in the sysfs matched the pattern
-  ``/sys/class/drm/*/edid``.
+  This function tries to search for exported edid files in sysfs matching the
+  pattern ``/sys/class/drm/*/edid``. If no edid files are found in sysfs, it
+  probes all i2c buses for EDID blobs.
 
   Once this function finds an EDID data, this function parses the data to
   obtain ``vendor``, ``product_id``, ``width`` and ``height`` fields from
@@ -222,23 +222,18 @@ class EDIDFunction(probe_function.ProbeFunction):
         "product_id": "abcd",
         "width": "19200",
         "height": "10800",
-        "dev_path": "/dev/i2c-1",
-        "sysfs_path": "/sys/class/drm/aabbcc/edid"
+        "sysfs_path": "/sys/class/drm/aa/edid"
       },
       {
         "vendor": "IBX",
         "product_id": "1234",
         "width": "192",
         "height": "108",
-        "dev_path": "/dev/i2c-2"
+        "sysfs_path": "/sys/class/drm/bb/edid"
       }
     ]
 
-  In above example the EDID data of the IBM monitor is found not only on the
-  i2c bus ``/dev/i2c-1`` but also in the sysfs ``/sys/class/drm/aabbcc/edid``.
-  However, the one made by IBX is only found on the i2c bus ``/dev/i2c-2``.
-
-  Then if you are only interested in the monitor made by IBM, you can modify
+  If you are only interested in the monitor made by IBM, you can modify
   the probe statement to ::
 
     {
@@ -309,6 +304,10 @@ class EDIDFunction(probe_function.ProbeFunction):
 
         cls.identity_to_edid.setdefault(identity, result)
         cls.identity_to_edid[identity][pattern_type] = path
+
+      # If we already get results from sysfs, we don't need to probe i2c.
+      if cls.path_to_identity:
+        break
 
   @classmethod
   def ProbeEDID(cls, path):
