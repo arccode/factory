@@ -51,12 +51,12 @@ class ConcreteProbeStatementDefinitionTestBase(unittest.TestCase):
 
 class ProbeStatementDefinitionTest(ConcreteProbeStatementDefinitionTestBase):
   def _GenerateExpectResult(self, comp_name, func_name, expect_field,
-                            information=None):
+                            func_arg=None, information=None):
     ret = {
         'category_x': {
             comp_name: {
                 'eval': {
-                    func_name: {}
+                    func_name: func_arg or {}
                 },
                 'expect': expect_field
             }
@@ -161,15 +161,22 @@ class ProbeStatementDefinitionTest(ConcreteProbeStatementDefinitionTestBase):
         'comp_1', 'func_1', {
             'str_field': 'sss',
             'int_field': 3,
-            'hex_field': '0BAD'}, {'comp_group': 'other_name'})
+            'hex_field': '0BAD'}, information={'comp_group': 'other_name'})
     self.assertEqual(
         result,
         self._GenerateExpectResult(
             'comp_1', 'func_1', {
                 'str_field': [True, 'str', '!eq sss'],
                 'int_field': [True, 'int', '!eq 3'],
-                'hex_field': [True, 'hex', '!eq 0x0BAD']}, {
+                'hex_field': [True, 'hex', '!eq 0x0BAD']}, information={
                     'comp_group': 'other_name'}))
+
+  def testGenerateProbeStatementWithArgument(self):
+    result = self.probe_statement_definition.GenerateProbeStatement(
+        'comp_1', 'func_1', {}, probe_function_argument={'arg_1': 'aaa'})
+    self.assertEqual(result,
+                     self._GenerateExpectResult('comp_1', 'func_1', {},
+                                                func_arg={'arg_1': 'aaa'}))
 
 
 class ProbeConfigPayloadTest(ConcreteProbeStatementDefinitionTestBase):

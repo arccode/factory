@@ -90,13 +90,15 @@ class ProbeStatementConversionError(ProbeStatementGeneratorNotSuitableError):
 
 
 class _ProbeStatementGenerator(object):
-  def __init__(self, probe_category, probe_function_name, field_converters):
+  def __init__(self, probe_category, probe_function_name, field_converters,
+               probe_function_argument=None):
     self.probe_category = probe_category
 
     self._probe_statement_generator = (
         probe_config_definition.GetProbeStatementDefinition(probe_category))
     self._probe_function_name = probe_function_name
     self._field_converters = field_converters
+    self._probe_function_argument = probe_function_argument
 
   def TryGenerate(self, comp_name, comp_values, information=None):
     expected_fields = {}
@@ -117,7 +119,9 @@ class _ProbeStatementGenerator(object):
             (fc.hwid_field_name, e))
     try:
       return self._probe_statement_generator.GenerateProbeStatement(
-          comp_name, self._probe_function_name, expected_fields, information)
+          comp_name, self._probe_function_name, expected_fields,
+          probe_function_arguemnt=self._probe_function_argument,
+          information=information)
     except Exception as e:
       raise ProbeStatementConversionError(
           'unable to convert to the probe statement : %r' % e)
