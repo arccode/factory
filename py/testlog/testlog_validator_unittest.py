@@ -61,6 +61,8 @@ class TestlogValidatorTest(unittest.TestCase):
   def testStringValidator(self):
     event = self.TestEvent()
     with self.assertRaises(ValueError):
+      event['String'] = b'5555'
+    with self.assertRaises(ValueError):
       event['String'] = 6666
     event['String'] = '7777'
     self.assertEqual(event['String'], '7777')
