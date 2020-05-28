@@ -101,6 +101,7 @@ from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import schema
 
 
 _RE_EVTEST_EVENT = re.compile(
@@ -108,6 +109,20 @@ _RE_EVTEST_EVENT = re.compile(
 
 _POWER_KEY_CODE = 116
 
+_INTEGER_STRING_PATTERN = (
+    r'^(0[Bb][01]+|0[Oo][0-7]+|0[Xx][0-9A-Fa-f]+|[1-9][0-9]*|0)$')
+_REPLACEMENT_KEYMAP_SCHEMA = schema.JSONSchemaDict(
+    'replacement_keymap schema object',
+    {
+        'type': 'object',
+        'propertyNames': _INTEGER_STRING_PATTERN,
+        'patternProperties': {
+            "^.*$": {
+                'type': 'string',
+                'pattern': _INTEGER_STRING_PATTERN
+            }
+        }
+    })
 
 class KeyboardTest(test_case.TestCase):
   """Tests if all the keys on a keyboard are functioning. The test checks for
@@ -143,7 +158,9 @@ class KeyboardTest(test_case.TestCase):
       Arg('skip_power_key', bool, 'Skip power button testing', default=False),
       Arg('skip_keycodes', list, 'Keycodes to skip', default=[]),
       Arg('replacement_keymap', dict, 'Dictionary mapping key codes to '
-          'replacement key codes', default={}),
+          'replacement keycodes. The keycodes must be a string of an integer'
+          'since json does not support format like 0x10.', default={},
+          schema=_REPLACEMENT_KEYMAP_SCHEMA),
       Arg('detect_long_press', bool, 'Detect long press event. Usually for '
           'detecting bluetooth keyboard disconnection.', default=False),
       Arg('repeat_times', dict, 'A dict object {key_code: times} to specify '
@@ -179,10 +196,15 @@ class KeyboardTest(test_case.TestCase):
     self.bindings = self.ReadBindings(self.layout)
 
     # Apply any replacement keymap
-    for old_key, new_key in self.args.replacement_keymap.items():
-      if old_key in self.bindings:
-        self.bindings[new_key] = self.bindings[old_key]
-        del self.bindings[old_key]
+    if self.args.replacement_keymap:
+      replacement_keymap = {
+          int(key, 0): int(value, 0)
+          for key, value in self.args.replacement_keymap.items()}
+      new_bind = {key: value for key, value in self.bindings.items()
+                  if key not in replacement_keymap}
+      for old_key, new_key in replacement_keymap.items():
+        new_bind[new_key] = self.bindings[old_key]
+      self.bindings = new_bind
 
     self.all_keys = set(self.bindings.keys())
 
