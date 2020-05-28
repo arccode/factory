@@ -17,6 +17,43 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 
 
+def GetInheritSet(manager_, test_list_id):
+  """Generate a set contains all inheritance ancestors of `test_list_id`.
+
+  Args:
+    manager_: a test list manager instance.
+    test_list_id: ID of the test list that we want to find the inherit
+                  ancestors.
+
+  Returns:
+    A set object.
+  """
+  raw_config = manager_.loader.Load(test_list_id, allow_inherit=False)
+
+  inherit_set = {test_list_id}
+  if 'inherit' not in raw_config:
+    return inherit_set
+
+  for parent_config_name in raw_config['inherit']:
+    parent_test_list_id = parent_config_name.split('.')[0]
+    inherit_set.update(GetInheritSet(manager_, parent_test_list_id))
+
+  return inherit_set
+
+
+def IsReferenced(test_object_name, cache):
+  """Check if `test_object_name` appears in cache.
+
+  If a test object definition is referenced in the `tests` section of a test
+  list, then the test object should appears in the test object cache for
+  building the test objects.
+  """
+  for _test_list_id in cache:
+    if test_object_name in cache[_test_list_id]:
+      return True
+  return False
+
+
 def CheckTestList(manager_, test_list_id, dump):
   """Check the test list with given `test_list_id`.
 
@@ -36,6 +73,27 @@ def CheckTestList(manager_, test_list_id, dump):
   if dump:
     print(test_list.ToFactoryTestList().__repr__(recursive=True))
     return
+
+  # Check if there are unreferenced test object definitions in the test list.
+  cache = {}
+  all_test_lists, unused_failed_test_lists = manager_.BuildAllTestLists()
+  for child_test_list_id in all_test_lists:
+    # Skip because child_test_list_id is not a child of test_list_id.
+    if test_list_id not in GetInheritSet(manager_, child_test_list_id):
+      continue
+
+    cache[child_test_list_id] = {}
+    _test_list = all_test_lists[child_test_list_id]
+    _config = _test_list.ToTestListConfig()
+    for _test_object in _config['tests']:
+      _test_list.MakeTest(_test_object, cache[child_test_list_id])
+
+  raw_config = manager_.loader.Load(test_list_id, allow_inherit=False)
+  for test_object_name in raw_config['definitions']:
+    if not IsReferenced(test_object_name, cache):
+      logging.warning(
+          'Test object "%s" is defined but not referenced in any test list',
+          test_object_name)
 
   try:
     test_list.CheckValid()
