@@ -92,6 +92,7 @@ from cros.factory.test.utils import goofy_plugin_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import config_utils
+from cros.factory.utils.process_utils import LogAndCheckCall, CheckOutput
 from cros.factory.utils import type_utils
 
 _DEFAULT_TARGET_CHARGE = 78
@@ -139,6 +140,12 @@ class ChargerTest(test_case.TestCase):
           default=False),
       Arg('timeout_secs', int, 'Maximum allowed time to charge battery',
           default=3600),
+      Arg('dim_backlight', bool,
+          'Turn backlight/screen brightness lower to charge faster.',
+          default=True),
+      Arg('dim_backlight_pct', float,
+          'The brightness in linear % when charging.',
+          default=3.0),
   ]
 
   def setUp(self):
@@ -146,6 +153,20 @@ class ChargerTest(test_case.TestCase):
 
     # Group checker for Testlog.
     self._group_checker = testlog.GroupParam('charge', ['charge', 'elapsed'])
+
+    if self.args.dim_backlight:
+      # Get initial backlight brightness
+      self._init_backlight_pct = float(CheckOutput(
+          ['backlight_tool', '--get_brightness_percent']).strip())
+      LogAndCheckCall(['backlight_tool',
+                       '--set_brightness_percent=%f'
+                       % self.args.dim_backlight_pct])
+
+  def tearDown(self):
+    if self.args.dim_backlight:
+      LogAndCheckCall(['backlight_tool',
+                       '--set_brightness_percent=%f'
+                       % self._init_backlight_pct])
 
   def runTest(self):
     self.assertTrue(self._power.CheckBatteryPresent(), 'Cannot find battery.')
