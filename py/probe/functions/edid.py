@@ -167,7 +167,7 @@ def LoadFromI2C(path):
 
   Args:
     path: i2c path, can be either int type (ex: 0) or string type (ex:
-        '/dev/i2c-0')
+          '/dev/i2c-0')
 
   Returns:
     Parsed I2c output, None if it fails to dump something for the specific I2C.
@@ -185,6 +185,7 @@ def LoadFromI2C(path):
 
 def LoadFromFile(path):
   return Parse(file_utils.ReadFile(path, encoding=None))
+
 
 class EDIDFunction(probe_function.ProbeFunction):
   # pylint: disable=line-too-long
@@ -263,7 +264,10 @@ class EDIDFunction(probe_function.ProbeFunction):
           default=None),
   ]
 
-  I2C_DEVICE_PREFIX = '/dev/i2c-'
+  ROOT_PATH = '/'
+  I2C_DEVICE_PREFIX = 'dev/i2c-'
+  SYSFS_PATH_PATTERN = 'sys/class/drm/*/edid'
+  DEV_PATH_PATTERN = I2C_DEVICE_PREFIX + '[0-9]*'
 
   def Probe(self):
     self.MayInitCachedData()
@@ -275,7 +279,8 @@ class EDIDFunction(probe_function.ProbeFunction):
       return self.identity_to_edid[self.path_to_identity[self.args.path]]
 
     if self.args.path.isdigit():
-      path = self.I2C_DEVICE_PREFIX + self.args.path
+      path = os.path.join(self.ROOT_PATH,
+                          self.I2C_DEVICE_PREFIX + self.args.path)
       if path in self.path_to_identity:
         return self.identity_to_edid[self.path_to_identity[path]]
 
@@ -292,8 +297,8 @@ class EDIDFunction(probe_function.ProbeFunction):
     cls.identity_to_edid = {}
 
     for pattern_type, glob_pattern in [
-        ('sysfs_path', '/sys/class/drm/*/edid'),
-        ('dev_path', cls.I2C_DEVICE_PREFIX + '[0-9]*')]:
+        ('sysfs_path', os.path.join(cls.ROOT_PATH, cls.SYSFS_PATH_PATTERN)),
+        ('dev_path', os.path.join(cls.ROOT_PATH, cls.DEV_PATH_PATTERN))]:
       for path in glob.glob(glob_pattern):
         result = cls.ProbeEDID(path)
         if not result:
@@ -311,7 +316,7 @@ class EDIDFunction(probe_function.ProbeFunction):
 
   @classmethod
   def ProbeEDID(cls, path):
-    if path.startswith(cls.I2C_DEVICE_PREFIX):
+    if path.startswith(os.path.join(cls.ROOT_PATH, cls.I2C_DEVICE_PREFIX)):
       sys_utils.LoadKernelModule('i2c_dev')
       parsed_edid = LoadFromI2C(path)
     else:

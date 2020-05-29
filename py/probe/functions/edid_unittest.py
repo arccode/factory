@@ -4,12 +4,23 @@
 # found in the LICENSE file.
 
 import binascii
-import copy
+import json
+import os
+import shutil
+import tempfile
 import unittest
 
 import mock
 
 from cros.factory.probe.functions import edid
+from cros.factory.utils import file_utils
+from cros.factory.utils import json_utils
+
+
+def LoadJSONFromFile(path):
+  with open(path) as f:
+    value = json.load(f)
+  return value
 
 
 class EdidTest(unittest.TestCase):
@@ -41,57 +52,97 @@ class EdidTest(unittest.TestCase):
 
 
 class EDIDFunctionTest(unittest.TestCase):
+  # Mocks edid.LoadFromFile and edid.LoadFromI2C by creating sysfs paths and I2C
+  # paths in a new root, and read the parsed EDID directly from the files.
   FAKE_EDID = [
       {'vendor': 'IBM', 'product_id': '001', 'width': '111'},
       {'vendor': 'IBN', 'product_id': '002', 'width': '222'},
   ]
-  FAKE_SYSFS_PATHS = ['/sys/class/drm/A/edid', '/sys/class/drm/BB/edid']
-  FAKE_SYSFS_OUTPUTS = [
-      dict(FAKE_EDID[0], sysfs_path=FAKE_SYSFS_PATHS[0]),
-      dict(FAKE_EDID[1], sysfs_path=FAKE_SYSFS_PATHS[1])]
-  FAKE_I2C_PATHS = ['/dev/i2c-1', '/dev/i2c-22']
-  FAKE_I2C_OUTPUTS = [
-      dict(FAKE_EDID[0], dev_path=FAKE_I2C_PATHS[0]),
-      dict(FAKE_EDID[1], dev_path=FAKE_I2C_PATHS[1])]
+  FAKE_SYSFS_PATHS = ['sys/class/drm/A/edid', 'sys/class/drm/BB/edid']
+  FAKE_I2C_PATHS = ['dev/i2c-1', 'dev/i2c-22']
+
+  def setUp(self):
+    self.root_dir = tempfile.mkdtemp(prefix='probe_edid_')
+    self.InitEDIDFunction()
+
+    self.patchers = []
+    self.patchers.append(
+        mock.patch('cros.factory.utils.sys_utils.LoadKernelModule'))
+    self.patchers.append(
+        mock.patch('cros.factory.probe.functions.edid.LoadFromFile',
+                   side_effect=LoadJSONFromFile))
+    self.patchers.append(
+        mock.patch('cros.factory.probe.functions.edid.LoadFromI2C',
+                   side_effect=LoadJSONFromFile))
+    self.patchers.append(
+        mock.patch('cros.factory.probe.functions.edid.EDIDFunction.ROOT_PATH',
+                   self.root_dir))
+    for patcher in self.patchers:
+      patcher.start()
+
+  def tearDown(self):
+    if os.path.exists(self.root_dir):
+      shutil.rmtree(self.root_dir)
+    for patcher in self.patchers:
+      patcher.stop()
+
+  def WriteEDIDToRootDir(self, paths, values):
+    for path, value in zip(paths, values):
+      file_path = os.path.join(self.root_dir, path)
+      dir_path = os.path.dirname(file_path)
+      file_utils.TryMakeDirs(dir_path)
+      json_utils.DumpFile(file_path, value)
+
+  def SetupSysfsEDID(self):
+    self.WriteEDIDToRootDir(self.FAKE_SYSFS_PATHS, self.FAKE_EDID)
+
+  def SetupI2CEDID(self):
+    self.WriteEDIDToRootDir(self.FAKE_I2C_PATHS, self.FAKE_EDID)
 
   def InitEDIDFunction(self):
     edid.EDIDFunction.path_to_identity = None
     edid.EDIDFunction.identity_to_edid = None
 
-  @mock.patch('cros.factory.utils.sys_utils.LoadKernelModule')
-  @mock.patch('cros.factory.probe.functions.edid.LoadFromFile',
-              side_effect=copy.deepcopy(FAKE_EDID))
-  @mock.patch('cros.factory.probe.functions.edid.LoadFromI2C',
-              side_effect=copy.deepcopy(FAKE_EDID))
-  @mock.patch('glob.glob',
-              side_effect=[FAKE_SYSFS_PATHS, FAKE_I2C_PATHS])
   def testSysfs(self, *unused_mocks):
-    self.InitEDIDFunction()
+    # Set up both sysfs and I2C EDID. The probe function should only read from
+    # sysfs.
+    self.SetupSysfsEDID()
+    self.SetupI2CEDID()
+
+    expected_result = [
+        dict(self.FAKE_EDID[0],
+             sysfs_path=os.path.join(self.root_dir, self.FAKE_SYSFS_PATHS[0])),
+        dict(self.FAKE_EDID[1],
+             sysfs_path=os.path.join(self.root_dir, self.FAKE_SYSFS_PATHS[1]))]
+
     result = edid.EDIDFunction()()
-    self.assertCountEqual(result, self.FAKE_SYSFS_OUTPUTS)
+    self.assertCountEqual(result, expected_result)
 
     for i in range(2):
-      result = edid.EDIDFunction(path=self.FAKE_SYSFS_PATHS[i])()
-      self.assertCountEqual(result, [self.FAKE_SYSFS_OUTPUTS[i]])
+      result = edid.EDIDFunction(
+          path=os.path.join(self.root_dir, self.FAKE_SYSFS_PATHS[i]))()
+      self.assertCountEqual(result, [expected_result[i]])
 
-  @mock.patch('cros.factory.utils.sys_utils.LoadKernelModule')
-  @mock.patch('cros.factory.probe.functions.edid.LoadFromFile',
-              side_effect=[None, None])
-  @mock.patch('cros.factory.probe.functions.edid.LoadFromI2C',
-              side_effect=copy.deepcopy(FAKE_EDID))
-  @mock.patch('glob.glob',
-              side_effect=[FAKE_SYSFS_PATHS, FAKE_I2C_PATHS])
   def testI2C(self, *unused_mocks):
-    self.InitEDIDFunction()
+    # Don't set up sysfs EDID. The probe function will read from I2C.
+    self.SetupI2CEDID()
+
+    expected_result = [
+        dict(self.FAKE_EDID[0],
+             dev_path=os.path.join(self.root_dir, self.FAKE_I2C_PATHS[0])),
+        dict(self.FAKE_EDID[1],
+             dev_path=os.path.join(self.root_dir, self.FAKE_I2C_PATHS[1]))]
+
     result = edid.EDIDFunction()()
-    self.assertCountEqual(result, self.FAKE_I2C_OUTPUTS)
+    self.assertCountEqual(result, expected_result)
 
     for i in range(2):
-      result = edid.EDIDFunction(path=self.FAKE_I2C_PATHS[i])()
-      self.assertCountEqual(result, [self.FAKE_I2C_OUTPUTS[i]])
+      result = edid.EDIDFunction(
+          path=os.path.join(self.root_dir, self.FAKE_I2C_PATHS[i]))()
+      self.assertCountEqual(result, [expected_result[i]])
 
     result = edid.EDIDFunction(path='22')()
-    self.assertCountEqual(result, [self.FAKE_I2C_OUTPUTS[1]])
+    self.assertCountEqual(result, [expected_result[1]])
 
 
 if __name__ == '__main__':
