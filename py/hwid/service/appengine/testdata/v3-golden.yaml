@@ -303,6 +303,8 @@ components:
           type: HDD
           size: 500G
           serial: !re '^#123\d+$'
+        information:
+          comp_group: storage_0
 
   hash_gbb:
     items:

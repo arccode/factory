@@ -9,6 +9,7 @@ regardless of the source of that information or the version.
 """
 
 import collections
+import copy
 import logging
 import re
 
@@ -86,13 +87,17 @@ class LatestPayloadHash(db.Model):  # pylint: disable=no-init
   payload_hash = db.StringProperty()
 
 
-class Component(collections.namedtuple('Component', ['cls', 'name'])):
+class Component(collections.namedtuple('Component', ['cls', 'name',
+                                                     'information'])):
   """A single BOM component.
 
   Attributes:
     cls string The component-class.
     name string The canonical name.
+    information dict (optional) The extra information bound with the component.
   """
+  def __new__(cls, cls_, name, information=None):
+    return super(Component, cls).__new__(cls, cls_, name, information)
 
 
 class Label(collections.namedtuple('Label', ['cls', 'name', 'value'])):
@@ -117,27 +122,28 @@ class Bom(object):
   def HasComponent(self, component):
     """Tests whether the bom has a component."""
     return (component.cls in self._components and
-            component.name in self._components[component.cls])
+            any(component.name == comp.name for comp in
+                self._components[component.cls]))
 
   def GetComponents(self, cls=None):
     """Gets the components of this bom, optionally filtered by class."""
     if cls:
       if cls not in self._components:
         return []
-      elif self._components[cls] == list():
-        return [Component(cls, None)]
-      return [Component(cls, name) for name in self._components[cls]]
+      elif not self._components[cls]:
+        return [Component(cls, None, None)]
+      return copy.deepcopy(self._components[cls])
 
     components = []
-    for comp_class, comp_names in self._components.items():
-      if comp_names == list():
-        components.append(Component(comp_class, None))
+    for comp_class, comps in self._components.items():
+      if comps == list():
+        components.append(Component(comp_class, None, None))
       else:
-        components.extend([Component(comp_class, name) for name in comp_names])
+        components.extend(copy.deepcopy(comps))
 
     return components
 
-  def AddComponent(self, cls, name=None):
+  def AddComponent(self, cls, name=None, information=None):
     """Adds a component to this bom.
 
     The method must be supplied at least a component class.  If no name is
@@ -146,16 +152,16 @@ class Bom(object):
     Args:
       cls: The component class.
       name: The name of the bom.
-    Returns:
-      self
+      information: (optional) The extra information bound with the
+                   component.
     """
     if cls not in self._components:
       self._components[cls] = []
 
     if name:
-      self._components[cls].append(name)
+      self._components[cls].append(Component(cls, name, information))
 
-  def AddAllComponents(self, component_dict):
+  def AddAllComponents(self, component_dict, comp_db=None):
     """Adds a dict of components to this bom.
 
     This dict should be of the form class -> name and can take either a single
@@ -163,18 +169,25 @@ class Bom(object):
     components as extract from a YAML file or similar.
 
     Args:
-      component_dict: A dictionary of compoennts to add.
+      component_dict: A dictionary of components to add.
+      comp_db: The database for additional component information retrieval.
     Returns:
       self
     Raises:
       ValueError: if any of the classes are None.
     """
-    for component_class in component_dict:
-      if isinstance(component_dict[component_class], str):
-        self.AddComponent(component_class, component_dict[component_class])
+    for component_class, component_val in component_dict.items():
+      db_components = comp_db and comp_db.GetComponents(component_class)
+      if isinstance(component_val, str):
+        comp_info = db_components and db_components.get(component_val)
+        self.AddComponent(component_class, component_dict[component_class],
+                          comp_info and comp_info.information)
       else:
-        for component_name in component_dict[component_class]:
-          self.AddComponent(component_class, component_name)
+        for component_name in component_val:
+          if isinstance(component_name, str):
+            comp_info = db_components and db_components.get(component_name)
+            self.AddComponent(component_class, component_name,
+                              comp_info and comp_info.information)
 
   def HasLabel(self, label):
     """Test whether the BOM has a label."""
@@ -1065,7 +1078,7 @@ class _HwidV3Data(_HwidData):
 
     bom = Bom()
 
-    bom.AddAllComponents(_bom.components)
+    bom.AddAllComponents(_bom.components, self.database)
     bom.phase = self.database.GetImageName(hwid.image_id)
     bom.board = hwid.project
 

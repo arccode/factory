@@ -14,13 +14,13 @@ from cros.factory.hwid.service.appengine import appengine_test_base
 from cros.factory.hwid.service.appengine import cloudstorage_adapter
 from cros.factory.hwid.service.appengine import hwid_manager
 
+
 GOLDEN_HWIDV2_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'testdata/v2-golden.yaml')
 GOLDEN_HWIDV3_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'testdata/v3-golden.yaml')
 
 GOLDEN_HWIDV2_DATA = open(GOLDEN_HWIDV2_FILE, 'r').read()
-GOLDEN_HWIDV3_DATA = open(GOLDEN_HWIDV3_FILE, 'r').read()
 
 TEST_V2_HWID = 'CHROMEBOOK BAKER A-A'
 TEST_V2_HWID_NO_VAR = 'CHROMEBOOK BAKER'
@@ -32,7 +32,7 @@ TEST_V2_HWID_TWO_DASH = 'CHROMEBOOK BAKER-ALFA-BETA A-A'
 TEST_V2_HWID_TWO_DASH_NO_VAR = 'CHROMEBOOK BAKER-ALFA-BETA'
 TEST_V2_HWID_TWO_DASH_NO_VOL = 'CHROMEBOOK BAKER-ALFA-BETA A'
 TEST_V3_HWID = 'CHROMEBOOK AA5A-Y6L'
-TEST_V3_HWID_WITH_CONFIGLESS = 'CHROMEBOOK-BRAND 0-8-74-180 AA5A-YZS'
+TEST_V3_HWID_WITH_CONFIGLESS = 'CHROMEBOOK-BRAND 0-8-74-180 AA5C-YNQ'
 
 
 # pylint: disable=protected-access
@@ -624,6 +624,10 @@ class HwidV3DataTest(unittest.TestCase):
     self.assertIn(
         hwid_manager.Component('dram', 'dram_0'), bom.GetComponents('dram'))
     self.assertEqual('EVT', bom.phase)
+    self.assertIn(
+        hwid_manager.Component('storage', 'storage_2', {
+            "comp_group": "storage_0"}),
+        bom.GetComponents('storage'))
     self.assertEqual('CHROMEBOOK', bom.board)
     self.assertEqual(
         {
@@ -721,6 +725,12 @@ class BomTest(unittest.TestCase):
     self._AssertHasComponent('baz', 'qux')
     self._AssertHasComponent('baz', 'rox')
 
+  def testAddAllComponentsWithInfo(self):
+    data = hwid_manager._HwidV3Data('CHROMEBOOK', hwid_file=GOLDEN_HWIDV3_FILE)
+    self.bom.AddAllComponents({'storage': ['storage_2']}, data.database)
+    comp = self.bom.GetComponents('storage')[0]
+    self.assertEqual('storage_0', comp.information['comp_group'])
+
   def testGetComponents(self):
     self.bom.AddComponent('foo', 'bar')
     self.bom.AddComponent('baz', 'qux')
@@ -742,7 +752,7 @@ class BomTest(unittest.TestCase):
   def _AssertHasComponent(self, cls, name):
     self.assertIn(cls, self.bom._components)
     if name:
-      self.assertIn(name, self.bom._components[cls])
+      self.assertIn(name, (comp.name for comp in self.bom._components[cls]))
     else:
       self.assertEqual([], self.bom._components[cls])
 

@@ -436,9 +436,12 @@ class HwidApi(remote.Service):
     for cls in hwid_components:
       for component in bom.GetComponents(cls):
         if component.name:
+          name = component.name
+          if component.information is not None:
+            name = component.information.get('comp_group', name)
           labels.append(hwid_api_messages.DUTLabel(
               name="hwid_component",
-              value=component.cls + '/' + component.name))
+              value=component.cls + '/' + name))
 
     if set([label.name for label in labels]) - set(possible_labels):
       return hwid_api_messages.DUTLabelResponse(
