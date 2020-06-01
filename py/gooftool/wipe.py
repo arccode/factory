@@ -212,7 +212,9 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
             # File required for enable ssh connection.
             '/mnt/stateful_partition/etc/ssh',
             '/root/.ssh',
-            '/usr/share/chromeos-ssh-config'],
+            '/usr/share/chromeos-ssh-config',
+            # /mnt/empty is required by openssh server.
+            '/mnt/empty'],
         binary_list=binary_deps, etc_issue=etc_issue).PivotRoot(old_root):
       logging.debug(
           'lsof: %s',
