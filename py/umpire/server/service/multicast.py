@@ -86,8 +86,7 @@ class MulticastService(umpire_service.UmpireService):
 
     args = [
         server_file_path,
-        env.GetResourcePath(bundle['payloads']),
-        env.GetResourcePath(env.config['multicast'])
+        '--payload-file', env.GetResourcePath(env.config['multicast'])
         ]
 
     proc_config = {

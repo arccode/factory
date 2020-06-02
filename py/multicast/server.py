@@ -7,6 +7,7 @@
 
 from __future__ import print_function
 
+import argparse
 import os
 import signal
 import sys
@@ -33,11 +34,16 @@ def SpawnUFTP(file_name, multicast_addr):
 
 
 def Main():
-  assert len(sys.argv) == 3
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+      '-p', '--payload-file', help='path to Umpire multicast payload file',
+      required=True)
 
-  resource_dir = os.path.dirname(sys.argv[1])
-  payloads = json_utils.LoadFile(sys.argv[1])
-  multicast_dict = json_utils.LoadFile(sys.argv[2])['multicast']
+  args = parser.parse_args()
+
+  resource_dir = os.path.dirname(args.payload_file)
+  payloads = json_utils.LoadFile(args.payload_file)
+  multicast_dict = payloads['multicast']
 
   procs = []
   for component in multicast_dict:
@@ -46,11 +52,11 @@ def Main():
       file_path = os.path.join(resource_dir, file_name)
       multicast_addr = multicast_dict[component][part]
 
-      args = (file_path, multicast_addr)
+      uftp_args = (file_path, multicast_addr)
 
-      p = SpawnUFTP(*args)
+      p = SpawnUFTP(*uftp_args)
 
-      procs.append({'process': p, 'args': args})
+      procs.append({'process': p, 'args': uftp_args})
 
   def handler(signum, frame):
     del signum, frame  # unused
@@ -63,9 +69,9 @@ def Main():
 
   while True:
     for proc in procs:
-      args = proc['args']
+      uftp_args = proc['args']
       if proc['process'].poll() is not None:
-        proc['process'] = SpawnUFTP(*args)
+        proc['process'] = SpawnUFTP(*uftp_args)
     time.sleep(1)
 
 
