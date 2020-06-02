@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-05-26 19:57+CST\n"
+"PO-Revision-Date: 2020-06-10 14:06+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -528,6 +528,10 @@ msgstr "更新 CBI"
 #: ../build/pytests_label_generated.json
 msgid "Update CR50 Firmware"
 msgstr "更新 CR50 韧体"
+
+#: ../build/pytests_label_generated.json
+msgid "Update Detachable Base"
+msgstr "更新可拆式底座韧体"
 
 #: ../build/pytests_label_generated.json
 msgid "Update Device Data"
@@ -2945,6 +2949,18 @@ msgstr "从左上角开始依序画格子; 按 Esc 键标记失败"
 #: ../py/test/pytests/touchscreen_static/touchscreen.js
 msgid "Draw blocks in any order; Esc to fail."
 msgstr "用任意顺序画完全部格子; 按 Esc 键标记失败"
+
+#: ../py/test/pytests/update_detachable_base.py
+msgid "Please connect the detachable base."
+msgstr "请连接可拆式底座"
+
+#: ../py/test/pytests/update_detachable_base.py
+msgid "Updating base firmware. Do not remove the base."
+msgstr "更新韧体中，勿移除底座"
+
+#: ../py/test/pytests/update_detachable_base.py
+msgid "Verifying detachable base information..."
+msgstr "验证底座信息..."
 
 #: ../py/test/pytests/update_device_data.py
 msgid "Device Serial Number"

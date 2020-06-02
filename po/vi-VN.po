@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-05-26 19:57+CST\n"
+"PO-Revision-Date: 2020-06-10 14:06+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -528,6 +528,10 @@ msgstr "Cập nhật CBI"
 #: ../build/pytests_label_generated.json
 msgid "Update CR50 Firmware"
 msgstr "Cập nhật firmware CR50"
+
+#: ../build/pytests_label_generated.json
+msgid "Update Detachable Base"
+msgstr "Cập nhật cơ sở có thể tháo rời"
 
 #: ../build/pytests_label_generated.json
 msgid "Update Device Data"
@@ -3015,6 +3019,18 @@ msgstr ""
 msgid "Draw blocks in any order; Esc to fail."
 msgstr ""
 "Vẽ tất cả các lưới theo thứ tự bất kỳ, nhấn Esc để đánh dấu sự thất bại"
+
+#: ../py/test/pytests/update_detachable_base.py
+msgid "Please connect the detachable base."
+msgstr "Vui lòng kết nối cơ sở có thể tháo rời."
+
+#: ../py/test/pytests/update_detachable_base.py
+msgid "Updating base firmware. Do not remove the base."
+msgstr "Cập nhật firmware. Không loại bỏ cơ sở."
+
+#: ../py/test/pytests/update_detachable_base.py
+msgid "Verifying detachable base information..."
+msgstr "Xác minh thông tin..."
 
 #: ../py/test/pytests/update_device_data.py
 msgid "Device Serial Number"
