@@ -86,7 +86,7 @@ class InputHTTPTestlog(input_http.InputHTTP):
     if isinstance(self.args.log_level_threshold, (int, float)):
       self.threshold = self.args.log_level_threshold
     else:
-      self.threshold = logging.getLevelName(self.args.log_level_threshold)
+      self.threshold = getattr(logging, self.args.log_level_threshold)
 
   def _CheckFormat(self, event, client_node_id):
     """Checks the event is following the Testlog format and sets attachments.
@@ -114,8 +114,8 @@ class InputHTTPTestlog(input_http.InputHTTP):
     testlog.EventBase.FromDict(event.payload)
     event['__testlog__'] = True
 
-    if (event['type'] == 'station.message' and logging.getLevelName(
-        event.get('logLevel', logging.CRITICAL)) < self.threshold):
+    if (event['type'] == 'station.message' and
+        getattr(logging, event.get('logLevel', 'CRITICAL')) < self.threshold):
       return False
 
     # The time on the DUT is not reliable, so we are going to use the time on
