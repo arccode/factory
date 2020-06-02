@@ -182,11 +182,12 @@ class UpdateCBITest(test_case.TestCase):
       logging.warning("Can't get model.%s from model_sku", self.args.project)
     for product_name in product_names:
       try:
-        sku_config = self._config['product_sku'][product_name][str(sku_id)]
+        sku_config = self._model_sku['product_sku'][product_name][str(sku_id)]
         break
       except Exception:
         pass
     else:
+      sku_config = {}
       logging.warning(
           "Can't get sku_config from model_sku. product_names: %r, sku: %s",
           product_names, sku_id)

@@ -102,8 +102,8 @@ class PlatformSKUModelTest(test_case.TestCase):
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self._config = config_utils.LoadConfig(config_name=self.args.config_name,
-                                           schema_name=self.args.schema_name)
+    self._model_sku = config_utils.LoadConfig(config_name=self.args.config_name,
+                                              schema_name=self.args.schema_name)
     self._platform = {}
     self._goofy_rpc = state.GetInstance()
 
@@ -119,24 +119,25 @@ class PlatformSKUModelTest(test_case.TestCase):
     else:
       product_names = [self.args.product_name]
     try:
-      model_config = self._config['model'][model]
+      model_config = self._model_sku['model'][model]
     except Exception:
       model_config = {}
       logging.warning("Can't get model.%s from model_sku", model)
-    if 'product_sku' in self._config:
+    if 'product_sku' in self._model_sku:
       for product_name in product_names:
         try:
-          sku_config = self._config['product_sku'][product_name][sku]
+          sku_config = self._model_sku['product_sku'][product_name][sku]
           break
         except Exception:
           pass
       else:
+        sku_config = {}
         logging.warning(
             "Can't get sku_config from model_sku. product_names: %r, sku: %s",
             product_names, sku)
     else:
       # TODO(chuntsen): Remove getting config from 'sku' after a period of time.
-      sku_config = self._config.get('sku', {}).get(sku, {})
+      sku_config = self._model_sku.get('sku', {}).get(sku, {})
 
     config_utils.OverrideConfig(model_config, sku_config)
     if model_config:
