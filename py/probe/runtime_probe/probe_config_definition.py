@@ -24,6 +24,8 @@ def _ConstructAllProbeStatementDefinitions():
                              'interface.'))
   builder.AddStrOutputField('model_name',
                             'Model name exposed from the ACPI interface.')
+  builder.AddStrOutputField('technology',
+                            'Technology exposed from the ACPI interface.')
   _probe_statement_definitions['battery'] = builder.Build()
 
   builder = probe_config_types.ProbeStatementDefinitionBuilder('storage')

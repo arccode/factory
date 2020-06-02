@@ -57,7 +57,7 @@ def _GetAllGenericProbeStatementInfoRecords():
     _generic_probe_statement_info_records = [
         GenericProbeStatementInfoRecord(
             'battery', 'generic_battery',
-            ['manufacturer', 'model_name']),
+            ['manufacturer', 'model_name', 'technology']),
         GenericProbeStatementInfoRecord(
             'storage', 'generic_storage',
             ['type', 'sectors', 'manfid', 'name', 'pci_vendor', 'pci_device',
@@ -168,6 +168,7 @@ def GetAllProbeStatementGenerators():
       _ProbeStatementGenerator('battery', 'generic_battery', [
           same_name_field_converter('manufacturer', HWIDValueToStr),
           same_name_field_converter('model_name', HWIDValueToStr),
+          same_name_field_converter('technology', HWIDValueToStr),
       ])
   ]
 

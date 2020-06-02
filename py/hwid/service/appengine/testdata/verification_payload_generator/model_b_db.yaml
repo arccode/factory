@@ -16,6 +16,8 @@ encoded_fields:
   battery:
     0: {battery: battery_small_supported}
     1: {battery: battery_medium_supported}
+    2: {battery: battery_large_supported_tech_1}
+    3: {battery: battery_large_supported_tech_2}
 
 components:
   battery:
@@ -24,10 +26,23 @@ components:
         values:
           manufacturer: Li-ion
           model_name: S
+          technology: tech1
       battery_medium_supported:
         status: supported
         values:
           manufacturer: Li-ion
           model_name: M
+          technology: tech2
+      battery_large_supported_tech_1:
+        values:
+          manufacturer: Li-ion
+          model_name: L
+          technology: tech1
+      battery_large_supported_tech_2:
+        status: supported
+        values:
+          manufacturer: Li-ion
+          model_name: L
+          technology: tech2
 
 rules: []
