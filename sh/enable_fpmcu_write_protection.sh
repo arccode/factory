@@ -7,6 +7,19 @@
 set -x
 set -e
 
+readonly _BOARD="$(cros_config /fingerprint board)"
+
+# TODO(b/149590275): Update once they match
+if [[ "${_BOARD}" == "bloonchipper" ]]; then
+  readonly _FLASHPROTECT_HW_AND_SW_WRITE_PROTECT_ENABLED_BEFORE_REBOOT='^Flash protect flags: 0x0000000b wp_gpio_asserted ro_at_boot ro_now$'
+  readonly _FLASHPROTECT_HW_AND_SW_WRITE_PROTECT_ENABLED='^Flash protect flags: 0x0000040f wp_gpio_asserted ro_at_boot ro_now rollback_now all_now$'
+elif [[ "${_BOARD}" == "dartmonkey" ]]; then
+  readonly _FLASHPROTECT_HW_AND_SW_WRITE_PROTECT_ENABLED_BEFORE_REBOOT='^Flash protect flags: 0x00000009 wp_gpio_asserted ro_at_boot$'
+  readonly _FLASHPROTECT_HW_AND_SW_WRITE_PROTECT_ENABLED='^Flash protect flags:\s*0x0000000b wp_gpio_asserted ro_at_boot ro_now$'
+else
+  echo "Unrecognized FPMCU board: ${_BOARD}"
+  exit 1
+fi
 
 check_pattern() {
   local pattern="${1}"
@@ -36,13 +49,13 @@ main() {
   fpcmd flashprotect enable || true
   sleep 2
   fpcmd flashprotect | check_pattern \
-      '^Flash protect flags: 0x00000009 wp_gpio_asserted ro_at_boot$'
+      "${_FLASHPROTECT_HW_AND_SW_WRITE_PROTECT_ENABLED_BEFORE_REBOOT}"
   fpcmd reboot_ec || true
   sleep 2
 
   # Make sure the flag is correct.
   fpcmd flashprotect | check_pattern  \
-      '^Flash protect flags:\s*0x0000000b wp_gpio_asserted ro_at_boot ro_now$'
+      "${_FLASHPROTECT_HW_AND_SW_WRITE_PROTECT_ENABLED}"
 
   # Make sure the RW image is active.
   fpcmd version | check_pattern '^Firmware copy:\s*RW$'
