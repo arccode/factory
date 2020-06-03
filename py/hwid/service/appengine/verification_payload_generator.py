@@ -120,7 +120,7 @@ class _ProbeStatementGenerator(object):
     try:
       return self._probe_statement_generator.GenerateProbeStatement(
           comp_name, self._probe_function_name, expected_fields,
-          probe_function_arguemnt=self._probe_function_argument,
+          probe_function_argument=self._probe_function_argument,
           information=information)
     except Exception as e:
       raise ProbeStatementConversionError(

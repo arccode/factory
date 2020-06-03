@@ -132,23 +132,24 @@ class GenericStorageNVMeProbeStatementGeneratorTest(unittest.TestCase):
                        'vendor': '0x1234', 'device': '0x5678'})
 
 
-  class NetworkProbeStatementGeneratorTest(unittest.TestCase):
-    def testUSB(self):
-      ps_gen = _vp_generator.GetAllProbeStatementGenerators()['wireless'][0]
-      ps = ps_gen.TryGenerate(
-          'name1',
-          {'idVendor': '1122', 'idProduct': '5566'})
-      self.assertEqual(
-          ps,
-          {
-              'network': {
-                  'name1': {
-                      'eval': {'wireless_network': {}},
-                      'expect': {'usb_vendor_id': [True, 'hex', '!eq 0x123456'],
-                                 'usb_product_id': [True, 'hex', '!eq 0x5678']}
-                  }
-              }
-          })
+class NetworkProbeStatementGeneratorTest(unittest.TestCase):
+  def testUSB(self):
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['wireless'][1]
+    ps = ps_gen.TryGenerate(
+        'name1',
+        {'idVendor': '1122', 'idProduct': '5566'})
+    self.assertEqual(
+        ps,
+        {
+            'network': {
+                'name1': {
+                    'eval': {'wireless_network': {}},
+                    'expect': {'usb_vendor_id': [True, 'hex', '!eq 0x1122'],
+                               'usb_product_id': [True, 'hex', '!eq 0x5566'],
+                               'usb_bcd_device': [False, 'hex']}
+                }
+            }
+        })
 
 
 class GenerateVerificationPayloadTest(unittest.TestCase):
