@@ -24,11 +24,12 @@ LOG_LEVEL = '0'
 ROBUST_FACTOR = '50'
 TTL = '10'
 
-def SpawnUFTP(file_name, multicast_addr):
+def SpawnUFTP(file_name, multicast_addr, status_file_path):
   addr, port = multicast_addr.split(':')
 
   cmd = [UFTP_PATH, '-M', addr, '-t', TTL, '-u', port, '-p', port,
-         '-x', LOG_LEVEL, '-C', CC_TYPE, '-s', ROBUST_FACTOR, file_name]
+         '-x', LOG_LEVEL, '-S', status_file_path, '-C', CC_TYPE,
+         '-s', ROBUST_FACTOR, file_name]
 
   return Spawn(cmd)
 
@@ -38,6 +39,8 @@ def Main():
   parser.add_argument(
       '-p', '--payload-file', help='path to Umpire multicast payload file',
       required=True)
+  parser.add_argument(
+      '-l', '--log-dir', help='path to Umpire log directory', required=True)
 
   args = parser.parse_args()
 
@@ -51,8 +54,9 @@ def Main():
       file_name = payloads[component][part]
       file_path = os.path.join(resource_dir, file_name)
       multicast_addr = multicast_dict[component][part]
+      status_file_path = os.path.join(args.log_dir, 'uftp_%s.log' % file_name)
 
-      uftp_args = (file_path, multicast_addr)
+      uftp_args = (file_path, multicast_addr, status_file_path)
 
       p = SpawnUFTP(*uftp_args)
 
