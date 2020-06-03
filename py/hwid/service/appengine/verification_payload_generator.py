@@ -62,6 +62,10 @@ def _GetAllGenericProbeStatementInfoRecords():
       GenericProbeStatementInfoRecord(
           'dram', 'memory',
           ['part', 'size', 'slot']),
+      # TODO(yhong): Include other type of cameras if needed.
+      GenericProbeStatementInfoRecord(
+          'camera', 'usb_camera',
+          ['bus_type', 'usb_vendor_id', 'usb_product_id', 'usb_bcd_device']),
   ]
 
 
@@ -223,7 +227,7 @@ def GetAllProbeStatementGenerators():
                    GetHWIDHexStrToHexStrConverter(2),
                    is_optional=True),
   ]
-  network_usb_fields = [
+  usb_fields = [
       _FieldRecord('idVendor', 'usb_vendor_id',
                    GetHWIDHexStrToHexStrConverter(4, has_prefix=False)),
       _FieldRecord('idProduct', 'usb_product_id',
@@ -235,20 +239,17 @@ def GetAllProbeStatementGenerators():
   all_probe_statement_generators['wireless'] = [
       _ProbeStatementGenerator(
           'network', 'wireless_network', network_pci_fields),
-      _ProbeStatementGenerator(
-          'network', 'wireless_network', network_usb_fields),
+      _ProbeStatementGenerator('network', 'wireless_network', usb_fields),
   ]
   all_probe_statement_generators['cellular'] = [
       _ProbeStatementGenerator(
           'network', 'cellular_network', network_pci_fields),
-      _ProbeStatementGenerator(
-          'network', 'cellular_network', network_usb_fields),
+      _ProbeStatementGenerator('network', 'cellular_network', usb_fields),
   ]
   all_probe_statement_generators['ethernet'] = [
       _ProbeStatementGenerator(
           'network', 'ethernet_network', network_pci_fields),
-      _ProbeStatementGenerator(
-          'network', 'ethernet_network', network_usb_fields),
+      _ProbeStatementGenerator('network', 'ethernet_network', usb_fields),
   ]
 
   dram_fields = [
@@ -277,6 +278,10 @@ def GetAllProbeStatementGenerators():
   all_probe_statement_generators['touchscreen'] = [
       _ProbeStatementGenerator(
           'touchscreen', 'input_device', input_device_fields),
+  ]
+
+  all_probe_statement_generators['video'] = [
+      _ProbeStatementGenerator('camera', 'usb_camera', usb_fields),
   ]
 
   return all_probe_statement_generators

@@ -95,11 +95,11 @@ def _GetAllProbeStatementDefinitions():
   builder.AddStrOutputField(
       'type',
       'Component type, one of "wireless", "ethernet" or "cellular".',
-      value_pattern=re.compile('(wireless|ethernet|cellular)'),
+      value_pattern=re.compile('(wireless|ethernet|cellular)$'),
       value_format_error_msg=('Must be either "wireless", "ethernet", or '
                               '"cellular".'))
   builder.AddStrOutputField('bus_type', 'HW interface type of the component.',
-                            value_pattern=re.compile('(pci|usb|sdio)'),
+                            value_pattern=re.compile('(pci|usb|sdio)$'),
                             value_format_error_msg=('Must be either "pci", '
                                                     '"usb", or "sdio"'))
   builder.AddHexOutputField('pci_vendor_id', 'PCI Vendor ID.',
@@ -137,6 +137,20 @@ def _GetAllProbeStatementDefinitions():
     builder.AddHexOutputField('product', 'Product ID.', num_value_digits=4)
     builder.AddHexOutputField('vendor', 'Vendor ID.', num_value_digits=4)
     probe_statement_definitions[category] = builder.Build()
+
+  builder = probe_config_types.ProbeStatementDefinitionBuilder('camera')
+  builder.AddProbeFunction('usb_camera',
+                           ('A method that probes camera devices on USB bus.'))
+  builder.AddStrOutputField('bus_type', 'HW interface type of the component.',
+                            value_pattern=re.compile('usb$'),
+                            value_format_error_msg=('Currently must be "usb".'))
+  builder.AddHexOutputField('usb_vendor_id', 'USB Vendor ID.',
+                            num_value_digits=4)
+  builder.AddHexOutputField('usb_product_id', 'USB Product ID.',
+                            num_value_digits=4)
+  builder.AddHexOutputField('usb_bcd_device', 'USB BCD Device Info.',
+                            num_value_digits=4)
+  probe_statement_definitions['camera'] = builder.Build()
 
   return probe_statement_definitions
 

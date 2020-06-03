@@ -84,6 +84,17 @@
           "pci_vendor": [false, "hex"]
         }
       }
+    },
+    "camera": {
+      "generic": {
+        "eval": {"usb_camera": {}},
+        "expect": {
+          "bus_type": [false, "str"],
+          "usb_vendor_id": [false, "hex"],
+          "usb_product_id": [false, "hex"],
+          "usb_bcd_device": [false, "hex"]
+        }
+      }
     }
   },
   "runtime_probe/model_b/probe_config.json": {
@@ -167,6 +178,17 @@
           "pci_class": [false, "hex"],
           "pci_device": [false, "hex"],
           "pci_vendor": [false, "hex"]
+        }
+      }
+    },
+    "camera": {
+      "generic": {
+        "eval": {"usb_camera": {}},
+        "expect": {
+          "bus_type": [false, "str"],
+          "usb_vendor_id": [false, "hex"],
+          "usb_product_id": [false, "hex"],
+          "usb_bcd_device": [false, "hex"]
         }
       }
     }

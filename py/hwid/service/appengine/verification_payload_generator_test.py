@@ -306,5 +306,35 @@ class GenerateProbeStatementWithInformation(unittest.TestCase):
         })
 
 
+class USBCameraProbeStatementGeneratorTest(unittest.TestCase):
+  def testTryGenerate(self):
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['video'][0]
+    ps = ps_gen.TryGenerate(
+        'name1',
+        {'idVendor': '1234', 'idProduct': '5678', 'bcdDevice': '90AB',
+         'bus_type': 'usb'})
+    self.assertEqual(
+        ps,
+        {
+            'camera': {
+                'name1': {
+                    'eval': {'usb_camera': {}},
+                    'expect': {'usb_vendor_id': [True, 'hex', '!eq 0x1234'],
+                               'usb_product_id': [True, 'hex', '!eq 0x5678'],
+                               'usb_bcd_device': [True, 'hex', '!eq 0x90AB']},
+                },
+            },
+        })
+
+    # Should report not supported if some fields are missing.
+    self.assertRaises(MissingComponentValueError, ps_gen.TryGenerate, 'name1',
+                      {'idVendor': '1234', 'bcdDevice': '90AB'})
+
+    # Should report not supported if some fields contain incorrect format.
+    self.assertRaises(ProbeStatementConversionError, ps_gen.TryGenerate, 'n1',
+                      {'idVendor': 'this-is-invalid', 'idProduct': '2147',
+                       'bcdDevice': '4836'})
+
+
 if __name__ == '__main__':
   unittest.main()
