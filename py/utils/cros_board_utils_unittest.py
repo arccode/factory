@@ -13,22 +13,21 @@ from cros.factory.utils.cros_board_utils import BuildBoardException
 
 class BuildBoardTest(unittest.TestCase):
   """Unit tests for BuildBoard class."""
-
   def runTest(self):
-    spring = BuildBoard('spring')
+    mickey = BuildBoard('mickey')
     self.assertDictContainsSubset(
-        dict(base='daisy', variant='spring', full_name='daisy_spring',
-             short_name='spring', gsutil_name='daisy-spring'),
-        spring.__dict__)
+        dict(base='veyron', variant='mickey', full_name='veyron_mickey',
+             short_name='mickey', gsutil_name='veyron-mickey'),
+        mickey.__dict__)
 
-    # "daisy_spring" and "daisy-spring" should be the same
-    for i in ['daisy_spring', 'daisy-spring']:
-      self.assertEqual(spring.__dict__, BuildBoard(i).__dict__)
+    # "veyron_mickey" and "veyron-mickey" should be the same
+    for i in ['veyron_mickey', 'veyron-mickey']:
+      self.assertEqual(mickey.__dict__, BuildBoard(i).__dict__)
 
     self.assertDictContainsSubset(
-        dict(base='link', variant=None, full_name='link',
-             short_name='link', gsutil_name='link'),
-        BuildBoard('link').__dict__)
+        dict(base='hatch', variant=None, full_name='hatch',
+             short_name='hatch', gsutil_name='hatch'),
+        BuildBoard('hatch').__dict__)
 
     self.assertRaisesRegex(
         BuildBoardException, 'Unknown board', BuildBoard, 'notarealboard')
@@ -38,9 +37,9 @@ class BuildBoardTest(unittest.TestCase):
   def testBoardArch(self):
     self.assertEqual('arm', BuildBoard('beaglebone').arch)
     self.assertEqual('arm', BuildBoard('nyan').arch)
-    self.assertEqual('arm', BuildBoard('spring').arch)
+    self.assertEqual('arm', BuildBoard('mickey').arch)
     self.assertEqual('amd64', BuildBoard('rambi').arch)
-    self.assertEqual('amd64', BuildBoard('link').arch)
+    self.assertEqual('amd64', BuildBoard('hatch').arch)
 
 if __name__ == '__main__':
   unittest.main()
