@@ -71,26 +71,22 @@ qual_probe_info: {
   }
 }
 ### SEPARATOR ###
-{
-  "storage": {
-    "AVL_123--what_a_cool_qual": [
-      {
-        "information": {
-          "PROBE_INFO_FINGERPRINT": "3003162d660695b98acbe28fcfa2707f76b0f0d3"
-        }
-      }
-    ]
-  }
+version: 1
+probe_statement_metadatas: {
+  component_name: "AVL_123--what_a_cool_qual"
+  fingerprint: "3003162d660695b98acbe28fcfa2707f76b0f0d3"
+}
+rp_invocation_result: {
+  result_type: FINISHED
+  raw_stdout: "{\"storage\": [{\"name\": \"AVL_123--what_a_cool_qual\"}]}"
 }
 ### SEPARATOR ###
-{
-  "storage": {
-    "AVL_123--what_a_cool_qual": [
-      {
-        "information": {
-          "PROBE_INFO_FINGERPRINT": "e8192b97f9cec22d2247326334c6872498d463d7"
-        }
-      }
-    ]
-  }
+version: 1
+probe_statement_metadatas: {
+  component_name: "AVL_123--what_a_cool_qual"
+  fingerprint: "e8192b97f9cec22d2247326334c6872498d463d7"
+}
+rp_invocation_result: {
+  result_type: FINISHED
+  raw_stdout: "{\"storage\": [{\"name\": \"AVL_123--what_a_cool_qual\"}]}"
 }

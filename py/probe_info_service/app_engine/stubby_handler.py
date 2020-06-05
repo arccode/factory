@@ -164,12 +164,12 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
                              component_identity.readable_label)
 
   def _GetQualProbeDataSource(self, probe_meta_info, qual_probe_info):
+    component_name = self._GetComponentName(qual_probe_info.component_identity)
     if probe_meta_info.is_overridden:
       probe_data = self._ps_storage_connector.LoadOverriddenQualProbeData(
           qual_probe_info.component_identity.qual_id)
       return self._probe_tool_manager.LoadProbeDataSource(
-          probe_data.probe_statement)
+          component_name, probe_data.probe_statement)
 
     return self._probe_tool_manager.CreateProbeDataSource(
-        self._GetComponentName(qual_probe_info.component_identity),
-        qual_probe_info.probe_info)
+        component_name, qual_probe_info.probe_info)

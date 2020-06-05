@@ -22,13 +22,14 @@ probe_info: {
   }
 }
 ### SEPARATOR ###
-{
-  "storage": {
-    "no_such_component": [
-      {
-      }
-    ]
-  }
+version: 1
+probe_statement_metadatas: {
+  component_name: "AVL_123--what_a_cool_qual",
+  fingerprint: "3003162d660695b98acbe28fcfa2707f76b0f0d3"
+}
+rp_invocation_result: {
+  result_type: FINISHED
+  return_code: 123
 }
 ### SEPARATOR ###
 {{{this_is_not_a_valid_json_string
@@ -43,27 +44,13 @@ probe_info: {
   }
 }
 ### SEPARATOR ###
-{
-  "storage": {
-    "AVL_123--what_a_cool_qual": {
-      "eval": {
-        "a_super_special_probe_function": {}
-      },
-      "information": {
-        "PROBE_INFO_FINGERPRINT": "47ab130aa36bae1297bb55f08011b7ee47474bd2"
-      }
-    }
-  }
+version: 1
+probe_statement_metadatas: {
+  component_name: "AVL_123--what_a_cool_qual",
+  fingerprint: "47ab130aa36bae1297bb55f08011b7ee47474bd2"
 }
-### SEPARATOR ###
-{
-  "storage": {
-    "AVL_123--what_a_cool_qual": [
-      {
-        "information": {
-          "PROBE_INFO_FINGERPRINT": "47ab130aa36bae1297bb55f08011b7ee47474bd2"
-        }
-      }
-    ]
-  }
+rp_invocation_result: {
+  result_type: FINISHED
+  return_code: 0
+  raw_stdout: "{\"storage\": [{\"name\": \"AVL_123--what_a_cool_qual\"}]}"
 }

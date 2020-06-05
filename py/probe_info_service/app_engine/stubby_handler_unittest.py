@@ -167,8 +167,6 @@ class StubbyHandlerTest(unittest.TestCase):
         qual_probe_info=qual_probe_info)
     resp = self._stubby_handler.GetQualProbeTestBundle(req)
     self.assertEqual(resp.result_type, resp.SUCCEED)
-    self.assertEqual(resp.test_bundle_payload.decode('utf-8').strip(),
-                     next(testdata_it).strip())
 
     # 4. The user upload a positive probe result, the probe statement should
     #    become tested now.

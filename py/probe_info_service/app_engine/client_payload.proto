@@ -1,0 +1,52 @@
+// Copyright 2020 The Chromium OS Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file
+
+// Defines messages to hold data related to the payload the user
+// downloads from / upload to Probe Info Service.
+
+syntax = "proto3";
+
+package cros.factory.probe_info_service.app_engine.client_payload_pb2;
+
+
+// Additional metadata of a single probe statement.
+message ProbeStatementMetadata {
+  string component_name = 1;
+  string fingerprint = 2;
+}
+
+// Invocation result from a sub-process execution.
+message InvocationResult {
+  enum ResultType {
+    UNKNOWN = 0;
+
+    FINISHED = 1;
+    INVOCATION_ERROR = 2;
+    TIMEOUT_ERROR = 3;
+  }
+  ResultType result_type = 1;
+  string error_msg = 2;
+
+  int32 return_code = 3;
+  bytes raw_stdout = 4;
+  bytes raw_stderr = 5;
+}
+
+// Placeholder for the metadata of the whole probe bundle.
+message ProbeBundleMetadata {
+  int32 version = 1;
+
+  string probe_config_file_path = 2;
+
+  repeated ProbeStatementMetadata probe_statement_metadatas = 3;
+}
+
+// Placeholder for the output from the probing against the given probe bundle.
+message ProbedOutcome {
+  int32 version = 1;
+
+  repeated ProbeStatementMetadata probe_statement_metadatas = 3;
+
+  InvocationResult rp_invocation_result = 2;
+}

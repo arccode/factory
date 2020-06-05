@@ -2,10 +2,24 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import os
+import os.path
 import unittest
+import tempfile
 
+from google.protobuf import text_format
+
+# pylint: disable=no-name-in-module
+from cros.factory.probe_info_service.app_engine import client_payload_pb2
+# pylint: enable=no-name-in-module
 from cros.factory.probe_info_service.app_engine import probe_tool_manager
+from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
+from cros.factory.utils import process_utils
+
+
+_TESTDATA_DIR = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'testdata')
 
 
 class ProbeToolManagerTest(unittest.TestCase):
@@ -126,13 +140,26 @@ class ProbeToolManagerTest(unittest.TestCase):
             },
         })
 
-
   def testGenerateQualProbeTestBundlePayloadSuccess(self):
     probe_info = self._GenerateSampleMMCStorageProbeInfo()
     s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
     resp = self._probe_tool_manager.GenerateQualProbeTestBundlePayload(s)
+
+    self.assertEqual(resp.probe_info_parsed_result.result_type,
+                     resp.probe_info_parsed_result.PASSED)
+
+    bundle_path = file_utils.CreateTemporaryFile()
+    os.chmod(bundle_path, 0o755)
+    file_utils.WriteFile(bundle_path, resp.output, encoding=None)
+
+    unpacked_path = tempfile.mkdtemp()
+    outcome = self._InvokeProbeBundleWithFakeRuntimeProbe(
+        bundle_path, unpacked_path, 'fake_stdout', 123)
+
+    probe_config_file_path = os.path.join(unpacked_path, 'probe_config.json')
+    # verify the content of the probe bundle
     self.assertEqual(
-        json_utils.LoadStr(resp.output.decode('utf-8')),
+        json_utils.LoadFile(probe_config_file_path),
         {
             'storage': {
                 'comp_name': {
@@ -144,13 +171,34 @@ class ProbeToolManagerTest(unittest.TestCase):
                         'prv': [True, 'hex', '!eq 0x01'],
                         'sectors': [True, 'int', '!eq 123'],
                     },
-                    'information': {
-                        'PROBE_INFO_FINGERPRINT':
-                            '97b346e92ad636dad26f9a1dee5e94f88c01917f',
-                    },
                 },
             },
         })
+
+    # verify the outcome from `runtime_probe_wrapper`
+    self.assertEqual(outcome.rp_invocation_result.raw_stdout, b'fake_stdout\n')
+    self.assertEqual(outcome.rp_invocation_result.return_code, 123)
+    self.assertEqual(
+        outcome.rp_invocation_result.raw_stderr.rstrip(b'\n'), ' '.join([
+            '--config_file_path=' + probe_config_file_path, '--to_stdout',
+            '--verbosity_level=3',
+        ]).encode('utf-8'))
+    self.assertEqual(outcome.probe_statement_metadatas[0].fingerprint,
+                     '97b346e92ad636dad26f9a1dee5e94f88c01917f')
+
+  def _InvokeProbeBundleWithFakeRuntimeProbe(
+      self, probe_bundle_path, unpacked_path, stdout, return_code):
+    with file_utils.TempDirectory() as fake_bin_path:
+      file_utils.ForceSymlink(os.path.join(_TESTDATA_DIR, 'fake_runtime_probe'),
+                              os.path.join(fake_bin_path, 'runtime_probe'))
+      env = dict(os.environ)
+      env['PATH'] = fake_bin_path + ':' + env['PATH']
+      env['FAKE_RUNTIME_PROBE_STDOUT'] = stdout
+      env['FAKE_RUNTIME_PROBE_RETURN_CODE'] = str(return_code)
+
+      raw_output = process_utils.CheckOutput(
+          [probe_bundle_path, '-d', unpacked_path], env=env, encoding=None)
+      return text_format.Parse(raw_output, client_payload_pb2.ProbedOutcome())
 
   def testAnalyzeQualProbeTestResultInvalidPayload(self):
     probe_info = self._GenerateSampleMMCStorageProbeInfo()
@@ -162,42 +210,46 @@ class ProbeToolManagerTest(unittest.TestCase):
   def testAnalyzeQualProbeTestResultPass(self):
     probe_info = self._GenerateSampleMMCStorageProbeInfo()
     s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
+    probed_outcome = client_payload_pb2.ProbedOutcome(version=1)
+    probed_outcome.probe_statement_metadatas.add(
+        component_name=s.component_name, fingerprint=s.fingerprint)
+    probed_outcome.rp_invocation_result.result_type = (
+        probed_outcome.rp_invocation_result.FINISHED)
+    probed_outcome.rp_invocation_result.raw_stdout = json_utils.DumpStr({
+        'storage': [{'name': 'comp_name'}]}).encode('utf-8')
+
     resp = self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
-        s, json_utils.DumpStr({
-            'storage': {
-                'comp_name': [
-                    {
-                        'information': {
-                            'PROBE_INFO_FINGERPRINT': s.fingerprint,
-                        },
-                    },
-                ],
-            },
-        }).encode('utf-8'))
+        s, text_format.MessageToBytes(probed_outcome))
     self.assertEqual(resp.result_type, resp.PASSED)
 
   def testAnalyzeQualProbeTestResultLegacy(self):
     probe_info = self._GenerateSampleMMCStorageProbeInfo()
     s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
+    probed_outcome = client_payload_pb2.ProbedOutcome(version=1)
+    probed_outcome.probe_statement_metadatas.add(
+        component_name=s.component_name, fingerprint='not_the_original_fp')
+    probed_outcome.rp_invocation_result.result_type = (
+        probed_outcome.rp_invocation_result.FINISHED)
+    probed_outcome.rp_invocation_result.raw_stdout = json_utils.DumpStr({
+        'storage': {'comp_name': [{}]}}).encode('utf-8')
+
     resp = self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
-        s, json_utils.DumpStr({
-            'storage': {
-                'comp_name': [
-                    {
-                        'information': {
-                            'PROBE_INFO_FINGERPRINT': 'not_the_correct_fp',
-                        },
-                    },
-                ],
-            },
-        }).encode('utf-8'))
+        s, text_format.MessageToBytes(probed_outcome))
     self.assertEqual(resp.result_type, resp.LEGACY)
 
   def testAnalyzeQualProbeTestResultIntirivalError(self):
     probe_info = self._GenerateSampleMMCStorageProbeInfo()
     s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
+    probed_outcome = client_payload_pb2.ProbedOutcome(version=1)
+    probed_outcome.probe_statement_metadatas.add(
+        component_name=s.component_name, fingerprint=s.fingerprint)
+    probed_outcome.rp_invocation_result.result_type = (
+        probed_outcome.rp_invocation_result.TIMEOUT_ERROR)
+    probed_outcome.rp_invocation_result.raw_stdout = json_utils.DumpStr({
+        'storage': {'comp_name': [{}]}}).encode('utf-8')
+
     resp = self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
-        s, json_utils.DumpStr({}).encode('utf-8'))
+        s, text_format.MessageToBytes(probed_outcome))
     self.assertEqual(resp.result_type, resp.INTRIVIAL_ERROR)
     self.assertTrue(bool(resp.intrivial_error_msg))
 

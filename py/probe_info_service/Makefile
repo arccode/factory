@@ -16,9 +16,10 @@ BUILD_DIR := $(FACTORY_DIR)/build/probe_info_service
 GEN_CODE_DIR = $(BUILD_DIR)/gen
 PACK_DEST_DIR :=
 
-PROTO_SRC_FILE = app_engine/stubby.proto
-PROTO_PYGEN_FILE = $(patsubst \
-	%.proto,%_pb2.py,$(GEN_CODE_DIR)/$(PACKAGE_PATH_NAME)/$(PROTO_SRC_FILE))
+PROTO_SRC_FILES = app_engine/stubby.proto app_engine/client_payload.proto
+PROTO_PYGEN_FILES = $(patsubst \
+	%.proto,$(GEN_CODE_DIR)/$(PACKAGE_PATH_NAME)/%_pb2.py, \
+	$(PROTO_SRC_FILES))
 
 APPENGINE_CONFIGS = app_engine/requirements.txt app_engine/app.yaml
 
@@ -26,13 +27,13 @@ DEP_PACKAGE_PATH_NAMES = cros/factory/utils cros/factory/probe/runtime_probe
 
 .PHONY: prepare _pack clean
 
-prepare: $(PROTO_PYGEN_FILE)
+prepare: $(PROTO_PYGEN_FILES)
 
 clean:
 	rm -rf "$(BUILD_DIR)"
 
-$(PROTO_PYGEN_FILE): $(PROTO_SRC_FILE)
-	mkdir -p "$$(dirname "$@")" || true
+$(GEN_CODE_DIR)/$(PACKAGE_PATH_NAME)/%_pb2.py: %.proto
+	mkdir -p "$(GEN_CODE_DIR)/$(PACKAGE_PATH_NAME)" || true
 	protoc --python_out="$(GEN_CODE_DIR)/$(PACKAGE_PATH_NAME)" "$<"
 
 _pack: prepare

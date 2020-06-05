@@ -4,14 +4,25 @@
 
 import collections
 import hashlib
+import os
 import re
 
+from google.protobuf import text_format
+
+from cros.factory.probe_info_service.app_engine import bundle_builder
 # pylint: disable=no-name-in-module
+from cros.factory.probe_info_service.app_engine import client_payload_pb2
 from cros.factory.probe_info_service.app_engine import stubby_pb2
 # pylint: enable=no-name-in-module
 from cros.factory.probe.runtime_probe import probe_config_definition
 from cros.factory.probe.runtime_probe import probe_config_types
+from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
+from cros.factory.utils import type_utils
+
+
+_RESOURCE_PATH = os.path.join(os.path.realpath(os.path.dirname(__file__)),
+                              'resources')
 
 
 ProbeSchema = stubby_pb2.ProbeSchema
@@ -217,6 +228,7 @@ class ProbeFunc(object):
     return value
 
 
+@type_utils.CachedGetter
 def _GetAllProbeFuncs():
   # TODO(yhong): Separate the data piece out the code logic.
   def _StringToRegexpOrString(value):
@@ -286,10 +298,19 @@ ProbeInfoArtifact = collections.namedtuple(
     'ProbeInfoArtifact', ['probe_info_parsed_result', 'output'])
 
 
+@type_utils.CachedGetter
+def _GetClientPayloadPb2Content():
+  return file_utils.ReadFile(client_payload_pb2.__file__, encoding=None)
+
+
+@type_utils.CachedGetter
+def _GetRuntimeProbeWrapperContent():
+  full_path = os.path.join(_RESOURCE_PATH, 'runtime_probe_wrapper.py')
+  return file_utils.ReadFile(full_path, encoding=None)
+
+
 class ProbeToolManager(object):
   """Provides functionalities related to the probe tool."""
-
-  _PROBE_INFO_FINGERPRINT_KEY = 'PROBE_INFO_FINGERPRINT'
 
   def __init__(self):
     self._probe_funcs = {pf.name: pf for pf in _GetAllProbeFuncs()}
@@ -329,12 +350,13 @@ class ProbeToolManager(object):
     return ProbeDataSource(self._CalcProbeInfoFingerprint(probe_info),
                            component_name, probe_info, None)
 
-  def LoadProbeDataSource(self, probe_statement):
+  def LoadProbeDataSource(self, component_name, probe_statement):
     """Load the probe data source from the given probe statement."""
     hash_engine = hashlib.sha1()
     hash_engine.update(
         ('}}}not_a_json_header' + probe_statement).encode('utf-8'))
-    return ProbeDataSource(hash_engine.hexdigest(), None, None, probe_statement)
+    return ProbeDataSource(hash_engine.hexdigest(), component_name, None,
+                           probe_statement)
 
   def DumpProbeDataSource(self, probe_data_source):
     """Dump the probe data source to a loadable probe statement string."""
@@ -388,29 +410,31 @@ class ProbeToolManager(object):
       pi_parsed_result, ps = self._ConvertProbeDataSourceToProbeStatement(
           probe_data_source)
 
-    if ps is not None:
-      # TODO(yhong): Replace with go/cros-probe-config-bundle-design
-      # Inject probe info fingerprint into the `information` field so that
-      # we can extract it back in the probe result payload.
-      try:
-        for category_ps in ps.values():
-          for comp_ps in category_ps.values():
-            information_field = comp_ps.setdefault('information', {})
-            information_field[self._PROBE_INFO_FINGERPRINT_KEY] = (
-                probe_data_source.fingerprint)
-        builder = probe_config_types.ProbeConfigPayload()
-        builder.AddComponentProbeStatement(ps)
-        payload = builder.DumpToString().encode('utf-8')
-        return ProbeInfoArtifact(pi_parsed_result, payload)
+    if ps is None:
+      return ProbeInfoArtifact(pi_parsed_result, None)
 
-      except Exception as e:
-        pi_parsed_result = ProbeInfoParsedResult(
-            result_type=(ProbeInfoParsedResult.OVERRIDDEN_PROBE_STATEMENT_ERROR
-                         if probe_data_source.probe_info is None
-                         else ProbeInfoParsedResult.UNKNOWN_ERROR),
-            general_error_msg=str(e))
+    builder = bundle_builder.BundleBuilder()
+    builder.AddRegularFile(os.path.basename(client_payload_pb2.__file__),
+                           _GetClientPayloadPb2Content())
+    builder.AddExecutableFile('runtime_probe_wrapper',
+                              _GetRuntimeProbeWrapperContent())
+    builder.SetRunnerFilePath('runtime_probe_wrapper')
 
-    return ProbeInfoArtifact(pi_parsed_result, None)
+    metadata = client_payload_pb2.ProbeBundleMetadata()
+    metadata.probe_statement_metadatas.add(
+        component_name=probe_data_source.component_name,
+        fingerprint=probe_data_source.fingerprint)
+
+    pc_payload = probe_config_types.ProbeConfigPayload()
+    pc_payload.AddComponentProbeStatement(ps)
+    metadata.probe_config_file_path = 'probe_config.json'
+    builder.AddRegularFile(metadata.probe_config_file_path,
+                           pc_payload.DumpToString().encode('utf-8'))
+
+    builder.AddRegularFile(
+        'metadata.prototxt', text_format.MessageToBytes(metadata))
+
+    return ProbeInfoArtifact(pi_parsed_result, builder.Build())
 
   def AnalyzeQualProbeTestResultPayload(
       self, probe_data_source, probe_result_payload):
@@ -426,34 +450,53 @@ class ProbeToolManager(object):
     Raises:
       `PayloadInvalidError` if the given input is invalid.
     """
-    # TODO(yhong): Replace with go/cros-probe-config-bundle-design
-
-    comp_probe_results = []
     try:
-      probed_result = json_utils.LoadStr(probe_result_payload.decode('utf-8'))
-      for category_pr in probed_result.values():
-        if probe_data_source.component_name is not None:
-          comp_probe_results.extend(
-              category_pr.get(probe_data_source.component_name, []))
-        else:
-          comp_probe_results.extend(sum(list(category_pr.values()), []))
-    except Exception as e:
-      raise PayloadInvalidError('Unable to load and parse the content: %s' % e)
-    if not comp_probe_results:
-      return ProbeInfoTestResult(
-          result_type=ProbeInfoTestResult.INTRIVIAL_ERROR,
-          intrivial_error_msg='No component is found.')
-    comp_probe_result = comp_probe_results[0]
-    try:
-      fp = comp_probe_result['information'][self._PROBE_INFO_FINGERPRINT_KEY]
-    except Exception as e:
-      return ProbeInfoTestResult(
-          result_type=ProbeInfoTestResult.INTRIVIAL_ERROR,
-          intrivial_error_msg='Unable to extract the fingerprint value out.')
-
-    if fp != probe_data_source.fingerprint:
+      probed_outcome = text_format.Parse(
+          probe_result_payload, client_payload_pb2.ProbedOutcome())
+    except text_format.ParseError as e:
+      raise PayloadInvalidError('Unable to load and parse the content: %s.' % e)
+    if len(probed_outcome.probe_statement_metadatas) != 1:
+      raise PayloadInvalidError('Incorrect number of probe statements: %r.' %
+                                len(probed_outcome.probe_statement_metadatas))
+    ps_metadata = probed_outcome.probe_statement_metadatas[0]
+    if ps_metadata.component_name != probe_data_source.component_name:
+      raise PayloadInvalidError('Probe statement component name mismatch.')
+    rp_invocation_result = probed_outcome.rp_invocation_result
+    if rp_invocation_result.result_type == rp_invocation_result.UNKNOWN:
+      raise PayloadInvalidError('Unknown invocation result type.')
+    if ps_metadata.fingerprint != probe_data_source.fingerprint:
       return ProbeInfoTestResult(result_type=ProbeInfoTestResult.LEGACY)
-    return ProbeInfoTestResult(result_type=ProbeInfoTestResult.PASSED)
+    if rp_invocation_result.result_type != rp_invocation_result.FINISHED:
+      return ProbeInfoTestResult(
+          result_type=ProbeInfoTestResult.INTRIVIAL_ERROR,
+          intrivial_error_msg=('The invocation of runtime_probe is abnormal: '
+                               'type=%r.' % rp_invocation_result.result_type))
+    if rp_invocation_result.return_code != 0:
+      return ProbeInfoTestResult(
+          result_type=ProbeInfoTestResult.INTRIVIAL_ERROR,
+          intrivial_error_msg=('The return code of runtime probe is non-zero: '
+                               '%r.' % rp_invocation_result.return_code))
+    try:
+      probed_result = json_utils.LoadStr(
+          rp_invocation_result.raw_stdout.decode('utf-8'))
+
+      has_probed_comp = any(any(comp['name'] == probe_data_source.component_name
+                                for comp in category_pr)
+                            for category_pr in probed_result.values())
+    except Exception as e:
+      return ProbeInfoTestResult(
+          result_type=ProbeInfoTestResult.INTRIVIAL_ERROR,
+          intrivial_error_msg=(
+              'The output of runtime_probe is invalid: %r.' % e))
+
+    if has_probed_comp:
+      return ProbeInfoTestResult(result_type=ProbeInfoTestResult.PASSED)
+
+    # TODO(yhong): Provide hints from generic probed result.
+    return ProbeInfoTestResult(
+        result_type=ProbeInfoTestResult.INTRIVIAL_ERROR,
+        intrivial_error_msg='No component is found.')
+
 
   def _LookupProbeFunc(self, probe_function_name):
     """A helper method to find the probe function instance by name.
