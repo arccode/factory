@@ -129,6 +129,15 @@ def _GetAllProbeStatementDefinitions():
   builder.AddIntOutputField('slot', 'Memory slot index.')
   probe_statement_definitions['dram'] = builder.Build()
 
+  # Create input_device builder
+  for category in ['stylus', 'touchpad', 'touchscreen']:
+    builder = probe_config_types.ProbeStatementDefinitionBuilder(category)
+    builder.AddProbeFunction('input_device', 'Probe input devices from procfs.')
+    builder.AddStrOutputField('name', 'Model name.')
+    builder.AddHexOutputField('product', 'Product ID.', num_value_digits=4)
+    builder.AddHexOutputField('vendor', 'Vendor ID.', num_value_digits=4)
+    probe_statement_definitions[category] = builder.Build()
+
   return probe_statement_definitions
 
 def GetProbeStatementDefinition(name):

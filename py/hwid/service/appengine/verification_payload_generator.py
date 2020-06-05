@@ -251,6 +251,25 @@ def GetAllProbeStatementGenerators():
       _ProbeStatementGenerator('dram', 'memory', dram_fields),
   ]
 
+  # TODO(kevinptt): Support "device_type" argument in runtime_probe.
+  input_device_fields = [
+      same_name_field_converter('name', HWIDValueToStr),
+      same_name_field_converter(
+          'product', GetHWIDHexStrToHexStrConverter(4, has_prefix=False)),
+      same_name_field_converter(
+          'vendor', GetHWIDHexStrToHexStrConverter(4, has_prefix=False)),
+  ]
+  all_probe_statement_generators['stylus'] = [
+      _ProbeStatementGenerator('stylus', 'input_device', input_device_fields),
+  ]
+  all_probe_statement_generators['touchpad'] = [
+      _ProbeStatementGenerator('touchpad', 'input_device', input_device_fields),
+  ]
+  all_probe_statement_generators['touchscreen'] = [
+      _ProbeStatementGenerator(
+          'touchscreen', 'input_device', input_device_fields),
+  ]
+
   return all_probe_statement_generators
 
 

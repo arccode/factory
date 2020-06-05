@@ -186,6 +186,65 @@ class MemoryProbeStatementGeneratorTest(unittest.TestCase):
         })
 
 
+class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
+  def testStylusTryGenerate(self):
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['stylus'][0]
+
+    ps = ps_gen.TryGenerate(
+        'name1',
+        {'name': 'foo', 'product': '1122', 'vendor': '5566'})
+    self.assertEqual(
+        ps,
+        {
+            'stylus': {
+                'name1': {
+                    'eval': {'input_device': {}},
+                    'expect': {'name': [True, 'str', '!eq foo'],
+                               'product': [True, 'hex', '!eq 0x1122'],
+                               'vendor': [True, 'hex', '!eq 0x5566']}
+                }
+            }
+        })
+
+  def testTouchpadTryGenerate(self):
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['touchpad'][0]
+
+    ps = ps_gen.TryGenerate(
+        'name1',
+        {'name': 'foo', 'product': '1122', 'vendor': '5566'})
+    self.assertEqual(
+        ps,
+        {
+            'touchpad': {
+                'name1': {
+                    'eval': {'input_device': {}},
+                    'expect': {'name': [True, 'str', '!eq foo'],
+                               'product': [True, 'hex', '!eq 0x1122'],
+                               'vendor': [True, 'hex', '!eq 0x5566']}
+                }
+            }
+        })
+
+  def testTouchscreenTryGenerate(self):
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['touchscreen'][0]
+
+    ps = ps_gen.TryGenerate(
+        'name1',
+        {'name': 'foo', 'product': '1122', 'vendor': '5566'})
+    self.assertEqual(
+        ps,
+        {
+            'touchscreen': {
+                'name1': {
+                    'eval': {'input_device': {}},
+                    'expect': {'name': [True, 'str', '!eq foo'],
+                               'product': [True, 'hex', '!eq 0x1122'],
+                               'vendor': [True, 'hex', '!eq 0x5566']}
+                }
+            }
+        })
+
+
 class GenerateVerificationPayloadTest(unittest.TestCase):
   def testSucc(self):
     dbs = [(database.Database.LoadFile(os.path.join(TESTDATA_DIR, name),
