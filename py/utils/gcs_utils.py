@@ -23,7 +23,7 @@ except ImportError:
   # Then, to install them:
   #
   #  pip install -t external_dir -r requirements.txt
-  _unused_exc_class, _unused_exc, tb = sys.exc_info()
+  unused_exc_class, unused_exc, tb = sys.exc_info()
   new_exc = ImportError(
       'Please install these Python libraries before proceeding: '
       'google-cloud-storage==1.4.0 google-auth==1.0.2')
@@ -61,8 +61,23 @@ class CloudStorage:
     # empty string.
     self.client = storage.Client(project='', credentials=credentials)
 
+  def _HandleTargetPath(self, target_path):
+    """Split target_path to the storage bucket ID and the path in the bucket.
+
+    Args:
+      target_path: Target path with bucket ID in GCS.
+                   (e.g. '/chromeos-factory/path/to/filename')
+
+    Returns:
+      bucket_id: The storage bucket ID.
+      path_in_bucket: The path of the target object in the bucket.
+    """
+    target_path = target_path.strip('/')
+    bucket_id, unused_slash, path_in_bucket = target_path.partition('/')
+    return bucket_id, path_in_bucket
+
   def UploadFile(self, local_path, target_path, overwrite=False):
-    """Attempts to upload a file to GCS, with resumability.
+    """Attempts to upload a file to GCS.
 
     Args:
       local_path: Path to the file on local disk.
@@ -70,24 +85,21 @@ class CloudStorage:
                    (e.g. '/chromeos-factory/path/to/filename')
       overwrite: Whether or not to overwrite the file on target_path.
 
-    Raises:
-      google.cloud.exceptions.GoogleCloudError: if the upload response returns
-                                                an error status.
-      ValueError: if the bucket doesn't exist.
-      IOError: the uploaded file on GCS doesn't exist or has different
-               md5_hash/size.
+    Returns:
+      True if file is uploaded successfully.
     """
     try:
-      target_path = target_path.strip('/')
-      bucket_id, _unused_slash, path_in_bucket = target_path.partition('/')
+      bucket_id, path_in_bucket = self._HandleTargetPath(target_path)
       bucket = storage.Bucket(self.client, bucket_id)
       if not bucket.exists():
-        self.logger.error('Bucket (%s) doesn\'t exist! Please create it before '
-                          'you upload file', bucket_id)
+        self.logger.error(
+            'Bucket (%s) doesn\'t exist! Please create it before you upload '
+            'file', bucket_id)
         return False
 
-      self.logger.info('Going to upload the file from %s to GCS: [/%s]/%s',
-                       local_path, bucket_id, path_in_bucket)
+      self.logger.info(
+          'Going to upload the file from local (%s) to GCS ([/%s]/%s)',
+          local_path, bucket_id, path_in_bucket)
       local_md5 = file_utils.MD5InBase64(local_path)
       local_size = os.path.getsize(local_path)
 
@@ -95,15 +107,14 @@ class CloudStorage:
       if blob.exists():
         blob.reload()
         if blob.md5_hash == local_md5 and blob.size == local_size:
-          self.logger.warning('File already exists on remote end with same '
-                              'size (%d) and same MD5 hash (%s); skipping',
-                              blob.size, blob.md5_hash)
+          self.logger.warning(
+              'File already exists on remote end with same size (%d) and same '
+              'MD5 hash (%s); skipping', blob.size, blob.md5_hash)
           return True
-
-        self.logger.error('File already exists on remote end, but size or '
-                          'MD5 hash doesn\'t match; size on remote = %d, '
-                          'size on local = %d; will overwrite',
-                          blob.size, local_size)
+        self.logger.error(
+            'File already exists on remote end, but size or MD5 hash doesn\'t '
+            'match; remote file (%d, %s) != local file (%d, %s); overwrite=%s',
+            blob.size, blob.md5_hash, local_size, local_md5, overwrite)
         if not overwrite:
           return False
 
@@ -113,16 +124,69 @@ class CloudStorage:
 
       blob.reload()
       if not blob.exists():
-        self.logger.error('This should not happen! '
-                          'File doesn\'t exist after uploading')
+        self.logger.error(
+            'This should not happen! File doesn\'t exist after uploading')
         return False
       if blob.md5_hash != local_md5 or blob.size != local_size:
-        self.logger.error('This should not happen! Size or MD5 mismatch after '
-                          'uploading; local_size = %d, confirmed_size = %d; '
-                          'local_md5 = %s, confirmed_md5 = %s',
-                          local_size, blob.size, local_md5, blob.md5_hash)
+        self.logger.error(
+            'This should not happen! Size or MD5 mismatch after uploading; '
+            'local_size = %d, confirmed_size = %d; local_md5 = %s, '
+            'confirmed_md5 = %s', local_size, blob.size, local_md5,
+            blob.md5_hash)
         return False
       return True
     except Exception:
       self.logger.exception('Upload failed')
+      return False
+
+  def DownloadFile(self, target_path, local_path, overwrite=False):
+    """Attempts to download a file from GCS.
+
+    Args:
+      target_path: Target path with bucket ID in GCS.
+                   (e.g. '/chromeos-factory/path/to/filename')
+      local_path: Path to the file on local disk.
+      overwrite: Whether or not to overwrite the file on local_path.
+
+    Returns:
+      True if file is downloaded successfully.
+    """
+    try:
+      bucket_id, path_in_bucket = self._HandleTargetPath(target_path)
+      bucket = storage.Bucket(self.client, bucket_id)
+      if not bucket.exists():
+        self.logger.error('Bucket (%s) doesn\'t exist!', bucket_id)
+        return False
+
+      blob = storage.Blob(path_in_bucket, bucket)
+      if not blob.exists():
+        self.logger.error('File on GCS ([%s]/%s) doesn\'t exist!', bucket_id,
+                          path_in_bucket)
+        return False
+      blob.reload()
+
+      if os.path.exists(local_path):
+        local_md5 = file_utils.MD5InBase64(local_path)
+        local_size = os.path.getsize(local_path)
+        if blob.md5_hash == local_md5 and blob.size == local_size:
+          self.logger.warning(
+              'File already exists on local end with same size (%d) and same '
+              'MD5 hash (%s); skipping', local_size, local_md5)
+          return True
+        self.logger.error(
+            'File already exists on loca end, but size or MD5 hash doesn\'t '
+            'match; remote file (%d, %s) != local file (%d, %s); '
+            'overwrite=%s', blob.size, blob.md5_hash, local_size, local_md5,
+            overwrite)
+        if not overwrite:
+          return False
+
+      self.logger.info(
+          'Going to download the file from GCS ([/%s]/%s) to local (%s)',
+          bucket_id, path_in_bucket, local_path)
+      blob.download_to_filename(local_path)
+
+      return True
+    except Exception:
+      self.logger.exception('Download failed')
       return False
