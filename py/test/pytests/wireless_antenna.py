@@ -697,14 +697,27 @@ class WirelessTest(test_case.TestCase):
         return
       # If wifi_chip_type is not specified and the device is able to switch
       # antenna then we assume the chip type is switch_antenna.
-      try:
-        for antenna in self.args.strength:
+      last_success_antenna = None
+      for antenna in self.args.strength:
+        try:
           self._wifi_chip.SwitchAntenna(antenna)
-      except wifi.WiFiError:
-        pass
+          last_success_antenna = antenna
+        except wifi.WiFiError as e:
+          session.console.info('Unable to switch antenna to %s. %r', antenna, e)
+          break
       else:
+        # All antennas are switchable.
         self._wifi_chip_type = 'switch_antenna'
         return
+      if last_success_antenna:
+        # Switch back to antenna all.
+        try:
+          self._wifi_chip.SwitchAntenna('all')
+        except wifi.WiFiError:
+          session.console.info(
+              'Unable to switch antenna to all after switch to %s.',
+              last_success_antenna)
+          raise
 
     if not self._wifi_chip_type or self._wifi_chip_type == 'radiotap':
       self._wifi_chip = RadiotapWiFiChip(
