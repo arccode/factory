@@ -93,19 +93,34 @@ def IsProcessAlive(pid, ppid=None):
     return False
 
 
+def CheckCall(*args, **kwargs):
+  """Run and wait for the command to be completed.
+
+  It is like subprocess.check_call but with the extra flexibility of Spawn.
+
+  Args/Returns:
+    Refer to Spawn.
+
+  Raises:
+    process_utils.CalledProcessError if returncode != 0.
+  """
+  kwargs['check_call'] = True
+  return Spawn(*args, **kwargs)
+
+
 def CheckOutput(*args, **kwargs):
   """Runs command and returns its output.
 
   It is like subprocess.check_output but with the extra flexibility of Spawn.
 
   Args:
-    Refer Spawn.
+    Refer to Spawn.
 
   Returns:
     stdout
 
   Raises:
-    subprocess.CalledProcessError if returncode != 0.
+    process_utils.CalledProcessError if returncode != 0.
   """
   kwargs['check_output'] = True
   return Spawn(*args, **kwargs).stdout_data
@@ -118,7 +133,7 @@ def SpawnOutput(*args, **kwargs):
   check_output=True.
 
   Args:
-    Refer Spawn.
+    Refer to Spawn.
 
   Returns:
     stdout
@@ -128,13 +143,13 @@ def SpawnOutput(*args, **kwargs):
 
 
 def LogAndCheckCall(*args, **kwargs):
-  """Logs a command and invokes subprocess.check_call."""
+  """Logs a command and invokes CheckCall."""
   logging.info('Running: %s', ' '.join(pipes.quote(arg) for arg in args[0]))
-  return subprocess.check_call(*args, **kwargs)
+  return CheckCall(*args, **kwargs)
 
 
 def LogAndCheckOutput(*args, **kwargs):
-  """Logs a command and invokes subprocess.check_output."""
+  """Logs a command and invokes CheckOutput."""
   logging.info('Running: %s', ' '.join(pipes.quote(arg) for arg in args[0]))
   return CheckOutput(*args, **kwargs)
 
