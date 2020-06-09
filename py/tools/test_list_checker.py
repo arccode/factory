@@ -13,8 +13,21 @@ import sys
 
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import manager
+from cros.factory.utils import config_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
+
+
+def GetTestListID(test_list_config_name):
+  """Get the test list id from test list config name
+
+  Args:
+    test_list_config_name: test list config name string (e.g. main.test_list).
+
+  Returns:
+    test list id (e.g. main).
+  """
+  return test_list_config_name.split('.')[0]
 
 
 def GetInheritSet(manager_, test_list_id):
@@ -35,7 +48,7 @@ def GetInheritSet(manager_, test_list_id):
     return inherit_set
 
   for parent_config_name in raw_config['inherit']:
-    parent_test_list_id = parent_config_name.split('.')[0]
+    parent_test_list_id = GetTestListID(parent_config_name)
     inherit_set.update(GetInheritSet(manager_, parent_test_list_id))
 
   return inherit_set
@@ -74,6 +87,33 @@ def CheckTestList(manager_, test_list_id, dump):
     print(test_list.ToFactoryTestList().__repr__(recursive=True))
     return
 
+  raw_config = manager_.loader.Load(test_list_id, allow_inherit=False)
+
+  # Check if there are test object definiions that overrides nothing.
+  parents_config = {}
+  for parent_name in reversed(raw_config['inherit']):
+    _parent_config = manager_.loader.Load(GetTestListID(parent_name)).ToDict()
+    parents_config = config_utils.OverrideConfig(
+        parents_config, _parent_config)
+
+  for object_name, overrides in raw_config['definitions'].items():
+    if object_name not in parents_config['definitions']:
+      continue
+    base_object = parents_config['definitions'][object_name]
+
+    if not isinstance(base_object, str) and not isinstance(overrides, str):
+      new_object = config_utils.OverrideConfig(
+          base_object, overrides, copy_on_write=True)
+    else:
+      # If one of the value is string, then OverrideConfig will simply assign
+      # the value.
+      new_object = overrides
+
+    if new_object == base_object:
+      logging.warning(
+          'Test object "%s" inherits aother test object but overrides nothing.',
+          object_name)
+
   # Check if there are unreferenced test object definitions in the test list.
   cache = {}
   all_test_lists, unused_failed_test_lists = manager_.BuildAllTestLists()
@@ -88,7 +128,6 @@ def CheckTestList(manager_, test_list_id, dump):
     for _test_object in _config['tests']:
       _test_list.MakeTest(_test_object, cache[child_test_list_id])
 
-  raw_config = manager_.loader.Load(test_list_id, allow_inherit=False)
   for test_object_name in raw_config['definitions']:
     if not IsReferenced(test_object_name, cache):
       logging.warning(
