@@ -5,6 +5,7 @@
 
 import logging
 import os
+import pkg_resources
 
 # pylint: disable=import-error, no-name-in-module
 from google.appengine.ext import vendor
@@ -26,6 +27,7 @@ try:
   vendor.add('lib')
 except ValueError:
   logging.info('Cannot find lib/')
+pkg_resources.working_set.add_entry('lib')
 
 try:
   vendor.add('protobuf_out')

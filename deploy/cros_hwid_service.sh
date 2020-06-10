@@ -140,6 +140,7 @@ ${FACTORY_PRIVATE_DIR}/config/hwid/service/appengine/configurations.yaml" \
     ENDPOINTS_SERVICE_VERSION="${endpoints_version}" \
     ENDPOINTS_SERVICE_NAME="${GCP_PROJECT}${ENDPOINTS_SUFFIX}" \
     LOGIN_REQUIRED="${LOGIN_REQUIRED}" \
+    REDIS_CACHE_URL="${REDIS_CACHE_URL}" \
     envsubst < "${APPENGINE_DIR}/app.yaml" > "${TEMP_DIR}/app.yaml"
 
   prepare_protobuf

@@ -7,6 +7,7 @@
 
 import os
 import unittest
+
 import mock
 from mock import patch
 
@@ -45,11 +46,18 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
     self.filesystem_adapter = cloudstorage_adapter.CloudStorageAdapter(
         'test-bucket')
 
-  def _LoadTestDataStore(self):
+  def _LoadTestDataStore(self, manager):
     """Loads up the datastore with metadata about one board."""
-    metadata = hwid_manager.HwidMetadata(
-        board='CHROMEBOOK', path='v2', version='2')
-    metadata.put()
+    with manager._ndb_client.context():
+      metadata = hwid_manager.HwidMetadata(
+          board='CHROMEBOOK', path='v2', version='2')
+      metadata.put()
+
+  def _ClearDataStore(self, manager):
+    with manager._ndb_client.context():
+      # clear all entities
+      for key in hwid_manager.HwidMetadata.query().iter(keys_only=True):
+        key.delete()
 
   def _LoadTestBlobStore(self):
     """Loads up the blobstore with two files, one for each version supported."""
@@ -63,13 +71,14 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
     if load_blobstore:
       self._LoadTestBlobStore()
 
-    if load_datastore:
-      self._LoadTestDataStore()
-
     if adapter is None:
       adapter = self.filesystem_adapter
 
     manager = hwid_manager.HwidManager(adapter)
+
+    self._ClearDataStore(manager)
+    if load_datastore:
+      self._LoadTestDataStore(manager)
     manager._ClearMemcache()
     return manager
 
@@ -225,7 +234,8 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
     manager.RegisterBoard('CHROMEBOOK', 2, 'v2')
     manager.RegisterBoard('CHROMEBOOK', 2, 'v2')
 
-    self.assertEqual(1, hwid_manager.HwidMetadata.all().count())
+    with manager._ndb_client.context():
+      self.assertEqual(1, hwid_manager.HwidMetadata.query().count())
 
   def testReloadCache(self):
     """Test that reloading re-reads the data."""
@@ -262,9 +272,10 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
 
     manager = self._GetManager(adapter=mock_storage, load_datastore=False)
 
-    hwid_manager.HwidMetadata(board='old_file', path='old', version='2').put()
-    hwid_manager.HwidMetadata(
-        board='update_file', path='update', version='2').put()
+    with manager._ndb_client.context():
+      hwid_manager.HwidMetadata(board='old_file', path='old', version='2').put()
+      hwid_manager.HwidMetadata(
+          board='update_file', path='update', version='2').put()
 
     manager.UpdateBoards({
         'update': {
@@ -279,21 +290,22 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
         },
     })
 
-    self.assertIsNone(hwid_manager.HwidMetadata.all().filter('path =',
-                                                             'old').get())
-    self.assertIsNotNone(hwid_manager.HwidMetadata.all().filter(
-        'path =', 'update').get())
-    self.assertIsNotNone(hwid_manager.HwidMetadata.all().filter(
-        'path =', 'new').get())
-    mock_storage.DeleteFile.assert_called_once_with('/live/old')
-    mock_storage.WriteFile.assert_has_calls(
-        [mock.call('/live/update', mock.ANY),
-         mock.call('/live/new', mock.ANY)],
-        any_order=True)
-    self.assertEqual(mock_storage.WriteFile.call_count, 2)
-    mock_storage.ReadFile.assert_has_calls(
-        [mock.call('/staging/v2') for unused_i in range(2)])
-    self.assertEqual(mock_storage.ReadFile.call_count, 2)
+    with manager._ndb_client.context():
+      self.assertIsNone(hwid_manager.HwidMetadata.query(
+          hwid_manager.HwidMetadata.path == 'old').get())
+      self.assertIsNotNone(hwid_manager.HwidMetadata.query(
+          hwid_manager.HwidMetadata.path == 'update').get())
+      self.assertIsNotNone(hwid_manager.HwidMetadata.query(
+          hwid_manager.HwidMetadata.path == 'new').get())
+      mock_storage.DeleteFile.assert_called_once_with('/live/old')
+      mock_storage.WriteFile.assert_has_calls(
+          [mock.call('/live/update', mock.ANY),
+           mock.call('/live/new', mock.ANY)],
+          any_order=True)
+      self.assertEqual(mock_storage.WriteFile.call_count, 2)
+      mock_storage.ReadFile.assert_has_calls(
+          [mock.call('/staging/v2') for unused_i in range(2)])
+      self.assertEqual(mock_storage.ReadFile.call_count, 2)
 
   def testUpdateBoardsWithManyBoards(self):
     """Tests that the updating logic can handle many boards.
@@ -305,43 +317,45 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
     mock_storage.ReadFile.return_value = 'junk data'
     BOARD_COUNT = 40
 
-    for i in range(BOARD_COUNT):
-      hwid_manager.HwidMetadata(
-          board='old_file' + str(i), path='old' + str(i), version='2').put()
-
-      hwid_manager.HwidMetadata(
-          board='update_file' + str(i), path='update' + str(i),
-          version='2').put()
-
-    deletefile_calls = [mock.call('/live/old' + str(i)) for i in range(40)]
-    writefile_calls = [
-        mock.call('/live/update' + str(i), mock.ANY) for i in range(40)
-    ]
     manager = self._GetManager(adapter=mock_storage, load_datastore=False)
+    with manager._ndb_client.context():
+      for i in range(BOARD_COUNT):
+        hwid_manager.HwidMetadata(
+            board='old_file' + str(i), path='old' + str(i), version='2').put()
 
-    board_data = {}
-    for i in range(BOARD_COUNT):
-      board_data['update' + str(i)] = {
-          'board': 'update_file' + str(i),
-          'version': 2,
-          'path': 'v2'
-      }
+        hwid_manager.HwidMetadata(
+            board='update_file' + str(i), path='update' + str(i),
+            version='2').put()
+
+      deletefile_calls = [mock.call('/live/old' + str(i)) for i in range(40)]
+      writefile_calls = [
+          mock.call('/live/update' + str(i), mock.ANY) for i in range(40)
+      ]
+
+      board_data = {}
+      for i in range(BOARD_COUNT):
+        board_data['update' + str(i)] = {
+            'board': 'update_file' + str(i),
+            'version': 2,
+            'path': 'v2'
+        }
 
     manager.UpdateBoards(board_data)
 
-    for i in range(BOARD_COUNT):
-      self.assertIsNone(hwid_manager.HwidMetadata.all().filter(
-          'path =', 'old' + str(i)).get())
-      self.assertIsNotNone(hwid_manager.HwidMetadata.all().filter(
-          'path =', 'update' + str(i)).get())
+    with manager._ndb_client.context():
+      for i in range(BOARD_COUNT):
+        self.assertIsNone(hwid_manager.HwidMetadata.query(
+            hwid_manager.HwidMetadata.path == 'old' + str(i)).get())
+        self.assertIsNotNone(hwid_manager.HwidMetadata.query().filter(
+            hwid_manager.HwidMetadata.path == 'update' + str(i)).get())
 
-    mock_storage.DeleteFile.assert_has_calls(deletefile_calls, any_order=True)
-    self.assertEqual(BOARD_COUNT, mock_storage.DeleteFile.call_count)
-    mock_storage.WriteFile.assert_has_calls(writefile_calls, any_order=True)
-    self.assertEqual(BOARD_COUNT, mock_storage.WriteFile.call_count)
-    mock_storage.ReadFile.assert_has_calls(
-        [mock.call('/staging/v2') for unused_c in range(BOARD_COUNT)])
-    self.assertEqual(BOARD_COUNT, mock_storage.ReadFile.call_count)
+      mock_storage.DeleteFile.assert_has_calls(deletefile_calls, any_order=True)
+      self.assertEqual(BOARD_COUNT, mock_storage.DeleteFile.call_count)
+      mock_storage.WriteFile.assert_has_calls(writefile_calls, any_order=True)
+      self.assertEqual(BOARD_COUNT, mock_storage.WriteFile.call_count)
+      mock_storage.ReadFile.assert_has_calls(
+          [mock.call('/staging/v2') for unused_c in range(BOARD_COUNT)])
+      self.assertEqual(BOARD_COUNT, mock_storage.ReadFile.call_count)
 
   def testUpdateBoardsWithBadData(self):
     manager = self._GetManager(load_blobstore=False, load_datastore=False)

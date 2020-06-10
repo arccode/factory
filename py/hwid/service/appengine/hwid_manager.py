@@ -11,16 +11,24 @@ regardless of the source of that information or the version.
 import collections
 import copy
 import logging
+import os
 import re
+import site
 
+
+CUSTOMIZE_SITE_DIR = os.environ.get('CUSTOMIZE_SITE_DIR')
+if CUSTOMIZE_SITE_DIR:
+  site.addsitedir(CUSTOMIZE_SITE_DIR)
 # pylint: disable=import-error, no-name-in-module
-from google.appengine.ext import db
+from google.cloud import ndb
+# pylint: enable=import-error, no-name-in-module
 
 from cros.factory.hwid.service.appengine import memcache_adapter
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
+from cros.factory.utils import type_utils
 
 
 class BoardNotFoundError(KeyError):
@@ -54,7 +62,7 @@ class MetadataError(ValueError):
   """Indicates an error occurred while loading or parsing HWID metadata."""
 
 
-class HwidMetadata(db.Model):  # pylint: disable=no-init
+class HwidMetadata(ndb.Model):  # pylint: disable=no-init
   """Metadata about HWID boards and information.
 
   This tracks the information about HWID file for a given board.  It is unique
@@ -63,28 +71,28 @@ class HwidMetadata(db.Model):  # pylint: disable=no-init
   path thus acts as the unique key.
   """
 
-  board = db.StringProperty()
-  path = db.StringProperty()
-  version = db.StringProperty()
+  board = ndb.StringProperty()
+  path = ndb.StringProperty()
+  version = ndb.StringProperty()
 
 
-class CLNotification(db.Model):  # pylint: disable=no-init
+class CLNotification(ndb.Model):  # pylint: disable=no-init
   """Emails of CL notification recipients."""
 
-  notification_type = db.StringProperty()
-  email = db.StringProperty()
+  notification_type = ndb.StringProperty()
+  email = ndb.StringProperty()
 
 
-class LatestHWIDMasterCommit(db.Model):  # pylint: disable=no-init
+class LatestHWIDMasterCommit(ndb.Model):  # pylint: disable=no-init
   """Latest master commit of private overlay repo with generated payloads."""
 
-  commit = db.StringProperty()
+  commit = ndb.StringProperty()
 
 
-class LatestPayloadHash(db.Model):  # pylint: disable=no-init
+class LatestPayloadHash(ndb.Model):  # pylint: disable=no-init
   """Latest hash of payload generated from verification_payload_generator."""
 
-  payload_hash = db.StringProperty()
+  payload_hash = ndb.StringProperty()
 
 
 class Component(collections.namedtuple('Component', ['cls', 'name',
@@ -263,6 +271,14 @@ class HwidManager(object):
     self._memcache_adapter = memcache_adapter.MemcacheAdapter(
         namespace='HWIDObject')
 
+  @type_utils.LazyProperty
+  def _ndb_client(self):
+    return ndb.Client()
+
+  @type_utils.LazyProperty
+  def _global_cache(self):
+    return ndb.RedisCache.from_environment()
+
   @staticmethod
   def GetVerificationPayloadSettings(board):
     """Get repo settings for specific board.
@@ -296,11 +312,12 @@ class HwidManager(object):
     """
     logging.debug('Getting boards for versions: {0}'.format(versions)
                   if versions else 'Getting boards')
-    if versions:
-      return set(metadata.board
-                 for metadata in HwidMetadata.all()
-                 if metadata.version in versions)
-    return set(metadata.board for metadata in HwidMetadata.all())
+    with self._ndb_client.context(global_cache=self._global_cache):
+      if versions:
+        return set(metadata.board
+                   for metadata in HwidMetadata.query()
+                   if metadata.version in versions)
+      return set(metadata.board for metadata in HwidMetadata.query())
 
   def GetBomAndConfigless(self, hwid_string):
     """Get the BOM and configless for a given HWID.
@@ -391,39 +408,49 @@ class HwidManager(object):
     return hwid_data.GetComponents(board, with_classes)
 
   def GetCLReviewers(self):
-    q = CLNotification.all()
-    q.filter('notification_type =', 'reviewer')
-    reviewers = []
-    for notification in list(q.run()):
-      reviewers.append(notification.email.encode('utf-8'))
-    return reviewers
+    with self._ndb_client.context(global_cache=self._global_cache):
+      q = CLNotification.query(CLNotification.notification_type == "reviewer")
+      reviewers = []
+      for notification in list(q):
+        reviewers.append(notification.email.encode('utf-8'))
+      return reviewers
 
   def GetCLCCs(self):
-    q = CLNotification.all()
-    q.filter('notification_type =', 'cc')
-    ccs = []
-    for notification in list(q.run()):
-      ccs.append(notification.email.encode('utf-8'))
-    return ccs
+    with self._ndb_client.context(global_cache=self._global_cache):
+      q = CLNotification.query(CLNotification.notification_type == "cc")
+      ccs = []
+      for notification in list(q):
+        ccs.append(notification.email.encode('utf-8'))
+      return ccs
 
   def GetLatestHWIDMasterCommit(self):
-    return LatestHWIDMasterCommit.get_by_key_name('commit').commit
+    with self._ndb_client.context(global_cache=self._global_cache):
+      key = ndb.Key(LatestHWIDMasterCommit, 'commit')
+      entry = LatestHWIDMasterCommit.query(
+          LatestHWIDMasterCommit.key == key).get()
+      return entry.commit
 
   def SetLatestHWIDMasterCommit(self, commit):
-    latest_commit = LatestHWIDMasterCommit.get_by_key_name('commit')
-    latest_commit.commit = commit
-    latest_commit.put()
+    with self._ndb_client.context(global_cache=self._global_cache):
+      key = ndb.Key(LatestHWIDMasterCommit, 'commit')
+      entity = LatestHWIDMasterCommit.query(
+          LatestHWIDMasterCommit.key == key).get()
+      entity.commit = commit
+      entity.put()
 
   def GetLatestPayloadHash(self, board):
-    entity = LatestPayloadHash.get_by_key_name(board)
-    if entity:
-      return entity.payload_hash
-    return None
+    with self._ndb_client.context(global_cache=self._global_cache):
+      key = ndb.Key(LatestPayloadHash, board)
+      entity = LatestPayloadHash.query(LatestPayloadHash.key == key).get()
+      if entity is not None:
+        return entity.payload_hash
+      return None
 
   def SetLatestPayloadHash(self, board, payload_hash):
-    latest_hash = LatestPayloadHash.get_or_insert(board)
-    latest_hash.payload_hash = payload_hash
-    latest_hash.put()
+    with self._ndb_client.context(global_cache=self._global_cache):
+      latest_hash = LatestPayloadHash.get_or_insert(board)
+      latest_hash.payload_hash = payload_hash
+      latest_hash.put()
 
   def _LoadHwidData(self, board):
     """Retrieves the HWID data for a given board, caching as necessary.
@@ -450,17 +477,17 @@ class HwidManager(object):
       logging.debug('Found cached data for %r.', board)
       return hwid_data
 
-    q = HwidMetadata.all()
-    q.filter('board =', board)
+    with self._ndb_client.context(global_cache=self._global_cache):
+      q = HwidMetadata.query(HwidMetadata.board == board)
 
-    if q.count() == 0:
-      raise BoardNotFoundError(
-          'No metadata present for the requested board: %r' % board)
+      if q.count() == 0:
+        raise BoardNotFoundError(
+            'No metadata present for the requested board: %r' % board)
 
-    if q.count() != 1:
-      raise TooManyBoardsFound('Too many boards present for : %r' % board)
+      if q.count() != 1:
+        raise TooManyBoardsFound('Too many boards present for : %r' % board)
 
-    hwid_data = self._LoadHwidFile(q.get())
+      hwid_data = self._LoadHwidFile(q.get())
 
     self.SaveBoardDataToCache(board, hwid_data)
 
@@ -515,17 +542,17 @@ class HwidManager(object):
 
     board = _NormalizeString(board)
 
-    q = HwidMetadata.all()
-    q.filter('path = ', path)
-    metadata = q.get()
+    with self._ndb_client.context(global_cache=self._global_cache):
+      q = HwidMetadata.query(HwidMetadata.path == path)
+      metadata = q.get()
 
-    if metadata:
-      metadata.board = board
-      metadata.version = str(version)
-    else:
-      metadata = HwidMetadata(board=board, version=str(version), path=path)
+      if metadata:
+        metadata.board = board
+        metadata.version = str(version)
+      else:
+        metadata = HwidMetadata(board=board, version=str(version), path=path)
 
-    metadata.put()
+      metadata.put()
 
   def UpdateBoards(self, board_metadata, delete_missing=True):
     """Updates the set of supported boards to be exactly the list provided.
@@ -542,32 +569,34 @@ class HwidManager(object):
     _VerifyBoardMetadata(board_metadata)
 
     # Discard the names for the entries, indexing only by path.
-    old_files = set(m.path for m in HwidMetadata.all().run())
-    new_files = set(board_metadata)
+    with self._ndb_client.context(global_cache=self._global_cache):
+      old_files = set(m.path for m in HwidMetadata.query())
+      new_files = set(board_metadata)
 
-    files_to_delete = old_files - new_files
-    files_to_create = new_files - old_files
+      files_to_delete = old_files - new_files
+      files_to_create = new_files - old_files
 
-    q = HwidMetadata.all()
-    for hwid_metadata in list(q.run()):
-      if hwid_metadata.path in files_to_delete:
-        if delete_missing:
-          hwid_metadata.delete()
-          self._fs_adapter.DeleteFile(self._LivePath(hwid_metadata.path))
-      else:
-        new_data = board_metadata[hwid_metadata.path]
-        hwid_metadata.board = new_data['board']
-        hwid_metadata.version = str(new_data['version'])
-        self._ActivateFile(new_data['path'], hwid_metadata.path)
-        hwid_metadata.put()
+      q = HwidMetadata.query()
+      for hwid_metadata in list(q):
+        if hwid_metadata.path in files_to_delete:
+          if delete_missing:
+            hwid_metadata.key.delete()
+            self._fs_adapter.DeleteFile(self._LivePath(hwid_metadata.path))
+        else:
+          new_data = board_metadata[hwid_metadata.path]
+          hwid_metadata.board = new_data['board']
+          hwid_metadata.version = str(new_data['version'])
+          self._ActivateFile(new_data['path'], hwid_metadata.path)
+          hwid_metadata.put()
 
     for path in files_to_create:
       new_data = board_metadata[path]
       board = new_data['board']
       version = str(new_data['version'])
-      metadata = HwidMetadata(board=board, version=version, path=path)
-      self._ActivateFile(new_data['path'], path)
-      metadata.put()
+      with self._ndb_client.context(global_cache=self._global_cache):
+        metadata = HwidMetadata(board=board, version=version, path=path)
+        self._ActivateFile(new_data['path'], path)
+        metadata.put()
 
   def ReloadMemcacheCacheFromFiles(self, limit_models=None):
     """For every known board, load its info into the cache.
@@ -575,24 +604,27 @@ class HwidManager(object):
     Args:
       limit_models: List of names of models which will be updated.
     """
-    q = HwidMetadata.all()
-    if limit_models:
-      q.filter('board IN', limit_models)
 
-    for metadata in list(q.run()):
-      try:
-        self._memcache_adapter.Put(metadata.board, self._LoadHwidFile(metadata))
-      except Exception:  # pylint: disable=broad-except
-        # Catch any exception and continue with other files.  The reason for the
-        # broad exception is that the various exceptions we could catch are
-        # large and from libraries out of our control.  For example, the HWIDv3
-        # library can throw various unknown errors.  We could have IO errors,
-        # errors with Google Cloud Storage, or YAML parsing errors.
-        #
-        # This may catch some exceptions we do not wish it to, such as SIGINT,
-        # but we expect that to be unlikely in this context and not adversely
-        # affect the system.
-        logging.exception('Exception encountered while reloading cache.')
+    with self._ndb_client.context(global_cache=self._global_cache):
+      q = HwidMetadata.query()
+      if limit_models:
+        q = q.filter(HwidMetadata.board.IN(limit_models))
+
+      for metadata in list(q):
+        try:
+          self._memcache_adapter.Put(metadata.board,
+                                     self._LoadHwidFile(metadata))
+        except Exception:  # pylint: disable=broad-except
+          # Catch any exception and continue with other files.  The reason for
+          # the broad exception is that the various exceptions we could catch
+          # are large and from libraries out of our control.  For example, the
+          # HWIDv3 library can throw various unknown errors.  We could have IO
+          # errors, errors with Google Cloud Storage, or YAML parsing errors.
+          #
+          # This may catch some exceptions we do not wish it to, such as SIGINT,
+          # but we expect that to be unlikely in this context and not adversely
+          # affect the system.
+          logging.exception('Exception encountered while reloading cache.')
 
   def _LivePath(self, file_id):
     return '/live/%s' % file_id

@@ -25,6 +25,8 @@ handlers:
 libraries:
 - name: pycrypto
   version: 2.6
+- name: grpcio
+  version: 1.0.0
 - name: ssl
   version: 2.7.11
 
@@ -57,3 +59,4 @@ env_variables:
   REDIS_PORT: "${REDIS_PORT}"
   ENDPOINTS_SERVICE_VERSION: "${ENDPOINTS_SERVICE_VERSION}"
   ENDPOINTS_SERVICE_NAME: "${ENDPOINTS_SERVICE_NAME}"
+  REDIS_CACHE_URL: "${REDIS_CACHE_URL}"
