@@ -432,6 +432,9 @@ class HwidApi(remote.Service):
         'wireless',
         'cellular',
         'ethernet',
+        'stylus',
+        'touchpad',
+        'touchscreen',
     ]
     for cls in hwid_components:
       for component in bom.GetComponents(cls):
