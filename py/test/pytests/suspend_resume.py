@@ -140,7 +140,7 @@ class SuspendResumeTest(test_case.TestCase):
     self.actual_wake_extensions = 0
     self.initial_suspend_count = 0
     self.alarm_started = threading.Event()
-    self.alarm_thread = threading.Thread()
+    self.alarm_thread = None
     self.messages = None
     # Group checker for Testlog.
     self.group_checker = testlog.GroupParam(
@@ -166,8 +166,9 @@ class SuspendResumeTest(test_case.TestCase):
                    re.sub('^', '    ', messages, flags=re.MULTILINE))
 
     self.done = True
-    self.alarm_thread.join(5)
-    self.assertFalse(self.alarm_thread.isAlive(), 'Alarm thread failed join.')
+    if self.alarm_thread:
+      self.alarm_thread.join(5)
+      self.assertFalse(self.alarm_thread.isAlive(), 'Alarm thread failed join.')
     # Clear any active wake alarms
     self._SetWakealarm('0')
 
