@@ -78,7 +78,7 @@ class LinuxDisplay(device_types.DeviceComponent):
     Raises:
       ValueError if the specified value is invalid.
     """
-    if not (level >= 0.0 and level <= 1.0):
+    if not 0.0 <= level <= 1.0:
       raise ValueError('Invalid brightness level.')
     interfaces = self._device.Glob(self.BACKLIGHT_SYSPATH_PATTERN)
     for i in interfaces:

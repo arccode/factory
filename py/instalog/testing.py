@@ -72,7 +72,7 @@ class MockCore(plugin_sandbox.CoreAPI):
 
   def GetStream(self, stream_id):
     """Retrieves the stream with the given ID, creating if necessary."""
-    assert stream_id >= 0 and stream_id <= len(self.streams)
+    assert 0 <= stream_id <= len(self.streams)
     if stream_id < len(self.streams):
       return self.streams[stream_id]
     stream = MockBufferEventStream()

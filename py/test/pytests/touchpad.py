@@ -117,11 +117,11 @@ class Quadrant(object):
     self.quadrant = 0
 
   def UpdateQuadrant(self, x_ratio, y_ratio):
-    if x_ratio >= 0.5 and y_ratio < 0.5:
+    if y_ratio < 0.5 <= x_ratio:
       self.quadrant = 1
     elif x_ratio < 0.5 and y_ratio < 0.5:
       self.quadrant = 2
-    elif x_ratio < 0.5 and y_ratio >= 0.5:
+    elif x_ratio < 0.5 <= y_ratio:
       self.quadrant = 3
     elif x_ratio >= 0.5 and y_ratio >= 0.5:
       self.quadrant = 4
