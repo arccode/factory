@@ -61,12 +61,16 @@ class LedIndicator(plugin.Plugin):
       led_name = setting['led_name']
       brightness = setting['brightness']
 
+      # Always set to AUTO after setting a color, so the LED will be off after
+      # shutting down.
       if setting['on_time'] > 0:
         led.SetColor(color, led_name, brightness)
+        led.SetColor('AUTO', led_name)
         time.sleep(setting['on_time'])
 
       if setting['off_time'] > 0:
         led.SetColor(color, led_name, brightness=0)
+        led.SetColor('AUTO', led_name)
         time.sleep(setting['off_time'])
 
     blinks = {}
@@ -76,8 +80,8 @@ class LedIndicator(plugin.Plugin):
         blinks[status] = True
 
     last_status = None
-    while not self._stop_event.isSet():
-      # UNTESTED will have the same LED status as PASSED
+    while not self._stop_event.wait(0.1):
+      # UNTESTED will have the same LED status as PASSED.
       led_status = state.TestState.PASSED
       for test in check_tests:
         test_status = instance.GetTestState(test).status
