@@ -143,13 +143,13 @@ decoder = JSONDecoder(class_registry=_class_registry)
 class SerializableMeta(type):
   """Metaclass to collect Serializable classes into a class registry."""
 
-  def __new__(mcs, name, bases, class_dict):
-    cls = type.__new__(mcs, name, bases, class_dict)
-    if cls.__name__ in _class_registry:
+  def __new__(cls, name, bases, class_dict):
+    mcs = type.__new__(cls, name, bases, class_dict)
+    if mcs.__name__ in _class_registry:
       raise RuntimeError('Multiple serializable classes with name "%s"'
-                         % cls.__name__)
-    _class_registry[cls.__name__] = cls
-    return cls
+                         % mcs.__name__)
+    _class_registry[mcs.__name__] = mcs
+    return mcs
 
 
 class Serializable(object, metaclass=SerializableMeta):

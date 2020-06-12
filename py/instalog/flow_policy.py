@@ -55,15 +55,15 @@ class FlowPolicy(object):
 class RuleMeta(type):
   """Metaclass to collect FlowRule classes into a class registry."""
 
-  def __new__(mcs, name, bases, class_dict):
+  def __new__(cls, name, bases, class_dict):
     """Called when a class is defined."""
-    cls = type.__new__(mcs, name, bases, class_dict)
-    if hasattr(cls, 'NAME'):
-      if cls.NAME in _rule_registry:
+    mcs = type.__new__(cls, name, bases, class_dict)
+    if hasattr(mcs, 'NAME'):
+      if mcs.NAME in _rule_registry:
         raise RuntimeError('Multiple serializable classes with name "%s"'
-                           % cls.__name__)
-      _rule_registry[cls.NAME] = cls
-    return cls
+                           % mcs.__name__)
+      _rule_registry[mcs.NAME] = mcs
+    return mcs
 
 
 class Rule(object, metaclass=RuleMeta):
