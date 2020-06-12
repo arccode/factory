@@ -759,6 +759,8 @@ class Gooftool(object):
       except Exception as e:
         raise Error('Failed to remove VPD entries: %r' % e)
 
+    return entries
+
   def GenerateStableDeviceSecret(self):
     """Generates a fresh stable device secret and stores it in RO VPD.
 
