@@ -63,7 +63,7 @@ def _AuthCheck(func):
 
 class DevUploadHandler(webapp2.RequestHandler):
 
-  def __init__(self, request, response):  # pylint: disable=super-on-old-class
+  def __init__(self, request, response):
     super(DevUploadHandler, self).__init__(request, response)
     self._hwid_filesystem = CONFIG.hwid_filesystem
 
@@ -103,7 +103,7 @@ class SyncNamePatternHandler(webapp2.RequestHandler):
   """
   NAME_PATTERN_FOLDER = "name_pattern"
 
-  def __init__(self, request, response):  # pylint: disable=super-on-old-class
+  def __init__(self, request, response):
     super(SyncNamePatternHandler, self).__init__(request, response)
     self.hwid_filesystem = CONFIG.hwid_filesystem
 
@@ -158,7 +158,7 @@ class RefreshHandler(webapp2.RequestHandler):
   minutes which should be more than enough headroom for the next few years.
   """
 
-  def __init__(self, request, response):  # pylint: disable=super-on-old-class
+  def __init__(self, request, response):
     super(RefreshHandler, self).__init__(request, response)
     self.hwid_filesystem = CONFIG.hwid_filesystem
     self.hwid_manager = CONFIG.hwid_manager
