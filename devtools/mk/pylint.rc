@@ -32,6 +32,8 @@
 # either give multiple identifier separated by comma (,) or put this option
 # multiple times.
 enable=
+    cmp-builtin,
+    cmp-method,
     deprecated-itertools-function,
     deprecated-string-function,
     dict-items-not-iterating,
@@ -39,8 +41,6 @@ enable=
     dict-keys-not-iterating,
     dict-values-not-iterating,
     dict-view-method,
-    cmp-builtin,
-    cmp-method,
     exception-message-attribute,
     file-builtin,
     filter-builtin-not-iterating,
@@ -69,26 +69,27 @@ enable=
 # it should appear only once).
 # Use `pylint --help-msg <msg-id>,<msg-id>,...` for detail information.
 disable=
+    broad-except,
+    exec-used,
+    fixme,
+    import-outside-toplevel,
     invalid-name,
-    missing-docstring,
-    too-many-lines,
-    no-member,
     locally-disabled,
     locally-enabled,
+    missing-docstring,
+    no-member,
     no-self-use,
     redefined-variable-type,
-    too-many-instance-attributes,
-    too-few-public-methods,
-    too-many-return-statements,
-    too-many-branches,
-    too-many-arguments,
-    too-many-locals,
-    too-many-statements,
-    exec-used,
     relative-import,
-    fixme,
-    broad-except,
+    too-few-public-methods,
+    too-many-arguments,
+    too-many-branches,
+    too-many-instance-attributes,
+    too-many-lines,
+    too-many-locals,
     too-many-public-methods,
+    too-many-return-statements,
+    too-many-statements,
 
 [REPORTS]
 
