@@ -7,14 +7,14 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('backend', '0016_remove_project_umpire_version'),
-    ]
+  dependencies = [
+      ('backend', '0016_remove_project_umpire_version'),
+  ]
 
-    operations = [
-        migrations.AddField(
-            model_name='domeconfig',
-            name='mroute_enabled',
-            field=models.BooleanField(default=False),
-        ),
-    ]
+  operations = [
+      migrations.AddField(
+          model_name='domeconfig',
+          name='mroute_enabled',
+          field=models.BooleanField(default=False),
+      ),
+  ]
