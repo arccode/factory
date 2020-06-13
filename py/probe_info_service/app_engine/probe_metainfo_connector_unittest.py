@@ -7,9 +7,12 @@ import unittest
 from cros.factory.probe_info_service.app_engine import probe_metainfo_connector
 
 
-class ProbeMetaInfoConnector(unittest.TestCase):
+class DataStoreProbeMetaInfoConnector(unittest.TestCase):
   def setUp(self):
-    self._connector = probe_metainfo_connector.ProbeMetaInfoConnector()
+    # pylint: disable=protected-access
+    self._connector = (
+        probe_metainfo_connector._DataStoreProbeMetaInfoConnector())
+    # pylint: enable=protected-access
     self._connector.Clean()
 
   def testQualProbeMetaInfo(self):
