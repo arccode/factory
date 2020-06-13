@@ -6,7 +6,7 @@ import logging
 import uuid
 
 # pylint: disable=wrong-import-order
-import flask  # pylint: disable=import-error,no-name-in-module
+import flask  # pylint: disable=import-error
 from google.protobuf import symbol_database
 # pylint: enable=wrong-import-order
 
@@ -76,8 +76,7 @@ def ProtoRPCServiceMethod(method):
 class _ProtoRPCServiceFlaskAppViewFunc(object):
   """A helper class to handle ProtoRPC POST requests on flask apps."""
 
-  def __init__(self, app_inst, service_inst):
-    self._app_inst = app_inst
+  def __init__(self, service_inst):
     self._service_inst = service_inst
 
   def __call__(self, method_name):
@@ -92,8 +91,7 @@ class _ProtoRPCServiceFlaskAppViewFunc(object):
       response_msg = method(request_msg)
       response_raw_body = response_msg.SerializeToString()
     except Exception:
-      if self._app_inst.debug:
-        logging.exception('Caught exception from RPC method %r.', method_name)
+      logging.exception('Caught exception from RPC method %r.', method_name)
       return flask.Response(status=500)
 
     response = flask.Response(response=response_raw_body)
@@ -115,7 +113,7 @@ def RegisterProtoRPCServiceToFlaskApp(
   """
   service_name = service_name or service_inst.SERVICE_DESCRIPTOR.name
   endpoint_name = '__protorpc_service_view_func_' + str(uuid.uuid1())
-  view_func = _ProtoRPCServiceFlaskAppViewFunc(app_inst, service_inst)
+  view_func = _ProtoRPCServiceFlaskAppViewFunc(service_inst)
   app_inst.add_url_rule(
       '%s/%s.<method_name>' % (path, service_name), endpoint=endpoint_name,
       view_func=view_func, methods=['POST'])

@@ -11,7 +11,8 @@ PACKAGE_PATH_NAME = cros/factory/probe_info_service
 
 FACTORY_DIR = ../..
 FACTORY_PY_PKG_DIR = $(FACTORY_DIR)/py_pkg
-FACTORY_PRIVATE_DIR = $(FACTORY_DIR)/../factory-private
+PACKAGE_PRIVATE_DIR = \
+	$(FACTORY_DIR)/../factory-private/config/probe_info_service
 BUILD_DIR := $(FACTORY_DIR)/build/probe_info_service
 GEN_CODE_DIR = $(BUILD_DIR)/gen
 PACK_DEST_DIR :=
@@ -50,5 +51,6 @@ _pack: prepare
 	          cp --parents "{}" "$(PACK_DEST_DIR)/$${path_name}" ";" \
 	    ); \
 	  done
+	cp -Trf "$(PACKAGE_PRIVATE_DIR)" "$(PACK_DEST_DIR)/$(PACKAGE_PATH_NAME)"
 	cp -r "$(GEN_CODE_DIR)/"* "$(PACK_DEST_DIR)"
 	cp $(APPENGINE_CONFIGS) "$(PACK_DEST_DIR)"
