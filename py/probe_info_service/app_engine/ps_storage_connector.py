@@ -13,7 +13,7 @@ class OverriddenProbeData:
     is_reviewed: Whether the probe statement is reviewed.
     probe_statement: A string payload of the probe statement data.
   """
-  def __init__(self, is_tested, is_reviewed, probe_statement):
+  def __init__(self, is_tested: bool, is_reviewed: bool, probe_statement: str):
     self.is_tested = is_tested
     self.is_reviewed = is_reviewed
     self.probe_statement = probe_statement

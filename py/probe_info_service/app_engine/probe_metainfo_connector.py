@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import typing
+
 # pylint: disable=no-name-in-module,import-error
 from google.cloud import datastore
 # pylint: enable=no-name-in-module,import-error
@@ -9,6 +11,9 @@ from google.cloud import datastore
 
 class QualProbeMetaInfo:
   """Record class for the probe-related meta info of a qualification.
+
+  Note that named tuple is out of option for this class because the usage
+  requires the caller to modify the attributes of the instance.
 
   Properties:
     is_overridden: A boolean indicating whether the probe statement of the
@@ -18,8 +23,9 @@ class QualProbeMetaInfo:
     last_probe_info_fp_for_overridden: A string of the fingerprint of the probe
         info that turns out an evidence for probe statement overridden.
   """
-  def __init__(self, is_overridden, last_tested_probe_info_fp,
-               last_probe_info_fp_for_overridden):
+  def __init__(self, is_overridden: bool,
+               last_tested_probe_info_fp: typing.Optional[str],
+               last_probe_info_fp_for_overridden: typing.Optional[str]):
     self.is_overridden = is_overridden
     self.last_tested_probe_info_fp = last_tested_probe_info_fp
     self.last_probe_info_fp_for_overridden = last_probe_info_fp_for_overridden
@@ -32,7 +38,7 @@ class ProbeMetaInfoConnector:
   def __init__(self):
     self._client = datastore.Client()
 
-  def GetQualProbeMetaInfo(self, qual_id):
+  def GetQualProbeMetaInfo(self, qual_id) -> QualProbeMetaInfo:
     """Retrieve the probe meta info of the specific qualification.
 
     Args:
@@ -47,7 +53,8 @@ class ProbeMetaInfoConnector:
                 'last_probe_info_fp_for_overridden': None})
     return QualProbeMetaInfo(**db_data)
 
-  def UpdateQualProbeMetaInfo(self, qual_id, qual_probe_meta_info):
+  def UpdateQualProbeMetaInfo(
+      self, qual_id, qual_probe_meta_info: QualProbeMetaInfo):
     """Update the probe meta info of the specific qualification.
 
     Args:
@@ -69,7 +76,7 @@ class ProbeMetaInfoConnector:
 _probe_meta_info_connector = None
 
 
-def GetProbeMetaInfoConnectorInstance():
+def GetProbeMetaInfoConnectorInstance() -> ProbeMetaInfoConnector:
   global _probe_meta_info_connector  # pylint: disable=global-statement
   if not _probe_meta_info_connector:
     _probe_meta_info_connector = ProbeMetaInfoConnector()

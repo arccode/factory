@@ -30,7 +30,7 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
     return response
 
   @protorpc_utils.ProtoRPCServiceMethod
-  def ValidateProbeInfo(self, request):
+  def ValidateProbeInfo(self, request: stubby_pb2.ValidateProbeInfoRequest):
     response = stubby_pb2.ValidateProbeInfoResponse()
     response.probe_info_parsed_result.CopyFrom(
         self._probe_tool_manager.ValidateProbeInfo(request.probe_info,
@@ -38,7 +38,8 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
     return response
 
   @protorpc_utils.ProtoRPCServiceMethod
-  def GetQualProbeTestBundle(self, request):
+  def GetQualProbeTestBundle(
+      self, request: stubby_pb2.GetQualProbeTestBundleRequest):
     response = stubby_pb2.GetQualProbeTestBundleResponse()
 
     probe_meta_info = self._probe_metainfo_connector.GetQualProbeMetaInfo(
@@ -59,7 +60,8 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
     return response
 
   @protorpc_utils.ProtoRPCServiceMethod
-  def UploadQualProbeTestResult(self, request):
+  def UploadQualProbeTestResult(
+      self, request: stubby_pb2.UploadQualProbeTestResultRequest):
     response = stubby_pb2.UploadQualProbeTestResultResponse()
 
     probe_meta_info = self._probe_metainfo_connector.GetQualProbeMetaInfo(
@@ -95,7 +97,8 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
     return response
 
   @protorpc_utils.ProtoRPCServiceMethod
-  def CreateOverriddenProbeStatement(self, request):
+  def CreateOverriddenProbeStatement(
+      self, request: stubby_pb2.CreateOverriddenProbeStatementRequest):
     response = stubby_pb2.CreateOverriddenProbeStatementResponse()
     if request.component_probe_info.component_identity.device_id:
       # TODO(yhong): Create overridden probe statements for the specific device.
@@ -130,7 +133,7 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
     return response
 
   @protorpc_utils.ProtoRPCServiceMethod
-  def GetProbeMetadata(self, request):
+  def GetProbeMetadata(self, request: stubby_pb2.GetProbeMetadataRequest):
     response = stubby_pb2.GetProbeMetadataResponse()
 
     for comp_probe_info in request.component_probe_infos:

@@ -36,7 +36,7 @@ def _GetBundleTemplate():
 _FileEntry = collections.namedtuple('_FileEntry', ['path', 'mode', 'data'])
 
 
-class BundleBuilder(object):
+class BundleBuilder:
   """A helper class to pack the resources into the probe config bundle file."""
 
   _REGULAR_MODE = 0o644
@@ -46,7 +46,7 @@ class BundleBuilder(object):
     self._file_entries = []
     self._runner_path = None
 
-  def AddRegularFile(self, path, data):
+  def AddRegularFile(self, path, data: bytes):
     """Adds a regular file into the probe config bundle.
 
     Args:
@@ -55,7 +55,7 @@ class BundleBuilder(object):
     """
     self._file_entries.append(_FileEntry(path, self._REGULAR_MODE, data))
 
-  def AddExecutableFile(self, path, data):
+  def AddExecutableFile(self, path, data: bytes):
     """Adds an executable file into the probe config bundle.
 
     Args:
@@ -72,7 +72,7 @@ class BundleBuilder(object):
     """
     self._runner_path = path
 
-  def Build(self):
+  def Build(self) -> bytes:
     """Archives all the resources and returns the result in bytes."""
     tarfile_buf = io.BytesIO()
     with tarfile.open(mode='w:gz', fileobj=tarfile_buf) as tarfile_obj:

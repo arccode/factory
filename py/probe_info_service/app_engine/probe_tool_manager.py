@@ -2,10 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import collections
 import hashlib
 import os
 import re
+import typing
 
 from google.protobuf import text_format
 
@@ -84,7 +84,8 @@ class ProbeFunc:
     name: A string of the name as the identifier of this function.
   """
   class _ProbeParam:
-    def __init__(self, description, value_converter, ps_gen):
+    def __init__(self, description, value_converter: _ParamValueConverter,
+                 ps_gen):
       self.description = description
       self.value_converter = value_converter
       self.ps_gen = ps_gen
@@ -101,7 +102,7 @@ class ProbeFunc:
     self._probe_func_def = self._ps_generator.probe_functions[
         runtime_probe_func_name]
 
-    self._probe_param_infos = {}
+    self._probe_param_infos: typing.Mapping[str, self._ProbeParam] = {}
     probe_params = (probe_params or
                     {f.name: None for f in self._probe_func_def.output_fields})
     not_found_flag = object()
@@ -128,8 +129,10 @@ class ProbeFunc:
           value_type=probe_param.value_converter.value_type)
     return ret
 
-  def ParseProbeParams(self, probe_params, allow_missing_params,
-                       comp_name_for_probe_statement=None):
+  def ParseProbeParams(
+      self, probe_params: typing.List[stubby_pb2.ProbeParameter],
+      allow_missing_params: bool, comp_name_for_probe_statement=None
+  ) -> typing.Tuple[ProbeInfoParsedResult, typing.Any]:
     """Walk through the given probe parameters.
 
     The method first validate each probe parameter.  Then if specified,
@@ -229,7 +232,7 @@ class ProbeFunc:
 
 
 @type_utils.CachedGetter
-def _GetAllProbeFuncs():
+def _GetAllProbeFuncs() -> typing.List[ProbeFunc]:
   # TODO(yhong): Separate the data piece out the code logic.
   def _StringToRegexpOrString(value):
     PREFIX = '!re '
@@ -277,25 +280,29 @@ class ProbeDataSource:
     probe_statement: A string of probe statement from the backend system.
         `None` if the instance is generated from probe info.
   """
-  def __init__(self, fingerprint, component_name, probe_info, probe_statement):
+  def __init__(self, fingerprint: str, component_name: str,
+               probe_info: typing.Optional[ProbeInfo],
+               probe_statement: typing.Optional[str]):
     self.component_name = component_name
     self.probe_info = probe_info
     self.fingerprint = fingerprint
     self.probe_statement = probe_statement
 
 
-# A placeholder for any artifact generated from a probe info.
-#
-# Many tasks performed by this module involve parsing a given `ProbeInfo`
-# instance to get any kind of output.  The probe info might not necessary be
-# valid, the module need to return a structured summary for the parsed result
-# all the time.  This class provides a placeholder for those methods.
-#
-# Properties:
-#   probe_info_parsed_result: An instance of `ProbeInfoParsedResult`.
-#   output: `None` or any kind of the output.
-ProbeInfoArtifact = collections.namedtuple(
-    'ProbeInfoArtifact', ['probe_info_parsed_result', 'output'])
+class ProbeInfoArtifact(typing.NamedTuple):
+  """A placeholder for any artifact generated from a probe info.
+
+  Many tasks performed by this module involve parsing a given `ProbeInfo`
+  instance to get any kind of output.  The probe info might not necessary be
+  valid, the module need to return a structured summary for the parsed result
+  all the time.  This class provides a placeholder for those methods.
+
+  Properties:
+    probe_info_parsed_result: An instance of `ProbeInfoParsedResult`.
+    output: `None` or any kind of the output.
+  """
+  probe_info_parsed_result: ProbeInfoParsedResult
+  output: typing.Any
 
 
 @type_utils.CachedGetter
@@ -315,7 +322,7 @@ class ProbeToolManager:
   def __init__(self):
     self._probe_funcs = {pf.name: pf for pf in _GetAllProbeFuncs()}
 
-  def GetProbeSchema(self):
+  def GetProbeSchema(self) -> ProbeSchema:
     """
     Returns:
       An instance of `ProbeSchema`.
@@ -326,7 +333,8 @@ class ProbeToolManager:
           probe_func.GenerateProbeFunctionDefinition())
     return ret
 
-  def ValidateProbeInfo(self, probe_info, allow_missing_params):
+  def ValidateProbeInfo(self, probe_info: ProbeInfo,
+                        allow_missing_params: bool) -> ProbeInfoParsedResult:
     """Validate the given probe info.
 
     Args:
@@ -345,12 +353,14 @@ class ProbeToolManager:
           probe_info.probe_parameters, allow_missing_params)
     return probe_info_parsed_result
 
-  def CreateProbeDataSource(self, component_name, probe_info):
+  def CreateProbeDataSource(
+      self, component_name, probe_info) -> ProbeDataSource:
     """Creates the probe data source from the given probe_info."""
     return ProbeDataSource(self._CalcProbeInfoFingerprint(probe_info),
                            component_name, probe_info, None)
 
-  def LoadProbeDataSource(self, component_name, probe_statement):
+  def LoadProbeDataSource(
+      self, component_name, probe_statement) -> ProbeDataSource:
     """Load the probe data source from the given probe statement."""
     hash_engine = hashlib.sha1()
     hash_engine.update(
@@ -358,7 +368,7 @@ class ProbeToolManager:
     return ProbeDataSource(hash_engine.hexdigest(), component_name, None,
                            probe_statement)
 
-  def DumpProbeDataSource(self, probe_data_source):
+  def DumpProbeDataSource(self, probe_data_source) -> ProbeInfoArtifact:
     """Dump the probe data source to a loadable probe statement string."""
     result = self._ConvertProbeDataSourceToProbeStatement(probe_data_source)
     if result.output is None:
@@ -369,7 +379,8 @@ class ProbeToolManager:
     return ProbeInfoArtifact(result.probe_info_parsed_result,
                              builder.DumpToString())
 
-  def GenerateDummyProbeStatement(self, reference_probe_data_source):
+  def GenerateDummyProbeStatement(
+      self, reference_probe_data_source: ProbeDataSource) -> str:
     """Generate a dummy loadable probe statement string.
 
     This is a backup-plan in case `DumpProbeDataSource` fails.
@@ -385,7 +396,8 @@ class ProbeToolManager:
         },
     })
 
-  def GenerateQualProbeTestBundlePayload(self, probe_data_source):
+  def GenerateQualProbeTestBundlePayload(
+      self, probe_data_source: ProbeDataSource) -> ProbeInfoArtifact:
     """Generates the payload for testing the probe info of a qualification.
 
     Args:
@@ -437,7 +449,8 @@ class ProbeToolManager:
     return ProbeInfoArtifact(pi_parsed_result, builder.Build())
 
   def AnalyzeQualProbeTestResultPayload(
-      self, probe_data_source, probe_result_payload):
+      self, probe_data_source: ProbeDataSource,
+      probe_result_payload: bytes) -> ProbeInfoTestResult:
     """Analyzes the given probe result payload for a qualification.
 
     Args:
@@ -497,8 +510,9 @@ class ProbeToolManager:
         result_type=ProbeInfoTestResult.INTRIVIAL_ERROR,
         intrivial_error_msg='No component is found.')
 
-
-  def _LookupProbeFunc(self, probe_function_name):
+  def _LookupProbeFunc(
+      self, probe_function_name
+  ) -> typing.Tuple[ProbeInfoParsedResult, ProbeFunc]:
     """A helper method to find the probe function instance by name.
 
     When the target probe function doesn't exist, the method creates and
@@ -522,7 +536,7 @@ class ProbeToolManager:
           general_error_msg='unknown probe function: %r' % probe_function_name)
     return parsed_result, probe_func
 
-  def _CalcProbeInfoFingerprint(self, probe_info):
+  def _CalcProbeInfoFingerprint(self, probe_info: ProbeInfo) -> str:
     """Derives a fingerprint string for the given probe info.
 
     Args:
@@ -547,7 +561,8 @@ class ProbeToolManager:
         json_utils.DumpStr(serializable_data, sort_keys=True).encode('utf-8'))
     return hash_engine.hexdigest()
 
-  def _ConvertProbeDataSourceToProbeStatement(self, probe_data_source):
+  def _ConvertProbeDataSourceToProbeStatement(
+      self, probe_data_source: ProbeDataSource) -> ProbeInfoArtifact:
     probe_info_parsed_result, probe_func = self._LookupProbeFunc(
         probe_data_source.probe_info.probe_function_name)
     if probe_func:
