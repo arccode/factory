@@ -71,7 +71,7 @@ class TestWebApplication(wsgi.WebApp):
         (session.REQUEST_METHOD, session.remote_address, session.PATH_INFO))
 
 
-class TestCommand(object):
+class TestCommand:
 
   @umpire_rpc.RPCCall
   def Add(self, param1, param2):

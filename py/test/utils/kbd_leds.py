@@ -68,7 +68,7 @@ def SetLeds(state):
   return True
 
 
-class Blinker(object):
+class Blinker:
   """Blinks LEDs asynchronously according to a particular pattern.
 
   Start() and Stop() are not thread-safe and must be invoked from the same

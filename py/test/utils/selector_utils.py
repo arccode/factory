@@ -10,7 +10,7 @@ from cros.factory.utils import shelve_utils
 _DEFAULT_NOT_SET = object()
 
 
-class ISelector(object):
+class ISelector:
   """A wrapper to unify access style of different objects.
 
   A selector wraps an object and make it a recursive-dictionary-like object,

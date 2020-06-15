@@ -15,7 +15,7 @@ _UDEV_ACTION_INSERT = 'add'
 _UDEV_ACTION_REMOVE = 'remove'
 
 
-class MediaMonitor(object):
+class MediaMonitor:
   """A wrapper to monitor media events.
 
   This class offers an easy way to monitor the insertion and removal
@@ -81,7 +81,7 @@ class RemovableDiskMonitor(MediaMonitor):
     super(RemovableDiskMonitor, self).__init__('block', 'disk')
 
 
-class MountedMedia(object):
+class MountedMedia:
   """A context manager to automatically mount and unmount specified device.
 
   Usage example:

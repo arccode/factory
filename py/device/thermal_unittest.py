@@ -22,7 +22,7 @@ from cros.factory.device import thermal
 _CORETEMP_PREFIX = '/sys/devices/platform/coretemp.'
 
 
-class _FakeGlob(object):
+class _FakeGlob:
   """A simple glob class for unittest."""
   def __init__(self, paths):
     self._paths = []

@@ -20,7 +20,7 @@ class GenerateDocsTest(unittest.TestCase):
 
   def testGenerateTestDocs(self):
     # A class that looks like a test module.
-    class PseudoModule(object):  # pylint: disable=no-init
+    class PseudoModule:  # pylint: disable=no-init
       """Module-level help."""
       class FooTest(unittest.TestCase):
         ARGS = [

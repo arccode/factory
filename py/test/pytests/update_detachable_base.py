@@ -249,7 +249,7 @@ class UpdateDetachableBaseTest(test_case.TestCase):
     return 1
 
 
-class UsbInfo(object):
+class UsbInfo:
   """Helper class to get USB device info via usb_updater2 or lsusb."""
 
   def __init__(self, device_id):

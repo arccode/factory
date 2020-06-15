@@ -382,7 +382,7 @@ class WiFi(device_types.DeviceComponent):
                         dhcp_timeout=dhcp_timeout)
 
 
-class AccessPoint(object):
+class AccessPoint:
   """Represents a WiFi access point.
 
   Properties:
@@ -514,7 +514,7 @@ class ConnectionStatus(type_utils.Obj):
         rx_bitrate=rx_bitrate)
 
 
-class Connection(object):
+class Connection:
   """Represents a connection to a particular AccessPoint."""
   DHCP_DHCPCD = 'dhcpcd'
   DHCP_DHCLIENT = 'dhclient'
@@ -908,7 +908,7 @@ class ServiceSpec(type_utils.Obj):
   def __hash__(self):
     return hash((self.ssid, self.freq, self.password))
 
-class WiFiChip(object):
+class WiFiChip:
   """WiFiChip is an abstaction of a signal data collection."""
 
   def __init__(self, device, interface, phy_name):

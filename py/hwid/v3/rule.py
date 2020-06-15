@@ -29,7 +29,7 @@ class RuleException(Exception):
   pass
 
 
-class RuleLogger(object):
+class RuleLogger:
   """A logger for tracing the evaluation of rules.
 
   Attributes:
@@ -79,7 +79,7 @@ class RuleLogger(object):
     self.error = []
 
 
-class Context(object):
+class Context:
   """A class for holding the context objects for evaluating rule functions.
 
   It converts its constructor's input key-value pairs to the object's
@@ -173,7 +173,7 @@ def RuleFunction(ctx_list):
   return Wrapped
 
 
-class Rule(object):
+class Rule:
   """The Rule class.
 
   Rule objects should be called through the Evaluate method. Depending on the
@@ -323,7 +323,7 @@ class Rule(object):
       SetContext(None)
 
 
-class Value(object):
+class Value:
   """A class to hold a value for expression evaluation.
 
   The value can be a plain string or a regular expression.

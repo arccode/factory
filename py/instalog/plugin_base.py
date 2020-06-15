@@ -54,7 +54,7 @@ class ConfigError(Exception):
   pass
 
 
-class PluginAPI(object):
+class PluginAPI:
   """Defines an interface for plugins to call."""
 
   def SaveStore(self, plugin):
@@ -94,7 +94,7 @@ class PluginAPI(object):
     raise NotImplementedError
 
 
-class Plugin(log_utils.LoggerMixin, object):
+class Plugin(log_utils.LoggerMixin):
   """Base class for a buffer plugin, input plugin, or output plugin in Instalog.
 
   This is a base class for BufferPlugin, InputPlugin and OutputPlugin.  Plugins
@@ -285,7 +285,7 @@ class BufferPlugin(Plugin):
     raise NotImplementedError
 
 
-class BufferEventStream(object):
+class BufferEventStream:
   """Event stream interface that a buffer needs to implement.
 
   Objects implementing BufferEventStream should be returned when the buffer

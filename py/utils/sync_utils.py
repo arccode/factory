@@ -293,7 +293,7 @@ def Synchronized(f):
 
   Example:
 
-  class MyServer(object):
+  class MyServer:
     def __init__(self):
       self._lock = threading.RLock()
 
@@ -320,7 +320,7 @@ def Synchronized(f):
   return wrapped
 
 
-class ThreadTimeout(object):
+class ThreadTimeout:
   """Timeout context manager.
 
   It will raise TimeoutError after timeout is reached, interrupting execution

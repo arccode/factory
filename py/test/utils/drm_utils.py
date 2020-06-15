@@ -505,7 +505,7 @@ class DRMModePropertyBlob(DRMModeBaseStruct):
       _GetDRMLibrary().drmModeFreePropertyBlob(ctypes.byref(self))
 
 
-class DRM(object):
+class DRM:
   """An abstraction of the DRM device."""
 
   def __init__(self, handle):

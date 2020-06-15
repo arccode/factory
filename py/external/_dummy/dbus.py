@@ -8,7 +8,7 @@ import sys
 import types
 
 
-class DummyClass(object):
+class DummyClass:
   pass
 
 
@@ -16,10 +16,10 @@ def DummyFunc(*unused_args, **unused_kargs):
   pass
 
 
-class Service(object):
+class Service:
   """Provides dbus.service."""
 
-  class Object(object):
+  class Object:
     pass
 
   def method(self, *unused_args, **unused_kargs):

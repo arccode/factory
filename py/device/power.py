@@ -69,7 +69,7 @@ class PowerBase(device_types.DeviceComponent):
     self._pd_name = pd_name
 
 
-class PowerControlMixinBase(object):
+class PowerControlMixinBase:
   """Base class for power control mixin."""
 
   def SetChargeState(self, state):
@@ -103,7 +103,7 @@ class ECToolPowerControlMixin(PowerControlMixinBase):
       raise self.Error('Unable to set charge state: %s' % e)
 
 
-class PowerInfoMixinBase(object):
+class PowerInfoMixinBase:
   """Base class for power info mixin."""
 
   _CHARGE_STATE_MAP = {

@@ -97,7 +97,7 @@ SERVER_FILE_MASK = [
 ]
 
 
-class FactoryToolkitInstaller(object):
+class FactoryToolkitInstaller:
   """Factory toolkit installer.
 
   Args:

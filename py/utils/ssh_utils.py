@@ -107,7 +107,7 @@ def SpawnRsyncToDUT(args, **kwargs):
   return process_utils.Spawn(BuildRsyncCommand() + args, **kwargs)
 
 
-class SSHTunnelToDUT(object):
+class SSHTunnelToDUT:
   """A class to establish and close SSH tunnel to a DUT.
 
   Usage:

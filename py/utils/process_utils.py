@@ -475,7 +475,7 @@ def StartDaemonThread(*args, **kwargs):
   return thread
 
 
-class DummyFile(object):
+class DummyFile:
   def write(self, x):  # pylint: disable=unused-argument
     pass
 

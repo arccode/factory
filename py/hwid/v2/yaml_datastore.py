@@ -31,7 +31,7 @@ class InvalidDataError(ValueError):
   pass
 
 
-class YamlDatastore(object):
+class YamlDatastore:
 
   def WriteOnDiff(self, path, filename, raw_data):
     """Write data to file if there are any differences, logging the diffs.
@@ -54,7 +54,7 @@ class YamlDatastore(object):
       f.write('%s\n' % '\n'.join(internal_data))
 
 
-class _DatastoreBase(object):
+class _DatastoreBase:
 
   def __init__(self, **field_dict):
     """Creates object using the field data specified in field_dict."""

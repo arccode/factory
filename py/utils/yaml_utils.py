@@ -18,7 +18,7 @@ class BaseYAMLTagHandlerMetaclass(type):
     super(BaseYAMLTagHandlerMetaclass, cls).__init__(*args, **kwargs)
 
 
-class BaseYAMLTagHandler(object, metaclass=BaseYAMLTagHandlerMetaclass):
+class BaseYAMLTagHandler(metaclass=BaseYAMLTagHandlerMetaclass):
   YAML_TAG = None
   TARGET_CLASS = None
   LOADER = yaml.Loader

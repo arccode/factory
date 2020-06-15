@@ -35,7 +35,7 @@ class Terminal(plugin.Plugin):
         '/pty', terminal_manager.handle_web_socket)
 
 
-class TerminalManager(object):
+class TerminalManager:
   """Object to manage Terminal service for goofy."""
   def handle_web_socket(self, request):
     if not WebSocketHandshake(request):

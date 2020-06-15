@@ -36,14 +36,14 @@ import struct
 from cros.factory.external.evdev import ecodes
 
 
-class TouchMonitorBase(object):
+class TouchMonitorBase:
   """Touch device monitor.
 
   Properties:
     device: evdev.InputDevice, the touch device it monitors.
   """
 
-  class State(object):
+  class State:
     """Touch device state.
 
     Properties:
@@ -195,7 +195,7 @@ class MultiTouchMonitor(TouchMonitorBase):
     device: evdev.InputDevice, the multi-touch device it monitors.
   """
 
-  class MultiTouchSlot(object):
+  class MultiTouchSlot:
     """Multi-Touch slot.
 
     Properties:

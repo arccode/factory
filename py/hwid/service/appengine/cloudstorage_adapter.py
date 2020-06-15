@@ -14,7 +14,7 @@ from cros.factory.hwid.v3 import filesystem_adapter
 class CloudStorageAdapter(filesystem_adapter.FileSystemAdapter):
   """Adapter for Google Cloud Storage."""
 
-  class ExceptionMapper(object):
+  class ExceptionMapper:
 
     def __enter__(self):
       pass

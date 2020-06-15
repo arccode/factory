@@ -22,7 +22,7 @@ from cros.factory.umpire.server import resource
 from cros.factory.utils import file_utils
 
 
-class BundleImporter(object):
+class BundleImporter:
   """Imports a bundle.
 
   It reads a factory bundle and copies resources to Umpire.

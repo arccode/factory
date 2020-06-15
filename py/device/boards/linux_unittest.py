@@ -13,7 +13,7 @@ from cros.factory.device.boards import linux
 from cros.factory.device import device_types
 
 
-class MockProcess(object):
+class MockProcess:
   def __init__(self, returncode):
     self._returncode = returncode
 

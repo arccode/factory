@@ -394,7 +394,7 @@ class ServiceProcess(protocol.ProcessProtocol):
     return common.UmpireError(message)
 
 
-class UmpireService(object):
+class UmpireService:
   """Umpire service base class.
 
   Umpire service can configure and launch external executables. The derived

@@ -12,7 +12,7 @@ from cros.factory.utils import net_utils
 from cros.factory.utils import webservice_utils
 
 
-class MockZeep(object):
+class MockZeep:
 
   def __init__(self):
     self.service = None

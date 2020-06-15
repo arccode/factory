@@ -40,7 +40,7 @@ def _NormalizedArgType(t):
   raise ValueError('Unknown argument type %r.' % t)
 
 
-class RPC(object):
+class RPC:
   """The actual RPC request handler.
 
   Properties:

@@ -65,7 +65,7 @@ class SchemaException(Exception):
   pass
 
 
-class BaseType(object):
+class BaseType:
   """Base type class for schema classes.
   """
 

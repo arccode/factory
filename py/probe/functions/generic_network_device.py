@@ -24,7 +24,7 @@ except ImportError:
 KNOWN_DEVICE_TYPES = type_utils.Enum(['wireless', 'ethernet', 'cellular'])
 
 
-class NetworkDevices(object):
+class NetworkDevices:
   """A general probing module for network devices."""
 
   cached_dev_list = None

@@ -35,7 +35,7 @@ class GSCToolError(Exception):
   pass
 
 
-class GSCTool(object):
+class GSCTool:
   """Helper class to operate on Cr50 firmware by the `gsctool` cmdline utility.
   """
 

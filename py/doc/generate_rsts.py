@@ -77,7 +77,7 @@ def LinkToDoc(name, path):
   return ':doc:`%s <%s>`' % (Escape(name), Escape(path))
 
 
-class RSTWriter(object):
+class RSTWriter:
   def __init__(self, io):
     self.io = io
 

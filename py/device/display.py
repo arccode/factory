@@ -12,7 +12,7 @@ class DisplayError(Exception):
   """Error raised by the display module."""
 
 
-class PortInfo(object):
+class PortInfo:
   """A class for holding relevant display port info.
 
   Attributes:

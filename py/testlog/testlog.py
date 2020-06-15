@@ -105,7 +105,7 @@ class FlushException(Exception):
   pass
 
 
-class Testlog(object):
+class Testlog:
   """Primarily a wrapper for variables that should exist in a singleton.
 
   This class should be initialized only once per process.
@@ -688,7 +688,7 @@ class LogFormatter(logging.Formatter):
     return StationMessage(data)
 
 
-class EventBase(object):
+class EventBase:
   """Base plumbing for Event class.
 
   Includes functionality to map incoming data (JSON or Python dict) to its
@@ -976,7 +976,7 @@ class _StationBase(Event):
     return None
 
 
-class _GroupChecker(object):
+class _GroupChecker:
   """Context manager for checking grouped parameters."""
 
   def __init__(self, event, name, param_list):

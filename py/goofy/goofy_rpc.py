@@ -54,7 +54,7 @@ class GoofyRPCException(Exception):
   pass
 
 
-class GoofyRPC(object):
+class GoofyRPC:
   """Goofy RPC main class."""
 
   def _InRunQueue(self, func, timeout_secs=None):

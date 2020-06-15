@@ -17,7 +17,7 @@ from . import process_utils
 CalledProcessError = process_utils.CalledProcessError
 
 
-class SystemInterface(object):
+class SystemInterface:
   """Abstract interface for accessing a system."""
 
   # Special values to make Popen work like subprocess.

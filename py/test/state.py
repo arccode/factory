@@ -60,7 +60,7 @@ def ClearState(state_file_dir=DEFAULT_FACTORY_STATE_FILE_DIR):
     shutil.rmtree(state_file_dir)
 
 
-class FactoryStateLayer(object):
+class FactoryStateLayer:
   """Contains two DictShelfView 'tests_shelf' and 'data_shelf'."""
   def __init__(self, state_dir=None):
     """Constructor
@@ -118,7 +118,7 @@ class FactoryStateLayer(object):
 
 # TODO(shunhsingou): move goofy or dut related functions to goofy_rpc so we can
 # really separate them.
-class FactoryState(object):
+class FactoryState:
   """The core implementation for factory state control.
 
   The major provided features are:
@@ -434,7 +434,7 @@ def DataShelfHasKey(key):
 def DataShelfDeleteKeys(key, optional=False):
   return GetInstance().DataShelfDeleteKeys(key, optional)
 
-class TestState(object):
+class TestState:
   """The complete state of a test.
 
   Properties:

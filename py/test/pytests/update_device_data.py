@@ -184,7 +184,7 @@ _KNOWN_KEY_LABELS = {
 _SELECTION_PER_PAGE = 10
 
 
-class DataEntry(object):
+class DataEntry:
   """Quick access to an entry in DeviceData.
 
   Properties:

@@ -90,7 +90,7 @@ class AttrDictTest(unittest.TestCase):
 
 class LazyPropertyTest(unittest.TestCase):
 
-  class BaseClass(object):
+  class BaseClass:
     def __init__(self):
       self.prop_initialized = 0
 
@@ -160,7 +160,7 @@ class LazyPropertyTest(unittest.TestCase):
 
 class LazyObjectTest(unittest.TestCase):
 
-  class BaseClass(object):
+  class BaseClass:
 
     def __init__(self, output):
       self.x = 0

@@ -20,7 +20,7 @@ from cros.factory.testlog import testlog
 from cros.factory.utils import log_utils
 
 
-class TemperaturesMonitor(object):
+class TemperaturesMonitor:
   def __init__(self, period_secs, delta):
     self._period_secs = period_secs
     self._delta = delta

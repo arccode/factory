@@ -19,7 +19,7 @@ def CheckCall(command):
   return subprocess.check_call(command, shell=True)
 
 
-class GPTCommand(object):
+class GPTCommand:
   """Wrapper for pygpt.GPTCommand."""
 
   def __init__(self):

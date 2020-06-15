@@ -15,7 +15,7 @@ from cros.factory.umpire import common
 from cros.factory.utils import process_utils
 
 
-class LogExporter(object):
+class LogExporter:
 
   def __init__(self, env):
     """Constructor.

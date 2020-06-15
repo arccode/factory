@@ -7,7 +7,7 @@ class LightChamberError(Exception):
   pass
 
 
-class LightChamber(object):
+class LightChamber:
   """Interfaces the ambient light sensor over iio."""
 
   def __init__(self, fixture_conn, fixture_cmd, retries=3):

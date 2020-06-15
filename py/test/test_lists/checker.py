@@ -16,7 +16,7 @@ from cros.factory.utils import type_utils
 _EVALUATE_PREFIX = test_list_module.EVALUATE_PREFIX
 
 
-class UnresolvableNamespace(object):
+class UnresolvableNamespace:
   """A stub namespace.
 
   Accessing anything under the namespace will cause an UnresolvableException.
@@ -37,7 +37,7 @@ class UnresolvableException(Exception):
   """We cannot resolve something (statically)."""
 
 
-class UnresolvableValue(object):
+class UnresolvableValue:
   """This value cannot be resolved by checker."""
   def __init__(self, eval_string):
     self.eval_string = eval_string
@@ -132,7 +132,7 @@ class TestListExpressionVisitor(ast.NodeVisitor):
     raise CheckerError('yield is not allowed')
 
 
-class Checker(object):
+class Checker:
   """Check if a test list is valid.
 
   This class implements functions that help you to find test list errors

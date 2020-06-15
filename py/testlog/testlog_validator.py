@@ -13,7 +13,7 @@ import shutil
 from .utils import time_utils
 
 
-class Validator(object):
+class Validator:
   """Wrapper for functions that assign and validate values to Event object."""
   @staticmethod
   def Object(inst, key, value):

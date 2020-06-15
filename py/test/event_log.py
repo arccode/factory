@@ -124,7 +124,7 @@ class EventLogException(Exception):
   pass
 
 
-class FloatDigit(object):
+class FloatDigit:
   """Dumps float to yaml with specified digits under decimal point.
 
   This class has customized __repr__ so it can be used in yaml representer.
@@ -274,7 +274,7 @@ def GetBootId():
   return session.GetBootID()
 
 
-class GlobalSeq(object):
+class GlobalSeq:
   """Manages a global sequence number in a file.
 
   flock is used to ensure atomicity.
@@ -387,7 +387,7 @@ class GlobalSeq(object):
       return int(time.time() * 1000)
 
 
-class EventLog(object):
+class EventLog:
   """Event logger.
 
   Properties:

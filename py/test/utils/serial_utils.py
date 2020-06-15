@@ -138,7 +138,7 @@ def DeviceInterfaceProtocol(device_path):
     return ''
 
 
-class SerialDevice(object):
+class SerialDevice:
   """Interface to communicate with a serial device.
 
   Instead of giving a fixed port, it can look up port by driver name.

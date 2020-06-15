@@ -11,7 +11,7 @@ from cros.factory.test.test_lists import test_object
 from cros.factory.utils import type_utils
 
 
-class PickableFrame(object):
+class PickableFrame:
   """Represent a frame of call stack.
 
   This object is used to store a frame of recursive call, for example:
@@ -48,7 +48,7 @@ class PickableFrame(object):
     self.locals = {}
 
 
-class TestListIterator(object):
+class TestListIterator:
   """An iterator of test list.
 
   https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/test/test_lists/TEST_LIST.md

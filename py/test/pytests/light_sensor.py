@@ -115,7 +115,7 @@ _DEFAULT_DEVICE_PATH = '/sys/bus/iio/devices/*/'
 _DEFAULT_DEVICE_INPUT = 'illuminance0_raw'
 
 
-class iio_generic(object):
+class iio_generic:
   """Object to interface to ambient light sensor over iio.
 
   Properties:

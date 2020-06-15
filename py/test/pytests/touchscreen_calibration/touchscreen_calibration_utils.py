@@ -153,7 +153,7 @@ def GetDebugfs(vendor=ATMEL):
   return device_debug_path if os.path.isfile(object_file) else None
 
 
-class NetworkStatus(object):
+class NetworkStatus:
   """Show the network and service status."""
 
   def __init__(self, BB_ip, shopfloor_ip):
@@ -191,7 +191,7 @@ class NetworkStatus(object):
     return IsSuccessful(SimpleSystem('ping -c 1 %s' % self._shopfloor_ip))
 
 
-class KernelModule(object):
+class KernelModule:
   """A simple class to manage a kernel module."""
 
   def __init__(self, name):

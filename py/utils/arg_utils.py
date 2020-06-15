@@ -38,7 +38,7 @@ class ArgError(ValueError):
   pass
 
 
-class Arg(object):
+class Arg:
   """The specification for a single test argument."""
   # pylint: disable=redefined-builtin
 
@@ -162,7 +162,7 @@ class Arg(object):
     parser.add_argument(*args, **kwargs)
 
 
-class Dargs(object):
+class Dargs:
   """A class to hold all the parsed arguments for a factory test."""
 
   def __init__(self, **kwargs):
@@ -174,7 +174,7 @@ class Dargs(object):
                  if not kv[0].startswith('__')])
 
 
-class Args(object):
+class Args:
   """A class to hold a list of argument specs for an argument parser."""
 
   def __init__(self, *args):

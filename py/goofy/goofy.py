@@ -81,7 +81,7 @@ Status = type_utils.Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
 RUN_QUEUE_TIMEOUT_SECS = 10
 
 
-class Goofy(object):
+class Goofy:
   """The main factory flow.
 
   Note that all methods in this class must be invoked from the main

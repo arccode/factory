@@ -142,7 +142,7 @@ def FilterNonVideoCapture(uvc_vid_dirs, dut):
 
 
 # TODO(yllin): Support device interface for Readers.
-class CameraReaderBase(object, metaclass=abc.ABCMeta):
+class CameraReaderBase(metaclass=abc.ABCMeta):
   """Abstract camera reader."""
 
   @abc.abstractmethod
@@ -353,7 +353,7 @@ class YavtaCameraReader(CameraReaderBase):
     return self._enabled
 
 
-class CameraDevice(object):
+class CameraDevice:
   """Base class for camera devices."""
   def __init__(self, dut, sn_format=None, reader=None):
     """Constructor of CameraDevice

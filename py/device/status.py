@@ -84,7 +84,7 @@ def GetIPv4Addresses():
   return ', '.join(ret)
 
 
-class SystemStatusSnapshot(object):
+class SystemStatusSnapshot:
   """A snapshot object allows accessing pre-fetched data."""
   def __init__(self, status_):
     self.__dict__.update(copy.deepcopy(

@@ -7,7 +7,7 @@
 from cros.chromeoshwid import update_checksum
 
 
-class HwidUpdater(object):
+class HwidUpdater:
   """Updates HWID configs."""
 
   def UpdateChecksum(self, hwid_config_contents):

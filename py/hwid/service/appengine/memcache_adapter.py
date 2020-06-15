@@ -22,7 +22,7 @@ class MemcacheAdapterException(Exception):
   pass
 
 
-class MemcacheAdapter(object):
+class MemcacheAdapter:
   """Memcache connector that can store objects larger than 1M.
 
   This connector will save items to the memcache by first serializing the object

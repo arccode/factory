@@ -9,7 +9,7 @@ class AlgorithmException(Exception):
   pass
 
 
-class Algorithm(object):
+class Algorithm:
   """Interface of the computation algorithm."""
 
   def __init__(self):

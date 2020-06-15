@@ -131,7 +131,7 @@ def ChecksumUpdater():
     return None
 
 
-class DatabaseBuilder(object):
+class DatabaseBuilder:
   """A helper class for updating a HWID Database object.
 
   properties:

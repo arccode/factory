@@ -12,7 +12,7 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
 
 
-class FactoryTools(object):
+class FactoryTools:
   """An abstract class for factory tools.
 
   For some standalone factory tools such as gooftool and hwid, we can either

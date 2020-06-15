@@ -23,7 +23,7 @@ class ProbeStatementGeneratorNotSuitableError(Exception):
   """The given component values cannot be converted by this generator."""
 
 
-class GenericProbeStatementInfoRecord(object):
+class GenericProbeStatementInfoRecord:
   """Placeholder for info. related to the generic probe statement.
 
   Attributes:
@@ -72,7 +72,7 @@ def _GetAllGenericProbeStatementInfoRecords():
   return _generic_probe_statement_info_records
 
 
-class _FieldRecord(object):
+class _FieldRecord:
   def __init__(self, hwid_field_name, probe_statement_field_name,
                value_converter, is_optional=False):
     self.hwid_field_name = hwid_field_name
@@ -89,7 +89,7 @@ class ProbeStatementConversionError(ProbeStatementGeneratorNotSuitableError):
   pass
 
 
-class _ProbeStatementGenerator(object):
+class _ProbeStatementGenerator:
   def __init__(self, probe_category, probe_function_name, field_converters,
                probe_function_argument=None):
     self.probe_category = probe_category
@@ -255,7 +255,7 @@ def GetAllProbeStatementGenerators():
   return _all_probe_statement_generators
 
 
-class VerificationPayloadGenerationResult(object):
+class VerificationPayloadGenerationResult:
   """
   Attributes:
     generated_file_contents: A string-to-string dictionary which represents the

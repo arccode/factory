@@ -185,7 +185,7 @@ def NoRecursion(func):
   Note that this is **function** based checking, therefore, the following
   example still count as recursion and will raise an exception::
 
-      class A(object):
+      class A:
         @NoRecursion
         def func(self, other_a):
           if other_a:
@@ -210,7 +210,7 @@ def NoRecursion(func):
   return Wrapped
 
 
-class DummyInterface(object):
+class DummyInterface:
   """A special class for providing dummy implementation."""
 
   def __init__(self, *args, **kargs):

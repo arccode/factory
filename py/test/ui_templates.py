@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 
-class Option(object):
+class Option:
   """Utility class for generating and manipulating HTML option tag.
 
   Args:
@@ -33,7 +33,7 @@ class Option(object):
     return ['<option %s>' % attrs, self._display, '</option>']
 
 
-class SelectBox(object):
+class SelectBox:
   """Utility class for generating and manipulating HTML select box and options.
 
   Args:
@@ -73,7 +73,7 @@ class SelectBox(object):
     return html
 
 
-class Table(object):
+class Table:
   """Utility class for generating HTML table.
 
   This class allows us to easily set the content of each cell. For example:

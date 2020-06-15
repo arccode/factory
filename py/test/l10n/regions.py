@@ -66,7 +66,7 @@ class RegionException(Exception):
   pass
 
 
-class Region(object):
+class Region:
   """Comprehensive, standard locale configuration per country/region.
 
   See :ref:`regions-values` for detailed information on how to set these values.

@@ -16,7 +16,7 @@ from cros.factory.hwid.v3 import validator as v3_validator
 from cros.factory.hwid.v3 import validator_context
 
 
-class HwidValidator(object):
+class HwidValidator:
   """Validates HWID configs."""
 
   def Validate(self, hwid_config_contents):

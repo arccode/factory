@@ -21,7 +21,7 @@ class SerialServerError(Exception):
   pass
 
 
-class SerialServer(object):
+class SerialServer:
   """A server proxy for handling multiple serial connection interfaces."""
 
   def __init__(self, params_list, init_wait_time=1, verbose=False):

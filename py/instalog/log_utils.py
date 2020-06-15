@@ -53,7 +53,7 @@ def GetStreamHandler(log_level=logging.INFO):
   return sh
 
 
-class LoggerMixin(object):
+class LoggerMixin:
   """Adds logger methods to a class via mix-in.
 
   Assumes that self.logger exists and works like a standard logger.

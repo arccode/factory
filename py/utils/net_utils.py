@@ -38,7 +38,7 @@ UNUSED_PORT_LOW = 8192
 UNUSED_PORT_HIGH = 32768
 
 
-class IP(object):
+class IP:
   """A class representing IP addresses, provide some conversion methods."""
   def __init__(self, obj, family=4):
     """Constructor.
@@ -87,7 +87,7 @@ class IP(object):
     return int(self) & netmask == int(cidr.IP) & netmask
 
 
-class CIDR(object):
+class CIDR:
   """A class storing IP ranges in the CIDR format."""
   def __init__(self, ip, prefix):
     """Constructor.
@@ -744,7 +744,7 @@ def GetUnusedIPV4RangeCIDR(preferred_prefix_bits=24, exclude_ip_prefix=None,
   raise RuntimeError('can not find unused IP range')
 
 
-class WLAN(object):
+class WLAN:
   """Class for wireless network settings.
 
   This class is used in test lists to specify WLAN settings for the
@@ -790,7 +790,7 @@ class WLAN(object):
     self.passphrase = passphrase
 
 
-class CallbackSocketServer(object):
+class CallbackSocketServer:
   @staticmethod
   def RequestHandlerFactory(callback):
     class _Handler(socketserver.StreamRequestHandler):

@@ -13,7 +13,7 @@ from zlib import crc32
 from cros.factory.hwid.v3 import common
 
 
-class Base32(object):
+class Base32:
   """A utility class for encoding binary string to base32 string, decoding
   base32 string to binary string, and calculating 10-bit base32 checksum.
 

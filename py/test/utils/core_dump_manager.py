@@ -15,7 +15,7 @@ class CoreDumpManagerException(Exception):
   pass
 
 
-class CoreDumpManager(object):
+class CoreDumpManager:
   """The manager that takes care of core dump files.
 
   Properties:

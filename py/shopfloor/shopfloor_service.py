@@ -19,7 +19,7 @@ KEY_SERIAL_NUMBER = 'serials.serial_number'
 KEY_MLB_SERIAL_NUMBER = 'serials.mlb_serial_number'
 
 
-class ShopfloorService(object):
+class ShopfloorService:
 
   def __init__(self):
     pass

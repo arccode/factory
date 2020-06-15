@@ -92,7 +92,7 @@ def Interpolate(x_values, y_values, x_position):
           (y_values[right_index] - y_values[right_index - 1]) * delta_interval)
 
 
-class Traces(object):
+class Traces:
 
   def __init__(self):
     self.parameters = None

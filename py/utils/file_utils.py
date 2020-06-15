@@ -70,7 +70,7 @@ def MakeDirsUidGid(path, uid=-1, gid=-1, mode=0o777):
   logging.debug('mkdir %r with mode 0%o uid %r gid %r', path, mode, uid, gid)
 
 
-class Glob(object):
+class Glob:
   """A glob containing items to include and exclude.
 
   Properties:
@@ -607,7 +607,7 @@ class FileLockTimeoutError(Exception):
   pass
 
 
-class FileLock(object):
+class FileLock:
   """An exclusive lock implemented with file lock.
 
   The lock is designed to work either in one process or across multiple
@@ -845,7 +845,7 @@ def HashPythonArchive(par_path):
       hashes=hashes)
 
 
-class FileLockContextManager(object):
+class FileLockContextManager:
   """Represents a file lock in context manager's form
 
   Provides two different levels of lock around the associated file.

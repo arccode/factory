@@ -19,7 +19,7 @@ from cros.factory.test_list_editor.backend import rpc
 from cros.factory.utils import sys_utils
 
 
-class Server(object):
+class Server:
 
   class HTTPRequestHandler(
       SimpleJSONRPCServer.SimpleJSONRPCRequestHandler,

@@ -24,7 +24,7 @@ def RPCCall(method):
   return method
 
 
-class UmpireRPC(object):
+class UmpireRPC:
   """RPC base class.
 
   Properties:

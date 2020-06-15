@@ -83,7 +83,7 @@ def GetPluginNameFromClass(plugin_class):
   return plugin_class.__module__[len(_PLUGIN_MODULE_BASE) + 1:]
 
 
-class MenuItem(object):
+class MenuItem:
   """Menu item used by Plugin.
 
   Properties:
@@ -117,7 +117,7 @@ def RPCFunction(func):
   return func
 
 
-class Plugin(object):
+class Plugin:
   """Based class for Goofy plugin.
 
   Plugins are separated components that can be loaded by goofy for different
@@ -142,7 +142,7 @@ class Plugin(object):
   - DESTORYED: `OnDestory` is called and Goofy is going to shutdown.
   """
 
-  class RPCInstance(object):
+  class RPCInstance:
     pass
 
   def __init__(self, goofy, used_resources=None):

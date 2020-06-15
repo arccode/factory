@@ -29,7 +29,7 @@ from cros.factory.utils.process_utils import Spawn
 DEFAULT_NETBOOT_FIRMWARE_PATH = '/usr/local/factory/board/image.net.bin'
 
 
-class FlashNetboot(object):
+class FlashNetboot:
   """Flashs netboot firmware.
 
   Args:

@@ -78,7 +78,7 @@ _LEGACY_SAMPLES = [
             _BASE8192, None, None),
 ]
 
-class _IdentityGeneratorTestBase(object):
+class _IdentityGeneratorTestBase:
   NEEDED_ARGS = []
 
   def testSuccess(self):

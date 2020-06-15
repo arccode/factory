@@ -152,7 +152,7 @@ class WebAppDispatcher(dict):
       return session.ServerError500()
 
 
-class WebApp(object):
+class WebApp:
   """Web application class."""
 
   def __call__(self, environ, start_response):

@@ -226,7 +226,7 @@ class DisableSwitchWiFiChip(SwitchAntennaWiFiChip):
 _RE_BEACON = re.compile(r'(\d+) MHz.*Beacon \((.+)\)')
 
 
-class RadiotapPacket(object):
+class RadiotapPacket:
   FIELD = collections.namedtuple('Field', ['name', 'struct', 'align'])
   ANTENNA_SIGNAL_FIELD = FIELD('Antenna Signal', struct.Struct('b'), 0)
   ANTENNA_INDEX_FIELD = FIELD('Antenna Index', struct.Struct('B'), 0)
@@ -333,7 +333,7 @@ class RadiotapPacket(object):
     return RadiotapPacket.PARSE_INFO(header_size, data_bytes, antenna_offsets)
 
 
-class Capture(object):
+class Capture:
   """Context for a live tcpdump packet capture for beacons."""
 
   def __init__(self, dut, device_name, phy):

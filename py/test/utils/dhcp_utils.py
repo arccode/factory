@@ -22,7 +22,7 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import sys_utils
 
 
-class InterfaceProperty(object):
+class InterfaceProperty:
   """
   A data structure that stores configurations for an interface
   Properties
@@ -35,7 +35,7 @@ class InterfaceProperty(object):
     self.cidr = cidr
 
 
-class DHCPManager(object):
+class DHCPManager:
   """The manager that provides DHCP service.
 
   Properties set from __init__ arguments:

@@ -84,7 +84,7 @@ class MultiPathJSONRPCServerTest(unittest.TestCase):
     pass
 
 
-  class RPCInstance(object):
+  class RPCInstance:
     def __init__(self):
       self.a_called = False
       self.b_called = False

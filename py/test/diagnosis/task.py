@@ -27,14 +27,14 @@ from cros.factory.utils import process_utils
 _WAIT_TIMEOUT = 0.1
 
 
-class _STEP_STATE(object):
+class _STEP_STATE:
   """Enumeration of the states of a step."""
   SUCCESS = 'success'
   FAILED = 'failed'
   STOPPED = 'stopped'
 
 
-class Task(object):
+class Task:
   """A task in the diagnosis tool.
 
   Attributes:
@@ -211,7 +211,7 @@ class Task(object):
       self._run_steps_thread = None
 
 
-class _Step(object):
+class _Step:
   """Super class of each kind of step."""
   MUST_BE_RUN = False
 

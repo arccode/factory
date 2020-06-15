@@ -54,7 +54,7 @@ def GetPluginRPCProxy(plugin_name, address=None, port=None):
       raise
 
 
-class PluginController(object):
+class PluginController:
   """Controller of Goofy plugins."""
 
   def __init__(self, config_name, goofy):

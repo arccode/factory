@@ -27,7 +27,7 @@ from cros.factory.test.rf.scpi_mock import MockServerHandler
 from cros.factory.test.rf.scpi_mock import MockTestServer
 
 
-class E5601CMock(object):
+class E5601CMock:
   # Class level variable to keep current status
   _sweep_type = None
   _sweep_segment = None

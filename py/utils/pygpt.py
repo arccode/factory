@@ -46,7 +46,7 @@ class StructError(Exception):
   pass
 
 
-class StructField(object):
+class StructField:
   """Definition of a field in struct.
 
   Attributes:
@@ -145,7 +145,7 @@ def BitProperty(getter, setter, shift, mask):
   return property(_getter, _setter)
 
 
-class PartitionAttributes(object):
+class PartitionAttributes:
   """Wrapper for Partition.Attributes.
 
   This can be created using Partition.attrs, but the changed properties won't
@@ -239,7 +239,7 @@ class GPTError(Exception):
   pass
 
 
-class GPTObject(object):
+class GPTObject:
   """A base object in GUID Partition Table.
 
   All objects (for instance, header or partition entries) must inherit this
@@ -357,7 +357,7 @@ class GPTObject(object):
 
     Note the meta attributes won't be cleared.
     """
-    class ZeroReader(object):
+    class ZeroReader:
       """A /dev/zero like stream."""
 
       @staticmethod
@@ -367,7 +367,7 @@ class GPTObject(object):
     self.Unpack(ZeroReader())
 
 
-class GPT(object):
+class GPT:
   """A GPT helper class.
 
   To load GPT from an existing disk image file, use `LoadFromFile`.
@@ -935,7 +935,7 @@ class GPT(object):
     return None
 
 
-class GPTCommands(object):
+class GPTCommands:
   """Collection of GPT sub commands for command line to use.
 
   The commands are derived from `cgpt`, but not necessary to be 100% compatible
@@ -978,7 +978,7 @@ class GPTCommands(object):
     """Execute the sub commands by given parsed arguments."""
     return self.commands[args.command].Execute(args)
 
-  class SubCommand(object):
+  class SubCommand:
     """A base class for sub commands to derive from."""
 
     def DefineArgs(self, parser):

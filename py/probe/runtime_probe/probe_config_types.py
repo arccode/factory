@@ -12,7 +12,7 @@ from cros.factory.utils import type_utils
 
 ValueType = type_utils.Enum(['INT', 'STRING'])
 
-class OutputFieldDefinition(object):
+class OutputFieldDefinition:
   """Placeholder for the definition of a field outputted by a probe function.
 
   Attributes:
@@ -32,7 +32,7 @@ class OutputFieldDefinition(object):
     self.probe_statement_generator = probe_statement_generator
 
 
-class ProbeFunctionDefinition(object):
+class ProbeFunctionDefinition:
   """Placeholder for the info. of a probe function.
 
   Attributes:
@@ -48,7 +48,7 @@ class ProbeFunctionDefinition(object):
     self.output_fields = output_fields
 
 
-class ProbeStatementDefinition(object):
+class ProbeStatementDefinition:
   """Probe statement generator of a specific component category.
 
   Attributes:
@@ -100,7 +100,7 @@ class ProbeStatementDefinition(object):
     return {self.category_name: {component_name: statement}}
 
 
-class ProbeConfigPayload(object):
+class ProbeConfigPayload:
   """Placeholder for a probe config.
 
   In essence, a probe config payload contains a bunch of probe statement for
@@ -130,7 +130,7 @@ class ProbeConfigPayload(object):
     return json_utils.DumpStr(self._data, pretty=True)
 
 
-class _AbstractOutputFieldValue(object):
+class _AbstractOutputFieldValue:
   """Base class for performing validation for a value of expected field.
 
   Class attributes:
@@ -236,7 +236,7 @@ class _HexOutputFieldValue(_AbstractOutputFieldValue):
     raise self._GenerateTypeError(value)
 
 
-class ProbeStatementDefinitionBuilder(object):
+class ProbeStatementDefinitionBuilder:
   """Helper class to build an instance of `ProbeStatementDefinition`."""
   ALL_PROBE_FUNCTIONS = object()
 

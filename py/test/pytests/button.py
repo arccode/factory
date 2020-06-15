@@ -80,7 +80,7 @@ _KEY_CROSSYSTEM = 'crossystem:'
 _KEY_ECTOOL = 'ectool:'
 
 
-class GenericButton(object):
+class GenericButton:
   """Base class for buttons."""
 
   def __init__(self, dut):

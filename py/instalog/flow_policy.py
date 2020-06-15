@@ -16,7 +16,7 @@ _RULE_TYPE_KEY = 'rule'
 _rule_registry = {}
 
 
-class FlowPolicy(object):
+class FlowPolicy:
   """A flow policy defines a set of allow and deny rules for Events.
 
   An event *must* match one of the allow rules, and not match *any* of the
@@ -66,7 +66,7 @@ class RuleMeta(type):
     return mcs
 
 
-class Rule(object, metaclass=RuleMeta):
+class Rule(metaclass=RuleMeta):
   """Superclass for rules which may or may not match an Event.
 
   Subclasses should define the constants NAME, KEYS, as well as the
@@ -186,7 +186,7 @@ class TestlogRule(Rule):
     return True
 
 
-class RHSOperation(object):
+class RHSOperation:
   """Represents an operator and a right-hand operand.
 
   Currently, the only supported operation is equality (==).

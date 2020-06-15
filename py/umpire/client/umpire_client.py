@@ -10,7 +10,7 @@ from cros.factory.device import device_utils
 from cros.factory.umpire import common
 
 
-class UmpireClientInfoInterface(object):
+class UmpireClientInfoInterface:
   """The interface that provide client info for Umpire server proxy."""
 
   def Update(self):
@@ -43,7 +43,7 @@ class UmpireClientInfoException(Exception):
   pass
 
 
-class UmpireClientInfo(object):
+class UmpireClientInfo:
   """This class maintains client side info on DUT that is related to Umpire."""
   __implements__ = (UmpireClientInfoInterface)
   # Translated keys in DUT_INFO_KEYS to attributes used in UmpireClientInfo.

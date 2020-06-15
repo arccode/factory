@@ -210,7 +210,7 @@ class Event(json_utils.Serializable):
     return self.__copy__()
 
 
-class EventStream(object):
+class EventStream:
   """Represents a stream of events for an output plugin to process.
 
   Properties:
@@ -283,7 +283,7 @@ class EventStream(object):
     return self._plugin_api.EventStreamAbort(self._plugin, self)
 
 
-class EventStreamIterator(object):
+class EventStreamIterator:
   """Iterator to get events out of an EventStream.
 
   Properties:

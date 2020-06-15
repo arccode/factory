@@ -59,7 +59,7 @@ _ENCODING_SCHEME_MAP = {
 _HEADER_FORMAT_STR = '{0:01b}{1:0%db}' % common.IMAGE_ID_BIT_LENGTH
 
 
-class _IdentityConverter(object):
+class _IdentityConverter:
   """Identity converter.
 
   Identity can be represented by two ways:
@@ -227,7 +227,7 @@ def GetImageIdFromEncodedString(encoded_string):
   return common.HEADER_ALPHABET.index(components_field[0]) & 0x0f
 
 
-class Identity(object):
+class Identity:
   """A class to hold the identity of a Chromebook project.
 
   Properties:

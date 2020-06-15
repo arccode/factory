@@ -16,7 +16,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
-class LegacyADBProcess(object):
+class LegacyADBProcess:
   """Wrapper for devices and clients with version < Android N."""
 
   def __init__(self, proxy_object, session_id):

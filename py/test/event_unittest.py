@@ -36,7 +36,7 @@ class EventTest(unittest.TestCase):
 
 # We add an additional layer of class, so the unittest TestCase finder won't
 # find the base class EventServerClientTest.
-class Tests(object):
+class Tests:
   class EventServerClientTestBase(unittest.TestCase):
     has_pong_client = True
 

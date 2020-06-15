@@ -31,7 +31,7 @@ import xmlrpc.client
 import gnupg
 
 
-class BaseHelper(object):
+class BaseHelper:
   """The base helper class for uploader and requester.
 
   This class provides only AvaiableKeyCount() to retrieve the current unpaired

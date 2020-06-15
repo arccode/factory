@@ -42,7 +42,7 @@ EDIDS = {
 }
 
 
-class Chameleon(object):
+class Chameleon:
   """An interface to the Chameleon RPC server.
 
   Properties:

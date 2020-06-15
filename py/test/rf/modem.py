@@ -15,7 +15,7 @@ _COMMAND_RETRY_TIMES = 5
 _RECEIVE_RETRY_TIMES = 10
 
 
-class Modem(object):
+class Modem:
 
   def __init__(self, port, timeout=2,
                cancel_echo=False, disable_operation=False):

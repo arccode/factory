@@ -20,7 +20,7 @@ from backend.models import TemporaryUploadedFile
 
 class ConfigSerializer(serializers.ModelSerializer):
 
-  class Meta(object):
+  class Meta:
     model = DomeConfig
     fields = '__all__'
 
@@ -39,7 +39,7 @@ class ConfigSerializer(serializers.ModelSerializer):
 
 class UploadedFileSerializer(serializers.ModelSerializer):
 
-  class Meta(object):
+  class Meta:
     model = TemporaryUploadedFile
     fields = '__all__'
 
@@ -57,7 +57,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
   has_existing_umpire = serializers.ReadOnlyField()
 
-  class Meta(object):
+  class Meta:
     model = Project
     fields = '__all__'
     read_only_fields = ('umpire_version', )
@@ -127,7 +127,7 @@ class BundleSerializer(serializers.Serializer):
 
 class ServiceSerializer(serializers.ModelSerializer):
 
-  class Meta(object):
+  class Meta:
     model = Service
     fields = '__all__'
 

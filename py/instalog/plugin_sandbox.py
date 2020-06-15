@@ -47,7 +47,7 @@ UNPAUSING = 'UNPAUSING'
 
 
 # TODO(kitching): Find a better home for this class definition.
-class CoreAPI(object):
+class CoreAPI:
   """Defines the API a sandbox should use interact with Instalog core."""
 
   def Emit(self, plugin, events):

@@ -14,7 +14,7 @@ from cros.factory.utils import yaml_utils
 class BaseYAMLTagHandlerUnittest(unittest.TestCase):
 
   def runTest(self):
-    class FooTag(object):
+    class FooTag:
       def __init__(self, content):
         self.content = content
 

@@ -118,7 +118,7 @@ class Label(collections.namedtuple('Label', ['cls', 'name', 'value'])):
   """
 
 
-class Bom(object):
+class Bom:
   """An abstraction of a BOM with both components and labels."""
 
   def __init__(self):
@@ -259,7 +259,7 @@ class Bom(object):
         self.AddLabel(cls, name, value)
 
 
-class HwidManager(object):
+class HwidManager:
   """The HWID Manager class itself.
 
   This is the class that should be instantiated elsewhere to query HWID
@@ -671,7 +671,7 @@ class HwidManager(object):
     self._memcache_adapter.Put(board, hwid_data)
 
 
-class _HwidData(object):
+class _HwidData:
   """Superclass for HWID data classes."""
 
   def _Seed(self, hwid_file=None, raw_hwid_yaml=None, hwid_data=None):

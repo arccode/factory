@@ -136,7 +136,7 @@ def OpenShelfOrBackup(shelf, flag='c', protocol=None, writeback=False):
   return shelve.open(shelf, flag, protocol, writeback)
 
 
-class DictShelfView(object):
+class DictShelfView:
   """Wrapper for shelf.
 
   Turns a shelf object into recursive dictionary data structure.
@@ -336,7 +336,7 @@ class DictShelfView(object):
       self._cached_children[key] = set()
 
 
-class DictKey(object):
+class DictKey:
   """A namespace of functions to manipulate dict keys.
 
   Dictionary keys look very similar to domain name addresses, each components of

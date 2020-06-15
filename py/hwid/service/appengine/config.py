@@ -44,7 +44,7 @@ _VerificationPayloadGenerationTargetInfo = collections.namedtuple(
     ['board', 'waived_comp_categories'])
 
 
-class _Config(object):
+class _Config:
   """Config for AppEngine environment.
 
   Attributes:

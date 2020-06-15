@@ -26,7 +26,7 @@ class PhaseAssertionError(Exception):
 
 
 @functools.total_ordering
-class Phase(object):
+class Phase:
   """Object representing a build phase.
 
   Valid phases are PROTO, EVT, DVT, PVT_DOGFOOD, and PVT.

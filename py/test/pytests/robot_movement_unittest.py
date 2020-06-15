@@ -15,7 +15,7 @@ from cros.factory.test.pytests import robot_movement
 from cros.factory.test import test_ui
 
 
-class FakeArgs(object):
+class FakeArgs:
   def __init__(self, dargs):
     self.__dict__ = dargs
 

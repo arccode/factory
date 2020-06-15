@@ -14,7 +14,7 @@ You are now in tmp file system created by gooftool.chroot.Chroot.
 Log files can be found under /tmp, /mnt/stateful_partition/unencrypted.
 """
 
-class TmpChroot(object):
+class TmpChroot:
   """Create a tmpfs with necessary files and chroot to it.
 
   Please refer to Chroot.__init__ to see what it will do.

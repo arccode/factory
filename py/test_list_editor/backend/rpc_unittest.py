@@ -18,7 +18,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
 
-class _FakePytest(object):
+class _FakePytest:
   ARGS = [
       Arg('x', (bool, int, float, str), 'xxx', default=None),
       Arg(

@@ -67,7 +67,7 @@ def ExecFactoryPar(*args):
   os.execl(factory_par, factory_par, *args)
 
 
-class Util(object):
+class Util:
   """A collection of util functions that Gooftool needs."""
 
   def __init__(self):

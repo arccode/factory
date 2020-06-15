@@ -42,7 +42,7 @@ class BuildBoardException(Exception):
   pass
 
 
-class BuildBoard(object):
+class BuildBoard:
   """A board that we build CrOS for.
 
   Properties:

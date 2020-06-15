@@ -23,7 +23,7 @@ class DeviceException(Exception):
   pass
 
 
-class DeviceLink(object):
+class DeviceLink:
   """An abstract class for connection to remote or local device."""
 
   def Push(self, local, remote):
@@ -116,7 +116,7 @@ class DeviceLink(object):
     pass
 
 
-class DeviceComponent(object):
+class DeviceComponent:
   """A base class for system components available on device.
 
   All modules under cros.factory.device (and usually a property of

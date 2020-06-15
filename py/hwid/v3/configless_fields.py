@@ -12,7 +12,7 @@ from cros.factory.hwid.v3 import common
 from cros.factory.test import device_data_constants
 
 
-class ConfiglessFields(object):
+class ConfiglessFields:
   """ConfiglessFields class
 
   The format of configless fields is decided by FIELDS:
@@ -154,7 +154,7 @@ class ConfiglessFields(object):
     return fields
 
 
-class FeatureList(object):
+class FeatureList:
   """Encode/Decode feature list according to ConfiglessFields.FeatureList"""
   def __init__(self, version):
     self.features = ConfiglessFields.FEATURE_LIST[version]
@@ -182,7 +182,7 @@ class FeatureList(object):
     return result
 
 
-class _ConfiglessFieldGetter(object):
+class _ConfiglessFieldGetter:
   """Extract value of from BOM / device_info for configless fields."""
   def __init__(self, db, bom, device_info, version, is_rma_device):
     self._db = db
@@ -236,7 +236,7 @@ class _ConfiglessFieldGetter(object):
     return self._feature_list.Encode(components)
 
 
-class _ConfiglessFieldDecoder(object):
+class _ConfiglessFieldDecoder:
   """Extract value of encoded string for configless fields."""
   def __init__(self, encoded_string):
     encoded_fields = [int(field, 16) for field in encoded_string.split('-')]

@@ -10,7 +10,7 @@ import yaml
 NAME_PATTERN_DIR = 'name_pattern/'
 
 
-class NamePattern(object):
+class NamePattern:
   def __init__(self, regex):
     self.patterns = [re.compile(s) for s in regex]
 
@@ -18,7 +18,7 @@ class NamePattern(object):
     return any(pat.match(tag) for pat in self.patterns)
 
 
-class NamePatternAdapter(object):
+class NamePatternAdapter:
   def __init__(self, filesystem_adapter):
     self.filesystem_adapter = filesystem_adapter
     self.name_patterns = {}

@@ -55,7 +55,7 @@ def json_default_repr(obj):
   return obj
 
 
-class Event(object):
+class Event:
   """An event object that may be written to the event server.
 
   E.g.:
@@ -64,7 +64,7 @@ class Event(object):
                   test='foo.bar',
                   state=TestState(...))
   """
-  class Type(object):
+  class Type:
     # The state of a test has changed.
     STATE_CHANGE = 'goofy:state_change'
     # The UI has come up.
@@ -298,7 +298,7 @@ class EventServer(socketserver.ThreadingUnixStreamServer):
         q.put(message)
 
 
-class EventClientBase(object, metaclass=abc.ABCMeta):
+class EventClientBase(metaclass=abc.ABCMeta):
   """A client used to post and receive messages from an event server.
 
   All events sent through this class must be subclasses of Event. It

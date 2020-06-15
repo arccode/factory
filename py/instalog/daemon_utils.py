@@ -24,7 +24,7 @@ CHILD = 0
 PARENT = 1
 
 
-class Daemon(object):
+class Daemon:
   """A generic daemon class.
 
   Usage: subclass the Daemon class and override the run() method.

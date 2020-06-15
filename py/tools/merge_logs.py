@@ -40,7 +40,7 @@ def ParseTimestamp(line):
   return None
 
 
-class TimestampedFileReader(object):
+class TimestampedFileReader:
   '''A reader that wraps file object.
 
   This reader buffers the next line read from the wrapped file object, and

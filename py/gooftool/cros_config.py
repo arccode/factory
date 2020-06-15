@@ -5,7 +5,7 @@
 from cros.factory.gooftool import common as gooftool_common
 
 
-class CrosConfig(object):
+class CrosConfig:
   """Helper class to get data from cros_config."""
 
   def __init__(self, shell=None):

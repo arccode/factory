@@ -73,7 +73,7 @@ def ProtoRPCServiceMethod(method):
   return wrapper
 
 
-class _ProtoRPCServiceFlaskAppViewFunc(object):
+class _ProtoRPCServiceFlaskAppViewFunc:
   """A helper class to handle ProtoRPC POST requests on flask apps."""
 
   def __init__(self, service_inst):

@@ -152,7 +152,7 @@ class SerializableMeta(type):
     return mcs
 
 
-class Serializable(object, metaclass=SerializableMeta):
+class Serializable(metaclass=SerializableMeta):
   """Superclass to allow object serialization and deserialization.
 
   Usage (note order of the classes in the inheritance list):

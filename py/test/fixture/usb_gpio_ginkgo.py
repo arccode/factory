@@ -33,7 +33,7 @@ class UsbGpioError(Exception):
   pass
 
 
-class UsbGpioGinkgo(object):
+class UsbGpioGinkgo:
   """A USB to GPIO control device class.
 
   It is possible to connect multiple Ginkgo adapters to a single host by

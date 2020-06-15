@@ -602,7 +602,7 @@ Controls btmgmt tool to scan remote devices.
 """
 
 
-class BluetoothTest(object):
+class BluetoothTest:
   """A class to test bluetooth in command line."""
   args = None
   btmgmt = None

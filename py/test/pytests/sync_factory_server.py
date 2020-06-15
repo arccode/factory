@@ -162,7 +162,7 @@ EVENT_CANCEL_SET_URL = 'event_cancel_set_url'
 EVENT_DO_SET_URL = 'event_do_set_url'
 
 
-class Report(object):
+class Report:
   """A structure for reports uploaded to factory server."""
 
   def __init__(self, serial_number, blob, station):

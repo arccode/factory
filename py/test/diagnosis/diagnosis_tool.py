@@ -31,7 +31,7 @@ from cros.factory.test import event
 _BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
-class _ConfirmEventRegister(object):
+class _ConfirmEventRegister:
   """Stores the confirm events and its callback function.
 
   Attributes:
@@ -96,7 +96,7 @@ class _ConfirmEventRegister(object):
       del self._callback_func[identify_number]
 
 
-class DiagnosisToolUIProxy(object):
+class DiagnosisToolUIProxy:
   """Handles the Backend -> Frontend events of the diagnosis tool.
 
   Class variables:
@@ -228,7 +228,7 @@ class DiagnosisToolUIProxy(object):
     self._PostEvent(common.BACKEND_EVENTS.CONFIRM_DIALOG_STOP, id=confirm_id)
 
 
-class DiagnosisToolRPC(object):
+class DiagnosisToolRPC:
   """Handles the Frontend -> Backend rpc events.
 
   Attributes:

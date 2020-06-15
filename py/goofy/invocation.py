@@ -76,7 +76,7 @@ def ResolveTestArgs(goofy, test, test_list_id, dut_options):
       dargs, dut=dut, station=station, locals_=locals_)
 
 
-class PytestInfo(object):
+class PytestInfo:
   """A class to hold all the data needed when invoking a test.
 
   Properties:
@@ -102,7 +102,7 @@ class PytestInfo(object):
     return manager.Manager().GetTestListByID(self.test_list)
 
 
-class TestInvocation(object):
+class TestInvocation:
   """State for an active test.
 
   Properties:
@@ -531,7 +531,7 @@ class TestInvocation(object):
       self.goofy.RunEnqueue(self._on_completion)
 
 
-class _TestInvocationTestLogHelper(object):
+class _TestInvocationTestLogHelper:
   """A helper class to log the testlog event.
 
   Properties:
@@ -624,7 +624,7 @@ class _TestInvocationTestLogHelper(object):
                             station_test_run=testlog_event)
 
 
-class _TestInvocationEventLogHelper(object):
+class _TestInvocationEventLogHelper:
   """Helper class to log the event_log event."""
   def __init__(self, event_log):
     self._event_log = event_log

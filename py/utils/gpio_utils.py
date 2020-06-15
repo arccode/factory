@@ -47,7 +47,7 @@ class GpioManagerError(Exception):
   pass
 
 
-class GpioManager(object):
+class GpioManager:
   """GPIO monitor and control manager."""
 
   GPIO_EDGE_RISING = 'gpio_rising'
@@ -167,7 +167,7 @@ class GpioError(Exception):
   pass
 
 
-class Gpio(object):
+class Gpio:
   """Monitors and controls the status of one GPIO port.
 
   Usage:

@@ -29,7 +29,7 @@ from .utils import file_utils
 SEQ_INCREMENT_ON_BOOT = 1000000
 FILELOCK_WAITSECS = 0.5
 
-class SeqGenerator(object):
+class SeqGenerator:
   """Maintains a monotonically increasing sequence in best effort.
 
   Currently, only support a sequence recovery (i.e. sequence file is missing

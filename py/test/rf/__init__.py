@@ -4,7 +4,7 @@
 
 """Common classes and helpers acrosss RF stuff."""
 
-class Frequency(object):
+class Frequency:
   """Class that represents a specific frequency."""
 
   _f = None

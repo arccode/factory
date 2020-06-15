@@ -60,7 +60,7 @@ def ScpCommand(ip, filename, remote_path):
   return utils.IsSuccessful(utils.SimpleSystem(' '.join(remote_args)))
 
 
-class TSConfig(object):
+class TSConfig:
   """Manage the touchscreen config data."""
 
   def __init__(self, board):
@@ -88,7 +88,7 @@ class TSConfig(object):
     return self.parser.items(section)
 
 
-class BaseSensorService(object):
+class BaseSensorService:
   """A base class to provide sensor relalted services."""
 
   def __init__(self, board, log=None):

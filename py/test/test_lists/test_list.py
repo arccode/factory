@@ -56,7 +56,7 @@ def MayTranslate(obj, force=False):
   return i18n.Translated(obj) if force else obj
 
 
-class Options(object):
+class Options:
   """Test list options.
 
   These may be set by assigning to the options variable in a test list,
@@ -384,7 +384,7 @@ class FactoryTestList(test_object_module.FactoryTest):
     return json.dumps(self.ToTestListConfig(recursive=False), sort_keys=True)
 
 
-class ITestList(object, metaclass=abc.ABCMeta):
+class ITestList(metaclass=abc.ABCMeta):
   """An interface of test list object."""
 
   # Declare instance variables to make __setattr__ happy.
@@ -965,7 +965,7 @@ class TestList(ITestList):
 
     self._cached_options = Options()
 
-    class NotAccessable(object):
+    class NotAccessable:
       def __getattribute__(self, name):
         raise KeyError('options cannot depend on options')
 

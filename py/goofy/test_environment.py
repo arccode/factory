@@ -12,7 +12,7 @@ import threading
 import time
 
 
-class Environment(object):
+class Environment:
   """Abstract base class for external test operations, e.g., shutdown or reboot.
 
   The Environment is assumed not to be thread-safe: callers must grab the lock

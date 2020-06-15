@@ -91,7 +91,7 @@ def CheckServiceExists(service, dut=None):
   return True
 
 
-class ServiceManager(object):
+class ServiceManager:
   """Object to manage services for tests.
 
   Use SetupServices to setup services that should be enabled or disabled

@@ -38,7 +38,7 @@ class _IncompatibleError(Exception):
   """Raised when the given input is incompatible with the probe tool."""
 
 
-class _ParamValueConverter(object):
+class _ParamValueConverter:
   """Converter for the input of the probe statement from the probe parameter.
 
   Properties:
@@ -77,13 +77,13 @@ class _ParamValueConverter(object):
     return value
 
 
-class ProbeFunc(object):
+class ProbeFunc:
   """Represents a probe function that exports to other services.
 
   Properties:
     name: A string of the name as the identifier of this function.
   """
-  class _ProbeParam(object):
+  class _ProbeParam:
     def __init__(self, description, value_converter, ps_gen):
       self.description = description
       self.value_converter = value_converter
@@ -259,7 +259,7 @@ class PayloadInvalidError(Exception):
   """Exception class raised when the given payload is invalid."""
 
 
-class ProbeDataSource(object):
+class ProbeDataSource:
   """A record class for a source of probe statement and its metadata.
 
   Instances of this class are the source for generating the final probe
@@ -309,7 +309,7 @@ def _GetRuntimeProbeWrapperContent():
   return file_utils.ReadFile(full_path, encoding=None)
 
 
-class ProbeToolManager(object):
+class ProbeToolManager:
   """Provides functionalities related to the probe tool."""
 
   def __init__(self):

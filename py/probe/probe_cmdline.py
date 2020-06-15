@@ -31,7 +31,7 @@ def RegisterCommand(cls):
   return cls
 
 
-class SubCommand(object):
+class SubCommand:
   """The sub-command class."""
 
   # The sub-command string. Derived class should override it.

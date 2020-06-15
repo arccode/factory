@@ -37,7 +37,7 @@ def TimeClassMethodDebug(func):
   return Wrapped
 
 
-class InterruptHandler(object):
+class InterruptHandler:
   """Waits for Whale's I/O expanders' interrupt and dispatches it.
 
   It connects to BeagleBone's servod and polld, where servod is used to get

@@ -155,7 +155,7 @@ VOID_ELEMENTS = ['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
                  'track', 'wbr']
 
 
-class HTMLMessageParser(html.parser.HTMLParser, object):
+class HTMLMessageParser(html.parser.HTMLParser):
   # pylint: disable=abstract-method
   def __init__(self, html_tags):
     super(HTMLMessageParser, self).__init__()

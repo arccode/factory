@@ -270,7 +270,7 @@ def loadDRM():
     return l
 
 
-class DRM(object):
+class DRM:
     """
     A DRM node.
     """

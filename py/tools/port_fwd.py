@@ -20,7 +20,7 @@ import time
 _CTRL_C_EXIT_CODE = 130
 
 
-class SSHPortForwarder(object):
+class SSHPortForwarder:
   """Creates and maintains an SSH port forwarding connection.
 
   This is meant to be a standalone class to maintain an SSH port forwarding

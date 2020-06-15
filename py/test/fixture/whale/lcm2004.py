@@ -10,7 +10,7 @@ from cros.factory.test.fixture import bft_fixture as bft
 BFT = bft.BFTFixture
 
 
-class Lcm2004(object):
+class Lcm2004:
   """Controls LCM2004 in Whale fixture."""
 
   _LCM_ROW = {

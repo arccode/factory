@@ -22,7 +22,7 @@ from cros.factory.utils import process_utils
 SCRIPT_DIR = os.path.dirname(__file__)
 
 
-class _MockValue(object):
+class _MockValue:
   """A mock value that accepts all format_spec for __format__."""
   def __format__(self, format_spec):
     del format_spec  # Unused.

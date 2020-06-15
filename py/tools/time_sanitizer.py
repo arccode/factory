@@ -38,7 +38,7 @@ class timespec(ctypes.Structure):
               ('tv_nsec', ctypes.c_long)]
 
 
-class Time(object):
+class Time:
   """Time object for mocking."""
 
   def __init__(self):
@@ -78,7 +78,7 @@ class Time(object):
 SECONDS_PER_DAY = 86400
 
 
-class TimeSanitizer(object):
+class TimeSanitizer:
 
   def __init__(self,
                state_file=os.path.join(paths.DATA_STATE_DIR,

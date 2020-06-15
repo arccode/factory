@@ -23,7 +23,7 @@ class PlanktonHDMIException(Exception):
   pass
 
 
-class PlanktonHDMI(object):
+class PlanktonHDMI:
   _VIDEO_STREAM_THREAD_JOIN_TIMEOUT_SECS = 1.0
 
   def __init__(self, uvc_video_index=None, uvc_video_port=None,

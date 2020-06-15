@@ -36,7 +36,7 @@ class Chunk(collections.namedtuple('Chunk', 'log_name chunk pos')):
         self.log_name, len(self.chunk), self.pos)
 
 
-class EventLogWatcher(object):
+class EventLogWatcher:
   """An object watches event log and invokes a callback as new logs appear."""
 
   def __init__(self,

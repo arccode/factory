@@ -75,7 +75,7 @@ def CreateTestFile(prefix):
 # TODO(pihsun): Refactor this file to use mock_time_utils.
 
 
-class StubTimer(object):
+class StubTimer:
   def __init__(self):
     self.fake_time = 0
 
@@ -85,7 +85,7 @@ class StubTimer(object):
   def time(self):
     return self.fake_time
 
-class StubQueue(object):
+class StubQueue:
   def __init__(self, timer, items, assert_func):
     self.get_index = 0
     self.put_index = 0
@@ -115,7 +115,7 @@ class StubQueue(object):
   def task_done(self):
     logging.debug('%s StubQueue.task_done()', self.timer)
 
-class StubAbortEvent(object):
+class StubAbortEvent:
   def __init__(self, timer, abort_time, notify_event=None):
     self.timer = timer
     self.abort_time = abort_time

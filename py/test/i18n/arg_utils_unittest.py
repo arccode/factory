@@ -12,7 +12,7 @@ from cros.factory.test.i18n import unittest_test_case
 from cros.factory.utils import arg_utils
 
 
-class MockPyTest(object):
+class MockPyTest:
   """A mocked pytest with given ARGS."""
   def __init__(self, args):
     self.ARGS = args

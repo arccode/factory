@@ -264,7 +264,7 @@ class InputLogFile(plugin_base.InputPlugin):
     return datatypes.Event(json.loads(line.rstrip()))
 
 
-class LineReader(log_utils.LoggerMixin, object):
+class LineReader(log_utils.LoggerMixin):
   """Generates lines of data from the given file starting at the given offset.
 
   Includes trailing characters \r and \n in yielded strings.  Keeps track of
@@ -293,7 +293,7 @@ class LineReader(log_utils.LoggerMixin, object):
         yield line
 
 
-class LogFile(log_utils.LoggerMixin, object):
+class LogFile(log_utils.LoggerMixin):
   """Represents a log file on disk."""
 
   def __init__(self, logger_name, args, path, offset_path, parse_and_emit_fn):

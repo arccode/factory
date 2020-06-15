@@ -16,7 +16,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
 
-class FakeOutput(object):
+class FakeOutput:
   def __init__(self):
     self.data = ''
 

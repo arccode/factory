@@ -35,7 +35,7 @@ from ws4py.client.threadedclient import WebSocketClient
 DEFAULT_CHROME_DEBUG_URL = 'http://127.0.0.1:9222'
 
 
-class ChromeRemoteDebugger(object):
+class ChromeRemoteDebugger:
   """An interface to control Chrome brower by remote debugging protocol.
 
   Args:

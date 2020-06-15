@@ -65,7 +65,7 @@ def GetRsyncPortFromBasePort(base_port):
   return base_port + _RSYNC_PORT_OFFSET
 
 
-class UmpireEnv(object):
+class UmpireEnv:
   """Provides accessors of Umpire resources.
 
   The base directory is obtained in constructor.

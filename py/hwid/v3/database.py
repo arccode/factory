@@ -50,7 +50,7 @@ from cros.factory.utils import schema
 from cros.factory.utils import type_utils
 
 
-class Database(object):
+class Database:
   """A class for reading in, parsing, and obtaining information of the given
   device-specific component database.
 
@@ -574,7 +574,7 @@ class ImageId(_NamedNumber):
     return None
 
 
-class EncodedFields(object):
+class EncodedFields:
   """Class for holding `encoded_fields` part of a HWID database.
 
   `encoded_fields` part of a HWID database defines the way to convert
@@ -863,7 +863,7 @@ class ComponentInfo(type_utils.Obj):
                                         information=information)
 
 
-class Components(object):
+class Components:
   """Class for holding `components` part in a HWID database.
 
   `components` part in a HWID database records information of all components
@@ -1189,7 +1189,7 @@ class Components(object):
 _PatternDatum = collections.namedtuple('_PatternDatum',
                                        ['encoding_scheme', 'fields'])
 _PatternField = collections.namedtuple('_PatternField', ['name', 'bit_length'])
-class Pattern(object):
+class Pattern:
   """A class for parsing and obtaining information of a pre-defined encoding
   pattern.
 
@@ -1509,7 +1509,7 @@ class Pattern(object):
     return ImageId.GetMaxImageIDFromList(list(self._image_id_to_pattern))
 
 
-class Rules(object):
+class Rules:
   """A class for parsing rules defined in the database.
 
   The `rules` part of a HWID database consists of a list of rules to be

@@ -22,7 +22,7 @@ class LoggerMixinTest(unittest.TestCase):
   def testMixin(self):
     """Checks that functions in the mix-in correctly call the logger."""
 
-    class WithLoggerAndDebug(object):
+    class WithLoggerAndDebug:
 
       def __init__(self, logger):
         self.logger = logger

@@ -15,7 +15,7 @@ from twisted.python import reflect
 from twisted.web import xmlrpc as twisted_xmlrpc
 
 
-class XMLRPCContainer(twisted_xmlrpc.XMLRPC, object):
+class XMLRPCContainer(twisted_xmlrpc.XMLRPC):
   """XMLRPC resource wrapper.
 
   This class binds RPC objects' methods to XML RPC call.

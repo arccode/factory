@@ -247,7 +247,7 @@ def GetI2CBus(device_names):
   return int(found.group(1))
 
 
-class PartitionInfo(object):
+class PartitionInfo:
   """A class that holds the info of a partition."""
 
   def __init__(self, major, minor, blocks, name):
@@ -296,7 +296,7 @@ def GetPartitions():
   return results
 
 
-class _GPTTool(object):
+class _GPTTool:
   """Abstraction for tool to manipulate GUID Partition Table."""
 
   def GetPartitionOffsetInSector(self, index):

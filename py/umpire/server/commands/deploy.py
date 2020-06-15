@@ -18,7 +18,7 @@ from cros.factory.umpire.server import config as umpire_config
 from cros.factory.utils import file_utils
 
 
-class ConfigDeployer(object):
+class ConfigDeployer:
   """Deploys an Umpire config file."""
 
   def __init__(self, daemon):

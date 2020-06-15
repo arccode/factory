@@ -5,7 +5,7 @@
 import abc
 
 
-class OverriddenProbeData(object):
+class OverriddenProbeData:
   """Placeholder for an overridden probe statement and its metadata.
 
   Properties:

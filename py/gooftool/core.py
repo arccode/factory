@@ -43,7 +43,7 @@ from cros.factory.utils.type_utils import Error
 Mismatch = namedtuple('Mismatch', ['expected', 'actual'])
 
 
-class Gooftool(object):
+class Gooftool:
   """A class to perform hardware probing and verification and to implement
   Google required tests.
 

@@ -16,7 +16,7 @@ class CatchExceptionTest(unittest.TestCase):
   """Unittest for CatchException."""
 
   def testCatchException(self):
-    class Foo(object):
+    class Foo:
       """A class that should suppress its exception in its function."""
       @debug_utils.CatchException('Foo')
       def BadBar(self):
@@ -27,7 +27,7 @@ class CatchExceptionTest(unittest.TestCase):
     f1.BadBar()
 
   def testCatchExceptionDisable(self):
-    class Foo(object):
+    class Foo:
       """A class that should suppress its exception in its function."""
       @debug_utils.CatchException('Foo', False)
       def BadBar(self):

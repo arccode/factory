@@ -4,7 +4,7 @@
 
 """Testlog event hooks."""
 
-class Hooks(object):
+class Hooks:
   """Testlog event hooks.
 
   This class is a dummy implementation, but methods may be overridden by the

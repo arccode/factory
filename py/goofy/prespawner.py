@@ -47,7 +47,7 @@ PYTEST_PRESPAWNER_PATH = os.path.join(paths.FACTORY_DIR,
                                       'py/test/pytest_runner.py')
 
 
-class Prespawner(object):
+class Prespawner:
 
   def __init__(self, prespawner_path, prespawner_args, pipe_stdout=False):
     self.prespawned = queue.Queue(NUM_PRESPAWNED_PROCESSES)

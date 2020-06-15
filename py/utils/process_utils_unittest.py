@@ -32,7 +32,7 @@ class SpawnTest(unittest.TestCase):
   def setUp(self):
     log_entries = self.log_entries = []
 
-    class Target(object):
+    class Target:
 
       def handle(self, record):
         log_entries.append((record.levelname, record.msg % record.args))

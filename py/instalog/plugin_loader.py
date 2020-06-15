@@ -24,7 +24,7 @@ from cros.factory.instalog.utils import arg_utils
 _DEFAULT_PLUGIN_PREFIX = 'cros.factory.instalog.plugins.'
 
 
-class PluginLoader(object):
+class PluginLoader:
   """Factory to create instances of a particular plugin configuration."""
 
   def __init__(self, plugin_type, plugin_id=None, superclass=None, config=None,

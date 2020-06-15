@@ -41,7 +41,7 @@ class TimeoutError(Error):
     return repr(self.message)
 
 
-class Obj(object):
+class Obj:
   """Generic wrapper allowing dot-notation dict access."""
 
   def __init__(self, **field_dict):
@@ -235,7 +235,7 @@ class Singleton(type):
     Singleton._instances[CLASSNAME]
 
   Example:
-    class C(object):
+    class C:
       __metaclass__ = Singleton
 
     foo = C()
@@ -256,7 +256,7 @@ def Overrides(method):
   Current implementation does not support multiple inheritance.
 
   Example:
-    class A(object):
+    class A:
       def m(self):
         return 1
 
@@ -307,7 +307,7 @@ def Overrides(method):
   return method
 
 
-class CachedGetter(object):
+class CachedGetter:
   """A decorator for a cacheable getter function.
 
   This is helpful for caching results for getter functions. For example::
@@ -364,11 +364,11 @@ def OverrideCacheableGetter(getter, value):
   getter.cached_value = value
 
 
-class LazyProperty(object):
+class LazyProperty:
   """A decorator for lazy loading properties.
 
   Example:
-    class C(object):
+    class C:
       @LazyProperty
       def m(self):
         print 'init!'
@@ -408,7 +408,7 @@ class LazyProperty(object):
     setattr(obj, cls.PROP_NAME_PREFIX + prop_name, value)
 
 
-class LazyObject(object):
+class LazyObject:
   """A proxy object for creating an object on demand.."""
 
   def __init__(self, constructor, *args, **kargs):
@@ -425,7 +425,7 @@ class LazyObject(object):
     return attr
 
 
-class UniqueStack(object):
+class UniqueStack:
   """ A data structure very similar to a stack, but objects inside are unique.
 
   - If an object is in the stack already, adding it again to the stack won't

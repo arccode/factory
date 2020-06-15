@@ -33,7 +33,7 @@ class TimeoutJSONRPCTransport(jsonrpclib.jsonrpc.TransportMixIn,
     jsonrpclib.jsonrpc.TransportMixIn.__init__(self)
 
 
-class JSONRPCServer(object):
+class JSONRPCServer:
   """JSON RPC Server that runs in a separate thread."""
 
   def __init__(self, port, methods=None):
@@ -118,7 +118,7 @@ class MultiPathJSONRPCServer(SimpleJSONRPCServer.SimpleJSONRPCServer):
                  MultiPathJSONRPCServer):
     pass
 
-  class MyRPCInstance(object):
+  class MyRPCInstance:
     def Foo(self):
       pass
 

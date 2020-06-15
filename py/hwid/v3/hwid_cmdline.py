@@ -93,7 +93,7 @@ _RMA_COMMON_ARGS = [
 ]
 
 
-class Arg(object):
+class Arg:
   """A simple class to store arguments passed to the add_argument method of
   argparse module.
   """

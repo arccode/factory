@@ -215,7 +215,7 @@ DELAY = 0.1
 
 
 class SynchronizedTest(unittest.TestCase):
-  class MyClass(object):
+  class MyClass:
     def __init__(self):
       self._lock = threading.RLock()
       self.data = []

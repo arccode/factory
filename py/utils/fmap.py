@@ -244,7 +244,7 @@ def fmap_encode(obj):
   return blob
 
 
-class FirmwareImage(object):
+class FirmwareImage:
   """Provides access to firmware image via FMAP sections."""
 
   def __init__(self, image_source):

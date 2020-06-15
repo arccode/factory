@@ -137,7 +137,7 @@ The input is a MANIFEST.yaml file like the following:
 """
 
 
-class FinalizeBundle(object):
+class FinalizeBundle:
   """Finalizes a factory bundle (see USAGE).
 
   Properties:

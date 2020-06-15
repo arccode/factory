@@ -13,7 +13,7 @@ VPD_READONLY_PARTITION_NAME = 'RO_VPD'
 VPD_READWRITE_PARTITION_NAME = 'RW_VPD'
 
 
-class VPDTool(object):
+class VPDTool:
   """This class wraps the functions supplied by VPD cmdline tool into methods.
   """
   _KEY_PATTERN = re.compile(r'^[a-zA-Z0-9_.]+$')

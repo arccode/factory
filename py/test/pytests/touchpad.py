@@ -102,7 +102,7 @@ class TouchpadMonitor(touch_monitor.MultiTouchMonitor):
     self.test.OnMoveEvent(slot.x, slot.y, state.num_fingers)
 
 
-class Quadrant(object):
+class Quadrant:
   """The class is to update quadrant information.
 
   Update quadrant information according to x_ratio and y_ratio:

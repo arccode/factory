@@ -75,7 +75,7 @@ class EventLogWatcherTest(unittest.TestCase):
       f.write(content)
 
   def testWatchThread(self):
-    class Handler(object):
+    class Handler:
       handled = False
 
       def __init__(self):

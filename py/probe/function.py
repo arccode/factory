@@ -124,7 +124,7 @@ class FunctionException(Exception):
   pass
 
 
-class Function(object):
+class Function:
   """The base function class.
 
   The instance of a function class is callable, which input data and output data

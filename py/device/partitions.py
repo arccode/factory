@@ -7,7 +7,7 @@
 from cros.factory.device import device_types
 
 
-class DiskPartition(object):
+class DiskPartition:
   """Information of a partition on a Linux device.
 
   Properties:

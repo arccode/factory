@@ -11,7 +11,7 @@ from cros.factory.device import device_utils
 from cros.factory.utils import log_utils
 
 
-class CPUUsageMonitor(object):
+class CPUUsageMonitor:
   # Lines of header from 'top'.
   HEADER_LINES = 6
   # Maximum number of characters reported for a command.

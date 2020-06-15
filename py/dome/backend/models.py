@@ -361,7 +361,7 @@ class Project(django.db.models.Model):
 
   # TODO(littlecvr): add TFTP and Overlord ports
 
-  class Meta(object):
+  class Meta:
     ordering = ['name']
 
   @property
@@ -604,7 +604,7 @@ class Project(django.db.models.Model):
     return project
 
 
-class Resource(object):
+class Resource:
 
   def __init__(self, type_name, version):
     self.type = type_name
@@ -638,7 +638,7 @@ class Resource(object):
         raise DomeServerException(detail=e.faultString)
 
 
-class Bundle(object):
+class Bundle:
   """Represent a bundle in umpire."""
 
   def __init__(self, name, note, active, payloads):
@@ -882,7 +882,7 @@ class Bundle(object):
     return Bundle.ListOne(project_name, bundle_name)
 
 
-class Service(object):
+class Service:
   """Represent a service config in Umpire."""
 
   def __init__(self, name, config):
@@ -906,7 +906,7 @@ class Service(object):
     return project.UploadAndDeployConfig(config)
 
 
-class ParameterDirectory(object):
+class ParameterDirectory:
 
   def __init__(self, id, parent_id, name):
     # pylint: disable=redefined-builtin
@@ -928,7 +928,7 @@ class ParameterDirectory(object):
     return [ParameterDirectory(**p) for p in parameters['dirs']]
 
 
-class ParameterComponent(object):
+class ParameterComponent:
 
   def __init__(self, id, dir_id, name, using_ver, revisions):
     # pylint: disable=redefined-builtin
@@ -963,7 +963,7 @@ class ParameterComponent(object):
     return [ParameterComponent(**p) for p in parameters['files']]
 
 
-class Log(object):
+class Log:
 
   @staticmethod
   def Export(project_name, compress_params):

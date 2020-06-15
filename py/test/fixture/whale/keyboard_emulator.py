@@ -9,7 +9,7 @@ import time
 from cros.factory.test.fixture.whale import servo_client
 
 
-class KeyboardEmulator(object):
+class KeyboardEmulator:
   """Controls keyboard emulator in Whale fixture.
 
   Keyboard emulator provides two methods: one is to trigger all row-column

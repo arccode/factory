@@ -34,7 +34,7 @@ def MergeConfigs(configs):
   return result
 
 
-class SKUConfigs(object):
+class SKUConfigs:
   def __init__(self, program, project):
     self._project = project
     config_jsonproto_dir = os.path.join(paths.FACTORY_DIR, 'project_config')

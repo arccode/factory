@@ -142,7 +142,7 @@ class ServoClientError(Exception):
     super(ServoClientError, self).__init__(message)
 
 
-class ServoClient(object):
+class ServoClient:
   """Class for servod client to interface with servod via XMLRPC.
 
   You can set/get servo controls by setting/getting the corresponding

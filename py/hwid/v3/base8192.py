@@ -13,7 +13,7 @@ from zlib import crc32
 from cros.factory.hwid.v3 import common
 
 
-class Base8192(object):
+class Base8192:
   """A utility class for encoding binary string to base8192 string, decoding
   base8192 string to binary string, and calculating 8-bit checksum.
 

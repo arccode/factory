@@ -277,14 +277,14 @@ def GetTotalNumberOfAudioDevices():
   return playback_num + record_num
 
 
-class CRAS(object):
+class CRAS:
   """Class used to access CRAS information by
   executing commnad cras_test_clinet.
   """
   OUTPUT = 0
   INPUT = 1
 
-  class Node(object):
+  class Node:
     """Class to represent a input or output node in CRAS."""
 
     def __init__(self, node_id, name, is_active):

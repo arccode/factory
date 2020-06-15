@@ -83,7 +83,7 @@ def FileLogger(logger, log_path, log_prefix=None, log_format=None, level=None):
   return ret
 
 
-class NoisyLogger(object):
+class NoisyLogger:
   """A processor for handling logs that repeats quickly.
 
   Most tests implementing retry (or do something periodically) will easily

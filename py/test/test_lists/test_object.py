@@ -31,7 +31,7 @@ ID_REGEXP = re.compile(r'^[a-zA-Z0-9]+$')
 ALL = 'all'
 
 
-class RequireRun(object):
+class RequireRun:
   """Requirement that a test has run (and optionally passed)."""
 
   def __init__(self, path, passed=True):
@@ -50,7 +50,7 @@ class RequireRun(object):
     self.test = None
 
 
-class FactoryTest(object):
+class FactoryTest:
   """A factory test object.
 
   Factory tests are stored in a tree. Each node has an id (unique

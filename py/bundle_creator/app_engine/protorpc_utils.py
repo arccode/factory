@@ -12,7 +12,7 @@ import flask  # pylint: disable=import-error,no-name-in-module
 from google.protobuf import symbol_database  # pylint: disable=import-error,no-name-in-module,wrong-import-order
 
 
-class ProtoRPCServiceBase(object):
+class ProtoRPCServiceBase:
   """Base class of a ProtoRPC Service.
 
   Sub-class must override `SERVICE_DESCRIPTOR` to the correct descriptor
@@ -25,7 +25,7 @@ class ProtoRPCServiceBase(object):
   SERVICE_DESCRIPTOR = None
 
 
-class _ProtoRPCServiceFlaskAppViewFunc(object):
+class _ProtoRPCServiceFlaskAppViewFunc:
   """A helper class to handle ProtoRPC POST requests on flask apps."""
 
   def __init__(self, app_inst, service_inst):

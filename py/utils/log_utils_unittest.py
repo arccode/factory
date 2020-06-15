@@ -12,7 +12,7 @@ from cros.factory.utils import log_utils
 
 class NoisyLoggerTest(unittest.TestCase):
 
-  class Counter(object):
+  class Counter:
 
     def __init__(self):
       self.counter = 0

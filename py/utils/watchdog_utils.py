@@ -56,7 +56,7 @@ WATCHDOG_STOP = 'V'
 WATCHDOG_START = 'S'
 
 
-class Watchdog(object):
+class Watchdog:
   """Linux Kernel watchdog class."""
 
   def __init__(self, stop=True):

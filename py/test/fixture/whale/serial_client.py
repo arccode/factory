@@ -25,7 +25,7 @@ class SerialClientError(Exception):
   pass
 
 
-class SerialClient(object):
+class SerialClient:
   """Class to interface with serial_server via XMLRPC.
 
   For multiple serial connection established of serial server. serial_index is

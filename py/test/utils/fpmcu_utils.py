@@ -16,7 +16,7 @@ class FpmcuError(Exception):
   pass
 
 
-class FpmcuDevice(object):
+class FpmcuDevice:
   # Select the Fingerprint MCU cros_ec device
   CROS_FP_ARG = "--name=cros_fp"
   # Regular expression for parsing ectool output.

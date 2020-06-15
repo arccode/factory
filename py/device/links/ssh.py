@@ -30,7 +30,7 @@ class ClientNotExistError(Exception):
     return 'There is no DHCP client registered.'
 
 
-class SSHProcess(object):
+class SSHProcess:
   ERROR_CONNECTION_TIMEOUT = 255
   MAX_RETRY = 3
   INTERVAL = 1
@@ -326,7 +326,7 @@ class SSHLink(device_types.DeviceLink):
                                 timeout_secs=timeout_secs,
                                 poll_interval_secs=interval_secs)
 
-  class ControlMasterWatcher(object, metaclass=type_utils.Singleton):
+  class ControlMasterWatcher(metaclass=type_utils.Singleton):
     def __init__(self, link_instance):
       assert isinstance(link_instance, SSHLink)
 
@@ -432,7 +432,7 @@ class SSHLink(device_types.DeviceLink):
             poll_interval_secs=1)
 
 
-  class LinkManager(object):
+  class LinkManager:
     def __init__(self,
                  lease_time=3600,
                  interface_blacklist_file=None,

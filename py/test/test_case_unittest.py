@@ -24,7 +24,7 @@ _EventType = test_event.Event.Type
 
 class TestCaseTest(unittest.TestCase):
 
-  class _MockEventLoop(object):
+  class _MockEventLoop:
     def __init__(self):
       self._event_loop_end = queue.Queue()
       # We don't use mock for PostNewEvent and Run, since there is race

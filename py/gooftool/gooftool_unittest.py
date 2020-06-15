@@ -31,7 +31,7 @@ _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 StubStdout = namedtuple('StubStdout', ['stdout'])
 
 
-class MockMainFirmware(object):
+class MockMainFirmware:
   """Mock main firmware object."""
 
   def __init__(self, image=None):
@@ -40,7 +40,7 @@ class MockMainFirmware(object):
     self.GetFirmwareImage = lambda: image
 
 
-class MockFirmwareImage(object):
+class MockFirmwareImage:
   """Mock firmware image object."""
 
   def __init__(self, section_map):
@@ -48,7 +48,7 @@ class MockFirmwareImage(object):
     self.get_section = lambda name: section_map[name]
 
 
-class MockFile(object):
+class MockFile:
   """Mock file object."""
 
   def __init__(self):

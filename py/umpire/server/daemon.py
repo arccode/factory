@@ -31,7 +31,7 @@ from cros.factory.utils import net_utils
 from cros.factory.utils import type_utils
 
 
-class UmpireDaemon(object):
+class UmpireDaemon:
   """Umpire daemon class.
 
   Umpire daemon builds XMLRPC sites that serves command line utility and

@@ -29,7 +29,7 @@ class BluetoothUtilsError(Exception):
   pass
 
 
-class BtMgmt(object):
+class BtMgmt:
   """A wrapper of linux btmgmt tool."""
 
   def __init__(self, manufacturer_id=None):
@@ -117,7 +117,7 @@ class BtMgmt(object):
     return devices
 
 
-class GattTool(object):
+class GattTool:
   """A wrapper of linux gatttool.
 
   Note: only a limited set of uuids are supported so far, and will be augmented

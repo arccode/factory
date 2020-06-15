@@ -56,7 +56,7 @@ class BFTFixtureException(Exception):
   pass
 
 
-class BFTFixture(object):
+class BFTFixture:
   """Base class of BFT (Board Function Test) fixture.
 
   It defines interfaces for DUT (Device Under Test) to interact with

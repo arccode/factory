@@ -9,7 +9,7 @@ import xmlrpc.server
 INTERACTIVE_RPC_SERVER_PORT = 7601
 
 
-class GenericInteractiveRpcServer(object):
+class GenericInteractiveRpcServer:
   """A simple RPC server interacts with other platform.
 
   Partner is expected to inherit this and implement the Execute() function.

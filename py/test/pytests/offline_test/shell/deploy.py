@@ -47,7 +47,7 @@ def _FormatTemplate(template, *args, **kargs):
     return template.format(*args, **kargs)
 
 
-class FunctionMapper(object):
+class FunctionMapper:
   """A decorator class for registering alias names for functions.
 
   Example::
@@ -84,7 +84,7 @@ class FunctionMapper(object):
     return self._FUNCTION_MAP[alias_name](*args, **kargs)
 
 
-class ScriptBuilder(object):
+class ScriptBuilder:
   """Builder class for shell offline test.
 
   Example::

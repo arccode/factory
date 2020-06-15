@@ -31,7 +31,7 @@ class NoSuchKey(GSUtilError):
   pass
 
 
-class GSUtil(object):
+class GSUtil:
   """A class that wraps gsutil."""
   CHANNELS = type_utils.Enum(['beta', 'canary', 'dev', 'stable'])
   IMAGE_TYPES = type_utils.Enum(['factory', 'firmware', 'recovery', 'test'])
@@ -193,7 +193,7 @@ class GSUtil(object):
         image_type: The image type.
         key: The key that signed the image.
     """
-    class ParsedObj(object):
+    class ParsedObj:
       """An object to hold the parsed results."""
 
       def __init__(self, channel, board, image_version, image_type, key=None):
@@ -280,7 +280,7 @@ def BuildResourceBaseURL(channel, board, version):
                                 version=version)
 
 
-class _DownloadCommand(object):
+class _DownloadCommand:
   @classmethod
   def Register(cls, parser):
     subparser = parser.add_parser('download', description='Download an image.')

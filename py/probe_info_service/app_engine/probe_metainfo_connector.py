@@ -7,7 +7,7 @@ from google.cloud import datastore
 # pylint: enable=no-name-in-module,import-error
 
 
-class QualProbeMetaInfo(object):
+class QualProbeMetaInfo:
   """Record class for the probe-related meta info of a qualification.
 
   Properties:
@@ -25,7 +25,7 @@ class QualProbeMetaInfo(object):
     self.last_probe_info_fp_for_overridden = last_probe_info_fp_for_overridden
 
 
-class ProbeMetaInfoConnector(object):
+class ProbeMetaInfoConnector:
   _QUAL_PROBE_META_INFO_KIND = 'qual_meta_info'
 
   """A connector which manages IO of the DB for all probe metainfo."""

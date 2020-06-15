@@ -24,7 +24,7 @@ from cros.factory.instalog import plugin_base
 from cros.factory.instalog.utils import time_utils
 
 
-class RuntimeBound(object):
+class RuntimeBound:
   """Ensures that a block of code takes at minimum some number of seconds.
 
   Can be used either as a decorator or as a context manager.

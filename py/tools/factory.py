@@ -64,7 +64,7 @@ def Dump(data, dump_format, stream=sys.stdout, safe_dump=True, use_filter=True):
     raise RuntimeError('Unknown format: %s' % dump_format)
 
 
-class Subcommand(object):
+class Subcommand:
   """A 'factory' subcommand.
 
   Properties:

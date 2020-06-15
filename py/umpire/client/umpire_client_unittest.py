@@ -14,7 +14,7 @@ from cros.factory.device import device_types
 from cros.factory.umpire.client import umpire_client
 
 
-class MockSystemInfo(object):
+class MockSystemInfo:
   """Mocked SystemInfo class."""
 
   def __init__(self, serial_number, mlb_serial_number, firmware_version,

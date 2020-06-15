@@ -96,7 +96,7 @@ from cros.factory.utils import shelve_utils
 from cros.factory.utils import webservice_utils
 
 
-class ServiceSpec(object):
+class ServiceSpec:
   """The specification of shopfloor service API."""
 
   def __init__(self, has_data=True, auto_values=None, data_args=None,

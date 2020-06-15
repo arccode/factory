@@ -12,7 +12,7 @@ class ChargeManagerException(Exception):
   pass
 
 
-class ChargeManager(object):
+class ChargeManager:
   """Properties:
 
     state: The current state (an element of either ErrorState or

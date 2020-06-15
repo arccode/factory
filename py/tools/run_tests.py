@@ -71,7 +71,7 @@ def _MaybeSkipTest(tests, isolated_tests):
   return (tests, isolated_tests)
 
 
-class _TestProc(object):
+class _TestProc:
   """Creates and runs a subprocess to run an unittest.
 
   Besides creating a subprocess, it also prepares a temp directory for
@@ -182,7 +182,7 @@ class PortDistributeServer(socketserver.ThreadingUnixStreamServer):
       return port
 
 
-class RunTests(object):
+class RunTests:
   """Runs unittests in parallel.
 
   Args:

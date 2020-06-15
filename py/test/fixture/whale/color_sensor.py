@@ -13,7 +13,7 @@ from cros.factory.test.fixture import bft_fixture as bft
 BFT = bft.BFTFixture
 
 
-class ColorSensor(object):
+class ColorSensor:
   """Whale color sensor."""
 
   # mapping from color names in bft.conf to BFTFixture.LEDColor

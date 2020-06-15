@@ -27,7 +27,7 @@ from cros.factory.utils import string_utils
 TAIL_BUFFER_SIZE = 10
 
 
-class WebSocketManager(object):
+class WebSocketManager:
   """Object to manage web sockets for Goofy.
 
   Brokers between events in the event client infrastructure

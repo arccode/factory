@@ -160,7 +160,7 @@ def RunTestCase(test_case):
 PytestExceptionInfo = collections.namedtuple('PytestExceptionInfo',
                                              ['exc_repr', 'tb_list'])
 
-class PytestExecutionResult(object):
+class PytestExecutionResult:
   """A placeholder to record the execution result of a pytest.
 
   The class is designed to be pickle-serializable.  Please note that this

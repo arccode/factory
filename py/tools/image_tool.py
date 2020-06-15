@@ -126,7 +126,7 @@ def MakePartition(block_dev, part):
   return '%s%s%s' % (block_dev, 'p' if block_dev[-1].isdigit() else '', part)
 
 
-class ArgTypes(object):
+class ArgTypes:
   """Helper class to collect all argument type checkers."""
 
   @staticmethod
@@ -166,7 +166,7 @@ class ArgTypes(object):
       return found[0]
 
 
-class SysUtils(object):
+class SysUtils:
   """Collection of system utilities."""
 
   @staticmethod
@@ -357,7 +357,7 @@ Sudo = SysUtils.Sudo
 SudoOutput = SysUtils.SudoOutput
 
 
-class CrosPayloadUtils(object):
+class CrosPayloadUtils:
   """Collection of cros_payload utilities."""
 
   _cros_payload = None
@@ -973,7 +973,7 @@ def ShrinkPartition(image, number, size):
   gpt.WriteToFile(image)
   gpt.WriteProtectiveMBR(image, create=True)
 
-class LSBFile(object):
+class LSBFile:
   """Access /etc/lsb-release file (or files in same format).
 
   The /etc/lsb-release can be loaded directly by shell ( . /etc/lsb-release ).
@@ -1080,7 +1080,7 @@ class LSBFile(object):
     return version
 
 
-class RMAImageBoardInfo(object):
+class RMAImageBoardInfo:
   """Store the RMA image information related to one board."""
 
   __slots__ = ['board', 'kernel', 'rootfs']
@@ -1174,7 +1174,7 @@ def _GetBoardName(image):
   raise RuntimeError('Cannot get board name in a multi-board shim.')
 
 
-class RMABoardResourceVersions(object):
+class RMABoardResourceVersions:
   """Store the RMA resource versions related to one board."""
 
   __slots__ = ['board', 'install_shim'] + PAYLOAD_COMPONENTS
@@ -1221,7 +1221,7 @@ def _ReadBoardResourceVersions(rootfs, stateful, board_info):
   return RMABoardResourceVersions(**versions)
 
 
-class UserInput(object):
+class UserInput:
   """A helper class to manage user inputs."""
 
   @staticmethod
@@ -1376,7 +1376,7 @@ class UserInput(object):
     return answer
 
 
-class ChromeOSFactoryBundle(object):
+class ChromeOSFactoryBundle:
   """Utilities to work with factory bundle."""
 
   # Types of build targets (for DefineBundleArguments to use).
@@ -1419,7 +1419,7 @@ class ChromeOSFactoryBundle(object):
       build_type: Build type to control arguments added to the parser.
     """
 
-    class ParserArgumentWrapper(object):
+    class ParserArgumentWrapper:
       """Helper class for flexible parser arguments."""
       def __init__(self, parser, build_type, remove_default):
         self.parser = parser
@@ -1916,7 +1916,7 @@ class ChromeOSFactoryBundle(object):
         print(resource_versions)
         print(SPLIT_LINE)
 
-  class RMABoardEntry(object):
+  class RMABoardEntry:
     """An internal class that stores the info of a board.
 
     The info includes
@@ -2484,7 +2484,7 @@ def GetSubparsers(parser):
 
 # TODO(hungte) Generalize this (copied from py/tools/factory.py) for all
 # commands to utilize easily.
-class SubCommand(object):
+class SubCommand:
   """A subcommand.
 
   Properties:

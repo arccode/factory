@@ -66,7 +66,7 @@ class FileSystemAdapter(metaclass=abc.ABCMeta):
 
 class LocalFileSystemAdapter(FileSystemAdapter):
 
-  class ExceptionMapper(object):
+  class ExceptionMapper:
     def __enter__(self):
       pass
 

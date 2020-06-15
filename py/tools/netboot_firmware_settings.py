@@ -25,7 +25,7 @@ CODE_ARGS_FILE = 4
 SETTINGS_FMAP_SECTION = 'SHARED_DATA'
 
 
-class Image(object):
+class Image:
   """A class to represent a firmware image.
 
   Areas in the image should be accessed using the [] operator which takes
@@ -92,7 +92,7 @@ class Image(object):
     return self.data[area['offset']:area['offset'] + area['size']]
 
 
-class Settings(object):
+class Settings:
   """A class which represents a collection of settings.
 
   The settings can be updated after a firmware image has been built.
@@ -106,7 +106,7 @@ class Settings(object):
   """
   signature = b'netboot\0'
 
-  class Attribute(object):
+  class Attribute:
     """A class which represents a particular setting.
 
     Attributes:
@@ -217,7 +217,7 @@ class Settings(object):
     return value
 
 
-class BytesValue(object):
+class BytesValue:
   """Class for setting values that are stored as bytes strings."""
 
   def __init__(self, val):

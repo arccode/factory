@@ -91,7 +91,7 @@ class InstalogService(daemon_utils.Daemon):
     self._core.Run()
 
 
-class InstalogCLI(object):
+class InstalogCLI:
   """Represents the CLI interface used to control Instalog."""
 
   def __init__(self, args):

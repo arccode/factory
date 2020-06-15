@@ -37,7 +37,7 @@ _CHUNK_SIZE_MULTIPLE = 256 * 1024  # chunk_size must be a multiple of 256KB
 _CHUNK_SIZE = 4 * 1024 * 1024  # 4MB
 
 
-class CloudStorage(object):
+class CloudStorage:
   """Wrapper to access Google Cloud Storage."""
 
   def __init__(self, json_key_path, logger=logging, chunk_size=_CHUNK_SIZE):

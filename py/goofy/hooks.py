@@ -7,7 +7,7 @@ import logging
 from cros.factory.test.state import TestState
 
 
-class Hooks(object):
+class Hooks:
   """Goofy hooks.
 
   This class is a dummy implementation, but methods may be overridden

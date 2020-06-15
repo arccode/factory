@@ -61,7 +61,7 @@ _TimedHandlerEvent = collections.namedtuple(
     '_TimedHandlerEvent', ['next_time', 'unique_id', 'handler', 'interval'])
 
 
-class EventLoop(object):
+class EventLoop:
   """Event loop for test."""
 
   def __init__(self, handler_exception_hook, event_client_class=None):
@@ -243,7 +243,7 @@ class EventLoop(object):
         self._handler_exception_hook()
 
 
-class JavaScriptProxy(object):
+class JavaScriptProxy:
   """Proxy that forward all calls to JavaScript object on window."""
 
   def __init__(self, ui, var_name):
@@ -278,7 +278,7 @@ def EnsureI18n(labels):
   return ''.join(_Transform(label) for label in labels)
 
 
-class UI(object):
+class UI:
   """Web UI for a factory test."""
 
   default_html = ''

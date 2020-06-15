@@ -115,7 +115,7 @@ def GetSQLite3Connection(database_file_path):
   return (connection, cursor)
 
 
-class DRMKeysProvisioningServer(object):
+class DRMKeysProvisioningServer:
   """The DRM Keys Provisioning Server (DKPS) class."""
 
   def __init__(self, database_file_path, gnupg_homedir):

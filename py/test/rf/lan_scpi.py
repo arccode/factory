@@ -38,7 +38,7 @@ def _TruncateForLogging(msg):
   return msg
 
 
-class LANSCPI(object):
+class LANSCPI:
   """A SCPI-over-TCP controller."""
 
   def __init__(self, host, port=5025, timeout=3, retries=5, delay=1,

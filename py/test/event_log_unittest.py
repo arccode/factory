@@ -79,7 +79,7 @@ class GlobalSeqTest(unittest.TestCase):
     del seq
 
   def testYamlDump(self):
-    class OtherType(object):
+    class OtherType:
       """A generic class."""
 
       def __init__(self, attr_foo):

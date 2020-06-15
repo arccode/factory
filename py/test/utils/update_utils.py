@@ -48,7 +48,7 @@ COMPONENTS = type_utils.Enum([
 MATCH_METHOD = type_utils.Enum(['exact', 'substring'])
 
 
-class Updater(object):
+class Updater:
   """A helper to update software components from factory server."""
 
   KEY_VERSION = 'version'

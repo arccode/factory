@@ -28,7 +28,7 @@ class RegistrationCodeException(Exception):
   pass
 
 
-class RegistrationCode(object):
+class RegistrationCode:
   """A registration code.
 
   Properties:

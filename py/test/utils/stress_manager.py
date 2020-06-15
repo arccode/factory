@@ -18,7 +18,7 @@ class StressManagerError(Exception):
   pass
 
 
-class StressManager(object):
+class StressManager:
   """Manage CPU and memory load of the system using stressapptest.
 
   The manager runs stressapptest to occupy a specific amount of memory and
@@ -172,7 +172,7 @@ class StressManager(object):
       self.output = output.read()
 
 
-class DummyStressManager(object):
+class DummyStressManager:
   """A stress manager with no load."""
   def __init__(self, *args, **kwargs):
     pass

@@ -159,7 +159,7 @@ def DummyContextManager():
   yield
 
 
-class Iperf3Server(object):
+class Iperf3Server:
   """Provides a context manager for running the iperf3 command as a server."""
 
   def __init__(self, port):
@@ -183,7 +183,7 @@ class Iperf3Server(object):
       self._process.wait()
 
 
-class Iperf3Client(object):
+class Iperf3Client:
   """Wraps around spawning the iperf3 command as a client.
 
   Allows running the iperf3 command and checks its resulting JSON dict for
@@ -333,7 +333,7 @@ class Iperf3Client(object):
     return output
 
 
-class _ServiceTest(object):
+class _ServiceTest:
   """Collection of tests to be run on each service.
 
   Provides a "flow" mechanism for tests to be run on each service, with the

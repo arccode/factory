@@ -20,7 +20,7 @@ from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
-class FakeArgs(object):
+class FakeArgs:
   def __init__(self, dargs):
     for key, value in dargs.items():
       self.__dict__[key] = value

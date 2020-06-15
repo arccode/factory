@@ -17,7 +17,7 @@ from cros.factory.umpire.server import config as umpire_config
 from cros.factory.umpire.server import resource
 
 
-class ResourceUpdater(object):
+class ResourceUpdater:
   """Updates a resource in a bundle from active config.
 
   It copies the given resources to Umpire repository. Then updates the

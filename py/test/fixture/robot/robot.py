@@ -36,7 +36,7 @@ class RobotException(Exception):
   pass
 
 
-class Robot(object):
+class Robot:
   """Interface of the robot arm fixture."""
 
   def Connect(self):

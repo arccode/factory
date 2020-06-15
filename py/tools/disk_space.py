@@ -164,7 +164,7 @@ class DiskException(Exception):
   pass
 
 
-class DiskSpace(object):
+class DiskSpace:
   """Checks disk space usage"""
   args = None
 

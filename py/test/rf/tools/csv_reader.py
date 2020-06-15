@@ -21,7 +21,7 @@ KEY = '__key__'
 VALUE = '__value__'
 
 
-class CsvLink(object):
+class CsvLink:
   """Special wrapper class for identifying an external link in cell."""
 
   def __init__(self, link=None):

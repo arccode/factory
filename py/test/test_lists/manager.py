@@ -23,7 +23,7 @@ from cros.factory.utils import type_utils
 DEFAULT_TEST_LIST_ID = 'main'
 
 
-class TestListConfig(object):
+class TestListConfig:
   """A loaded test list config.
 
   This is a wrapper for ResolvedConfig, with some helper functions and caches.
@@ -82,7 +82,7 @@ class TestListConfig(object):
     return None
 
 
-class Loader(object):
+class Loader:
   """Helper class to load a test list from given directory.
 
   The loader loads a JSON test list config from file system.  A loaded config
@@ -151,7 +151,7 @@ class Loader(object):
             for name in globbed_configs]
 
 
-class Manager(object):
+class Manager:
   """Test List Manager.
 
   Attributes:

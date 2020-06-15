@@ -15,7 +15,7 @@ from cros.factory.utils import service_utils
 RETRY_COUNT = 3
 
 
-class CpufreqManager(object):
+class CpufreqManager:
   """Manager for CrOS-specific services that mess with cpufreq.
 
   If disabled, we disable CrOS-specific cpufreq management (i.e., the "thermal"

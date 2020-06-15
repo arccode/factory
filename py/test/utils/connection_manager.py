@@ -100,7 +100,7 @@ def GetBaseNetworkManager():
   return flimflam.FlimFlam()
 
 
-class ConnectionManager(object):
+class ConnectionManager:
 
   def __init__(self, wlans=None, scan_interval=_SCAN_INTERVAL_SECS,
                network_manager=_DEFAULT_MANAGER,

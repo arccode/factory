@@ -16,7 +16,7 @@ from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
 
-class TimeLine(object):
+class TimeLine:
   """A timeline class.
 
   This class implements a fake "time line" that unit test can register event on
@@ -112,7 +112,7 @@ class FakeEvent(threading.Event().__class__):
     return self.isSet()
 
 
-class FakeQueue(queue.Queue, object):
+class FakeQueue(queue.Queue):
   """A fake queue.Queue.
 
   All methods works like a normal queue.Queue, except that get(block=True) won't

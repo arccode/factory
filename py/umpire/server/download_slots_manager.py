@@ -27,7 +27,7 @@ _SLOTS_NUMBER = 10
 _SLOT_ALIVE_TIME = 80.0
 
 
-class DownloadSlotsManager(object):
+class DownloadSlotsManager:
   """Download Slots Manager
 
   DownloadSlotsManager is responsible for keeping a fixed number of DUTs can get

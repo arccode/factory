@@ -71,7 +71,7 @@ def ParseURL(url):
   return protocols, url
 
 
-class WebServiceProxy(object):
+class WebServiceProxy:
   """An abstract class for proxy to web services.
 
   Most web services are using HTTP as transport instance, which may cause race

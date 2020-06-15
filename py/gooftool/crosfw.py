@@ -37,7 +37,7 @@ WpStatus = collections.namedtuple('WpStatus', 'enabled offset size')
 FirmwareImage = fmap.FirmwareImage
 
 
-class Flashrom(object):
+class Flashrom:
   """Wrapper for calling system command flashrom(8)."""
 
   # flashrom(8) command line parameters
@@ -179,7 +179,7 @@ class Flashrom(object):
       raise IOError('Failed to disable write protection.')
 
 
-class FirmwareContent(object):
+class FirmwareContent:
   """Wrapper around flashrom for a specific firmware target.
 
   This class keeps track of all the instances of itself that exist.

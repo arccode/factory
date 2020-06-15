@@ -125,7 +125,7 @@ class UdevMonitorBase(device_types.DeviceComponent):
     """
     return self._DEV_BLOCK_PATH
 
-  class Device(object):
+  class Device:
     """The device object."""
 
     def __init__(self, device_node, sys_path):

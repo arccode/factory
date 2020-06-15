@@ -16,7 +16,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
 
 
-class _ParameterObject(object):
+class _ParameterObject:
   """Provides operation on parameter objects.
 
   Properties:
@@ -171,7 +171,7 @@ class _ParameterObject(object):
     return [(f['name'], f['revisions'][f['using_ver']]) for f in fs]
 
 
-class Parameters(object):
+class Parameters:
   """Wraps ParameterObject and synchronize the data to parameter_json_file.
 
   Properties:

@@ -28,7 +28,7 @@ import re
 from cros.factory.utils import type_utils
 
 
-class BOM(object):
+class BOM:
   """A class that holds all the information regarding a BOM.
 
   This class is for HWID v3 framework internal use only.  It does not verify
@@ -68,7 +68,7 @@ class BOM(object):
         self.encoding_pattern_index, self.image_id, self.components)
 
 
-class RamSize(object):
+class RamSize:
   """Handle memory size labels."""
   _UNITS = collections.OrderedDict([
       ('', 1), ('K', 1 << 10), ('M', 1 << 20), ('G', 1 << 30)])

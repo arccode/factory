@@ -39,7 +39,7 @@ AudioDeviceType = type_utils.Enum(
     list(InputDevices) + list(OutputDevices))
 
 
-class BaseConfigManager(object, metaclass=abc.ABCMeta):
+class BaseConfigManager(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def Initialize(self, card='0'):
     """Initialize card device.

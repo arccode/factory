@@ -85,7 +85,7 @@ class GoofyServerTest(unittest.TestCase):
     sync_utils.WaitFor(ServerReady, 0.1)
 
   def testAddRPCInstance(self):
-    class RPCInstance(object):
+    class RPCInstance:
       def __init__(self):
         self.called = False
 

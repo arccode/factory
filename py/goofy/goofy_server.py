@@ -20,7 +20,7 @@ from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import sync_utils
 
 
-class PathResolver(object):
+class PathResolver:
   """Resolves paths in URLs."""
 
   def __init__(self):
@@ -189,7 +189,7 @@ class GoofyServer(socketserver.ThreadingMixIn,
     Example usage:
 
     # Server
-    class MyClass(object):
+    class MyClass:
       def Foo(self):
         # Do something
         pass
@@ -320,7 +320,7 @@ class GoofyServer(socketserver.ThreadingMixIn,
 
     self._CheckGeneratedDataExpired()
 
-class GoofyServerRPC(object):
+class GoofyServerRPC:
   """Native functions supported by GoofyServer."""
   def __init__(self, server):
     self._server = server

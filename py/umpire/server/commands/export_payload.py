@@ -19,7 +19,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
-class PayloadExporter(object):
+class PayloadExporter:
 
   def __init__(self, env):
     """Constructor.
