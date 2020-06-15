@@ -25,19 +25,20 @@ DUMMY_EXCUTABLE = os.path.join(
 
 class FactoryEnvUnittest(unittest.TestCase):
   def testSymbolicLinkToFactoryEnv(self):
-    self.assertEqual(0, process_utils.LogAndCheckCall(DUMMY_EXCUTABLE))
+    self.assertEqual(0,
+                     process_utils.LogAndCheckCall(DUMMY_EXCUTABLE).returncode)
 
   def testFactoryEnvWithSymbolicLinkToFactoryEnv(self):
     self.assertEqual(0, process_utils.LogAndCheckCall(
-        [FACTORY_ENV_TOOL, DUMMY_EXCUTABLE]))
+        [FACTORY_ENV_TOOL, DUMMY_EXCUTABLE]).returncode)
 
   def testMultipleFactoryEnv(self):
     self.assertEqual(0, process_utils.LogAndCheckCall(
-        [FACTORY_ENV_TOOL, FACTORY_ENV_TOOL, DUMMY_EXCUTABLE]))
+        [FACTORY_ENV_TOOL, FACTORY_ENV_TOOL, DUMMY_EXCUTABLE]).returncode)
 
   def testFactoryEnvWithScript(self):
     self.assertEqual(0, process_utils.LogAndCheckCall(
-        [FACTORY_ENV_TOOL, DUMMY_SCRIPT]))
+        [FACTORY_ENV_TOOL, DUMMY_SCRIPT]).returncode)
 
   def testHelpMessage(self):
     process = process_utils.Spawn(
