@@ -173,7 +173,8 @@ class NetworkDevices(object):
     for dev in cls.GetDevices(devtype):
       ret += ProbeSysfsDevices(dev.path, ignore_others)
     # Filter out 'None' results
-    return sorted(device for device in ret if device is not None)
+    return sorted([device for device in ret if device is not None],
+                  key=lambda d: sorted(d.items()))
 
 
 class GenericNetworkDeviceFunction(
