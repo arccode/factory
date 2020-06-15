@@ -413,7 +413,8 @@ class HwidApiTest(unittest.TestCase):
         self.CheckForLabelValue(response, 'variant', 'found_device'))
     self.assertTrue(self.CheckForLabelValue(response, 'sku', 'TestSku'))
     self.assertTrue(self.CheckForLabelValue(response, 'touchscreen'))
-    self.assertEqual(4, len(response.labels))
+    self.assertTrue(self.CheckForLabelValue(response, 'hwid_component'))
+    self.assertEqual(5, len(response.labels))
 
     self.api._goldeneye_memcache_adapter.Get.return_value = None
 
