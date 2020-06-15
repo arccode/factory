@@ -8,6 +8,7 @@ from __future__ import print_function
 
 import logging
 import re
+import subprocess
 
 
 class FpmcuError(Exception):
@@ -28,7 +29,7 @@ class FpmcuDevice(object):
   def __init__(self, dut):
     self._dut = dut
 
-  def FpmcuCommand(self, command, *args):
+  def FpmcuCommand(self, command, *args, encoding='utf-8'):
     """Execute a host command on the fingerprint MCU
 
     Args:
@@ -38,8 +39,16 @@ class FpmcuDevice(object):
       Command text output.
     """
     cmdline = ['ectool', self.CROS_FP_ARG, command] + list(args)
-    result = self._dut.CheckOutput(cmdline)
-    return result.strip() if result is not None else ''
+    process = self._dut.Popen(
+        cmdline, encoding=encoding,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = process.communicate()
+    if encoding is not None:
+      stdout = stdout.strip()
+    if process.returncode != 0:
+      raise FpmcuError('cmd: %r, returncode: %d, stdout: %r, stderr: %r' % (
+          cmdline, process.returncode, stdout, stderr.strip()))
+    return stdout
 
   def GetFpmcuFirmwareVersion(self):
     """Get fingerprint MCU firmware version

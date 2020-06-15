@@ -332,10 +332,10 @@ class FingerprintTest(unittest.TestCase):
       # wait for the end of capture (or timeout after 5s)
       self._fpmcu.FpmcuCommand('waitevent',
                                self.EC_MKBP_EVENT_FINGERPRINT, '5000')
-      img = self._fpmcu.FpmcuCommand('fpframe', 'raw')
+      img = self._fpmcu.FpmcuCommand('fpframe', 'raw', encoding=None)
       # record the raw image file for quality evaluation
       testlog.AttachContent(
-          content=img,
+          content=str(img),
           name='finger_mqt.raw',
           description='raw MQT finger image')
       # Check quality if the function if available
