@@ -619,10 +619,10 @@ class HwidManager:
           logging.exception('Exception encountered while reloading cache.')
 
   def _LivePath(self, file_id):
-    return '/live/%s' % file_id
+    return 'live/%s' % file_id
 
   def _StagingPath(self, file_id):
-    return '/staging/%s' % file_id
+    return 'staging/%s' % file_id
 
   def _ActivateFile(self, stage_file_id, live_file_id):
     board_data = self._fs_adapter.ReadFile(self._StagingPath(stage_file_id))

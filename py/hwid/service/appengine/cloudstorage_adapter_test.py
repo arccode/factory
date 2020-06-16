@@ -4,13 +4,14 @@
 # found in the LICENSE file.
 """Tests for CloudStorageAdapter"""
 
+import collections
+import os.path
 import unittest
 
-import cloudstorage  # pylint: disable=import-error
+import google.cloud.exceptions
+import mock
 
-from cros.factory.hwid.service.appengine import appengine_test_base
 from cros.factory.hwid.service.appengine import cloudstorage_adapter
-
 
 TEST_BUCKET = 'test-bucket'
 TEST_FILE = 'foo'
@@ -18,61 +19,100 @@ TEST_DATA = 'bar'
 TEST_PATH = '/test-bucket/foo'
 
 
-class CloudStorageAdapterTest(appengine_test_base.AppEngineTestBase):
+def _CreateMockListBlobsWrapper(test_files):
+  blob_class = collections.namedtuple('Blob', ['name', 'path'])
+  def wrapper(bucket_name, prefix, delimiter):
+    if bucket_name == TEST_BUCKET and delimiter == '/':
+      if prefix == '':
+        return [blob_class(name=key, path=None) for key in test_files
+                if os.path.dirname(key) == prefix]
+      return [blob_class(name=key, path=None) for key in test_files
+              if os.path.dirname(key) + '/' == prefix]
+    return []
+  return wrapper
+
+
+# TODO(clarkchung): Use official cloud storage emulator when it is available.
+class CloudStorageAdapterTest(unittest.TestCase):
   """Tests for the CloudStorageAdapter class."""
+
+  def setUp(self):
+    super(CloudStorageAdapterTest, self).setUp()
+    patcher = mock.patch('__main__.cloudstorage_adapter.storage')
+    self.mock_storage = patcher.start()
+    self.addCleanup(patcher.stop)
 
   def testWrite(self):
     """Tests writing a file."""
     adapter = cloudstorage_adapter.CloudStorageAdapter(TEST_BUCKET)
 
     adapter.WriteFile(TEST_FILE, TEST_DATA)
+    mock_blob = self.mock_storage.Client().bucket().blob
+    mock_blob.assert_has_calls([mock.call(TEST_FILE),
+                                mock.call().upload_from_string(TEST_DATA)])
 
-    with cloudstorage.open(TEST_PATH, 'r') as fh:
-      data = fh.read()
-
-    self.assertEqual(TEST_DATA, data)
 
   def testRead(self):
     """Tests reading a file."""
     adapter = cloudstorage_adapter.CloudStorageAdapter(TEST_BUCKET)
-
-    with cloudstorage.open(TEST_PATH, 'w') as fh:
-      fh.write(TEST_DATA)
-
-    self.assertEqual(TEST_DATA, adapter.ReadFile(TEST_FILE))
+    mock_blob = self.mock_storage.Client().bucket().blob
+    mock_blob().download_as_string.return_value = TEST_DATA
+    read_result = adapter.ReadFile(TEST_FILE)
+    mock_blob.assert_has_calls([mock.call(TEST_FILE),
+                                mock.call().download_as_string()])
+    self.assertEqual(TEST_DATA, read_result)
 
   def testDelete(self):
     """Tests deleting a file from the storage."""
 
     adapter = cloudstorage_adapter.CloudStorageAdapter(TEST_BUCKET)
 
+    mock_blob = self.mock_storage.Client().bucket().blob
     adapter.WriteFile(TEST_FILE, TEST_DATA)
-    self.assertEqual(TEST_DATA, adapter.ReadFile(TEST_FILE))
     adapter.DeleteFile(TEST_FILE)
-
+    mock_blob.assert_has_calls([mock.call(TEST_FILE),
+                                mock.call().delete()])
+    mock_blob().download_as_string.side_effect = \
+        google.cloud.exceptions.NotFound('Not found')
     self.assertRaises(KeyError, adapter.ReadFile, TEST_FILE)
 
   def testListFiles(self):
     """Tests the ListFiles method."""
     adapter = cloudstorage_adapter.CloudStorageAdapter(TEST_BUCKET)
 
-    adapter.WriteFile('foo', 'bar')
-    adapter.WriteFile('baz', 'qux')
+    test_files = {
+        'foo': 'bar',
+        'baz': 'qux',
+        }
+
+    mock_client = self.mock_storage.Client()
+    mock_client.list_blobs.side_effect = _CreateMockListBlobsWrapper(test_files)
+
+    for path, content in test_files.items():
+      adapter.WriteFile(path, content)
 
     files = adapter.ListFiles()
 
-    self.assertEqual(2, len(list(files)))
+    self.assertEqual(sorted(files), sorted(test_files))
 
   def testListFilesFiltered(self):
     """Tests the ListFiles method with a prefix (directory)."""
     adapter = cloudstorage_adapter.CloudStorageAdapter(TEST_BUCKET)
 
-    adapter.WriteFile('foo/bar/file', 'bar')
-    adapter.WriteFile('foo/baz/file', 'bar')
-    adapter.WriteFile('foo/file0', 'bar')
-    adapter.WriteFile('foo/file1', 'bar')
-    adapter.WriteFile('foo1', 'bar')
-    adapter.WriteFile('baz', 'qux')
+    test_files = {
+        'foo/bar/file': 'bar',
+        'foo/baz/file': 'bar',
+        'foo/file0': 'bar',
+        'foo/file1': 'bar',
+        'foo1': 'bar',
+        'baz': 'qux',
+        }
+
+    mock_client = self.mock_storage.Client()
+    mock_client.list_blobs.side_effect = _CreateMockListBlobsWrapper(test_files)
+
+    for path, content in test_files.items():
+      adapter.WriteFile(path, content)
 
     files = adapter.ListFiles(prefix='f')
 
@@ -82,16 +122,6 @@ class CloudStorageAdapterTest(appengine_test_base.AppEngineTestBase):
     prefix_w_trailing_slash = sorted(list(adapter.ListFiles(prefix='foo/')))
     self.assertEqual(prefix_w_trailing_slash, prefix_wo_trailing_slash)
     self.assertEqual(prefix_w_trailing_slash, ['file0', 'file1'])
-
-  def testPath(self):
-    """Tests that path creation works as expected."""
-    adapter = cloudstorage_adapter.CloudStorageAdapter(TEST_BUCKET)
-
-    # pylint: disable=protected-access
-    self.assertEqual('/' + TEST_BUCKET, adapter._GsPath())
-    self.assertEqual('/' + TEST_BUCKET + '/foo', adapter._GsPath('foo'))
-    self.assertEqual('/' + TEST_BUCKET + '/foo/bar',
-                     adapter._GsPath('foo', 'bar'))
 
   def testExceptionMapper(self):
     mapper = cloudstorage_adapter.CloudStorageAdapter.ExceptionMapper()
@@ -104,7 +134,8 @@ class CloudStorageAdapterTest(appengine_test_base.AppEngineTestBase):
       with mapper:
         return True
 
-    self.assertRaises(KeyError, WithError, cloudstorage.errors.NotFoundError)
+    self.assertRaises(KeyError, WithError,
+                      google.cloud.exceptions.NotFound('Not Found'))
     self.assertTrue(WithNoError())
 
 

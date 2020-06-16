@@ -8,11 +8,12 @@
 import os
 import unittest
 
+import google.cloud.exceptions
 import mock
 
-from cros.factory.hwid.service.appengine import appengine_test_base
 from cros.factory.hwid.service.appengine import cloudstorage_adapter
 from cros.factory.hwid.service.appengine import hwid_manager
+from cros.factory.utils import file_utils
 
 
 GOLDEN_HWIDV2_FILE = os.path.join(
@@ -36,7 +37,7 @@ TEST_V3_HWID_WITH_CONFIGLESS = 'CHROMEBOOK-BRAND 0-8-74-180 AA5C-YNQ'
 
 
 # pylint: disable=protected-access
-class HwidManagerTest(appengine_test_base.AppEngineTestBase):
+class HwidManagerTest(unittest.TestCase):
   """Tests the HwidManager class."""
 
   def setUp(self):
@@ -44,6 +45,10 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
 
     self.filesystem_adapter = cloudstorage_adapter.CloudStorageAdapter(
         'test-bucket')
+    patcher = mock.patch('cros.factory.hwid.service.appengine.'
+                         'cloudstorage_adapter.storage')
+    self.mock_storage = patcher.start()
+    self.addCleanup(patcher.stop)
 
   def _LoadTestDataStore(self, manager):
     """Loads up the datastore with metadata about one board."""
@@ -60,15 +65,31 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
 
   def _LoadTestBlobStore(self):
     """Loads up the blobstore with two files, one for each version supported."""
-    with open(GOLDEN_HWIDV2_FILE, 'r') as fh:
-      self.filesystem_adapter.WriteFile('/live/v2', fh.read())
-    with open(GOLDEN_HWIDV3_FILE, 'r') as fh:
-      self.filesystem_adapter.WriteFile('/live/v3', fh.read())
+
+    def patch_blob(path):
+      if path == 'live/v2':
+        ret = mock.MagicMock()
+        ret.download_as_string.return_value = file_utils.ReadFile(
+            GOLDEN_HWIDV2_FILE)
+        return ret
+      if path == 'live/v3':
+        ret = mock.MagicMock()
+        ret.download_as_string.return_value = file_utils.ReadFile(
+            GOLDEN_HWIDV3_FILE)
+        return ret
+      raise google.cloud.exceptions.NotFound
+
+    mock_blob = self.mock_storage.Client().bucket().blob
+    mock_blob.side_effect = patch_blob
 
   def _GetManager(self, adapter=None, load_blobstore=True, load_datastore=True):
     """Returns a HwidManager object, optionally loading mock data."""
     if load_blobstore:
       self._LoadTestBlobStore()
+    else:
+      mock_blob = self.mock_storage.Client().bucket().blob()
+      mock_blob.download_as_string.side_effect = \
+          google.cloud.exceptions.NotFound('Not Found')
 
     if adapter is None:
       adapter = self.filesystem_adapter
@@ -213,7 +234,7 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
     self.assertIsNotNone(manager.GetBoardDataFromCache('CHROMEBOOK'))
     self.assertIsNotNone(manager.GetBomAndConfigless(TEST_V2_HWID)[0])
     self.assertIsNotNone(manager.GetBoardDataFromCache('CHROMEBOOK'))
-    mock_storage.ReadFile.assert_called_once_with('/live/v2')
+    mock_storage.ReadFile.assert_called_once_with('live/v2')
 
   def testInvalidVersion(self):
     mock_storage = mock.Mock()
@@ -225,7 +246,7 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
 
     self.assertRaises(hwid_manager.MetadataError, manager.GetBomAndConfigless,
                       'CHROMEBOOK FOOBAR')
-    mock_storage.ReadFile.assert_called_once_with('/live/v10')
+    mock_storage.ReadFile.assert_called_once_with('live/v10')
 
   def testRegisterTwice(self):
     manager = self._GetManager()
@@ -248,7 +269,7 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
     manager.ReloadMemcacheCacheFromFiles()
 
     self.assertIsNotNone(manager.GetBoardDataFromCache('CHROMEBOOK'))
-    mock_storage.ReadFile.assert_called_once_with('/live/v2')
+    mock_storage.ReadFile.assert_called_once_with('live/v2')
 
   def testReloadCacheMultipleFiles(self):
     """When reloading and there are multiple files then both get read."""
@@ -296,14 +317,14 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
           hwid_manager.HwidMetadata.path == 'update').get())
       self.assertIsNotNone(hwid_manager.HwidMetadata.query(
           hwid_manager.HwidMetadata.path == 'new').get())
-      mock_storage.DeleteFile.assert_called_once_with('/live/old')
+      mock_storage.DeleteFile.assert_called_once_with('live/old')
       mock_storage.WriteFile.assert_has_calls(
-          [mock.call('/live/update', mock.ANY),
-           mock.call('/live/new', mock.ANY)],
+          [mock.call('live/update', mock.ANY),
+           mock.call('live/new', mock.ANY)],
           any_order=True)
       self.assertEqual(mock_storage.WriteFile.call_count, 2)
       mock_storage.ReadFile.assert_has_calls(
-          [mock.call('/staging/v2') for unused_i in range(2)])
+          [mock.call('staging/v2') for unused_i in range(2)])
       self.assertEqual(mock_storage.ReadFile.call_count, 2)
 
   def testUpdateBoardsWithManyBoards(self):
@@ -326,9 +347,9 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
             board='update_file' + str(i), path='update' + str(i),
             version='2').put()
 
-      deletefile_calls = [mock.call('/live/old' + str(i)) for i in range(40)]
+      deletefile_calls = [mock.call('live/old' + str(i)) for i in range(40)]
       writefile_calls = [
-          mock.call('/live/update' + str(i), mock.ANY) for i in range(40)
+          mock.call('live/update' + str(i), mock.ANY) for i in range(40)
       ]
 
       board_data = {}
@@ -353,7 +374,7 @@ class HwidManagerTest(appengine_test_base.AppEngineTestBase):
       mock_storage.WriteFile.assert_has_calls(writefile_calls, any_order=True)
       self.assertEqual(BOARD_COUNT, mock_storage.WriteFile.call_count)
       mock_storage.ReadFile.assert_has_calls(
-          [mock.call('/staging/v2') for unused_c in range(BOARD_COUNT)])
+          [mock.call('staging/v2') for unused_c in range(BOARD_COUNT)])
       self.assertEqual(BOARD_COUNT, mock_storage.ReadFile.call_count)
 
   def testUpdateBoardsWithBadData(self):
@@ -383,7 +404,7 @@ class HwidDataTest(unittest.TestCase):
     self.assertRaises(
         hwid_manager.MetadataError,
         self.data._Seed,
-        hwid_file='/non/existent/file')
+        hwid_file='non/existent/file')
 
   def testSeedWithString(self):
     with mock.patch.object(self.data, '_SeedFromRawYaml') as _mock:

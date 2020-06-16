@@ -4,11 +4,13 @@
 """Facade for interfacing with various storage mechanisms."""
 
 import logging
-import os
+import os.path
 
-import cloudstorage  # pylint: disable=import-error
+import google.cloud.exceptions
+from google.cloud import storage
 
 from cros.factory.hwid.v3 import filesystem_adapter
+from cros.factory.utils import type_utils
 
 
 class CloudStorageAdapter(filesystem_adapter.FileSystemAdapter):
@@ -20,9 +22,9 @@ class CloudStorageAdapter(filesystem_adapter.FileSystemAdapter):
       pass
 
     def __exit__(self, value_type, value, traceback):
-      if isinstance(value, cloudstorage.errors.NotFoundError):
+      if isinstance(value, google.cloud.exceptions.NotFound):
         raise KeyError(value)
-      if isinstance(value, cloudstorage.Error):
+      if isinstance(value, google.cloud.exceptions.GoogleCloudError):
         raise filesystem_adapter.FileSystemAdapterException(str(value))
 
   CHUNK_SIZE = 2 ** 20
@@ -34,47 +36,45 @@ class CloudStorageAdapter(filesystem_adapter.FileSystemAdapter):
     return cls.EXCEPTION_MAPPER
 
   def __init__(self, bucket, chunk_size=None):
-    self._bucket = bucket
+    self._bucket_name = bucket
     self._chunk_size = chunk_size or self.CHUNK_SIZE
+
+  @type_utils.LazyProperty
+  def _storage_client(self):
+    return storage.Client()
+
+  @type_utils.LazyProperty
+  def _storage_bucket(self):
+    return self._storage_client.bucket(self._bucket_name)
 
   def _ReadFile(self, path):
     """Read a file from the backing storage system."""
-    file_name = self._GsPath(path)
-
-    with cloudstorage.open(file_name) as gcs_file:
-      return gcs_file.read()
+    blob = self._storage_bucket.blob(path)
+    return blob.download_as_string()
 
   def _WriteFile(self, path, content):
     """Create a file in the backing storage system."""
-    file_name = self._GsPath(path)
-
-    logging.debug('Writing file: %s', self._GsPath(path))
-
-    with cloudstorage.open(file_name, 'w') as gcs_file:
-      gcs_file.write(content)
+    blob = self._storage_bucket.blob(path)
+    logging.debug('Writing file: %s', blob.path)
+    blob.upload_from_string(content)
 
   def _DeleteFile(self, path):
     """Create a file in the backing storage system."""
-    logging.debug('Deleting file: %s', self._GsPath(path))
-
-    cloudstorage.delete(self._GsPath(path))
+    blob = self._storage_bucket.blob(path)
+    logging.debug('Deleting file: %s', blob.path)
+    blob.delete()
 
   def _ListFiles(self, prefix=None):
     """List files in the backing storage system."""
 
-    if prefix is not None and not prefix.endswith('/'):
+    if prefix is None:
+      prefix = ''
+
+    if prefix and not prefix.endswith('/'):
       prefix += '/'
 
-    files = cloudstorage.listbucket(self._GsPath(), prefix=prefix,
-                                    delimiter='/')
-
-    if prefix is None:
-      full_prefix = self._GsPath()
-    else:
-      full_prefix = self._GsPath(prefix)
-
-    return [os.path.relpath(f.filename, full_prefix)
-            for f in files if not f.is_dir]
-
-  def _GsPath(self, *pieces):
-    return os.path.normpath('/'.join(['', self._bucket] + list(pieces)))
+    ret = []
+    for blob in self._storage_client.list_blobs(
+        self._bucket_name, prefix=prefix, delimiter='/'):
+      ret.append(os.path.relpath(blob.name, prefix))
+    return ret

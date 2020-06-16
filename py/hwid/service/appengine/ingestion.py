@@ -141,14 +141,14 @@ class SyncNamePatternHandler(webapp2.RequestHandler):
     for name, mode, content in repo.list_files(self.NAME_PATTERN_FOLDER):
       if mode == git_util.NORMAL_FILE_MODE:
         self.hwid_filesystem.WriteFile(
-            '/%s/%s' % (self.NAME_PATTERN_FOLDER, name), content)
+            '%s/%s' % (self.NAME_PATTERN_FOLDER, name), content)
         existing_files.discard(name)
       else:
         logging.debug('Skip non-file %r under %r folder', name,
                       self.NAME_PATTERN_FOLDER)
     # remove files not existed on repo but still on cloud storage
     for name in existing_files:
-      self.hwid_filesystem.DeleteFile('/%s/%s' % (
+      self.hwid_filesystem.DeleteFile('%s/%s' % (
           self.NAME_PATTERN_FOLDER, name))
 
 
@@ -204,7 +204,7 @@ class RefreshHandler(webapp2.RequestHandler):
     # TODO(yllin): Reduce memory footprint.
     # Get board.yaml
     try:
-      metadata_yaml = self.hwid_filesystem.ReadFile('/staging/boards.yaml')
+      metadata_yaml = self.hwid_filesystem.ReadFile('staging/boards.yaml')
 
       # parse it
       metadata = yaml.safe_load(metadata_yaml)

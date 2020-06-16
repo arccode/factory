@@ -38,7 +38,7 @@ class IngestionTest(unittest.TestCase):
 
   def testRefresh(self):
     def MockReadFile(*args):
-      if args[0] == '/staging/boards.yaml':
+      if args[0] == 'staging/boards.yaml':
         return SERVER_BOARDS_DATA
       return 'Test Data'
 

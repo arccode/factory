@@ -59,7 +59,7 @@ def IngestAllDevicesJson():
   """Retrieve the file, parse and save the board to HWID regexp mapping."""
 
   memcache = memcache_adapter.MemcacheAdapter(namespace='SourceGoldenEye')
-  all_devices_json = CONFIG.goldeneye_filesystem.ReadFile('/all_devices.json')
+  all_devices_json = CONFIG.goldeneye_filesystem.ReadFile('all_devices.json')
   parsed_json = json.loads(all_devices_json)
 
   regexp_to_device = []
