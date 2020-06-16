@@ -152,6 +152,40 @@ class NetworkProbeStatementGeneratorTest(unittest.TestCase):
         })
 
 
+class MemoryProbeStatementGeneratorTest(unittest.TestCase):
+  def testTryGenerate(self):
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['dram'][0]
+
+    ps = ps_gen.TryGenerate(
+        'name1', {'part': 'ABC123DEF-A1_0', 'size': '4096', 'slot': '0'})
+    self.assertEqual(
+        ps,
+        {
+            'dram': {
+                'name1': {
+                    'eval': {'memory': {}},
+                    'expect': {'part': [True, 'str', '!eq ABC123DEF-A1_0'],
+                               'size': [True, 'int', '!eq 4096'],
+                               'slot': [True, 'int', '!eq 0']}
+                }
+            }
+        })
+
+    ps = ps_gen.TryGenerate('name2', {'part': 'ABC123DEF-A1', 'size': '4096'})
+    self.assertEqual(
+        ps,
+        {
+            'dram': {
+                'name2': {
+                    'eval': {'memory': {}},
+                    'expect': {'part': [True, 'str', '!eq ABC123DEF-A1'],
+                               'size': [True, 'int', '!eq 4096'],
+                               'slot': [False, 'int']}
+                }
+            }
+        })
+
+
 class GenerateVerificationPayloadTest(unittest.TestCase):
   def testSucc(self):
     dbs = [(database.Database.LoadFile(os.path.join(TESTDATA_DIR, name),

@@ -34,6 +34,16 @@
         }
       }
     },
+    "dram": {
+      "generic": {
+        "eval": {"memory": {}},
+        "expect": {
+          "part": [false, "str"],
+          "size": [false, "int"],
+          "slot": [false, "int"]
+        }
+      }
+    },
     "network": {
       "generic": {
         "eval": {"generic_network": {}},
@@ -116,6 +126,16 @@
           "manufacturer": [false, "str"],
           "model_name": [false, "str"],
           "technology": [false, "str"]
+        }
+      }
+    },
+    "dram": {
+      "generic": {
+        "eval": {"memory": {}},
+        "expect": {
+          "part": [false, "str"],
+          "size": [false, "int"],
+          "slot": [false, "int"]
         }
       }
     },

@@ -119,6 +119,15 @@ def _ConstructAllProbeStatementDefinitions():
                             num_value_digits=4)
   _probe_statement_definitions['network'] = builder.Build()
 
+  # Create dram builder
+  builder = probe_config_types.ProbeStatementDefinitionBuilder('dram')
+  builder.AddProbeFunction('memory',
+                           'Probe memory from DMI.')
+  builder.AddStrOutputField('part', 'Part number.')
+  builder.AddIntOutputField('size', 'Memory size in MiB.')
+  builder.AddIntOutputField('slot', 'Memory slot index.')
+  _probe_statement_definitions['dram'] = builder.Build()
+
 def GetProbeStatementDefinition(name):
   """Get the probe statement definition of the given name.
 

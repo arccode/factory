@@ -66,7 +66,10 @@ def _GetAllGenericProbeStatementInfoRecords():
             'network', 'generic_network',
             ['type', 'bus_type', 'pci_vendor_id', 'pci_device_id',
              'pci_revision', 'usb_vendor_id', 'usb_product_id',
-             'usb_bcd_device'])
+             'usb_bcd_device']),
+        GenericProbeStatementInfoRecord(
+            'dram', 'memory',
+            ['part', 'size', 'slot']),
     ]
 
   return _generic_probe_statement_info_records
@@ -160,7 +163,8 @@ def GetAllProbeStatementGenerators():
   def SimplyForwardValue(value):
     return value
 
-  same_name_field_converter = lambda n, c: _FieldRecord(n, n, c)
+  def same_name_field_converter(n, c, *args, **kwargs):
+    return _FieldRecord(n, n, c, *args, **kwargs)
 
   _all_probe_statement_generators = {}
 
@@ -250,6 +254,15 @@ def GetAllProbeStatementGenerators():
           'network', 'ethernet_network', network_pci_fields),
       _ProbeStatementGenerator(
           'network', 'ethernet_network', network_usb_fields),
+  ]
+
+  dram_fields = [
+      same_name_field_converter('part', HWIDValueToStr),
+      same_name_field_converter('size', StrToNum),
+      same_name_field_converter('slot', StrToNum, is_optional=True),
+  ]
+  _all_probe_statement_generators['dram'] = [
+      _ProbeStatementGenerator('dram', 'memory', dram_fields),
   ]
 
   return _all_probe_statement_generators
