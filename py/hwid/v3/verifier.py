@@ -51,7 +51,7 @@ def VerifyComponentStatus(database, bom, mode, current_phase=None):
         # if unspecified.
         current_phase = (phase.Phase(current_phase) if current_phase
                          else phase.GetPhase())
-        if current_phase == phase.PVT_DOGFOOD or current_phase == phase.PVT:
+        if current_phase in (phase.PVT_DOGFOOD, phase.PVT):
           raise common.HWIDException(
               'Found unqualified component of %r: %r in %r' %
               (comp_cls, comp_name, current_phase))

@@ -118,7 +118,7 @@ class LogExporter:
             'messages': messages,
             'log_paths': [],
         }
-      elif log_type == 'report' or log_type == 'log':
+      elif log_type in ('report', 'log'):
         start_date = datetime.datetime.strptime(start_date_str, '%Y%m%d').date()
         end_date = datetime.datetime.strptime(end_date_str, '%Y%m%d').date()
         tar_files_list = []

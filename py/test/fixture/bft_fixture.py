@@ -443,7 +443,7 @@ def main():
   fixture = CreateBFTFixture(**fixture_param)
 
   command = args.command
-  if command == 'Engage' or command == 'Disengage':
+  if command in ('Engage', 'Disengage'):
     print('%s %s' % (command, args.device))
     fixture.SetDeviceEngaged(args.device,
                              True if command == 'Engage' else False)

@@ -128,12 +128,10 @@ class USBTypeC(device_types.DeviceComponent):
         else:
           status['state'] = match.group('state')
           status['datarole'] = match.group('datarole')
-          if (pd_version == 'USB_PD_INFO_RE_V1_1' or
-              pd_version == 'USB_PD_INFO_RE_V1_2' or
-              pd_version == 'USB_PD_INFO_RE_V2'):
+          if pd_version in ('USB_PD_INFO_RE_V1_1', 'USB_PD_INFO_RE_V1_2',
+                            'USB_PD_INFO_RE_V2'):
             status['connected'] = match.group('connected') == 'connected'
-            if (pd_version == 'USB_PD_INFO_RE_V1_2' or
-                pd_version == 'USB_PD_INFO_RE_V2'):
+            if pd_version in ('USB_PD_INFO_RE_V1_2', 'USB_PD_INFO_RE_V2'):
               status['vconn'] = match.group('vconn')
         return status
     raise self.Error('Unable to parse USB PD status from: %s' % response)

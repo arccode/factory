@@ -165,8 +165,7 @@ def _SanitizeInput(config):
         (common.TOKEN.HELP, '', str),
         (common.TOKEN.VAR_ID, None, (type(None), int))])
     config_type = config[common.TOKEN.TYPE].lower()
-    if (config_type == common.INPUT_TYPE.NUMBER or
-        config_type == common.INPUT_TYPE.SLIDER):
+    if config_type in (common.INPUT_TYPE.NUMBER, common.INPUT_TYPE.SLIDER):
       _SanitizeInputNumberAndSlider(config)
 
     elif config_type == common.INPUT_TYPE.CHOICES:

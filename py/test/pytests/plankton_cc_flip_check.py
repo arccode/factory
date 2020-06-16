@@ -242,7 +242,7 @@ class PlanktonCCFlipCheck(test_case.TestCase):
         self.ui.SetState(_('And press Enter key to continue...'), append=True)
         self.ui.WaitKeysOnce(test_ui.ENTER_KEY)
         polarity = self.GetCCPolarity()
-        if polarity == self._polarity or polarity == _CC_UNCONNECT:
+        if polarity in (self._polarity, _CC_UNCONNECT):
           self.FailTask(
               'DUT does not detect cable flipped. Was it really flipped?')
       else:
@@ -251,7 +251,7 @@ class PlanktonCCFlipCheck(test_case.TestCase):
         while True:
           self.Sleep(0.5)
           polarity = self.GetCCPolarity()
-          if polarity != self._polarity and polarity != _CC_UNCONNECT:
+          if polarity not in (self._polarity, _CC_UNCONNECT):
             return
 
     elif (self._bft_fixture.IsDoubleCCCable() and

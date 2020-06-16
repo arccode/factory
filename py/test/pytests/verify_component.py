@@ -98,7 +98,7 @@ class VerifyComponentTest(test_case.TestCase):
 
   def _CheckPhase(self):
     current_phase = phase.GetPhase()
-    return current_phase == phase.PVT or current_phase == phase.PVT_DOGFOOD
+    return current_phase in (phase.PVT, phase.PVT_DOGFOOD)
 
   def _VerifyNumMismatch(self):
     def _ExtractInfoToName(comp_info):
