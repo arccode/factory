@@ -234,7 +234,7 @@ class TestsCommand(Subcommand):
     if self.args.this_run:
       scheduled_tests = (
           goofy.GetTestRunStatus(None).get('scheduled_tests') or [])
-      scheduled_tests = set([t['path'] for t in scheduled_tests])
+      scheduled_tests = {t['path'] for t in scheduled_tests}
       tests = [
           x for x in tests if x['path'] in scheduled_tests]
 

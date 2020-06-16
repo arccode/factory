@@ -446,7 +446,7 @@ class HwidApi(remote.Service):
               name="hwid_component",
               value=component.cls + '/' + name))
 
-    if set([label.name for label in labels]) - set(possible_labels):
+    if {label.name for label in labels} - set(possible_labels):
       return hwid_api_messages.DUTLabelResponse(
           error='Possible labels is out of date',
           possible_labels=possible_labels)

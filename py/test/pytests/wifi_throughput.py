@@ -844,7 +844,7 @@ class WiFiThroughput(test_case.TestCase):
     # Basic WiFi test -- returns available APs.
     try:
       found_aps = self._wifi.FilterAccessPoints(interface=self._interface)
-      found_ssids = list(set([ap.ssid for ap in found_aps]))
+      found_ssids = list({ap.ssid for ap in found_aps})
       session.console.info('Found services: %s', ', '.join(found_ssids))
     except self._wifi.WiFiError:
       error_msg = 'Timed out while searching for WiFi services'

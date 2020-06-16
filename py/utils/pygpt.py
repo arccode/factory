@@ -317,7 +317,7 @@ class GPTObject:
   @property
   def meta(self):
     """Meta values (those not in GPT object fields)."""
-    metas = set(self.__slots__) - set([f.name for f in self.FIELDS])
+    metas = set(self.__slots__) - {f.name for f in self.FIELDS}
     return {name: getattr(self, name) for name in metas}
 
   def Unpack(self, source):
