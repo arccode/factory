@@ -3,6 +3,14 @@
 # found in the LICENSE file.
 
 import abc
+import logging
+
+# pylint: disable=no-name-in-module,import-error
+from google.cloud import datastore
+# pylint: enable=no-name-in-module,import-error
+
+from cros.factory.probe_info_service.app_engine import config
+from cros.factory.utils import type_utils
 
 
 class OverriddenProbeData:
@@ -17,6 +25,9 @@ class OverriddenProbeData:
     self.is_tested = is_tested
     self.is_reviewed = is_reviewed
     self.probe_statement = probe_statement
+
+  def __repr__(self):
+    return self.__dict__.__repr__()
 
 
 class IProbeStatementStorageConnector(abc.ABC):
@@ -36,7 +47,8 @@ class IProbeStatementStorageConnector(abc.ABC):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def SetQualProbeStatementOverridden(self, qual_id, init_probe_statement):
+  def SetQualProbeStatementOverridden(
+      self, qual_id, init_probe_statement) -> str:
     """Sets the probe statement of the qualification to manual maintained.
 
     For any unexpected case that makes the qualification need an specialized
@@ -81,11 +93,11 @@ class IProbeStatementStorageConnector(abc.ABC):
     raise NotImplementedError
 
 
-class InMemoryProbeStatementStorageConnector(IProbeStatementStorageConnector):
+class _InMemoryProbeStatementStorageConnector(IProbeStatementStorageConnector):
   """An in-memory implementation for unittesting purpose."""
 
   def __init__(self):
-    super(InMemoryProbeStatementStorageConnector, self).__init__()
+    super(_InMemoryProbeStatementStorageConnector, self).__init__()
     self._qual_probe_statement = {}
     self._overridden_qual_probe_data = {}
 
@@ -113,11 +125,63 @@ class InMemoryProbeStatementStorageConnector(IProbeStatementStorageConnector):
     return self._overridden_qual_probe_data[qual_id]
 
 
-_instance = None
+class _DataStoreProbeStatementStorageConnector(IProbeStatementStorageConnector):
+  """A temporary implementation for the instance running on AppEngine.
+
+  Before go/cros-probe-statement-storage is finalized, this implementation
+  using `datastore` as the placeholder is in charge of managing overridden
+  probe statements so that end-to-end tests can work.
+  """
+
+  _GENERATED_QUAL_PROBE_STATEMENT_KIND = 'generated_probe_statement'
+  _OVERRIDDEN_QUAL_PROBE_DATA_KIND = 'overridden_qual_probe_data'
+  _PROBE_STATEMENT_KEY = 'probe_statement'
+
+  def __init__(self):
+    super(_DataStoreProbeStatementStorageConnector, self).__init__()
+    self._client = datastore.Client()
+
+  def SaveQualProbeStatement(self, qual_id, probe_statement):
+    self._SaveEntity([self._GENERATED_QUAL_PROBE_STATEMENT_KIND, qual_id],
+                     {self._PROBE_STATEMENT_KEY: probe_statement})
+    logging.debug('Update the generated probe statement for qual %r by %r.',
+                  qual_id, probe_statement)
+
+  def SetQualProbeStatementOverridden(self, qual_id, init_probe_statement):
+    data_instance = OverriddenProbeData(False, False, init_probe_statement)
+    entity_path = [self._OVERRIDDEN_QUAL_PROBE_DATA_KIND, qual_id]
+    self._SaveEntity(entity_path, data_instance.__dict__)
+    logging.debug('Update the overridden probe statement for qual %r by %r.',
+                  qual_id, data_instance)
+    return 'OK: entity path: %r' % (entity_path,)
+
+  def MarkOverriddenQualProbeStatementTested(self, qual_id):
+    path = [self._OVERRIDDEN_QUAL_PROBE_DATA_KIND, qual_id]
+    data_instance = OverriddenProbeData(**self._LoadEntity(path))
+    data_instance.is_tested = True
+    self._SaveEntity(path, data_instance.__dict__)
+
+  def LoadOverriddenQualProbeData(self, qual_id):
+    return OverriddenProbeData(
+        **self._LoadEntity([self._OVERRIDDEN_QUAL_PROBE_DATA_KIND, qual_id]))
+
+  def _LoadEntity(self, path_args):
+    key = self._client.key(*path_args)
+    data = self._client.get(key)
+    if data is None:
+      raise KeyError('path %r is not found in the datastore' % (path_args,))
+    return data
+
+  def _SaveEntity(self, path_args, data):
+    key = self._client.key(*path_args)
+    entity = datastore.Entity(key)
+    entity.update(data)
+    self._client.put(entity)
 
 
+@type_utils.CachedGetter
 def GetProbeStatementStorageConnector():
-  global _instance  # pylint: disable=global-statement
-  if _instance is None:
-    _instance = InMemoryProbeStatementStorageConnector()
-  return _instance
+  env_type = config.Config().env_type
+  if env_type == config.EnvType.LOCAL:
+    return _InMemoryProbeStatementStorageConnector()
+  return _DataStoreProbeStatementStorageConnector()
