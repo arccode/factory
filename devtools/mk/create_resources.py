@@ -20,6 +20,7 @@ import glob
 import itertools
 import logging
 import os
+import sys
 import tarfile
 
 
@@ -131,7 +132,7 @@ def main():
     CreateAllResources(args)
   except Exception as e:
     print('ERROR: %s' % e)
-    exit(1)
+    sys.exit(1)
 
 
 if __name__ == '__main__':

@@ -9,6 +9,7 @@ import argparse
 import json
 import os
 import stat
+import sys
 
 
 def main():
@@ -67,7 +68,7 @@ def main():
       print('     %s' % filepath)
     print()
   if redundant_files or unknown_shebangs:
-    quit('Failed.')
+    sys.exit('Failed.')
 
 
 if __name__ == '__main__':

@@ -31,7 +31,7 @@ def ConvertYAMLPathToJSONPath(yaml_path):
 
 def main():
   if not 1 < len(sys.argv) < 4:
-    exit('Usage: %s input [output]' % sys.argv[0])
+    sys.exit('Usage: %s input [output]' % sys.argv[0])
   in_file = sys.argv[1]
   out_file = sys.argv[2] if len(sys.argv) > 2 else (
       ConvertYAMLPathToJSONPath(in_file))

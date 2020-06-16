@@ -39,6 +39,7 @@ import glob
 import logging
 import os
 import shutil
+import sys
 import tempfile
 import zipfile
 
@@ -161,7 +162,7 @@ def main(argv=None):
   logging.basicConfig(level=logging.WARNING - 10 * (args.verbose or 0))
 
   if not args.modules:
-    exit('ERROR: Need at least one module (-m).')
+    sys.exit('ERROR: Need at least one module (-m).')
 
   init_modules = ['__init__']
   if args.extra_init:

@@ -94,7 +94,7 @@ def main():
     if not fn:
       print('%s: [<time/datetime> [patched]]' % sys.argv[0])
     if fn:
-      exit(0 if StrptimeRun(fn, patched) else 1)
+      sys.exit(0 if StrptimeRun(fn, patched) else 1)
 
   else:
     unittest.main()

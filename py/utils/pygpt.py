@@ -1628,7 +1628,7 @@ def main():
   except Exception as e:
     if args.verbose or args.debug:
       logging.exception('Failure in command [%s]', args.command)
-    exit('ERROR: %s: %s' % (args.command, str(e) or 'Unknown error.'))
+    sys.exit('ERROR: %s: %s' % (args.command, str(e) or 'Unknown error.'))
 
 
 if __name__ == '__main__':

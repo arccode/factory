@@ -26,13 +26,13 @@ def CheckTestsPassedInDirectory(folder, files, instruction):
     return
   tests_file_path = os.path.join(folder, '.tests-passed')
   if not os.path.exists(tests_file_path):
-    exit('Tests have not passed.\n%s' % instruction)
+    sys.exit('Tests have not passed.\n%s' % instruction)
   mtime = os.path.getmtime(tests_file_path)
   newer_files = [file_path for file_path in files_in_folder
                  if os.path.getmtime(file_path) > mtime]
   if newer_files:
-    exit('Files have changed since last time tests have passed:\n%s\n%s' %
-         ('\n'.join('  ' + new_file for new_file in newer_files), instruction))
+    sys.exit('Files have changed since last time tests have passed:\n%s\n%s' %
+             ('\n'.join('  ' + file for file in newer_files), instruction))
 
 
 def CheckFactoryRepo(files):
@@ -77,9 +77,9 @@ def CheckPytestDoc(files):
       bad_files.append(test_file)
 
   if bad_files:
-    exit('Python Factory Tests (pytests) must be properly documented:\n%s\n'
-         'Please read py/test/pytests/README.md for more information.' %
-         '\n'.join('  ' + test_file for test_file in bad_files))
+    sys.exit('Python Factory Tests (pytests) must be properly documented:\n%s\n'
+             'Please read py/test/pytests/README.md for more information.' %
+             '\n'.join('  ' + test_file for test_file in bad_files))
 
 
 def main():

@@ -98,7 +98,7 @@ class InstalogCLI:
     # Read config file.
     config_path = self._LocateConfigFile(args.config)
     if config_path is None:
-      exit('No config file found')
+      sys.exit('No config file found')
     with open(config_path) as f:
       config = yaml.load(f)
     self._CheckDataDir(config)
