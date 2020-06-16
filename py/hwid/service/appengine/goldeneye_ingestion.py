@@ -4,11 +4,18 @@
 
 """Handler that ingests the latest all_devices.json from GoldenEye."""
 
-import logging
 import json
+import logging
+import os
+import site
 
 # pylint: disable=import-error, no-name-in-module
-from google.appengine.api import taskqueue
+from google.appengine.api.app_identity import app_identity
+CUSTOMIZE_SITE_DIR = os.environ.get('CUSTOMIZE_SITE_DIR')
+if CUSTOMIZE_SITE_DIR:
+  site.addsitedir(CUSTOMIZE_SITE_DIR)
+from google.cloud import tasks
+# pylint: enable=import-error, no-name-in-module
 import webapp2  # pylint: disable=import-error
 
 from cros.factory.hwid.service.appengine.config import CONFIG
@@ -29,7 +36,15 @@ class AllDevicesRefreshHandler(webapp2.RequestHandler):
   # Cron jobs are always GET requests, we are not actually doing the work
   # here just queuing a task to be run in the background.
   def get(self):
-    taskqueue.add(url='/ingestion/all_devices_refresh')
+    client = tasks.CloudTasksClient()
+    # TODO(clarkchung): Change `app_identity.get_application_id()` to
+    # os.environ.get('GOOGLE_CLOUD_PROJECT') in py3 runtime
+    parent = client.queue_path(app_identity.get_application_id(),
+                               CONFIG.project_region, 'default')
+    client.create_task(parent, {
+        'app_engine_http_request': {
+            'http_method': 'POST',
+            'relative_uri': '/ingestion/all_devices_refresh'}})
 
   # Task queue executions are POST requests.
   def post(self):

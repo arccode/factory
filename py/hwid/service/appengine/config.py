@@ -79,6 +79,7 @@ class _Config:
         for k, v in conf.get('vpg_targets', {}).items()}
     self.dryrun_upload = conf.get('dryrun_upload', False)
     self.ingestion_api_key = conf.get('ingestion_api_key', None)
+    self.project_region = conf.get('project_region', '')
 
 
 CONFIG = _Config()

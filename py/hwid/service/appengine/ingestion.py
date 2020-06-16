@@ -9,12 +9,18 @@ import collections
 import hashlib
 import logging
 import os
+import site
 import traceback
 
 # pylint: disable=import-error, no-name-in-module
 from google.appengine.api.app_identity import app_identity
 from google.appengine.api import mail
-from google.appengine.api import taskqueue
+CUSTOMIZE_SITE_DIR = os.environ.get('CUSTOMIZE_SITE_DIR')
+if CUSTOMIZE_SITE_DIR:
+  site.addsitedir(CUSTOMIZE_SITE_DIR)
+# pylint: disable=import-error, no-name-in-module
+from google.cloud import tasks
+# pylint: enable=import-error, no-name-in-module
 import urllib3  # pylint: disable=import-error
 import webapp2  # pylint: disable=import-error
 import yaml
@@ -33,7 +39,7 @@ def _AuthCheck(func):
   """Checks if requests are from known source.
 
   For /ingestion/refresh  and /ingestion/sync_name_pattern API, hwid service
-  only allows cron job (via GET) and taskqueue (via POST) requests.  However,
+  only allows cron job (via GET) and cloud task (via POST) requests.  However,
   for e2e testing purpose, requests with API key are also allowed.
   """
 
@@ -46,9 +52,9 @@ def _AuthCheck(func):
       logging.info('Allow cron job requests')
       return func(self, *args, **kwargs)
 
-    from_taskqueue = self.request.headers.get('X-AppEngine-QueueName')
-    if from_taskqueue:
-      logging.info('Allow taskqueue requests')
+    from_cloud_task = self.request.headers.get('X-AppEngine-QueueName')
+    if from_cloud_task:
+      logging.info('Allow cloud task requests')
       return func(self, *args, **kwargs)
 
     if CONFIG.ingestion_api_key:
@@ -111,7 +117,15 @@ class SyncNamePatternHandler(webapp2.RequestHandler):
   # here just queuing a task to be run in the background.
   @_AuthCheck
   def get(self):
-    taskqueue.add(url='/ingestion/sync_name_pattern')
+    client = tasks.CloudTasksClient()
+    # TODO(clarkchung): Change `app_identity.get_application_id()` to
+    # os.environ.get('GOOGLE_CLOUD_PROJECT') in py3 runtime
+    parent = client.queue_path(app_identity.get_application_id(),
+                               CONFIG.project_region, 'default')
+    client.create_task(parent, {
+        'app_engine_http_request': {
+            'http_method': 'POST',
+            'relative_uri': '/ingestion/sync_name_pattern'}})
 
   # Task queue executions are POST requests.
   @_AuthCheck
@@ -170,7 +184,15 @@ class RefreshHandler(webapp2.RequestHandler):
   # here just queuing a task to be run in the background.
   @_AuthCheck
   def get(self):
-    taskqueue.add(url='/ingestion/refresh')
+    client = tasks.CloudTasksClient()
+    # TODO(clarkchung): Change `app_identity.get_application_id()` to
+    # os.environ.get('GOOGLE_CLOUD_PROJECT') in py3 runtime
+    parent = client.queue_path(app_identity.get_application_id(),
+                               CONFIG.project_region, 'default')
+    client.create_task(parent, {
+        'app_engine_http_request': {
+            'http_method': 'POST',
+            'relative_uri': '/ingestion/refresh'}})
 
   # Task queue executions are POST requests.
   @_AuthCheck
