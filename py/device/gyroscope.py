@@ -84,8 +84,8 @@ class GyroscopeController(sensor_utils.BasicSensorController):
     """
     logging.info('Calibration results: %s.', calib_bias)
     # The data is converted to 1/1024dps unit before writing.
-    scaled = dict((k, str(int(v * 1024 * _RADIAN_TO_DEGREE)))
-                  for k, v in calib_bias.items())
+    scaled = {k: str(int(v * 1024 * _RADIAN_TO_DEGREE))
+              for k, v in calib_bias.items()}
     self._device.vpd.ro.Update(scaled)
     mapping = []
     for signal_name in self.signal_names:

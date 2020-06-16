@@ -88,7 +88,7 @@ class SystemStatusSnapshot:
   """A snapshot object allows accessing pre-fetched data."""
   def __init__(self, status_):
     self.__dict__.update(copy.deepcopy(
-        dict((name, getattr(status_, name)) for name in _PROP_LIST)))
+        {name: getattr(status_, name) for name in _PROP_LIST}))
 
 
 class SystemStatus(device_types.DeviceComponent):

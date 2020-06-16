@@ -498,16 +498,16 @@ def RedirectStandardStreams(stdin=None, stdout=None, stderr=None):
              within the context.
   """
   args = {'stdin': stdin, 'stdout': stdout, 'stderr': stderr}
-  redirect_streams = dict((k, v) for k, v in args.items() if v is not None)
-  old_streams = dict((k, sys.__dict__[k]) for k in redirect_streams)
+  redirect_streams = {k: v for k, v in args.items() if v is not None}
+  old_streams = {k: sys.__dict__[k] for k in redirect_streams}
 
   for k, v in redirect_streams.items():
     sys.__dict__[k] = v
 
   yield
 
-  changed = dict((k, sys.__dict__[k]) for k, v in redirect_streams.items()
-                 if v is not sys.__dict__[k])
+  changed = {k: sys.__dict__[k] for k, v in redirect_streams.items()
+             if v is not sys.__dict__[k]}
   if changed:
     raise IOError('Unexpected standard stream redirections: %r' % changed)
   for k, v in old_streams.items():

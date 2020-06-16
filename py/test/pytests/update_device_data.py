@@ -328,7 +328,7 @@ class UpdateDeviceData(test_case.TestCase):
       for entry in self.entries:
         self.ManualInput(entry)
     else:
-      results = dict((entry.key, entry.value) for entry in self.entries)
+      results = {entry.key: entry.value for entry in self.entries}
       device_data.UpdateDeviceData(results)
 
   def ManualInput(self, entry):

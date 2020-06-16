@@ -170,8 +170,7 @@ class Dargs:
       setattr(self, key, value)
 
   def ToDict(self):
-    return dict([kv for kv in self.__dict__.items()
-                 if not kv[0].startswith('__')])
+    return {k: v for k, v in self.__dict__.items() if not k.startswith('__')}
 
 
 class Args:

@@ -78,7 +78,7 @@ class BoardTempSensorsTest(unittest.TestCase):
     else:
       if sensors is None:
         sensors = [self.thermal.GetMainSensorName()]
-      values = dict((name, self.GetTemperature(name)) for name in sensors)
+      values = {name: self.GetTemperature(name) for name in sensors}
 
     logging.info('Got temperatures: %r', values)
     min_temp, max_temp = self.args.temp_range

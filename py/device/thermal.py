@@ -106,7 +106,7 @@ class SensorSource(device_types.DeviceComponent):
     Returns:
       A dictionary {name: value} that is the name and value from sensor.
     """
-    return dict([(name, self.GetValue(name)) for name in self.GetSensors()])
+    return {name: self.GetValue(name) for name in self.GetSensors()}
 
 
 class ThermalSensorSource(SensorSource):
@@ -221,9 +221,9 @@ class ECToolTemperatureSensors(ThermalSensorSource):
 
   def _Probe(self):
     """Probes ectool sensors by "tempsinfo all" command."""
-    return dict(('ectool ' + name, sensor_id) for sensor_id, name in
-                self.ECTOOL_TEMPSINFO_ALL_RE.findall(
-                    self._device.CallOutput('ectool tempsinfo all')))
+    return {'ectool ' + name: sensor_id for sensor_id, name in
+            self.ECTOOL_TEMPSINFO_ALL_RE.findall(
+                self._device.CallOutput('ectool tempsinfo all'))}
 
   def _ConvertRawValue(self, value):
     """Converts ectool temperatures from Kelvin to Celsius."""
@@ -243,14 +243,13 @@ class ECToolTemperatureSensors(ThermalSensorSource):
     ectool has a quick command 'temps all' that is faster then iterating all
     sensor with GetValue, so we want to implement GetAllValues explicitly.
     """
-    raw_values = dict([
-        (sensor_id, value) for sensor_id, value in
-        self.ECTOOL_TEMPS_ALL_RE.findall(
-            self._device.CallOutput('ectool temps all'))])
+    raw_values = {sensor_id: value for sensor_id, value in
+                  self.ECTOOL_TEMPS_ALL_RE.findall(
+                      self._device.CallOutput('ectool temps all'))}
 
     # Remap ID to cached names.
-    return dict((name, self._ConvertRawValue(raw_values.get(sensor_id)))
-                for name, sensor_id in self.GetSensors().items())
+    return {name: self._ConvertRawValue(raw_values.get(sensor_id))
+            for name, sensor_id in self.GetSensors().items()}
 
   def GetCriticalValue(self, sensor):
     raise NotImplementedError
@@ -286,7 +285,7 @@ class Thermal(device_types.DeviceComponent):
     Args:
       source: An instance of `ThermalSensorSource`.
     """
-    sensors = dict((name, source) for name in source.GetSensors())
+    sensors = {name: source for name in source.GetSensors()}
     if not sensors:
       return
     self._sensors.update(sensors)

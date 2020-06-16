@@ -189,7 +189,7 @@ class ShopfloorService(test_case.TestCase):
       raise ValueError('Invalid response keys: %r' % illegal_keys)
     keys_to_delete = [k for k, v in data.items() if v is None]
     device_data.DeleteDeviceData(keys_to_delete)
-    data = dict((k, v) for k, v in data.items() if k not in keys_to_delete)
+    data = {k: v for k, v in data.items() if k not in keys_to_delete}
     device_data.UpdateDeviceData(data)
 
   @staticmethod

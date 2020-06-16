@@ -744,9 +744,8 @@ class Gooftool:
       return any(name for name in known_names if k.startswith(name))
 
     rw_vpd = self._vpd.GetAllData(partition=vpd.VPD_READWRITE_PARTITION_NAME)
-    dot_entries = dict((k, v) for k, v in rw_vpd.items() if '.' in k)
-    entries = dict((k, v) for k, v in dot_entries.items()
-                   if _IsFactoryVPD(k))
+    dot_entries = {k: v for k, v in rw_vpd.items() if '.' in k}
+    entries = {k: v for k, v in dot_entries.items() if _IsFactoryVPD(k)}
     unknown_keys = set(dot_entries) - set(entries)
     if unknown_keys:
       raise Error('Found unexpected RW VPD(s): %r' % unknown_keys)
@@ -754,7 +753,7 @@ class Gooftool:
     logging.info('Removing VPD entries %s', FilterDict(entries))
     if entries:
       try:
-        self._vpd.UpdateData(dict((k, None) for k in entries.keys()),
+        self._vpd.UpdateData({k: None for k in entries.keys()},
                              partition=vpd.VPD_READWRITE_PARTITION_NAME)
       except Exception as e:
         raise Error('Failed to remove VPD entries: %r' % e)

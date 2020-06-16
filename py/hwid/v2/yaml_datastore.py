@@ -94,8 +94,8 @@ class _DatastoreBase:
       if isinstance(elt_type, tuple):
         collection_type, field_type = elt_type
         if collection_type is dict:
-          return dict((field_key, NestedDecode(field_type, field))
-                      for field_key, field in elt_data.items())
+          return {field_key: NestedDecode(field_type, field)
+                  for field_key, field in elt_data.items()}
         if collection_type is list:
           return sorted(NestedDecode(field_type, field) for field in elt_data)
       elif isinstance(elt_type, list):

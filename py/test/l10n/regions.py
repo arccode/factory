@@ -173,7 +173,7 @@ class Region:
 
     notes and description are excluded.
     """
-    return dict((k, getattr(self, k)) for k in self.FIELDS)
+    return {k: getattr(self, k) for k in self.FIELDS}
 
 
 def LoadRegionDatabaseFromSource():

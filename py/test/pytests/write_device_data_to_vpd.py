@@ -122,6 +122,6 @@ class WriteDeviceDataToVPD(test_case.TestCase):
       if not entries:
         continue
       # Normalize boolean and integer types to strings.
-      output = dict((k, str(v)) for k, v in entries.items())
+      output = {k: str(v) for k, v in entries.items()}
       vpd = getattr(self.dut.vpd, section)
       vpd.Update(output)

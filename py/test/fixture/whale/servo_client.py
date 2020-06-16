@@ -64,7 +64,7 @@ FIXTURE_FEEDBACK = servo_config.FIXTURE_FEEDBACK
 
 # Plankton feedback 1 ~ 8. Can get its value ('on'/'off').
 PLANKTON_FEEDBACK = AttrDict(
-    dict(('FB%d' % i, 'plankton_fb%d' % i) for i in range(1, 9)))
+    {'FB%d' % i: 'plankton_fb%d' % i for i in range(1, 9)})
 
 # Tuple of Whale's latchless feedback
 # pylint: disable=dict-values-not-iterating

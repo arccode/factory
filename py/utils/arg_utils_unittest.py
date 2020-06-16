@@ -29,8 +29,7 @@ class ArgsTest(unittest.TestCase):
       A dictionary of attributes from the resultant object.
     """
     values = self.parser.Parse(dargs)
-    return dict((k, v) for k, v in values.__dict__.items()
-                if not k.startswith('_'))
+    return {k: v for k, v in values.__dict__.items() if not k.startswith('_')}
 
   def testIntOrNone(self):
     self.parser = Args(

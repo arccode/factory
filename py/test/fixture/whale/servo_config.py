@@ -36,7 +36,7 @@ WHALE_ADC = [
 
 # Whale's feedback dict
 FIXTURE_FEEDBACK = type_utils.AttrDict(
-    dict(('FB%d' % i, 'fixture_fb%d' % i) for i in range(1, 15)))
+    {'FB%d' % i: 'fixture_fb%d' % i for i in range(1, 15)})
 
 def _GetBoardServoConfig():
   """Gets board-dependent servo config file name.

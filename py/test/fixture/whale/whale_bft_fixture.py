@@ -149,7 +149,7 @@ class WhaleBFTFixture(bft.BFTFixture):
       BFTFixtureException if power rail is problematic.
     """
     inas = self._servo.MultipleGet(self._WHALE_INAS)
-    result = dict((k, int(v)) for k, v in inas.items())
+    result = {k: int(v) for k, v in inas.items()}
 
     # Servo returns a string of list of integers
     adc = ast.literal_eval(self._servo.Get(self._WHALE_CONTROL.ADC))

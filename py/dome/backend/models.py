@@ -823,7 +823,7 @@ class Bundle:
       raise DomeClientException('All bundles must be listed when reordering')
 
     # build a map for fast query later
-    bundles = dict((b['id'], b) for b in old_config['bundles'])
+    bundles = {b['id']: b for b in old_config['bundles']}
 
     # reorder bundles
     new_config = copy.deepcopy(old_config)

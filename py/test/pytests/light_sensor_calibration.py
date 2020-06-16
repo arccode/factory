@@ -268,8 +268,8 @@ class ALSFixture(test_case.TestCase):
       self.fixture_conn = None
       if self.args.control_chamber:
         if self.args.mock_mode:
-          script = dict((k.strip(), v.strip())
-                        for k, v in sum(self.args.chamber_cmd.values(), []))
+          script = {k.strip(): v.strip()
+                    for k, v in sum(self.args.chamber_cmd.values(), [])}
           self.fixture_conn = fixture_connection.MockFixtureConnection(script)
         else:
           self.fixture_conn = fixture_connection.SerialFixtureConnection(

@@ -155,7 +155,7 @@ class AccelerometerController(sensor_utils.BasicSensorController):
     FORMAT_RAW_DATA = '<3h'
 
     # Initializes the returned dict.
-    ret = dict((signal_name, 0.0) for signal_name in self.signal_names)
+    ret = {signal_name: 0.0 for signal_name in self.signal_names}
     # Reads the captured data.
     file_path = os.path.join('/dev/', self.iio_bus_id)
     data_captured = 0
@@ -270,8 +270,7 @@ class AccelerometerController(sensor_utils.BasicSensorController):
     # Writes the calibration results into ro vpd.
     # The data is converted to 1/1024G unit before writing.
     logging.info('Calibration results: %s.', calib_bias)
-    scaled = dict((k, str(int(v * 1024 / _GRAVITY)))
-                  for k, v in calib_bias.items())
+    scaled = {k: str(int(v * 1024 / _GRAVITY)) for k, v in calib_bias.items()}
     self._device.vpd.ro.Update(scaled)
     mapping = []
     for signal_name in self.signal_names:

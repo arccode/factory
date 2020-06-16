@@ -48,7 +48,7 @@ class LED(device_types.DeviceComponent):
     for name in self.Index:
       output = self._device.CallOutput(
           ['ectool', 'led', name.lower(), 'query']) or ''
-      max_brightness = dict((color.lower(), 255) for color in self.Color)
+      max_brightness = {color.lower(): 255 for color in self.Color}
       max_brightness.update((color, int(brightness, 0))
                             for color, brightness in _PATTERN.findall(output))
       self.max_brightnesses.update({name.lower(): max_brightness})

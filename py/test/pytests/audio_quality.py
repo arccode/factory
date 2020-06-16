@@ -532,7 +532,7 @@ class AudioQualityTest(test_case.TestCase):
       # 1. because the harmonic of some frequencies are not valid, we may
       #    have empty values in certain fields
       # 2. The missing fields are always in the last columns
-      frequencies = dict((row[0], row[1:]) for row in table)
+      frequencies = {row[0]: row[1:] for row in table}
       test_result['frequencies'] = frequencies
       test_result['header_row'] = header_row
       test_result['serial_number'] = serial_number

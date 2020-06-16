@@ -50,8 +50,7 @@ def json_default_repr(obj):
   returned.
   """
   if isinstance(obj, object):
-    return dict([(k, v) for k, v in obj.__dict__.items()
-                 if k[0] != '_'])
+    return {k: v for k, v in obj.__dict__.items() if not k.startswith('_')}
   return obj
 
 

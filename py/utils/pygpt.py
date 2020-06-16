@@ -318,7 +318,7 @@ class GPTObject:
   def meta(self):
     """Meta values (those not in GPT object fields)."""
     metas = set(self.__slots__) - set([f.name for f in self.FIELDS])
-    return dict((name, getattr(self, name)) for name in metas)
+    return {name: getattr(self, name) for name in metas}
 
   def Unpack(self, source):
     """Unpacks values from a given source.
@@ -394,9 +394,9 @@ class GPT:
       GUID('CAB6E88E-ABF3-4102-A07A-D4BB9BE3C1D3'): 'ChromeOS firmware',
       GUID('C12A7328-F81F-11D2-BA4B-00A0C93EC93B'): 'EFI System Partition',
   }
-  TYPE_GUID_FROM_NAME = dict(
-      ('efi' if v.startswith('EFI') else v.lower().split()[-1], k)
-      for k, v in TYPE_GUID_MAP.items())
+  TYPE_GUID_FROM_NAME = {
+      'efi' if v.startswith('EFI') else v.lower().split()[-1]: k
+      for k, v in TYPE_GUID_MAP.items()}
   TYPE_GUID_UNUSED = TYPE_GUID_FROM_NAME['unused']
   TYPE_GUID_CHROMEOS_KERNEL = TYPE_GUID_FROM_NAME['kernel']
   TYPE_GUID_LIST_BOOTABLE = [
@@ -955,13 +955,13 @@ class GPTCommands:
       ('Attribute', 'raw 16-bit attribute value (bits 48-63)')]
 
   def __init__(self):
-    commands = dict(
-        (command.lower(), getattr(self, command)())
+    commands = {
+        command.lower(): getattr(self, command)()
         for command in dir(self)
         if (isinstance(getattr(self, command), type) and
             issubclass(getattr(self, command), self.SubCommand) and
             getattr(self, command) is not self.SubCommand)
-    )
+    }
     self.commands = commands
 
   def DefineArgs(self, parser):
@@ -1467,8 +1467,8 @@ class GPTCommands:
       gpt = GPT.LoadFromFile(args.image_file)
       parts = [p for p in gpt.partitions if p.IsChromeOSKernel()]
       parts.sort(key=lambda p: p.Attributes.priority, reverse=True)
-      groups = dict((k, list(g)) for k, g in itertools.groupby(
-          parts, lambda p: p.Attributes.priority))
+      groups = {k: list(g) for k, g in itertools.groupby(
+          parts, lambda p: p.Attributes.priority)}
       if args.number:
         p = gpt.GetPartition(args.number)
         if p not in parts:

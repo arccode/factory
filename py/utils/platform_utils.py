@@ -48,7 +48,7 @@ def Provider(api_name, systems):
   if api_name not in _PROVIDER_MAP:
     _PROVIDER_MAP[api_name] = {}
   def ProviderDecorator(func):
-    _PROVIDER_MAP[api_name].update(dict(((name, func) for name in systems)))
+    _PROVIDER_MAP[api_name].update({name: func for name in systems})
     return func
   return ProviderDecorator
 

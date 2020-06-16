@@ -74,7 +74,7 @@ class SystemInfo(device_types.DeviceComponent):
   def GetAll(self):
     """Returns all properties in a dictionary object."""
     return copy.deepcopy(
-        dict((name, getattr(self, name)) for name in _INFO_PROP_LIST))
+        {name: getattr(self, name) for name in _INFO_PROP_LIST})
 
   def Invalidate(self, name=None):
     """Invalidates a property in system information object in cache.

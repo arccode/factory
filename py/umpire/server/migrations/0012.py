@@ -80,7 +80,7 @@ def MergeRulesetToBundle(config):
   NormalizeConfig). Also this override the bundle's note with ruleset's note,
   since Dome use note from ruleset.
   """
-  bundle_map = dict((b['id'], b) for b in config['bundles'])
+  bundle_map = {b['id']: b for b in config['bundles']}
 
   for r in config['rulesets']:
     bundle = bundle_map[r['bundle_id']]

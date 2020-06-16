@@ -187,7 +187,7 @@ def GetNamedTuple(mapping):
   """
   if not isinstance(mapping, collections.Mapping):
     return mapping
-  new_mapping = dict((k, GetNamedTuple(v)) for k, v in mapping.items())
+  new_mapping = {k: GetNamedTuple(v) for k, v in mapping.items()}
   return collections.namedtuple('Config', new_mapping.keys())(**new_mapping)
 
 
