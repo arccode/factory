@@ -131,6 +131,14 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
       Arg('upstart_mode', bool,
           'Use upstart mode to update Cr50 firmware.',
           default=True),
+      Arg('set_recovery_request_train_and_reboot', bool,
+          'Set recovery request to VB2_RECOVERY_TRAIN_AND_REBOOT. '
+          'For some boards, the device will reboot into recovery mode with '
+          'default (v0.0.22) cr50 firmware. Setting this will make the device '
+          'update the cr50 firmware and then automatically reboot back to '
+          'normal mode after updating cr50 firmware. '
+          'See b/154071064 for more details',
+          default=False),
       Arg('check_version_retry_timeout', int,
           'If the version is not matched, retry the check after the specific '
           'seconds.  Set to `0` to disable the retry.',
@@ -286,6 +294,8 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
         KEY_ATTEMPT_CR50_UPDATE_RO_VERSION: image_info.ro_fw_version,
         KEY_ATTEMPT_CR50_UPDATE_RW_VERSION: image_info.rw_fw_version
     })
+    if self.args.set_recovery_request_train_and_reboot:
+      self.dut.CheckCall('crossystem recovery_request=0xC4')
     update_result = self.gsctool.UpdateCr50Firmware(firmware_file,
                                                     self.args.upstart_mode)
     session.console.info('Cr50 firmware update complete: %s.', update_result)
