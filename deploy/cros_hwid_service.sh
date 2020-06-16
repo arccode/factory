@@ -15,6 +15,7 @@ TEMP_DIR="${FACTORY_DIR}/build/hwid"
 DEPLOYMENT_PROD="prod"
 DEPLOYMENT_STAGING="staging"
 DEPLOYMENT_LOCAL="local"
+DEPLOYMENT_E2E="e2e"
 ENDPOINTS_SUFFIX=".appspot.com"
 FACTORY_PRIVATE_DIR="${FACTORY_DIR}/../factory-private"
 
@@ -151,11 +152,19 @@ ${FACTORY_PRIVATE_DIR}/config/hwid/service/appengine/configurations.yaml" \
   run_in_temp \
     pip install -t lib -r requirements.txt
   deactivate
-  if [ "${deployment_type}" != "${DEPLOYMENT_LOCAL}" ]; then
-    run_in_temp gcloud --project="${GCP_PROJECT}" app deploy app.yaml cron.yaml
-  else
-    run_in_temp dev_appserver.py "${@}" app.yaml
-  fi
+  case "${deployment_type}" in
+    "${DEPLOYMENT_LOCAL}")
+      run_in_temp dev_appserver.py "${@}" app.yaml
+      ;;
+    "${DEPLOYMENT_E2E}")
+      run_in_temp gcloud --project="${GCP_PROJECT}" app deploy --no-promote \
+        --version=e2e-test app.yaml cron.yaml
+      ;;
+    *)
+      run_in_temp gcloud --project="${GCP_PROJECT}" app deploy app.yaml \
+        cron.yaml
+      ;;
+  esac
 }
 
 do_build() {
@@ -202,6 +211,11 @@ commands:
   $0 deploy local [args...]
       Deploys HWID Service locally via dep_appserver.py tool.  Arguments will
       be delegated to the tool.
+
+  $0 deploy e2e
+      Deploys HWID Service to the staging server with specific version
+      "e2e-test" which would not be affected with versions under development
+      but just for end-to-end testing purpose.
 
   $0 build
       Builds docker image for AppEngine integration test.

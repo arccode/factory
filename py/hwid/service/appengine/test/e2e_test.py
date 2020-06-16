@@ -50,6 +50,7 @@ class E2ETest(unittest.TestCase):
 
   def testAll(self):
     failed_tests = []
+    logging.info('Test endpoint: %s', self.config['url_prefix'])
     for test in self.config['tests']:
       url = self._GenerateURL(test['path'])
       params = self._GenerateParams(test.get('params', None))
