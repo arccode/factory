@@ -138,7 +138,7 @@ def QueueGet(q, timeout=None,
 
   This is useful when a custom polling sleep function is set.
   """
-  if _GetPollingSleepFunction() == _DEFAULT_POLLING_SLEEP_FUNCTION:
+  if _GetPollingSleepFunction() is _DEFAULT_POLLING_SLEEP_FUNCTION:
     return q.get(timeout=timeout)
 
   def _Poll():
@@ -163,7 +163,7 @@ def EventWait(event, timeout=None,
 
   This is useful when a custom polling sleep function is set.
   """
-  if _GetPollingSleepFunction() == _DEFAULT_POLLING_SLEEP_FUNCTION:
+  if _GetPollingSleepFunction() is _DEFAULT_POLLING_SLEEP_FUNCTION:
     return event.wait(timeout=timeout)
 
   try:
