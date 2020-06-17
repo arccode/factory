@@ -7,7 +7,7 @@ SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 . "${SCRIPT_DIR}/common.sh" || exit 1
 
 : "${PYTHONPATH:=py_pkg:py:setup}"
-: "${PYLINT_MSG_TEMPLATE:='{path}:{line}: {symbol}: {msg}'}"
+: "${PYLINT_MSG_TEMPLATE:="{path}:{line}: {symbol}: {msg}"}"
 : "${PYLINT_RC_FILE:="${SCRIPT_DIR}/pylint.rc"}"
 : "${PYLINT_OPTIONS:=}"
 : "${PYLINT_VENV:="${SCRIPT_DIR}/pylint.venv"}"
@@ -36,6 +36,13 @@ do_lint() {
   fi
 }
 
+remove_py2_venv() {
+  if [[ -d "${PYLINT_VENV}" && -f "${PYLINT_VENV}/bin/python2" ]]; then
+    echo "Outdated Python2 venv detected, removing ${PYLINT_VENV}..."
+    rm -rf "${PYLINT_VENV}"
+  fi
+}
+
 load_venv() {
   if ! [ -d "${PYLINT_VENV}" ]; then
     echo "Cannot find '${PYLINT_VENV}', install virtualvenv"
@@ -56,6 +63,7 @@ main(){
   local out="$(mktemp)"
   add_temp "${out}"
 
+  remove_py2_venv
   load_venv
 
   echo "Linting $(echo "$@" | wc -w) files..."
