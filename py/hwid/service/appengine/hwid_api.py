@@ -435,6 +435,7 @@ class HwidApi(remote.Service):
         'stylus',
         'touchpad',
         'touchscreen',
+        'dram',
     ]
     for cls in hwid_components:
       for component in bom.GetComponents(cls):
