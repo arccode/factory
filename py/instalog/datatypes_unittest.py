@@ -126,7 +126,8 @@ class TestEvent(unittest.TestCase):
     self.assertEqual(event['a'], payload['a'])
     self.assertEqual(event['b'], payload['b'])
     self.assertTrue(repr(payload) in repr(event))
-    self.assertEqual(('a', 1), next(event.iteritems()))
+    # Self-defined iteritems(), so it still works in Python3.
+    self.assertEqual(('a', 1), next(event.iteritems()))  # pylint: disable=dict-iter-method
     with self.assertRaises(AttributeError):
       self.assertTrue(event.__d__)
     event.setdefault('a', 2)

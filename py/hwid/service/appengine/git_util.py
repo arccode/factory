@@ -174,7 +174,7 @@ class MemoryRepo(_MemoryRepo):
     if mode != DIR_MODE:
       raise GitUtilException('Path %r is not a directory' % (path,))
     tree = self[sha]
-    for name, mode, file_sha in tree.iteritems():
+    for name, mode, file_sha in tree.items():
       obj = self[file_sha]
       yield (name, mode, obj.data if obj.type_name == 'blob' else None)
 
