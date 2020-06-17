@@ -220,9 +220,9 @@ you expect.
 
 First, you should run unit tests making sure that your region settings
 are valid. To test values in the public repo, use
-``py/l10/regions_unittest.py``. To test values in a private or board
+``py/test/l10n/regions_unittest.py``. To test values in a private or board
 overlay, use :samp:`make overlay-{board} &&
-overlay-{board}/py/l10/regions_unittest.py`, where :samp:`{board}` is
+overlay-{board}/py/test/l10n/regions_unittest.py`, where :samp:`{board}` is
 either the name of your board or the string ``private``.
 
 To check the OOBE user experience, you can use the
@@ -315,4 +315,3 @@ overlays, in the ``chromeos-partner-overlay`` repository.
 
 .. [#l10n] "l10n" is a common abbreviation for "localization": "l",
    plus 10 letters "ocalizatio", plus "n".)
-
