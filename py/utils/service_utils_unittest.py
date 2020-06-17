@@ -94,23 +94,22 @@ class ServiceManagerTest(unittest.TestCase):
   @mock.patch('cros.factory.utils.service_utils.GetServiceStatus')
   def testServiceManager(self, get_status_mock, set_status_mock):
     get_status_return_mapping = {
-        'stopped_and_enable': Status.STOP,
+        'started_and_disable': Status.START,
         'started_and_enable': Status.START,
         'stopped_and_disable': Status.STOP,
-        'started_and_disable': Status.START
+        'stopped_and_enable': Status.STOP,
     }
-    set_status_return_mapping = {
-        ('stopped_and_enable', Status.START): Status.START,
-        ('started_and_disable', Status.STOP): Status.STOP,
-        ('stopped_and_enable', Status.STOP): Status.STOP,
-        ('started_and_disable', Status.START): Status.START
-    }
+    set_status_return_mapping = [
+        (service, status)
+        for service in ('started_and_disable', 'stopped_and_enable')
+        for status in (Status.START, Status.STOP)
+    ]
 
     def GetStatusSideEffect(*args, **unused_kwargs):
       return get_status_return_mapping[args[0]]
 
     def SetStatusSideEffect(*args, **unused_kwargs):
-      return set_status_return_mapping[(args[0], args[1])]
+      return args[1]
 
     get_status_mock.side_effect = GetStatusSideEffect
     set_status_mock.side_effect = SetStatusSideEffect
@@ -124,7 +123,7 @@ class ServiceManagerTest(unittest.TestCase):
     for service in get_status_return_mapping:
       get_status_mock.assert_any_call(service, dut=self.dut)
 
-    for (service, status) in set_status_return_mapping:
+    for service, status in set_status_return_mapping:
       set_status_mock.assert_any_call(service, status, self.dut)
 
 
