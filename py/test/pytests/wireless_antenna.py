@@ -90,10 +90,41 @@ _ARG_SERVICES_SCHEMA = JSONSchemaDict('services schema object', {
         'maxItems': 3
     }
 })
+_ARG_SWITCH_ANTENNA_CONFIG_SCHEMA = JSONSchemaDict(
+    'switch antenna config schema object',
+    {
+        'type': 'object',
+        'properties': {
+            'main': {
+                'type': 'array',
+                'items': {'type': 'integer'},
+                'minItems': 2,
+                'maxItems': 2
+            },
+            'aux': {
+                'type': 'array',
+                'items': {'type': 'integer'},
+                'minItems': 2,
+                'maxItems': 2
+            },
+            'all': {
+                'type': 'array',
+                'items': {'type': 'integer'},
+                'minItems': 2,
+                'maxItems': 2
+            },
+        },
+        'additionalProperties': False,
+        'required': ['main', 'aux', 'all']
+    })
 _ARG_STRENGTH_SCHEMA = JSONSchemaDict('strength schema object', {
     'type': 'object',
     'additionalProperties': {'type': 'number'}
 })
+
+_DEFAULT_SWITCH_ANTENNA_CONFIG = {'main': [1, 1],
+                                  'aux': [2, 2],
+                                  'all': [3, 3]}
 
 
 class SwitchAntennaWiFiChip(wifi.WiFiChip):
@@ -102,16 +133,14 @@ class SwitchAntennaWiFiChip(wifi.WiFiChip):
   # will be ignored.
   _THRESHOLD_LAST_SEEN_MS = 1000
 
-  _ANTENNA_CONFIG = {'main': ('1', '1'),
-                     'aux': ('2', '2'),
-                     'all': ('3', '3')}
   def __init__(self, device, interface, phy_name, services,
-               switch_antenna_sleep_secs):
+               switch_antenna_config, switch_antenna_sleep_secs):
     super(SwitchAntennaWiFiChip, self).__init__(device, interface, phy_name)
     self._services = [(service.ssid, service.freq) for service in services]
+    self._switch_antenna_config = switch_antenna_config
     self._signal_table = {antenna: {service: []
                                     for service in self._services}
-                          for antenna in self._ANTENNA_CONFIG}
+                          for antenna in self._switch_antenna_config}
     self._antenna = None
     self._switch_antenna_sleep_secs = switch_antenna_sleep_secs
 
@@ -139,7 +168,7 @@ class SwitchAntennaWiFiChip(wifi.WiFiChip):
               'Can not scan service %s %d.',
               scanned_service[0], scanned_service[1])
           continue
-        elif len(duplicates) > 1:
+        if len(duplicates) > 1:
           session.console.warning(
               'There are more than one result for service %s %d.',
               scanned_service[0], scanned_service[1])
@@ -180,13 +209,14 @@ class SwitchAntennaWiFiChip(wifi.WiFiChip):
     """
     if self._antenna == antenna:
       return
-    tx_bitmap, rx_bitmap = self._ANTENNA_CONFIG[antenna]
+    tx_bitmap, rx_bitmap = self._switch_antenna_config[antenna]
     self._device.wifi.BringsDownInterface(self._interface)
     try_count = 0
     success = False
     while try_count < max_retries:
       process = self._device.Popen(
-          ['iw', 'phy', self._phy_name, 'set', 'antenna', tx_bitmap, rx_bitmap],
+          ['iw', 'phy', self._phy_name, 'set', 'antenna', str(tx_bitmap),
+           str(rx_bitmap)],
           stdout=subprocess.PIPE, stderr=subprocess.PIPE, log=True)
       unused_stdout, stderr = process.communicate()
       retcode = process.returncode
@@ -195,7 +225,7 @@ class SwitchAntennaWiFiChip(wifi.WiFiChip):
         break
       # (-95) EOPNOTSUPP Operation not supported on transport endpoint
       # Do ifconfig down again may solve this problem.
-      elif retcode == 161:
+      if retcode == 161:
         try_count += 1
         logging.info('Retry...')
         self._device.wifi.BringsDownInterface(self._interface)
@@ -318,8 +348,8 @@ class RadiotapPacket:
             continue
           if field.align and (data_bytes % field.align):
             data_bytes += field.align - (data_bytes % field.align)
-          if (field == RadiotapPacket.ANTENNA_SIGNAL_FIELD or
-              field == RadiotapPacket.ANTENNA_INDEX_FIELD):
+          if field in (RadiotapPacket.ANTENNA_SIGNAL_FIELD,
+                       RadiotapPacket.ANTENNA_INDEX_FIELD):
             antenna_offsets[-1][field] = data_bytes
           data_bytes += field.struct.size
 
@@ -523,6 +553,11 @@ class WirelessTest(test_case.TestCase):
           'antenna configurations in this dict.', schema=_ARG_STRENGTH_SCHEMA),
       Arg('scan_count', int,
           'Number of scans to get average signal strength.', default=5),
+      Arg('switch_antenna_config', dict,
+          'A dict of ``{"main": (tx, rx), "aux": (tx, rx), "all": (tx, rx)}`` '
+          'for the config when switching the antenna.',
+          default=_DEFAULT_SWITCH_ANTENNA_CONFIG,
+          schema=_ARG_SWITCH_ANTENNA_CONFIG_SCHEMA),
       Arg('switch_antenna_sleep_secs', int,
           'The sleep time after switching antenna and ifconfig up. Need to '
           'decide this value carefully since it depends on the platform and '
@@ -657,7 +692,7 @@ class WirelessTest(test_case.TestCase):
     if not self._wifi_chip_type or self._wifi_chip_type == 'switch_antenna':
       self._wifi_chip = SwitchAntennaWiFiChip(
           self._dut, self._device_name, self._phy_name, self._services,
-          self.args.switch_antenna_sleep_secs)
+          self.args.switch_antenna_config, self.args.switch_antenna_sleep_secs)
       if self._wifi_chip_type:
         return
       # If wifi_chip_type is not specified and the device is able to switch
@@ -681,7 +716,7 @@ class WirelessTest(test_case.TestCase):
     if self._wifi_chip_type == 'disable_switch':
       self._wifi_chip = DisableSwitchWiFiChip(
           self._dut, self._device_name, self._phy_name, self._services,
-          self.args.switch_antenna_sleep_secs)
+          self.args.switch_antenna_config, self.args.switch_antenna_sleep_secs)
       return
 
     raise ValueError('Wifi chip type %s is not supported.' %
