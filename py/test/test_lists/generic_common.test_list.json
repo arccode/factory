@@ -258,7 +258,7 @@
           "pytest_name": "exec_shell",
           "args": {
             "commands": [
-              "gsctool -a -F disable",
+              "gsctool -a -F disable | true",
               "ectool flashprotect enable",
               "ectool reboot_ec RO at-shutdown"
             ]
