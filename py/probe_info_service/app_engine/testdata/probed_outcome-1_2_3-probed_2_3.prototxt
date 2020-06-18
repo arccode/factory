@@ -1,0 +1,17 @@
+probe_statement_metadatas: {
+  component_name: "AVL_1"
+  fingerprint: "9909f1bf7625f884906623ece5ebe03a55644966"
+}
+probe_statement_metadatas: {
+  component_name: "AVL_2"
+  fingerprint: "24d1820bd20551c8126dbe44c0abdafb2ccce1e7"
+}
+probe_statement_metadatas: {
+  component_name: "AVL_3"
+  fingerprint: "b8ef999202c73298a70b81b8900dfa90d0d37ee5"
+}
+rp_invocation_result: {
+  result_type: FINISHED
+  return_code: 0
+  raw_stdout: "{\"storage\": [{\"name\": \"AVL_2\"}], \"battery\": [{\"name\": \"AVL_3\"}]}"
+}

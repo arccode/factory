@@ -290,19 +290,31 @@ class ProbeDataSource:
 
 
 class ProbeInfoArtifact(typing.NamedTuple):
-  """A placeholder for any artifact generated from a probe info.
+  """A placeholder for any artifact generated from probe info(s).
 
-  Many tasks performed by this module involve parsing a given `ProbeInfo`
-  instance to get any kind of output.  The probe info might not necessary be
+  Many tasks performed by this module involve parsing the given `ProbeInfo`
+  instance(s) to get any kind of output.  The probe info might not necessary be
   valid, the module need to return a structured summary for the parsed result
   all the time.  This class provides a placeholder for those methods.
 
   Properties:
-    probe_info_parsed_result: An instance of `ProbeInfoParsedResult`.
+    probe_info_parsed_result: (optional) an instance of `ProbeInfoParsedResult`
+        if the source is a single `ProbeInfo` instance.
+    probe_info_parsed_results: (optional) a list of instances of
+        `ProbeInfoParsedResult` corresponds to the source of array of
+        `ProbeInfo` instances.
     output: `None` or any kind of the output.
   """
   probe_info_parsed_result: ProbeInfoParsedResult
   output: typing.Any
+
+  @property
+  def probe_info_parsed_results(self) -> typing.List[ProbeInfoParsedResult]:
+    # Since the input is always either one `ProbeInfo` or multiple `ProbeInfo`,
+    # `self.probe_info_parsed_result` and `self.probe_info_parsed_results` are
+    # mutually exclusively meaningful.  Therefore, we re-use the same
+    # placeholder.
+    return self.probe_info_parsed_result
 
 
 @type_utils.CachedGetter
@@ -314,6 +326,18 @@ def _GetClientPayloadPb2Content():
 def _GetRuntimeProbeWrapperContent():
   full_path = os.path.join(_RESOURCE_PATH, 'runtime_probe_wrapper.py')
   return file_utils.ReadFile(full_path, encoding=None)
+
+
+class _ProbedOutcomePreprocessConclusion(typing.NamedTuple):
+  probed_outcome: client_payload_pb2.ProbedOutcome
+  intrivial_error_msg: typing.Optional[str]
+  probed_components: typing.Optional[typing.List[str]]
+
+
+class DeviceProbeResultAnalyzedResult(typing.NamedTuple):
+  """Placeholder for the analyzed result of a device probe result."""
+  intrivial_error_msg: typing.Optional[str]
+  probe_info_test_results: typing.Optional[typing.List[ProbeInfoTestResult]]
 
 
 class ProbeToolManager:
@@ -396,8 +420,9 @@ class ProbeToolManager:
         },
     })
 
-  def GenerateQualProbeTestBundlePayload(
-      self, probe_data_source: ProbeDataSource) -> ProbeInfoArtifact:
+  def GenerateProbeBundlePayload(
+      self, probe_data_sources: typing.List[ProbeDataSource]
+  ) -> ProbeInfoArtifact:
     """Generates the payload for testing the probe info of a qualification.
 
     Args:
@@ -407,23 +432,28 @@ class ProbeToolManager:
       An instance of `ProbeInfoArtifact`, which `output` property is a string
       of the result payload.
     """
-    if probe_data_source.probe_info is None:
-      try:
-        ps = json_utils.LoadStr(probe_data_source.probe_statement)
-        pi_parsed_result = ProbeInfoParsedResult(
-            result_type=ProbeInfoParsedResult.PASSED)
-      except Exception as e:
-        ps = None
-        pi_parsed_result = ProbeInfoParsedResult(
-            result_type=ProbeInfoParsedResult.OVERRIDDEN_PROBE_STATEMENT_ERROR,
-            general_error_msg=str(e))
+    probe_info_parsed_results = []
+    probe_statements = []
+    for probe_data_source in probe_data_sources:
+      if probe_data_source.probe_info is None:
+        try:
+          ps = json_utils.LoadStr(probe_data_source.probe_statement)
+          pi_parsed_result = ProbeInfoParsedResult(
+              result_type=ProbeInfoParsedResult.PASSED)
+        except Exception as e:
+          ps = None
+          pi_parsed_result = ProbeInfoParsedResult(
+              result_type=(
+                  ProbeInfoParsedResult.OVERRIDDEN_PROBE_STATEMENT_ERROR),
+              general_error_msg=str(e))
+      else:
+        pi_parsed_result, ps = self._ConvertProbeDataSourceToProbeStatement(
+            probe_data_source)
+      probe_statements.append(ps)
+      probe_info_parsed_results.append(pi_parsed_result)
 
-    else:
-      pi_parsed_result, ps = self._ConvertProbeDataSourceToProbeStatement(
-          probe_data_source)
-
-    if ps is None:
-      return ProbeInfoArtifact(pi_parsed_result, None)
+    if any(ps is None for ps in probe_statements):
+      return ProbeInfoArtifact(probe_info_parsed_results, None)
 
     builder = bundle_builder.BundleBuilder()
     builder.AddRegularFile(os.path.basename(client_payload_pb2.__file__),
@@ -433,12 +463,14 @@ class ProbeToolManager:
     builder.SetRunnerFilePath('runtime_probe_wrapper')
 
     metadata = client_payload_pb2.ProbeBundleMetadata()
-    metadata.probe_statement_metadatas.add(
-        component_name=probe_data_source.component_name,
-        fingerprint=probe_data_source.fingerprint)
-
     pc_payload = probe_config_types.ProbeConfigPayload()
-    pc_payload.AddComponentProbeStatement(ps)
+
+    for i, probe_data_source in enumerate(probe_data_sources):
+      metadata.probe_statement_metadatas.add(
+          component_name=probe_data_source.component_name,
+          fingerprint=probe_data_source.fingerprint)
+      pc_payload.AddComponentProbeStatement(probe_statements[i])
+
     metadata.probe_config_file_path = 'probe_config.json'
     builder.AddRegularFile(metadata.probe_config_file_path,
                            pc_payload.DumpToString().encode('utf-8'))
@@ -446,7 +478,7 @@ class ProbeToolManager:
     builder.AddRegularFile(
         'metadata.prototxt', text_format.MessageToBytes(metadata))
 
-    return ProbeInfoArtifact(pi_parsed_result, builder.Build())
+    return ProbeInfoArtifact(probe_info_parsed_results, builder.Build())
 
   def AnalyzeQualProbeTestResultPayload(
       self, probe_data_source: ProbeDataSource,
@@ -463,52 +495,82 @@ class ProbeToolManager:
     Raises:
       `PayloadInvalidError` if the given input is invalid.
     """
-    try:
-      probed_outcome = text_format.Parse(
-          probe_result_payload, client_payload_pb2.ProbedOutcome())
-    except text_format.ParseError as e:
-      raise PayloadInvalidError('Unable to load and parse the content: %s.' % e)
-    if len(probed_outcome.probe_statement_metadatas) != 1:
-      raise PayloadInvalidError('Incorrect number of probe statements: %r.' %
-                                len(probed_outcome.probe_statement_metadatas))
-    ps_metadata = probed_outcome.probe_statement_metadatas[0]
+    preproc_conclusion = self._PreprocessProbeResultPayload(
+        probe_result_payload)
+
+    num_ps_metadatas = len(
+        preproc_conclusion.probed_outcome.probe_statement_metadatas)
+    if num_ps_metadatas != 1:
+      raise PayloadInvalidError(
+          'Incorrect number of probe statements: %r.' % num_ps_metadatas)
+
+    ps_metadata = preproc_conclusion.probed_outcome.probe_statement_metadatas[0]
     if ps_metadata.component_name != probe_data_source.component_name:
       raise PayloadInvalidError('Probe statement component name mismatch.')
-    rp_invocation_result = probed_outcome.rp_invocation_result
-    if rp_invocation_result.result_type == rp_invocation_result.UNKNOWN:
-      raise PayloadInvalidError('Unknown invocation result type.')
+
     if ps_metadata.fingerprint != probe_data_source.fingerprint:
       return ProbeInfoTestResult(result_type=ProbeInfoTestResult.LEGACY)
-    if rp_invocation_result.result_type != rp_invocation_result.FINISHED:
-      return ProbeInfoTestResult(
-          result_type=ProbeInfoTestResult.INTRIVIAL_ERROR,
-          intrivial_error_msg=('The invocation of runtime_probe is abnormal: '
-                               'type=%r.' % rp_invocation_result.result_type))
-    if rp_invocation_result.return_code != 0:
-      return ProbeInfoTestResult(
-          result_type=ProbeInfoTestResult.INTRIVIAL_ERROR,
-          intrivial_error_msg=('The return code of runtime probe is non-zero: '
-                               '%r.' % rp_invocation_result.return_code))
-    try:
-      probed_result = json_utils.LoadStr(
-          rp_invocation_result.raw_stdout.decode('utf-8'))
 
-      has_probed_comp = any(any(comp['name'] == probe_data_source.component_name
-                                for comp in category_pr)
-                            for category_pr in probed_result.values())
-    except Exception as e:
+    if preproc_conclusion.intrivial_error_msg:
       return ProbeInfoTestResult(
           result_type=ProbeInfoTestResult.INTRIVIAL_ERROR,
-          intrivial_error_msg=(
-              'The output of runtime_probe is invalid: %r.' % e))
+          intrivial_error_msg=preproc_conclusion.intrivial_error_msg)
 
-    if has_probed_comp:
+    if preproc_conclusion.probed_components:
       return ProbeInfoTestResult(result_type=ProbeInfoTestResult.PASSED)
 
     # TODO(yhong): Provide hints from generic probed result.
     return ProbeInfoTestResult(
         result_type=ProbeInfoTestResult.INTRIVIAL_ERROR,
         intrivial_error_msg='No component is found.')
+
+  def AnalyzeDeviceProbeResultPayload(
+      self, probe_data_sources: typing.List[ProbeDataSource],
+      probe_result_payload: bytes) -> DeviceProbeResultAnalyzedResult:
+    """Analyzes the given probe result payload from a specific device.
+
+    Args:
+      probe_data_sources: The original sources for the probe statements.
+      probed_result_payload: A byte string of the payload to be analyzed.
+
+    Returns:
+      List of `ProbeInfoTestResult` for each probe data sources.
+
+    Raises:
+      `PayloadInvalidError` if the given input is invalid.
+    """
+    preproc_conclusion = self._PreprocessProbeResultPayload(
+        probe_result_payload)
+    pds_of_comp_name = {pds.component_name: pds for pds in probe_data_sources}
+    ps_metadata_of_comp_name = {
+        m.component_name: m
+        for m in preproc_conclusion.probed_outcome.probe_statement_metadatas}
+    unknown_comp_names = set(
+        ps_metadata_of_comp_name.keys()) - set(pds_of_comp_name.keys())
+    if unknown_comp_names:
+      raise PayloadInvalidError(
+          'the probe result payload contains unknown components: %r' %
+          unknown_comp_names)
+    if preproc_conclusion.intrivial_error_msg:
+      return DeviceProbeResultAnalyzedResult(
+          intrivial_error_msg=preproc_conclusion.intrivial_error_msg,
+          probe_info_test_results=None)
+    pi_test_result_types = []
+    for pds in probe_data_sources:
+      comp_name = pds.component_name
+      ps_metadata = ps_metadata_of_comp_name.get(comp_name, None)
+      if ps_metadata is None:
+        pi_test_result_types.append(ProbeInfoTestResult.NOT_INCLUDED)
+      elif ps_metadata.fingerprint != pds.fingerprint:
+        pi_test_result_types.append(ProbeInfoTestResult.LEGACY)
+      elif any(c == comp_name for c in preproc_conclusion.probed_components):
+        pi_test_result_types.append(ProbeInfoTestResult.PASSED)
+      else:
+        pi_test_result_types.append(ProbeInfoTestResult.NOT_PROBED)
+    return DeviceProbeResultAnalyzedResult(
+        intrivial_error_msg=None,
+        probe_info_test_results=[
+            ProbeInfoTestResult(result_type=t) for t in pi_test_result_types])
 
   def _LookupProbeFunc(
       self, probe_function_name
@@ -572,3 +634,43 @@ class ProbeToolManager:
     else:
       ps = None
     return ProbeInfoArtifact(probe_info_parsed_result, ps)
+
+  def _PreprocessProbeResultPayload(self, probe_result_payload):
+    try:
+      probed_outcome = client_payload_pb2.ProbedOutcome()
+      text_format.Parse(probe_result_payload, probed_outcome)
+    except text_format.ParseError as e:
+      raise PayloadInvalidError('Unable to load and parse the content: %s.' % e)
+
+    rp_invocation_result = probed_outcome.rp_invocation_result
+    if rp_invocation_result.result_type != rp_invocation_result.FINISHED:
+      return _ProbedOutcomePreprocessConclusion(
+          probed_outcome,
+          ('The invocation of runtime_probe is abnormal: type=%r.' %
+           rp_invocation_result.result_type),
+          None)
+    if rp_invocation_result.return_code != 0:
+      return _ProbedOutcomePreprocessConclusion(
+          probed_outcome,
+          ('The return code of runtime probe is non-zero: %r.' %
+           rp_invocation_result.return_code),
+          None)
+
+    known_component_names = set(
+        m.component_name for m in probed_outcome.probe_statement_metadatas)
+    probed_components = []
+    try:
+      probed_result = json_utils.LoadStr(
+          rp_invocation_result.raw_stdout.decode('utf-8'))
+      for category_probed_results in probed_result.values():
+        for probed_component in category_probed_results:
+          if probed_component['name'] not in known_component_names:
+            raise ValueError('unexpected component: %r' % (probed_component,))
+          probed_components.append(probed_component['name'])
+    except Exception as e:
+      return _ProbedOutcomePreprocessConclusion(
+          probed_outcome, 'The output of runtime_probe is invalid: %r.' % e,
+          None)
+
+    return _ProbedOutcomePreprocessConclusion(
+        probed_outcome, None, probed_components=probed_components)

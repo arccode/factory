@@ -2,8 +2,12 @@ probe_statement_metadatas: {
   component_name: "AVL_1"
   fingerprint: "97b346e92ad636dad26f9a1dee5e94f88c01917f"
 }
+probe_statement_metadatas: {
+  component_name: "AVL_2"
+  fingerprint: "24d1820bd20551c8126dbe44c0abdafb2ccce1e7"
+}
 rp_invocation_result: {
   result_type: FINISHED
-  return_code: 0
-  raw_stdout: "{\"storage\": [{\"name\": \"AVL_1\"}]}"
+  return_code: 123
+  raw_stdout: "???!!!"
 }

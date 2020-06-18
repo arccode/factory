@@ -48,8 +48,8 @@ class IProbeStatementStorageConnector(abc.ABC):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def SetQualProbeStatementOverridden(
-      self, qual_id, init_probe_statement) -> str:
+  def SetProbeStatementOverridden(
+      self, qual_id, device_id, init_probe_statement) -> str:
     """Sets the probe statement of the qualification to manual maintained.
 
     For any unexpected case that makes the qualification need an specialized
@@ -60,6 +60,8 @@ class IProbeStatementStorageConnector(abc.ABC):
 
     Args:
       qual_id: Numeric identity of the qualification.
+      device_id: A non-empty string of the device name if this overridden
+          is device-specific.
       init_probe_statement: A string of probe statement as an initial payload.
 
     Returns:
@@ -68,7 +70,7 @@ class IProbeStatementStorageConnector(abc.ABC):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def MarkOverriddenQualProbeStatementTested(self, qual_id):
+  def MarkOverriddenProbeStatementTested(self, qual_id, device_id):
     """Mark the overridden probe statement for the qualification tested.
 
     Since the probe statement storage system itself is an interface for
@@ -78,16 +80,20 @@ class IProbeStatementStorageConnector(abc.ABC):
 
     Args:
       qual_id: Numeric identity of the qualification.
+      device_id: A non-empty string of the device name if this overridden
+          is device-specific.
     """
     raise NotImplementedError
 
   @abc.abstractmethod
-  def TryLoadOverriddenQualProbeData(
-      self, qual_id) -> typing.Optional[OverriddenProbeData]:
+  def TryLoadOverriddenProbeData(
+      self, qual_id, device_id) -> typing.Optional[OverriddenProbeData]:
     """Try to loads the overridden probe statement of a qualification.
 
     Args:
       qual_id: Numeric identity of the qualification.
+      device_id: A non-empty string of the device name if this overridden
+          is device-specific.
 
     Returns:
       `OverriddenProbeData` for both the metadata and the probe statement if
@@ -107,33 +113,40 @@ class _InMemoryProbeStatementStorageConnector(IProbeStatementStorageConnector):
   def __init__(self):
     super(_InMemoryProbeStatementStorageConnector, self).__init__()
     self._qual_probe_statement = {}
-    self._overridden_qual_probe_data = {}
+    self._overridden_probe_data = {}
 
   def SaveQualProbeStatement(self, qual_id, probe_statement):
-    assert qual_id not in self._overridden_qual_probe_data
+    assert qual_id not in self._overridden_probe_data
     self._qual_probe_statement[qual_id] = probe_statement
 
-  def SetQualProbeStatementOverridden(self, qual_id, init_probe_statement):
-    assert qual_id not in self._overridden_qual_probe_data
-    self._qual_probe_statement.pop(qual_id, None)
-    self._overridden_qual_probe_data[qual_id] = OverriddenProbeData(
+  def SetProbeStatementOverridden(
+      self, qual_id, device_id, init_probe_statement):
+    key = (qual_id, device_id)
+    assert key not in self._overridden_probe_data
+    self._overridden_probe_data[key] = OverriddenProbeData(
         False, False, init_probe_statement)
-    return 'OK: %r' % qual_id
+    return 'OK: qual=%r, device=%r.' % (qual_id, device_id)
 
-  def MarkOverriddenQualProbeStatementTested(self, qual_id):
-    assert qual_id not in self._qual_probe_statement
-    self._overridden_qual_probe_data[qual_id].is_tested = True
+  def MarkOverriddenProbeStatementTested(self, qual_id, device_id):
+    key = (qual_id, device_id)
+    assert key in self._overridden_probe_data
+    self._overridden_probe_data[key].is_tested = True
 
-  def UpdateOverriddenQualProbeData(self, qual_id, probe_data):
+  def UpdateOverriddenProbeData(self, qual_id, device_id, probe_data):
     """Force set the overridden probe statement for qualification."""
-    self._overridden_qual_probe_data[qual_id] = probe_data
+    key = (qual_id, device_id)
+    if probe_data is None:
+      del self._overridden_probe_data[key]
+    else:
+      self._overridden_probe_data[key] = probe_data
 
-  def TryLoadOverriddenQualProbeData(self, qual_id):
-    return self._overridden_qual_probe_data.get(qual_id, None)
+  def TryLoadOverriddenProbeData(self, qual_id, device_id):
+    key = (qual_id, device_id)
+    return self._overridden_probe_data.get(key, None)
 
   def Clean(self):
     self._qual_probe_statement = {}
-    self._overridden_qual_probe_data = {}
+    self._overridden_probe_data = {}
 
 
 class _DataStoreProbeStatementStorageConnector(IProbeStatementStorageConnector):
@@ -145,7 +158,7 @@ class _DataStoreProbeStatementStorageConnector(IProbeStatementStorageConnector):
   """
 
   _GENERATED_QUAL_PROBE_STATEMENT_KIND = 'generated_probe_statement'
-  _OVERRIDDEN_QUAL_PROBE_DATA_KIND = 'overridden_qual_probe_data'
+  _OVERRIDDEN_PROBE_DATA_KIND = 'overridden_probe_data'
   _PROBE_STATEMENT_KEY = 'probe_statement'
 
   def __init__(self):
@@ -158,30 +171,36 @@ class _DataStoreProbeStatementStorageConnector(IProbeStatementStorageConnector):
     logging.debug('Update the generated probe statement for qual %r by %r.',
                   qual_id, probe_statement)
 
-  def SetQualProbeStatementOverridden(self, qual_id, init_probe_statement):
+  def SetProbeStatementOverridden(
+      self, qual_id, device_id, init_probe_statement):
     data_instance = OverriddenProbeData(False, False, init_probe_statement)
-    entity_path = [self._OVERRIDDEN_QUAL_PROBE_DATA_KIND, qual_id]
+    entity_path = self._GetOverriddenProbeDataPath(qual_id, device_id)
     self._SaveEntity(entity_path, data_instance.__dict__)
-    logging.debug('Update the overridden probe statement for qual %r by %r.',
-                  qual_id, data_instance)
+    logging.debug('Update the overridden probe statement for qual %r %s by %r.',
+                  qual_id, '' if not device_id else 'on ' + device_id,
+                  data_instance)
     return 'OK: entity path: %r' % (entity_path,)
 
-  def MarkOverriddenQualProbeStatementTested(self, qual_id):
-    path = [self._OVERRIDDEN_QUAL_PROBE_DATA_KIND, qual_id]
-    data_instance = OverriddenProbeData(**self._LoadEntity(path))
+  def MarkOverriddenProbeStatementTested(self, qual_id, device_id):
+    entity_path = self._GetOverriddenProbeDataPath(qual_id, device_id)
+    data_instance = OverriddenProbeData(**self._LoadEntity(entity_path))
     data_instance.is_tested = True
-    self._SaveEntity(path, data_instance.__dict__)
+    self._SaveEntity(entity_path, data_instance.__dict__)
 
-  def TryLoadOverriddenQualProbeData(self, qual_id):
+  def TryLoadOverriddenProbeData(self, qual_id, device_id):
+    entity_path = self._GetOverriddenProbeDataPath(qual_id, device_id)
     try:
-      db_data = self._LoadEntity(
-          [self._OVERRIDDEN_QUAL_PROBE_DATA_KIND, qual_id])
+      db_data = self._LoadEntity(entity_path)
     except KeyError:
       return None
     return OverriddenProbeData(**db_data)
 
   def Clean(self):
     raise NotImplementedError
+
+  def _GetOverriddenProbeDataPath(self, qual_id, device_id):
+    name = str(qual_id) if not device_id else '%s-%s' % (qual_id, device_id)
+    return [self._OVERRIDDEN_PROBE_DATA_KIND, name]
 
   def _LoadEntity(self, path_args):
     key = self._client.key(*path_args)

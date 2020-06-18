@@ -69,6 +69,9 @@ message ProbeInfoTestResult {
     PROBE_PRAMETER_SUGGESTION = 2;
     INTRIVIAL_ERROR = 3;
     LEGACY = 4;
+
+    NOT_INCLUDED = 5;
+    NOT_PROBED = 6;
   }
   ResultType result_type = 1;  // Required.
   string intrivial_error_msg = 2;
@@ -87,9 +90,19 @@ message ComponentProbeInfo {
 }
 
 message ProbeMetadata {
-  bool is_overridden = 1;                   // Required.
-  bool is_tested = 2;                       // Required.
-  bool is_proved_ready_for_overridden = 3;  // Required.
+  enum ProbeStatementType {
+    UNKNOWN = 0;
+
+    AUTO_GENERATED = 1;
+    QUAL_OVERRIDDEN = 2;
+    DEVICE_OVERRIDDEN = 3;
+  }
+
+  reserved 1;
+
+  bool is_tested = 2;
+  bool is_proved_ready_for_overridden = 3;
+  ProbeStatementType probe_statement_type = 4;
 }
 
 message GetProbeSchemaRequest {}
@@ -113,9 +126,11 @@ message GetQualProbeTestBundleRequest {
 
 message GetQualProbeTestBundleResponse {
   enum ResultType {
-    SUCCEED = 0;
-    INVALID_PROBE_INFO = 1;
-    UNKNOWN_ERROR = 2;
+    UNKNOWN = 0;
+
+    SUCCEED = 1;
+    INVALID_PROBE_INFO = 2;
+    UNKNOWN_ERROR = 3;
   }
 
   ResultType result_type = 1;  // Required.
@@ -152,6 +167,45 @@ message CreateOverriddenProbeStatementResponse {
   string result_msg = 3;
 }
 
+message GetDeviceProbeConfigRequest {
+  repeated ComponentProbeInfo component_probe_infos = 1;  // Required.
+}
+
+message GetDeviceProbeConfigResponse {
+  enum ResultType {
+    UNKNOWN = 0;
+
+    SUCCEED = 1;
+    INVALID_PROBE_INFO = 2;
+    UNKNOWN_ERROR = 3;
+  }
+
+  ResultType result_type = 1;  // Required.
+  string error_msg = 2;
+  repeated ProbeInfoParsedResult probe_info_parsed_results = 3;
+
+  bytes generated_config_payload = 4;
+}
+
+message UploadDeviceProbeResultRequest {
+  repeated ComponentProbeInfo component_probe_infos = 1;  // Required.
+
+  bytes probe_result_payload = 2;  // Required.
+}
+
+message UploadDeviceProbeResultResponse {
+  enum ResultType {
+    UNKNOWN = 0;
+
+    SUCCEED = 2;
+    PAYLOAD_INVALID_ERROR = 1;
+    INTRIVIAL_ERROR = 3;
+  }
+  ResultType result_type = 1;
+  string error_msg = 2;
+  repeated ProbeInfoTestResult probe_info_test_results = 3;
+}
+
 message GetProbeMetadataRequest {
   repeated ComponentProbeInfo component_probe_infos = 1;  // Required.
 }
@@ -171,6 +225,12 @@ service ProbeInfoService {
 
   rpc UploadQualProbeTestResult(UploadQualProbeTestResultRequest)
       returns (UploadQualProbeTestResultResponse) {}
+
+  rpc GetDeviceProbeConfig(GetDeviceProbeConfigRequest)
+      returns (GetDeviceProbeConfigResponse) {}
+
+  rpc UploadDeviceProbeResult(UploadDeviceProbeResultRequest)
+      returns (UploadDeviceProbeResultResponse) {}
 
   rpc CreateOverriddenProbeStatement(CreateOverriddenProbeStatementRequest)
       returns (CreateOverriddenProbeStatementResponse) {}

@@ -14,6 +14,9 @@ from cros.factory.probe_info_service.app_engine import client_payload_pb2
 # pylint: enable=no-name-in-module
 from cros.factory.probe_info_service.app_engine import probe_tool_manager
 from cros.factory.probe_info_service.app_engine import stubby_handler
+# pylint: disable=no-name-in-module
+from cros.factory.probe_info_service.app_engine import stubby_pb2
+# pylint: enable=no-name-in-module
 from cros.factory.probe_info_service.app_engine import unittest_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
@@ -117,9 +120,9 @@ class ProbeToolManagerTest(unittest.TestCase):
 
   def test_GenerateQualProbeTestBundlePayload_ProbeParameterError(self):
     s = self._LoadProbeDataSource('1-param_value_error')
-    resp = self._probe_tool_manager.GenerateQualProbeTestBundlePayload(s)
+    resp = self._probe_tool_manager.GenerateProbeBundlePayload([s])
     self.assertEqual(
-        resp.probe_info_parsed_result,
+        resp.probe_info_parsed_results[0],
         unittest_utils.LoadProbeInfoParsedResult('1-param_value_error'))
 
   def test_GenerateQualProbeTestBundlePayload_IncompatibleError(self):
@@ -128,17 +131,36 @@ class ProbeToolManagerTest(unittest.TestCase):
       if probe_param.name == 'manfid':
         probe_info.probe_parameters.remove(probe_param)
         break
-    resp = self._probe_tool_manager.GenerateQualProbeTestBundlePayload(
-        self._probe_tool_manager.CreateProbeDataSource(comp_name, probe_info))
-    self.assertEqual(resp.probe_info_parsed_result.result_type,
-                     resp.probe_info_parsed_result.INCOMPATIBLE_ERROR)
+    resp = self._probe_tool_manager.GenerateProbeBundlePayload([
+        self._probe_tool_manager.CreateProbeDataSource(comp_name, probe_info)])
+    self.assertEqual(resp.probe_info_parsed_results[0].result_type,
+                     resp.probe_info_parsed_results[0].INCOMPATIBLE_ERROR)
 
   def test_GenerateQualProbeTestBundlePayload_Passed(self):
     info = unittest_utils.FakeProbedOutcomeInfo('1-succeed')
 
     resp = self._GenerateQualProbeTestBundlePayloadForFakeRuntimeProbe(info)
-    self.assertEqual(resp.probe_info_parsed_result.result_type,
-                     resp.probe_info_parsed_result.PASSED)
+    self.assertEqual(resp.probe_info_parsed_results[0].result_type,
+                     resp.probe_info_parsed_results[0].PASSED)
+
+    # Invoke the probe bundle file with a fake `runtime_probe` to verify if the
+    # probe bundle works.
+    unpacked_dir, probed_outcome = self._InvokeProbeBundleWithFakeRuntimeProbe(
+        resp.output, info.envs)
+    arg_str, pc_payload = self._ExtractFakeRuntimeProbeStderr(probed_outcome)
+    self.assertEqual(probed_outcome, info.probed_outcome)
+    self.assertEqual(arg_str,
+                     self._GetExpectedRuntimeProbeArguments(unpacked_dir))
+    self._AssertJSONStringEqual(pc_payload, info.probe_config_payload)
+
+  def test_GenerateQualProbeTestBundlePayload_MultipleSourcePassed(self):
+    info = unittest_utils.FakeProbedOutcomeInfo('1_2-succeed')
+
+    resp = self._GenerateQualProbeTestBundlePayloadForFakeRuntimeProbe(info)
+    self.assertEqual(resp.probe_info_parsed_results[0].result_type,
+                     resp.probe_info_parsed_results[0].PASSED)
+    self.assertEqual(resp.probe_info_parsed_results[1].result_type,
+                     resp.probe_info_parsed_results[1].PASSED)
 
     # Invoke the probe bundle file with a fake `runtime_probe` to verify if the
     # probe bundle works.
@@ -154,8 +176,8 @@ class ProbeToolManagerTest(unittest.TestCase):
     info = unittest_utils.FakeProbedOutcomeInfo('1-bin_not_found')
 
     resp = self._GenerateQualProbeTestBundlePayloadForFakeRuntimeProbe(info)
-    self.assertEqual(resp.probe_info_parsed_result.result_type,
-                     resp.probe_info_parsed_result.PASSED)
+    self.assertEqual(resp.probe_info_parsed_results[0].result_type,
+                     resp.probe_info_parsed_results[0].PASSED)
 
     unused_unpacked_dir, probed_outcome = (
         self._InvokeProbeBundleWithFakeRuntimeProbe(resp.output, info.envs))
@@ -221,6 +243,45 @@ class ProbeToolManagerTest(unittest.TestCase):
         s, raw_probed_outcome)
     self.assertEqual(resp.result_type, resp.INTRIVIAL_ERROR)
 
+  def test_AnalyzeDeviceProbeResultPayload_FormatError(self):
+    s1 = self._LoadProbeDataSource('1-valid')
+    s2 = self._LoadProbeDataSource('2-valid')
+    raw_probed_outcome = 'this is not a valid probed outcome'
+    with self.assertRaises(probe_tool_manager.PayloadInvalidError):
+      self._probe_tool_manager.AnalyzeDeviceProbeResultPayload(
+          [s1, s2], raw_probed_outcome)
+
+  def test_AnalyzeDeviceProbeResultPayload_HasUnknownComponentError(self):
+    s1 = self._LoadProbeDataSource('1-valid')
+    s2 = self._LoadProbeDataSource('2-valid')
+    with self.assertRaises(probe_tool_manager.PayloadInvalidError):
+      self._probe_tool_manager.AnalyzeDeviceProbeResultPayload(
+          [s1, s2],
+          unittest_utils.LoadRawProbedOutcome('1_2-has_unknown_component'))
+
+  def test_AnalyzeDeviceProbeResultPayload_IntrivialError(self):
+    s1 = self._LoadProbeDataSource('1-valid')
+    s2 = self._LoadProbeDataSource('2-valid')
+    result = self._probe_tool_manager.AnalyzeDeviceProbeResultPayload(
+        [s1, s2],
+        unittest_utils.LoadRawProbedOutcome('1_2-runtime_probe_crash'))
+    self.assertIsNotNone(result.intrivial_error_msg)
+    self.assertIsNone(result.probe_info_test_results)
+
+  def test_AnalyzeDeviceProbeResultPayload_Passed(self):
+    s1 = self._LoadProbeDataSource('1-valid')
+    s2 = self._LoadProbeDataSource('2-valid')
+    s3 = self._LoadProbeDataSource('3-valid')
+    s4 = self._LoadProbeDataSource('1-valid', comp_name='yet_another_component')
+    result = self._probe_tool_manager.AnalyzeDeviceProbeResultPayload(
+        [s1, s2, s3, s4], unittest_utils.LoadRawProbedOutcome('1_2_3-valid'))
+    self.assertIsNone(result.intrivial_error_msg)
+    self.assertEqual([r.result_type for r in result.probe_info_test_results],
+                     [stubby_pb2.ProbeInfoTestResult.NOT_PROBED,
+                      stubby_pb2.ProbeInfoTestResult.PASSED,
+                      stubby_pb2.ProbeInfoTestResult.LEGACY,
+                      stubby_pb2.ProbeInfoTestResult.NOT_INCLUDED])
+
   def _AssertJSONStringEqual(self, lhs, rhs):
     self.assertEqual(json_utils.LoadStr(lhs), json_utils.LoadStr(rhs))
 
@@ -234,8 +295,8 @@ class ProbeToolManagerTest(unittest.TestCase):
     probe_info_sources = []
     for testdata_name in fake_probe_outcome_info.component_testdata_names:
       probe_info_sources.append(self._LoadProbeDataSource(testdata_name))
-    return self._probe_tool_manager.GenerateQualProbeTestBundlePayload(
-        probe_info_sources[0])
+    return self._probe_tool_manager.GenerateProbeBundlePayload(
+        probe_info_sources)
 
   def _InvokeProbeBundleWithFakeRuntimeProbe(self, probe_bundle_payload, envs):
     probe_bundle_path = file_utils.CreateTemporaryFile()
