@@ -147,7 +147,8 @@ class StubbyHandlerTest(unittest.TestCase):
 
     # 3. The user modifies the overridden probe statement, then downloads the
     #    qual test bundle.
-    probe_data = ps_storage_connector_inst.LoadOverriddenQualProbeData(qual_id)
+    probe_data = ps_storage_connector_inst.TryLoadOverriddenQualProbeData(
+        qual_id)
     probe_data.probe_statement = next(testdata_it)
     ps_storage_connector_inst.UpdateOverriddenQualProbeData(qual_id, probe_data)
 
@@ -159,7 +160,8 @@ class StubbyHandlerTest(unittest.TestCase):
         resp.probe_info_parsed_result.result_type,
         resp.probe_info_parsed_result.OVERRIDDEN_PROBE_STATEMENT_ERROR)
 
-    probe_data = ps_storage_connector_inst.LoadOverriddenQualProbeData(qual_id)
+    probe_data = ps_storage_connector_inst.TryLoadOverriddenQualProbeData(
+        qual_id)
     probe_data.probe_statement = next(testdata_it)
     ps_storage_connector_inst.UpdateOverriddenQualProbeData(qual_id, probe_data)
 
@@ -183,7 +185,8 @@ class StubbyHandlerTest(unittest.TestCase):
     self.assertTrue(resp.probe_metadatas[0].is_tested)
 
     # 5. The user modifies the overridden probe statement, drop the tested flag.
-    probe_data = ps_storage_connector_inst.LoadOverriddenQualProbeData(qual_id)
+    probe_data = ps_storage_connector_inst.TryLoadOverriddenQualProbeData(
+        qual_id)
     probe_data.is_tested = False
     ps_storage_connector_inst.UpdateOverriddenQualProbeData(qual_id, probe_data)
 

@@ -42,10 +42,8 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
       self, request: stubby_pb2.GetQualProbeTestBundleRequest):
     response = stubby_pb2.GetQualProbeTestBundleResponse()
 
-    probe_meta_info = self._probe_metainfo_connector.GetQualProbeMetaInfo(
-        request.qual_probe_info.component_identity.qual_id)
-    data_source = self._GetQualProbeDataSource(
-        probe_meta_info, request.qual_probe_info)
+    unsued_is_overridden, data_source = self._GetQualProbeDataSource(
+        request.qual_probe_info)
     gen_result = self._probe_tool_manager.GenerateQualProbeTestBundlePayload(
         data_source)
 
@@ -64,10 +62,8 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
       self, request: stubby_pb2.UploadQualProbeTestResultRequest):
     response = stubby_pb2.UploadQualProbeTestResultResponse()
 
-    probe_meta_info = self._probe_metainfo_connector.GetQualProbeMetaInfo(
-        request.qual_probe_info.component_identity.qual_id)
-    data_source = self._GetQualProbeDataSource(
-        probe_meta_info, request.qual_probe_info)
+    is_overridden, data_source = self._GetQualProbeDataSource(
+        request.qual_probe_info)
 
     try:
       result = self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
@@ -77,10 +73,12 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
       response.uploaded_payload_error_msg = str(e)
       return response
 
-    if probe_meta_info.is_overridden:
+    if is_overridden:
       self._ps_storage_connector.MarkOverriddenQualProbeStatementTested(
           request.qual_probe_info.component_identity.qual_id)
     else:
+      probe_meta_info = self._probe_metainfo_connector.GetQualProbeMetaInfo(
+          request.qual_probe_info.component_identity.qual_id)
       if result.result_type == result.PASSED:
         probe_meta_info.last_tested_probe_info_fp = data_source.fingerprint
         probe_meta_info.last_probe_info_fp_for_overridden = None
@@ -104,11 +102,12 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
       # TODO(yhong): Create overridden probe statements for the specific device.
       raise NotImplementedError
 
-    # Create overridden probe statement for the qualification.
     qual_probe_info = request.component_probe_info
-    probe_meta_info = self._probe_metainfo_connector.GetQualProbeMetaInfo(
+
+    # Create the overridden probe statement for the qualification.
+    probe_data = self._ps_storage_connector.TryLoadOverriddenQualProbeData(
         qual_probe_info.component_identity.qual_id)
-    if probe_meta_info.is_overridden:
+    if probe_data:
       response.result_type = response.ALREADY_OVERRIDDEN_ERROR
       return response
 
@@ -124,9 +123,6 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
 
     result_msg = self._ps_storage_connector.SetQualProbeStatementOverridden(
         qual_probe_info.component_identity.qual_id, ps)
-    probe_meta_info.is_overridden = True
-    self._probe_metainfo_connector.UpdateQualProbeMetaInfo(
-        qual_probe_info.component_identity.qual_id, probe_meta_info)
 
     response.result_type = response.SUCCEED
     response.result_msg = result_msg
@@ -142,22 +138,23 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
         #     statement.
         raise NotImplementedError
 
-      metainfo = self._probe_metainfo_connector.GetQualProbeMetaInfo(
+      probe_data = self._ps_storage_connector.TryLoadOverriddenQualProbeData(
           comp_probe_info.component_identity.qual_id)
-      if metainfo.is_overridden:
-        probe_data = self._ps_storage_connector.LoadOverriddenQualProbeData(
-            comp_probe_info.component_identity.qual_id)
+      if probe_data:
         response.probe_metadatas.add(
             is_overridden=True, is_tested=probe_data.is_tested)
-      else:
-        data_src = self._probe_tool_manager.CreateProbeDataSource(
-            self._GetComponentName(comp_probe_info.component_identity),
-            comp_probe_info.probe_info)
-        fp = data_src.fingerprint
-        response.probe_metadatas.add(
-            is_tested=metainfo.last_tested_probe_info_fp == fp,
-            is_proved_ready_for_overridden=(
-                metainfo.last_probe_info_fp_for_overridden == fp))
+        continue
+
+      metainfo = self._probe_metainfo_connector.GetQualProbeMetaInfo(
+          comp_probe_info.component_identity.qual_id)
+      data_src = self._probe_tool_manager.CreateProbeDataSource(
+          self._GetComponentName(comp_probe_info.component_identity),
+          comp_probe_info.probe_info)
+      fp = data_src.fingerprint
+      response.probe_metadatas.add(
+          is_tested=metainfo.last_tested_probe_info_fp == fp,
+          is_proved_ready_for_overridden=(
+              metainfo.last_probe_info_fp_for_overridden == fp))
 
     return response
 
@@ -166,13 +163,12 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
                              component_identity.device_id,
                              component_identity.readable_label)
 
-  def _GetQualProbeDataSource(self, probe_meta_info, qual_probe_info):
+  def _GetQualProbeDataSource(self, qual_probe_info):
     component_name = self._GetComponentName(qual_probe_info.component_identity)
-    if probe_meta_info.is_overridden:
-      probe_data = self._ps_storage_connector.LoadOverriddenQualProbeData(
-          qual_probe_info.component_identity.qual_id)
-      return self._probe_tool_manager.LoadProbeDataSource(
+    probe_data = self._ps_storage_connector.TryLoadOverriddenQualProbeData(
+        qual_probe_info.component_identity.qual_id)
+    if probe_data:
+      return True, self._probe_tool_manager.LoadProbeDataSource(
           component_name, probe_data.probe_statement)
-
-    return self._probe_tool_manager.CreateProbeDataSource(
+    return False, self._probe_tool_manager.CreateProbeDataSource(
         component_name, qual_probe_info.probe_info)

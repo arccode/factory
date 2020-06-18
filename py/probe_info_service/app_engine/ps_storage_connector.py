@@ -4,6 +4,7 @@
 
 import abc
 import logging
+import typing
 
 # pylint: disable=no-name-in-module,import-error
 from google.cloud import datastore
@@ -81,14 +82,16 @@ class IProbeStatementStorageConnector(abc.ABC):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def LoadOverriddenQualProbeData(self, qual_id):
-    """Loads the overridden probe statement of a qualification.
+  def TryLoadOverriddenQualProbeData(
+      self, qual_id) -> typing.Optional[OverriddenProbeData]:
+    """Try to loads the overridden probe statement of a qualification.
 
     Args:
       qual_id: Numeric identity of the qualification.
 
     Returns:
-      `OverriddenProbeData` for both the metadata and the probe statement.
+      `OverriddenProbeData` for both the metadata and the probe statement if
+      it exists.  Otherwise `None` is returned.
     """
     raise NotImplementedError
 
@@ -120,9 +123,8 @@ class _InMemoryProbeStatementStorageConnector(IProbeStatementStorageConnector):
     """Force set the overridden probe statement for qualification."""
     self._overridden_qual_probe_data[qual_id] = probe_data
 
-  def LoadOverriddenQualProbeData(self, qual_id):
-    assert qual_id not in self._qual_probe_statement
-    return self._overridden_qual_probe_data[qual_id]
+  def TryLoadOverriddenQualProbeData(self, qual_id):
+    return self._overridden_qual_probe_data.get(qual_id, None)
 
 
 class _DataStoreProbeStatementStorageConnector(IProbeStatementStorageConnector):
@@ -161,9 +163,13 @@ class _DataStoreProbeStatementStorageConnector(IProbeStatementStorageConnector):
     data_instance.is_tested = True
     self._SaveEntity(path, data_instance.__dict__)
 
-  def LoadOverriddenQualProbeData(self, qual_id):
-    return OverriddenProbeData(
-        **self._LoadEntity([self._OVERRIDDEN_QUAL_PROBE_DATA_KIND, qual_id]))
+  def TryLoadOverriddenQualProbeData(self, qual_id):
+    try:
+      db_data = self._LoadEntity(
+          [self._OVERRIDDEN_QUAL_PROBE_DATA_KIND, qual_id])
+    except KeyError:
+      return None
+    return OverriddenProbeData(**db_data)
 
   def _LoadEntity(self, path_args):
     key = self._client.key(*path_args)

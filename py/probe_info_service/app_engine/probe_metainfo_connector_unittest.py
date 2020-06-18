@@ -18,29 +18,23 @@ class DataStoreProbeMetaInfoConnector(unittest.TestCase):
   def testQualProbeMetaInfo(self):
     data = self._connector.GetQualProbeMetaInfo(1)
     # Default value set should be returned.
-    self.assertFalse(data.is_overridden)
     self.assertIsNone(data.last_tested_probe_info_fp)
     self.assertIsNone(data.last_probe_info_fp_for_overridden)
 
-    data.is_overridden = True
     data.last_probe_info_fp_for_overridden = 'bad_fp'
     self._connector.UpdateQualProbeMetaInfo(1, data)
     data = self._connector.GetQualProbeMetaInfo(1)
-    self.assertTrue(data.is_overridden)
     self.assertIsNone(data.last_tested_probe_info_fp)
     self.assertEqual(data.last_probe_info_fp_for_overridden, 'bad_fp')
 
-    data.is_overridden = False
     data.last_tested_probe_info_fp = 'fpfpfp'
     self._connector.UpdateQualProbeMetaInfo(1, data)
 
     data2 = self._connector.GetQualProbeMetaInfo(2)
     # Default value set should be returned.
-    self.assertFalse(data2.is_overridden)
     self.assertIsNone(data2.last_tested_probe_info_fp)
 
     data1 = self._connector.GetQualProbeMetaInfo(1)
-    self.assertFalse(data1.is_overridden)
     self.assertEqual(data1.last_tested_probe_info_fp, 'fpfpfp')
 
 
