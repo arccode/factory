@@ -1,0 +1,29 @@
+component_identity: {
+  qual_id: 1
+  readable_label: "PART_NO_1234"
+}
+probe_info: {
+  probe_function_name: "storage.mmc_storage"
+  probe_parameters: {
+    # This param value is different than the one in
+    # `comp_probe_info-1-valid.prototxt`.
+    name: "manfid"
+    string_value: "0B"
+  }
+  probe_parameters: {
+    name: "oemid"
+    string_value: "1234"
+  }
+  probe_parameters: {
+    name: "name"
+    string_value: "ABCxyz"
+  }
+  probe_parameters: {
+    name: "prv"
+    string_value: "01"
+  }
+  probe_parameters: {
+    name: "sectors"
+    int_value: 123
+  }
+}

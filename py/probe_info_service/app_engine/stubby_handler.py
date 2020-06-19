@@ -1,4 +1,4 @@
-# Copyright 2019 The Chromium OS Authors. All rights reserved.
+# Copyright 2020 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -9,6 +9,12 @@ from cros.factory.probe_info_service.app_engine import ps_storage_connector
 # pylint: disable=no-name-in-module
 from cros.factory.probe_info_service.app_engine import stubby_pb2
 # pylint: enable=no-name-in-module
+
+
+def GetProbeDataSourceComponentName(component_identity):
+  return 'AVL_%d-%s-%s' % (component_identity.qual_id,
+                           component_identity.device_id,
+                           component_identity.readable_label)
 
 
 class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
@@ -74,8 +80,9 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
       return response
 
     if is_overridden:
-      self._ps_storage_connector.MarkOverriddenQualProbeStatementTested(
-          request.qual_probe_info.component_identity.qual_id)
+      if result.result_type == result.PASSED:
+        self._ps_storage_connector.MarkOverriddenQualProbeStatementTested(
+            request.qual_probe_info.component_identity.qual_id)
     else:
       probe_meta_info = self._probe_metainfo_connector.GetQualProbeMetaInfo(
           request.qual_probe_info.component_identity.qual_id)
@@ -114,7 +121,7 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
     # Try to generate a default overridden probe statement from the given
     # probe info.
     data_source = self._probe_tool_manager.CreateProbeDataSource(
-        self._GetComponentName(qual_probe_info.component_identity),
+        GetProbeDataSourceComponentName(qual_probe_info.component_identity),
         qual_probe_info.probe_info)
     unused_pi_parsed_result, ps = (
         self._probe_tool_manager.DumpProbeDataSource(data_source))
@@ -148,7 +155,7 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
       metainfo = self._probe_metainfo_connector.GetQualProbeMetaInfo(
           comp_probe_info.component_identity.qual_id)
       data_src = self._probe_tool_manager.CreateProbeDataSource(
-          self._GetComponentName(comp_probe_info.component_identity),
+          GetProbeDataSourceComponentName(comp_probe_info.component_identity),
           comp_probe_info.probe_info)
       fp = data_src.fingerprint
       response.probe_metadatas.add(
@@ -158,13 +165,9 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
 
     return response
 
-  def _GetComponentName(self, component_identity):
-    return 'AVL_%d-%s-%s' % (component_identity.qual_id,
-                             component_identity.device_id,
-                             component_identity.readable_label)
-
   def _GetQualProbeDataSource(self, qual_probe_info):
-    component_name = self._GetComponentName(qual_probe_info.component_identity)
+    component_name = GetProbeDataSourceComponentName(
+        qual_probe_info.component_identity)
     probe_data = self._ps_storage_connector.TryLoadOverriddenQualProbeData(
         qual_probe_info.component_identity.qual_id)
     if probe_data:

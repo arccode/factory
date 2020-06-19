@@ -2,10 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import os
 import unittest
-
-from google.protobuf import text_format
 
 from cros.factory.probe_info_service.app_engine import probe_metainfo_connector
 from cros.factory.probe_info_service.app_engine import ps_storage_connector
@@ -13,23 +10,17 @@ from cros.factory.probe_info_service.app_engine import stubby_handler
 # pylint: disable=no-name-in-module
 from cros.factory.probe_info_service.app_engine import stubby_pb2
 # pylint: enable=no-name-in-module
-from cros.factory.utils import file_utils
-
-
-TESTDATA_DIR = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), 'testdata')
-
-SEPARATOR_TAG = '### SEPARATOR ###'
+from cros.factory.probe_info_service.app_engine import unittest_utils
 
 
 class StubbyHandlerTest(unittest.TestCase):
   def setUp(self):
-    inst = probe_metainfo_connector.GetProbeMetaInfoConnectorInstance()
-    inst.Clean()
+    probe_metainfo_connector.GetProbeMetaInfoConnectorInstance().Clean()
+    ps_storage_connector.GetProbeStatementStorageConnector().Clean()
 
     self._stubby_handler = stubby_handler.ProbeInfoService()
 
-  def testGetProbeSchema(self):
+  def test_GetProbeSchema(self):
     # This API is stateless, so just simply verify the call stack.
     req = stubby_pb2.GetProbeSchemaRequest()
     resp = self._stubby_handler.GetProbeSchema(req)
@@ -38,75 +29,75 @@ class StubbyHandlerTest(unittest.TestCase):
         ['battery.generic_battery', 'storage.mmc_storage',
          'storage.nvme_storage'])
 
-  def testScenario1(self):
-    testdata = self._LoadScenarioBundle('scenario1')
-
+  def test_StatefulAPIs_Scenario1(self):
     # 1. The user validates the probe info and finds format error.
-    req = stubby_pb2.ValidateProbeInfoRequest()
-    text_format.Parse(testdata[0], req)
+    req = stubby_pb2.ValidateProbeInfoRequest(
+        is_qual=True, probe_info=unittest_utils.LoadComponentProbeInfo(
+            '1-param_value_error').probe_info)
     resp = self._stubby_handler.ValidateProbeInfo(req)
-    self.assertEqual(resp.probe_info_parsed_result.result_type,
-                     resp.probe_info_parsed_result.PROBE_PARAMETER_ERROR)
+    self.assertEqual(
+        resp.probe_info_parsed_result,
+        unittest_utils.LoadProbeInfoParsedResult('1-param_value_error'))
 
     # 2. After probe info fixup, the user creates a qual test bundle.
-    req = stubby_pb2.GetQualProbeTestBundleRequest()
-    text_format.Parse(testdata[1], req)
+    req = stubby_pb2.GetQualProbeTestBundleRequest(
+        qual_probe_info=unittest_utils.LoadComponentProbeInfo('1-valid'))
     resp = self._stubby_handler.GetQualProbeTestBundle(req)
     self.assertEqual(resp.result_type, resp.SUCCEED)
-    qual_probe_info1 = req.qual_probe_info
+    qual_probe_info = req.qual_probe_info
 
     # 3. The user gets a differnet test bundle from a different probe info.
-    req = stubby_pb2.GetQualProbeTestBundleRequest()
-    text_format.Parse(testdata[2], req)
+    req = stubby_pb2.GetQualProbeTestBundleRequest(
+        qual_probe_info=unittest_utils.LoadComponentProbeInfo('1-valid_v2'))
     resp = self._stubby_handler.GetQualProbeTestBundle(req)
     self.assertEqual(resp.result_type, resp.SUCCEED)
-    qual_probe_info2 = req.qual_probe_info
+    qual_probe_info_v2 = req.qual_probe_info
 
     # 4. The user uploads a positive result for the first bundle, get "LEGACY"
     #    notification.
-    req = stubby_pb2.UploadQualProbeTestResultRequest()
-    req.qual_probe_info.CopyFrom(qual_probe_info2)
-    req.test_result_payload = testdata[3].encode('utf-8')
+    req = stubby_pb2.UploadQualProbeTestResultRequest(
+        qual_probe_info=qual_probe_info_v2,
+        test_result_payload=unittest_utils.LoadRawProbedOutcome('1-passed'))
     resp = self._stubby_handler.UploadQualProbeTestResult(req)
     self.assertTrue(resp.is_uploaded_payload_valid)
     self.assertEqual(resp.probe_info_test_result.result_type,
                      resp.probe_info_test_result.LEGACY)
 
     req = stubby_pb2.GetProbeMetadataRequest(
-        component_probe_infos=[qual_probe_info2])
+        component_probe_infos=[qual_probe_info_v2])
     resp = self._stubby_handler.GetProbeMetadata(req)
     self.assertFalse(resp.probe_metadatas[0].is_tested)
 
     # 5. The user then uploads the second positive test bundle and get
     #    "PASSED".  Now the qual probe info become "tested".
-    req = stubby_pb2.UploadQualProbeTestResultRequest()
-    req.qual_probe_info.CopyFrom(qual_probe_info2)
-    req.test_result_payload = testdata[4].encode('utf-8')
+    req = stubby_pb2.UploadQualProbeTestResultRequest(
+        qual_probe_info=qual_probe_info_v2,
+        test_result_payload=unittest_utils.LoadRawProbedOutcome('1-passed_v2'))
     resp = self._stubby_handler.UploadQualProbeTestResult(req)
     self.assertTrue(resp.is_uploaded_payload_valid)
     self.assertEqual(resp.probe_info_test_result.result_type,
                      resp.probe_info_test_result.PASSED)
 
     req = stubby_pb2.GetProbeMetadataRequest(
-        component_probe_infos=[qual_probe_info2])
+        component_probe_infos=[qual_probe_info_v2])
     resp = self._stubby_handler.GetProbeMetadata(req)
     self.assertTrue(resp.probe_metadatas[0].is_tested)
 
     # 6. The user modifies the probe info again.  Now the qual probe info
     #    becomes "untested" again.
     req = stubby_pb2.GetProbeMetadataRequest(
-        component_probe_infos=[qual_probe_info1])
+        component_probe_infos=[qual_probe_info])
     resp = self._stubby_handler.GetProbeMetadata(req)
     self.assertFalse(resp.probe_metadatas[0].is_tested)
 
-  def testScenario2(self):
+  def test_StatefulAPIs_Scenario2(self):
     ps_storage_connector_inst = (
         ps_storage_connector.GetProbeStatementStorageConnector())
-    testdata_it = iter(self._LoadScenarioBundle('scenario2'))
 
-    qual_probe_info = stubby_pb2.ComponentProbeInfo()
-    text_format.Parse(next(testdata_it), qual_probe_info)
+    qual_probe_info = unittest_utils.LoadComponentProbeInfo('1-valid')
     qual_id = qual_probe_info.component_identity.qual_id
+    get_probe_metadata_req = stubby_pb2.GetProbeMetadataRequest(
+        component_probe_infos=[qual_probe_info])
 
     # 1. The user creates a qual test bundle, then uploading an negative probe
     #    result.
@@ -116,15 +107,14 @@ class StubbyHandlerTest(unittest.TestCase):
 
     req = stubby_pb2.UploadQualProbeTestResultRequest(
         qual_probe_info=qual_probe_info,
-        test_result_payload=next(testdata_it).encode('utf-8'))
+        test_result_payload=unittest_utils.LoadRawProbedOutcome(
+            '1-bad_return_code'))
     resp = self._stubby_handler.UploadQualProbeTestResult(req)
     self.assertTrue(resp.is_uploaded_payload_valid)
     self.assertEqual(resp.probe_info_test_result.result_type,
                      resp.probe_info_test_result.INTRIVIAL_ERROR)
 
     # Verify the probe metadata.
-    get_probe_metadata_req = stubby_pb2.GetProbeMetadataRequest(
-        component_probe_infos=[qual_probe_info])
     resp = self._stubby_handler.GetProbeMetadata(get_probe_metadata_req)
     self.assertFalse(resp.probe_metadatas[0].is_overridden)
     self.assertFalse(resp.probe_metadatas[0].is_tested)
@@ -149,7 +139,8 @@ class StubbyHandlerTest(unittest.TestCase):
     #    qual test bundle.
     probe_data = ps_storage_connector_inst.TryLoadOverriddenQualProbeData(
         qual_id)
-    probe_data.probe_statement = next(testdata_it)
+    probe_data.probe_statement = unittest_utils.LoadProbeStatementString(
+        '1-invalid')
     ps_storage_connector_inst.UpdateOverriddenQualProbeData(qual_id, probe_data)
 
     req = stubby_pb2.GetQualProbeTestBundleRequest(
@@ -162,7 +153,8 @@ class StubbyHandlerTest(unittest.TestCase):
 
     probe_data = ps_storage_connector_inst.TryLoadOverriddenQualProbeData(
         qual_id)
-    probe_data.probe_statement = next(testdata_it)
+    probe_data.probe_statement = unittest_utils.LoadProbeStatementString(
+        '1-valid_modified')
     ps_storage_connector_inst.UpdateOverriddenQualProbeData(qual_id, probe_data)
 
     req = stubby_pb2.GetQualProbeTestBundleRequest(
@@ -174,11 +166,12 @@ class StubbyHandlerTest(unittest.TestCase):
     #    become tested now.
     req = stubby_pb2.UploadQualProbeTestResultRequest(
         qual_probe_info=qual_probe_info,
-        test_result_payload=next(testdata_it).encode('utf-8'))
+        test_result_payload=unittest_utils.LoadRawProbedOutcome(
+            '1-modified_probe_statement_passed'))
     resp = self._stubby_handler.UploadQualProbeTestResult(req)
     self.assertTrue(resp.is_uploaded_payload_valid)
-    self.assertTrue(resp.probe_info_test_result.result_type,
-                    resp.probe_info_test_result.PASSED)
+    self.assertEqual(resp.probe_info_test_result.result_type,
+                     resp.probe_info_test_result.PASSED)
 
     resp = self._stubby_handler.GetProbeMetadata(get_probe_metadata_req)
     self.assertTrue(resp.probe_metadatas[0].is_overridden)
@@ -193,11 +186,6 @@ class StubbyHandlerTest(unittest.TestCase):
     resp = self._stubby_handler.GetProbeMetadata(get_probe_metadata_req)
     self.assertTrue(resp.probe_metadatas[0].is_overridden)
     self.assertFalse(resp.probe_metadatas[0].is_tested)
-
-  def _LoadScenarioBundle(self, scenario_name):
-    filepath = os.path.join(
-        TESTDATA_DIR, 'stubby_handler_%s.text' % scenario_name)
-    return file_utils.ReadFile(filepath).split(SEPARATOR_TAG)
 
 
 if __name__ == '__main__':

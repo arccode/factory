@@ -13,57 +13,68 @@ from google.protobuf import text_format
 from cros.factory.probe_info_service.app_engine import client_payload_pb2
 # pylint: enable=no-name-in-module
 from cros.factory.probe_info_service.app_engine import probe_tool_manager
+from cros.factory.probe_info_service.app_engine import stubby_handler
+from cros.factory.probe_info_service.app_engine import unittest_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
 from cros.factory.utils import process_utils
 
 
-_TESTDATA_DIR = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), 'testdata')
+def _LoadProbeInfoAndCompName(testdata_name):
+  comp_probe_info = unittest_utils.LoadComponentProbeInfo(testdata_name)
+  comp_name = stubby_handler.GetProbeDataSourceComponentName(
+      comp_probe_info.component_identity)
+  return comp_probe_info.probe_info, comp_name
 
 
 class ProbeToolManagerTest(unittest.TestCase):
   def setUp(self):
     self._probe_tool_manager = probe_tool_manager.ProbeToolManager()
 
-  def testGetProbeSchema(self):
+  def test_GetProbeSchema(self):
     resp = self._probe_tool_manager.GetProbeSchema()
     self.assertCountEqual([f.name for f in resp.probe_function_definitions],
                           ['battery.generic_battery', 'storage.mmc_storage',
                            'storage.nvme_storage'])
 
-  def testValidateProbeInfoInvalidProbeFunction(self):
+  def test_ValidateProbeInfo_InvalidProbeFunction(self):
     probe_info = probe_tool_manager.ProbeInfo(probe_function_name='no_such_f')
     resp = self._probe_tool_manager.ValidateProbeInfo(probe_info, True)
     self.assertEqual(resp.result_type, resp.INCOMPATIBLE_ERROR)
 
-  def testValidateProbeInfoUnknownProbeParameter(self):
-    probe_info = self._GenerateSampleMMCStorageProbeInfo(
-        probe_params_construct_kwargs={'no_such_param': {}})
+  def test_ValidateProbeInfo_UnknownProbeParameter(self):
+    probe_info, unused_comp_name = _LoadProbeInfoAndCompName('1-valid')
+    probe_info.probe_parameters.add(name='no_such_param')
 
     resp = self._probe_tool_manager.ValidateProbeInfo(probe_info, True)
     self.assertEqual(resp.result_type, resp.INCOMPATIBLE_ERROR)
 
-  def testValidateProbeInfoProbeParameterBadType(self):
-    probe_info = self._GenerateSampleMMCStorageProbeInfo(
-        probe_params_construct_kwargs={'manfid': {'int_value': 123}})
+  def test_ValidateProbeInfo_ProbeParameterBadType(self):
+    probe_info, unused_comp_name = _LoadProbeInfoAndCompName('1-valid')
+    for probe_param in probe_info.probe_parameters:
+      if probe_param.name == 'manfid':
+        probe_param.string_value = ''
+        probe_param.int_value = 123
 
     resp = self._probe_tool_manager.ValidateProbeInfo(probe_info, True)
     self.assertEqual(resp.result_type, resp.INCOMPATIBLE_ERROR)
 
-  def testValidateProbeInfoDuplicatedParam(self):
+  def test_ValidateProbeInfo_DuplicatedParam(self):
     # Duplicated probe parameters is a kind of compatible error for now.
-    probe_info = self._GenerateSampleMMCStorageProbeInfo()
+    probe_info, unused_comp_name = _LoadProbeInfoAndCompName('1-valid')
     probe_info.probe_parameters.add(name='manfid', string_value='03')
 
     resp = self._probe_tool_manager.ValidateProbeInfo(probe_info, True)
     self.assertEqual(resp.result_type, resp.INCOMPATIBLE_ERROR)
 
-  def testValidateProbeInfoMissingProbeParameter(self):
+  def test_ValidateProbeInfo_MissingProbeParameter(self):
     # Missing probe parameters is a kind of compatible error unless
     # `allow_missing_parameters` is `True`.
-    probe_info = self._GenerateSampleMMCStorageProbeInfo(
-        probe_params_construct_kwargs={'manfid': None})
+    probe_info, unused_comp_name = _LoadProbeInfoAndCompName('1-valid')
+    for probe_param in probe_info.probe_parameters:
+      if probe_param.name == 'manfid':
+        probe_info.probe_parameters.remove(probe_param)
+        break
 
     resp = self._probe_tool_manager.ValidateProbeInfo(probe_info, False)
     self.assertEqual(resp.result_type, resp.INCOMPATIBLE_ERROR)
@@ -71,208 +82,187 @@ class ProbeToolManagerTest(unittest.TestCase):
     resp = self._probe_tool_manager.ValidateProbeInfo(probe_info, True)
     self.assertEqual(resp.result_type, resp.PASSED)
 
-  def testValidateProbeInfoProbeParameterFormatError(self):
-    probe_info = self._GenerateSampleMMCStorageProbeInfo(
-        probe_params_construct_kwargs={
-            # `manfid` should be a 2-digit hex string
-            'manfid': {'string_value': '0?'},
-            # `name` should be a 6-byte ASCII string
-            'name': {'string_value': 'ABC123456789'},
-        })
-    expected_probe_error_index = []
-    for index, param in enumerate(probe_info.probe_parameters):
-      if param.name in ('name', 'manfid'):
-        expected_probe_error_index.append(index)
-
+  def test_ValidateProbeInfoProbe_ParameterFormatError(self):
+    probe_info, unused_comp_name = _LoadProbeInfoAndCompName(
+        '1-param_value_error')
     resp = self._probe_tool_manager.ValidateProbeInfo(probe_info, False)
-    self.assertEqual(resp.result_type, resp.PROBE_PARAMETER_ERROR)
-    self.assertCountEqual([p.index for p in resp.probe_parameter_errors],
-                          expected_probe_error_index)
+    self.assertEqual(resp, unittest_utils.LoadProbeInfoParsedResult(
+        '1-param_value_error'))
 
-  def testValidateProbeInfoPass(self):
-    probe_info = self._GenerateSampleMMCStorageProbeInfo()
+  def test_ValidateProbeInfo_Passed(self):
+    probe_info, unused_comp_name = _LoadProbeInfoAndCompName('1-valid')
     resp = self._probe_tool_manager.ValidateProbeInfo(probe_info, False)
     self.assertEqual(resp.result_type, resp.PASSED)
 
-  def testCreateProbeDataSource(self):
-    probe_info1 = self._GenerateSampleMMCStorageProbeInfo()
-    probe_info2 = self._GenerateSampleMMCStorageProbeInfo(
-        probe_params_construct_kwargs={'manfid': None})
-    s1 = self._probe_tool_manager.CreateProbeDataSource('aaa', probe_info1)
-    s2 = self._probe_tool_manager.CreateProbeDataSource('aaa', probe_info2)
-    s3 = self._probe_tool_manager.CreateProbeDataSource('bbb', probe_info1)
+    probe_info, unused_comp_name = _LoadProbeInfoAndCompName('2-valid')
+    resp = self._probe_tool_manager.ValidateProbeInfo(probe_info, False)
+    self.assertEqual(resp.result_type, resp.PASSED)
+
+    probe_info, unused_comp_name = _LoadProbeInfoAndCompName('3-valid')
+    resp = self._probe_tool_manager.ValidateProbeInfo(probe_info, False)
+    self.assertEqual(resp.result_type, resp.PASSED)
+
+  def test_CreateProbeDataSource(self):
+    s1 = self._LoadProbeDataSource('1-valid', comp_name='aaa')
+    s2 = self._LoadProbeDataSource('2-valid', comp_name='aaa')
+    s3 = self._LoadProbeDataSource('1-valid', comp_name='bbb')
     self.assertNotEqual(s1.fingerprint, s2.fingerprint)
     self.assertEqual(s1.fingerprint, s3.fingerprint)
 
-  def testGenerateQualProbeTestBundlePayloadFail(self):
-    probe_info = self._GenerateSampleMMCStorageProbeInfo(
-        probe_params_construct_kwargs={'manfid': {'string_value': 'bad_value'}})
-    resp = self._probe_tool_manager.GenerateQualProbeTestBundlePayload(
-        self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info))
-    self.assertEqual(resp.probe_info_parsed_result.result_type,
-                     resp.probe_info_parsed_result.PROBE_PARAMETER_ERROR)
+  def test_DumpProbeDataSource(self):
+    s = self._LoadProbeDataSource('1-valid')
+    ps = self._probe_tool_manager.DumpProbeDataSource(s).output
+    self._AssertJSONStringEqual(
+        ps, unittest_utils.LoadProbeStatementString('1-default'))
 
-    probe_info = self._GenerateSampleMMCStorageProbeInfo(
-        probe_params_construct_kwargs={'manfid': None})
+  def test_GenerateQualProbeTestBundlePayload_ProbeParameterError(self):
+    s = self._LoadProbeDataSource('1-param_value_error')
+    resp = self._probe_tool_manager.GenerateQualProbeTestBundlePayload(s)
+    self.assertEqual(
+        resp.probe_info_parsed_result,
+        unittest_utils.LoadProbeInfoParsedResult('1-param_value_error'))
+
+  def test_GenerateQualProbeTestBundlePayload_IncompatibleError(self):
+    probe_info, comp_name = _LoadProbeInfoAndCompName('1-valid')
+    for probe_param in probe_info.probe_parameters:
+      if probe_param.name == 'manfid':
+        probe_info.probe_parameters.remove(probe_param)
+        break
     resp = self._probe_tool_manager.GenerateQualProbeTestBundlePayload(
-        self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info))
+        self._probe_tool_manager.CreateProbeDataSource(comp_name, probe_info))
     self.assertEqual(resp.probe_info_parsed_result.result_type,
                      resp.probe_info_parsed_result.INCOMPATIBLE_ERROR)
 
-  def testDumpProbeDataSource(self):
-    probe_info = self._GenerateSampleMMCStorageProbeInfo()
-    s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
-    ps = self._probe_tool_manager.DumpProbeDataSource(s).output
-    self.assertEqual(
-        json_utils.LoadStr(ps),
-        {
-            'storage': {
-                'comp_name': {
-                    'eval': {'mmc_storage': {}},
-                    'expect': {
-                        'manfid': [True, 'hex', '!eq 0x0A'],
-                        'name': [True, 'str', '!eq ABCxyz'],
-                        'oemid': [True, 'hex', '!eq 0x1234'],
-                        'prv': [True, 'hex', '!eq 0x01'],
-                        'sectors': [True, 'int', '!eq 123'],
-                    },
-                },
-            },
-        })
+  def test_GenerateQualProbeTestBundlePayload_Passed(self):
+    info = unittest_utils.FakeProbedOutcomeInfo('1-succeed')
 
-  def testGenerateQualProbeTestBundlePayloadSuccess(self):
-    probe_info = self._GenerateSampleMMCStorageProbeInfo()
-    s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
-    resp = self._probe_tool_manager.GenerateQualProbeTestBundlePayload(s)
-
+    resp = self._GenerateQualProbeTestBundlePayloadForFakeRuntimeProbe(info)
     self.assertEqual(resp.probe_info_parsed_result.result_type,
                      resp.probe_info_parsed_result.PASSED)
 
-    bundle_path = file_utils.CreateTemporaryFile()
-    os.chmod(bundle_path, 0o755)
-    file_utils.WriteFile(bundle_path, resp.output, encoding=None)
+    # Invoke the probe bundle file with a fake `runtime_probe` to verify if the
+    # probe bundle works.
+    unpacked_dir, probed_outcome = self._InvokeProbeBundleWithFakeRuntimeProbe(
+        resp.output, info.envs)
+    arg_str, pc_payload = self._ExtractFakeRuntimeProbeStderr(probed_outcome)
+    self.assertEqual(probed_outcome, info.probed_outcome)
+    self.assertEqual(arg_str,
+                     self._GetExpectedRuntimeProbeArguments(unpacked_dir))
+    self._AssertJSONStringEqual(pc_payload, info.probe_config_payload)
 
-    unpacked_path = tempfile.mkdtemp()
-    outcome = self._InvokeProbeBundleWithFakeRuntimeProbe(
-        bundle_path, unpacked_path, 'fake_stdout', 123)
+  def test_GenerateQualProbeTestBundlePayload_NoRuntimeProbe(self):
+    info = unittest_utils.FakeProbedOutcomeInfo('1-bin_not_found')
 
-    probe_config_file_path = os.path.join(unpacked_path, 'probe_config.json')
-    # verify the content of the probe bundle
-    self.assertEqual(
-        json_utils.LoadFile(probe_config_file_path),
-        {
-            'storage': {
-                'comp_name': {
-                    'eval': {'mmc_storage': {}},
-                    'expect': {
-                        'manfid': [True, 'hex', '!eq 0x0A'],
-                        'name': [True, 'str', '!eq ABCxyz'],
-                        'oemid': [True, 'hex', '!eq 0x1234'],
-                        'prv': [True, 'hex', '!eq 0x01'],
-                        'sectors': [True, 'int', '!eq 123'],
-                    },
-                },
-            },
-        })
+    resp = self._GenerateQualProbeTestBundlePayloadForFakeRuntimeProbe(info)
+    self.assertEqual(resp.probe_info_parsed_result.result_type,
+                     resp.probe_info_parsed_result.PASSED)
 
-    # verify the outcome from `runtime_probe_wrapper`
-    self.assertEqual(outcome.rp_invocation_result.raw_stdout, b'fake_stdout\n')
-    self.assertEqual(outcome.rp_invocation_result.return_code, 123)
-    self.assertEqual(
-        outcome.rp_invocation_result.raw_stderr.rstrip(b'\n'), ' '.join([
-            '--config_file_path=' + probe_config_file_path, '--to_stdout',
-            '--verbosity_level=3',
-        ]).encode('utf-8'))
-    self.assertEqual(outcome.probe_statement_metadatas[0].fingerprint,
-                     '97b346e92ad636dad26f9a1dee5e94f88c01917f')
+    unused_unpacked_dir, probed_outcome = (
+        self._InvokeProbeBundleWithFakeRuntimeProbe(resp.output, info.envs))
+    self.assertTrue(bool(probed_outcome.rp_invocation_result.error_msg))
+    self.assertEqual(probed_outcome, info.probed_outcome)
 
-  def _InvokeProbeBundleWithFakeRuntimeProbe(
-      self, probe_bundle_path, unpacked_path, stdout, return_code):
-    with file_utils.TempDirectory() as fake_bin_path:
-      file_utils.ForceSymlink(os.path.join(_TESTDATA_DIR, 'fake_runtime_probe'),
-                              os.path.join(fake_bin_path, 'runtime_probe'))
-      env = dict(os.environ)
-      env['PATH'] = fake_bin_path + ':' + env['PATH']
-      env['FAKE_RUNTIME_PROBE_STDOUT'] = stdout
-      env['FAKE_RUNTIME_PROBE_RETURN_CODE'] = str(return_code)
-
-      raw_output = process_utils.CheckOutput(
-          [probe_bundle_path, '-d', unpacked_path], env=env, encoding=None)
-      return text_format.Parse(raw_output, client_payload_pb2.ProbedOutcome())
-
-  def testAnalyzeQualProbeTestResultInvalidPayload(self):
-    probe_info = self._GenerateSampleMMCStorageProbeInfo()
-    s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
+  def test_AnalyzeQualProbeTestResult_PayloadFormatError(self):
+    s = self._LoadProbeDataSource('1-valid')
     with self.assertRaises(probe_tool_manager.PayloadInvalidError):
       self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
           s, 'this_is_an_invalid_data')
 
-  def testAnalyzeQualProbeTestResultPass(self):
-    probe_info = self._GenerateSampleMMCStorageProbeInfo()
-    s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
-    probed_outcome = client_payload_pb2.ProbedOutcome(version=1)
-    probed_outcome.probe_statement_metadatas.add(
-        component_name=s.component_name, fingerprint=s.fingerprint)
-    probed_outcome.rp_invocation_result.result_type = (
-        probed_outcome.rp_invocation_result.FINISHED)
-    probed_outcome.rp_invocation_result.raw_stdout = json_utils.DumpStr({
-        'storage': [{'name': 'comp_name'}]}).encode('utf-8')
+  def test_AnalyzeQualProbeTestResult_WrongComponentError(self):
+    s = self._LoadProbeDataSource('1-valid')
+    raw_probed_outcome = unittest_utils.LoadRawProbedOutcome(
+        '1-wrong_component')
+    with self.assertRaises(probe_tool_manager.PayloadInvalidError):
+      self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
+          s, raw_probed_outcome)
 
+  def test_AnalyzeQualProbeTestResult_Pass(self):
+    s = self._LoadProbeDataSource('1-valid')
+    raw_probed_outcome = unittest_utils.LoadRawProbedOutcome('1-passed')
     resp = self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
-        s, text_format.MessageToBytes(probed_outcome))
+        s, raw_probed_outcome)
     self.assertEqual(resp.result_type, resp.PASSED)
 
-  def testAnalyzeQualProbeTestResultLegacy(self):
-    probe_info = self._GenerateSampleMMCStorageProbeInfo()
-    s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
-    probed_outcome = client_payload_pb2.ProbedOutcome(version=1)
-    probed_outcome.probe_statement_metadatas.add(
-        component_name=s.component_name, fingerprint='not_the_original_fp')
-    probed_outcome.rp_invocation_result.result_type = (
-        probed_outcome.rp_invocation_result.FINISHED)
-    probed_outcome.rp_invocation_result.raw_stdout = json_utils.DumpStr({
-        'storage': {'comp_name': [{}]}}).encode('utf-8')
-
+  def test_AnalyzeQualProbeTestResult_Legacy(self):
+    s = self._LoadProbeDataSource('1-valid')
+    raw_probed_outcome = unittest_utils.LoadRawProbedOutcome('1-legacy')
     resp = self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
-        s, text_format.MessageToBytes(probed_outcome))
+        s, raw_probed_outcome)
     self.assertEqual(resp.result_type, resp.LEGACY)
 
-  def testAnalyzeQualProbeTestResultIntirivalError(self):
-    probe_info = self._GenerateSampleMMCStorageProbeInfo()
-    s = self._probe_tool_manager.CreateProbeDataSource('comp_name', probe_info)
-    probed_outcome = client_payload_pb2.ProbedOutcome(version=1)
-    probed_outcome.probe_statement_metadatas.add(
-        component_name=s.component_name, fingerprint=s.fingerprint)
-    probed_outcome.rp_invocation_result.result_type = (
-        probed_outcome.rp_invocation_result.TIMEOUT_ERROR)
-    probed_outcome.rp_invocation_result.raw_stdout = json_utils.DumpStr({
-        'storage': {'comp_name': [{}]}}).encode('utf-8')
-
+  def test_AnalyzeQualProbeTestResult_IntrivialError_BadReturnCode(self):
+    s = self._LoadProbeDataSource('1-valid')
+    raw_probed_outcome = unittest_utils.LoadRawProbedOutcome(
+        '1-bad_return_code')
     resp = self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
-        s, text_format.MessageToBytes(probed_outcome))
+        s, raw_probed_outcome)
     self.assertEqual(resp.result_type, resp.INTRIVIAL_ERROR)
-    self.assertTrue(bool(resp.intrivial_error_msg))
 
-  @staticmethod
-  def _GenerateSampleMMCStorageProbeInfo(probe_params_construct_kwargs=None):
-    resolved_probe_params_construct_kwargs = {
-        'manfid': {'string_value': '0A'},
-        'oemid': {'string_value': '1234'},
-        'name': {'string_value': 'ABCxyz'},
-        'prv': {'string_value': '01'},
-        'sectors': {'int_value': 123},
-    }
-    resolved_probe_params_construct_kwargs.update(
-        probe_params_construct_kwargs or {})
+  def test_AnalyzeQualProbeTestResult_IntrivialError_InvalidProbeResult(self):
+    s = self._LoadProbeDataSource('1-valid')
+    raw_probed_outcome = unittest_utils.LoadRawProbedOutcome(
+        '1-invalid_probe_result')
+    resp = self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
+        s, raw_probed_outcome)
+    self.assertEqual(resp.result_type, resp.INTRIVIAL_ERROR)
 
-    probe_info = probe_tool_manager.ProbeInfo(
-        probe_function_name='storage.mmc_storage')
-    for param_name, kwargs in resolved_probe_params_construct_kwargs.items():
-      if kwargs is None:
-        continue
-      probe_info.probe_parameters.add(name=param_name, **kwargs)
+  def test_AnalyzeQualProbeTestResult_IntrivialError_ProbeResultMismatch(self):
+    s = self._LoadProbeDataSource('1-valid')
+    raw_probed_outcome = unittest_utils.LoadRawProbedOutcome(
+        '1-probe_result_not_match_metadata')
+    resp = self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
+        s, raw_probed_outcome)
+    self.assertEqual(resp.result_type, resp.INTRIVIAL_ERROR)
 
-    return probe_info
+  def test_AnalyzeQualProbeTestResult_IntrivialError_RuntimeProbeTimeout(self):
+    s = self._LoadProbeDataSource('1-valid')
+    raw_probed_outcome = unittest_utils.LoadRawProbedOutcome('1-timeout')
+    resp = self._probe_tool_manager.AnalyzeQualProbeTestResultPayload(
+        s, raw_probed_outcome)
+    self.assertEqual(resp.result_type, resp.INTRIVIAL_ERROR)
+
+  def _AssertJSONStringEqual(self, lhs, rhs):
+    self.assertEqual(json_utils.LoadStr(lhs), json_utils.LoadStr(rhs))
+
+  def _LoadProbeDataSource(self, testdata_name, comp_name=None):
+    probe_info, default_comp_name = _LoadProbeInfoAndCompName(testdata_name)
+    return self._probe_tool_manager.CreateProbeDataSource(
+        comp_name or default_comp_name, probe_info)
+
+  def _GenerateQualProbeTestBundlePayloadForFakeRuntimeProbe(
+      self, fake_probe_outcome_info):
+    probe_info_sources = []
+    for testdata_name in fake_probe_outcome_info.component_testdata_names:
+      probe_info_sources.append(self._LoadProbeDataSource(testdata_name))
+    return self._probe_tool_manager.GenerateQualProbeTestBundlePayload(
+        probe_info_sources[0])
+
+  def _InvokeProbeBundleWithFakeRuntimeProbe(self, probe_bundle_payload, envs):
+    probe_bundle_path = file_utils.CreateTemporaryFile()
+    os.chmod(probe_bundle_path, 0o755)
+    file_utils.WriteFile(probe_bundle_path, probe_bundle_payload, encoding=None)
+
+    unpacked_dir = tempfile.mkdtemp()
+    with file_utils.TempDirectory() as fake_bin_path:
+      file_utils.ForceSymlink(unittest_utils.FAKE_RUNTIME_PROBE_PATH,
+                              os.path.join(fake_bin_path, 'runtime_probe'))
+      subproc_envs = dict(os.environ)
+      subproc_envs['PATH'] = fake_bin_path + ':' + subproc_envs['PATH']
+      subproc_envs.update(envs)
+      raw_output = process_utils.CheckOutput(
+          [probe_bundle_path, '-d', unpacked_dir], env=subproc_envs,
+          encoding=None)
+    return unpacked_dir, text_format.Parse(
+        raw_output, client_payload_pb2.ProbedOutcome())
+
+  def _ExtractFakeRuntimeProbeStderr(self, probed_outcome):
+    raw_stderr = probed_outcome.rp_invocation_result.raw_stderr.decode('utf-8')
+    probed_outcome.rp_invocation_result.raw_stderr = b''
+    return [s.strip(' \n') for s in raw_stderr.split('=====')]
+
+  def _GetExpectedRuntimeProbeArguments(self, unpacked_dir):
+    return ' '.join(['--config_file_path=%s/probe_config.json' % unpacked_dir,
+                     '--to_stdout', '--verbosity_level=3'])
 
 
 if __name__ == '__main__':

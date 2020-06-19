@@ -1,0 +1,15 @@
+component_identity: {
+  qual_id: 3
+  readable_label: "PART_NO_9012"
+}
+probe_info: {
+  probe_function_name: "battery.generic_battery"
+  probe_parameters: {
+    name: "manufacturer"
+    string_value: "Elgoog"
+  }
+  probe_parameters: {
+    name: "model_name"
+    string_value: "!re Goo+gle$"
+  }
+}

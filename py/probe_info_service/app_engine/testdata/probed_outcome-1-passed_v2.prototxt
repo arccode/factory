@@ -1,0 +1,9 @@
+probe_statement_metadatas: {
+  component_name: "AVL_1--PART_NO_1234"
+  fingerprint: "7858dca91b5c7f11f63a668270bdea6276015beb"
+}
+rp_invocation_result: {
+  result_type: FINISHED
+  return_code: 0
+  raw_stdout: "{\"storage\": [{\"name\": \"AVL_1--PART_NO_1234\"}]}"
+}

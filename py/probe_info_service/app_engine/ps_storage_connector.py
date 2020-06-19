@@ -95,6 +95,11 @@ class IProbeStatementStorageConnector(abc.ABC):
     """
     raise NotImplementedError
 
+  @abc.abstractmethod
+  def Clean(self):
+    """Clean out all probe statements for testing purpose."""
+    raise NotImplementedError
+
 
 class _InMemoryProbeStatementStorageConnector(IProbeStatementStorageConnector):
   """An in-memory implementation for unittesting purpose."""
@@ -125,6 +130,10 @@ class _InMemoryProbeStatementStorageConnector(IProbeStatementStorageConnector):
 
   def TryLoadOverriddenQualProbeData(self, qual_id):
     return self._overridden_qual_probe_data.get(qual_id, None)
+
+  def Clean(self):
+    self._qual_probe_statement = {}
+    self._overridden_qual_probe_data = {}
 
 
 class _DataStoreProbeStatementStorageConnector(IProbeStatementStorageConnector):
@@ -170,6 +179,9 @@ class _DataStoreProbeStatementStorageConnector(IProbeStatementStorageConnector):
     except KeyError:
       return None
     return OverriddenProbeData(**db_data)
+
+  def Clean(self):
+    raise NotImplementedError
 
   def _LoadEntity(self, path_args):
     key = self._client.key(*path_args)

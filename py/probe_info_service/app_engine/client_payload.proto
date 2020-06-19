@@ -35,18 +35,14 @@ message InvocationResult {
 
 // Placeholder for the metadata of the whole probe bundle.
 message ProbeBundleMetadata {
-  int32 version = 1;
+  string probe_config_file_path = 1;
 
-  string probe_config_file_path = 2;
-
-  repeated ProbeStatementMetadata probe_statement_metadatas = 3;
+  repeated ProbeStatementMetadata probe_statement_metadatas = 2;
 }
 
 // Placeholder for the output from the probing against the given probe bundle.
 message ProbedOutcome {
-  int32 version = 1;
-
-  repeated ProbeStatementMetadata probe_statement_metadatas = 3;
+  repeated ProbeStatementMetadata probe_statement_metadatas = 1;
 
   InvocationResult rp_invocation_result = 2;
 }

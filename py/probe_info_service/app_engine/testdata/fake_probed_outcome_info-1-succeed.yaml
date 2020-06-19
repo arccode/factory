@@ -1,0 +1,33 @@
+component_testdata_names:
+  - "1-valid"
+
+envs:
+  FAKE_RUNTIME_PROBE_STDOUT: "{}"
+  FAKE_RUNTIME_PROBE_RETURN_CODE: "0"
+
+probed_outcome_prototxt: '
+  probe_statement_metadatas: {
+    component_name: "AVL_1--PART_NO_1234"
+    fingerprint: "97b346e92ad636dad26f9a1dee5e94f88c01917f"
+  }
+  rp_invocation_result: {
+    result_type: FINISHED
+    return_code: 0
+    raw_stdout: "{}\n"
+  }'
+
+probe_config_payload: '
+  {
+    "storage": {
+      "AVL_1--PART_NO_1234": {
+        "eval": {"mmc_storage": {}},
+        "expect": {
+          "manfid": [true, "hex", "!eq 0x0A"],
+          "name": [true, "str", "!eq ABCxyz"],
+          "oemid": [true, "hex", "!eq 0x1234"],
+          "prv": [true, "hex", "!eq 0x01"],
+          "sectors": [true, "int", "!eq 123"]
+        }
+      }
+    }
+  }'

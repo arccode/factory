@@ -3,6 +3,19 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# Standard output is controlled by the tester.
 echo "${FAKE_RUNTIME_PROBE_STDOUT}"
+
+# Standard error contains the source material passed from the
+# runtime_probe_wrapper.
 echo "$@" >&2
+echo "=====" >&2
+for arg in "$@"; do
+  if [[ "${arg}" = "--config_file_path="* ]]; then
+    config_file_path="${arg#*=}"
+    cat "${config_file_path}" >&2
+  fi
+done
+
+# Return code is controlled by the tester.
 exit "${FAKE_RUNTIME_PROBE_RETURN_CODE}"

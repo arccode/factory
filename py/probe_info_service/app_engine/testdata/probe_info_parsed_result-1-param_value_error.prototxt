@@ -1,0 +1,9 @@
+result_type: PROBE_PARAMETER_ERROR
+probe_parameter_errors: {
+  index: 0
+  hint: "format error, should be hex number between 00 and FF with leading zero perserved."
+}
+probe_parameter_errors {
+  index: 2
+  hint: "format error, expect a 6-byte ASCII string"
+}

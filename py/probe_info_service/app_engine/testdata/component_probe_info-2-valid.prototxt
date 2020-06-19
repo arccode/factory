@@ -1,0 +1,23 @@
+component_identity: {
+  qual_id: 2
+  readable_label: "PART_NO_5678"
+}
+probe_info: {
+  probe_function_name: "storage.nvme_storage"
+  probe_parameters: {
+    name: "pci_vendor"
+    string_value: "01AB"
+  }
+  probe_parameters: {
+    name: "pci_device"
+    string_value: "23CD"
+  }
+  probe_parameters: {
+    name: "pci_class"
+    string_value: "012ABC"
+  }
+  probe_parameters: {
+    name: "sectors"
+    int_value: 456
+  }
+}
