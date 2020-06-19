@@ -94,8 +94,6 @@ CLOSURE_LIB_GITREV ?= 7744b75c637054ed38b14901d091ec3196b2ef9b
 CLOSURE_LIB_URL ?= \
   gs://chromeos-localmirror/distfiles/closure-library-201702.tar.gz
 CLOSURE_LIB_DIR ?= $(BUILD_DIR)/dist/closure-library-$(CLOSURE_LIB_GITREV)
-WS4PY_MODULE_URL ?= gs://chromeos-localmirror/distfiles/ws4py-0.5.1.tar.gz
-WS4PY_MODULE_DIR ?= $(BUILD_DIR)/dist/ws4py-0.5.1
 
 # TODO(hungte) Remove the ifdef when chromeos-base/factory ebuild has changed to
 # always specify CLOSURE_LIB_DIR.
@@ -163,9 +161,6 @@ $(WEBGL_AQUARIUM_DIR):
 
 $(CLOSURE_LIB_DIR):
 	$(call func-extract-from-url,$(dir $@),$(CLOSURE_LIB_URL))
-
-$(WS4PY_MODULE_DIR):
-	$(call func-extract-from-url,$(dir $@),$(WS4PY_MODULE_URL))
 
 # TODO(hungte) Change overlord to build out-of-tree.
 overlord: $(OVERLORD_DEPS_DIR)
@@ -267,13 +262,12 @@ par: resource
 	  $(PAR_TEMP_DIR))
 
 # Builds factory toolkit from resources.
-toolkit: $(WEBGL_AQUARIUM_DIR) $(WS4PY_MODULE_DIR) resource par
+toolkit: $(WEBGL_AQUARIUM_DIR) resource par
 	rm -rf $(TOOLKIT_TEMP_DIR) $(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME)
 	mkdir -p $(TOOLKIT_TEMP_DIR)$(TARGET_DIR) $(TOOLKIT_OUTPUT_DIR)
 	tar -xf $(RESOURCE_PATH) -C $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)
 	cp -r $(WEBGL_AQUARIUM_DIR)/* \
 	  $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/py/test/pytests/webgl_aquarium_static
-	cp -r $(WS4PY_MODULE_DIR) $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/misc
 	$(call func-apply-board-resources,toolkit,\
 	  $(TOOLKIT_TEMP_DIR)$(TARGET_DIR))
 	cp "$(PAR_OUTPUT_DIR)/factory.par" "$(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/"
