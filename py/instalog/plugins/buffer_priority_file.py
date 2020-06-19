@@ -145,18 +145,14 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
     """Returns a iterator to get produce order of partitioned buffers."""
     first_level = self._produce_partition
     self._produce_partition = (self._produce_partition + 1) % _PARTITION
-    # TODO(kerker): Remove `list()` when pylint range-builtin-not-iterating is
-    # more accuracy.
-    return itertools.chain(list(range(first_level, _PARTITION)),
-                           list(range(0, first_level)))
+    return itertools.chain(range(first_level, _PARTITION),
+                           range(0, first_level))
 
   def ConsumeOrderIter(self):
     """Returns a iterator to get consume order of partitioned buffers."""
     first_level = self._consume_partition
-    # TODO(kerker): Remove `list()` when pylint range-builtin-not-iterating is
-    # more accuracy.
-    return itertools.chain(list(range(first_level, _PARTITION)),
-                           list(range(0, first_level)))
+    return itertools.chain(range(first_level, _PARTITION),
+                           range(0, first_level))
 
   def Truncate(self):
     """Truncates all data files to only contain unprocessed records."""
