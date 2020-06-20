@@ -32,7 +32,7 @@ class LegacyADBProcess:
   def _get_dut_returncode(self):
     # The returncode will only be 0 if ADB channel was created and then closed
     # successfully, not the real status of remote process.
-    if self._proxy_object.returncode is not 0:
+    if self._proxy_object.returncode != 0:
       return self._proxy_object.returncode
 
     # Use cached exit code if possible.

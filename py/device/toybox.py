@@ -610,7 +610,7 @@ class Toybox(device_types.DeviceComponent):
     return self._device.CheckCall(self._BuildCommand(
         'pkill',
         *(option for i, option in enumerate(arg_options)
-          if args[i] or (args[i] is 0))))
+          if args[i] is not None and args[i] is not False)))
 
   def pmap(self, *args, **kargs):
     raise NotImplementedError
