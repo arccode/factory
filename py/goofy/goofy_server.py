@@ -168,7 +168,8 @@ class GoofyServer(socketserver.ThreadingMixIn,
     mimetypes.add_type('image/svg+xml', '.svg')
 
     jsonrpc_utils.MultiPathJSONRPCServer.__init__(
-        self, addr, GoofyWebRequestHandler, logRequests=logRequests)
+        self, addr, requestHandler=GoofyWebRequestHandler,
+        logRequests=logRequests)
     self._generated_data = {}
     self._generated_data_expiration = queue.PriorityQueue()
     self._resolver = PathResolver()

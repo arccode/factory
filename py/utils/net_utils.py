@@ -163,7 +163,7 @@ def Ifconfig(devname, enable, sleep_time_secs=1):
 class TimeoutXMLRPCTransport(xmlrpc.client.Transport):
   """Transport subclass supporting timeout."""
 
-  def __init__(self, timeout=DEFAULT_TIMEOUT, *args, **kwargs):
+  def __init__(self, *args, timeout=DEFAULT_TIMEOUT, **kwargs):
     xmlrpc.client.Transport.__init__(self, *args, **kwargs)
     self.timeout = timeout
 
@@ -175,7 +175,7 @@ class TimeoutXMLRPCTransport(xmlrpc.client.Transport):
 class TimeoutXMLRPCServerProxy(xmlrpc.client.ServerProxy):
   """XML/RPC ServerProxy supporting timeout."""
 
-  def __init__(self, uri, timeout=10, *args, **kwargs):
+  def __init__(self, uri, *args, timeout=10, **kwargs):
     if timeout:
       kwargs['transport'] = TimeoutXMLRPCTransport(
           timeout=timeout)

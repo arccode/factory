@@ -132,11 +132,10 @@ class MultiPathJSONRPCServer(SimpleJSONRPCServer.SimpleJSONRPCServer):
 
   # Now client can POST to http://localhost:8080/MyRPC
   """
-  def __init__(self, addr,
-               requestHandler=MultiPathJSONRPCRequestHandler,
-               *args, **kwargs):
+  def __init__(self, addr, *args,
+               requestHandler=MultiPathJSONRPCRequestHandler, **kwargs):
     SimpleJSONRPCServer.SimpleJSONRPCServer.__init__(
-        self, addr, requestHandler, *args, **kwargs)
+        self, addr, *args, requestHandler=requestHandler, **kwargs)
     self.dispatchers = {}
 
   def add_dispatcher(self, path, dispatcher):
