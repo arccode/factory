@@ -40,11 +40,11 @@ from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
 from cros.factory.utils import process_utils
 
 
-_GHOST_RPC_PORT = int(os.getenv('GHOST_RPC_PORT', 4499))
+_GHOST_RPC_PORT = int(os.getenv('GHOST_RPC_PORT', '4499'))
 
-_OVERLORD_PORT = int(os.getenv('OVERLORD_PORT', 4455))
-_OVERLORD_LAN_DISCOVERY_PORT = int(os.getenv('OVERLORD_LD_PORT', 4456))
-_OVERLORD_HTTP_PORT = int(os.getenv('OVERLORD_HTTP_PORT', 9000))
+_OVERLORD_PORT = int(os.getenv('OVERLORD_PORT', '4455'))
+_OVERLORD_LAN_DISCOVERY_PORT = int(os.getenv('OVERLORD_LD_PORT', '4456'))
+_OVERLORD_HTTP_PORT = int(os.getenv('OVERLORD_HTTP_PORT', '9000'))
 
 _BUFSIZE = 8192
 _RETRY_INTERVAL = 2
