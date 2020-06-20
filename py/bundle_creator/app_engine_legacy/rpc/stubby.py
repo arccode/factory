@@ -50,7 +50,7 @@ class FactoryBundleService(remote.Service):  # pylint: disable=no-init
       plain_content = ''.join(items)
       unprocessed_html_content = plain_content.replace(
           download_link,
-          '<a href="{}">{}</a>'.format(download_link, download_link))
+          '<a href="{0}">{0}</a>'.format(download_link))
     else:
       subject = 'Bundle creation failed - {:%Y-%m-%d %H:%M:%S}'.format(
           datetime.datetime.now())
@@ -59,7 +59,7 @@ class FactoryBundleService(remote.Service):  # pylint: disable=no-init
                        '{}').format(buganizer_link, worker_result.error_message)
       unprocessed_html_content = plain_content.replace(
           buganizer_link,
-          '<a href="{}">{}</a>'.format(buganizer_link, buganizer_link))
+          '<a href="{0}">{0}</a>'.format(buganizer_link))
       mail_list.append(config.FAILURE_EMAIL)
 
     html_content = unprocessed_html_content.replace('\n', '<br>').replace(
