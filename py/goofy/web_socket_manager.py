@@ -201,12 +201,18 @@ class WebSocketManager:
       web_sockets = list(self.web_sockets)
 
     if not web_sockets:
+      if event.type == Event.Type.STATE_CHANGE:
+        logging.info('No web socket gets %r', event)
       return
 
     event_json = event.to_json()
+    missing_any_web_socket = False
     for web_socket in web_sockets:
       try:
         with web_socket.send_lock:
           web_socket.send(event_json)
       except Exception:
+        missing_any_web_socket = True
         logging.exception('Unable to send event on web socket')
+    if missing_any_web_socket:
+      logging.info("Some web socket didn't get %r", event)

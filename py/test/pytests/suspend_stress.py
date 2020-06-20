@@ -32,11 +32,10 @@ and suspend to idle by writing freeze to ``/sys/power/state``::
   }
 """
 
-from io import StringIO
 import logging
 import os
 import re
-import subprocess
+import threading
 import time
 
 from cros.factory.device import device_utils
@@ -47,8 +46,8 @@ from cros.factory.test import test_ui
 from cros.factory.test.env import paths
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
-from cros.factory.utils import time_utils
 
 
 _MIN_SUSPEND_MARGIN_SECS = 5
@@ -101,16 +100,14 @@ class SuspendStressTest(test_case.TestCase):
                             'timings provided in test_list (max < min).')
     self.dut = device_utils.CreateDUTInterface()
     self.goofy = state.GetInstance()
+    self._suspend_stress_test_stop = threading.Event()
 
-  def UpdateOutput(self, handle, output, interval_sec=0.1):
+  def UpdateOutput(self, handle, interval_sec=0.1):
     """Updates output from file handle to given HTML node."""
-    while True:
-      c = os.read(handle.fileno(), 4096)
-      if not c:
-        break
-      c = c.decode('utf-8')
-      self.ui.AppendLog(c)
-      output.write(c)
+    while not self._suspend_stress_test_stop.is_set():
+      c = handle.read()
+      if c:
+        self.ui.AppendLog(c)
       time.sleep(interval_sec)
 
   def runTest(self):
@@ -136,31 +133,32 @@ class SuspendStressTest(test_case.TestCase):
     logging.info('command: %r', command)
     testlog.LogParam('command', command)
 
-    output = StringIO()
-    process = self.dut.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    thread = process_utils.StartDaemonThread(
-        target=self.UpdateOutput, args=(process.stdout, output))
+    def GetLogPath(suffix):
+      path = 'suspend_stress_test.' + suffix
+      return os.path.join(paths.DATA_TESTS_DIR, session.GetCurrentTestPath(),
+                          path)
 
-    process.wait()
-    thread.join()
+    logging.info('Log path is %s', GetLogPath('*'))
+    result_path = GetLogPath('result')
+    stdout_path = GetLogPath('stdout')
+    stderr_path = GetLogPath('stderr')
+    with open(stdout_path, 'w+', 1) as out, open(stderr_path, 'w', 1) as err:
+      process = self.dut.Popen(command, stdout=out, stderr=err)
+      thread = process_utils.StartDaemonThread(
+          target=self.UpdateOutput, args=(out, ))
+      process.wait()
+      self._suspend_stress_test_stop.set()
+      thread.join()
     self.goofy.WaitForWebSocketUp()
 
-    stdout = output.getvalue()
-    stderr = process.stderr.read()
+    stdout = file_utils.ReadFile(stdout_path)
+    stderr = file_utils.ReadFile(stderr_path)
     returncode = process.returncode
 
-    log_prefix = os.path.join(
-        paths.DATA_TESTS_DIR, session.GetCurrentTestPath(),
-        'suspend_stress_test.%s.' % time_utils.TimeString())
-    logging.info('Log path is %s*', log_prefix)
-    for suffix, value in zip(['result', 'stdout', 'stderr'],
-                             [returncode, stdout, stderr]):
-      try:
-        path = log_prefix + suffix
-        self.dut.WriteFile(path, str(value))
-      except IOError:
-        logging.exception('Can not write logs to %s.', path)
+    try:
+      file_utils.WriteFile(result_path, str(returncode))
+    except IOError:
+      logging.exception('Can not write logs to %s.', result_path)
 
     testlog.LogParam('stdout', stdout)
     testlog.LogParam('stderr', stderr)

@@ -71,6 +71,7 @@ import time
 import unittest
 
 from cros.factory.device import device_utils
+from cros.factory.test import state
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
 
@@ -111,6 +112,7 @@ class StressAppTest(unittest.TestCase):
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
+    self.goofy = state.GetInstance()
 
   def runTest(self):
     # Wait other parallel tests memory usage to settle to a stable value, so
@@ -132,3 +134,5 @@ class StressAppTest(unittest.TestCase):
     except stress_manager.StressManagerError as e:
       logging.error('StressAppTest failed: %s', e)
       raise
+    finally:
+      self.goofy.WaitForWebSocketUp()

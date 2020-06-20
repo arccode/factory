@@ -59,6 +59,7 @@ import time
 from cros.factory.device import device_utils
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
 from cros.factory.test import session
+from cros.factory.test import state
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.testlog import testlog
@@ -278,6 +279,7 @@ class CountDownTest(test_case.TestCase):
     self._next_log_time = 0
     self._next_ui_update_time = 0
     self._verbose_log = None
+    self.goofy = state.GetInstance()
 
   def runTest(self):
     verbose_log_path = session.GetVerboseTestLogPath()
@@ -311,3 +313,6 @@ class CountDownTest(test_case.TestCase):
 
       self.Sleep(1)
       self._elapsed_secs = time.time() - self._start_secs
+
+    self._verbose_log.close()
+    self.goofy.WaitForWebSocketUp()

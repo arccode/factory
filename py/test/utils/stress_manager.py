@@ -162,6 +162,7 @@ class StressManager:
 
         for disk_file in ['sat.diskthread.a', 'sat.diskthread.b']:
           cmd += ['-f', self._dut.path.join(disk_thread_dir, disk_file)]
+      logging.info('Running %r', cmd)
       process = self._dut.Popen(cmd, stdout=output)
 
       if duration_secs is None:
