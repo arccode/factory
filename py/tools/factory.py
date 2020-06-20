@@ -347,9 +347,7 @@ class TestListCommand(Subcommand):
       active_id = mgr.GetActiveTestListId()
 
       # Calculate the maximum width of test_lists for alignment of displaying.
-      # TODO(menghuan): Use max(..., default=0) after upgrading to Python 3.
-      test_lists_id_maxlen = max(map(
-          len, all_test_lists.keys())) if all_test_lists else 0
+      test_lists_id_maxlen = max(map(len, all_test_lists), default=0)
       id_width = max(test_lists_id_maxlen, len('ID'))
 
       line_format = '{is_active:>8} {id:<{id_width}} {source_path}'
