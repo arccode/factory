@@ -395,7 +395,9 @@ def _UnmountStatefulPartition(root, state_dev):
     # minijail will make encstateful busy, but usually we can't just kill them.
     # Need to list the processes and solve each-by-each.
     proc_list = _ListMinijail()
-    assert not proc_list, "processes still using minijail: %s" % proc_list
+    assert not proc_list, (
+        "processes still using minijail: %s" %
+        process_utils.SpawnOutput(['pgrep', '-al', 'minijail']))
 
     # Doing what 'mount-encrypted umount' should do.
     for mount_point in mount_point_list:
