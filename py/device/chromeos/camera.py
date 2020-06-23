@@ -74,10 +74,9 @@ class ChromeOSCamera(camera.Camera):
       if len(set(camera_id)) > 1:
         raise CameraError(
             'Multiple cameras have the same usb_vid_pid (%s)' % vid_pid)
-      elif not camera_id:
+      if not camera_id:
         raise CameraError('No camera has the usb_vid_pid (%s)' % vid_pid)
-      else:
-        camera_id = int(camera_id[0])
+      camera_id = int(camera_id[0])
       index_to_camera_id[index] = camera_id
 
     for index, camera_id in index_to_camera_id.items():
@@ -93,7 +92,7 @@ class ChromeOSCamera(camera.Camera):
     if facing is None:
       if len(self._index_mapping) > 1:
         raise CameraError('Multiple cameras are found')
-      elif not self._index_mapping:
+      if not self._index_mapping:
         raise CameraError('No camera is found')
       return next(iter(self._index_mapping.values()))
 

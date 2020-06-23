@@ -875,8 +875,7 @@ class Bundle:
           raise DomeClientException(
               detail='Bundle "%s" already exists' % bundle_name,
               status_code=rest_framework.status.HTTP_409_CONFLICT)
-        else:
-          raise DomeServerException(detail=e.faultString)
+        raise DomeServerException(detail=e.faultString)
 
     # find and return the new bundle
     return Bundle.ListOne(project_name, bundle_name)

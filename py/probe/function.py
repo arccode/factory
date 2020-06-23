@@ -144,7 +144,7 @@ class Function:
         raise FunctionException(
             'Function "%s" does not require any argument.' %
             self.__class__.__name__)
-      elif len(self.ARGS) == 1:
+      if len(self.ARGS) == 1:
         kwargs = {self.ARGS[0].name: kwargs[_FAKE_INDEX]}
       else:
         required_args = [arg.name for arg in self.ARGS if not arg.IsOptional()]

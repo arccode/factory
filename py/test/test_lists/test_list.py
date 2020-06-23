@@ -817,8 +817,7 @@ class TestList(ITestList):
       if cache[test_object_name] == _DUMMY_CACHE:
         raise type_utils.TestListError(
             'Detected loop inheritance dependency of %s' % test_object_name)
-      else:
-        return cache[test_object_name]
+      return cache[test_object_name]
 
     # syntactic sugar: if a test_object is just a string, it's equivalent to
     # {"inherit": string}, e.g.:

@@ -74,8 +74,7 @@ def GetCbiData(dut, data_name):
         return int(match.group(1))
       raise CbiException('Is the format of the output from "ectool cbi get" '
                          'changed?')
-    else:
-      return cbi_output.strip()
+    return cbi_output.strip()
   logging.warning('CBI field %s is not found in EEPROM.', data_name)
   return None
 

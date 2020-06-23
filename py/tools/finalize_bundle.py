@@ -660,7 +660,7 @@ class FinalizeBundle:
       raise FinalizeBundleException(
           'Expected to find 1 signed factory shim but found %d: %r' % (
               len(signed_shims), signed_shims))
-    elif len(signed_shims) == 1:
+    if len(signed_shims) == 1:
       PatchInstallShim(signed_shims[0])
       has_install_shim = True
 

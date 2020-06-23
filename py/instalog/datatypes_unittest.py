@@ -350,8 +350,7 @@ class TestEventStreamIterator(unittest.TestCase):
       del plugin, event_stream, timeout
       if time_utils.MonotonicTime() > wait_exception_begin:
         raise plugin_base.WaitException
-      else:
-        return None
+      return None
 
     # WaitException is thrown at T=1, so the iterator should end shortly
     # afterwards.

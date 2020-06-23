@@ -51,8 +51,7 @@ class GSUtil:
           'NotFoundException:' in stderr or
           'One or more URLs matched no objects' in stderr):
         raise NoSuchKey(stderr)
-      else:
-        raise GSUtilError(stderr)
+      raise GSUtilError(stderr)
 
   def LS(self, pattern):
     return self._InvokeCommand('ls', pattern).strip().split('\n')

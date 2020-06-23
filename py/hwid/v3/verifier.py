@@ -55,12 +55,11 @@ def VerifyComponentStatus(database, bom, mode, current_phase=None):
           raise common.HWIDException(
               'Found unqualified component of %r: %r in %r' %
               (comp_cls, comp_name, current_phase))
-        else:
-          continue
-      elif status == common.COMPONENT_STATUS.unsupported:
+        continue
+      if status == common.COMPONENT_STATUS.unsupported:
         raise common.HWIDException('Found unsupported component of %r: %r' %
                                    (comp_cls, comp_name))
-      elif status == common.COMPONENT_STATUS.deprecated:
+      if status == common.COMPONENT_STATUS.deprecated:
         if mode != common.OPERATION_MODE.rma:
           raise common.HWIDException(
               'Not in RMA mode. Found deprecated component of %r: %r' %

@@ -40,7 +40,7 @@ def FindDevice(dut, path_pattern, **attr_filter):
   if not devices:
     raise device_types.DeviceException(
         'Device with constraint %r not found' % attr_filter)
-  elif len(devices) > 1:
+  if len(devices) > 1:
     raise device_types.DeviceException(
         'Multiple devices found with constraint %r' % attr_filter)
 

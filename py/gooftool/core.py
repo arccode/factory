@@ -337,8 +337,7 @@ class Gooftool:
       if raise_exception:
         raise ValueError('Incorrect VPD: %s=%s (expected format: %s)' %
                          (key, value, pattern))
-      else:
-        return None
+      return None
 
     def CheckVPDFields(section, data, required, optional, optional_re):
       """Checks if all fields in data fall into given format.
@@ -883,8 +882,7 @@ class Gooftool:
       error_msg = 'Serial number bits have been set DIFFERENTLY on Cr50!'
       if arg_phase == 'pvt':
         raise Error(error_msg)
-      else:
-        logging.error(error_msg)
+      logging.error(error_msg)
     else:  # General errors.
       raise Error('Failed to set serial number bits on Cr50. '
                   '(args=%s)' % arg_phase)
@@ -928,8 +926,7 @@ class Gooftool:
         error_msg = 'Board ID and/or flag has been set DIFFERENTLY on Cr50!'
         if arg_phase == 'pvt':
           raise Error(error_msg)
-        else:
-          logging.error(error_msg)
+        logging.error(error_msg)
       else:  # General errors.
         raise Error('Failed to set board ID and flag on Cr50. '
                     '(args=%s)' % arg_phase)
@@ -960,13 +957,12 @@ class Gooftool:
           # set explicitly, even if it is an empty string.
           raise Error('This is a whitelabel device, but whitelabel_tag is not '
                       'set in VPD.')
-        else:
-          # whitelabel_tag is set in VPD, but it is different from what is
-          # reported by cros_config.  We don't allow this, because whitelabel
-          # tag affects RLZ code, and RLZ code will be written to cr50 board ID.
-          raise Error('whitelabel_tag reported by cros_config and VPD does not '
-                      'match.  Have you reboot the device after updating VPD '
-                      'fields?')
+        # whitelabel_tag is set in VPD, but it is different from what is
+        # reported by cros_config.  We don't allow this, because whitelabel
+        # tag affects RLZ code, and RLZ code will be written to cr50 board ID.
+        raise Error('whitelabel_tag reported by cros_config and VPD does not '
+                    'match.  Have you reboot the device after updating VPD '
+                    'fields?')
     if not rma_mode:
       self.Cr50SetSnBits()
     self.Cr50SetBoardId(is_whitelabel)

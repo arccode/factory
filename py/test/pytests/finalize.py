@@ -385,7 +385,7 @@ class Finalize(test_case.TestCase):
       self.Sleep(self.FINALIZE_TIMEOUT)
       raise type_utils.TestFailure('DUT Failed to finalize in %d seconds' %
                                    self.FINALIZE_TIMEOUT)
-    elif isinstance(self.dut.link, ssh.SSHLink):
+    if isinstance(self.dut.link, ssh.SSHLink):
       # For remote SSH DUT, we ask DUT to send wipe log back.
       self._FinalizeRemoteSSHDUT(command)
     else:

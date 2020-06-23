@@ -47,8 +47,8 @@ class HTTPServiceTest(unittest.TestCase):
           'Nginx is not installed. '
           'Install nginx (`update_chroot` or `sudo emerge nginx`) then '
           'run this unittest again.')
-    else:
-      subprocess.check_call(['sudo', 'nginx', '-t', '-c', config_path])
+
+    subprocess.check_call(['sudo', 'nginx', '-t', '-c', config_path])
 
 
 if __name__ == '__main__':

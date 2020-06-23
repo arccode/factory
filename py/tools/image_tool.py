@@ -890,7 +890,7 @@ class GPT(pygpt.GPT):
         if check_equal:
           raise RuntimeError(
               'Partition size is different (%d, %d).' % (self.size, dest.size))
-        elif self.size > dest.size:
+        if self.size > dest.size:
           raise RuntimeError(
               'Source partition (%s) is larger than destination (%s).' %
               (self.size, dest.size))

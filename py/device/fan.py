@@ -89,8 +89,7 @@ class ECToolFanControl(FanControl):
     except Exception as e:  # pylint: disable=broad-except
       if rpm == self.AUTO:
         raise self.Error('Unable to set auto fan control: %s' % e)
-      else:
-        raise self.Error('Unable to set fan speed to %d RPM: %s' % (rpm, e))
+      raise self.Error('Unable to set fan speed to %d RPM: %s' % (rpm, e))
 
 
 class SysFSFanControl(FanControl):
@@ -161,5 +160,4 @@ class SysFSFanControl(FanControl):
     except Exception as e:  # pylint: disable=broad-except
       if rpm == self.AUTO:
         raise self.Error('Unable to set auto fan control: %s' % e)
-      else:
-        raise self.Error('Unable to set fan speed to %d RPM: %s' % (rpm, e))
+      raise self.Error('Unable to set fan speed to %d RPM: %s' % (rpm, e))

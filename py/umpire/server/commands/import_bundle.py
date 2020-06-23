@@ -91,6 +91,6 @@ class BundleImporter:
       if len(candidates) > 1:
         raise common.UmpireError(
             'Multiple %s found: %r' % (type_name, candidates))
-      elif len(candidates) == 1:
+      if len(candidates) == 1:
         ret.append((candidates[0], type_name))
     return ret

@@ -82,9 +82,9 @@ class FpmcuDevice:
     match_errors = self.FPINFO_ERRORS_RE.search(info)
     if match_errors is None:
       raise FpmcuError('Sensor error flags not found.')
-    else:
-      flags = match_errors.group(1)
-      if flags != '':
-        raise FpmcuError('Sensor failure: %s' % flags)
+
+    flags = match_errors.group(1)
+    if flags != '':
+      raise FpmcuError('Sensor failure: %s' % flags)
 
     return model

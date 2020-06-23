@@ -169,13 +169,13 @@ def TestAudioDigitPlayback(ui, dut, port_name, card, device, channel='all',
     key = ui.WaitKeysOnce(all_keys)
     if key == test_ui.ESCAPE_KEY:
       raise type_utils.TestFailure('Operator marked test fail.')
-    elif key == 'R':
+    if key == 'R':
       continue
-    else:
-      pressed_num = int(key)
-      if pressed_num != pass_digit:
-        raise type_utils.TestFailure('Wrong key pressed.')
-      break
+
+    pressed_num = int(key)
+    if pressed_num != pass_digit:
+      raise type_utils.TestFailure('Wrong key pressed.')
+    break
 
 
 class AudioTest(test_case.TestCase):

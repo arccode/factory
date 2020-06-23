@@ -510,8 +510,7 @@ class _ServiceTest:
     if not self._log['pass_strength']:
       raise self._TestException('strength %s < %d [fail]'
                                 % (strength, min_strength))
-    else:
-      return 'strength %s >= %d [pass]' % (strength, min_strength)
+    return 'strength %s >= %d [pass]' % (strength, min_strength)
 
   def _CheckQuality(self, min_quality):
     # Check signal quality.
@@ -523,8 +522,7 @@ class _ServiceTest:
     if not self._log['pass_quality']:
       raise self._TestException('quality %s < %d [fail]'
                                 % (quality, min_quality))
-    else:
-      return 'quality %s >= %d [pass]' % (quality, min_quality)
+    return 'quality %s >= %d [pass]' % (quality, min_quality)
 
   def _Connect(self, ssid, password):
     # Try connecting.
@@ -620,8 +618,7 @@ class _ServiceTest:
       error_msg = '%s iperf3 error: %s' % (tx_rx, iperf_output['error'])
       if 'intervals' not in iperf_output:
         raise self._TestException(error_msg)
-      else:
-        self._Log(error_msg)
+      self._Log(error_msg)
 
     # Count, print, and log number of zero-transfer intervals.
     throughputs = [
@@ -640,16 +637,15 @@ class _ServiceTest:
           '%s iperf3 intervals too few: %d (expected %d)' % (
               tx_rx, len(iperf_output['intervals']), min_intervals))
 
-    else:
-      # Show information about the data transferred.
-      iperf_avg = iperf_output['end']['sum_sent']
-      return (
-          '%s transferred: %.2f Mbits, time spent: %d sec, '
-          'throughput: %.2f Mbits/sec' % (
-              tx_rx,
-              _BytesToMbits(iperf_avg['bytes']),
-              transmit_time,
-              _BitsToMbits(iperf_avg['bits_per_second'])))
+    # Show information about the data transferred.
+    iperf_avg = iperf_output['end']['sum_sent']
+    return (
+        '%s transferred: %.2f Mbits, time spent: %d sec, '
+        'throughput: %.2f Mbits/sec' % (
+            tx_rx,
+            _BytesToMbits(iperf_avg['bytes']),
+            transmit_time,
+            _BitsToMbits(iperf_avg['bits_per_second'])))
 
   def _CheckIperfThroughput(self, ssid, tx_rx, log_key, log_pass_key,
                             min_throughput):
@@ -676,10 +672,10 @@ class _ServiceTest:
       raise self._TestException(
           '%s throughput %.2f < %.2f Mbits/s didn\'t meet the minimum' %
           (tx_rx, _BitsToMbits(iperf_avg['bits_per_second']), min_throughput))
-    else:
-      return ('%s throughput %.2f >= %.2f Mbits/s meets the minimum' %
-              (tx_rx, _BitsToMbits(iperf_avg['bits_per_second']),
-               min_throughput))
+
+    return ('%s throughput %.2f >= %.2f Mbits/s meets the minimum' %
+            (tx_rx, _BitsToMbits(iperf_avg['bits_per_second']),
+             min_throughput))
 
   def _Disconnect(self, ssid):
     # Try disconnecting.

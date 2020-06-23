@@ -84,7 +84,7 @@ def HasFpmcu():
 
     if has_fpmcu_path is False and has_cros_config_fpmcu is True:
       raise Error('FPMCU found in cros_config but missing in %s.' % FPMCU_PATH)
-    elif has_fpmcu_path is True and has_cros_config_fpmcu is False:
+    if has_fpmcu_path is True and has_cros_config_fpmcu is False:
       raise Error('FPMCU found in %s but missing in cros_config.' % FPMCU_PATH)
 
     _has_fpmcu = has_fpmcu_path

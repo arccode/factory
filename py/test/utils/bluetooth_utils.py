@@ -77,7 +77,7 @@ class BtMgmt:
     if len(host_mac_list) > 1:
       raise NotImplementedError('More then one MAC address while no'
                                 'mamufacturer_id specified.')
-    elif len(host_mac_list) == 1:
+    if len(host_mac_list) == 1:
       self._hci_device = host_mac_list[0][0]
       self._host_mac = host_mac_list[0][1]
 

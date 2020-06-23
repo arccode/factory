@@ -286,9 +286,8 @@ class SuspendResumeTest(test_case.TestCase):
         raise IOError('EINVAL: Failed to write to wakeup_count. Maybe there is '
                       'another program trying to suspend at the same time?'
                       'source=%r' % wake_sources)
-      else:
-        raise IOError('Failed to write to wakeup_count: %s' %
-                      debug_utils.FormatExceptionOnly())
+      raise IOError('Failed to write to wakeup_count: %s' %
+                    debug_utils.FormatExceptionOnly())
 
     try:
       # Suspend to memory. The write could fail with EBUSY if another wakeup
@@ -404,8 +403,7 @@ class SuspendResumeTest(test_case.TestCase):
       error_msg = 'Failed to write to wakealarm.'
       if raise_exception:
         raise IOError(error_msg)
-      else:
-        logging.warning(error_msg)
+      logging.warning(error_msg)
 
   def _VerifyWakealarmCleared(self, raise_exception=True):
     """Verify that wakealarm is cleared after resume.
@@ -427,8 +425,7 @@ class SuspendResumeTest(test_case.TestCase):
       error_msg = 'Wakealarm is not cleared after resume, value: %s.' % content
       if raise_exception:
         raise RuntimeError(error_msg)
-      else:
-        logging.warning(error_msg)
+      logging.warning(error_msg)
     self._SetWakealarm('0')
 
   def _HandleMessages(self, messages_start):

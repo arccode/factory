@@ -201,9 +201,9 @@ class CopyFilesAndRenameTest(unittest.TestCase):
     def Copy2SideEffect(*args, **unused_kwargs):
       if args[0] == no_src_file and args[1] == no_dst_file:
         raise no_such_file_raised_exception
-      elif args[0] == no_src_file2 and args[1] == no_dst_file2:
+      if args[0] == no_src_file2 and args[1] == no_dst_file2:
         raise no_such_file2_raised_exception
-      elif args[0] == normal_src_file and args[1] == normal_dst_file:
+      if args[0] == normal_src_file and args[1] == normal_dst_file:
         return 0
       return None
 

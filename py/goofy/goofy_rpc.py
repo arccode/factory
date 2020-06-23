@@ -521,21 +521,21 @@ class GoofyRPC:
     if sys_utils.InChroot():
       raise GoofyRPCException(
           'Cannot switch test in chroot; please manually restart Goofy')
-    else:
-      # Reset goofy_ghost so the test list in overlord is correct.
-      process_utils.Spawn(['goofy_ghost', 'reset'], call=True)
-      # Restart Goofy and clear state.
-      process_utils.Spawn(
-          ['nohup ' +
-           os.path.join(paths.FACTORY_DIR, 'bin', 'factory_restart') +
-           ' -a &'],
-          shell=True, check_call=True)
-      # Wait for a while.  This process should be killed long before
-      # 60 seconds have passed.
-      time.sleep(60)
-      # This should never be reached, but not much we can do but
-      # complain to the caller.
-      raise GoofyRPCException('Factory did not restart as expected')
+
+    # Reset goofy_ghost so the test list in overlord is correct.
+    process_utils.Spawn(['goofy_ghost', 'reset'], call=True)
+    # Restart Goofy and clear state.
+    process_utils.Spawn(
+        ['nohup ' +
+         os.path.join(paths.FACTORY_DIR, 'bin', 'factory_restart') +
+         ' -a &'],
+        shell=True, check_call=True)
+    # Wait for a while.  This process should be killed long before
+    # 60 seconds have passed.
+    time.sleep(60)
+    # This should never be reached, but not much we can do but
+    # complain to the caller.
+    raise GoofyRPCException('Factory did not restart as expected')
 
   def CallExtension(self, name, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS,
                     **kwargs):

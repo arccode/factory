@@ -232,7 +232,7 @@ def SetGlobalLoggerDefaultPrefix(prefix):
   if not PREFIX_RE.match(prefix):
     raise ValueError("prefix %r must match re %s" % (
         prefix, PREFIX_RE.pattern))
-  elif _global_event_logger:
+  if _global_event_logger:
     raise EventLogException(("Unable to set default prefix %r after "
                              "initializing the global event logger") % prefix)
 

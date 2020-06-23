@@ -344,11 +344,10 @@ class FingerprintTest(unittest.TestCase):
         logging.info('MQT SNR %f (err:%d)', snr, rc)
         if rc:
           raise type_utils.TestFailure('MQT failed with error %d' % (rc))
-        else:
-          testlog.UpdateParam(
-              name='mqt_snr', description='Image signal-to-noise ratio')
-          if not testlog.CheckNumericParam(
-              name='mqt_snr', value=snr, min=self.args.min_snr):
-            raise type_utils.TestFailure('Bad quality image')
+        testlog.UpdateParam(
+            name='mqt_snr', description='Image signal-to-noise ratio')
+        if not testlog.CheckNumericParam(
+            name='mqt_snr', value=snr, min=self.args.min_snr):
+          raise type_utils.TestFailure('Bad quality image')
       elif self.args.min_snr > 0.0:
         raise type_utils.TestFailure('No image quality library available')
