@@ -64,6 +64,7 @@ KEY_COMPONENT_ALLOWLIST = [
     'component.has_rear_camera',
     'component.has_sd_reader',
     'component.has_stylus',
+    'component.has_stylus_garage',
     'component.has_tabletmode',
     'component.has_touchscreen',
     'component.has_wifi'

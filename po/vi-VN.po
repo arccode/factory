@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-07-29 13:31+CST\n"
+"PO-Revision-Date: 2020-08-11 18:24+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -444,6 +444,10 @@ msgstr "Thử áp lực"
 #: ../build/pytests_label_generated.json
 msgid "Stylus"
 msgstr "đường vẽ khống chế "
+
+#: ../build/pytests_label_generated.json
+msgid "Stylus Garage"
+msgstr ""
 
 #: ../build/pytests_label_generated.json
 msgid "Summary"
@@ -2604,6 +2608,20 @@ msgstr "ngược chiều kim đồng hồ"
 msgid "Please rotate the device: {msg}"
 msgstr "Vui lòng biến đối tượng cần kiểm tra: {msg}"
 
+#: ../py/test/pytests/stylus_garage.py
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Remove stylus"
+msgstr ""
+
+#: ../py/test/pytests/stylus_garage.py
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Insert stylus"
+msgstr ""
+
+#: ../py/test/pytests/stylus_garage.py
+msgid "Insert or Remove stylus"
+msgstr ""
+
 #: ../py/test/pytests/summary.py
 msgid "Click or press SPACE to continue"
 msgstr "Nhấp hoặc nhấn nút trống để tiếp tục"
@@ -3405,6 +3423,10 @@ msgstr "Loa / micrô"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Stress App Test"
 msgstr "Thử áp lực"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Stylus And Garage"
+msgstr ""
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Tablet Rotation Base-Accel"

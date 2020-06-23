@@ -44,6 +44,7 @@
         "SpeakerDMic",
         "Touchpad",
         "Touchscreen",
+        "StylusAndGarage",
         "ExternalDisplay",
         "USBTypeCTest",
         "MRCCache"

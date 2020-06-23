@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-07-29 13:31+CST\n"
+"PO-Revision-Date: 2020-08-11 18:24+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -444,6 +444,10 @@ msgstr "压力测试"
 #: ../build/pytests_label_generated.json
 msgid "Stylus"
 msgstr "触控笔"
+
+#: ../build/pytests_label_generated.json
+msgid "Stylus Garage"
+msgstr "触控笔插槽"
 
 #: ../build/pytests_label_generated.json
 msgid "Summary"
@@ -2549,6 +2553,20 @@ msgstr "逆时针"
 msgid "Please rotate the device: {msg}"
 msgstr "请转动待测物: {msg}"
 
+#: ../py/test/pytests/stylus_garage.py
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Remove stylus"
+msgstr "移除触控笔"
+
+#: ../py/test/pytests/stylus_garage.py
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Insert stylus"
+msgstr "插入触控笔"
+
+#: ../py/test/pytests/stylus_garage.py
+msgid "Insert or Remove stylus"
+msgstr "插入或移除触控笔"
+
 #: ../py/test/pytests/summary.py
 msgid "Click or press SPACE to continue"
 msgstr "点击或按空白键继续"
@@ -3331,6 +3349,10 @@ msgstr "喇叭/麦克风"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Stress App Test"
 msgstr "压力测试"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Stylus And Garage"
+msgstr "触控笔与插槽"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Tablet Rotation Base-Accel"
