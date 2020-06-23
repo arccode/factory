@@ -376,8 +376,7 @@ class EventStreamIterator:
           raise StopIteration
         time.sleep(self.interval)
         continue
-      else:
-        raise StopIteration
+      raise StopIteration
 
     self._current_count += 1
     return ret

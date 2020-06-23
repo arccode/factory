@@ -152,7 +152,7 @@ class OutputHTTP(plugin_base.OutputPlugin):
             self._batch_size /= 2
             continue
 
-          elif status_code != 200:  # Bad Request
+          if status_code != 200:  # Bad Request
             self.error(reason)
             raise Exception
 

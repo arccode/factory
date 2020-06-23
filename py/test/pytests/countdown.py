@@ -175,7 +175,7 @@ class CountDownTest(test_case.TestCase):
         # is a problem.
         if last is None and current is None:
           continue
-        elif last is None or current is None:
+        if last is None or current is None:
           warnings.append(
               'Cannot read temperature sensor %s (current: %r, last: %r)' %
               (sensor, current, last))
