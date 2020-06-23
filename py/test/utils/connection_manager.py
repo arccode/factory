@@ -307,7 +307,7 @@ class ConnectionManager:
       cmd = 'start %s' % service
       if (service in _MANAGER_LIST and
           self.override_blacklisted_devices is not None):
-        cmd += ' BLACKLISTED_DEVICES="%s"' % (
+        cmd += ' BLOCKED_DEVICES="%s"' % (
             ','.join(self.override_blacklisted_devices))
       logging.info('Call cmd: %s', cmd)
       subprocess.call(cmd, shell=True, stdout=self.fnull, stderr=self.fnull)

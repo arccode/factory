@@ -20,7 +20,7 @@ _FAKE_DEPSERVICE_LIST = ['wpasupplicant']
 _FAKE_SUBSERVICE_LIST = ['flimflam_respawn', 'modemmanager']
 _FAKE_PROFILE_LOCATION = '/var/cache/%s/default.profile'
 _FAKE_INTERFACES = ['wlan0', 'eth0', 'lo']
-_FAKE_OVERRIDE_BLACKLISTED_DEVICES = ['wlan0']
+_FAKE_OVERRIDE_BLOCKED_DEVICES = ['wlan0']
 _FAKE_DATA = {
     'scan_interval': _FAKE_SCAN_INTERVAL_SECS,
     'network_manager': _FAKE_MANAGER,
@@ -97,7 +97,7 @@ class ConnectionManagerTest(unittest.TestCase):
       cmd = 'start %s' % service
       if (service in [_FAKE_MANAGER] and
           self.fakeData['override_blacklisted_devices'] is not None):
-        cmd += ' BLACKLISTED_DEVICES="%s"' % (
+        cmd += ' BLOCKED_DEVICES="%s"' % (
             ','.join(self.fakeData['override_blacklisted_devices']))
       subprocess_call_calls.append(
           mock.call(cmd, shell=True, stdout=mock.ANY, stderr=mock.ANY))
@@ -163,7 +163,7 @@ class ConnectionManagerTest(unittest.TestCase):
     glob_mock.return_value = _FAKE_INTERFACES
     get_base_network_manager_mock.return_value = self.fakeBaseNetworkManager
     self.fakeData['override_blacklisted_devices'] = (
-        _FAKE_OVERRIDE_BLACKLISTED_DEVICES)
+        _FAKE_OVERRIDE_BLOCKED_DEVICES)
     self.MockEnableNetworking()
 
     connection_manager.ConnectionManager(start_enabled=True,
