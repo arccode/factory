@@ -72,7 +72,7 @@ class ImportCollector(ast.NodeVisitor):
           'import': alias.name
       })
 
-  def visit_TryExcept(self, node):
+  def visit_Try(self, node):
     if any(
         isinstance(x.type, ast.Name) and x.type.id == 'ImportError'
         for x in node.handlers):
