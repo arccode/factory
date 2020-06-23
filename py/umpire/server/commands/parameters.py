@@ -102,18 +102,17 @@ class _ParameterObject:
         raise common.UmpireError('Intend to rename to existing component.')
       return self._UpdateExistingComponent(component, rename, using_ver,
                                            dst_path)
-    else:
-      # check if same name component already existed in same dir
-      existed_comp = self._FindComponentsByName(dir_id, comp_name)
-      if existed_comp:
-        # create file but name existed in same dir, view as updating version
-        return self._UpdateExistingComponent(existed_comp[0], None,
-                                             using_ver, dst_path)
-      else:
-        if using_ver is not None:
-          raise common.UmpireError(
-              'Intend to create component but assigned using_ver.')
-        return self._CreateComponent(dir_id, comp_name, dst_path)
+
+    # check if same name component already existed in same dir
+    existed_comp = self._FindComponentsByName(dir_id, comp_name)
+    if existed_comp:
+      # create file but name existed in same dir, view as updating version
+      return self._UpdateExistingComponent(existed_comp[0], None,
+                                           using_ver, dst_path)
+    if using_ver is not None:
+      raise common.UmpireError(
+          'Intend to create component but assigned using_ver.')
+    return self._CreateComponent(dir_id, comp_name, dst_path)
 
   def _UpdateExistingDirectory(self, directory, rename):
     """Update existing directory: rename."""
@@ -140,12 +139,12 @@ class _ParameterObject:
       if rename and self._FindChildDirByName(directory['parent_id'], rename):
         raise common.UmpireError('Intend to rename to existing directory.')
       return self._UpdateExistingDirectory(directory, rename)
-    else:
-      existed_dir = self._FindChildDirByName(parent_id, dir_name)
-      if existed_dir:
-        # create dir but name existed in parent dir, directly return
-        return existed_dir
-      return self._CreateDirectory(parent_id, dir_name)
+
+    existed_dir = self._FindChildDirByName(parent_id, dir_name)
+    if existed_dir:
+      # create dir but name existed in parent dir, directly return
+      return existed_dir
+    return self._CreateDirectory(parent_id, dir_name)
 
   def _GetDirIdByNameSpace(self, namespace):
     """Retrieve directory by given namespace."""

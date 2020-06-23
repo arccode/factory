@@ -186,7 +186,7 @@ class VPDSource(device_types.DeviceComponent):
   def GetPartition(self, partition):
     if partition == 'rw':
       return self.rw
-    elif partition == 'ro':
+    if partition == 'ro':
       return self.ro
     raise device_types.DeviceException('No %s partition found.' % partition)
 

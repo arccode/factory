@@ -44,9 +44,8 @@ class EmbeddedController(device_types.DeviceComponent):
     match = self.RO_VERSION_RE.search(ec_version)
     if match:
       return match.group(1)
-    else:
-      raise self.Error(
-          'Unexpected output from "ectool version": %s' % ec_version)
+    raise self.Error(
+        'Unexpected output from "ectool version": %s' % ec_version)
 
   def GetRWVersion(self):
     """Gets the EC RW firmware version.
@@ -58,9 +57,8 @@ class EmbeddedController(device_types.DeviceComponent):
     match = self.RW_VERSION_RE.search(ec_version)
     if match:
       return match.group(1)
-    else:
-      raise self.Error(
-          'Unexpected output from "ectool version": %s' % ec_version)
+    raise self.Error(
+        'Unexpected output from "ectool version": %s' % ec_version)
 
   def GetECConsoleLog(self):
     """Gets the EC console log.

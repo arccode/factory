@@ -434,7 +434,7 @@ class GooftoolTest(unittest.TestCase):
     def GetAllDataSideEffect(*unused_args, **kwargs):
       if kwargs['partition'] == vpd.VPD_READONLY_PARTITION_NAME:
         return ro
-      elif kwargs['partition'] == vpd.VPD_READWRITE_PARTITION_NAME:
+      if kwargs['partition'] == vpd.VPD_READWRITE_PARTITION_NAME:
         return rw
       return None
 

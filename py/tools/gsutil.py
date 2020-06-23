@@ -45,13 +45,13 @@ class GSUtil:
                                   read_stdout=True, read_stderr=True)
     if process.returncode == 0:
       return process.stdout_data
-    else:
-      stderr = process.stderr_data
-      if ('CommandException: No URLs matched' in stderr or
-          'NotFoundException:' in stderr or
-          'One or more URLs matched no objects' in stderr):
-        raise NoSuchKey(stderr)
-      raise GSUtilError(stderr)
+
+    stderr = process.stderr_data
+    if ('CommandException: No URLs matched' in stderr or
+        'NotFoundException:' in stderr or
+        'One or more URLs matched no objects' in stderr):
+      raise NoSuchKey(stderr)
+    raise GSUtilError(stderr)
 
   def LS(self, pattern):
     return self._InvokeCommand('ls', pattern).strip().split('\n')

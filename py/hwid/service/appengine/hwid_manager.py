@@ -138,7 +138,7 @@ class Bom:
     if cls:
       if cls not in self._components:
         return []
-      elif not self._components[cls]:
+      if not self._components[cls]:
         return [Component(cls, None, None)]
       return copy.deepcopy(self._components[cls])
 

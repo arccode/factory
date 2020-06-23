@@ -448,11 +448,11 @@ class ITestList(metaclass=abc.ABCMeta):
     def ConvertToBasicType(value):
       if isinstance(value, collections.Mapping):
         return {k: ConvertToBasicType(v) for k, v in value.items()}
-      elif isinstance(value, str):
+      if isinstance(value, str):
         return value
-      elif isinstance(value, (list, tuple)):
+      if isinstance(value, (list, tuple)):
         return type(value)(ConvertToBasicType(v) for v in value)
-      elif isinstance(value, collections.Sequence):
+      if isinstance(value, collections.Sequence):
         return [ConvertToBasicType(v) for v in value]
       return value
 

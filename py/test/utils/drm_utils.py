@@ -587,8 +587,7 @@ def _LoadDRMLibrary():
 def _GetDRMLibrary():
   if _lib:
     return _lib
-  else:
-    raise DRMError('DRM library is not available')
+  raise DRMError('DRM library is not available')
 
 
 try:

@@ -168,9 +168,8 @@ class PlanktonHDMI:
                            return_corr):
         logging.info('Comparing captured image w/ golden image passed')
         return True
-      else:
-        logging.info('Comparing captured image w/ golden image failed')
-        time.sleep(0.25)
+      logging.info('Comparing captured image w/ golden image failed')
+      time.sleep(0.25)
 
     return False
 

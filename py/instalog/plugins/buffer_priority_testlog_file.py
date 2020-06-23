@@ -17,9 +17,9 @@ class BufferPriorityFile(buffer_priority_file.BufferPriorityFile):
   def EventLevel(self, event):
     if event.get('type') == 'station.test_run':
       return 0
-    elif event.get('type') != 'station.message':
+    if event.get('type') != 'station.message':
       return 1
-    elif event.get('logLevel') != 'INFO':
+    if event.get('logLevel') != 'INFO':
       return 2
     return 3
 

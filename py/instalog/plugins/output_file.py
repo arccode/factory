@@ -167,7 +167,7 @@ class OutputFile(plugin_base.OutputPlugin):
         self.debug('Commit 0 events')
         event_stream.Commit()
         return True
-      elif self.ProcessEvents(base_dir):
+      if self.ProcessEvents(base_dir):
         self.info('Commit %d events', num_events)
         event_stream.Commit()
         return True

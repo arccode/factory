@@ -285,22 +285,22 @@ class CameraTest(test_case.TestCase):
     # is ready.
     if self.e2e_mode and False:
       return self.RunJSPromiseBlocking('cameraTest.detectFaces()')
-    else:
-      cascade = cv.CascadeClassifier(_HAAR_CASCADE_PATH)
-      detected_objs = cascade.detectMultiScale(
-          cv_image,
-          scaleFactor=1.2,
-          minNeighbors=2,
-          flags=cv.CASCADE_DO_CANNY_PRUNING,
-          minSize=(20, 20))
-      # pylint: disable=len-as-condition
-      # Detected_objs will be numpy array or an empty tuple. bool(numpy_array)
-      # will not work (will raise an exception).
-      detected = len(detected_objs) > 0
-      if detected:
-        for x, y, w, h in detected_objs:
-          cv.rectangle(cv_image, (x, y), (x + w, y + h), 255)
-      return detected
+
+    cascade = cv.CascadeClassifier(_HAAR_CASCADE_PATH)
+    detected_objs = cascade.detectMultiScale(
+        cv_image,
+        scaleFactor=1.2,
+        minNeighbors=2,
+        flags=cv.CASCADE_DO_CANNY_PRUNING,
+        minSize=(20, 20))
+    # pylint: disable=len-as-condition
+    # Detected_objs will be numpy array or an empty tuple. bool(numpy_array)
+    # will not work (will raise an exception).
+    detected = len(detected_objs) > 0
+    if detected:
+      for x, y, w, h in detected_objs:
+        cv.rectangle(cv_image, (x, y), (x + w, y + h), 255)
+    return detected
 
   def ScanQRCode(self, cv_image):
     scanned_text = None

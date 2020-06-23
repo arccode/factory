@@ -262,7 +262,7 @@ class SSHPortForwarder:
         self._state = self.FAILED
         self._poll.set()
         return
-      elif retries == 0:
+      if retries == 0:
         logging.info('%s: Disconnected, retrying (sleep %ds)',
                      self, disconnect_wait)
         time.sleep(disconnect_wait)

@@ -176,9 +176,9 @@ class DomeAPITest(rest_framework.test.APITestCase):
       if add_config_from_blob_mock.called:
         args, unused_kwargs = add_config_from_blob_mock.call_args
         return args[0]
-      else:
-        with TestData('umpire_config.json', deserialize=False) as config_str:
-          return config_str
+
+      with TestData('umpire_config.json', deserialize=False) as config_str:
+        return config_str
 
     def MockUmpireGetPayloadsDict(file_name):
       """Mock the GetPayloadsDict() RPC call in Umpire."""

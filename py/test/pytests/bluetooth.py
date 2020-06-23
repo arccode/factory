@@ -822,11 +822,10 @@ class BluetoothTest(test_case.TestCase):
     def _DeriveRSSIThreshold(threshold, fid):
       if isinstance(threshold, (int, float)):
         return threshold
-      elif isinstance(threshold, dict):
+      if isinstance(threshold, dict):
         if fid in threshold:
           return threshold.get(fid)
-        else:
-          fail_msg.append('Fixture ID "%s" is not legitimate!\n' % fid)
+        fail_msg.append('Fixture ID "%s" is not legitimate!\n' % fid)
       else:
         fail_msg.append('Wrong type of RSSI threshold: %s\n' % threshold)
       return None
@@ -988,10 +987,8 @@ class BluetoothTest(test_case.TestCase):
       if passed:
         if success_to_remove:
           return
-        else:
-          self.FailTask('InputTestTask: Fail to remove input')
-      else:
-        self.FailTask('Failed by operator')
+        self.FailTask('InputTestTask: Fail to remove input')
+      self.FailTask('Failed by operator')
     finally:
       if need_to_cleanup:
         success_to_remove = RemoveInput()

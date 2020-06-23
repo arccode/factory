@@ -379,8 +379,7 @@ class Consumer(log_utils.LoggerMixin, plugin_base.BufferEventStream):
       event = self.streams[self.streams_index].Next()
       if event is not None:
         return event
-      else:
-        self.streams_index += 1
+      self.streams_index += 1
     return None
 
   def Next(self):

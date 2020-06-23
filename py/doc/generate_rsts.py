@@ -140,7 +140,7 @@ def WriteArgsTable(rst, title, args):
     def FormatArgType(arg_type):
       if isinstance(arg_type, Enum):
         return repr(sorted(arg_type))
-      elif arg_type == type(None):
+      if arg_type == type(None):
         return 'None'
       return arg_type.__name__
     arg_types = ', '.join(FormatArgType(x) for x in arg.type)

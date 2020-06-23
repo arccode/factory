@@ -310,13 +310,11 @@ class SuspendResumeTest(test_case.TestCase):
               self.args.wakeup_count_path).strip()
           self._Suspend(retry_count + 1)
           return
-        else:
-          raise IOError('EBUSY: Early wake event when attempting suspend: %s, '
-                        'source=%r' %
-                        (debug_utils.FormatExceptionOnly(), wake_sources))
-      else:
-        raise IOError('Failed to write to /sys/power/state: %s' %
-                      debug_utils.FormatExceptionOnly())
+        raise IOError('EBUSY: Early wake event when attempting suspend: %s, '
+                      'source=%r' %
+                      (debug_utils.FormatExceptionOnly(), wake_sources))
+      raise IOError('Failed to write to /sys/power/state: %s' %
+                    debug_utils.FormatExceptionOnly())
     logging.info('Returning from suspend at %d.', self._ReadCurrentTime())
 
   def _ReadSuspendCount(self):

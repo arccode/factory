@@ -469,8 +469,7 @@ class DRMKeysProvisioningServer:
     row = FetchDRMKeyByDeviceSerialNumber(project['name'], device_serial_number)
     if row:
       return row['encrypted_drm_key']
-    else:
-      raise RuntimeError('Failed to find paired DRM key')
+    raise RuntimeError('Failed to find paired DRM key')
 
   def ListenForever(self, ip, port):
     """Starts the XML RPC server waiting for commands.

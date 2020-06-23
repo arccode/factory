@@ -320,15 +320,14 @@ class SystemLogManager(plugin.Plugin):
           logging.info('SystemLogManager got aborted.')
           return
 
-        else:
-          # Always clears obsolete logs.
-          self._ClearLogs()
+        # Always clears obsolete logs.
+        self._ClearLogs()
 
-          if not clear_only:
-            # Syncs logs according to the request.
-            last_sync_time = self._timer()
-            self._SyncLogs(extra_files, callback,
-                           self._timer() + self._scan_log_period_secs)
+        if not clear_only:
+          # Syncs logs according to the request.
+          last_sync_time = self._timer()
+          self._SyncLogs(extra_files, callback,
+                         self._timer() + self._scan_log_period_secs)
         self._queue.task_done()
 
   def _FindKcrash(self):

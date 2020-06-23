@@ -139,8 +139,7 @@ class StubAbortEvent:
       if self.notify_event:
         self.notify_event.wait()
       return True
-    else:
-      return False
+    return False
 
 class TestSystemLogManager(unittest.TestCase):
   """Unittest for SystemLogManager."""

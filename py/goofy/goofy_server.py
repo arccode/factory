@@ -77,7 +77,7 @@ class PathResolver:
         suffix = url_path[len(prefix):]
         if isinstance(value, str):
           return value + suffix
-        elif suffix == '':
+        if suffix == '':
           return value
       prefix, unused_sep, suffix = prefix.rpartition('/')
       # For '/xxx', we also need to check '/' as the prefix.

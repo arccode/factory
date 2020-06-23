@@ -288,12 +288,11 @@ class SerialDevice:
         logging.info('Successfully received %r. Took %.3f seconds', response,
                      duration)
       return response
-    else:
-      error_message = 'Receive %d bytes timeout after %.2f seconds' % (
-          size, self._serial.timeout)
-      if self.log:
-        logging.warning(error_message)
-      raise serial.SerialTimeoutException(error_message)
+    error_message = 'Receive %d bytes timeout after %.2f seconds' % (
+        size, self._serial.timeout)
+    if self.log:
+      logging.warning(error_message)
+    raise serial.SerialTimeoutException(error_message)
 
   def FlushBuffer(self):
     """Flushes input/output buffer."""

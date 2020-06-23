@@ -351,8 +351,7 @@ def GetNetworkInterfaceByPath(interface_path, allow_multiple=False):
   if allow_multiple:
     logging.warning('Multiple interfaces are found: %s', valid_interfaces)
     return valid_interfaces[0]
-  else:
-    raise ValueError('Multiple interfaces are found: %s' % valid_interfaces)
+  raise ValueError('Multiple interfaces are found: %s' % valid_interfaces)
 
 
 def GetWLANMACAddress():

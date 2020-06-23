@@ -290,9 +290,8 @@ class ChromeOSBluetoothManager(BluetoothManager):
     self._main_loop.run()
     if success.isSet():
       return True
-    else:
-      raise BluetoothManagerException('Pair: reply_handler'
-                                      ' did not get called.')
+    raise BluetoothManagerException('Pair: reply_handler'
+                                    ' did not get called.')
 
   def _GetAdapters(self, mac_addr=None):
     """Gets a list of available bluetooth adapters.

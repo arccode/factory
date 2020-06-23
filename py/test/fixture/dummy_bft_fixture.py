@@ -112,6 +112,4 @@ class SpringDummyBFTFixture(DummyBFTFixture):
       self._Log('Backlight status: %s. Will turn off after %.1f seconds.' %
                 (status, self._backlight_off_time - now))
       return status
-    else:
-      raise bft_fixture.BFTFixtureException(
-          'Fixture does not support %s' % probe)
+    raise bft_fixture.BFTFixtureException('Fixture does not support %s' % probe)

@@ -59,7 +59,7 @@ def StartCaptureProcess(args):
         'http://localhost:%s/' % (args.size, args.device, args.bitrate,
                                   args.framerate, _SERVER_PORT),
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-  elif system == 'Darwin':
+  if system == 'Darwin':
     return subprocess.Popen(
         'sleep 1; '
         'ffmpeg -an -f avfoundation -video_size %s -framerate %d -i %s -b:v %s '
@@ -67,8 +67,7 @@ def StartCaptureProcess(args):
         (args.size, args.framerate, args.device, args.bitrate, args.framerate,
          _SERVER_PORT),
         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-  else:
-    raise ValueError('Only support Linux or Darwin, found %s' % system)
+  raise ValueError('Only support Linux or Darwin, found %s' % system)
 
 
 def StopCaptureProcess(handler):

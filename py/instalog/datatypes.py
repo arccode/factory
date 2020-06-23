@@ -107,7 +107,7 @@ class Event(json_utils.Serializable):
       return obj
     # Legacy object serialization.
     # json_string = '[{payload}, {attachments}]'
-    elif isinstance(obj, list):
+    if isinstance(obj, list):
       if len(obj) != 2:
         raise ValueError('Given JSON string is a list, but the length is not 2')
       return cls(
@@ -115,11 +115,11 @@ class Event(json_utils.Serializable):
           attachments=obj[1])
     # Case of only 'payload' being provided (run_plugin.py).
     # json_string = '{payload}'
-    elif isinstance(obj, dict):
+    if isinstance(obj, dict):
       return cls(payload=obj)
-    else:
-      raise ValueError('Unable to deserialize the JSON string: %s' %
-                       json_string)
+
+    raise ValueError('Unable to deserialize the JSON string: %s' %
+                     json_string)
 
   def ToDict(self):
     """Returns the dictionary equivalent of the Event object."""

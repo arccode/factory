@@ -343,10 +343,10 @@ def GetFileSizeInBytes(path, follow_link=False, dut=None):
       return int(dut.CallOutput(['blockdev', '--getsize64', path]))
     # For other files, just returns what we got from stat
     return int(size)
-  else:
-    with open(path, 'rb') as f:
-      f.seek(0, os.SEEK_END)
-      return f.tell()
+
+  with open(path, 'rb') as f:
+    f.seek(0, os.SEEK_END)
+    return f.tell()
 
 
 def IsGzippedFile(path):

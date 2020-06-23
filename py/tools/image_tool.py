@@ -1142,8 +1142,7 @@ def _ReadRMAMetadata(stateful):
       board = os.path.basename(found[0]).split('.')[0]
       metadata = [RMAImageBoardInfo(board=board, kernel=2, rootfs=3)]
       return metadata
-    else:
-      raise RuntimeError('Cannot get metadata, is this a RMA shim?')
+    raise RuntimeError('Cannot get metadata, is this a RMA shim?')
 
 
 def _GetBoardName(image):
@@ -1563,7 +1562,7 @@ class ChromeOSFactoryBundle:
   def firmware(self):
     if not self.enable_firmware:
       return None
-    elif self._firmware is not None:
+    if self._firmware is not None:
       return self._firmware
 
     part = Partition(self.release_image, PART_CROS_ROOTFS_A)
@@ -1576,7 +1575,7 @@ class ChromeOSFactoryBundle:
   def lsb_factory(self):
     if not self.factory_shim:
       return None
-    elif self._lsb_factory is not None:
+    if self._lsb_factory is not None:
       return self._lsb_factory
 
     part = Partition(self.factory_shim, PART_CROS_STATEFUL)

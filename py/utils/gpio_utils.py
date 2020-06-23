@@ -127,10 +127,9 @@ class GpioManager:
     try:
       if self._use_polld:
         return self._server.read_gpio(port)
-      else:
-        # Use with statement to make sure releasing system resource
-        with Gpio(port) as gpio:
-          return gpio.Read()
+      # Use with statement to make sure releasing system resource
+      with Gpio(port) as gpio:
+        return gpio.Read()
     except Exception as e:
       exception_name = sys.exc_info()[0].__name__
       raise GpioManagerError('Problem to read GPIO %s: %s(%s)' %

@@ -107,12 +107,11 @@ def _GetImageTool():
   factory_par = sys_utils.GetRunningFactoryPythonArchivePath()
   if factory_par is not None:
     return [factory_par, 'image_tool']
-  elif os.path.exists(os.path.join(SCRIPT_DIR, 'image_tool')):
+  if os.path.exists(os.path.join(SCRIPT_DIR, 'image_tool')):
     return [os.path.join(SCRIPT_DIR, 'image_tool')]
-  elif os.path.exists(os.path.join(SCRIPT_DIR, 'image_tool.py')):
+  if os.path.exists(os.path.join(SCRIPT_DIR, 'image_tool.py')):
     return [os.path.join(SCRIPT_DIR, 'image_tool.py')]
-  else:
-    raise FinalizeBundleException('Cannot find image_tool')
+  raise FinalizeBundleException('Cannot find image_tool')
 
 
 USAGE = """
@@ -469,7 +468,7 @@ class FinalizeBundle:
     if num_complete_scripts == 1:
       # Complete script already provided.
       return
-    elif num_complete_scripts > 1:
+    if num_complete_scripts > 1:
       raise FinalizeBundleException(
           'Not having exactly one file under %s.' % complete_dir)
 

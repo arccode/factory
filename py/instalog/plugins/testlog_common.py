@@ -19,7 +19,7 @@ def From0_1to0_21(event):
 
     if isinstance(obj, datetime.datetime):
       return time_utils.DatetimeToUnixtime(obj)
-    elif isinstance(obj, float):
+    if isinstance(obj, float):
       return obj
     return None
 

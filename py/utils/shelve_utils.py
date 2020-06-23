@@ -171,8 +171,7 @@ class DictShelfView:
     if key not in self._cached_children:
       if optional:
         return None
-      else:
-        raise KeyError(key)
+      raise KeyError(key)
 
     def walk(path):
       children = self._cached_children[path]

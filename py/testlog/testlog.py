@@ -490,10 +490,9 @@ def _StationTestRunWrapperInSession(*args, **kwargs):
         GetGlobalTestlog().last_test_run, method_name)(*args, **kwargs)
     _update_session_json.set()
     return ret
-  else:
-    raise testlog_utils.TestlogError(
-        'In memory station.test_run does not set. '
-        'Test harness need to set it manually.')
+  raise testlog_utils.TestlogError(
+      'In memory station.test_run does not set. '
+      'Test harness need to set it manually.')
 
 
 def AddSerialNumber(*args, **kwargs):

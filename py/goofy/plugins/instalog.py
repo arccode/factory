@@ -164,11 +164,11 @@ class Instalog(plugin.Plugin):
     out = p.stdout_data.rstrip()
     if p.returncode == 1:
       return False, None, out
-    else:
-      try:
-        return True, int(out), None
-      except Exception:
-        return False, None, 'Could not parse output: %s' % out
+
+    try:
+      return True, int(out), None
+    except Exception:
+      return False, None, 'Could not parse output: %s' % out
 
   def FlushInput(self, last_seq_output, timeout=None):
     """Flushes Instalog's Testlog input plugin.

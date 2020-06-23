@@ -324,10 +324,9 @@ class TestListIterator:
       if frame.locals.get('executed', False):
         self._ResetSubtestStatus(test)
       return self.RETURN_CODE.CONTINUE, None
-    else:
-      # should not continue
-      frame.next_step = self.OnLeave.__name__
-      return self.RETURN_CODE.CONTINUE, None
+    # should not continue
+    frame.next_step = self.OnLeave.__name__
+    return self.RETURN_CODE.CONTINUE, None
 
   def Body(self):
     frame = self.Top()
@@ -406,7 +405,7 @@ class TestListIterator:
                    test.path)
       test.Skip()
       return True  # we need to skip it
-    elif test.IsSkipped():
+    if test.IsSkipped():
       need_retest = False
       # All of the subtests are either skipped or passed, let's check if all of
       # them are still skipped now.

@@ -255,15 +255,14 @@ class LANSCPI:
         if self.logger.isEnabledFor(logging.DEBUG):
           self.logger.debug('[binary %r', _TruncateForLogging(ret))
         return ret
-      elif ch == b'\n':
+      if ch == b'\n':
         # Empty line
         self.logger.debug('[empty')
         return b''
-      else:
-        ret = ch + self.rfile.readline().rstrip(b'\n')
-        if self.logger.isEnabledFor(logging.DEBUG):
-          self.logger.debug('[ %s', _TruncateForLogging(ret))
-        return ret
+      ret = ch + self.rfile.readline().rstrip(b'\n')
+      if self.logger.isEnabledFor(logging.DEBUG):
+        self.logger.debug('[ %s', _TruncateForLogging(ret))
+      return ret
 
   def _ReadBinary(self, expected_length):
     """Reads a binary of fixed bytes."""

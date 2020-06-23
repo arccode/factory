@@ -20,7 +20,7 @@ def ParseServiceStatus(status_output):
   """Parses service status output and returns service status."""
   if START_TEXT in status_output:
     return Status.START
-  elif STOP_TEXT in status_output:
+  if STOP_TEXT in status_output:
     return Status.STOP
   return Status.UNKNOWN
 

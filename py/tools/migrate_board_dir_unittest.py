@@ -212,7 +212,7 @@ class CopyFilesAndRenameTest(unittest.TestCase):
       if args[0] == src_sub_dir and args[1] == dst_sub_dir:
         return 0
       # Test copystat error.
-      elif args[0] == src_dir and args[1] == dst_dir:
+      if args[0] == src_dir and args[1] == dst_dir:
         raise raised_exception
       return None
 

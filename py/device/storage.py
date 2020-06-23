@@ -203,7 +203,7 @@ class AndroidStorage(Storage):
       if mount_point == '/data':
         # /data is default rw, return directly.
         return True
-      elif mount_point in ['/system', '/vendor', '/oem']:
+      if mount_point in ['/system', '/vendor', '/oem']:
         try:
           process_utils.CheckOutput(['adb', 'remount'])
           return True

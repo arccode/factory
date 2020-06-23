@@ -302,7 +302,7 @@ class WhaleBFTFixture(bft.BFTFixture):
 
     if is_open:
       return self.Status.OPEN
-    elif is_closed:
+    if is_closed:
       return self.Status.CLOSED
     return self.Status.CLOSING
 

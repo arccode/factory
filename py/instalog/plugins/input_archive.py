@@ -59,9 +59,8 @@ class InputArchive(plugin_base.InputPlugin):
     json_path = os.path.join(tmp_path, dir_name, 'events.json')
     if os.path.isfile(json_path):
       return json_path
-    else:
-      self.error('File "%s" does not have event.json', archive_name)
-      raise IOError
+    self.error('File "%s" does not have event.json', archive_name)
+    raise IOError
 
   def ProcessArchive(self, archive_path):
     """Extracts archive to tmp_path, then parses and emits events within."""

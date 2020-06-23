@@ -150,6 +150,5 @@ class AndroidPath(Path):
         # it might be a symbolic loop or non-existing file,
         # so we just append everything left and normalize the path.
         return self.normpath(self.join(current, *bits[i:]))
-      else:
-        current = output.strip()
+      current = output.strip()
     return current

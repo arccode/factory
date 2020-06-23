@@ -120,8 +120,7 @@ class SSHLink(device_types.DeviceLink):
       if not state.DataShelfHasKey(_DEVICE_DATA_KEY):
         raise ClientNotExistError
       return state.DataShelfGetValue(_DEVICE_DATA_KEY)
-    else:
-      return self._host
+    return self._host
 
   @host.setter
   def host(self, value):

@@ -261,16 +261,15 @@ class iio_generic:
         continue
     if param == 'mean':
       return sum(buffers) // len(buffers)
-    elif param == 'max':
+    if param == 'max':
       return max(buffers)
-    elif param == 'min':
+    if param == 'min':
       return min(buffers)
-    elif param == 'raw':
+    if param == 'raw':
       return buffers
-    elif param == 'first':
+    if param == 'first':
       return buffers[0]
-    else:
-      raise ValueError('Illegal value %s for type' % type)
+    raise ValueError('Illegal value %s for type' % type)
 
 
 class LightSensorTest(test_case.TestCase):
@@ -343,12 +342,11 @@ class LightSensorTest(test_case.TestCase):
   def GetConfigDescription(self, cfg):
     if 'above' in cfg:
       return 'Input > %d' % cfg['above']
-    elif 'below' in cfg:
+    if 'below' in cfg:
       return 'Input < %d' % cfg['below']
-    elif 'between' in cfg:
+    if 'between' in cfg:
       return '%d < Input < %d' % tuple(cfg['between'])
-    else:
-      raise ValueError('Unknown type in subtest configuration')
+    raise ValueError('Unknown type in subtest configuration')
 
   def tearDown(self):
     self._als.Stop()

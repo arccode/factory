@@ -33,15 +33,15 @@ class SafeFormatter(string.Formatter):
       if not key:
         self.Warn('Using positional argument {} is not supported,'
                   ' use named argument instead.')
-      elif key not in kwargs:
+      if key not in kwargs:
         self.Warn('Key %s not found.', key)
       return kwargs.get(key, self.placeholder)
-    else:
-      self.Warn('Using positional argument {%d} is not recommended,'
-                ' use named argument instead.', key)
-      if 0 <= key < len(args):
-        return args[key]
-      return self.placeholder
+
+    self.Warn('Using positional argument {%d} is not recommended,'
+              ' use named argument instead.', key)
+    if 0 <= key < len(args):
+      return args[key]
+    return self.placeholder
 
 
 _FORMATTER = SafeFormatter()

@@ -235,7 +235,7 @@ class OutputBigQuery(plugin_base.OutputPlugin):
         event_stream.Commit()
         return False
       # Failed to upload attachments.
-      elif row_count == -1:
+      if row_count == -1:
         self.info('Abort %d events (%d rows)', event_count, row_count)
         event_stream.Abort()
         return False

@@ -417,8 +417,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
     read_voltage = _RE_INA_VOLTAGE.findall(read_output)
     if read_current and read_voltage:
       return dict(current=int(read_current[0]), voltage=int(read_voltage[0]))
-    else:
-      raise bft_fixture.BFTFixtureException('Cannot read INA values')
+    raise bft_fixture.BFTFixtureException('Cannot read INA values')
 
   def GetPDStateWithRetries(self, retry_times):
     """Gets PD state information with retries.
@@ -451,8 +450,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
           polarity=match.group('polarity'),
           state=match.group('state'),
           flags=match.group('flags'))
-    else:
-      raise bft_fixture.BFTFixtureException('Cannot get pd state')
+    raise bft_fixture.BFTFixtureException('Cannot get pd state')
 
   def GetGPIOValue(self, gpio):
     """Gets Plankton board GPIO value.
@@ -471,8 +469,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
     read_value = _RE_GET_GPIO(gpio).findall(read_output)
     if read_value:
       return int(read_value[0])
-    else:
-      raise bft_fixture.BFTFixtureException('Cannot get gpio %s value' % gpio)
+    raise bft_fixture.BFTFixtureException('Cannot get gpio %s value' % gpio)
 
   def IsParallelTest(self):
     """Checks if parallel test is enabled or not.
@@ -520,8 +517,7 @@ class DolphinBFTFixture(bft_fixture.BFTFixture):
     read_object = _RE_I2C_READ.findall(read_output)
     if read_object:
       return int(read_object[0])
-    else:
-      raise bft_fixture.BFTFixtureException('Cannot read I2C value')
+    raise bft_fixture.BFTFixtureException('Cannot read I2C value')
 
   def _Send(self, command, fail_message):
     """Sends a command to BFT Fixture.

@@ -23,7 +23,7 @@ class VPDTest(unittest.TestCase):
     def GetValueSideEffect(*args, **unused_kwargs):
       if args[0] == 'a':
         return 'aa'
-      elif args[0] == 'b':
+      if args[0] == 'b':
         return 123
       return None
 

@@ -236,7 +236,7 @@ def GetI2CBus(device_names):
   if not matched_blocks:
     logging.error('GetI2CBus(%r): Device is not found', device_names)
     return None
-  elif len(matched_blocks) > 1:
+  if len(matched_blocks) > 1:
     logging.error('GetI2CBus(%r): Multiple devices are found', device_names)
     return None
   found = re.search(r'^S: *Sysfs=.*/i2c-([0-9]+)/', matched_blocks[0],

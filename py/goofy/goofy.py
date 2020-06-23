@@ -180,8 +180,7 @@ class Goofy:
         if parent_or_group:
           test = test.GetTopLevelParentOrGroup()
         return test
-      else:
-        return self.test_list.ToFactoryTestList()
+      return self.test_list.ToFactoryTestList()
 
     self.event_handlers = {
         Event.Type.RESTART_TESTS:

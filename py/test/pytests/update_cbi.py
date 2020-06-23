@@ -225,9 +225,9 @@ class UpdateCBITest(test_case.TestCase):
       return None
     if data_type == str:
       return str(value)
-    elif isinstance(value, int):
+    if isinstance(value, int):
       return value
-    elif isinstance(value, str):
+    if isinstance(value, str):
       # This can convert both 10-based and 16-based starting with '0x'.
       return int(value, 0)
     self.FailTask('The value in device-data is not an integer nor a '

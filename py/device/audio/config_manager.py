@@ -260,27 +260,28 @@ class AudioConfigManager(BaseConfigManager):
     if is_script:
       card = _SCRIPT_CARD_INDEX
 
-    if card in self.audio_config:
-      if action in self.audio_config[card]:
-        if is_script:
-          script = self.audio_config[card][action]
-          logging.info('Execute \'%s\'', script)
-          self._device.CheckCall(script)
-        else:
-          logging.info('\nvvv-- Do(%d) \'%s\' on card %s Start --vvv',
-                       self._audio_config_sn, action, card)
-          self._mixer_controller.SetMixerControls(
-              self.audio_config[card][action], card)
-          logging.info('\n^^^-- Do(%d) \'%s\' on card %s End   --^^^',
-                       self._audio_config_sn, action, card)
-          self._audio_config_sn += 1
-        return True
-      else:
-        logging.info('Action %s cannot be found in card %s', action, card)
-        return False
-    else:
+    if card not in self.audio_config:
       logging.info('Card %s does not exist', card)
       return False
+
+    if action not in self.audio_config[card]:
+      logging.info('Action %s cannot be found in card %s', action, card)
+      return False
+
+    if is_script:
+      script = self.audio_config[card][action]
+      logging.info('Execute \'%s\'', script)
+      self._device.CheckCall(script)
+    else:
+      logging.info('\nvvv-- Do(%d) \'%s\' on card %s Start --vvv',
+                   self._audio_config_sn, action, card)
+      self._mixer_controller.SetMixerControls(
+          self.audio_config[card][action], card)
+      logging.info('\n^^^-- Do(%d) \'%s\' on card %s End   --^^^',
+                   self._audio_config_sn, action, card)
+      self._audio_config_sn += 1
+
+    return True
 
   def SetSpeakerVolume(self, volume=0, card='0'):
     if not isinstance(volume, int) or volume < 0:

@@ -473,8 +473,7 @@ class UniqueStack:
       while self._list:
         if self._list[-1] in self._set:
           return self._list[-1]
-        else:
-          self._list.pop()
+        self._list.pop()
       return None
 
 

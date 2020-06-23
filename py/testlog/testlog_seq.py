@@ -135,7 +135,7 @@ class SeqGenerator:
                         'events file; using system time in ms')
       return int(time.time() * 1000)
 
-    elif recovery_seq == 0:
+    if recovery_seq == 0:
       # There is no log file. It's safe to start at 0.
       return recovery_seq
 

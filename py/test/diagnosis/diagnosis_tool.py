@@ -297,7 +297,7 @@ class DiagnosisToolRPC:
     if self._current_task is not None:
       if self._current_task.state == common.TASK_STATE.STOPPING:
         return False
-      elif self._current_task.state == common.TASK_STATE.RUNNING:
+      if self._current_task.state == common.TASK_STATE.RUNNING:
         self._ui_proxy.Confirm(title='Instruction',
                                content='You should stop the task first.',
                                options=[common.OPTIONS.STOP_IT,

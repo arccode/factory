@@ -415,8 +415,7 @@ class SysfsPowerInfoMixin(PowerInfoMixinBase):
         self._device.CheckOutput(['ectool', 'chargestate', 'show']))
     if re_object:
       return int(re_object[0])
-    else:
-      raise self.Error('Cannot find current in ectool chargestate show')
+    raise self.Error('Cannot find current in ectool chargestate show')
 
   def GetBatteryCurrent(self):
     """See PowerInfoMixinBase.GetBatteryCurrent"""
@@ -472,8 +471,7 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
                            self._device.CallOutput(['ectool', 'battery']))
     if re_object:
       return item_type(re_object[0])
-    else:
-      raise self.Error('Cannot find key "%s" in ectool battery' % key_name)
+    raise self.Error('Cannot find key "%s" in ectool battery' % key_name)
 
   def CheckACPresent(self):
     """See PowerInfoMixinBase.CheckACPresent"""
@@ -535,8 +533,7 @@ class ECToolPowerInfoMixin(PowerInfoMixinBase):
         self._device.CheckOutput(['ectool', 'chargestate', 'show']))
     if re_object:
       return int(re_object[0])
-    else:
-      raise self.Error('Cannot find current in ectool chargestate show')
+    raise self.Error('Cannot find current in ectool chargestate show')
 
   def GetBatteryVoltage(self):
     """See PowerInfoMixinBase.GetBatteryVoltage"""
@@ -623,8 +620,7 @@ class PowerDaemonPowerInfoMixin(PowerInfoMixinBase):
         r'^%s ?(\S*)$' % key_name, self._GetDumpPowerStatus(), re.MULTILINE)
     if re_object:
       return item_type(re_object[0])
-    else:
-      raise self.Error('Cannot find key "%s" in dump_power_status' % key_name)
+    raise self.Error('Cannot find key "%s" in dump_power_status' % key_name)
 
   def CheckACPresent(self):
     """See PowerInfoMixinBase.CheckACPresent"""

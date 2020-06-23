@@ -211,7 +211,7 @@ class ChargerTest(test_case.TestCase):
         testlog.LogParam('elapsed', 0)
       return
 
-    elif charge > target:
+    if charge > target:
       logging.info('Current charge is %s, discharge the battery to %s.',
                    self._GetLabelWithUnit(charge),
                    self._GetLabelWithUnit(target))
@@ -271,7 +271,8 @@ class ChargerTest(test_case.TestCase):
               _('OK! Meet {target}', target=self._GetLabelWithUnit(target)))
           self.Sleep(1)
           return
-        elif elapsed >= self.args.battery_check_delay_sec:
+
+        if elapsed >= self.args.battery_check_delay_sec:
           charger_current = self._GetChargerCurrent()
 
           if (not last_verbose_log_time or

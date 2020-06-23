@@ -98,8 +98,7 @@ class USBTypeC(device_types.DeviceComponent):
     gpio_value = gpio_info_re.findall(response)
     if gpio_value:
       return int(gpio_value[0])
-    else:
-      raise self.Error('Fail to get GPIO %s value' % gpio_name)
+    raise self.Error('Fail to get GPIO %s value' % gpio_name)
 
   def GetPDStatus(self, port):
     """Gets the USB PD status.

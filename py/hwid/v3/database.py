@@ -847,7 +847,7 @@ class EncodedFields:
   def _SimplifyList(cls, data):
     if not data:
       return None
-    elif len(data) == 1:
+    if len(data) == 1:
       return data[0]
 
     return sorted(data)

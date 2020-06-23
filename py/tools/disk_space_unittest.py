@@ -40,7 +40,7 @@ class DiskSpaceTest(unittest.TestCase):
     def StatvfsSideEffect(*args, **unused_kwargs):
       if args[0] == '/mnt/stateful_partition':
         return self.stateful_stats
-      elif args[0] == '/media/usb':
+      if args[0] == '/media/usb':
         return self.media_stats
       return None
 

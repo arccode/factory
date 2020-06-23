@@ -276,9 +276,9 @@ def LoadRules(path):
     """
     if key.startswith('='):
       return 4
-    elif key.endswith('.*'):
+    if key.endswith('.*'):
       return 2
-    elif key == '*':
+    if key == '*':
       return 1
     return 3
 

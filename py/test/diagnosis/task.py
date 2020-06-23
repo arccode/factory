@@ -414,8 +414,8 @@ class _CommandStep(_Step):
     stderr_capturer.join()
     if self._need_to_stop:
       return _STEP_STATE.STOPPED
-    elif self._CheckCommandSuccess(proc.returncode, self._stdout_text,
-                                   self._expected_output):
+    if self._CheckCommandSuccess(proc.returncode, self._stdout_text,
+                                 self._expected_output):
       return _STEP_STATE.SUCCESS
     return _STEP_STATE.FAILED
 
@@ -443,9 +443,9 @@ class _CommandStep(_Step):
     """
     if expected_output is None:
       return return_code == 0
-    elif isinstance(expected_output, str):
+    if isinstance(expected_output, str):
       return stdout_text == expected_output
-    elif isinstance(expected_output, list):
+    if isinstance(expected_output, list):
       (regexp, flags) = tuple(expected_output)
       return common.CreateRegExp(regexp, flags).search(stdout_text) is not None
     raise TypeError(

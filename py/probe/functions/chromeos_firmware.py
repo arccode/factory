@@ -88,7 +88,7 @@ def CalculateFirmwareHashes(fw_file_path):
 
   if image.has_section('EC_RO'):
     return _EcRoHash(image)
-  elif image.has_section('GBB') and image.has_section('RO_SECTION'):
+  if image.has_section('GBB') and image.has_section('RO_SECTION'):
     return _MainRoHash(image)
   return None
 

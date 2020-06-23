@@ -111,8 +111,7 @@ class EthernetTest(test_case.TestCase):
       if md5sum_output == self.args.md5sum:
         session.console.info('Successfully connected to %s', self.args.test_url)
         return True
-      else:
-        session.console.info('md5 checksum error')
+      session.console.info('md5 checksum error')
     return False
 
   def CheckLinkSimple(self, dev):

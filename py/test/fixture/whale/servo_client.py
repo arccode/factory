@@ -220,7 +220,7 @@ class ServoClient:
     """
     if value == 'on':
       return True
-    elif value == 'off':
+    if value == 'off':
       return False
     raise ServoClientError(
         'Control %r value %r is neither "on" nor "off".' % (name, value))

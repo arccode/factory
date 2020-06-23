@@ -46,7 +46,7 @@ class SystemStatusTest(unittest.TestCase):
         return {netifaces.AF_INET6: [{'addr': 'aa:aa:aa:aa:aa:aa'}],
                 netifaces.AF_INET: [{'broadcast': '192.168.1.255',
                                      'addr': '192.168.1.100'}]}
-      elif args[0] == 'wlan0':
+      if args[0] == 'wlan0':
         return {netifaces.AF_INET: [{'addr': '192.168.16.100'},
                                     {'addr': '192.168.16.101'}]}
       return None

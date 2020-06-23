@@ -1343,23 +1343,23 @@ class GPTCommands:
       def ApplyFormatArgs(p):
         if args.begin:
           return p.FirstLBA
-        elif args.size:
+        if args.size:
           return p.blocks
-        elif args.type:
+        if args.type:
           return FormatTypeGUID(p)
-        elif args.unique:
+        if args.unique:
           return p.UniqueGUID
-        elif args.label:
+        if args.label:
           return p.Names
-        elif args.Successful:
+        if args.Successful:
           return p.Attributes.successful
-        elif args.Priority:
+        if args.Priority:
           return p.Attributes.priority
-        elif args.Tries:
+        if args.Tries:
           return p.Attributes.tries
-        elif args.Legacy:
+        if args.Legacy:
           return p.Attributes.legacy_boot
-        elif args.Attribute:
+        if args.Attribute:
           return '[%x]' % (p.Attributes.raw >> 48)
         return None
 

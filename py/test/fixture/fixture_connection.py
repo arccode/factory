@@ -102,9 +102,8 @@ class MockFixtureConnection(FixtureConnection):
   def Recv(self, length=0):
     if self._curr_cmd in self._script:
       return self._script[self._curr_cmd]
-    else:
-      raise FixtureConnectionError("Unexpected fixture command '%s'" %
-                                   self._curr_cmd)
+    raise FixtureConnectionError("Unexpected fixture command '%s'" %
+                                 self._curr_cmd)
 
 
 class SerialFixtureConnection(FixtureConnection):

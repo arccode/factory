@@ -21,16 +21,16 @@ def JSONHandler(obj):
   if isinstance(obj, datetime.datetime):
     # Change datetime.datetime obj to Unix time.
     return '%.6f' % time_utils.DatetimeToUnixtime(obj)
-  elif isinstance(obj, datetime.date):
+  if isinstance(obj, datetime.date):
     # Currently we didn't expect obj in this type
     return obj.isoformat()
-  elif isinstance(obj, datetime.time):
+  if isinstance(obj, datetime.time):
     # Currently we didn't expect obj in this type
     return obj.strftime('%H:%M')
-  elif inspect.istraceback(obj):
+  if inspect.istraceback(obj):
     tb = ''.join(traceback.format_tb(obj))
     return tb.strip()
-  elif isinstance(obj, Exception):
+  if isinstance(obj, Exception):
     return 'Exception: %s' % str(obj)
   return str(obj)
 

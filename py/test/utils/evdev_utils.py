@@ -220,15 +220,14 @@ def FindDevice(*args):
 
   if len(candidates) == 1:
     return candidates[0]
-  elif not candidates:
+  if not candidates:
     raise DeviceNotFoundError(
         "Can't find device. Filtered candidates: %s."
         % FormatFilteredCandidates())
-  else:
-    raise MultipleDevicesFoundError(
-        'Not having exactly one candidate! Left candidates: %s. '
-        'Filtered candidates %s.'
-        % (FormatDevices(candidates), FormatFilteredCandidates()))
+  raise MultipleDevicesFoundError(
+      'Not having exactly one candidate! Left candidates: %s. '
+      'Filtered candidates %s.'
+      % (FormatDevices(candidates), FormatFilteredCandidates()))
 
 
 def DeviceReopen(dev):

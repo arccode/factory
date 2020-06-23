@@ -356,8 +356,8 @@ def TerminateOrKillProcess(process, wait_seconds=1, sudo=False):
   if sudo:
     Spawn(['kill', str(pid)], sudo=True, check_call=True, log=True)
     return
-  else:
-    process.terminate()
+
+  process.terminate()
 
   reaped = threading.Event()
 

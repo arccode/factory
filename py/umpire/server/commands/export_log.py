@@ -32,7 +32,7 @@ class LogExporter:
   def GetBytes(self, size, unit):
     if unit == 'MB':
       return size * 1024**2
-    elif unit == 'GB':
+    if unit == 'GB':
       return size * 1024**3
     raise ValueError('This is not a valid unit')
 
@@ -118,7 +118,7 @@ class LogExporter:
             'messages': messages,
             'log_paths': [],
         }
-      elif log_type in ('report', 'log'):
+      if log_type in ('report', 'log'):
         start_date = datetime.datetime.strptime(start_date_str, '%Y%m%d').date()
         end_date = datetime.datetime.strptime(end_date_str, '%Y%m%d').date()
         tar_files_list = []
@@ -142,7 +142,6 @@ class LogExporter:
             'messages': messages,
             'log_paths': tar_files_list,
         }
-      else:
-        raise common.UmpireError('Failed to export %s: No such type' % log_type)
+      raise common.UmpireError('Failed to export %s: No such type' % log_type)
     except Exception as e:
       raise common.UmpireError('Failed to export %s\n%r' % (log_type, e))

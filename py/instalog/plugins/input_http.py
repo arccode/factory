@@ -221,7 +221,7 @@ class HTTPHandler(http.server.BaseHTTPRequestHandler, log_utils.LoggerMixin):
 
     if not events:
       return 200, 'OK'
-    elif self._plugin_api.Emit(events):
+    if self._plugin_api.Emit(events):
 
       emit_time = time.time() - start_time
 

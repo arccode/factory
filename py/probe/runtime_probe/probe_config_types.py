@@ -208,7 +208,7 @@ class _StrOutputFieldValue(_AbstractOutputFieldValue):
       if self._pattern and not self._pattern.match(value):
         raise ValueError(self._format_error_msg)
       return '!eq %s' % value
-    elif isinstance(value, self._REGEXP_TYPE):
+    if isinstance(value, self._REGEXP_TYPE):
       return '!re %s' % value.pattern
     raise self._GenerateTypeError(value)
 

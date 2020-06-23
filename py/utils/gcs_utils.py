@@ -101,13 +101,13 @@ class CloudStorage:
                               'size (%d) and same MD5 hash (%s); skipping',
                               blob.size, blob.md5_hash)
           return True
-        else:
-          self.logger.error('File already exists on remote end, but size or '
-                            'MD5 hash doesn\'t match; size on remote = %d, '
-                            'size on local = %d; will overwrite',
-                            blob.size, local_size)
-          if not overwrite:
-            return False
+
+        self.logger.error('File already exists on remote end, but size or '
+                          'MD5 hash doesn\'t match; size on remote = %d, '
+                          'size on local = %d; will overwrite',
+                          blob.size, local_size)
+        if not overwrite:
+          return False
 
       # Upload requests will be automatically retried if a transient error
       # occurs. Therefore, we don't need to retry it ourselves.

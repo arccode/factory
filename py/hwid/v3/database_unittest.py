@@ -22,7 +22,7 @@ _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 def Unordered(data):
   if isinstance(data, dict):
     return {k: Unordered(v) for k, v in data.items()}
-  elif isinstance(data, list):
+  if isinstance(data, list):
     return [Unordered(a) for a in data]
   return data
 

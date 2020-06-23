@@ -119,7 +119,7 @@ class OutputBigQueryTestlog(output_bigquery.OutputBigQuery):
     def DateTimeToUnixTimestamp(obj):
       if isinstance(obj, datetime.datetime):
         return time_utils.DatetimeToUnixtime(obj)
-      elif isinstance(obj, float):
+      if isinstance(obj, float):
         return obj
       return None
 

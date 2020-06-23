@@ -289,17 +289,17 @@ def GetProbedResults(infile=None, raw_data=None, project=None):
   """
   if infile:
     return json_utils.LoadFile(infile)
-  elif raw_data:
+  if raw_data:
     return json_utils.LoadStr(raw_data)
-  else:
-    from cros.factory.hwid.v3 import probe
-    from cros.factory.utils import sys_utils
-    if sys_utils.InChroot():
-      raise ValueError('Cannot probe components in chroot. Please specify '
-                       'probed results with an input file. If you are running '
-                       'with command-line, use --probed-results-file')
-    probe_statement_path = GetProbeStatementPath(project)
-    return probe.ProbeDUT(probe_statement_path)
+
+  from cros.factory.hwid.v3 import probe
+  from cros.factory.utils import sys_utils
+  if sys_utils.InChroot():
+    raise ValueError('Cannot probe components in chroot. Please specify '
+                     'probed results with an input file. If you are running '
+                     'with command-line, use --probed-results-file')
+  probe_statement_path = GetProbeStatementPath(project)
+  return probe.ProbeDUT(probe_statement_path)
 
 
 def GetDeviceInfo(infile=None):
@@ -346,7 +346,7 @@ def GetVPDData(run_vpd=False, infile=None):
         'ro': vpd_tool.GetAllData(partition=vpd.VPD_READONLY_PARTITION_NAME),
         'rw': vpd_tool.GetAllData(partition=vpd.VPD_READWRITE_PARTITION_NAME)
     }
-  elif infile:
+  if infile:
     return json_utils.LoadFile(infile)
   return {'ro': {}, 'rw': {}}
 

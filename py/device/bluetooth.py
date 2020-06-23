@@ -107,8 +107,7 @@ class BluetoothManager(device_types.DeviceComponent):
     adapters = self.GetAdapters(mac_addr=mac_addr)
     if adapters:
       return adapters[0]
-    else:
-      raise BluetoothManagerException('Fail to find any adapter.')
+    raise BluetoothManagerException('Fail to find any adapter.')
 
   def GetAdapters(self, max_retry_times=10, interval=2, mac_addr=None):
     """Gets a list of available bluetooth adapters.

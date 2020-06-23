@@ -140,12 +140,12 @@ class BatteryCycleTest(test_case.TestCase):
           first_done_time[0] = time.time()
         return (time.time() - first_done_time[0] >=
                 self.args.charge_threshold_secs)
-      else:
-        if first_done_time[0]:
-          logging.info('%s cycle now appears not to be done. '
-                       'Resetting threshold.', self.mode)
-          first_done_time[0] = None
-        return False
+
+      if first_done_time[0]:
+        logging.info('%s cycle now appears not to be done. '
+                     'Resetting threshold.', self.mode)
+        first_done_time[0] = None
+      return False
 
     if self.mode in (Mode.CHARGE, Mode.CUTOFF):
       self.dut.power.SetChargeState(self.dut.power.ChargeState.CHARGE)

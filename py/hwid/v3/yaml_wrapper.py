@@ -243,11 +243,11 @@ class _RegionComponentYAMLTagHandler(_HWIDV3YAMLTagHandler):
         raise constructor.ConstructorError(
             'expected empty scalar node, but got %r' % node.value)
       return cls.TARGET_CLASS()
-    else:
-      status_lists = _DefaultMappingHandler.YAMLConstructor(
-          loader, node, deep=True)
-      cls._VerifyStatusLists(status_lists)
-      return cls.TARGET_CLASS(status_lists)
+
+    status_lists = _DefaultMappingHandler.YAMLConstructor(
+        loader, node, deep=True)
+    cls._VerifyStatusLists(status_lists)
+    return cls.TARGET_CLASS(status_lists)
 
   @classmethod
   def YAMLRepresenter(cls, dumper, data):
