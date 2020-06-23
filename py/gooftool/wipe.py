@@ -216,6 +216,7 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
             # /mnt/empty is required by openssh server.
             '/mnt/empty'],
         binary_list=binary_deps, etc_issue=etc_issue).PivotRoot(old_root):
+      logging.debug('ps -aux: %s', process_utils.SpawnOutput(['ps', '-aux']))
       logging.debug(
           'lsof: %s',
           process_utils.SpawnOutput('lsof -p %d' % os.getpid(), shell=True))
