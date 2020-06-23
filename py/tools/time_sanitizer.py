@@ -68,8 +68,7 @@ class Time:
                                log=True,
                                log_stderr_on_error=True).returncode == 0:
           break
-        else:
-          logging.error('Unable to set hwclock time')
+        logging.error('Unable to set hwclock time')
 
       logging.info('Current hwclock time: %s',
                    process_utils.Spawn(['hwclock', '-r'], log=True,

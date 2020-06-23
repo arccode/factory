@@ -731,9 +731,8 @@ def GetUnusedIPV4RangeCIDR(preferred_prefix_bits=24, exclude_ip_prefix=None,
           if cidr.IsOverlapped(occupied_list[occupied_list_idx]):
             valid_range = False
             break
-          else:
-            # check next subnet in occupied_list
-            occupied_list_idx += 1
+          # check next subnet in occupied_list
+          occupied_list_idx += 1
         if valid_range:
           return cidr
         start = max(start + step,

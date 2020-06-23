@@ -115,8 +115,7 @@ class BacklightTest(test_case.TestCase):
           if key == correct_key:
             session.console.info('Passed for %r', key)
             break
-          else:
-            self.FailTask('Wrong answer: %r' % key)
+          self.FailTask('Wrong answer: %r' % key)
 
   def AdjustBrightness(self, level):
     """Adjust the intensity."""

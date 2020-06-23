@@ -69,8 +69,7 @@ class Modem:
       response = self.GetResponse()
       if response[-1] == 'OK':
         break
-      else:
-        retries += 1
+      retries += 1
     return response
 
   def GetResponse(self, retry_times=_RECEIVE_RETRY_TIMES):
