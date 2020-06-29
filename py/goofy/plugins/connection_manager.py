@@ -15,7 +15,7 @@ from cros.factory.utils import type_utils
 class ConnectionManager(plugin.Plugin):
 
   def __init__(self, goofy, wlans, scan_wifi_periods_secs,
-               shuffle_wlans=False, override_blacklisted_network_devices=None):
+               shuffle_wlans=False, override_blocklisted_network_devices=None):
     """Constructor
 
     Args:
@@ -23,16 +23,16 @@ class ConnectionManager(plugin.Plugin):
       scan_wifi_periods_secs: Scan wireless networks at the given interval.
       shuffle_wlans: Randomly shuffle the list of wlans to avoid overloading one
           AP.
-      override_blacklisted_network_devices: Override blacklisted network
+      override_blocklisted_network_devices: Override blocklisted network
           devices in the system.  On some boards, some specific devices may be
-          blacklisted by default, but we need to test those devices as well.
+          blocklisted by default, but we need to test those devices as well.
           This should be a list of strings (like ['eth0', 'wlan0']), an empty
           list or empty string (blocks nothing), or None (don't override).
     """
 
     super(ConnectionManager, self).__init__(goofy, [plugin.RESOURCE.NETWORK])
     self._scan_wifi_periods_secs = scan_wifi_periods_secs
-    self._override_blacklisted_devices = override_blacklisted_network_devices
+    self._override_blocklisted_devices = override_blocklisted_network_devices
     self._shuffle_wlans = shuffle_wlans
     self._connection_manager = None
     self._SetAPs(wlans)
@@ -44,7 +44,7 @@ class ConnectionManager(plugin.Plugin):
     self._connection_manager = connection_manager.ConnectionManager(
         wlans=converted_wlans,
         scan_interval=self._scan_wifi_periods_secs,
-        override_blacklisted_devices=self._override_blacklisted_devices)
+        override_blocklisted_devices=self._override_blocklisted_devices)
 
   @type_utils.Overrides
   def OnStart(self):

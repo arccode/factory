@@ -109,7 +109,7 @@ class ConnectionManager:
                depservices=None,
                subservices=None,
                profile_path=_PROFILE_LOCATION,
-               override_blacklisted_devices=None):
+               override_blocklisted_devices=None):
     """Constructor.
 
     Args:
@@ -128,7 +128,7 @@ class ConnectionManager:
       subservices: The list of networking-related system services other than
           flimflam/shill and their dependency.
       profile_path: The file path of the network profile used by flimflam/shill.
-      override_blacklisted_devices: Blacklist to override shill's default
+      override_blocklisted_devices: blocklist to override shill's default
           settings.  Should be a list of strings (like ['eth0', 'wlan0']), an
           empty list or empty string (block nothing), or None (don't override).
     """
@@ -148,7 +148,7 @@ class ConnectionManager:
     self.depservices = depservices
     self.subservices = subservices
     self.profile_path = profile_path
-    self.override_blacklisted_devices = override_blacklisted_devices
+    self.override_blocklisted_devices = override_blocklisted_devices
     # Auto-detect the network manager process name if unknown.
     if self.process_name == _UNKNOWN_PROC:
       self._DetectProcName()
@@ -161,7 +161,7 @@ class ConnectionManager:
                  ', '.join([x['SSID'] for x in self.wlans]))
 
     if start_enabled:
-      if override_blacklisted_devices is None:
+      if override_blocklisted_devices is None:
         self.EnableNetworking(reset=False)
       else:
         self.EnableNetworking(reset=True)
@@ -306,9 +306,9 @@ class ConnectionManager:
     for service in self.depservices + [self.network_manager] + self.subservices:
       cmd = 'start %s' % service
       if (service in _MANAGER_LIST and
-          self.override_blacklisted_devices is not None):
+          self.override_blocklisted_devices is not None):
         cmd += ' BLOCKED_DEVICES="%s"' % (
-            ','.join(self.override_blacklisted_devices))
+            ','.join(self.override_blocklisted_devices))
       logging.info('Call cmd: %s', cmd)
       subprocess.call(cmd, shell=True, stdout=self.fnull, stderr=self.fnull)
 

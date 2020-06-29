@@ -37,7 +37,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
-BLACKLIST_PROJECT = []
+BLOCKLIST_PROJECT = []
 
 
 def _CheckProject(args):
@@ -57,8 +57,8 @@ def _CheckProject(args):
   logging.info('Checking %s', title)
 
   try:
-    if project_name in BLACKLIST_PROJECT:
-      logging.warning('%s in the blacklist, skip.', project_name)
+    if project_name in BLOCKLIST_PROJECT:
+      logging.warning('%s in the blocklist, skip.', project_name)
       return None
 
     if project_info is None:

@@ -9,7 +9,7 @@ from cros.factory.hwid.v3 import bom
 from cros.factory.hwid.v3 import verify_db_pattern
 
 
-_BLACKLIST_DRAM_TAG = set([
+_BLOCKLIST_DRAM_TAG = set([
     'dram_default',
     'dram_placeholder',
     'a_fake_dram_0gb',
@@ -37,7 +37,7 @@ def ValidateChange(prev_db, db, ctx):
 @_RegisterValidateIntegrityFunc
 def _ValidateDramTag(db):
   for dram_tag, dram_info in db.GetComponents('dram').items():
-    if dram_tag in _BLACKLIST_DRAM_TAG:
+    if dram_tag in _BLOCKLIST_DRAM_TAG:
       continue
     try:
       ram_size = bom.RamSize(ram_size_str=dram_tag)

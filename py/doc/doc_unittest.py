@@ -19,7 +19,7 @@ from cros.factory.utils.process_utils import Spawn
 
 
 # Files allowed to have errors now.
-BLACKLIST = []
+BLOCKLIST = []
 
 
 """Tests the overall documentation generation process."""
@@ -41,19 +41,19 @@ class DocTest(unittest.TestCase):
 
       if match:
         basename = os.path.basename(match.group(1))
-        blacklisted = basename in BLACKLIST
+        blocklisted = basename in BLOCKLIST
         sys.stderr.write('%s%s\n' % (
-            l.strip(), ' (blacklisted)' if blacklisted else ''))
+            l.strip(), ' (blocklisted)' if blocklisted else ''))
         files_with_errors.add(basename)
 
     if files_with_errors:
-      # pprint for easy copy/paste to blacklist
+      # pprint for easy copy/paste to BLOCKLIST
       sys.stderr.write('Files with errors:\n')
       pprint.pprint(sorted(files_with_errors))
 
-    failed_files = files_with_errors - set(BLACKLIST)
+    failed_files = files_with_errors - set(BLOCKLIST)
     if failed_files:
-      self.fail('Found errors in non-blacklisted files %s; '
+      self.fail('Found errors in non-blocklisted files %s; '
                 'see stderr for details' % sorted(failed_files))
 
 

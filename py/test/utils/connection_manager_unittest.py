@@ -28,7 +28,7 @@ _FAKE_DATA = {
     'depservices': _FAKE_DEPSERVICE_LIST,
     'subservices': _FAKE_SUBSERVICE_LIST,
     'profile_path': _FAKE_PROFILE_LOCATION,
-    'override_blacklisted_devices': None,
+    'override_blocklisted_devices': None,
 }
 
 
@@ -96,9 +96,9 @@ class ConnectionManagerTest(unittest.TestCase):
                     _FAKE_SUBSERVICE_LIST):
       cmd = 'start %s' % service
       if (service in [_FAKE_MANAGER] and
-          self.fakeData['override_blacklisted_devices'] is not None):
+          self.fakeData['override_blocklisted_devices'] is not None):
         cmd += ' BLOCKED_DEVICES="%s"' % (
-            ','.join(self.fakeData['override_blacklisted_devices']))
+            ','.join(self.fakeData['override_blocklisted_devices']))
       subprocess_call_calls.append(
           mock.call(cmd, shell=True, stdout=mock.ANY, stderr=mock.ANY))
 
@@ -158,11 +158,11 @@ class ConnectionManagerTest(unittest.TestCase):
   @mock.patch('os.remove')
   @mock.patch('subprocess.call')
   @mock.patch('glob.glob')
-  def testOverrideBlacklistedDevices(self, glob_mock, call_mock, remove_mock,
+  def testOverrideBlocklistedDevices(self, glob_mock, call_mock, remove_mock,
                                      get_base_network_manager_mock):
     glob_mock.return_value = _FAKE_INTERFACES
     get_base_network_manager_mock.return_value = self.fakeBaseNetworkManager
-    self.fakeData['override_blacklisted_devices'] = (
+    self.fakeData['override_blocklisted_devices'] = (
         _FAKE_OVERRIDE_BLOCKED_DEVICES)
     self.MockEnableNetworking()
 

@@ -44,7 +44,7 @@ class Partition(device_types.DeviceComponent):
 
     Args:
       items: Items to set.  A value of "None" deletes the item.
-      log: Whether to log the action.  Keys in VPD_BLACKLIST_KEYS are replaced
+      log: Whether to log the action.  Keys in VPD_BLOCKLIST_KEYS are replaced
         with a redacted value.
     """
     raise NotImplementedError

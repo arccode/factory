@@ -66,9 +66,9 @@ need to ignore the Google Python style guide:
 *   You may use `#!/usr/bin/env python3` or `#!/usr/bin/python3` for shebang.
 
 Finally, you must use pylint. In platform/factory, you can run `make lint` to do
-this. platform/factory/Makefile has a blacklist for files that are not yet
+this. platform/factory/Makefile has a blocklist for files that are not yet
 pylint-compliant; if you make substantial changes to an existing file, please
-fix lint problems and remove the file from the blacklist.
+fix lint problems and remove the file from the blocklist.
 
 ### **Shebang**
 
@@ -222,3 +222,5 @@ away. Such is life. Please use the official conventions when writing new files
 (or possibly when editing in an existing file), but you can continue to use the
 old conventions in existing files. Use your judgment!
 
+## Inclusive Language
+Please see [Inclusive Chromium Code](https://chromium.googlesource.com/chromium/src/+/master/styleguide/inclusive_code.md).

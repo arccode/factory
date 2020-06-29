@@ -42,7 +42,7 @@ class DHCPManager:
     interfaces:
         A list of InterfaceProperty(s) to bind, or None to bind all available
         interfaces
-    interface_blacklist:
+    interface_blocklist:
         A list of interfaces (str) that shouldn't be managed, note that the
         default gateway interface is always excluded.
     bootp: A tuple (ip, filename, hostname) specifying the boot parameters.
@@ -67,7 +67,7 @@ class DHCPManager:
 
   def __init__(self,
                interfaces=None,
-               interface_blacklist=None,
+               interface_blocklist=None,
                exclude_ip_prefix=None,
                lease_time=3600,
                bootp=None,
@@ -75,7 +75,7 @@ class DHCPManager:
                on_old=None,
                on_del=None):
     self._interfaces = interfaces
-    self._interface_blacklist = interface_blacklist or []
+    self._interface_blocklist = interface_blocklist or []
     self._exclude_ip_prefix = exclude_ip_prefix or []
     self._lease_time = lease_time
     self._bootp = bootp
@@ -88,7 +88,7 @@ class DHCPManager:
   def _GetAvailibleInterfaces(self):
     return [InterfaceProperty(interface)
             for interface in network_utils.GetUnmanagedEthernetInterfaces()
-            if interface not in self._interface_blacklist]
+            if interface not in self._interface_blocklist]
 
   def _CollectInterfaceAndIPRange(self):
     interfaces = self._interfaces or self._GetAvailibleInterfaces()
@@ -230,7 +230,7 @@ class DHCPManager:
 
 
 def StartDHCPManager(interfaces=None,
-                     blacklist_file=None,
+                     blocklist_file=None,
                      exclude_ip_prefix=None,
                      lease_time=None,
                      on_add=None,
@@ -253,8 +253,8 @@ def StartDHCPManager(interfaces=None,
   # arguments for DHCP manager
   kargs = {
       'interfaces': interfaces,
-      'interface_blacklist': network_utils.GetDHCPInterfaceBlacklist(
-          blacklist_file),
+      'interface_blocklist': network_utils.GetDHCPInterfaceBlocklist(
+          blocklist_file),
       'exclude_ip_prefix': exclude_ip_prefix,
       'lease_time': lease_time,
       'bootp': bootp_params,

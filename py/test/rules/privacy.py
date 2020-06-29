@@ -8,7 +8,7 @@
 import copy
 
 
-BLACKLIST_KEYS = [
+BLOCKLIST_KEYS = [
     'ubind_attribute',
     'gbind_attribute',
     'stable_device_secret_DO_NOT_SHARE',
@@ -16,10 +16,10 @@ BLACKLIST_KEYS = [
 
 
 def FilterDict(data):
-  """Redacts values of any keys in BLACKLIST_KEYS.
+  """Redacts values of any keys in BLOCKLIST_KEYS.
 
   If data is a list or a set, filter all its elements.
-  If data is a dict and some keys in data match BLACKLIST_KEYS,
+  If data is a dict and some keys in data match BLOCKLIST_KEYS,
   filter the values. For other values that is dict, set, or list,
   recursively filter them.
   If data is not a list nor a set nor a dict, just return data.
@@ -38,7 +38,7 @@ def FilterDict(data):
     for k, v in ret.items():
       if v is None:
         continue
-      if str(k) in BLACKLIST_KEYS:
+      if str(k) in BLOCKLIST_KEYS:
         if isinstance(v, str):
           ret[k] = '<redacted %d chars>' % len(v)
         else:

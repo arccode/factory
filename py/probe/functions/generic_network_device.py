@@ -132,7 +132,7 @@ class NetworkDevices:
         logging.debug('Cannot get wireless devices from shill', exc_info=1)
         dev_list = []
 
-      # On some Brillo (AP-type) devices, WiFi interfaces are blacklisted by
+      # On some Brillo (AP-type) devices, WiFi interfaces are blocklisted by
       # shill and needs to be discovered manually, so we have to try 'iw config'
       # or 'iw dev' to get a more correct list.
       # 'iwconfig' is easier to parse, but for some WiFi drivers, for example

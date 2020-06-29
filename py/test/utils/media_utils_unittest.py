@@ -5,7 +5,7 @@
 
 #####
 #
-# NOTE: This test is currently broken and is blacklisted in the top-level
+# NOTE: This test is currently broken and is blocklisted in the top-level
 # Makefile.
 #
 #####

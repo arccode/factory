@@ -91,7 +91,7 @@ class SSHLink(device_types.DeviceLink):
         'start_dhcp_server': True,
         'dhcp_server_args': {
           'lease_time': 3600,
-          'interface_blacklist_file': '/path/to/blacklist/file',
+          'interface_blocklist_file': '/path/to/blocklist/file',
           'exclude_ip_prefix': [('10.0.0.0', 24), ...],
           # the following three properties can only be set in python script,
           # not in environment variable (CROS_FACTORY_DUT_OPTIONS)
@@ -434,7 +434,7 @@ class SSHLink(device_types.DeviceLink):
   class LinkManager:
     def __init__(self,
                  lease_time=3600,
-                 interface_blacklist_file=None,
+                 interface_blocklist_file=None,
                  exclude_ip_prefix=None,
                  on_add=None,
                  on_old=None,
@@ -442,7 +442,7 @@ class SSHLink(device_types.DeviceLink):
       """
         A LinkManager will automatically start a DHCP server for each availiable
         network interfaces, if the interface is not default gateway or in the
-        blacklist.
+        blocklist.
 
         This LinkManager will automatically save IP of the latest client in
         system-wise shared data, make it availible to SSHLinks whose host is set
@@ -451,8 +451,8 @@ class SSHLink(device_types.DeviceLink):
         Options:
           lease_time:
             lease time of DHCP servers
-          interface_blacklist_file:
-            a path to the file of blacklist, each line represents an interface
+          interface_blocklist_file:
+            a path to the file of blocklist, each line represents an interface
             (e.g. eth0, wlan1, ...)
           exclude_ip_prefix:
             some IP range cannot be used becase of system settings, this
@@ -461,7 +461,7 @@ class SSHLink(device_types.DeviceLink):
             callback functions for DHCP servers.
       """
       self._lease_time = lease_time
-      self._blacklist_file = interface_blacklist_file
+      self._blocklist_file = interface_blocklist_file
       self._on_add = on_add
       self._on_old = on_old
       self._on_del = on_del
@@ -506,7 +506,7 @@ class SSHLink(device_types.DeviceLink):
 
     def _StartHDCPServer(self):
       self._dhcp_server = dhcp_utils.StartDHCPManager(
-          blacklist_file=self._blacklist_file,
+          blocklist_file=self._blocklist_file,
           exclude_ip_prefix=self._exclude_ip_prefix,
           lease_time=self._lease_time,
           on_add=self._OnDHCPAdd,
