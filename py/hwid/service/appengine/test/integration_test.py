@@ -17,6 +17,7 @@ from cros.factory.utils import process_utils
 
 HOST_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 HOST_APPENGINE_DIR = os.path.dirname(HOST_TEST_DIR)
+APPENGINE_MODULE_PREFIX = 'cros.factory.hwid.service.appengine.'
 HOST_FACTORY_DIR = os.path.abspath(
     os.path.join(HOST_APPENGINE_DIR, '../../../..'))
 HOST_DEPLOY_DIR = os.path.join(HOST_FACTORY_DIR, 'deploy')
@@ -34,17 +35,11 @@ def _PrepareTests(test_names):
     A list a test path in docker image.
   """
   def _CanonicalizeTestName(test_name):
-    test_name = test_name if test_name.endswith('.py') else test_name + '.py'
-    test_path = os.path.join(HOST_APPENGINE_DIR, test_name)
+    test_name = test_name.rstrip('.py')
+    test_path = os.path.join(HOST_APPENGINE_DIR, test_name + '.py')
     if not os.path.isfile(test_path):
       raise ValueError('Test %s not exists')
-    return test_path
-
-  def _HostToGuest(test_paths):
-    """Transform test paths from host to guest."""
-    return [
-        path.replace(HOST_FACTORY_DIR, GUEST_FACTORY_DIR) for path in test_paths
-    ]
+    return APPENGINE_MODULE_PREFIX + test_name
 
   def _ListAllTests():
     return [
@@ -55,8 +50,8 @@ def _PrepareTests(test_names):
     ]
 
   if test_names:
-    return _HostToGuest([_CanonicalizeTestName(tn) for tn in test_names])
-  return _HostToGuest(_ListAllTests())
+    return [_CanonicalizeTestName(tn) for tn in test_names]
+  return _ListAllTests()
 
 
 def _BuildDockerImage():
@@ -81,7 +76,7 @@ def RunTest(image, test_names):
   failed_tests = []
   for tn in test_names:
     p = process_utils.Spawn(
-        ['docker', 'exec', container_id, tn],
+        ['docker', 'exec', container_id, 'python', '-m', tn],
         read_stdout=True,
         read_stderr=True,
         log=True)

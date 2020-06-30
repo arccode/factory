@@ -37,12 +37,12 @@ ADD factory-private/config/hwid/service/appengine/configurations.yaml \
   "${workdir}/resource/"
 
 ENV PYTHONPATH="${workdir}/lib:"\
-"${workdir}/google-cloud-sdk/platform/google_appengine:"\
 "${workdir}/protobuf_out:"\
 "${workdir}/cros/factory/py_pkg"
 ENV HWID_SERVICE_RESOURCE_DIR="${workdir}/resource"
 ENV CUSTOMIZE_SITE_DIR="${workdir}/lib"
 ENV DATASTORE_EMULATOR_HOST="localhost:8081"
+ENV APPENGINE_SDK_DIR="${workdir}/google-cloud-sdk/platform/google_appengine"
 ENV CLOUDSDK_CORE_PROJECT="chromeos-hwid-local-docker"
 
 CMD redis-server & \

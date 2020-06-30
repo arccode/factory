@@ -11,17 +11,9 @@ regardless of the source of that information or the version.
 import collections
 import copy
 import logging
-import os
 import re
-import site
 
-
-CUSTOMIZE_SITE_DIR = os.environ.get('CUSTOMIZE_SITE_DIR')
-if CUSTOMIZE_SITE_DIR:
-  site.addsitedir(CUSTOMIZE_SITE_DIR)
-# pylint: disable=import-error, no-name-in-module
 from google.cloud import ndb
-# pylint: enable=import-error, no-name-in-module
 
 from cros.factory.hwid.service.appengine import memcache_adapter
 from cros.factory.hwid.v3 import common

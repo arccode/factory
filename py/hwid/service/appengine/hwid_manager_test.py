@@ -9,7 +9,6 @@ import os
 import unittest
 
 import mock
-from mock import patch
 
 from cros.factory.hwid.service.appengine import appengine_test_base
 from cros.factory.hwid.service.appengine import cloudstorage_adapter
@@ -376,7 +375,7 @@ class HwidDataTest(unittest.TestCase):
     self.assertRaises(hwid_manager.MetadataError, self.data._Seed)
 
   def testSeedWithFile(self):
-    with patch.object(self.data, '_SeedFromRawYaml') as _mock:
+    with mock.patch.object(self.data, '_SeedFromRawYaml') as _mock:
       self.data._Seed(hwid_file=GOLDEN_HWIDV2_FILE)
     _mock.assert_called_once_with(mock.ANY)
 
@@ -387,12 +386,12 @@ class HwidDataTest(unittest.TestCase):
         hwid_file='/non/existent/file')
 
   def testSeedWithString(self):
-    with patch.object(self.data, '_SeedFromRawYaml') as _mock:
+    with mock.patch.object(self.data, '_SeedFromRawYaml') as _mock:
       self.data._Seed(raw_hwid_yaml='{}')
     _mock.assert_called_once_with('{}')
 
   def testSeedWithData(self):
-    with patch.object(self.data, '_SeedFromData') as _mock:
+    with mock.patch.object(self.data, '_SeedFromData') as _mock:
       self.data._Seed(hwid_data={'foo': 'bar'})
     _mock.assert_called_once_with({'foo': 'bar'})
 

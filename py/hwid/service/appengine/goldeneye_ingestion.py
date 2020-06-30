@@ -6,16 +6,12 @@
 
 import json
 import logging
-import os
-import site
 
-# pylint: disable=import-error, no-name-in-module
+# TODO(clarkchung): Remove google.appengine package dependency
+# pylint: disable=no-name-in-module, import-error
 from google.appengine.api.app_identity import app_identity
-CUSTOMIZE_SITE_DIR = os.environ.get('CUSTOMIZE_SITE_DIR')
-if CUSTOMIZE_SITE_DIR:
-  site.addsitedir(CUSTOMIZE_SITE_DIR)
+# pylint: enable=no-name-in-module, import-error
 from google.cloud import tasks
-# pylint: enable=import-error, no-name-in-module
 import webapp2  # pylint: disable=import-error
 
 from cros.factory.hwid.service.appengine.config import CONFIG

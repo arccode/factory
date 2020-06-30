@@ -9,7 +9,7 @@ import unittest
 
 # pylint: disable=import-error, no-name-in-module
 import endpoints
-import mock
+import mock  # pylint: disable=wrong-import-order
 
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import hwid_api

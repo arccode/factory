@@ -9,23 +9,18 @@ import collections
 import hashlib
 import logging
 import os
-import site
 import traceback
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=no-name-in-module, import-error
 from google.appengine.api.app_identity import app_identity
 from google.appengine.api import mail
-CUSTOMIZE_SITE_DIR = os.environ.get('CUSTOMIZE_SITE_DIR')
-if CUSTOMIZE_SITE_DIR:
-  site.addsitedir(CUSTOMIZE_SITE_DIR)
-# pylint: disable=import-error, no-name-in-module
+# pylint: enable=no-name-in-module, import-error
 from google.cloud import tasks
 # pylint: enable=import-error, no-name-in-module
 import urllib3  # pylint: disable=import-error
 import webapp2  # pylint: disable=import-error
-import yaml
+import yaml  # pylint: disable=wrong-import-order
 
-# pylint: disable=import-error
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import git_util
 from cros.factory.hwid.service.appengine import hwid_manager
