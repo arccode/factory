@@ -5,7 +5,6 @@
 """A factory test for basic ethernet connectivity."""
 
 import logging
-import re
 
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
@@ -131,14 +130,6 @@ class EthernetTest(test_case.TestCase):
       return True
     return False
 
-  def GetEthernetIp(self, interface):
-    output = self.dut.CallOutput(
-        ['ip', 'addr', 'show', 'dev', interface], log=True)
-    match = re.search(r'^\s+inet ([.0-9]+)/([0-9]+)', output, re.MULTILINE)
-    if match:
-      return match.group(1)
-    return None
-
   def CheckLinkSWconfig(self):
     if isinstance(self.args.swconfig_ports, int):
       self.args.swconfig_ports = [self.args.swconfig_ports]
@@ -190,7 +181,7 @@ class EthernetTest(test_case.TestCase):
           if self.GetFile():
             self.PassTask()
         else:
-          ethernet_ip = self.GetEthernetIp(eth)
+          ethernet_ip, unused_prefix_number = net_utils.GetEthernetIp(eth)
           if ethernet_ip:
             session.console.info('Get ethernet IP %s for %s', ethernet_ip, eth)
             self.PassTask()

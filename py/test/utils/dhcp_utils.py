@@ -97,8 +97,7 @@ class DHCPManager:
     used_range = list(self._exclude_ip_prefix or [])  # make a copy
 
     for interface in interfaces:
-      ip_mask = net_utils.GetEthernetIp(interface.name, netmask=True)
-      (ip, prefix) = ip_mask  # pylint: disable=unpacking-non-sequence
+      ip, prefix = net_utils.GetEthernetIp(interface.name)
       cidr = None
       if ip and prefix:
         cidr = net_utils.CIDR(ip, prefix)

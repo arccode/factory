@@ -159,13 +159,13 @@ def PrepareNetwork(ip, force_new_ip=False, on_waiting=None, logger=None):
   logger_info = logger.info if logger else lambda *args, **kwargs: None
   logger_error = logger.error if logger else lambda *args, **kwargs: None
 
-  def _obtain_IP():
+  def _ObtainIP():
     if ip is None:
       SendDhcpRequest()
     else:
       net_utils.SetEthernetIp(ip, force=force_new_ip,
                               logger=logger_info)
-    return bool(net_utils.GetEthernetIp())
+    return net_utils.GetEthernetIp()[0] is not None
 
   logger_info('Detecting Ethernet device...')
 
@@ -175,12 +175,13 @@ def PrepareNetwork(ip, force_new_ip=False, on_waiting=None, logger=None):
         timeout_secs=INSERT_ETHERNET_DONGLE_TIMEOUT,
         condition_name='Detect Ethernet device')
 
-    current_ip = net_utils.GetEthernetIp(net_utils.FindUsableEthDevice())
+    current_ip, unused_prefix_number = net_utils.GetEthernetIp(
+        net_utils.FindUsableEthDevice())
     if not current_ip or force_new_ip:
       if on_waiting:
         on_waiting()
       logger_info('Setting up IP address...')
-      sync_utils.PollForCondition(poll_method=_obtain_IP,
+      sync_utils.PollForCondition(poll_method=_ObtainIP,
                                   condition_name='Setup IP address')
   except Exception:
     exception_string = debug_utils.FormatExceptionOnly()
@@ -218,7 +219,7 @@ def GetUnmanagedEthernetInterfaces():
       properties = dev_intf.GetProperties()
       for config in properties['IPConfigs']:
         if 'dhcp' in config:
-          if net_utils.GetEthernetIp(intf):
+          if net_utils.GetEthernetIp(intf)[0] is not None:
             return True
           # this is strange...
           logging.warning('shill found DHCP server on %s, but cannot get IP')
@@ -227,7 +228,7 @@ def GetUnmanagedEthernetInterfaces():
       return False
     # We can't talk to shill without DBus, so let's just check for IP
     # address.
-    return net_utils.GetEthernetIp(intf) is not None
+    return net_utils.GetEthernetIp(intf)[0] is not None
 
   if IsShillRunning():
     # 'shill' running. Let's not mess with it. Just check whether shill got

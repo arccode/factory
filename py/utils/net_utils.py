@@ -237,7 +237,7 @@ def SetEthernetIp(ip, interface=None, netmask=None, force=False, logger=None):
   """
   interface = interface or FindUsableEthDevice(raise_exception=True)
   Ifconfig(interface, True)
-  current_ip = GetEthernetIp(interface)
+  current_ip, unused_prefix_number = GetEthernetIp(interface)
   if force or not current_ip:
     cmd = ['ifconfig', interface, ip]
     if netmask:
@@ -250,24 +250,22 @@ def SetEthernetIp(ip, interface=None, netmask=None, force=False, logger=None):
            (interface, current_ip))
 
 
-def GetEthernetIp(interface=None, netmask=False):
+def GetEthernetIp(interface=None):
   """Returns the IP of interface.
 
   Args:
     interface: None to use FindUsableEthDevice, otherwise, querying a
     specific interface.
-    netmask: Whether or not to return netmask.
 
   Returns:
-    IP address in string format. If netmask=True, returns a tuple
-    (IP address string, preifx number).  None or (None, None) if interface
-    doesn't exist nor IP is not assigned
+    Returns a tuple (IP address string, preifx number).
+    (None, None) if interface doesn't exist nor IP is not assigned.
   """
   ip_address = None
   prefix_number = None
   interface = interface or FindUsableEthDevice(raise_exception=False)
   if interface is None:
-    return None
+    return (None, None)
   ip_output = process_utils.SpawnOutput(
       ['ip', 'addr', 'show', 'dev', interface])
   match = re.search(r'^\s+inet ([.0-9]+)/([0-9]+)', ip_output, re.MULTILINE)
@@ -275,8 +273,6 @@ def GetEthernetIp(interface=None, netmask=False):
     ip_address = match.group(1)
     prefix_number = int(match.group(2))
 
-  if not netmask:
-    return ip_address
   return (ip_address, prefix_number)
 
 def SetAliasEthernetIp(ip, alias_index=0, interface=None, mask='255.255.255.0'):
@@ -695,7 +691,7 @@ def GetUnusedIPV4RangeCIDR(preferred_prefix_bits=24, exclude_ip_prefix=None,
   # the machine interfaces.
   if exclude_local_interface_ip:
     for iface in GetNetworkInterfaces():
-      ip_mask = GetEthernetIp(iface, True)
+      ip_mask = GetEthernetIp(iface)
       if ip_mask[0] and ip_mask[1]:
         exclude_ip_prefix.append(ip_mask)
 

@@ -866,7 +866,7 @@ class WiFiThroughput(test_case.TestCase):
       cidr = net_utils.CIDR(ip, int(prefix))
       session.console.info('Try to find the host IP in CIDR: %s...', cidr)
       for interface in net_utils.GetNetworkInterfaces():
-        ip = net_utils.GetEthernetIp(interface)
+        ip, unused_prefix_number = net_utils.GetEthernetIp(interface)
         if ip is None:
           continue
         if net_utils.IP(ip).IsIn(cidr):
