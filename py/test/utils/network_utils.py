@@ -156,8 +156,8 @@ def PrepareNetwork(ip, force_new_ip=False, on_waiting=None, logger=None):
     on_waiting: Callback function, invoked when waiting for IP.
     logger: A logger that has method info and error to send verbose messages.
   """
-  logger_info = logger.info if logger else lambda x: None
-  logger_error = logger.error if logger else lambda x: None
+  logger_info = logger.info if logger else lambda *args, **kwargs: None
+  logger_error = logger.error if logger else lambda *args, **kwargs: None
 
   def _obtain_IP():
     if ip is None:
