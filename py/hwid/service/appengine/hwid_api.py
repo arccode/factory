@@ -426,26 +426,14 @@ class HwidApi(remote.Service):
 
     # cros labels in host_info store, which will be used in tast tests of
     # runtime probe
-    hwid_components = [
-        'battery',
-        'storage',
-        'wireless',
-        'cellular',
-        'ethernet',
-        'stylus',
-        'touchpad',
-        'touchscreen',
-        'dram',
-    ]
-    for cls in hwid_components:
-      for component in bom.GetComponents(cls):
-        if component.name:
-          name = component.name
-          if component.information is not None:
-            name = component.information.get('comp_group', name)
-          labels.append(hwid_api_messages.DUTLabel(
-              name="hwid_component",
-              value=component.cls + '/' + name))
+    for component in bom.GetComponents():
+      if component.name and component.is_vp_related:
+        name = component.name
+        if component.information is not None:
+          name = component.information.get('comp_group', name)
+        labels.append(hwid_api_messages.DUTLabel(
+            name="hwid_component",
+            value=component.cls + '/' + name))
 
     if {label.name for label in labels} - set(possible_labels):
       return hwid_api_messages.DUTLabelResponse(

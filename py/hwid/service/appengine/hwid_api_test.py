@@ -388,7 +388,7 @@ class HwidApiTest(unittest.TestCase):
         ('r1.*', 'b1', []), ('^Fo.*', 'found_device', [])
     ]
     bom = hwid_manager.Bom()
-    bom.AddAllComponents({'touchscreen': ['testscreen']})
+    bom.AddComponent('touchscreen', name='testscreen', is_vp_related=True)
     bom.board = 'foo'
     bom.phase = 'bar'
     configless = None

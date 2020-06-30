@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 """Methods to generate the verification payload from the HWID database."""
 
+import collections
 import re
 import functools
 
@@ -18,10 +19,6 @@ from cros.factory.hwid.v3 import rule as hwid_rule
 from cros.factory.probe.runtime_probe import probe_config_definition
 from cros.factory.probe.runtime_probe import probe_config_types
 from cros.factory.utils import type_utils
-
-
-class ProbeStatementGeneratorNotSuitableError(Exception):
-  """The given component values cannot be converted by this generator."""
 
 
 class GenericProbeStatementInfoRecord:
@@ -77,12 +74,14 @@ class _FieldRecord:
     self.is_optional = is_optional
 
 
-class MissingComponentValueError(ProbeStatementGeneratorNotSuitableError):
-  pass
+class MissingComponentValueError(Exception):
+  """Some required component values is missing so that they should not be
+  converted by this generator."""
 
 
-class ProbeStatementConversionError(ProbeStatementGeneratorNotSuitableError):
-  pass
+class ProbeStatementConversionError(Exception):
+  """The given component values is consider invalid so that it cannot be
+  converted by this generator."""
 
 
 class _ProbeStatementGenerator:
@@ -98,6 +97,10 @@ class _ProbeStatementGenerator:
 
   def TryGenerate(self, comp_name, comp_values, information=None):
     expected_fields = {}
+
+    # Extract the fields for probe statement from the component values.
+    # If any of the required field is missing, raise the case.
+    values_to_be_converted = []
     for fc in self._field_converters:
       try:
         val = comp_values[fc.hwid_field_name]
@@ -107,12 +110,18 @@ class _ProbeStatementGenerator:
           continue
         raise MissingComponentValueError(
             'missing component value field: %r' % fc.hwid_field_name)
+      values_to_be_converted.append((fc, val))
+
+    # Convert the format of each fields for the probe statement, raises the
+    # error if it fails.
+    for fc, val in values_to_be_converted:
       try:
         expected_fields[fc.probe_statement_field_name] = fc.value_converter(val)
       except Exception as e:
         raise ProbeStatementConversionError(
             'unable to convert the value of field %r : %r' %
             (fc.hwid_field_name, e))
+
     try:
       return self._probe_statement_generator.GenerateProbeStatement(
           comp_name, self._probe_function_name, expected_fields,
@@ -285,6 +294,91 @@ class VerificationPayloadGenerationResult:
     self.error_msgs = []
 
 
+ComponentVerificationPayloadPiece = collections.namedtuple(
+    'ComponentVerificationPayloadPiece',
+    ['is_duplicate', 'error_msg', 'probe_statement', 'component_info'])
+
+
+_STATUS_MAP = {
+    hwid_common.COMPONENT_STATUS.supported: hardware_verifier_pb2.QUALIFIED,
+    hwid_common.COMPONENT_STATUS.unqualified: hardware_verifier_pb2.UNQUALIFIED,
+    hwid_common.COMPONENT_STATUS.deprecated: hardware_verifier_pb2.REJECTED,
+    hwid_common.COMPONENT_STATUS.unsupported: hardware_verifier_pb2.REJECTED,
+}
+
+
+_ProbeRequestSupportCategory = runtime_probe_pb2.ProbeRequest.SupportCategory
+
+
+def GetAllComponentVerificationPayloadPieces(db, waived_categories):
+  """Generates materials for verification payload from each components in HWID.
+
+  This function goes over each component in HWID one-by-one, and attempts to
+  derive the corresponding material for building up the final verification
+  payload.
+
+  Args:
+    db: An instance of HWID database.
+    waived_categories: A list of component categories to ignore.
+
+  Returns:
+    A dictionary that maps the HWID component to the corresponding material.
+    The key is a pair of the component category and the component name.  The
+    value is an instance of `ComponentVerificationPayloadPiece`.  Callers can
+    also look up whether a specific component is in the returned dictionary
+    to know whether that component is covered by this verification payload
+    generator.
+  """
+  ret = {}
+
+  model_prefix = db.project.lower()
+  for hwid_comp_category, ps_gens in GetAllProbeStatementGenerators().items():
+    if hwid_comp_category in waived_categories:
+      continue
+    comps = db.GetComponents(hwid_comp_category, include_default=False)
+    for comp_name, comp_info in comps.items():
+      unique_comp_name = model_prefix + '_' + comp_name
+
+      error_msg = None
+      all_suitable_generator_and_ps = []
+      try:
+        for ps_gen in ps_gens:
+          try:
+            ps = ps_gen.TryGenerate(
+                unique_comp_name, comp_info.values, comp_info.information)
+          except MissingComponentValueError:
+            continue
+          else:
+            all_suitable_generator_and_ps.append((ps_gen, ps))
+      except ProbeStatementConversionError as e:
+        error_msg = ('Failed to generate the probe statement for component '
+                     '%r: %r.' % (unique_comp_name, e))
+
+      if not all_suitable_generator_and_ps and not error_msg:
+        # Ignore this component if no any generator are suitable for it.
+        continue
+
+      if len(all_suitable_generator_and_ps) > 1:
+        assert False, ("The code shouldn't reach here because we expect "
+                       'only one generator can handle the given component '
+                       'by design.')
+
+      is_duplicate = comp_info.status == hwid_common.COMPONENT_STATUS.duplicate
+      if is_duplicate or error_msg:
+        probe_statement = None
+        component_info = None
+      else:
+        ps_gen, probe_statement = all_suitable_generator_and_ps[0]
+        component_info = hardware_verifier_pb2.ComponentInfo(
+            component_category=_ProbeRequestSupportCategory.Value(
+                ps_gen.probe_category),
+            component_uuid=unique_comp_name,
+            qualification_status=_STATUS_MAP[comp_info.status])
+      ret[(hwid_comp_category, comp_name)] = ComponentVerificationPayloadPiece(
+          is_duplicate, error_msg, probe_statement, component_info)
+  return ret
+
+
 def GenerateVerificationPayload(dbs):
   """Generates the corresponding verification payload from the given HWID DBs.
 
@@ -301,60 +395,21 @@ def GenerateVerificationPayload(dbs):
   Returns:
     Instance of `VerificationPayloadGenerationResult`.
   """
-  _STATUS_MAP = {
-      hwid_common.COMPONENT_STATUS.supported: hardware_verifier_pb2.QUALIFIED,
-      hwid_common.COMPONENT_STATUS.unqualified:
-          hardware_verifier_pb2.UNQUALIFIED,
-      hwid_common.COMPONENT_STATUS.deprecated: hardware_verifier_pb2.REJECTED,
-      hwid_common.COMPONENT_STATUS.unsupported: hardware_verifier_pb2.REJECTED,
-  }
-  ProbeRequestSupportCategory = runtime_probe_pb2.ProbeRequest.SupportCategory
-
-  def TryGenerateProbeStatement(comp_name, comp_values, ps_gens,
-                                information=None):
-    ret = []
-    for ps_gen in ps_gens:
-      try:
-        ps = ps_gen.TryGenerate(comp_name, comp_values, information)
-        ret.append((ps_gen, ps))
-      except ProbeStatementGeneratorNotSuitableError:
-        continue
-    return ret
-
-  ps_generators = GetAllProbeStatementGenerators()
   ret = VerificationPayloadGenerationResult()
 
   hw_verification_spec = hardware_verifier_pb2.HwVerificationSpec()
   for db, waived_categories in dbs:
     model_prefix = db.project.lower()
     probe_config = probe_config_types.ProbeConfigPayload()
-    for hwid_comp_category, ps_gens in ps_generators.items():
-      if hwid_comp_category in waived_categories:
+    all_pieces = GetAllComponentVerificationPayloadPieces(db, waived_categories)
+    for comp_vp_piece in all_pieces.values():
+      if comp_vp_piece.is_duplicate:
         continue
-      comps = db.GetComponents(hwid_comp_category, include_default=False)
-      for comp_name, comp_info in comps.items():
-        unique_comp_name = model_prefix + '_' + comp_name
-        if comp_info.status == hwid_common.COMPONENT_STATUS.duplicate:
-          continue
-
-        results = TryGenerateProbeStatement(
-            unique_comp_name, comp_info.values, ps_gens, comp_info.information)
-        if not results:
-          ret.error_msgs.append('No probe statement generator is suitable for '
-                                'component %r.' % unique_comp_name)
-          continue
-        if len(results) > 1:
-          assert False, ("The code shouldn't reach here because we expect "
-                         'only one generator can handle the given component '
-                         'by design.')
-        ps_gen, probe_statement = results[0]
-
-        probe_config.AddComponentProbeStatement(probe_statement)
-        hw_verification_spec.component_infos.add(
-            component_category=ProbeRequestSupportCategory.Value(
-                ps_gen.probe_category),
-            component_uuid=unique_comp_name,
-            qualification_status=_STATUS_MAP[comp_info.status])
+      if comp_vp_piece.error_msg:
+        ret.error_msgs.append(comp_vp_piece.error_msg)
+        continue
+      probe_config.AddComponentProbeStatement(comp_vp_piece.probe_statement)
+      hw_verification_spec.component_infos.append(comp_vp_piece.component_info)
 
     # Append the generic probe statements.
     for ps_gen in _GetAllGenericProbeStatementInfoRecords():
@@ -370,7 +425,7 @@ def GenerateVerificationPayload(dbs):
   # Append the whitelists in the verification spec.
   for ps_info in _GetAllGenericProbeStatementInfoRecords():
     hw_verification_spec.generic_component_value_whitelists.add(
-        component_category=ProbeRequestSupportCategory.Value(
+        component_category=_ProbeRequestSupportCategory.Value(
             ps_info.probe_category),
         field_names=ps_info.allowlist_fields)
 

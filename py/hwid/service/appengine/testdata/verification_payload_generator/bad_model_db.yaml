@@ -70,6 +70,12 @@ components:
           type: MMC
       storage_2_bad:
         values:
-          type: THIS_IS_A_SUPER_SPECIAL_TYPE
+          type: MMC
+          name: ABCxyz
+          manfid: '0xZZZZZZ'  # The value is invalid.
+          oemid: '0x4455'
+          prv: '0x00000a'
+          serial: 'this_is_serial_number'
+          sectors: '1000000'
 
 rules: []

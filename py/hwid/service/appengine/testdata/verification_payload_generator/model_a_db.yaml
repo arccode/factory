@@ -67,5 +67,10 @@ components:
         status: duplicate
         values:
           type: MMC
+      storage_2_should_be_ignored:  # Component without suitable generate should
+                                    # be ignored.
+        status: duplicate
+        values:
+          a_special_field: a_special_value
 
 rules: []
