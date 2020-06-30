@@ -757,7 +757,7 @@ class EventBase:
 
     Raises:
       ValueError if the value can not be converted.
-      TestlogError if the key is not whitelisted in the FIELD.
+      TestlogError if the key is not allowlisted in the FIELD.
     """
     # TODO(itspeter): Consider remove this handy function and make it
     # explicitly to call other function to assign values.

@@ -15,16 +15,16 @@ from cros.factory.bundle_creator.app_engine import factorybundle_pb2  # pylint: 
 from cros.factory.bundle_creator.app_engine import protorpc_utils
 
 
-class WhitelistException(Exception):
+class AllowlistException(Exception):
   pass
 
 
-def whitelist(function):
+def allowlist(function):
   def function_wrapper(*args, **kwargs):
     loas_peer_username = flask.request.headers.get(
         'X-Appengine-Loas-Peer-Username')
     if loas_peer_username not in config.ALLOWED_LOAS_PEER_USERNAMES:
-      raise WhitelistException(
+      raise AllowlistException(
           'LOAS_PEER_USERNAME {} is not allowed'.format(loas_peer_username))
     return function(*args, **kwargs)
   return function_wrapper
@@ -34,7 +34,7 @@ class FactoryBundleService(protorpc_utils.ProtoRPCServiceBase):
   SERVICE_DESCRIPTOR = factorybundle_pb2.DESCRIPTOR.services_by_name[
       'FactoryBundleService']
 
-  @whitelist
+  @allowlist
   def CreateBundleAsync(self, request):
     publisher = pubsub_v1.PublisherClient()
     topic_path = publisher.topic_path(
@@ -42,7 +42,7 @@ class FactoryBundleService(protorpc_utils.ProtoRPCServiceBase):
     publisher.publish(topic_path, request.SerializeToString())
     return factorybundle_pb2.CreateBundleRpcResponse()
 
-  @whitelist
+  @allowlist
   def GetBundleHistory(self, request):
     client = storage.Client(project=config.GCLOUD_PROJECT)
     bucket = client.bucket(config.BUNDLE_BUCKET)
@@ -76,7 +76,7 @@ class FactoryBundleService(protorpc_utils.ProtoRPCServiceBase):
     response.bundles.sort(key=lambda b: b.uploaded_timestamp_ms, reverse=True)
     return response
 
-  @whitelist
+  @allowlist
   def DownloadBundle(self, request):
     client = storage.Client(project=config.GCLOUD_PROJECT)
     bucket = client.bucket(config.BUNDLE_BUCKET)

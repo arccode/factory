@@ -19,7 +19,7 @@ OPT_STRING = 'u:g:sS:c:C:P:b:B:V:f:m::M::k:a:e::R:T:vrGhHinNplLt::IUKwyYzd'
 LONG_OPTIONS = ['help', 'mount-dev', 'ambient', 'uts', 'logging=', 'profile=']
 
 # Only override these programs (find from /etc/init/*.conf)
-WHITELIST = ['/usr/sbin/sslh-fork']
+ALLOWLIST = ['/usr/sbin/sslh-fork']
 
 JAILED_DIR = '/run/jailed'
 
@@ -28,7 +28,7 @@ def minijail():
   opts, args = getopt.getopt(sys.argv[1:], OPT_STRING, LONG_OPTIONS)
   assert args, "Need at least one param."
 
-  if args[0] not in WHITELIST:
+  if args[0] not in ALLOWLIST:
     original = os.path.join(JAILED_DIR, os.path.basename(sys.argv[0]))
     args = [original] + sys.argv[1:]
     os.execvp(args[0], args)

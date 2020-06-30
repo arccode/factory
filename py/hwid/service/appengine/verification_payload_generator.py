@@ -30,19 +30,19 @@ class GenericProbeStatementInfoRecord:
   Attributes:
     probe_category: The name of the probe category.
     probe_func_name: The name of the probe function.
-    whitelist_fields: A list of fields that is allowed to be outputted.
+    allowlist_fields: A list of fields that is allowed to be outputted.
   """
 
-  def __init__(self, probe_category, probe_func_name, whitelist_fields):
+  def __init__(self, probe_category, probe_func_name, allowlist_fields):
     self.probe_category = probe_category
     self.probe_func_name = probe_func_name
-    self.whitelist_fields = whitelist_fields
+    self.allowlist_fields = allowlist_fields
 
   def GenerateProbeStatement(self):
     return probe_config_definition.GetProbeStatementDefinition(
         self.probe_category).GenerateProbeStatement(
             'generic', self.probe_func_name,
-            {fn: None for fn in self.whitelist_fields})
+            {fn: None for fn in self.allowlist_fields})
 
 
 # TODO(yhong): Remove the expect field when runtime_probe converts the output
@@ -353,7 +353,7 @@ def GenerateVerificationPayload(dbs):
     hw_verification_spec.generic_component_value_whitelists.add(
         component_category=ProbeRequestSupportCategory.Value(
             ps_info.probe_category),
-        field_names=ps_info.whitelist_fields)
+        field_names=ps_info.allowlist_fields)
 
   ret.generated_file_contents[
       'hw_verification_spec.prototxt'] = text_format.MessageToString(

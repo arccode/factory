@@ -23,8 +23,8 @@ class AllowLocalHostOrIsAuthenticated(drf_permissions.IsAuthenticated):
     client_ip = request.META['REMOTE_ADDR']
 
     # allow connection from localhost or docker host
-    whitelist = ['127.0.0.1', str(net_utils.GetDockerHostIP())]
-    if client_ip in whitelist:
+    allowlist = ['127.0.0.1', str(net_utils.GetDockerHostIP())]
+    if client_ip in allowlist:
       logger.info('Skip authentication, allow connection from %r', client_ip)
       return True
 

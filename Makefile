@@ -103,11 +103,11 @@ endif
 
 LINT_BLOCKLIST=$(shell cat $(MK_DIR)/pylint.blocklist | grep -v '^\#')
 LINT_FILES=$(shell find py go po devtools -name '*.py' -type f | sort)
-LINT_WHITELIST=$(filter-out $(LINT_BLOCKLIST),$(wildcard $(LINT_FILES)))
+LINT_ALLOWLIST=$(filter-out $(LINT_BLOCKLIST),$(wildcard $(LINT_FILES)))
 
 UNITTESTS=$(shell find py go po -name '*_unittest.py' | sort)
 UNITTESTS_BLOCKLIST=$(shell cat $(MK_DIR)/unittests.blocklist)
-UNITTESTS_WHITELIST= \
+UNITTESTS_ALLOWLIST= \
   $(filter-out $(UNITTESTS_BLOCKLIST),$(wildcard $(UNITTESTS)))
 TEST_EXTRA_FLAGS=
 
@@ -325,7 +325,7 @@ bundle: par toolkit
 	$(info Bundle is created in $(abspath $(BUNDLE_DIR)))
 
 lint:
-	$(MK_DIR)/pylint.sh $(LINT_WHITELIST)
+	$(MK_DIR)/pylint.sh $(LINT_ALLOWLIST)
 
 # Target to lint only files that have changed.  (We allow either
 # "smartlint" or "smart_lint".)
@@ -368,7 +368,7 @@ endif
 
 test:
 	@TEST_EXTRA_FLAGS=$(TEST_EXTRA_FLAGS) \
-	  $(MK_DIR)/test.sh $(UNITTESTS_WHITELIST)
+	  $(MK_DIR)/test.sh $(UNITTESTS_ALLOWLIST)
 
 testall:
 	@$(MAKE) --no-print-directory test TEST_EXTRA_FLAGS=--nofilter

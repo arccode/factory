@@ -28,7 +28,7 @@ do_lint() {
   if [ "${ret}" != "0" ]; then
     echo
     echo "To re-lint failed files, run:"
-    echo " make lint LINT_WHITELIST=\"$(
+    echo " make lint LINT_ALLOWLIST=\"$(
       grep '^\*' "${out}" | cut -c22- | tr . / | \
       sed 's/$/.py/' | tr '\n' ' ' | sed -e 's/ $//')\""
     echo
