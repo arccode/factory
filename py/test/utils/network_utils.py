@@ -165,7 +165,7 @@ def PrepareNetwork(ip, force_new_ip=False, on_waiting=None, logger=None):
     else:
       net_utils.SetEthernetIp(ip, force=force_new_ip,
                               logger=logger_info)
-    return True if net_utils.GetEthernetIp() else False
+    return bool(net_utils.GetEthernetIp())
 
   logger_info('Detecting Ethernet device...')
 

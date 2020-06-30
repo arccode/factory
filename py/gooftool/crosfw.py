@@ -150,7 +150,7 @@ class Flashrom:
     if len(wp_range) != 1:
       raise IOError('Failed getting write protection range')
     wp_range = wp_range[0]
-    return WpStatus(True if status == 'enabled' else False,
+    return WpStatus(status == 'enabled',
                     int(wp_range[0], 0),
                     int(wp_range[1], 0))
 

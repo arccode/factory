@@ -445,8 +445,7 @@ def main():
   command = args.command
   if command in ('Engage', 'Disengage'):
     print('%s %s' % (command, args.device))
-    fixture.SetDeviceEngaged(args.device,
-                             True if command == 'Engage' else False)
+    fixture.SetDeviceEngaged(args.device, command == 'Engage')
   elif command == 'DeviceStatus':
     device = args.device
     print('GetDeviceStatus(%s): %s' % (device, fixture.GetDeviceStatus(device)))

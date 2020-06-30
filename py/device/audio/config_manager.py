@@ -312,7 +312,7 @@ class AudioConfigManager(BaseConfigManager):
       command = self.audio_config[card][HP_JACK_DETECT]
       logging.info('Getting headphone jack status by %s', command)
       jack_status = self._device.CallOutput(command).strip()
-      status = True if jack_status == '1' else False
+      status = jack_status == '1'
       logging.info('headphone jack status %s', status)
       return status
     raise NotImplementedError  # cannot determined by config file
@@ -327,7 +327,7 @@ class AudioConfigManager(BaseConfigManager):
       command = self.audio_config[card][MIC_JACK_DETECT]
       logging.info('Getting microphone jack status by %s', command)
       jack_status = self._device.CallOutput(command).strip()
-      status = True if jack_status == '1' else False
+      status = jack_status == '1'
       logging.info('microphone jack status %s', status)
       return status
     raise NotImplementedError  # cannot determined by config file

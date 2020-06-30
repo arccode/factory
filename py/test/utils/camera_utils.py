@@ -228,7 +228,7 @@ class CVCameraReader(CameraReaderBase):
     return cv_img
 
   def IsEnabled(self):
-    return True if self._device else False
+    return bool(self._device)
 
   def _SearchDevice(self, dut):
     """Looks for a camera device to use.
