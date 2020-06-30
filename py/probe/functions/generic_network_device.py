@@ -151,6 +151,9 @@ class NetworkDevices:
 
       cls.cached_dev_list = dev_list
 
+    # pylint: disable=not-an-iterable
+    # This is a false alarm, the "if" statement above would make
+    # cls.cached_dev_list a list object.
     return [dev for dev in cls.cached_dev_list
             if devtype is None or dev.devtype == devtype]
 
