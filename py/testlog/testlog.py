@@ -102,8 +102,6 @@ _update_session_json = threading.Event()
 class FlushException(Exception):
   """Represents an exception when flushing to Instalog."""
 
-  pass
-
 
 class Testlog:
   """Primarily a wrapper for variables that should exist in a singleton.
@@ -864,7 +862,6 @@ class EventBase:
 
   def CastFields(self):
     """Casts fields to certain python types."""
-    pass
 
   @classmethod
   def _AllSubclasses(cls):

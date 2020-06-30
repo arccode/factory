@@ -105,4 +105,3 @@ class LinuxDisplay(device_types.DeviceComponent):
     It's a cleanup function. For some DUTs they may need display process running
     during the display time. This function is used to clean the process.
     """
-    pass

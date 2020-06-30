@@ -35,8 +35,6 @@ class WellBehavedInput(plugin_base.InputPlugin):
 class WellBehavedInputNoMain(plugin_base.InputPlugin):
   """Basic well-behaved input plugin with no Main function."""
 
-  pass
-
 
 class RunawayThreadInput(plugin_base.InputPlugin):
   """Starts a runaway thread which keeps accessing API functions."""

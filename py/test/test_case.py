@@ -22,7 +22,6 @@ from cros.factory.utils import type_utils
 
 class TaskEndException(Exception):
   """The exception to end a task."""
-  pass
 
 
 _Task = collections.namedtuple('Task', ['name', 'run'])

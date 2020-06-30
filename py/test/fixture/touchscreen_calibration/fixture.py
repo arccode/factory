@@ -36,7 +36,6 @@ STATE = ArduinoState('i', 'D', 'U', 'd', 'u', 'e')
 
 class FixtureException(Exception):
   """A dummy exception class for FixtureSerialDevice."""
-  pass
 
 
 class FixutreNativeUSB(serial_utils.SerialDevice):

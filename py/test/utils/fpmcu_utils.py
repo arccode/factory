@@ -13,7 +13,6 @@ import subprocess
 
 class FpmcuError(Exception):
   """Fpmcu device exception class."""
-  pass
 
 
 class FpmcuDevice:

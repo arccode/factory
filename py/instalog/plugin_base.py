@@ -21,37 +21,30 @@ from cros.factory.instalog.utils import time_utils
 
 class LoadPluginError(Exception):
   """The plugin encountered an error while loading."""
-  pass
 
 
 class WaitException(Exception):
   """The plugin currently cannot perform the requested operation."""
-  pass
 
 
 class UnexpectedAccess(Exception):
   """The plugin is accessing data when it should be stopped."""
-  pass
 
 
 class StateCommandError(Exception):
   """A state command on the plugin sandbox could not be run."""
-  pass
 
 
 class EventStreamExpired(Exception):
   """The event stream in question is expired and can no longer be used."""
-  pass
 
 
 class PluginCallError(Exception):
   """An error occurred when calling a method on the plugin instance."""
-  pass
 
 
 class ConfigError(Exception):
   """An error occurred when loading the config file."""
-  pass
 
 
 class PluginAPI:

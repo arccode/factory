@@ -76,7 +76,6 @@ _DICT_OPERATION_LABEL = {
 
 class ShutdownError(Exception):
   """Shutdown operation error."""
-  pass
 
 
 class Checkpoint:

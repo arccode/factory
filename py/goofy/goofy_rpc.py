@@ -51,7 +51,6 @@ RunState = type_utils.Enum(['UNINITIALIZED', 'STARTING', 'NOT_ACTIVE_RUN',
 
 class GoofyRPCException(Exception):
   """Goofy RPC exception."""
-  pass
 
 
 class GoofyRPC:

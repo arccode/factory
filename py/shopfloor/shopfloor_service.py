@@ -125,8 +125,6 @@ class ShopfloorService:
 class ThreadedXMLRPCServer(socketserver.ThreadingMixIn,
                            xmlrpc.server.SimpleXMLRPCServer):
   """A threaded XML RPC Server."""
-  pass
-
 
 
 def RunAsServer(address, port, instance, logRequest=False):

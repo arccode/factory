@@ -43,7 +43,6 @@ V4L2_CAP_DEVICE_CAPS = 0x80000000
 
 class CameraError(Exception):
   """Camera device exception class."""
-  pass
 
 
 # TODO(menghuan): remove this dead code?

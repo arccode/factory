@@ -44,7 +44,6 @@ from . import type_utils
 
 class GpioManagerError(Exception):
   """Exception class for GpioManager."""
-  pass
 
 
 class GpioManager:
@@ -163,7 +162,6 @@ class GpioManager:
 
 class GpioError(Exception):
   """Exception class for Gpio."""
-  pass
 
 
 class Gpio:

@@ -18,7 +18,6 @@ from cros.factory.utils import type_utils
 
 class CbiException(Exception):
   """CBI exception class."""
-  pass
 
 
 # Usage: ectool cbi get <tag> [get_flag]

@@ -13,7 +13,6 @@ from .utils import time_utils
 
 class TestlogError(Exception):
   """Catch-all exception for testlog Python API."""
-  pass
 
 
 def JSONHandler(obj):

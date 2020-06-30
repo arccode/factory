@@ -85,7 +85,6 @@ _DISPLAY_MSG_PERIOD = 0.5
 
 class RetrieveParameterError(Exception):
   """Retrieve parameter error."""
-  pass
 
 
 class RetrieveParameter(test_case.TestCase):

@@ -20,7 +20,6 @@ from . import type_utils
 
 class MountPartitionException(Exception):
   """Exception for MountPartition."""
-  pass
 
 
 def MountPartition(source_path, index=None, mount_point=None, rw=False,

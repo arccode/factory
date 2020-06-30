@@ -40,7 +40,6 @@ MAX_CRASH_FILE_SIZE = 64 * 1024
 
 class SystemLogManagerException(Exception):
   """Exception for SystemLogManager."""
-  pass
 
 
 class SystemLogManager(plugin.Plugin):

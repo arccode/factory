@@ -130,7 +130,6 @@ class ConfigInvalidError(Exception):
 
 def _DummyLogger(*unused_arg, **unused_kargs):
   """A dummy log function."""
-  pass
 
 
 def OverrideConfig(base, overrides, copy_on_write=False):

@@ -43,7 +43,6 @@ import uuid
 
 class StructError(Exception):
   """Exceptions in packing and unpacking from/to struct fields."""
-  pass
 
 
 class StructField:
@@ -236,7 +235,6 @@ PMBR_FIELDS = [
 
 class GPTError(Exception):
   """All exceptions by GPT."""
-  pass
 
 
 class GPTObject:

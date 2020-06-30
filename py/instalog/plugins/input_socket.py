@@ -35,7 +35,6 @@ _DEFAULT_HOSTNAME = '0.0.0.0'
 
 class ChecksumError(Exception):
   """Represents a checksum mismatch."""
-  pass
 
 
 class InputSocket(plugin_base.InputPlugin):

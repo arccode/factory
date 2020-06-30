@@ -39,7 +39,6 @@ from cros.factory.utils import type_utils
 
 class WiFiError(Exception):
   """Error with some WiFi-related functionality."""
-  pass
 
 
 class WiFi(device_types.DeviceComponent):

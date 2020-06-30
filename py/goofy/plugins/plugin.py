@@ -160,15 +160,12 @@ class Plugin:
 
   def OnStart(self):
     """Called when Goofy starts or resumes the plugin."""
-    pass
 
   def OnStop(self):
     """Called when Goofy stops or pauses the plugin."""
-    pass
 
   def OnDestroy(self):
     """Called when Goofy is going to be shutdown."""
-    pass
 
   def GetRPCInstance(self):
     """Returns RPC instance of the plugin."""

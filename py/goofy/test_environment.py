@@ -37,7 +37,6 @@ class Environment:
 
   def terminate(self):
     """Terminates and cleans up environment."""
-    pass
 
 
 class DUTEnvironment(Environment):

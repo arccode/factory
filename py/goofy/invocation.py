@@ -41,7 +41,6 @@ ERROR_LOG_TAIL_LENGTH = 8 * 1024
 
 class InvocationError(Exception):
   """Invocation error."""
-  pass
 
 
 def ResolveTestArgs(goofy, test, test_list_id, dut_options):

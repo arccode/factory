@@ -2518,7 +2518,6 @@ class SubCommand:
     May be implemented the subclass, which may use "self.subparser" to
     refer to the subparser object.
     """
-    pass
 
   def Run(self):
     """Runs the command.

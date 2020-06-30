@@ -29,7 +29,6 @@ RSRC_FILES = '*.rsrc'
 
 class ResourceError(Exception):
   """All exceptions when creating resources."""
-  pass
 
 
 def AddResource(output, rule, args):

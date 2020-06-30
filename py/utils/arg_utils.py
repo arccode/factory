@@ -35,7 +35,6 @@ _DEFAULT_NOT_SET = object()
 
 class ArgError(ValueError):
   """Represents a problem with Arg specification or validation."""
-  pass
 
 
 class Arg:

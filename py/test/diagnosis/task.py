@@ -220,15 +220,12 @@ class _Step:
 
   def Init(self):
     """Initializes this step before it starts to run."""
-    pass
 
   def Run(self, *unused_args):
     """Runs this step."""
-    pass
 
   def Stop(self):
     """Stops this step."""
-    pass
 
 
 class _ConfirmStep(_Step):

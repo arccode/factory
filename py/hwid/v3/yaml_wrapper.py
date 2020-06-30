@@ -24,12 +24,10 @@ from cros.factory.utils import yaml_utils
 
 class V3Loader(SafeLoader):
   """A HWID v3 yaml Loader for patch separation."""
-  pass
 
 
 class V3Dumper(SafeDumper):
   """A HWID v3 yaml Dumper for patch separation."""
-  pass
 
 
 # Because PyYaml can only represent scalar, sequence, mapping object, the

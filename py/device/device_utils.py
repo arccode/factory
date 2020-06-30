@@ -26,7 +26,6 @@ ENV_DUT_OPTIONS = 'CROS_FACTORY_DUT_OPTIONS'
 
 class DeviceOptionsError(Exception):
   """Exception for invalid DUT options."""
-  pass
 
 
 def _ExtractArgs(func, kargs):

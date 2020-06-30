@@ -30,7 +30,6 @@ _CONNECT_LOG_INTERVAL = 60  # interval
 
 class ChecksumError(Exception):
   """Represents a checksum mismatch."""
-  pass
 
 
 # TODO(chuntsen): Encryption and authentication

@@ -53,4 +53,3 @@ class AndroidMemory(LinuxMemory):
     # allocate large blocks instead of using shared memory.
     # So we don't need to resize ashmem for stressapptest.
     # Implement this when we really need it.
-    pass

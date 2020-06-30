@@ -136,7 +136,6 @@ class TouchMonitorBase:
 
   def OnKey(self, key_event_code):
     """Called by Handler after state of a key changed."""
-    pass
 
 
 class SingleTouchMonitor(TouchMonitorBase):
@@ -185,7 +184,6 @@ class SingleTouchMonitor(TouchMonitorBase):
 
   def OnMove(self):
     """Called by Handler after X or Y coordinate changes."""
-    pass
 
 
 class MultiTouchMonitor(TouchMonitorBase):
@@ -283,12 +281,9 @@ class MultiTouchMonitor(TouchMonitorBase):
 
   def OnNew(self, slot_id):
     """Called by Handler after a new contact comes."""
-    pass
 
   def OnMove(self, slot_id):
     """Called by Handler after a contact moved."""
-    pass
 
   def OnLeave(self, slot_id):
     """Called by Handler after a contact leaves."""
-    pass

@@ -82,7 +82,6 @@ class DummyPowerControlMixin(PowerControlMixinBase):
 
   def SetChargeState(self, state):
     """See PowerControlMixinBase.SetChargeState"""
-    pass
 
 
 class ECToolPowerControlMixin(PowerControlMixinBase):
@@ -710,13 +709,11 @@ class PowerDaemonPowerInfoMixin(PowerInfoMixinBase):
 
 class LinuxPower(DummyPowerControlMixin, SysfsPowerInfoMixin, PowerBase):
   """Power with no power control and info from sysfs."""
-  pass
 
 
 class ChromeOSPowerLegacy(
     ECToolPowerControlMixin, SysfsPowerInfoMixin, PowerBase):
   """Power with ectool power control and info from sysfs."""
-  pass
 
 
 class ChromeOSPower(ECToolPowerControlMixin, PowerDaemonPowerInfoMixin,
@@ -725,7 +722,6 @@ class ChromeOSPower(ECToolPowerControlMixin, PowerDaemonPowerInfoMixin,
 
   If powerd does not support the function, fall back to use ectool.
   """
-  pass
 
 
 # Some board implementations create their own power class by inheriting from

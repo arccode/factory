@@ -411,12 +411,3 @@ class Thermal(device_types.DeviceComponent):
   def SetFanRPM(self, rpm, fan_id=None):
     """This function should be deprecated by `fan.SetFanRPM`."""
     return self._device.fan.SetFanRPM(rpm, fan_id)
-
-
-def main():
-  """Test for local execution."""
-  pass
-
-
-if __name__ == '__main__':
-  main()

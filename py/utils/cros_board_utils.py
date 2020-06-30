@@ -39,7 +39,6 @@ def GetChromeOSFactoryBoardPath(board):
 
 class BuildBoardException(Exception):
   """Build board exception."""
-  pass
 
 
 class BuildBoard:

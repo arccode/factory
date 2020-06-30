@@ -31,7 +31,6 @@ SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')
 
 class GoofyRemoteException(Exception):
   """Goofy remote exception."""
-  pass
 
 
 def GetBoard(host):

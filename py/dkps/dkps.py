@@ -64,17 +64,14 @@ DEFAULT_LOGGING_CONFIG = {
 
 class ProjectNotFoundException(ValueError):
   """Raised when no project was found in the database."""
-  pass
 
 
 class InvalidUploaderException(ValueError):
   """Raised when the signature of the uploader can't be verified."""
-  pass
 
 
 class InvalidRequesterException(ValueError):
   """Raised when the signature of the requester can't be verified."""
-  pass
 
 
 def GetSQLite3Connection(database_file_path):

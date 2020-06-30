@@ -397,7 +397,6 @@ def GunzipSingleFile(gzip_path, output_path=None):
 
 class ExtractFileError(Exception):
   """Failure of extracting compressed file."""
-  pass
 
 
 def GetCompressor(file_format, allow_parallel=True):
@@ -604,7 +603,6 @@ B64Sha1 = SHA1InBase64
 
 class FileLockTimeoutError(Exception):
   """Timeout error for FileLock."""
-  pass
 
 
 class FileLock:

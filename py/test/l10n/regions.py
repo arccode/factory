@@ -63,7 +63,6 @@ LEGACY_REGIONS_LIST = [
 
 class RegionException(Exception):
   """Exception in Region handling."""
-  pass
 
 
 class Region:

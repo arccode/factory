@@ -656,7 +656,6 @@ class TestGroup(FactoryTest):
   """A collection of related tests, shown together in RHS panel if one is
   active.
   """
-  pass
 
 
 OperatorTest = FactoryTest

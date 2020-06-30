@@ -93,7 +93,6 @@ _BUFFER_SIZE_BYTES = 4 * 1024  # 4kb
 
 class SimpleFileException(Exception):
   """General exception type for this plugin."""
-  pass
 
 
 def GetChecksumLegacy(data):

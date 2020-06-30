@@ -38,4 +38,3 @@ UMPIRE_DEFAULT_PORT = 8080
 
 class UmpireError(Exception):
   """General umpire exception class."""
-  pass

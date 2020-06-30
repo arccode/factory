@@ -23,12 +23,10 @@ from cros.factory.utils import type_utils
 
 class GSUtilError(Exception):
   """GSUtil error."""
-  pass
 
 
 class NoSuchKey(GSUtilError):
   """Thrown when error message=NoSuchKey."""
-  pass
 
 
 class GSUtil:

@@ -18,7 +18,6 @@ from cros.factory.test.utils import serial_utils
 
 class SerialServerError(Exception):
   """Exception class for serial server."""
-  pass
 
 
 class SerialServer:

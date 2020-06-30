@@ -26,7 +26,6 @@ from cros.factory.external import pexpect
 
 class BluetoothUtilsError(Exception):
   """An excpetion class for the bluetooth_utils module."""
-  pass
 
 
 class BtMgmt:

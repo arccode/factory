@@ -17,7 +17,6 @@ _OVERRIDES_CLASS_RE = re.compile(r'^\s*class([^#]+)\(\s*([^\s#]+)\s*\)\s*\:')
 
 class Error(Exception):
   """Generic fatal error."""
-  pass
 
 
 class TestFailure(Exception):
@@ -26,7 +25,6 @@ class TestFailure(Exception):
 
 class TestListError(Exception):
   """TestList exception"""
-  pass
 
 
 # pylint: disable=redefined-builtin

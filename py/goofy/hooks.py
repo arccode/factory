@@ -20,11 +20,9 @@ class Hooks:
 
   def OnStartup(self):
     """Invoked on Goofy startup (just before the UI is started)."""
-    pass
 
   def OnCreatedTestList(self):
     """Invoked right after Goofy creates test_list."""
-    pass
 
   def OnTestStart(self):
     """Callback invoked a factory test starts.
@@ -33,7 +31,6 @@ class Hooks:
     starts a test manually. This can be used to light up a green
     LED or send a notification to a remote server.
     """
-    pass
 
   def OnTestFailure(self, test):
     """Callback invoked when a test fails.
@@ -43,7 +40,6 @@ class Hooks:
     LED may help operators identify failing device on the run-in
     rack easily.
     """
-    pass
 
   def OnEvent(self, event_name, *args, **kargs):
     """A general handler for events to Goofy hooks.

@@ -22,7 +22,6 @@ FUNCTIONS = type_utils.Enum(['send', 'receive', 'get_serial_num'])
 
 class SerialClientError(Exception):
   """Exception class for serial_client."""
-  pass
 
 
 class SerialClient:

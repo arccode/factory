@@ -20,7 +20,6 @@ CalledProcessError = sys_interface.CalledProcessError
 
 class DeviceException(Exception):
   """Common exception for all components."""
-  pass
 
 
 class DeviceLink:
@@ -113,7 +112,6 @@ class DeviceLink:
     For example, we might need to start a DHCP server that assigns IP addresses
     to devices.
     """
-    pass
 
 
 class DeviceComponent:
@@ -366,4 +364,3 @@ class DeviceInterface(sys_interface.SystemInterface):
 # pylint:disable=abstract-method
 class DeviceBoard(DeviceInterface):
   """A base class all for board implementations to inherit from."""
-  pass

@@ -13,12 +13,9 @@ class Hooks:
 
   def OnStationInit(self, event):
     """Invoked on every station.init event."""
-    pass
 
   def OnStationMessage(self, event):
     """Invoked on every station.message event."""
-    pass
 
   def OnStationTestRun(self, event):
     """Invoked on every station.test_run event."""
-    pass

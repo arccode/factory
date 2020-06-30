@@ -20,4 +20,3 @@ ENCODING_SCHEME = type_utils.Enum(['base32', 'base8192'])
 
 class HWIDException(Exception):
   """HWID-related exception."""
-  pass
