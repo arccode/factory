@@ -7,14 +7,15 @@
 import re
 
 from cros.factory.probe.runtime_probe import probe_config_types
+from cros.factory.utils import type_utils
 
 
-_probe_statement_definitions = {}
-
-
-def _ConstructAllProbeStatementDefinitions():
+@type_utils.CachedGetter
+def _GetAllProbeStatementDefinitions():
   def _GetASCIIStringErrorMsg(length):
     return 'format error, expect a %d-byte ASCII string' % length
+
+  probe_statement_definitions = {}
 
   builder = probe_config_types.ProbeStatementDefinitionBuilder('battery')
   builder.AddProbeFunction('generic_battery',
@@ -26,7 +27,7 @@ def _ConstructAllProbeStatementDefinitions():
                             'Model name exposed from the ACPI interface.')
   builder.AddStrOutputField('technology',
                             'Technology exposed from the ACPI interface.')
-  _probe_statement_definitions['battery'] = builder.Build()
+  probe_statement_definitions['battery'] = builder.Build()
 
   builder = probe_config_types.ProbeStatementDefinitionBuilder('storage')
   builder.AddProbeFunction('generic_storage',
@@ -76,7 +77,7 @@ def _ConstructAllProbeStatementDefinitions():
   builder.AddStrOutputField('ata_model', 'Model name.',
                             probe_function_names=probe_function_names,
                             value_format_error_msg=_GetASCIIStringErrorMsg(32))
-  _probe_statement_definitions['storage'] = builder.Build()
+  probe_statement_definitions['storage'] = builder.Build()
 
   builder = probe_config_types.ProbeStatementDefinitionBuilder('network')
   builder.AddProbeFunction('generic_network',
@@ -117,7 +118,7 @@ def _ConstructAllProbeStatementDefinitions():
                             num_value_digits=4)
   builder.AddHexOutputField('sdio_product_id', 'SDIO Device ID.',
                             num_value_digits=4)
-  _probe_statement_definitions['network'] = builder.Build()
+  probe_statement_definitions['network'] = builder.Build()
 
   # Create dram builder
   builder = probe_config_types.ProbeStatementDefinitionBuilder('dram')
@@ -126,7 +127,9 @@ def _ConstructAllProbeStatementDefinitions():
   builder.AddStrOutputField('part', 'Part number.')
   builder.AddIntOutputField('size', 'Memory size in MiB.')
   builder.AddIntOutputField('slot', 'Memory slot index.')
-  _probe_statement_definitions['dram'] = builder.Build()
+  probe_statement_definitions['dram'] = builder.Build()
+
+  return probe_statement_definitions
 
 def GetProbeStatementDefinition(name):
   """Get the probe statement definition of the given name.
@@ -140,6 +143,4 @@ def GetProbeStatementDefinition(name):
   Returns:
     An instance of `probe_config_types.ProbeStatementDefinition`.
   """
-  if not _probe_statement_definitions:
-    _ConstructAllProbeStatementDefinitions()
-  return _probe_statement_definitions[name]
+  return _GetAllProbeStatementDefinitions()[name]

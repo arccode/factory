@@ -17,6 +17,7 @@ from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import rule as hwid_rule
 from cros.factory.probe.runtime_probe import probe_config_definition
 from cros.factory.probe.runtime_probe import probe_config_types
+from cros.factory.utils import type_utils
 
 
 class ProbeStatementGeneratorNotSuitableError(Exception):
@@ -44,35 +45,27 @@ class GenericProbeStatementInfoRecord:
             {fn: None for fn in self.whitelist_fields})
 
 
-_generic_probe_statement_info_records = None
-
-
 # TODO(yhong): Remove the expect field when runtime_probe converts the output
 #              format automatically (b/133641904).
+@type_utils.CachedGetter
 def _GetAllGenericProbeStatementInfoRecords():
-  # pylint:disable=global-statement
-  global _generic_probe_statement_info_records
-
-  if not _generic_probe_statement_info_records:
-    _generic_probe_statement_info_records = [
-        GenericProbeStatementInfoRecord(
-            'battery', 'generic_battery',
-            ['manufacturer', 'model_name', 'technology']),
-        GenericProbeStatementInfoRecord(
-            'storage', 'generic_storage',
-            ['type', 'sectors', 'manfid', 'name', 'pci_vendor', 'pci_device',
-             'pci_class', 'ata_vendor', 'ata_model']),
-        GenericProbeStatementInfoRecord(
-            'network', 'generic_network',
-            ['type', 'bus_type', 'pci_vendor_id', 'pci_device_id',
-             'pci_revision', 'usb_vendor_id', 'usb_product_id',
-             'usb_bcd_device']),
-        GenericProbeStatementInfoRecord(
-            'dram', 'memory',
-            ['part', 'size', 'slot']),
-    ]
-
-  return _generic_probe_statement_info_records
+  return [
+      GenericProbeStatementInfoRecord(
+          'battery', 'generic_battery',
+          ['manufacturer', 'model_name', 'technology']),
+      GenericProbeStatementInfoRecord(
+          'storage', 'generic_storage',
+          ['type', 'sectors', 'manfid', 'name', 'pci_vendor', 'pci_device',
+           'pci_class', 'ata_vendor', 'ata_model']),
+      GenericProbeStatementInfoRecord(
+          'network', 'generic_network',
+          ['type', 'bus_type', 'pci_vendor_id', 'pci_device_id',
+           'pci_revision', 'usb_vendor_id', 'usb_product_id',
+           'usb_bcd_device']),
+      GenericProbeStatementInfoRecord(
+          'dram', 'memory',
+          ['part', 'size', 'slot']),
+  ]
 
 
 class _FieldRecord:
@@ -130,15 +123,8 @@ class _ProbeStatementGenerator:
           'unable to convert to the probe statement : %r' % e)
 
 
-_all_probe_statement_generators = None
-
-
+@type_utils.CachedGetter
 def GetAllProbeStatementGenerators():
-  # pylint:disable=global-statement
-  global _all_probe_statement_generators
-  if _all_probe_statement_generators:
-    return _all_probe_statement_generators
-
   def HWIDValueToStr(value):
     if isinstance(value, hwid_rule.Value):
       return re.compile(value.raw_value) if value.is_re else value.raw_value
@@ -166,9 +152,9 @@ def GetAllProbeStatementGenerators():
   def same_name_field_converter(n, c, *args, **kwargs):
     return _FieldRecord(n, n, c, *args, **kwargs)
 
-  _all_probe_statement_generators = {}
+  all_probe_statement_generators = {}
 
-  _all_probe_statement_generators['battery'] = [
+  all_probe_statement_generators['battery'] = [
       _ProbeStatementGenerator('battery', 'generic_battery', [
           same_name_field_converter('manufacturer', HWIDValueToStr),
           same_name_field_converter('model_name', HWIDValueToStr),
@@ -179,7 +165,7 @@ def GetAllProbeStatementGenerators():
   storage_shared_fields = [
       same_name_field_converter('sectors', StrToNum)
   ]
-  _all_probe_statement_generators['storage'] = [
+  all_probe_statement_generators['storage'] = [
       # eMMC
       _ProbeStatementGenerator(
           'storage', 'generic_storage',
@@ -237,19 +223,19 @@ def GetAllProbeStatementGenerators():
                    GetHWIDHexStrToHexStrConverter(4, has_prefix=False),
                    is_optional=True),
   ]
-  _all_probe_statement_generators['wireless'] = [
+  all_probe_statement_generators['wireless'] = [
       _ProbeStatementGenerator(
           'network', 'wireless_network', network_pci_fields),
       _ProbeStatementGenerator(
           'network', 'wireless_network', network_usb_fields),
   ]
-  _all_probe_statement_generators['cellular'] = [
+  all_probe_statement_generators['cellular'] = [
       _ProbeStatementGenerator(
           'network', 'cellular_network', network_pci_fields),
       _ProbeStatementGenerator(
           'network', 'cellular_network', network_usb_fields),
   ]
-  _all_probe_statement_generators['ethernet'] = [
+  all_probe_statement_generators['ethernet'] = [
       _ProbeStatementGenerator(
           'network', 'ethernet_network', network_pci_fields),
       _ProbeStatementGenerator(
@@ -261,11 +247,11 @@ def GetAllProbeStatementGenerators():
       same_name_field_converter('size', StrToNum),
       same_name_field_converter('slot', StrToNum, is_optional=True),
   ]
-  _all_probe_statement_generators['dram'] = [
+  all_probe_statement_generators['dram'] = [
       _ProbeStatementGenerator('dram', 'memory', dram_fields),
   ]
 
-  return _all_probe_statement_generators
+  return all_probe_statement_generators
 
 
 class VerificationPayloadGenerationResult:
