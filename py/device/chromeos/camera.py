@@ -68,9 +68,11 @@ class ChromeOSCamera(camera.Camera):
     camera_config = self._device.ReadFile(CAMERA_CONFIG_PATH)
     index_to_camera_id = {}
     for index, vid_pid in index_to_vid_pid.items():
+      # In CAMERA_CONFIG_PATH, usb_vid_pid hex string could be in uppercase or
+      # lowercase, so we make the matching case insensitive.
       camera_id = re.findall(
           r'^camera(\d+)\.module\d+\.usb_vid_pid=%s$' % vid_pid,
-          camera_config, re.MULTILINE)
+          camera_config, re.IGNORECASE | re.MULTILINE)
       if len(set(camera_id)) > 1:
         raise CameraError(
             'Multiple cameras have the same usb_vid_pid (%s)' % vid_pid)
