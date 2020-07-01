@@ -185,9 +185,8 @@ from cros.factory.utils import process_utils
 # Default setting
 _DEFAULT_FREQ_HZ = 1000
 
-# the duration(secs) for sine tone to playback.
-# it must be long enough for record process.
-_DEFAULT_SINEWAV_DURATION = 10
+# the additional duration(secs) for sine tone to playback.
+_DEFAULT_SINEWAV_DURATION_MARGIN = 8
 
 # Regular expressions to match audiofuntest message.
 _AUDIOFUNTEST_MIC_CHANNEL_RE = re.compile(r'.*Microphone channels:\s*(.*)$')
@@ -832,12 +831,12 @@ class AudioLoopTest(test_case.TestCase):
       if self.args.audiofuntest_run_delay is not None:
         self.Sleep(self.args.audiofuntest_run_delay)
 
-  def GenerateSinewav(self, dut_file_path, channel):
+  def GenerateSinewav(self, dut_file_path, channel, wav_duration):
     """Generate sine .wav file locally and push it to the DUT.
     """
     with file_utils.UnopenedTemporaryFile(suffix='.wav') as file_path:
-      cmd = audio_utils.GetGenerateSineWavArgs(
-          file_path, channel, _DEFAULT_FREQ_HZ, _DEFAULT_SINEWAV_DURATION)
+      cmd = audio_utils.GetGenerateSineWavArgs(file_path, channel,
+                                               _DEFAULT_FREQ_HZ, wav_duration)
       process_utils.Spawn(cmd.split(' '), log=True, check_call=True)
       self._dut.link.Push(file_path, dut_file_path)
 
@@ -848,6 +847,7 @@ class AudioLoopTest(test_case.TestCase):
 
     duration = self._current_test_args.get('duration',
                                            _DEFAULT_SINEWAV_TEST_DURATION)
+    wav_duration = duration + _DEFAULT_SINEWAV_DURATION_MARGIN
     input_channels = self._current_test_args.get('input_channels',
                                                  self._in_channel_map)
     output_channels = self._current_test_args.get(
@@ -863,7 +863,7 @@ class AudioLoopTest(test_case.TestCase):
         # platform, To make sure we can record the whole sine tone in the record
         # duration, we will playback a long period sine tone, and stop the
         # playback process after we finish recording.
-        self.GenerateSinewav(dut_sine_wav_path, output_channel)
+        self.GenerateSinewav(dut_sine_wav_path, output_channel, wav_duration)
         self._dut.audio.PlaybackWavFile(dut_sine_wav_path, self._out_card,
                                         self._out_device, blocking=False)
         self.RecordAndCheck(duration, input_channels, record_file_path)

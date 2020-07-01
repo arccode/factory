@@ -376,10 +376,13 @@ class BaseAudioControl(device_types.DeviceComponent):
 
   def _GetPIDByName(self, name):
     """Used to get process ID"""
-    pids = self._device.CallOutput(['toybox', 'pidof', name]).strip().split()
+    output = self._device.CallOutput(['toybox', 'pidof', name])
+    pids = output.strip().split() if output else []
     # we sholud only have one PID.
     if len(pids) > 1:
       raise RuntimeError('Find more than one PID(%r) of %s!' % (pids, name))
+    if not pids:
+      logging.info('Find no PID of %s', name)
     return pids[0] if pids else None
 
   def _QueryJackStatus(self, card, possible_names, ev_type, ev_val):
