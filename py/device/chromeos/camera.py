@@ -14,8 +14,7 @@ from cros.factory.device import camera
 from cros.factory.test.utils.camera_utils import CameraDevice
 from cros.factory.test.utils.camera_utils import CameraError
 from cros.factory.test.utils.camera_utils import CVCameraReader
-from cros.factory.test.utils.camera_utils import FilterNonVideoCapture
-from cros.factory.test.utils.camera_utils import GLOB_CAMERA_PATH
+from cros.factory.test.utils.camera_utils import GetValidCameraPaths
 
 from cros.factory.utils import type_utils
 
@@ -52,13 +51,9 @@ class ChromeOSCamera(camera.Camera):
     if facing in self._index_mapping:
       return self._index_mapping[facing]
 
-    camera_paths = self._device.Glob(GLOB_CAMERA_PATH)
-    if not camera_paths:
-      raise CameraError('No video capture interface found')
-    camera_paths = FilterNonVideoCapture(camera_paths, self._device)
+    camera_paths = GetValidCameraPaths(self._device)
     index_to_vid_pid = {}
-    for path in camera_paths:
-      index = int(self._device.ReadFile(os.path.join(path, 'index')))
+    for path, index in camera_paths:
       vid = self._device.ReadFile(
           os.path.join(path, 'device', '..', 'idVendor')).strip()
       pid = self._device.ReadFile(

@@ -21,6 +21,7 @@ from cros.factory.external import cv2 as cv
 
 # sysfs camera paths.
 GLOB_CAMERA_PATH = '/sys/bus/usb/drivers/uvcvideo/*/video4linux/video*'
+RE_CAMERA_INDEX = r'/sys/bus/usb/drivers/uvcvideo/.*/video4linux/video(\d+)'
 
 # Paths of mock images.
 _MOCK_IMAGE_PATHS = ['..', 'test', 'fixture', 'camera', 'static']
@@ -76,6 +77,26 @@ def ReadImageFile(filename):
   if img is None:
     raise CameraError('Can not open image file %s' % filename)
   return img
+
+
+def GetValidCameraPaths(dut):
+  """Gets the valid camera paths in a device.
+
+  Args:
+    dut: a cros.factory.utils.sys_interface.SystemInterface object
+
+  Returns:
+    A list of (path, device index) pairs.
+
+  Raise:
+    CameraError if no video capture interface is found.
+  """
+  camera_paths = dut.Glob(GLOB_CAMERA_PATH)
+  if not camera_paths:
+    raise CameraError('No video capture interface found')
+  camera_paths = FilterNonVideoCapture(camera_paths, dut)
+  return [(path, int(re.findall(RE_CAMERA_INDEX, path)[0]))
+          for path in camera_paths]
 
 
 def FilterNonVideoCapture(uvc_vid_dirs, dut):
