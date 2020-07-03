@@ -115,8 +115,7 @@ class GlobalSeqTest(unittest.TestCase):
     # Log an event (preamble will have sequence number 2; main
     # event will have 3).
     event_log.EventLog('test:foo').Log('bar')
-    with open(event_log.EVENTS_PATH) as f:
-      assert 'SEQ: 3\n' in f.readlines()
+    assert 'SEQ: 3\n' in file_utils.ReadLines(event_log.EVENTS_PATH)
 
     # Delete the sequence file to simulate corruption.
     os.unlink(event_log.SEQUENCE_PATH)

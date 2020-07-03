@@ -370,7 +370,7 @@ class GlobalSeq:
     try:
       max_seq = 0
 
-      for l in open(EVENTS_PATH).readlines():
+      for l in file_utils.ReadLines(EVENTS_PATH):
         # Optimization to avoid needing to evaluate the regexp for each line
         if not l.startswith("SEQ"):
           continue
