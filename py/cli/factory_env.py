@@ -72,6 +72,9 @@ def Main():
   child_env = dict(os.environ)
   child_env['PYTHONPATH'] = os.path.join(factory_dir, 'py_pkg')
 
+  # Set locale to utf-8
+  child_env['LC_ALL'] = 'en_US.UTF-8'
+
   # Execute it directly
   try:
     os.execvpe(sys.argv[0], sys.argv, env=child_env)
