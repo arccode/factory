@@ -24,13 +24,18 @@ from urllib3 import PoolManager
 from cros.factory.utils import json_utils
 
 
-HEAD = 'HEAD'
-DEFAULT_REMOTE_NAME = 'origin'
-REF_HEADS_PREFIX = 'refs/heads/'
-REF_REMOTES_PREFIX = 'refs/remotes/'
+HEAD = b'HEAD'
+DEFAULT_REMOTE_NAME = b'origin'
+REF_HEADS_PREFIX = b'refs/heads/'
+REF_REMOTES_PREFIX = b'refs/remotes/'
 NORMAL_FILE_MODE = 0o100644
 EXEC_FILE_MODE = 0o100755
 DIR_MODE = 0o040000
+
+
+def _B(s):
+  """Convert str to bytes if needed."""
+  return s.encode() if isinstance(s, str) else s
 
 
 class GitUtilException(Exception):
@@ -69,8 +74,8 @@ class MemoryRepo(_MemoryRepo):
                                           pool_manager=pool_manager)
     fetch_result = client.fetch(
         parsed.path, self,
-        determine_wants=lambda mapping: [mapping[REF_HEADS_PREFIX + branch]],
-        depth=1)
+        determine_wants=lambda mapping: [mapping[REF_HEADS_PREFIX +
+                                                 _B(branch)]], depth=1)
     stripped_refs = strip_peeled_refs(fetch_result.refs)
     branches = {
         n[len(REF_HEADS_PREFIX):]: v for (n, v) in stripped_refs.items()
@@ -78,8 +83,7 @@ class MemoryRepo(_MemoryRepo):
     self.refs.import_refs(
         REF_REMOTES_PREFIX + DEFAULT_REMOTE_NAME, branches)
     self[HEAD] = self[
-        REF_REMOTES_PREFIX + '{remote_name}/{branch}'.format(
-            remote_name=DEFAULT_REMOTE_NAME, branch=branch)]
+        REF_REMOTES_PREFIX + DEFAULT_REMOTE_NAME + b'/' + _B(branch)]
     return client
 
   def recursively_add_file(self, cur, path_splits, file_name, mode, blob):
@@ -144,11 +148,11 @@ class MemoryRepo(_MemoryRepo):
     for (file_path, mode, content) in new_files:
       path, filename = os.path.split(file_path)
       # os.path.normpath('') returns '.' which is unexpected
-      paths = [x for x in os.path.normpath(path).split(os.sep)
+      paths = [_B(x) for x in os.path.normpath(path).split(os.sep)
                if x and x != '.']
       try:
-        new_obj_ids = self.recursively_add_file(tree, paths, filename, mode,
-                                                Blob.from_string(content))
+        new_obj_ids = self.recursively_add_file(
+            tree, paths, _B(filename), mode, Blob.from_string(_B(content)))
       except GitUtilException:
         raise GitUtilException('Invalid filepath %r' % file_path)
       all_new_obj_ids += new_obj_ids
@@ -168,7 +172,7 @@ class MemoryRepo(_MemoryRepo):
     head_commit = self[HEAD]
     root = self[head_commit.tree]
     try:
-      mode, sha = root.lookup_path(self.get_object, path)
+      mode, sha = root.lookup_path(self.get_object, _B(path))
     except KeyError:
       raise GitUtilException('Path %r not found' % (path,))
     if mode != DIR_MODE:
@@ -176,7 +180,8 @@ class MemoryRepo(_MemoryRepo):
     tree = self[sha]
     for name, mode, file_sha in tree.items():
       obj = self[file_sha]
-      yield (name, mode, obj.data if obj.type_name == 'blob' else None)
+      yield (name.decode(), mode, obj.data
+             if obj.type_name == b'blob' else None)
 
 
 def _GetChangeId(tree_id, parent_commit, author, committer, commit_msg):
@@ -248,7 +253,7 @@ def CreateCL(git_url, auth_cookie, project, branch, new_files, author,
 
   repo = MemoryRepo(auth_cookie=auth_cookie)
   # only fetches last commit
-  client = repo.shallow_clone(git_url, branch=branch)
+  client = repo.shallow_clone(git_url, branch=_B(branch))
   head_commit = repo[HEAD]
   original_tree_id = head_commit.tree
   updated_tree, new_obj_ids = repo.add_files(new_files)
@@ -258,21 +263,22 @@ def CreateCL(git_url, auth_cookie, project, branch, new_files, author,
   change_id = _GetChangeId(
       updated_tree.id, repo.head(), author, committer, commit_msg)
   new_commit = repo.do_commit(
-      commit_msg + '\n\nChange-Id: {change_id}'.format(change_id=change_id),
-      author=author, committer=committer, tree=updated_tree.id)
+      _B(commit_msg + '\n\nChange-Id: {change_id}'.format(change_id=change_id)),
+      author=_B(author), committer=_B(committer),
+      tree=updated_tree.id)
   new_obj_ids.append(new_commit)
 
   notification = []
   if reviewers:
-    notification += ['r=' + email for email in reviewers]
+    notification += [b'r=' + email for email in reviewers]
   if cc:
-    notification += ['cc=' + email for email in cc]
-  target_branch = 'refs/for/' + branch
+    notification += [b'cc=' + email for email in cc]
+  target_branch = b'refs/for/' + _B(branch)
   if notification:
-    target_branch += '%' + ','.join(notification)
+    target_branch += b'%' + b','.join(notification)
 
   client.send_pack(
-      '/' + project,
+      b'/' + _B(project),
       # returns the only branch:hash mapping needed
       lambda unused_refs: {target_branch: new_commit},
       _generate_pack_data_wrapper(repo.object_store, new_obj_ids))
@@ -309,7 +315,7 @@ def GetCommitId(git_url_prefix, project, branch, auth_cookie):
                            (r.status,))
 
   try:
-    stripped_json = r.data.split('\n', 1)[1]
+    stripped_json = r.data.split(b'\n', 1)[1]
     branch_info = json_utils.LoadStr(stripped_json)
   except Exception:
     raise GitUtilException('Response format Error: %r' % (r.data,))
