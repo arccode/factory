@@ -9,7 +9,7 @@ import unittest
 
 class DummyCliUnittest(unittest.TestCase):
   def testImportCrosFactory(self):
-    from cros.factory.cli import factory_env  # pylint: disable=unused-variable
+    from cros.factory.cli import factory_env  # pylint: disable=unused-import
 
   def testSysPath(self):
     self.assertIn('factory/py_pkg', ' '.join(sys.path))
