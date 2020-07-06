@@ -572,8 +572,6 @@ class Project(django.db.models.Model):
         Project.objects.get(pk=name).delete()
       except django.core.exceptions.ObjectDoesNotExist:
         pass
-      except Exception:
-        raise
 
   @staticmethod
   def UpdateOne(project, **kwargs):

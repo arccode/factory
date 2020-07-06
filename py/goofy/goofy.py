@@ -809,7 +809,7 @@ class Goofy:
 
     try:
       goofy.Main()
-    except SystemExit:
+    except SystemExit:  # pylint: disable=try-except-raise
       # Propagate SystemExit without logging.
       raise
     except KeyboardInterrupt:
