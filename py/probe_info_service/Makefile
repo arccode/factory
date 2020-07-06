@@ -41,13 +41,15 @@ _pack: prepare
 	$(if $(PACK_DEST_DIR),, \
 	  $(error "You must specify the dest directory by `PACK_DEST_DIR`."))
 	mkdir -p "$(PACK_DEST_DIR)/$(PACKAGE_PATH_NAME)"
+	find . ! -type d ! -name "*.pyc" -exec \
+	    cp --parents "{}" "$(PACK_DEST_DIR)/$(PACKAGE_PATH_NAME)" ";"
 	cp -r . "$(PACK_DEST_DIR)/$(PACKAGE_PATH_NAME)"
 	for path_name in $(DEP_PACKAGE_PATH_NAMES); \
 	  do \
 	    mkdir -p "$(PACK_DEST_DIR)/$${path_name}"; \
 	    ( \
 	      cd "$(FACTORY_PY_PKG_DIR)/$${path_name}"; \
-	      find . -type f ! -name "*_unittest.py" -exec \
+	      find . ! -type d ! -name "*_*test.py" ! -name "*.pyc" -exec \
 	          cp --parents "{}" "$(PACK_DEST_DIR)/$${path_name}" ";" \
 	    ); \
 	  done

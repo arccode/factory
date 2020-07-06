@@ -106,9 +106,9 @@ local_deployment_run_venv_python() {
       exec "${LOCAL_DEPLOYMENT_VENV_PYTHON_PATH}" "$@"
 }
 
-local_deployment_find_all_unittest_modules() {
+local_deployment_find_all_test_modules() {
   local find_output="$(find "${LOCAL_DEPLOYMENT_PROJECT_ROOT_PATH}" -type f \
-      -name "*_unittest.py" -printf "%P\\n")"
+      -name "*_*test.py" -printf "%P\\n")"
   local path_name=
   IFS=$'\n'
   for path_name in ${find_output}; do
@@ -143,54 +143,54 @@ do_run_local() {
   local_deployment_stop
 }
 
-do_run_unittests() {
+do_run_tests() {
   set +e  # Temporary turns off non-zero status check for the shflags library.
   local_deployment_define_flags
   DEFINE_boolean dump_logs "${FLAGS_FALSE}" "Dump logs of the failure tests."
-  FLAGS_HELP="USAGE: $0 [flags] [<unittest_modules>...]"
+  FLAGS_HELP="USAGE: $0 [flags] [<test_modules>...]"
   FLAGS "$@" || die $?
   set -e
 
   local_deployment_prepare
 
-  eval local "unittest_modules=(${FLAGS_ARGV})"
-  if [ "${#unittest_modules[@]}" -eq 0 ]; then
-    info "Discover all unittest modules."
-    unittest_modules=($(local_deployment_find_all_unittest_modules))
-    info "Found ${#unittest_modules[@]} unittest modules."
+  eval local "test_modules=(${FLAGS_ARGV})"
+  if [ "${#test_modules[@]}" -eq 0 ]; then
+    info "Discover all test modules."
+    test_modules=($(local_deployment_find_all_test_modules))
+    info "Found ${#test_modules[@]} test modules."
   fi
 
-  local failed_unittest_modules=()
-  local log_dir="$(local_deployment_create_log_dir "unittest")"
+  local failed_test_modules=()
+  local log_dir="$(local_deployment_create_log_dir "test")"
 
-  local unittest_module=
-  for unittest_module in "${unittest_modules[@]}"; do
-    info "Run unittest \"${unittest_module}\"."
-    local logfile_path="${log_dir}/${unittest_module}.log"
-    if ! local_deployment_run_venv_python -m "${unittest_module}" \
+  local test_module=
+  for test_module in "${test_modules[@]}"; do
+    info "Run test \"${test_module}\"."
+    local logfile_path="${log_dir}/${test_module}.log"
+    if ! local_deployment_run_venv_python -m "${test_module}" \
         >"${logfile_path}" 2>&1; then
-      failed_unittest_modules+=("${unittest_module}")
+      failed_test_modules+=("${test_module}")
     fi
   done
 
   local_deployment_stop
 
-  if [ ${#failed_unittest_modules[@]} -eq 0 ]; then
-    info "All unittests are passed!"
+  if [ ${#failed_test_modules[@]} -eq 0 ]; then
+    info "All tests are passed!"
     return
   fi
 
-  error "Following ${#failed_unittest_modules[@]} unittest(s) are failed:"
-  for unittest_module in "${failed_unittest_modules[@]}"; do
-    local logfile_path="${log_dir}/${unittest_module}.log"
-    echo "-  ${unittest_module}, logfile path: ${logfile_path}"
+  error "Following ${#failed_test_modules[@]} test(s) are failed:"
+  for test_module in "${failed_test_modules[@]}"; do
+    local logfile_path="${log_dir}/${test_module}.log"
+    echo "-  ${test_module}, logfile path: ${logfile_path}"
     if [ "${FLAGS_dump_logs}" == "${FLAGS_TRUE}" ]; then
       echo "========== BEGIN: LOG =========="
       cat "${logfile_path}"
       echo "========== END: LOG =========="
     fi
   done
-  die "Fail rate ${#failed_unittest_modules[@]}/${#unittest_modules[@]} > 0."
+  die "Fail rate ${#failed_test_modules[@]}/${#test_modules[@]} > 0."
 }
 
 print_usage() {
@@ -210,8 +210,8 @@ commands:
       /tmp/probe_info_service/) first.  Then it starts the server instance
       locally.
 
-  $0 unittest [<args...>]
-      Runs the specified/all unittests.  The command prepares the virtualenv and
+  $0 test [<args...>]
+      Runs the specified/all tests.  The command prepares the virtualenv and
       the source code to deploy in 'LOCAL_DEPLOYMENT_DIR' (default to
       /tmp/probe_info_service/) first.  Then it runs the targets locally.
 
@@ -235,8 +235,8 @@ main() {
     run)
       do_run_local "$@"
       ;;
-    unittest)
-      do_run_unittests "$@"
+    test)
+      do_run_tests "$@"
       ;;
     *)
       die "Unknown sub-command: \"${subcmd}\".  Run \`${0} help\` to print" \
