@@ -31,7 +31,6 @@
       "__comment": "Test plans for Final Functional Test. The FFT is usually the final stage of FATP, to make sure the system is functional, including most interactive tests.",
       "subtests": [
         "Probe",
-        "WriteProtectSwitch",
         "LidSwitch",
         "DisplayPoint",
         "Display",

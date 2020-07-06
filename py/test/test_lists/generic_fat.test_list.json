@@ -32,8 +32,6 @@
       "subtests": [
         "ChargerTypeDetection",
         "Barrier",
-        "WriteProtectSwitch",
-        "Barrier",
         "ThermalSensors",
         "Barrier",
         "VerifyRootPartition",

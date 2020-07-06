@@ -21,6 +21,10 @@ class WriteProtectSwitchTest(unittest.TestCase):
     self.dut = device_utils.CreateDUTInterface()
 
   def runTest(self):
+    logging.warning(
+        'If this device uses H1-controlled hardware write protection rather '
+        'than write protect screw, then this pytest is not needed and is '
+        'expected to fail.')
     self.assertEqual(1, int(self.dut.CheckOutput(['crossystem', 'wpsw_cur'],
                                                  log=True).strip()))
 
