@@ -384,16 +384,18 @@ class JSONAudioConfigManager(AudioConfigManager):
 class UCMConfigManager(BaseConfigManager):
   """A UCM config manager which deals with UCM configs."""
   _AlsaUCMPath = '/usr/share/alsa/ucm'
-  _DefaultDeviceMap = {
-      AudioDeviceType.Speaker: 'Speaker',
-      AudioDeviceType.Headphone: 'Headphone',
-      AudioDeviceType.Dmic: 'Internal Mic',
-      AudioDeviceType.Extmic: 'Mic'}
+  _InvertedDeviceMap = {
+      'Speaker': AudioDeviceType.Speaker,
+      'Headphone': AudioDeviceType.Headphone,
+      'Internal Mic': AudioDeviceType.Dmic,
+      'Mic': AudioDeviceType.Extmic,
+      'Front Mic': AudioDeviceType.Dmic,
+      'Rear Mic': AudioDeviceType.Dmic2}
   _DefaultVerb = 'HiFi'
   _RE_CARD_NAME = re.compile(r'^card (\d+):.*?\[(.+?)\]')
 
   def __init__(self, device, mixer_controller,
-               card_map=None, device_map=None, verb=None):
+               card_map=None, card_device_map=None, verb=None):
     """Construct from a UCM config.
 
     This helps to control sound cards via the UCM config files.
@@ -428,6 +430,10 @@ class UCMConfigManager(BaseConfigManager):
         Default: Use 'aplay -l' to guess the card name.
                  See _GetCardNameMap for more details.
 
+      card_device_map: Specify the device name of cards.
+        Key: An index of the card. See /proc/asound/cards.
+        Value: A device_map described below.
+
       device_map: Specify the device name.
         Key: A string defined in AudioDeviceType (e.g., 'Speaker').
         Value: The corresponding device string for UCM. Take a look at the
@@ -443,15 +449,34 @@ class UCMConfigManager(BaseConfigManager):
 
     self._card_map = self._PrepareCardNameMap(card_map)
 
-    self._device_map = device_map
-    if self._device_map is None:
-      self._device_map = self._DefaultDeviceMap
-    self._device_state = {
-        device: DEVICE_STATE.Initial for device in self._device_map}
-
     self._verb = verb
     if self._verb is None:
       self._verb = self._DefaultVerb
+
+    self._card_device_map = card_device_map or {}
+    for card, device_map in self._card_device_map.items():
+      # Assert that card is defined in self._card_map.
+      self._GetCardName(card)
+      invalid_devices = set(device_map) - set(AudioDeviceType)
+      if invalid_devices:
+        raise KeyError(
+            "Invalid device: '%r' in card '%s'" % (invalid_devices, card))
+
+    for card in set(self._card_map) - set(self._card_device_map):
+      # Get the device map from HiFi.conf.
+      output = self._InvokeCardCommands(
+          card, 'set _verb %s' % self._verb, 'list _devices')
+      device_map = {}
+      for match in re.finditer(r'^.*: (.*)$', output, re.MULTILINE):
+        value = match.group(1).strip()
+        key = self._InvertedDeviceMap.get(value)
+        if key is not None:
+          device_map[key] = value
+      self._card_device_map[card] = device_map
+
+    self._card_device_state = {
+        card: dict.fromkeys(device_map, DEVICE_STATE.Initial)
+        for card, device_map in self._card_device_map.items()}
 
   def _GetCardNameMap(self):
     """Get card name with UCM suffix from aplay and cros_config."""
@@ -500,9 +525,12 @@ class UCMConfigManager(BaseConfigManager):
     except KeyError:
       raise KeyError('%s is not in %r' % (card, self._card_map))
 
-  def _GetDeviceName(self, device):
+  def _GetDeviceName(self, card, device):
+    """Get device name of the card index."""
+    # Assert that card is defined in self._card_map.
+    self._GetCardName(card)
     try:
-      return self._device_map[device]
+      return self._card_device_map[card][device]
     except Exception:
       logging.error('You should specify the device mapping for %s',
                     device)
@@ -595,7 +623,7 @@ class UCMConfigManager(BaseConfigManager):
 
   def _InvokeCardCommands(self, card, *commands):
     return self._InvokeAlsaUCM(
-        'open %s' % self._GetCardName(card),
+        'open "%s" h' % self._GetCardName(card),
         *commands)
 
   def _InvokeDeviceCommands(self, card, *suffix_commands):
@@ -603,10 +631,10 @@ class UCMConfigManager(BaseConfigManager):
     # 'set _verb' resets devices state to initial state for some sound card but
     # we can not 'set _enadev' without 'set _verb' first. So we just reset all
     # devices here.
-    for device, state in self._device_state.items():
+    for device, state in self._card_device_state[card].items():
       if state == DEVICE_STATE.Initial:
         continue
-      device_name = self._GetDeviceName(device)
+      device_name = self._GetDeviceName(card, device)
       # The ucm config expects enable before disable so we always enable it
       # after reset. Also 'alsaucm' may return 1 if the command ends with
       # quotes. The quotes are used to pass device name with space, such as
@@ -619,24 +647,28 @@ class UCMConfigManager(BaseConfigManager):
 
   def Initialize(self, card='0'):
     """Initialize the sound card."""
-    self._device_state = {
-        device: DEVICE_STATE.Initial for device in self._device_state}
-    self._InvokeCardCommands(card, 'reset')
+    # Assert that card is defined in self._card_map.
+    self._GetCardName(card)
+    self._card_device_state[card] = dict.fromkeys(
+        self._card_device_map[card], DEVICE_STATE.Initial)
+    self._InvokeDeviceCommands(card)
 
   def EnableDevice(self, device, card='0'):
     """Enable a certain device on sound card."""
-    if device not in self._device_state:
-      raise KeyError(str(device))
-    self._device_state[device] = DEVICE_STATE.Enabled
+    # Assert that card is defined in self._card_map and device is defined in
+    # device map.
+    self._GetDeviceName(card, device)
+    self._card_device_state[card][device] = DEVICE_STATE.Enabled
     self._InvokeDeviceCommands(card)
 
   def DisableDevice(self, device, card='0'):
     """Disable a certain device on sound card."""
     # device not present may be disable with DisableAllAudioInputs and
     # DisableAllAudioOutputs.
-    if device not in self._device_state:
-      raise KeyError(str(device))
-    self._device_state[device] = DEVICE_STATE.Disabled
+    # Assert that card is defined in self._card_map and device is defined in
+    # device map.
+    self._GetDeviceName(card, device)
+    self._card_device_state[card][device] = DEVICE_STATE.Disabled
     self._InvokeDeviceCommands(card)
 
   def GetPCMId(self, category, device, card):
@@ -644,11 +676,11 @@ class UCMConfigManager(BaseConfigManager):
     if category not in PCMType:
       raise ValueError('category must in one of %r' % PCMType)
     card_name = self._GetCardName(card)
-    device_name = self._GetDeviceName(device)
+    device_name = self._GetDeviceName(card, device)
     identity = '%s/%s' % (category, device_name)
     output = self._InvokeDeviceCommands(card, 'get "%s" h' % identity).strip()
     match = re.search(r'^(.+)=hw:.+,(\d+)$', output, re.MULTILINE)
-    if match and match.group(1) == identity:
+    if match and match.group(1).strip() == identity:
       return match.group(2)
     raise ValueError(
         'Wrong output format. output:%r card_name:%r' % (output, card_name))

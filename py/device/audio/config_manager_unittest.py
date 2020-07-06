@@ -11,6 +11,35 @@ import mock
 from cros.factory.device.audio import config_manager
 
 
+class MockProcess:
+  """A mock class of the return type of Popen."""
+  def __init__(self):
+    self.returncode = 0
+
+  def wait(self):
+    pass
+
+  def communicate(self, commands):
+    if 'card_0' in commands:
+      return '''
+  0: Speaker
+  1: Headphone
+  2: Internal Mic
+  3: Mic
+  4: HDMI1
+  5: HDMI2
+  6: HDMI3
+''', ''
+    return '''
+  0: Speaker
+  1: Headphone
+  2: Front Mic
+  3: Rear Mic
+  4: Mic
+  5: HDMI1
+  6: HDMI2
+''', ''
+
 class UCMConfigManagerTest(unittest.TestCase):
   @mock.patch('os.path.isdir')
   def testGetCardNameMapFromAplay(self, mock_isdir):
@@ -31,6 +60,7 @@ card 2: card_2 [card_2], device 8: Audio (*) []
   Subdevices: 1/1
   Subdevice #0: subdevice #0
 ''')
+    device.Popen.side_effect = [MockProcess(), MockProcess()]
     device.path = os.path
     mock_isdir.side_effect = lambda path: (
         os.path.basename(path) in ['card_0', 'card_2'])
@@ -46,6 +76,24 @@ card 2: card_2 [card_2], device 8: Audio (*) []
         '2': 'card_2',
     })
 
+    self.assertEqual(device.Popen.call_count, 2)
+
+    # pylint: disable=protected-access
+    self.assertEqual(config_mgr._card_device_map, {
+        '0': {
+            config_manager.AudioDeviceType.Dmic: "Internal Mic",
+            config_manager.AudioDeviceType.Extmic: "Mic",
+            config_manager.AudioDeviceType.Headphone: "Headphone",
+            config_manager.AudioDeviceType.Speaker: "Speaker",
+        },
+        '2': {
+            config_manager.AudioDeviceType.Dmic: "Front Mic",
+            config_manager.AudioDeviceType.Dmic2: "Rear Mic",
+            config_manager.AudioDeviceType.Extmic: "Mic",
+            config_manager.AudioDeviceType.Headphone: "Headphone",
+            config_manager.AudioDeviceType.Speaker: "Speaker",
+        },
+    })
 
 if __name__ == '__main__':
   unittest.main()
