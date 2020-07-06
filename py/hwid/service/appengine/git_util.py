@@ -10,16 +10,17 @@ import os
 import time
 import urllib.parse
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=wrong-import-order, import-error
 import certifi
 from dulwich.client import HttpGitClient
 from dulwich.objects import Blob
 from dulwich.objects import Tree
-from dulwich.pack import pack_objects_to_data
+from dulwich import porcelain
 from dulwich.refs import strip_peeled_refs
 from dulwich.repo import MemoryRepo as _MemoryRepo
 import urllib3.exceptions
 from urllib3 import PoolManager
+# pylint: enable=wrong-import-order, import-error
 
 from cros.factory.utils import json_utils
 
@@ -60,14 +61,14 @@ class MemoryRepo(_MemoryRepo):
     Args:
       remote_location: String identifying a remote server
       branch: Branch
-    Returns:
-      client
     """
 
     parsed = urllib.parse.urlparse(remote_location)
 
     pool_manager = PoolManager(ca_certs=certifi.where())
     pool_manager.headers['Cookie'] = self.auth_cookie
+    # Suppress ResourceWarning
+    pool_manager.headers['Connection'] = 'close'
 
     client = HttpGitClient.from_parsedurl(parsed,
                                           config=self.get_config_stack(),
@@ -84,7 +85,6 @@ class MemoryRepo(_MemoryRepo):
         REF_REMOTES_PREFIX + DEFAULT_REMOTE_NAME, branches)
     self[HEAD] = self[
         REF_REMOTES_PREFIX + DEFAULT_REMOTE_NAME + b'/' + _B(branch)]
-    return client
 
   def recursively_add_file(self, cur, path_splits, file_name, mode, blob):
     """Add files in object store.
@@ -98,8 +98,6 @@ class MemoryRepo(_MemoryRepo):
       file_name: File name
       mode: File mode in git
       blob: Blob obj of the file
-    Returns:
-      A list of new object ids
     """
 
     if path_splits:
@@ -112,7 +110,7 @@ class MemoryRepo(_MemoryRepo):
       else:
         # not exists, create a new tree
         sub = Tree()
-      new_ids = self.recursively_add_file(
+      self.recursively_add_file(
           sub, path_splits[1:], file_name, mode, blob)
       cur.add(child_name, DIR_MODE, sub.id)
     else:
@@ -124,12 +122,9 @@ class MemoryRepo(_MemoryRepo):
           # if file_name exists but not a Blob(file)
           raise GitUtilException
       self.object_store.add_object(blob)
-      new_ids = [blob.id]
       cur.add(file_name, mode, blob.id)
 
     self.object_store.add_object(cur)
-    new_ids.append(cur.id)
-    return new_ids
 
   def add_files(self, new_files, tree=None):
     """Add files to repository.
@@ -138,26 +133,24 @@ class MemoryRepo(_MemoryRepo):
       new_files: List of (file path, mode, file content)
       tree: Optional tree obj
     Returns:
-      (updated tree, sha1 id strs of new objects)
+      updated tree
     """
 
     if tree is None:
       head_commit = self[HEAD]
       tree = self[head_commit.tree]
-    all_new_obj_ids = []
     for (file_path, mode, content) in new_files:
       path, filename = os.path.split(file_path)
       # os.path.normpath('') returns '.' which is unexpected
       paths = [_B(x) for x in os.path.normpath(path).split(os.sep)
                if x and x != '.']
       try:
-        new_obj_ids = self.recursively_add_file(
-            tree, paths, _B(filename), mode, Blob.from_string(_B(content)))
+        self.recursively_add_file(tree, paths, _B(filename), mode,
+                                  Blob.from_string(_B(content)))
       except GitUtilException:
         raise GitUtilException('Invalid filepath %r' % file_path)
-      all_new_obj_ids += new_obj_ids
 
-    return tree, all_new_obj_ids
+    return tree
 
   def list_files(self, path):
     """List files under specific path.
@@ -218,14 +211,13 @@ def _GetChangeId(tree_id, parent_commit, author, committer, commit_msg):
   return 'I{}'.format(hashlib.sha1(change_id_input.encode('utf-8')).hexdigest())
 
 
-def CreateCL(git_url, auth_cookie, project, branch, new_files, author,
+def CreateCL(git_url, auth_cookie, branch, new_files, author,
              committer, commit_msg, reviewers=None, cc=None):
   """Create a CL from adding files in specified location.
 
   Args:
     git_url: HTTPS repo url
     auth_cookie: Auth_cookie
-    project: Project name
     branch: Branch needs adding file
     new_files: List of (filepath, mode, bytes)
     author: Author in form of "Name <email@domain>"
@@ -237,36 +229,21 @@ def CreateCL(git_url, auth_cookie, project, branch, new_files, author,
     change id
   """
 
-  def _generate_pack_data_wrapper(obj_store, new_obj_ids):
-    """Patched generate_pack_data.
-
-    In client.send_pack, we customize generate_pack_data instead of using
-    object_store.generate_pack_data since we know what objects are needed in new
-    commit instead of comparing commits between local and remote which is
-    currently not supported if shallow clone is applied
-    """
-
-    def wrapper(*unused_args, **unused_kwargs):
-      return pack_objects_to_data(obj_store.iter_shas(
-          (id, None) for id in new_obj_ids))
-    return wrapper
-
   repo = MemoryRepo(auth_cookie=auth_cookie)
   # only fetches last commit
-  client = repo.shallow_clone(git_url, branch=_B(branch))
+  repo.shallow_clone(git_url, branch=_B(branch))
   head_commit = repo[HEAD]
   original_tree_id = head_commit.tree
-  updated_tree, new_obj_ids = repo.add_files(new_files)
+  updated_tree = repo.add_files(new_files)
   if updated_tree.id == original_tree_id:
     raise GitUtilNoModificationException
 
   change_id = _GetChangeId(
       updated_tree.id, repo.head(), author, committer, commit_msg)
-  new_commit = repo.do_commit(
+  repo.do_commit(
       _B(commit_msg + '\n\nChange-Id: {change_id}'.format(change_id=change_id)),
       author=_B(author), committer=_B(committer),
       tree=updated_tree.id)
-  new_obj_ids.append(new_commit)
 
   notification = []
   if reviewers:
@@ -277,11 +254,10 @@ def CreateCL(git_url, auth_cookie, project, branch, new_files, author,
   if notification:
     target_branch += b'%' + b','.join(notification)
 
-  client.send_pack(
-      b'/' + _B(project),
-      # returns the only branch:hash mapping needed
-      lambda unused_refs: {target_branch: new_commit},
-      _generate_pack_data_wrapper(repo.object_store, new_obj_ids))
+  pool_manager = PoolManager(ca_certs=certifi.where())
+  pool_manager.headers['Cookie'] = repo.auth_cookie
+  porcelain.push(repo, git_url, HEAD + b':' + target_branch,
+                 pool_manager=pool_manager)
   return change_id
 
 
@@ -305,6 +281,8 @@ def GetCommitId(git_url_prefix, project, branch, auth_cookie):
   pool_manager = PoolManager(ca_certs=certifi.where())
   pool_manager.headers['Cookie'] = auth_cookie
   pool_manager.headers['Content-Type'] = 'application/json'
+  # Suppress ResourceWarning
+  pool_manager.headers['Connection'] = 'close'
   try:
     r = pool_manager.urlopen('GET', git_url)
   except urllib3.exceptions.HTTPError:

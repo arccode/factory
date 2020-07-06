@@ -367,7 +367,7 @@ class RefreshHandler(webapp2.RequestHandler):
     else:
       try:
         change_id = git_util.CreateCL(
-            git_url, auth_cookie, project, branch, new_git_files,
+            git_url, auth_cookie, branch, new_git_files,
             author, author, commit_msg, reviewers, ccs)
         if CONFIG.env != 'prod':  # Abandon the test CL to prevent confusion
           try:

@@ -9,9 +9,10 @@ import datetime
 import http.client
 import unittest
 
-# pylint: disable=import-error, no-name-in-module
+# pylint: disable=wrong-import-order, import-error
 from dulwich.objects import Tree
 import mock
+# pylint: enable=wrong-import-order, import-error
 
 from cros.factory.hwid.service.appengine import git_util
 
@@ -28,7 +29,7 @@ class GitUtilTest(unittest.TestCase):
     repo = git_util.MemoryRepo('')
     tree = Tree()
     try:
-      tree, unused_new_obj_ids = repo.add_files(new_files, tree)
+      tree = repo.add_files(new_files, tree)
       tree.check()
     except Exception as ex:
       self.fail("testAddFiles raise Exception unexpectedly: %r" % ex)
@@ -144,7 +145,6 @@ class GitUtilTest(unittest.TestCase):
         git_util.CreateCL,
         'https://chromium.googlesource.com/chromiumos/platform/factory',
         '',
-        'chromiumos/platform/factory',
         'master',
         new_files,
         'John Doe <no-reply@google.com>',
@@ -160,7 +160,7 @@ class GitUtilTest(unittest.TestCase):
     repo = git_util.MemoryRepo('')
     tree = Tree()
     try:
-      tree, unused_new_obj_ids = repo.add_files(new_files, tree)
+      tree = repo.add_files(new_files, tree)
       tree.check()
     except Exception as ex:
       self.fail("testListFiles raise Exception unexpectedly: %r" % ex)

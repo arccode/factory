@@ -1,5 +1,5 @@
 # License: Apache License 2.0
-dulwich==0.19.11
+dulwich==0.20.3
 
 # 3-Clause BSD License
 flask==1.1.1
