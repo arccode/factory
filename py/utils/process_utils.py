@@ -254,7 +254,8 @@ def Spawn(args, **kwargs):
     args_to_log = ' '.join(pipes.quote(arg) for arg in args)
 
   if log:
-    if log != True:
+    if (callable(getattr(log, "info", None)) and
+        callable(getattr(log, "error", None))):
       logger = log
     message = 'Running command: "%s"' % args_to_log
     if 'cwd' in kwargs:
