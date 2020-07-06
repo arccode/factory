@@ -13,7 +13,6 @@ from __future__ import print_function
 import inspect
 import logging
 import os
-import sys
 import threading
 import time
 
@@ -230,13 +229,9 @@ class PluginSandbox(plugin_base.PluginAPI, log_utils.LoggerMixin):
       ret = getattr(self._plugin, method_name)(*args, **kwargs)
     except allowed_exceptions:  # pylint: disable=catching-non-exception,try-except-raise
       raise
-    except Exception:
-      _, exc, tb = sys.exc_info()
-      exc_message = '%s: %s' % (exc.__class__.__name__, str(exc))
-      new_exc = plugin_base.PluginCallError(
-          'Plugin call for %s unexpectedly failed: %s'
-          % (self.plugin_id, exc_message))
-      raise new_exc.__class__(new_exc).with_traceback(tb)
+    except Exception as e:
+      raise plugin_base.PluginCallError(
+          'Plugin call for %s unexpectedly failed.' % self.plugin_id) from e
     return ret
 
 
