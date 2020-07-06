@@ -180,7 +180,7 @@ class _ExtendedPopen(Popen):
     """
     return GetLines(self.stderr_data, strip)
 
-  # pylint: disable=arguments-differ
+  # pylint: disable=signature-differs
   def communicate(self, *args, **kwargs):
     if self.stdout_data is None and self.stderr_data is None:
       return super(_ExtendedPopen, self).communicate(*args, **kwargs)
