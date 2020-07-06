@@ -14,9 +14,10 @@ import traceback
 # pylint: disable=no-name-in-module, import-error
 from google.appengine.api.app_identity import app_identity
 from google.appengine.api import mail
-# pylint: enable=no-name-in-module, import-error
+import google.auth
+from google.auth.transport.requests import Request
 from google.cloud import tasks
-# pylint: enable=import-error, no-name-in-module
+# pylint: enable=no-name-in-module, import-error
 import urllib3  # pylint: disable=import-error
 import webapp2  # pylint: disable=import-error
 import yaml  # pylint: disable=wrong-import-order
@@ -28,6 +29,15 @@ from cros.factory.hwid.service.appengine import \
     verification_payload_generator as vpg_module
 from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.utils import json_utils
+
+
+def _GetCredentials():
+  credential, unused_project_id = google.auth.default(scopes=[
+      'https://www.googleapis.com/auth/gerritcodereview'])
+  credential.refresh(Request())
+  service_account_name = credential.service_account_email
+  token = credential.token
+  return service_account_name, token
 
 
 def _AuthCheck(func):
@@ -126,13 +136,11 @@ class SyncNamePatternHandler(webapp2.RequestHandler):
   @_AuthCheck
   def post(self):
     """Refreshes the ingestion from staging files to live."""
-    service_account_name = app_identity.get_service_account_name()
-    token, unused_expires_at = app_identity.get_access_token(
-        'https://www.googleapis.com/auth/gerritcodereview')
+    git_url = "https://chrome-internal.googlesource.com/chromeos/chromeos-hwid"
+    service_account_name, token = _GetCredentials()
     auth_cookie = 'o=git-{service_account_name}={token}'.format(
         service_account_name=service_account_name,
         token=token)
-    git_url = "https://chrome-internal.googlesource.com/chromeos/chromeos-hwid"
     repo = git_util.MemoryRepo(auth_cookie)
 
     existing_files = set(self.hwid_filesystem.ListFiles(
@@ -402,13 +410,10 @@ class RefreshHandler(webapp2.RequestHandler):
     """
 
     payload_hash_mapping = {}
-    service_account_name = app_identity.get_service_account_name()
-    token, unused_expires_at = app_identity.get_access_token(
-        'https://www.googleapis.com/auth/gerritcodereview')
+    service_account_name, token = _GetCredentials()
     auth_cookie = 'o=git-{service_account_name}={token}'.format(
         service_account_name=service_account_name,
         token=token)
-
     hwid_master_commit = self.GetMasterCommitIfChanged(auth_cookie,
                                                        force_update)
     if hwid_master_commit is None and not force_update:
