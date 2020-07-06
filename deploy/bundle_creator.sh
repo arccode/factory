@@ -129,7 +129,6 @@ create_vm() {
       create-with-container "${INSTANCE_TEMPLATE_NAME}" \
       --machine-type=custom-8-16384 \
       --network-tier=PREMIUM --maintenance-policy=MIGRATE \
-      --scopes=https://www.googleapis.com/auth/devstorage.read_only,https://www.googleapis.com/auth/logging.write,https://www.googleapis.com/auth/monitoring.write,https://www.googleapis.com/auth/servicecontrol,https://www.googleapis.com/auth/service.management.readonly,https://www.googleapis.com/auth/trace.append \
       --image=cos-stable-63-10032-71-0 --image-project=cos-cloud \
       --boot-disk-size=200GB --boot-disk-type=pd-standard \
       --boot-disk-device-name="${INSTANCE_TEMPLATE_NAME}" \
@@ -141,15 +140,20 @@ create_vm() {
     # instance by deleting the instance group. And we won't delete the instance
     # template once it is created. So output the message to ignore the error
     # message from the creating template command.
-    read -p "Press enter to continue"
+    echo "The specific instance template was created."
   }
 
-  # The number mapping in the region list will be changed often, so we must
-  # select the region us-central1 manually.
   gcloud compute instance-groups managed create "${INSTANCE_GROUP_NAME}" \
     --project "${GCLOUD_PROJECT}" \
     --template "${INSTANCE_TEMPLATE_NAME}" \
+    --zone us-central1-a \
     --size 1
+}
+
+deploy_vm() {
+  build_docker "$1"
+  deploy_docker "$1"
+  create_vm "$1"
 }
 
 print_usage() {
@@ -162,7 +166,8 @@ commands:
       \`factory/py/bundle_creator/docker/Dockerfile\`.
 
   $0 deploy [prod|staging]
-      Do \`deploy-docker\` and \`deploy-appengine\` commands.
+      Do \`deploy-appengine\`, \`deploy-appengine-legacy\` and \`deploy-vm\`
+      commands.
 
   $0 deploy-docker [prod|staging]
       Push the docker image built from the command \`build-docker\` to the
@@ -179,6 +184,9 @@ commands:
   $0 create-vm [prod|staging]
       Create a compute engine instance which use the docker image deployed by
       the command \`deploy-docker\`.
+
+  $0 deploy-vm [prod|staging]
+      Do \`build-docker\`, \`deploy-docker\` and \`create-vm\` commands.
 __EOF__
 }
 
@@ -192,8 +200,9 @@ main() {
         build_docker "$2"
         ;;
       deploy)
-        deploy_docker "$2"
         deploy_appengine "$2"
+        deploy_appengine_legacy "$2"
+        deploy_vm "$2"
         ;;
       deploy-docker)
         deploy_docker "$2"
@@ -206,6 +215,9 @@ main() {
         ;;
       create-vm)
         create_vm "$2"
+        ;;
+      deploy-vm)
+        deploy_vm "$2"
         ;;
       *)
         die "Unknown sub-command: \"${subcmd}\".  Run \`${0} help\` to print" \

@@ -19,26 +19,25 @@ ACK_DEADLINE = 600
 
 
 def ResponseResult(tasks, response_proto):
-  tasks.create(parent=config.RESPONSE_QUEUE,
-               body={
-                   'task': {
-                       'app_engine_http_request': {
-                           'http_method': 'POST',
-                           'app_engine_routing': {
-                               'service': 'cloud-mail',
-                           },
-                           'relative_uri': RESPONSE_CALLBACK,
-                           'body': base64.b64encode(
-                               response_proto.SerializeToString())
-                       }
-                   }
-               }
-              ).execute()
+  tasks.create(
+      parent=config.RESPONSE_QUEUE,
+      body={
+          'task': {
+              'app_engine_http_request': {
+                  'http_method': 'POST',
+                  'app_engine_routing': {
+                      'service': 'cloud-mail',
+                  },
+                  'relative_uri': RESPONSE_CALLBACK,
+                  'body': base64.b64encode(
+                      response_proto.SerializeToString()).decode('utf-8'),
+              },
+          },
+      }).execute()
 
 
 def PullTask():
   logger = logging.getLogger('main.pulltask')
-  # pylint: disable=unexpected-keyword-arg
   cloudtasks = discovery.build('cloudtasks', 'v2beta3', cache_discovery=False)
   tasks = cloudtasks.projects().locations().queues().tasks()
   subscriber = pubsub_v1.SubscriberClient()
@@ -46,8 +45,7 @@ def PullTask():
       config.GCLOUD_PROJECT, config.PUBSUB_SUBSCRIPTION)
   try:
     response = subscriber.pull(subscription_path, max_messages=1)
-
-    if response:
+    if response and response.received_messages:
       received_message = response.received_messages[0]
       subscriber.acknowledge(subscription_path, [received_message.ack_id])
       request_proto = factorybundle_pb2.CreateBundleRpcRequest.FromString(
@@ -61,7 +59,6 @@ def PullTask():
       ResponseResult(tasks, response_proto)
   except util.CreateBundleException as e:
     logger.error(e)
-
     response_proto = factorybundle_pb2.WorkerResult()
     response_proto.status = factorybundle_pb2.WorkerResult.FAILED
     response_proto.original_request.MergeFrom(request_proto)

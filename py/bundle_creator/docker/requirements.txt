@@ -1,5 +1,6 @@
-PyYAML==3.11
-google-cloud==0.27.0
-google-cloud-pubsub==0.39.0
+PyYAML==5.3.1
+google-cloud==0.34.0
+google-cloud-pubsub==1.6.0
+google-cloud-storage==1.29.0
 google-auth-httplib2==0.0.3
-google-api-python-client==1.6.4
+google-api-python-client==1.9.3

@@ -24,22 +24,6 @@ class CreateBundleException(Exception):
   pass
 
 
-class TZUTC(datetime.tzinfo):
-  """A tzinfo about UTC."""
-
-  def utcoffset(self, dt):
-    del dt  # unused
-    return datetime.timedelta(0)
-
-  def dst(self, dt):
-    del dt  # unused
-    return datetime.timedelta(0)
-
-  def tzname(self, dt):
-    del dt  # unused
-    return 'UTC'
-
-
 def RandomString(length):
   """Returns a randomly generated string of ascii letters.
   Args:
@@ -102,18 +86,17 @@ def CreateBundle(req):
         req.project, current_datetime, req.phase, RandomString(6))
     blob_path = '{}/{}/{}'.format(req.board, req.project, blob_filename)
     blob = bucket.blob(blob_path, chunk_size=100 * 1024 * 1024)
-    # Set Content-Disposition for the correct default download filename
+
+    # Set Content-Disposition for the correct default download filename.
     blob.content_disposition = 'filename="{}"'.format(blob_filename)
     blob.upload_from_filename(bundle_filename)
-    # Set read permission for the email of requestor, entity method here will
-    # create a new acl entity and add it to blob.
+
+    # Set read permission for the requestor's email, the entity method creates a
+    # new acl entity and add it to the blob.
     blob.acl.entity('user', req.email).grant_read()
     blob.acl.save()
 
-    # TODO(jamesqaq): use datetime.timestamp instead if the worker is migrated
-    #                 to python3.
-    epoch_zero = datetime.datetime(1970, 1, 1, tzinfo=TZUTC())
-    created_timestamp_s = (blob.time_created - epoch_zero).total_seconds()
+    created_timestamp_s = blob.time_created.timestamp()
     metadata = {
         'Bundle-Creator': req.email,
         'Tookit-Version': req.toolkit_version,

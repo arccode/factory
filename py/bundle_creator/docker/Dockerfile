@@ -2,10 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-FROM google/cloud-sdk
-LABEL maintainer="Ting Shen <phoenixshen@google.com>"
-
-EXPOSE 8000
+FROM python:3.7
+LABEL maintainer="Liang-Chieh Chen <jamesqaq@google.com>"
 
 RUN apt-get update && apt-get install -y \
     bzip2 \
@@ -19,8 +17,6 @@ RUN apt-get update && apt-get install -y \
     nginx \
     pbzip2 \
     pigz \
-    python-dev \
-    python-setuptools \
     rsync \
     sharutils \
     sudo \
@@ -29,30 +25,37 @@ RUN apt-get update && apt-get install -y \
     vim \
     xz-utils
 
-# use latest version of pip
-# https://bugs.launchpad.net/ubuntu/+source/python-pip/+bug/1306991
-RUN easy_install pip
-
 COPY docker/requirements.txt /root/
 RUN pip install -r /root/requirements.txt
 
+# Install gcloud command.
+ARG gcloud_archive_name="google-cloud-sdk-245.0.0-linux-x86_64.tar.gz"
+RUN cd /usr/src/ && \
+  wget "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/${gcloud_archive_name}" && \
+  tar xvf "${gcloud_archive_name}" && \
+  google-cloud-sdk/install.sh --rc-path /root/.bashrc --quiet && \
+  rm "${gcloud_archive_name}" && \
+  ln -s /usr/src/google-cloud-sdk/bin/gcloud /usr/bin/gcloud && \
+  ln -s /usr/src/google-cloud-sdk/bin/gsutil /usr/bin/gsutil
+
+# Install factory toolkit.
 ARG GS_BASE="gs://chromeos-releases/dev-channel"
 ARG BOARD="grunt"
-ARG VERSION="12522.0.0"
+ARG VERSION="13328.0.0"
 ARG TOOLKIT="${GS_BASE}/${BOARD}/${VERSION}/*-factory-*.zip"
 COPY docker/service_account.json /
 RUN gcloud auth activate-service-account --key-file=/service_account.json && \
-    gsutil cp "${TOOLKIT}" /tmp/factory.zip
-RUN unzip -o /tmp/factory.zip toolkit/install_factory_toolkit.run -d /tmp
-RUN /tmp/toolkit/install_factory_toolkit.run -- --non-cros --yes
+    gsutil cp "${TOOLKIT}" /tmp/factory.zip && \
+    unzip -o /tmp/factory.zip toolkit/install_factory_toolkit.run -d /tmp && \
+    /tmp/toolkit/install_factory_toolkit.run -- --non-cros --yes
+
 ENV PYTHONPATH=/usr/local/factory/py_pkg
 ENV GOOGLE_APPLICATION_CREDENTIALS=/service_account.json
 
-# set user name for finalize_bundle
+# Set user name for finalize_bundle.
 ENV USER bundle_creator
 
 COPY . /usr/local/factory/py/bundle_creator/
 
 CMD gcloud auth activate-service-account --key-file=/service_account.json && \
-    python2 /usr/local/factory/py/bundle_creator/docker/worker.py
-
+    python /usr/local/factory/py/bundle_creator/docker/worker.py
