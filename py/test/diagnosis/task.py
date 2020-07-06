@@ -362,11 +362,11 @@ class _CommandStep(_Step):
     input_values = args[0]
     command = _ParseCommandLine(self._command, input_values)
     self._ui_append_output('$%s\n' % command)
-    # Here it attach a session id to the parent process of the child processes,
+    # start_new_session=True so setsid() will be invoked in the child processes,
     # for enabling sending a signal to all the process in the group.
     proc = subprocess.Popen(command, shell=True,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                            preexec_fn=os.setsid)
+                            start_new_session=True)
     output_list = [self._ui_append_output]
     if self._expected_output is not None:
       self._stdout_text = ''
