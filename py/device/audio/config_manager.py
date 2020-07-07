@@ -681,6 +681,38 @@ class UCMConfigManager(BaseConfigManager):
     raise ValueError(
         'Wrong output format. output:%r card_name:%r' % (output, card_name))
 
+  def GetChannelMap(self, device, card):
+    """Return the channels of a input device.
+
+    Args:
+      device: One of InputDevices.
+      card: The audio card index.
+    Returns:
+      A list of integer(s) represents the channels in use. None if it does not
+      exist in the UCM config.
+    Raises:
+      ValueError if output format of alsaucm is wrong.
+    """
+    card_name = self._GetCardName(card)
+    device_name = self._GetDeviceName(card, device)
+    identity = 'CaptureChannelMap/%s' % device_name
+    try:
+      output = self._InvokeDeviceCommands(card, 'get "%s"' % identity)
+    except device_types.CalledProcessError:
+      return None
+    match = re.search(r'^(.+)=(.+)$', output, re.MULTILINE)
+    if match and match.group(1).strip() == identity:
+      result = list(map(int, match.group(2).split()))
+      while result and result[-1] == -1:
+        result.pop()
+      if result:
+        return result
+      raise ValueError(
+          'There must be at least one channel. output:%r card_name:%r' %
+          (output, card_name))
+    raise ValueError(
+        'Wrong output format. output:%r card_name:%r' % (output, card_name))
+
   def LoadConfig(self, config_name):
     raise Exception('UCM config does not support LaodConfig operation.')
 
