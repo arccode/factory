@@ -35,7 +35,7 @@ DIR_MODE = 0o040000
 
 def _B(s):
   """Convert str to bytes if needed."""
-  return s.encode() if isinstance(s, str) else s
+  return s if isinstance(s, bytes) else s.encode()
 
 
 class GitUtilException(Exception):
