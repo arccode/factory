@@ -416,6 +416,14 @@
     "Mouse": {
       "pytest_name": "mouse"
     },
+    "NotebookMode": {
+      "pytest_name": "tablet_mode",
+      "label": "Notebook Mode",
+      "args": {
+        "timeout_secs": 3600,
+        "prompt_flip_notebook": true
+      }
+    },
     "PartitionTable": {
       "pytest_name": "partition_table"
     },
@@ -467,6 +475,15 @@
     },
     "Scan": {
       "pytest_name": "scan"
+    },
+    "ScreenRotation": {
+      "label": "Screen Rotation",
+      "subtests": [
+        "TabletMode",
+        "TabletRotationBase",
+        "TabletRotationLid",
+        "NotebookMode"
+      ]
     },
     "ShopfloorNotifyEnd": {
       "inherit": "ShopfloorService",
@@ -572,10 +589,82 @@
       "pytest_name": "tpm_verify_ek"
     },
     "TabletMode": {
-      "pytest_name": "tablet_mode"
+      "pytest_name": "tablet_mode",
+      "args": {
+        "timeout_secs": 3600,
+        "prompt_flip_tablet": true
+      }
     },
     "TabletRotation": {
       "pytest_name": "tablet_rotation"
+    },
+    "TabletRotationBase": {
+      "pytest_name": "tablet_rotation",
+      "label": "Tablet Rotation Base-Accel",
+      "args": {
+        "accelerometer_location": "base",
+        "spec_offset": [
+          1.5,
+          1.5
+        ],
+        "timeout_secs": 3600,
+        "degrees_to_orientations": {
+          "0": {
+            "in_accel_x": 0,
+            "in_accel_y": -1,
+            "in_accel_z": 0
+          },
+          "90": {
+            "in_accel_x": 1,
+            "in_accel_y": 0,
+            "in_accel_z": 0
+          },
+          "180": {
+            "in_accel_x": 0,
+            "in_accel_y": 1,
+            "in_accel_z": 0
+          },
+          "270": {
+            "in_accel_x": -1,
+            "in_accel_y": 0,
+            "in_accel_z": 0
+          }
+        }
+      }
+    },
+    "TabletRotationLid": {
+      "pytest_name": "tablet_rotation",
+      "label": "Tablet Rotation Lid-Accel",
+      "args": {
+        "accelerometer_location": "lid",
+        "spec_offset": [
+          1.5,
+          1.5
+        ],
+        "timeout_secs": 3600,
+        "degrees_to_orientations": {
+          "0": {
+            "in_accel_x": 0,
+            "in_accel_y": 1,
+            "in_accel_z": 0
+          },
+          "90": {
+            "in_accel_x": 1,
+            "in_accel_y": 0,
+            "in_accel_z": 0
+          },
+          "180": {
+            "in_accel_x": 0,
+            "in_accel_y": -1,
+            "in_accel_z": 0
+          },
+          "270": {
+            "in_accel_x": -1,
+            "in_accel_y": 0,
+            "in_accel_z": 0
+          }
+        }
+      }
     },
     "ThermalSensors": {
       "pytest_name": "thermal_sensors"

@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-06-10 14:06+CST\n"
+"PO-Revision-Date: 2020-07-08 15:00+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -3289,6 +3289,10 @@ msgid "Model and SKU"
 msgstr "组态与样式(SKU)"
 
 #: ../py/test/test_lists/generic_common.test_list.json
+msgid "Notebook Mode"
+msgstr "笔电模式"
+
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Placeholder"
 msgstr "未定义测项"
 
@@ -3305,6 +3309,10 @@ msgid "SD Performance"
 msgstr "SD 效能"
 
 #: ../py/test/test_lists/generic_common.test_list.json
+msgid "Screen Rotation"
+msgstr "屏幕旋转"
+
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Shopfloor Service (NotifyEnd)"
 msgstr "Shopfloor 服务 (NotifyEnd)"
 
@@ -3319,6 +3327,14 @@ msgstr "喇叭/麦克风"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Stress App Test"
 msgstr "压力测试"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Tablet Rotation Base-Accel"
+msgstr "平版旋转-主板加速度计"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Tablet Rotation Lid-Accel"
+msgstr "平版旋转-上盖加速度计"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Touchscreen Uniformity"
