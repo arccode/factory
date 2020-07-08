@@ -15,7 +15,7 @@ from cros.factory.hwid.service.appengine import cloudstorage_adapter
 
 TEST_BUCKET = 'test-bucket'
 TEST_FILE = 'foo'
-TEST_DATA = 'bar'
+TEST_DATA = b'bar'
 TEST_PATH = '/test-bucket/foo'
 
 
@@ -81,8 +81,8 @@ class CloudStorageAdapterTest(unittest.TestCase):
     adapter = cloudstorage_adapter.CloudStorageAdapter(TEST_BUCKET)
 
     test_files = {
-        'foo': 'bar',
-        'baz': 'qux',
+        'foo': b'bar',
+        'baz': b'qux',
         }
 
     mock_client = self.mock_storage.Client()
@@ -100,12 +100,12 @@ class CloudStorageAdapterTest(unittest.TestCase):
     adapter = cloudstorage_adapter.CloudStorageAdapter(TEST_BUCKET)
 
     test_files = {
-        'foo/bar/file': 'bar',
-        'foo/baz/file': 'bar',
-        'foo/file0': 'bar',
-        'foo/file1': 'bar',
-        'foo1': 'bar',
-        'baz': 'qux',
+        'foo/bar/file': b'bar',
+        'foo/baz/file': b'bar',
+        'foo/file0': b'bar',
+        'foo/file1': b'bar',
+        'foo1': b'bar',
+        'baz': b'qux',
         }
 
     mock_client = self.mock_storage.Client()

@@ -16,10 +16,12 @@ import webtest  # pylint: disable=import-error
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import ingestion
 from cros.factory.hwid.v3 import filesystem_adapter
+from cros.factory.utils import file_utils
+
 
 SERVER_BOARDS_YAML = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                   'testdata/boards_server.yaml')
-SERVER_BOARDS_DATA = open(SERVER_BOARDS_YAML, 'r').read()
+SERVER_BOARDS_DATA = file_utils.ReadFile(SERVER_BOARDS_YAML, encoding=None)
 
 
 @mock.patch.object(
@@ -40,7 +42,7 @@ class IngestionTest(unittest.TestCase):
     def MockReadFile(*args):
       if args[0] == 'staging/boards.yaml':
         return SERVER_BOARDS_DATA
-      return 'Test Data'
+      return b'Test Data'
 
     CONFIG.hwid_filesystem.ReadFile = mock.Mock(side_effect=MockReadFile)
 
@@ -88,22 +90,22 @@ class IngestionTest(unittest.TestCase):
     CONFIG.hwid_filesystem.ListFiles.return_value = ['foo']
 
     response = self.testapp.post('/ingestion/upload', {'path': 'foo'},
-                                 upload_files=[('data', 'bar', 'bar')])
+                                 upload_files=[('data', 'bar', b'bar')])
 
     self.assertEqual(response.status_int, 200)
-    CONFIG.hwid_filesystem.WriteFile.assert_called_with('foo', 'bar')
+    CONFIG.hwid_filesystem.WriteFile.assert_called_with('foo', b'bar')
 
   def testUploadInvalid(self):
     with self.assertRaises(webtest.app.AppError):
       self.testapp.post('/ingestion/upload', {},
-                        upload_files=[('data', 'bar', 'bar')])
+                        upload_files=[('data', 'bar', b'bar')])
 
     with self.assertRaises(webtest.app.AppError):
       self.testapp.post('/ingestion/upload', {'path': 'foo'},
                         upload_files=[])
 
     with self.assertRaises(webtest.app.AppError):
-      self.testapp.post('/ingestion/upload', {'path': 'foo', 'data': 'bar'})
+      self.testapp.post('/ingestion/upload', {'path': 'foo', 'data': b'bar'})
 
 
 if __name__ == '__main__':

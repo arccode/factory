@@ -23,13 +23,13 @@ class MemcacheAdapterTest(unittest.TestCase):
 
   def testBreakIntoChunks(self):
     memcache_adapter.MEMCACHE_CHUNKSIZE = 2
-    serialized_data = 'aabb'
+    serialized_data = b'aabb'
     adapter = memcache_adapter.MemcacheAdapter('testnamespace')
     chunks = adapter.BreakIntoChunks('testkey', serialized_data)
 
     self.assertEqual(2, len(chunks))
-    self.assertEqual('aa', chunks['testnamespace:testkey.0'])
-    self.assertEqual('bb', chunks['testnamespace:testkey.1'])
+    self.assertEqual(b'aa', chunks['testnamespace:testkey.0'])
+    self.assertEqual(b'bb', chunks['testnamespace:testkey.1'])
 
   def testBreakIntoChunksNone(self):
     memcache_adapter.MEMCACHE_CHUNKSIZE = 2
@@ -40,7 +40,7 @@ class MemcacheAdapterTest(unittest.TestCase):
     self.assertEqual(0, len(chunks))
 
   @mock.patch.object(redis.Redis, 'mset')
-  @mock.patch.object(pickle, 'dumps', return_value='aabb')
+  @mock.patch.object(pickle, 'dumps', return_value=b'aabb')
   def testPut(self, mock_pickle, mock_redis_mset):
     memcache_adapter.MEMCACHE_CHUNKSIZE = 4
     data = ['aa', 'bb']
@@ -48,7 +48,8 @@ class MemcacheAdapterTest(unittest.TestCase):
     adapter = memcache_adapter.MemcacheAdapter('testnamespace')
     adapter.Put('testkey', data)
 
-    mock_redis_mset.assert_called_once_with({'testnamespace:testkey.0': 'aabb'})
+    mock_redis_mset.assert_called_once_with({
+        'testnamespace:testkey.0': b'aabb'})
     mock_pickle.assert_called_once_with(
         ['aa', 'bb'], memcache_adapter.PICKLE_PROTOCOL_VERSION)
 
@@ -62,7 +63,7 @@ class MemcacheAdapterTest(unittest.TestCase):
                       adapter.Put, 'testkey', data)
 
   @mock.patch.object(redis.Redis, 'mget',
-                     return_value=['yy', 'zz'])
+                     return_value=[b'yy', b'zz'])
   @mock.patch.object(pickle, 'loads', return_value='pickle_return')
   def testGet(self, mock_pickle, mock_redis_mget):
     memcache_adapter.MAX_NUMBER_CHUNKS = 2
@@ -72,7 +73,7 @@ class MemcacheAdapterTest(unittest.TestCase):
 
     mock_redis_mget.assert_called_once_with(['testnamespace:testkey.0',
                                              'testnamespace:testkey.1'])
-    mock_pickle.assert_called_once_with('yyzz')
+    mock_pickle.assert_called_once_with(b'yyzz')
     self.assertEqual('pickle_return', value)
 
   @mock.patch.object(redis.Redis, 'mset')

@@ -20,25 +20,21 @@ TESTDATA_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'testdata')
 
 GOLDEN_HWIDV3_DATA_BEFORE = file_utils.ReadFile(
-    os.path.join(TESTDATA_PATH, 'v3-golden-before.yaml')).decode('utf-8')
+    os.path.join(TESTDATA_PATH, 'v3-golden-before.yaml'))
 GOLDEN_HWIDV3_DATA_AFTER_BAD = file_utils.ReadFile(
-    os.path.join(TESTDATA_PATH, 'v3-golden-after-bad.yaml')).decode('utf-8')
+    os.path.join(TESTDATA_PATH, 'v3-golden-after-bad.yaml'))
 GOLDEN_HWIDV3_DATA_AFTER_GOOD = file_utils.ReadFile(
-    os.path.join(TESTDATA_PATH, 'v3-golden-after-good.yaml')).decode('utf-8')
+    os.path.join(TESTDATA_PATH, 'v3-golden-after-good.yaml'))
 SARIEN_DATA_GOOD = file_utils.ReadFile(
-    os.path.join(TESTDATA_PATH, 'sarien-example.yaml')).decode('utf-8')
+    os.path.join(TESTDATA_PATH, 'sarien-example.yaml'))
 GOLDEN_HWIDV3_DATA_AFTER_DRAM_BAD1 = file_utils.ReadFile(
-    os.path.join(TESTDATA_PATH, 'v3-golden-after-dram-bad1.yaml')
-    ).decode('utf-8')
+    os.path.join(TESTDATA_PATH, 'v3-golden-after-dram-bad1.yaml'))
 GOLDEN_HWIDV3_DATA_AFTER_DRAM_BAD2 = file_utils.ReadFile(
-    os.path.join(TESTDATA_PATH, 'v3-golden-after-dram-bad2.yaml')
-    ).decode('utf-8')
+    os.path.join(TESTDATA_PATH, 'v3-golden-after-dram-bad2.yaml'))
 GOLDEN_HWIDV3_DATA_AFTER_INVALID_NAME_PATTERN = file_utils.ReadFile(
-    os.path.join(
-        TESTDATA_PATH, 'v3-golden-after-comp-bad.yaml')).decode('utf-8')
+    os.path.join(TESTDATA_PATH, 'v3-golden-after-comp-bad.yaml'))
 GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN = file_utils.ReadFile(
-    os.path.join(
-        TESTDATA_PATH, 'v3-golden-after-comp-good.yaml')).decode('utf-8')
+    os.path.join(TESTDATA_PATH, 'v3-golden-after-comp-good.yaml'))
 
 
 @mock.patch(

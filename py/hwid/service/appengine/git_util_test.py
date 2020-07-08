@@ -21,9 +21,9 @@ class GitUtilTest(unittest.TestCase):
 
   def testAddFiles(self):
     new_files = [
-        ('a/b/c', 0o100644, 'content of a/b/c'),
-        ('///a/b////d', 0o100644, 'content of a/b/d'),
-        ('a/b/e/./././f', 0o100644, 'content of a/b/e/f'),
+        ('a/b/c', 0o100644, b'content of a/b/c'),
+        ('///a/b////d', 0o100644, b'content of a/b/d'),
+        ('a/b/e/./././f', 0o100644, b'content of a/b/e/f'),
         ]
     repo = git_util.MemoryRepo('')
     tree = Tree()
@@ -33,17 +33,17 @@ class GitUtilTest(unittest.TestCase):
     except Exception as ex:
       self.fail("testAddFiles raise Exception unexpectedly: %r" % ex)
 
-    mode1, sha1 = tree.lookup_path(repo.get_object, 'a/b/c')
+    mode1, sha1 = tree.lookup_path(repo.get_object, b'a/b/c')
     self.assertEqual(mode1, 0o100644)
-    self.assertEqual(repo[sha1].data, 'content of a/b/c')
+    self.assertEqual(repo[sha1].data, b'content of a/b/c')
 
-    mode2, sha2 = tree.lookup_path(repo.get_object, 'a/b/d')
+    mode2, sha2 = tree.lookup_path(repo.get_object, b'a/b/d')
     self.assertEqual(mode2, 0o100644)
-    self.assertEqual(repo[sha2].data, 'content of a/b/d')
+    self.assertEqual(repo[sha2].data, b'content of a/b/d')
 
-    mode3, sha3 = tree.lookup_path(repo.get_object, 'a/b/e/f')
+    mode3, sha3 = tree.lookup_path(repo.get_object, b'a/b/e/f')
     self.assertEqual(mode3, 0o100644)
-    self.assertEqual(repo[sha3].data, 'content of a/b/e/f')
+    self.assertEqual(repo[sha3].data, b'content of a/b/e/f')
 
   @mock.patch('cros.factory.hwid.service.appengine.git_util.datetime')
   def testGetChangeId(self, datetime_mock):
@@ -64,8 +64,8 @@ class GitUtilTest(unittest.TestCase):
 
   def testInvalidFileStructure1(self):
     new_files = [
-        ('a/b/c', 0o100644, 'content of a/b/c'),
-        ('a/b/c/d', 0o100644, 'content of a/b/c/d'),
+        ('a/b/c', 0o100644, b'content of a/b/c'),
+        ('a/b/c/d', 0o100644, b'content of a/b/c/d'),
         ]
     repo = git_util.MemoryRepo('')
     tree = Tree()
@@ -75,8 +75,8 @@ class GitUtilTest(unittest.TestCase):
 
   def testInvalidFileStructure2(self):
     new_files = [
-        ('a/b/c/d', 0o100644, 'content of a/b/c/d'),
-        ('a/b/c', 0o100644, 'content of a/b/c'),
+        ('a/b/c/d', 0o100644, b'content of a/b/c/d'),
+        ('a/b/c', 0o100644, b'content of a/b/c'),
         ]
     repo = git_util.MemoryRepo('')
     tree = Tree()
@@ -136,8 +136,8 @@ class GitUtilTest(unittest.TestCase):
     repo.shallow_clone(
         'https://chromium.googlesource.com/chromiumos/platform/factory',
         branch='master')
-    tree = repo[repo['HEAD'].tree]
-    unused_size, object_id = tree[file_name]
+    tree = repo[repo[b'HEAD'].tree]
+    unused_size, object_id = tree[file_name.encode()]
     new_files = [(file_name, 0o100644, repo[object_id].data)]
     self.assertRaises(
         git_util.GitUtilNoModificationException,
@@ -153,9 +153,9 @@ class GitUtilTest(unittest.TestCase):
 
   def testListFiles(self):
     new_files = [
-        ('a/b/c', 0o100644, 'content of a/b/c'),
-        ('///a/b////d', 0o100644, 'content of a/b/d'),
-        ('a/b/e/./././f', 0o100644, 'content of a/b/e/f'),
+        ('a/b/c', 0o100644, b'content of a/b/c'),
+        ('///a/b////d', 0o100644, b'content of a/b/d'),
+        ('a/b/e/./././f', 0o100644, b'content of a/b/e/f'),
         ]
     repo = git_util.MemoryRepo('')
     tree = Tree()
@@ -164,11 +164,11 @@ class GitUtilTest(unittest.TestCase):
       tree.check()
     except Exception as ex:
       self.fail("testListFiles raise Exception unexpectedly: %r" % ex)
-    repo.do_commit('Test_commit', tree=tree.id)
+    repo.do_commit(b'Test_commit', tree=tree.id)
 
     self.assertEqual(sorted(repo.list_files('a/b')),
-                     [('c', git_util.NORMAL_FILE_MODE, 'content of a/b/c'),
-                      ('d', git_util.NORMAL_FILE_MODE, 'content of a/b/d'),
+                     [('c', git_util.NORMAL_FILE_MODE, b'content of a/b/c'),
+                      ('d', git_util.NORMAL_FILE_MODE, b'content of a/b/d'),
                       ('e', git_util.DIR_MODE, None)])
 
 

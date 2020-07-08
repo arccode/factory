@@ -25,10 +25,9 @@ class HwidValidator:
     Uses strict validation (i.e. includes checksum validation).
 
     Args:
-      hwid_config_contents: the current HWID config.
+      hwid_config_contents: the current HWID config as a string.
     """
-    expected_checksum = database.Database.ChecksumForText(
-        hwid_config_contents.encode('utf8')).decode('utf8')
+    expected_checksum = database.Database.ChecksumForText(hwid_config_contents)
 
     try:
       # Validate config by loading it.
@@ -47,8 +46,8 @@ class HwidValidator:
     inserted in the middle).
 
     Args:
-      hwid_config_contents: the current HWID config.
-      prev_hwid_config_contents: the previous HWID config.
+      hwid_config_contents: the current HWID config as a string.
+      prev_hwid_config_contents: the previous HWID config as a string.
     """
     try:
       # Load previous config. This has the side effect of validating it.
@@ -59,8 +58,7 @@ class HwidValidator:
       raise v3_validator.ValidationError(
           'Previous version of HWID config is not valid.')
 
-    expected_checksum = database.Database.ChecksumForText(
-        hwid_config_contents.encode('utf8')).decode('utf8')
+    expected_checksum = database.Database.ChecksumForText(hwid_config_contents)
 
     try:
       # Load and validate current config.
