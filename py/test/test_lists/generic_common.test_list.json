@@ -299,6 +299,20 @@
         "flush_testlog": true
       }
     },
+    "FrontCamera": {
+      "inherit": "CameraManual",
+      "args": {
+        "camera_facing": "front"
+      }
+    },
+    "FrontCameraQRScan": {
+      "inherit": "FrontCamera",
+      "args": {
+        "mode": "qr",
+        "QR_string": "ChromeTeam",
+        "timeout_secs": 2000
+      }
+    },
     "GetDeviceInfo": {
       "inherit": "ShopfloorService",
       "args": {
@@ -441,6 +455,7 @@
     "QRScan": {
       "inherit": "Camera",
       "label": "QR Scan",
+      "__comment": "Deprecated. Use FrontCameraQRScan or RearCameraQRScan.",
       "args": {
         "mode": "qr",
         "QR_string": "Hello ChromeOS!"
@@ -455,6 +470,20 @@
     },
     "ReadDeviceDataFromVPD": {
       "pytest_name": "read_device_data_from_vpd"
+    },
+    "RearCamera": {
+      "inherit": "CameraManual",
+      "args": {
+        "camera_facing": "rear"
+      }
+    },
+    "RearCameraQRScan": {
+      "inherit": "RearCamera",
+      "args": {
+        "mode": "qr",
+        "QR_string": "ChromeTeam",
+        "timeout_secs": 2000
+      }
     },
     "RemovableStorage": {
       "pytest_name": "removable_storage",
