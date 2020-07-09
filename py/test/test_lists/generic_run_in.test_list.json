@@ -90,7 +90,9 @@
       "__comment": "RunIn is a stage to stress all ports for checking system stability. This stage may have many test barriers to let it fail early and reduce wasted test time.",
       "subtests": [
         "RebootStep",
-        "RunInStressGroup",
+        "RunInStressGroupWithFrontCamera",
+        "Barrier",
+        "RunInStressGroupWithRearCamera",
         "Barrier",
         "RebootStep",
         "Barrier",
@@ -114,45 +116,73 @@
         "StationStart"
       ]
     },
+    "RunInStressAppTest": {
+      "inherit": "StressAppTest",
+      "args": {
+        "seconds": "eval! constants.run_in.sat_duration_secs",
+        "wait_secs": 10,
+        "free_memory_only": true
+      }
+    },
+    "RunInStressCountdown": {
+      "inherit": "RunInCountdown",
+      "args": {
+        "duration_secs": "eval! constants.run_in.sat_duration_secs"
+      }
+    },
+    "RunInStressFrontCamera": {
+      "inherit": "FrontCamera",
+      "args": {
+        "mode": "timeout",
+        "show_image": false,
+        "timeout_secs": "eval! constants.run_in.sat_duration_secs"
+      }
+    },
     "RunInStressGroup": {
-      "label": "Stress Group",
+      "inherit": "RunInStressGroupWithFrontCamera"
+    },
+    "RunInStressGroupWithFrontCamera": {
+      "label": "Stress Group With Front Camera",
       "parallel": true,
       "subtests": [
-        {
-          "inherit": "WebGLAquarium",
-          "args": {
-            "duration_secs": "eval! constants.run_in.sat_duration_secs"
-          }
-        },
-        {
-          "inherit": "Camera",
-          "args": {
-            "mode": "timeout",
-            "timeout_secs": "eval! constants.run_in.sat_duration_secs",
-            "show_image": false
-          }
-        },
-        {
-          "inherit": "URandom",
-          "args": {
-            "duration_secs": "eval! constants.run_in.sat_duration_secs"
-          }
-        },
-        {
-          "inherit": "StressAppTest",
-          "args": {
-            "seconds": "eval! constants.run_in.sat_duration_secs",
-            "wait_secs": 10,
-            "free_memory_only": true
-          }
-        },
-        {
-          "inherit": "RunInCountdown",
-          "args": {
-            "duration_secs": "eval! constants.run_in.sat_duration_secs"
-          }
-        }
+        "RunInWebGLAquarium",
+        "RunInStressFrontCamera",
+        "RunInURandom",
+        "RunInStressAppTest",
+        "RunInStressCountdown"
       ]
+    },
+    "RunInStressGroupWithRearCamera": {
+      "label": "Stress Group With Rear Camera",
+      "run_if": "not constants.has_device_data or device.component.has_rear_camera",
+      "parallel": true,
+      "subtests": [
+        "RunInWebGLAquarium",
+        "RunInStressRearCamera",
+        "RunInURandom",
+        "RunInStressAppTest",
+        "RunInStressCountdown"
+      ]
+    },
+    "RunInStressRearCamera": {
+      "inherit": "RearCamera",
+      "args": {
+        "mode": "timeout",
+        "show_image": false,
+        "timeout_secs": "eval! constants.run_in.sat_duration_secs"
+      }
+    },
+    "RunInURandom": {
+      "inherit": "URandom",
+      "args": {
+        "duration_secs": "eval! constants.run_in.sat_duration_secs"
+      }
+    },
+    "RunInWebGLAquarium": {
+      "inherit": "WebGLAquarium",
+      "args": {
+        "duration_secs": "eval! constants.run_in.sat_duration_secs"
+      }
     }
   }
 }

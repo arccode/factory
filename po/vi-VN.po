@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-07-19 18:14+CST\n"
+"PO-Revision-Date: 2020-07-29 13:31+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -3547,7 +3547,6 @@ msgid "Check Bluetooth"
 msgstr "Kiểm tra Bluetooth"
 
 #: ../py/test/test_lists/generic_rrt.test_list.json
-#: ../py/test/test_lists/generic_run_in.test_list.json
 msgid "Stress Group"
 msgstr "Thử áp lực tập trung"
 
@@ -3566,6 +3565,14 @@ msgstr "Kiểm tra ổn định chung (RRT)"
 #: ../py/test/test_lists/generic_run_in.test_list.json
 msgid "Run-In Test"
 msgstr "Chạy thử"
+
+#: ../py/test/test_lists/generic_run_in.test_list.json
+msgid "Stress Group With Front Camera"
+msgstr "Camera phía trước Thử áp lực tập trung"
+
+#: ../py/test/test_lists/generic_run_in.test_list.json
+msgid "Stress Group With Rear Camera"
+msgstr "Camera phía sau Thử áp lực tập trung"
 
 #: ../py/test/test_lists/generic_smt.test_list.json
 msgid "SMT (SA Test)"
