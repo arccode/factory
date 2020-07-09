@@ -128,13 +128,21 @@
   "pmic": {
     "generic": {
       "eval": {
-        "glob_path": {
-          "pathname": "/sys/bus/platform/devices/*-pmic",
-          "filename_only": true
-        },
-        "glob_path": {
-          "pathname": "/sys/bus/platform/devices/*.pwrap:*",
-          "filename_only": true
+        "concat": {
+          "functions": [
+            {
+              "glob_path": {
+                "pathname": "/sys/bus/platform/devices/*-pmic",
+                "filename_only": true
+              }
+            },
+            {
+              "glob_path": {
+                "pathname": "/sys/bus/platform/devices/*.pwrap:*",
+                "filename_only": true
+              }
+            }
+          ]
         }
       }
     }
