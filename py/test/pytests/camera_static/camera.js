@@ -89,8 +89,6 @@ class CameraTest {
         facingMode: {exact: this.facingMode}
       }
     });
-    this.videoElem.srcObject = mediaStream;
-
     // Try to wait until |videoElem| starts to play so that |grabFrame|
     // can capture the data from it.
     // We expect the pytest invokes the API properly, this method shouldn't
@@ -108,6 +106,7 @@ class CameraTest {
         window.clearTimeout(timeoutId);
         resolve();
       };
+      this.videoElem.srcObject = mediaStream;
     });
 
     return mediaStream.getVideoTracks()[0];
