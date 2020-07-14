@@ -5,16 +5,17 @@
 
 """Tests for ingestion."""
 
+import http
+import io
 import os
 import unittest
 
+# pylint: disable=import-error, wrong-import-order
+import flask
 import mock
-import webapp2  # pylint: disable=import-error
-import webtest  # pylint: disable=import-error
+# pylint: enable=import-error, wrong-import-order
 
-# pylint: disable=import-error
-from cros.factory.hwid.service.appengine.config import CONFIG
-from cros.factory.hwid.service.appengine import ingestion
+from cros.factory.hwid.service.appengine import app
 from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.utils import file_utils
 
@@ -24,19 +25,20 @@ SERVER_BOARDS_YAML = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 SERVER_BOARDS_DATA = file_utils.ReadFile(SERVER_BOARDS_YAML, encoding=None)
 
 
-@mock.patch.object(
-    ingestion.RefreshHandler, 'UpdatePayloadsAndSync', mock.Mock())
 class IngestionTest(unittest.TestCase):
 
   def setUp(self):
-    app = webapp2.WSGIApplication([('/ingestion/upload',
-                                    ingestion.DevUploadHandler),
-                                   ('/ingestion/refresh',
-                                    ingestion.RefreshHandler)])
-    self.testapp = webtest.TestApp(app)
+    hwid_service = app.hwid_service
+    self.app = hwid_service.test_client()
+    hwid_service.test_request_context().push()
 
-    CONFIG.hwid_manager = mock.Mock()
-    CONFIG.hwid_filesystem = mock.Mock()
+    patcher = mock.patch('__main__.app.ingestion.CONFIG.hwid_filesystem')
+    self.patch_hwid_filesystem = patcher.start()
+    self.addCleanup(patcher.stop)
+
+    patcher = mock.patch('__main__.app.ingestion.CONFIG.hwid_manager')
+    self.patch_hwid_manager = patcher.start()
+    self.addCleanup(patcher.stop)
 
   def testRefresh(self):
     def MockReadFile(*args):
@@ -44,12 +46,13 @@ class IngestionTest(unittest.TestCase):
         return SERVER_BOARDS_DATA
       return b'Test Data'
 
-    CONFIG.hwid_filesystem.ReadFile = mock.Mock(side_effect=MockReadFile)
+    self.patch_hwid_filesystem.ReadFile = mock.Mock(
+        side_effect=MockReadFile)
 
-    response = self.testapp.post('/ingestion/refresh')
+    response = self.app.post(flask.url_for('refresh'))
 
-    self.assertEqual(response.status_int, 200)
-    CONFIG.hwid_manager.UpdateBoards.assert_has_calls([
+    self.assertEqual(response.status_code, http.HTTPStatus.OK)
+    self.patch_hwid_manager.UpdateBoards.assert_has_calls([
         mock.call({
             'COOLCBOARD': {
                 'path': 'COOLCBOARD',
@@ -80,32 +83,41 @@ class IngestionTest(unittest.TestCase):
     ])
 
   def testRefreshWithoutBoardsInfo(self):
-    CONFIG.hwid_filesystem.ReadFile = mock.Mock(
+    self.patch_hwid_filesystem.ReadFile = mock.Mock(
         side_effect=filesystem_adapter.FileSystemAdapterException)
 
-    with self.assertRaises(webtest.app.AppError):
-      self.testapp.post('/ingestion/refresh')
+    response = self.app.post(flask.url_for('refresh'))
+    self.assertEqual(response.data, b'Missing file during refresh.')
+    self.assertEqual(response.status_code,
+                     http.HTTPStatus.INTERNAL_SERVER_ERROR)
 
   def testUpload(self):
-    CONFIG.hwid_filesystem.ListFiles.return_value = ['foo']
+    self.patch_hwid_filesystem.ListFiles.return_value = ['foo']
 
-    response = self.testapp.post('/ingestion/upload', {'path': 'foo'},
-                                 upload_files=[('data', 'bar', b'bar')])
+    response = self.app.post(
+        flask.url_for('upload'), content_type='multipart/form-data', data={
+            'data': (io.BytesIO(b'bar'), 'bar'),
+            'path': 'foo'})
 
-    self.assertEqual(response.status_int, 200)
-    CONFIG.hwid_filesystem.WriteFile.assert_called_with('foo', b'bar')
+    self.assertEqual(response.status_code, http.HTTPStatus.OK)
+    self.patch_hwid_filesystem.WriteFile.assert_called_with('foo', b'bar')
 
   def testUploadInvalid(self):
-    with self.assertRaises(webtest.app.AppError):
-      self.testapp.post('/ingestion/upload', {},
-                        upload_files=[('data', 'bar', b'bar')])
+    response = self.app.post(
+        flask.url_for('upload'), content_type='multipart/form-data', data={
+            'data': (io.BytesIO(b'bar'), 'bar')})
+    self.assertEqual(response.status_code, http.HTTPStatus.BAD_REQUEST)
 
-    with self.assertRaises(webtest.app.AppError):
-      self.testapp.post('/ingestion/upload', {'path': 'foo'},
-                        upload_files=[])
+    response = self.app.post(
+        flask.url_for('upload'), content_type='multipart/form-data', data={
+            'path': 'foo'})
+    self.assertEqual(response.status_code, http.HTTPStatus.BAD_REQUEST)
 
-    with self.assertRaises(webtest.app.AppError):
-      self.testapp.post('/ingestion/upload', {'path': 'foo', 'data': b'bar'})
+    response = self.app.post(
+        flask.url_for('upload'), content_type='multipart/form-data', data={
+            'path': 'foo',
+            'data': b'bar'})
+    self.assertEqual(response.status_code, http.HTTPStatus.BAD_REQUEST)
 
 
 if __name__ == '__main__':

@@ -7,25 +7,26 @@
 This file is also the place that all the binding is done for various components.
 """
 
-import functools
+import http
 import logging
+import operator
 import re
 import urllib.parse
 
-# pylint: disable=import-error, no-name-in-module
-import endpoints
-from protorpc import message_types
-from protorpc import messages
-from protorpc import remote
+# pylint: disable=no-name-in-module, import-error, wrong-import-order
+import flask
+import flask.views
+from google.protobuf import json_format
+# pylint: enable=no-name-in-module, import-error, wrong-import-order
 
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import goldeneye_ingestion
-from cros.factory.hwid.service.appengine import hwid_api_messages
 from cros.factory.hwid.service.appengine import hwid_updater
 from cros.factory.hwid.service.appengine import hwid_util
 from cros.factory.hwid.service.appengine import hwid_validator
 from cros.factory.hwid.service.appengine import memcache_adapter
 from cros.factory.hwid.v3 import validator as v3_validator
+import hwid_api_messages_pb2  # pylint: disable=import-error
 
 
 KNOWN_BAD_HWIDS = ['DUMMY_HWID', 'dummy_hwid']
@@ -33,421 +34,388 @@ KNOWN_BAD_SUBSTR = [
     '.*TEST.*', '.*CHEETS.*', '^SAMS .*', '.* DEV$', '.*DOGFOOD.*'
 ]
 
+_hwid_manager = CONFIG.hwid_manager
+_hwid_validator = hwid_validator.HwidValidator()
+_hwid_updater = hwid_updater.HwidUpdater()
+_goldeneye_memcache_adapter = memcache_adapter.MemcacheAdapter(
+    namespace=goldeneye_ingestion.MEMCACHE_NAMESPACE)
 
-def HWIDAPI(*args, **kwargs):
-  """ Decorator for HWID APIs"""
-  def _outer(method):
-    @endpoints.method(*args, **kwargs)
-    @functools.wraps(method)
-    def _inner(*inner_args, **inner_kwargs):
-      def _log_request():
-        _request_arg_index = 1
-        request = inner_kwargs.get('request', inner_args[_request_arg_index])
-        logging.info(request)
-
-      _log_request()
-      response = method(*inner_args, **inner_kwargs)
-      logging.info(response)
-      return response
-    return _inner
-  return _outer
+bp = flask.Blueprint('hwid_api', __name__,
+                     url_prefix='/api/chromeoshwid/v1')
 
 
-@endpoints.api(
-    name='chromeoshwid',
-    version='v1',
-    description='Chrome OS Hardware ID API',
-    api_key_required=True,
-    base_path='/api/',
-    audiences=[endpoints.API_EXPLORER_CLIENT_ID])
-class HwidApi(remote.Service):
-  """Class that has all the exposed HWID API methods."""
+class HwidApiException(Exception):
+  def __init__(self, message, status_code):
+    super(HwidApiException, self).__init__()
+    self.message = message
+    self.status_code = status_code
 
-  def __init__(self):
-    self._hwid_manager = CONFIG.hwid_manager
-    self._hwid_validator = hwid_validator.HwidValidator()
-    self._hwid_updater = hwid_updater.HwidUpdater()
-    self._goldeneye_memcache_adapter = memcache_adapter.MemcacheAdapter(
-        namespace=goldeneye_ingestion.MEMCACHE_NAMESPACE)
+  def __str__(self):
+    return '%s <Status: %d>' % (self.message, self.status_code)
 
-  def _FastFailKnownBadHwid(self, hwid):
-    if hwid in KNOWN_BAD_HWIDS:
+  def FlaskResponse(self):
+    return flask.Response(self.message, self.status_code)
+
+
+class _NotFoundException(HwidApiException):
+  def __init__(self, message):
+    super(_NotFoundException, self).__init__(
+        message, status_code=http.HTTPStatus.NOT_FOUND)
+
+
+class _BadRequestException(HwidApiException):
+  def __init__(self, message):
+    super(_BadRequestException, self).__init__(
+        message, status_code=http.HTTPStatus.BAD_REQUEST)
+
+
+bp.register_error_handler(HwidApiException, operator.methodcaller(
+    'FlaskResponse'))
+
+
+def _FastFailKnownBadHwid(hwid):
+  if hwid in KNOWN_BAD_HWIDS:
+    return 'No metadata present for the requested board: %s' % hwid
+
+  for regexp in KNOWN_BAD_SUBSTR:
+    if re.search(regexp, hwid):
       return 'No metadata present for the requested board: %s' % hwid
+  return ''
 
-    for regexp in KNOWN_BAD_SUBSTR:
-      if re.search(regexp, hwid):
-        return 'No metadata present for the requested board: %s' % hwid
-    return ''
 
-  @HWIDAPI(
-      hwid_api_messages.BoardsRequest,
-      hwid_api_messages.BoardsResponse,
-      path='boards',
-      http_method='GET',
-      name='boards')
-  def GetBoards(self, request):
-    """Return all of the supported boards in sorted order."""
+def _GetBomAndConfigless(raw_hwid):
+  try:
+    hwid = urllib.parse.unquote(raw_hwid)
+    bom, configless = _hwid_manager.GetBomAndConfigless(hwid)
 
-    versions = set(request.versions)
-    boards = self._hwid_manager.GetBoards(versions)
+    if bom is None:
+      raise _NotFoundException('HWID not found.')
+  except KeyError as e:
+    logging.exception('KeyError -> not found')
+    return None, None, str(e)
+  except ValueError as e:
+    logging.exception('ValueError -> bad input')
+    return None, None, str(e)
 
-    logging.debug('Found boards: %r', boards)
+  return bom, configless, None
 
-    return hwid_api_messages.BoardsResponse(boards=sorted(boards))
 
-  def _GetBomAndConfigless(self, raw_hwid):
+@bp.route('/boards', methods=('GET',))
+def GetBoards():
+  """Return all of the supported boards in sorted order."""
+
+  versions = set(
+      flask.request.args.to_dict(flat=False).get('versions', [])) or None
+  boards = _hwid_manager.GetBoards(versions)
+
+  logging.debug('Found boards: %r', boards)
+  response = hwid_api_messages_pb2.BoardsResponse(boards=sorted(boards))
+
+  return json_format.MessageToJson(response, preserving_proto_field_name=True)
+
+
+@bp.route('/bom/<hwid>', methods=('GET',))
+def GetBom(hwid):
+  """Return the components of the BOM identified by the HWID."""
+  error = _FastFailKnownBadHwid(hwid)
+  if error:
+    return json_format.MessageToJson(
+        hwid_api_messages_pb2.BomResponse(error=error),
+        preserving_proto_field_name=True)
+
+  logging.debug('Retrieving HWID %s', hwid)
+  bom, unused_configless, error = _GetBomAndConfigless(hwid)
+  if error:
+    return json_format.MessageToJson(
+        hwid_api_messages_pb2.BomResponse(error=error),
+        preserving_proto_field_name=True)
+
+  response = hwid_api_messages_pb2.BomResponse()
+  response.phase = bom.phase
+
+  for component in bom.GetComponents():
+    response.components.add(componentClass=component.cls, name=component.name)
+
+  response.components.sort(key=operator.attrgetter('componentClass', 'name'))
+
+  for label in bom.GetLabels():
+    response.labels.add(componentClass=label.cls, name=label.name,
+                        value=label.value)
+  response.labels.sort(key=operator.attrgetter('name', 'value'))
+
+  return json_format.MessageToJson(response, preserving_proto_field_name=True)
+
+
+@bp.route('/sku/<hwid>', methods=('GET',))
+def GetSKU(hwid):
+  """Return the components of the SKU identified by the HWID."""
+  error = _FastFailKnownBadHwid(hwid)
+  if error:
+    return json_format.MessageToJson(
+        hwid_api_messages_pb2.SKUResponse(error=error),
+        preserving_proto_field_name=True)
+
+  bom, configless, error = _GetBomAndConfigless(hwid)
+  if error:
+    return json_format.MessageToJson(
+        hwid_api_messages_pb2.SKUResponse(error=error),
+        preserving_proto_field_name=True)
+
+  try:
+    sku = hwid_util.GetSkuFromBom(bom, configless)
+  except hwid_util.HWIDUtilException as e:
+    return json_format.MessageToJson(
+        hwid_api_messages_pb2.SKUResponse(error=str(e)),
+        preserving_proto_field_name=True)
+
+  return json_format.MessageToJson(hwid_api_messages_pb2.SKUResponse(
+      board=sku['board'],
+      cpu=sku['cpu'],
+      memoryInBytes=sku['total_bytes'],
+      memory=sku['memory_str'],
+      sku=sku['sku']), preserving_proto_field_name=True)
+
+
+@bp.route('/hwids/<board>', methods=('GET',))
+def GetHwids(board):
+  """Return a filtered list of HWIDs for the given board."""
+
+  board = urllib.parse.unquote(board)
+
+  args = flask.request.args.to_dict(flat=False)
+
+  with_classes = set(filter(None, args.get('withClasses', [])))
+  without_classes = set(filter(None, args.get('withoutClasses', [])))
+  with_components = set(filter(None, args.get('withComponents', [])))
+  without_components = set(filter(None, args.get('withoutComponents', [])))
+
+  if (with_classes and without_classes and
+      with_classes.intersection(without_classes)):
+    raise _BadRequestException('One or more component classes '
+                               'specified for both with and '
+                               'without')
+
+  if (with_components and without_components and
+      with_components.intersection(without_components)):
+    raise _BadRequestException('One or more components specified '
+                               'for both with and without')
+
+  try:
+    hwids = _hwid_manager.GetHwids(board, with_classes, without_classes,
+                                   with_components, without_components)
+  except ValueError:
+    logging.exception('ValueError -> bad input')
+    raise _BadRequestException('Invalid input: %s' % board)
+
+  logging.debug('Found HWIDs: %r', hwids)
+
+  return json_format.MessageToJson(
+      hwid_api_messages_pb2.HwidsResponse(hwids=hwids),
+      preserving_proto_field_name=True)
+
+
+@bp.route('/classes/<board>', methods=('GET',))
+def GetComponentClasses(board):
+  """Return a list of all component classes for the given board."""
+
+  try:
+    board = urllib.parse.unquote(board)
+    classes = _hwid_manager.GetComponentClasses(board)
+  except ValueError:
+    logging.exception('ValueError -> bad input')
+    raise _BadRequestException('Invalid input: %s' % board)
+
+  logging.debug('Found component classes: %r', classes)
+
+  return json_format.MessageToJson(
+      hwid_api_messages_pb2.ComponentClassesResponse(componentClasses=classes),
+      preserving_proto_field_name=True)
+
+
+@bp.route('/components/<board>', methods=('GET',))
+def GetComponents(board):
+  """Return a filtered list of components for the given board."""
+
+  args = flask.request.args.to_dict(flat=False)
+  with_classes = set(args.get('withClasses', []))
+
+  try:
+    board = urllib.parse.unquote(board)
+    components = _hwid_manager.GetComponents(board, with_classes)
+  except ValueError:
+    logging.exception('ValueError -> bad input')
+    raise _BadRequestException('Invalid input: %s' % board)
+
+  logging.debug('Found component classes: %r', components)
+
+  components_list = list()
+  for cls, comps in components.items():
+    for comp in comps:
+      components_list.append(
+          hwid_api_messages_pb2.Component(componentClass=cls, name=comp))
+
+  return json_format.MessageToJson(hwid_api_messages_pb2.ComponentsResponse(
+      components=components_list), preserving_proto_field_name=True)
+
+
+@bp.route('/validateConfig', methods=('POST',))
+def ValidateConfig():
+  """Validate the config.
+
+  Args:
+    request: a ValidateConfigRequest.
+
+  Returns:
+    A ValidateConfigAndUpdateResponse containing an error message if an error
+    occurred.
+  """
+  if flask.request.is_json:
+    hwidConfigContents = flask.request.json.get('hwidConfigContents')
+  else:
+    hwidConfigContents = flask.request.values.get('hwidConfigContents')
+
+  try:
+    _hwid_validator.Validate(hwidConfigContents)
+  except v3_validator.ValidationError as e:
+    logging.exception('Validation failed')
+    return json_format.MessageToJson(
+        hwid_api_messages_pb2.ValidateConfigResponse(errorMessage=str(e)),
+        preserving_proto_field_name=True)
+
+  return json_format.MessageToJson(
+      hwid_api_messages_pb2.ValidateConfigResponse(),
+      preserving_proto_field_name=True)
+
+
+@bp.route('/validateConfigAndUpdateChecksum', methods=('POST',))
+def ValidateConfigAndUpdateChecksum():
+  """Validate the config and update its checksum.
+
+  Args:
+    request: a ValidateConfigAndUpdateChecksumRequest.
+
+  Returns:
+    A ValidateConfigAndUpdateChecksumResponse containing either the updated
+    config or an error message.
+  """
+
+  if flask.request.is_json:
+    hwidConfigContents = flask.request.json.get('hwidConfigContents')
+    prevHwidConfigContents = flask.request.json.get('prevHwidConfigContents')
+  else:
+    hwidConfigContents = flask.request.values.get('hwidConfigContents')
+    prevHwidConfigContents = flask.request.values.get('prevHwidConfigContents')
+
+  updated_contents = _hwid_updater.UpdateChecksum(hwidConfigContents)
+
+  try:
+    _hwid_validator.ValidateChange(updated_contents, prevHwidConfigContents)
+  except v3_validator.ValidationError as e:
+    logging.exception('Validation failed')
+    return json_format.MessageToJson(
+        hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
+            errorMessage=str(e)), preserving_proto_field_name=True)
+
+  return json_format.MessageToJson(
+      hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
+          newHwidConfigContents=updated_contents),
+      preserving_proto_field_name=True)
+
+
+@bp.route('/dutlabel/<hwid>', methods=('GET',))
+def GetDUTLabels(hwid):
+  """Return the components of the SKU identified by the HWID."""
+
+  # If you add any labels to the list of returned labels, also add to
+  # the list of possible labels
+  possible_labels = [
+      'hwid_component',
+      'phase',
+      'sku',
+      'stylus',
+      'touchpad',
+      'touchscreen',
+      'variant',
+  ]
+
+  error = _FastFailKnownBadHwid(hwid)
+  if error:
+    return json_format.MessageToJson(
+        hwid_api_messages_pb2.DUTLabelResponse(
+            error=error, possible_labels=possible_labels),
+        preserving_proto_field_name=True)
+
+  bom, configless, error = _GetBomAndConfigless(hwid)
+
+  if error:
+    return json_format.MessageToJson(
+        hwid_api_messages_pb2.DUTLabelResponse(
+            error=error, possible_labels=possible_labels),
+        preserving_proto_field_name=True)
+
+  try:
+    sku = hwid_util.GetSkuFromBom(bom, configless)
+  except hwid_util.HWIDUtilException as e:
+    return json_format.MessageToJson(
+        hwid_api_messages_pb2.DUTLabelResponse(
+            error=str(e), possible_labels=possible_labels),
+        preserving_proto_field_name=True)
+
+  response = hwid_api_messages_pb2.DUTLabelResponse()
+  response.labels.add(name='sku', value=sku['sku'])
+
+  regexp_to_device = _goldeneye_memcache_adapter.Get('regexp_to_device')
+
+  if not regexp_to_device:
+    # TODO(haddowk) Kick off the ingestion to ensure that the memcache is
+    # up to date.
+    return json_format.MessageToJson(
+        hwid_api_messages_pb2.DUTLabelResponse(
+            error='Missing Regexp List', possible_labels=possible_labels),
+        preserving_proto_field_name=True)
+  for (regexp, device, unused_regexp_to_board) in regexp_to_device:
+    del unused_regexp_to_board  # unused
     try:
-      hwid = urllib.parse.unquote(raw_hwid)
-      bom, configless = self._hwid_manager.GetBomAndConfigless(hwid)
+      if re.match(regexp, hwid):
+        response.labels.add(name='variant', value=device)
+    except re.error:
+      logging.exception('invalid regex pattern: %r', regexp)
+  if bom.phase:
+    response.labels.add(name='phase', value=bom.phase)
 
-      if bom is None:
-        raise endpoints.NotFoundException('HWID not found.')
-    except KeyError as e:
-      logging.exception('KeyError -> not found')
-      return None, None, str(e)
-    except ValueError as e:
-      logging.exception('ValueError -> bad input')
-      return None, None, str(e)
+  components = ['touchscreen', 'touchpad', 'stylus']
+  for component in components:
+    # The lab just want the existance of a component they do not care
+    # what type it is.
+    if configless and 'has_' + component in configless['feature_list']:
+      if configless['feature_list']['has_' + component]:
+        response.labels.add(name=component, value=None)
+    else:
+      component_value = hwid_util.GetComponentValueFromBom(bom, component)
+      if component_value and component_value[0]:
+        response.labels.add(name=component, value=None)
 
-    return bom, configless, None
+  # cros labels in host_info store, which will be used in tast tests of
+  # runtime probe
+  for component in bom.GetComponents():
+    if component.name and component.is_vp_related:
+      name = component.name
+      if component.information is not None:
+        name = component.information.get('comp_group', name)
+      response.labels.add(
+          name="hwid_component",
+          value=component.cls + '/' + name)
 
-  GET_BOM_REQUEST = endpoints.ResourceContainer(
-      message_types.VoidMessage, hwid=messages.StringField(1, required=True))
 
-  @HWIDAPI(
-      GET_BOM_REQUEST,
-      hwid_api_messages.BomResponse,
-      path='bom/{hwid}',
-      http_method='GET',
-      name='bom')
-  def GetBom(self, request):
-    """Return the components of the BOM identified by the HWID."""
+  unexpected_labels = set(
+      label.name for label in response.labels) - set(possible_labels)
 
-    error = self._FastFailKnownBadHwid(request.hwid)
-    if error:
-      return hwid_api_messages.BomResponse(error=error)
+  if unexpected_labels:
+    logging.error('unexpected labels: %r', unexpected_labels)
+    return json_format.MessageToJson(hwid_api_messages_pb2.DUTLabelResponse(
+        error='Possible labels are out of date',
+        possible_labels=possible_labels), preserving_proto_field_name=True)
 
-    logging.debug('Retrieving HWID %s', request.hwid)
-    bom, unused_configless, error = self._GetBomAndConfigless(request.hwid)
-    if error:
-      return hwid_api_messages.BomResponse(error=error)
-
-    components = list()
-    for component in bom.GetComponents():
-      c = hwid_api_messages.Component(
-          name=component.name, componentClass=component.cls)
-      components.append(c)
-    components.sort(key=lambda comp: (
-        comp.componentClass or '', comp.name or ''))
-
-    labels = list()
-    for label in bom.GetLabels():
-      l = hwid_api_messages.Label(
-          name=label.name, componentClass=label.cls, value=label.value)
-      labels.append(l)
-    labels.sort(key=lambda lbl: (lbl.name or '', lbl.value or ''))
-
-    phase = bom.phase
-
-    return hwid_api_messages.BomResponse(
-        components=components, labels=labels, phase=phase)
-
-  GET_SKU_REQUEST = endpoints.ResourceContainer(
-      message_types.VoidMessage, hwid=messages.StringField(1, required=True))
-
-  @HWIDAPI(
-      GET_SKU_REQUEST,
-      hwid_api_messages.SKUResponse,
-      path='sku/{hwid}',
-      http_method='GET',
-      name='sku')
-  def GetSKU(self, request):
-    """Return the components of the SKU identified by the HWID."""
-    error = self._FastFailKnownBadHwid(request.hwid)
-    if error:
-      return hwid_api_messages.SKUResponse(error=error)
-
-    bom, configless, error = self._GetBomAndConfigless(request.hwid)
-    if error:
-      return hwid_api_messages.SKUResponse(error=error)
-
-    try:
-      sku = hwid_util.GetSkuFromBom(bom, configless)
-    except hwid_util.HWIDUtilException as e:
-      return hwid_api_messages.SKUResponse(error=str(e))
-
-    return hwid_api_messages.SKUResponse(
-        board=sku['board'],
-        cpu=sku['cpu'],
-        memoryInBytes=sku['total_bytes'],
-        memory=sku['memory_str'],
-        sku=sku['sku'])
-
-  # A request for all HWIDs for a board with the specified criteria.
-  #
-  # Fields:
-  #   board: The board that we want the HWIDs of.
-  #   withClasses: Filter for component classes that the HWIDs include.
-  #   withoutClasses: Filter for component classes that the HWIDs don't include.
-  #   withComponents: Filter for components that the HWIDs include.
-  #   withoutComponents: Filter for components that the HWIDs don't include.
-  GET_HWIDS_REQUEST = endpoints.ResourceContainer(
-      message_types.VoidMessage,
-      board=messages.StringField(1, required=True),
-      withClasses=messages.StringField(2, repeated=True),
-      withoutClasses=messages.StringField(3, repeated=True),
-      withComponents=messages.StringField(4, repeated=True),
-      withoutComponents=messages.StringField(5, repeated=True))
-
-  @HWIDAPI(
-      GET_HWIDS_REQUEST,
-      hwid_api_messages.HwidsResponse,
-      path='hwids/{board}',
-      http_method='GET',
-      name='hwids')
-  def GetHwids(self, request):
-    """Return a filtered list of HWIDs for the given board."""
-
-    board = urllib.parse.unquote(request.board)
-
-    def IsNotNoneOrEmpty(x):
-      return x and len(x)
-
-    with_classes = set(filter(IsNotNoneOrEmpty, request.withClasses))
-    without_classes = set(filter(IsNotNoneOrEmpty, request.withoutClasses))
-    with_components = set(filter(IsNotNoneOrEmpty, request.withComponents))
-    without_components = set(
-        filter(IsNotNoneOrEmpty, request.withoutComponents))
-
-    if (with_classes and without_classes and
-        with_classes.intersection(without_classes)):
-      raise endpoints.BadRequestException('One or more component classes '
-                                          'specified for both with and '
-                                          'without')
-
-    if (with_components and without_components and
-        with_components.intersection(without_components)):
-      raise endpoints.BadRequestException('One or more components specified '
-                                          'for both with and without')
-
-    try:
-      hwids = self._hwid_manager.GetHwids(board, with_classes, without_classes,
-                                          with_components, without_components)
-    except ValueError:
-      logging.exception('ValueError -> bad input')
-      raise endpoints.BadRequestException('Invalid input: %s' % board)
-
-    logging.debug('Found HWIDs: %r', hwids)
-
-    return hwid_api_messages.HwidsResponse(hwids=hwids)
-
-  GET_COMPONENT_CLASSES_REQUEST = endpoints.ResourceContainer(
-      message_types.VoidMessage, board=messages.StringField(1, required=True))
-
-  @HWIDAPI(
-      GET_COMPONENT_CLASSES_REQUEST,
-      hwid_api_messages.ComponentClassesResponse,
-      path='classes/{board}',
-      http_method='GET',
-      name='classes')
-  def GetComponentClasses(self, request):
-    """Return a list of all component classes for the given board."""
-
-    try:
-      board = urllib.parse.unquote(request.board)
-      classes = self._hwid_manager.GetComponentClasses(board)
-    except ValueError:
-      logging.exception('ValueError -> bad input')
-      raise endpoints.BadRequestException('Invalid input: %s' % board)
-
-    logging.debug('Found component classes: %r', classes)
-
-    return hwid_api_messages.ComponentClassesResponse(componentClasses=classes)
-
-  # A request for all components for a board with the specified criteria.
-  #
-  # Fields:
-  # board: The board that we want the components of.
-  # withClasses: Filter for components of the specified component classes.
-
-  GET_COMPONENTS_REQUEST = endpoints.ResourceContainer(
-      message_types.VoidMessage,
-      board=messages.StringField(1, required=True),
-      withClasses=messages.StringField(2, repeated=True))
-
-  @HWIDAPI(
-      GET_COMPONENTS_REQUEST,
-      hwid_api_messages.ComponentsResponse,
-      path='components/{board}',
-      http_method='GET',
-      name='components')
-  def GetComponents(self, request):
-    """Return a filtered list of components for the given board."""
-
-    try:
-      board = urllib.parse.unquote(request.board)
-      with_classes = set(request.withClasses)
-      components = self._hwid_manager.GetComponents(board, with_classes)
-    except ValueError:
-      logging.exception('ValueError -> bad input')
-      raise endpoints.BadRequestException('Invalid input: %s' % board)
-
-    logging.debug('Found component classes: %r', components)
-
-    components_list = list()
-    for cls, comps in components.items():
-      for comp in comps:
-        components_list.append(
-            hwid_api_messages.Component(componentClass=cls, name=comp))
-
-    return hwid_api_messages.ComponentsResponse(components=components_list)
-
-  @HWIDAPI(
-      hwid_api_messages.ValidateConfigRequest,
-      hwid_api_messages.ValidateConfigResponse,
-      path='validateConfig',
-      http_method='POST',
-      name='validateConfig')
-  def ValidateConfig(self, request):
-    """Validate the config.
-
-    Args:
-      request: a ValidateConfigRequest.
-
-    Returns:
-      A ValidateConfigAndUpdateResponse containing an error message if an error
-      occurred.
-    """
-
-    try:
-      self._hwid_validator.Validate(request.hwidConfigContents)
-    except v3_validator.ValidationError as e:
-      logging.exception('ValidationError: %r', str(e))
-      return hwid_api_messages.ValidateConfigResponse(errorMessage=str(e))
-
-    return hwid_api_messages.ValidateConfigResponse()
-
-  @HWIDAPI(
-      hwid_api_messages.ValidateConfigAndUpdateChecksumRequest,
-      hwid_api_messages.ValidateConfigAndUpdateChecksumResponse,
-      path='validateConfigAndUpdateChecksum',
-      http_method='POST',
-      name='validateConfigAndUpdateChecksum')
-  def ValidateConfigAndUpdateChecksum(self, request):
-    """Validate the config and update its checksum.
-
-    Args:
-      request: a ValidateConfigAndUpdateChecksumRequest.
-
-    Returns:
-      A ValidateConfigAndUpdateChecksumResponse containing either the updated
-      config or an error message.
-    """
-
-    updated_contents = self._hwid_updater.UpdateChecksum(
-        request.hwidConfigContents)
-
-    try:
-      self._hwid_validator.ValidateChange(updated_contents,
-                                          request.prevHwidConfigContents)
-    except v3_validator.ValidationError as e:
-      logging.exception('ValidationError: %r', str(e))
-      return hwid_api_messages.ValidateConfigAndUpdateChecksumResponse(
-          errorMessage=str(e))
-
-    return hwid_api_messages.ValidateConfigAndUpdateChecksumResponse(
-        newHwidConfigContents=updated_contents)
-
-  GET_DUTLABEL_REQUEST = endpoints.ResourceContainer(
-      message_types.VoidMessage, hwid=messages.StringField(1, required=True))
-
-  @HWIDAPI(
-      GET_DUTLABEL_REQUEST,
-      hwid_api_messages.DUTLabelResponse,
-      path='dutlabel/{hwid}',
-      http_method='GET',
-      name='dutlabel')
-  def GetDUTLabels(self, request):
-    """Return the components of the SKU identified by the HWID."""
-
-    labels = []
-    # If you add any labels to the list of returned labels, also add to
-    # the list of possible labels
-    possible_labels = [
-        'hwid_component',
-        'phase',
-        'sku',
-        'stylus',
-        'touchpad',
-        'touchscreen',
-        'variant',
-    ]
-
-    error = self._FastFailKnownBadHwid(request.hwid)
-    if error:
-      return hwid_api_messages.DUTLabelResponse(
-          error=error, possible_labels=possible_labels)
-
-    bom, configless, error = self._GetBomAndConfigless(request.hwid)
-
-    if error:
-      return hwid_api_messages.DUTLabelResponse(
-          error=error, possible_labels=possible_labels)
-
-    try:
-      sku = hwid_util.GetSkuFromBom(bom, configless)
-    except hwid_util.HWIDUtilException as e:
-      return hwid_api_messages.DUTLabelResponse(
-          error=str(e), possible_labels=possible_labels)
-
-    labels.append(hwid_api_messages.DUTLabel(name='sku', value=sku['sku']))
-
-    regexp_to_device = self._goldeneye_memcache_adapter.Get('regexp_to_device')
-
-    if not regexp_to_device:
-      # TODO(haddowk) Kick off the ingestion to ensure that the memcache is
-      # up to date.
-      return hwid_api_messages.DUTLabelResponse(
-          error='Missing Regexp List', possible_labels=possible_labels)
-    for (regexp, device, unused_regexp_to_board) in regexp_to_device:
-      del unused_regexp_to_board  # unused
-      try:
-        if re.match(regexp, request.hwid):
-          labels.append(hwid_api_messages.DUTLabel(name='variant',
-                                                   value=device))
-      except re.error:
-        logging.exception('invalid regex pattern: %r', regexp)
-    if bom.phase:
-      labels.append(hwid_api_messages.DUTLabel(name='phase', value=bom.phase))
-
-    components = ['touchscreen', 'touchpad', 'stylus']
-    for component in components:
-      # The lab just want the existance of a component they do not care
-      # what type it is.
-      if configless and 'has_' + component in configless['feature_list']:
-        if configless['feature_list']['has_' + component]:
-          labels.append(hwid_api_messages.DUTLabel(name=component, value=None))
-      else:
-        component_value = hwid_util.GetComponentValueFromBom(bom, component)
-        if component_value and component_value[0]:
-          labels.append(hwid_api_messages.DUTLabel(name=component, value=None))
-
-    # cros labels in host_info store, which will be used in tast tests of
-    # runtime probe
-    for component in bom.GetComponents():
-      if component.name and component.is_vp_related:
-        name = component.name
-        if component.information is not None:
-          name = component.information.get('comp_group', name)
-        labels.append(hwid_api_messages.DUTLabel(
-            name="hwid_component",
-            value=component.cls + '/' + name))
-
-    if {label.name for label in labels} - set(possible_labels):
-      return hwid_api_messages.DUTLabelResponse(
-          error='Possible labels is out of date',
-          possible_labels=possible_labels)
-    labels.sort(key=lambda lbl: (lbl.name or '', lbl.value or ''))
-
-    return hwid_api_messages.DUTLabelResponse(
-        labels=labels, possible_labels=possible_labels)
+  response.labels.sort(key=operator.attrgetter('name', 'value'))
+  response.possible_labels[:] = possible_labels
+  return json_format.MessageToJson(response, preserving_proto_field_name=True)

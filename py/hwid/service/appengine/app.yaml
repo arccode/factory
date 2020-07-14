@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 runtime: python37
 entrypoint:
-  gunicorn -b :${DOLLAR}PORT cros.factory.hwid.service.appengine.app:app -t 600
+  gunicorn -b :${DOLLAR}PORT cros.factory.hwid.service.appengine.app:hwid_service -t 600
 
 instance_class: F4_1G
 

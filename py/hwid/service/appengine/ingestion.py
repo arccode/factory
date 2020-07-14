@@ -4,20 +4,22 @@
 
 """Handler for ingestion."""
 
-import cgi
 import collections
 import hashlib
+import http
 import logging
 import os
 
-# pylint: disable=no-name-in-module, import-error
+# pylint: disable=no-name-in-module, import-error, wrong-import-order
+import flask
+import flask.views
 import google.auth
 from google.auth.transport.requests import Request
 from google.cloud import tasks
-# pylint: enable=no-name-in-module, import-error
-import urllib3  # pylint: disable=import-error
-import webapp2  # pylint: disable=import-error
-import yaml  # pylint: disable=wrong-import-order
+import urllib3
+import werkzeug
+import yaml
+# pylint: enable=no-name-in-module, import-error, wrong-import-order
 
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import git_util
@@ -41,67 +43,35 @@ def _GetCredentials():
   return service_account_name, token
 
 
-def _AuthCheck(func):
-  """Checks if requests are from known source.
+class DevUploadHandler(flask.views.MethodView):
 
-  For /ingestion/refresh  and /ingestion/sync_name_pattern API, hwid service
-  only allows cron job (via GET) and cloud task (via POST) requests.  However,
-  for e2e testing purpose, requests with API key are also allowed.
-  """
-
-  def wrapper(self, *args, **kwargs):
-    if CONFIG.env == 'dev':  # for integration test
-      return func(self, *args, **kwargs)
-
-    from_cron = self.request.headers.get('X-AppEngine-Cron')
-    if from_cron:
-      logging.info('Allow cron job requests')
-      return func(self, *args, **kwargs)
-
-    from_cloud_task = self.request.headers.get('X-AppEngine-QueueName')
-    if from_cloud_task:
-      logging.info('Allow cloud task requests')
-      return func(self, *args, **kwargs)
-
-    if CONFIG.ingestion_api_key:
-      key = self.request.get('key')
-      if key == CONFIG.ingestion_api_key:
-        logging.info('Allow normal requests with API key')
-        return func(self, *args, **kwargs)
-
-    return self.abort(403, 'Permission denied')
-  return wrapper
-
-
-class DevUploadHandler(webapp2.RequestHandler):
-
-  def __init__(self, request, response):
-    super(DevUploadHandler, self).__init__(request, response)
+  def __init__(self, *args, **kwargs):
+    super(DevUploadHandler, self).__init__(*args, **kwargs)
     self._hwid_filesystem = CONFIG.hwid_filesystem
 
   def post(self):
     """Uploads a file to the cloud storage of the server."""
-    if 'data' not in self.request.POST or 'path' not in self.request.POST:
+    if 'data' not in flask.request.files or 'path' not in flask.request.values:
       logging.warning('Required fields missing on request: %r',
-                      self.request.POST)
-      self.abort(400)
+                      flask.request.values)
+      flask.abort(flask.Response(status=http.HTTPStatus.BAD_REQUEST))
 
-    data = self.request.POST['data']
-    path = self.request.get('path')
+    data = flask.request.files.get('data')
+    path = flask.request.values.get('path')
 
-    logging.debug('Got upload request: %r', self.request.POST)
-
-    if not isinstance(data, cgi.FieldStorage):
+    if not isinstance(data, werkzeug.datastructures.FileStorage):
       logging.warning('Got request without file in data field.')
-      self.abort(400)
+      flask.abort(flask.Response(status=http.HTTPStatus.BAD_REQUEST))
 
-    self._hwid_filesystem.WriteFile(path, data.file.read())
+    self._hwid_filesystem.WriteFile(path, data.read())
 
-    for filename in self._hwid_filesystem.ListFiles():
-      self.response.write('%s\n' % filename)
+    def processFiles():
+      for filename in self._hwid_filesystem.ListFiles():
+        yield '%s\n' % filename
+    return flask.Response(response=processFiles(), status=http.HTTPStatus.OK)
 
 
-class SyncNamePatternHandler(webapp2.RequestHandler):
+class SyncNamePatternHandler(flask.views.MethodView):
   """Sync name pattern from chromeos-hwid repo
 
   In normal circumstances the cron job triggers the refresh hourly, however it
@@ -115,13 +85,12 @@ class SyncNamePatternHandler(webapp2.RequestHandler):
   """
   NAME_PATTERN_FOLDER = "name_pattern"
 
-  def __init__(self, request, response):
-    super(SyncNamePatternHandler, self).__init__(request, response)
+  def __init__(self, *args, **kwargs):
+    super(SyncNamePatternHandler, self).__init__(*args, **kwargs)
     self.hwid_filesystem = CONFIG.hwid_filesystem
 
   # Cron jobs are always GET requests, we are not acutally doing the work
   # here just queuing a task to be run in the background.
-  @_AuthCheck
   def get(self):
     client = tasks.CloudTasksClient()
     parent = client.queue_path(os.environ.get('GOOGLE_CLOUD_PROJECT'),
@@ -130,9 +99,9 @@ class SyncNamePatternHandler(webapp2.RequestHandler):
         'app_engine_http_request': {
             'http_method': 'POST',
             'relative_uri': '/ingestion/sync_name_pattern'}})
+    return flask.Response(status=http.HTTPStatus.OK)
 
   # Task queue executions are POST requests.
-  @_AuthCheck
   def post(self):
     """Refreshes the ingestion from staging files to live."""
     git_url = "https://chrome-internal.googlesource.com/chromeos/chromeos-hwid"
@@ -157,9 +126,10 @@ class SyncNamePatternHandler(webapp2.RequestHandler):
     for name in existing_files:
       self.hwid_filesystem.DeleteFile('%s/%s' % (
           self.NAME_PATTERN_FOLDER, name))
+    return flask.Response(status=http.HTTPStatus.OK)
 
 
-class RefreshHandler(webapp2.RequestHandler):
+class RefreshHandler(flask.views.MethodView):
   """Handle update of possibley new yaml files.
 
   In normal circumstances the cron job triggers the refresh hourly, however it
@@ -174,8 +144,8 @@ class RefreshHandler(webapp2.RequestHandler):
   minutes which should be more than enough headroom for the next few years.
   """
 
-  def __init__(self, request, response):
-    super(RefreshHandler, self).__init__(request, response)
+  def __init__(self, *args, **kwargs):
+    super(RefreshHandler, self).__init__(*args, **kwargs)
     self.hwid_filesystem = CONFIG.hwid_filesystem
     self.hwid_manager = CONFIG.hwid_manager
     self.vpg_targets = CONFIG.vpg_targets
@@ -184,7 +154,6 @@ class RefreshHandler(webapp2.RequestHandler):
 
   # Cron jobs are always GET requests, we are not acutally doing the work
   # here just queuing a task to be run in the background.
-  @_AuthCheck
   def get(self):
     client = tasks.CloudTasksClient()
     parent = client.queue_path(os.environ.get('GOOGLE_CLOUD_PROJECT'),
@@ -193,18 +162,20 @@ class RefreshHandler(webapp2.RequestHandler):
         'app_engine_http_request': {
             'http_method': 'POST',
             'relative_uri': '/ingestion/refresh'}})
+    return flask.Response(status=http.HTTPStatus.OK)
 
   # Task queue executions are POST requests.
-  @_AuthCheck
   def post(self):
     """Refreshes the ingestion from staging files to live."""
 
     # Limit boards for ingestion (e2e test only).
-    limit_models = self.request.get('limit_models')
+    limit_models = flask.request.values.get('limit_models')
     do_limit = False
     if limit_models:
       limit_models = set(json_utils.LoadStr(limit_models))
       do_limit = True
+    else:
+      limit_models = set()
 
     # TODO(yllin): Reduce memory footprint.
     # Get board.yaml
@@ -221,18 +192,20 @@ class RefreshHandler(webapp2.RequestHandler):
 
     except filesystem_adapter.FileSystemAdapterException:
       logging.error('Missing file during refresh.')
-      self.abort(500, 'Missing file during refresh.')
+      flask.abort(flask.Response('Missing file during refresh.',
+                                 http.HTTPStatus.INTERNAL_SERVER_ERROR))
 
     self.hwid_manager.ReloadMemcacheCacheFromFiles(
         limit_models=list(limit_models))
 
     # Skip if env is local (dev)
     if CONFIG.env == 'dev':
-      self.response.write('Skip for local env')
-      return
+      return flask.Response(response='Skip for local env',
+                            status=http.HTTPStatus.OK)
 
-    self.UpdatePayloadsAndSync(do_limit)
+    response = self.UpdatePayloadsAndSync(do_limit)
     logging.info('Ingestion complete.')
+    return flask.Response(response=response, status=http.HTTPStatus.OK)
 
   def GetPayloadDBLists(self):
     """Get payload DBs specified in config.
@@ -313,7 +286,7 @@ class RefreshHandler(webapp2.RequestHandler):
     """
 
     dryrun_upload = self.dryrun_upload
-    force_push = self.request.get('force_push', '')
+    force_push = flask.request.values.get('force_push', '')
 
     # force push, set dryrun_upload to False
     if force_push.lower() == 'true':
@@ -442,11 +415,12 @@ class RefreshHandler(webapp2.RequestHandler):
                     purpose.
     """
 
+    response = ''
     commit_id, payload_hash_mapping = self.UpdatePayloads(force_update)
     if commit_id:
       self.hwid_manager.SetLatestHWIDMasterCommit(commit_id)
     if force_update:
-      self.response.write(json_utils.DumpStr(payload_hash_mapping,
-                                             sort_keys=True))
+      response = json_utils.DumpStr(payload_hash_mapping, sort_keys=True)
     for board, payload_hash in payload_hash_mapping.items():
       self.hwid_manager.SetLatestPayloadHash(board, payload_hash)
+    return response

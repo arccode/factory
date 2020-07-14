@@ -4,14 +4,16 @@
 
 """Handler that ingests the latest all_devices.json from GoldenEye."""
 
+import http
 import json
 import logging
 import os
 
-# pylint: disable=no-name-in-module, import-error
+# pylint: disable=no-name-in-module, import-error, wrong-import-order
+import flask
+import flask.views
 from google.cloud import tasks
-import webapp2
-# pylint: enable=no-name-in-module, import-error
+# pylint: enable=no-name-in-module, import-error, wrong-import-order
 
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import memcache_adapter
@@ -21,12 +23,8 @@ from cros.factory.hwid.v3 import filesystem_adapter
 MEMCACHE_NAMESPACE = 'SourceGoldenEye'
 
 
-class AllDevicesRefreshHandler(webapp2.RequestHandler):
+class AllDevicesRefreshHandler(flask.views.MethodView):
   """Handle update of a possibly new all_devices.json file."""
-
-  # pylint: disable=useless-super-delegation
-  def __init__(self, request, response):
-    super(AllDevicesRefreshHandler, self).__init__(request, response)
 
   # Cron jobs are always GET requests, we are not actually doing the work
   # here just queuing a task to be run in the background.
@@ -38,18 +36,20 @@ class AllDevicesRefreshHandler(webapp2.RequestHandler):
         'app_engine_http_request': {
             'http_method': 'POST',
             'relative_uri': '/ingestion/all_devices_refresh'}})
+    return flask.Response(status=http.HTTPStatus.OK)
 
   # Task queue executions are POST requests.
   def post(self):
     """Refreshes the ingestion from staging files to live."""
     try:
       IngestAllDevicesJson()
-    except filesystem_adapter.FileSystemAdapterException as e:
-      logging.error('Missing all_devices.json file during refresh.')
-      logging.error(e)
-      self.abort(500, 'Missing all_devices.json file during refresh.')
+    except filesystem_adapter.FileSystemAdapterException:
+      logging.exception('Missing all_devices.json file during refresh.')
+      flask.abort(http.HTTPStatus.INTERNAL_SERVER_ERROR,
+                  'Missing all_devices.json file during refresh.')
 
-    self.response.write('all_devices.json Ingestion complete.')
+    return flask.Response(response='all_devices.json Ingestion complete.',
+                          status=http.HTTPStatus.OK)
 
 
 def IngestAllDevicesJson():
