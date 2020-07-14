@@ -9,10 +9,8 @@ import collections
 import hashlib
 import logging
 import os
-import traceback
 
 # pylint: disable=no-name-in-module, import-error
-from google.appengine.api import mail
 import google.auth
 from google.auth.transport.requests import Request
 from google.cloud import tasks
@@ -374,21 +372,8 @@ class RefreshHandler(webapp2.RequestHandler):
         logging.debug('No modification is made, skipped')
       except git_util.GitUtilException as ex:
         logging.error('CL is not created: %r', str(ex))
-        mail.send_mail(
-            sender='ChromeOS HW Checker Bot <{}>'.format(self.hw_checker_mail),
-            to=self.hw_checker_mail,
-            subject=('[HW Checker] Cannot create CL of verification payload for'
-                     ' board {board}'.format(board=board)),
-            body=('Hi all,\n'
-                  '\n'
-                  'The CL of verification payloads is failed to create.\n'
-                  'HWID DB commit: {commit}\n'
-                  'Board: {board}\n'
-                  '\n'
-                  '{stack}\n').format(
-                      board=board,
-                      commit=hwid_master_commit,
-                      stack=traceback.format_exc()))
+        # TODO(clarkchung): replace mail notification to Stackdriver Error
+        # Reporting
 
   def UpdatePayloads(self, force_update=False):
     """Update generated payloads to repo.
@@ -420,21 +405,8 @@ class RefreshHandler(webapp2.RequestHandler):
       result = vpg_module.GenerateVerificationPayload(db_list)
       if result.error_msgs:
         logging.error('Generate Payload fail: %s', ' '.join(result.error_msgs))
-        mail.send_mail(
-            sender='ChromeOS HW Checker Bot <{}>'.format(self.hw_checker_mail),
-            to=self.hw_checker_mail,
-            subject=('[HW Checker] Cannot generate verification payload from'
-                     ' board {board}'.format(board=board)),
-            body=('Hi all,\n'
-                  '\n'
-                  'Verification payloads are failed to generate.\n'
-                  'HWID DB commit: {commit}\n'
-                  'Board: {board}\n'
-                  '\n'
-                  '{stack}\n').format(
-                      board=board,
-                      commit=hwid_master_commit,
-                      stack=traceback.format_exc()))
+        # TODO(clarkchung): replace mail notification to Stackdriver Error
+        # Reporting
       else:
         new_files = result.generated_file_contents
         payload_hash = self.GetPayloadHashIfChanged(board, new_files,
