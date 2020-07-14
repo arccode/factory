@@ -37,5 +37,11 @@ def _SetRegionPathEnv():
                           os.path.join(resource_dir, 'cros-regions.json'))
 
 
+@functools.lru_cache(maxsize=1)
+def _AddProtoDir():
+  sys.path.append(os.path.join(_APPENGINE_SRC_ROOT, 'protobuf_out'))
+
+
 _PatchImports()
 _SetRegionPathEnv()
+_AddProtoDir()
