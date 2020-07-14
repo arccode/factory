@@ -74,7 +74,7 @@ class MemcacheAdapter:
     keys = ['%s:%s.%s' % (self.namespace, key, i)
             for i in range(MAX_NUMBER_CHUNKS)]
     chunks = self.client.mget(keys)
-    serialized_data = ''.join(filter(None, chunks))
+    serialized_data = b''.join(filter(None, chunks))
     if not serialized_data:
       logging.debug('Memcache no data found %s', key)
       return None
