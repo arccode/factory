@@ -12,7 +12,6 @@ import os
 import traceback
 
 # pylint: disable=no-name-in-module, import-error
-from google.appengine.api.app_identity import app_identity
 from google.appengine.api import mail
 import google.auth
 from google.auth.transport.requests import Request
@@ -123,9 +122,7 @@ class SyncNamePatternHandler(webapp2.RequestHandler):
   @_AuthCheck
   def get(self):
     client = tasks.CloudTasksClient()
-    # TODO(clarkchung): Change `app_identity.get_application_id()` to
-    # os.environ.get('GOOGLE_CLOUD_PROJECT') in py3 runtime
-    parent = client.queue_path(app_identity.get_application_id(),
+    parent = client.queue_path(os.environ.get('GOOGLE_CLOUD_PROJECT'),
                                CONFIG.project_region, 'default')
     client.create_task(parent, {
         'app_engine_http_request': {
@@ -188,9 +185,7 @@ class RefreshHandler(webapp2.RequestHandler):
   @_AuthCheck
   def get(self):
     client = tasks.CloudTasksClient()
-    # TODO(clarkchung): Change `app_identity.get_application_id()` to
-    # os.environ.get('GOOGLE_CLOUD_PROJECT') in py3 runtime
-    parent = client.queue_path(app_identity.get_application_id(),
+    parent = client.queue_path(os.environ.get('GOOGLE_CLOUD_PROJECT'),
                                CONFIG.project_region, 'default')
     client.create_task(parent, {
         'app_engine_http_request': {

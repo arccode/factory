@@ -6,13 +6,12 @@
 
 import json
 import logging
+import os
 
-# TODO(clarkchung): Remove google.appengine package dependency
 # pylint: disable=no-name-in-module, import-error
-from google.appengine.api.app_identity import app_identity
-# pylint: enable=no-name-in-module, import-error
 from google.cloud import tasks
-import webapp2  # pylint: disable=import-error
+import webapp2
+# pylint: enable=no-name-in-module, import-error
 
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import memcache_adapter
@@ -33,9 +32,7 @@ class AllDevicesRefreshHandler(webapp2.RequestHandler):
   # here just queuing a task to be run in the background.
   def get(self):
     client = tasks.CloudTasksClient()
-    # TODO(clarkchung): Change `app_identity.get_application_id()` to
-    # os.environ.get('GOOGLE_CLOUD_PROJECT') in py3 runtime
-    parent = client.queue_path(app_identity.get_application_id(),
+    parent = client.queue_path(os.environ.get('GOOGLE_CLOUD_PROJECT'),
                                CONFIG.project_region, 'default')
     client.create_task(parent, {
         'app_engine_http_request': {
