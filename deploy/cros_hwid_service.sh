@@ -95,9 +95,11 @@ prepare_protobuf() {
   protoc \
     -I="${RT_PROBE_DIR}" \
     -I="${HW_VERIFIER_DIR}" \
+    -I="${APPENGINE_DIR}/proto" \
     --python_out="${protobuf_out}" \
     "${HW_VERIFIER_DIR}/hardware_verifier.proto" \
-    "${RT_PROBE_DIR}/runtime_probe.proto"
+    "${RT_PROBE_DIR}/runtime_probe.proto" \
+    "${APPENGINE_DIR}/proto/hwid_api_messages.proto"
 }
 
 do_deploy() {
