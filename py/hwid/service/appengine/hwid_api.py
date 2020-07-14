@@ -137,12 +137,15 @@ class HwidApi(remote.Service):
       c = hwid_api_messages.Component(
           name=component.name, componentClass=component.cls)
       components.append(c)
+    components.sort(key=lambda comp: (
+        comp.componentClass or '', comp.name or ''))
 
     labels = list()
     for label in bom.GetLabels():
       l = hwid_api_messages.Label(
           name=label.name, componentClass=label.cls, value=label.value)
       labels.append(l)
+    labels.sort(key=lambda lbl: (lbl.name or '', lbl.value or ''))
 
     phase = bom.phase
 
@@ -371,8 +374,13 @@ class HwidApi(remote.Service):
     # If you add any labels to the list of returned labels, also add to
     # the list of possible labels
     possible_labels = [
-        'sku', 'phase', 'touchscreen', 'touchpad', 'variant', 'stylus',
-        'hwid_component'
+        'hwid_component',
+        'phase',
+        'sku',
+        'stylus',
+        'touchpad',
+        'touchscreen',
+        'variant',
     ]
 
     error = self._FastFailKnownBadHwid(request.hwid)
@@ -439,6 +447,7 @@ class HwidApi(remote.Service):
       return hwid_api_messages.DUTLabelResponse(
           error='Possible labels is out of date',
           possible_labels=possible_labels)
+    labels.sort(key=lambda lbl: (lbl.name or '', lbl.value or ''))
 
     return hwid_api_messages.DUTLabelResponse(
         labels=labels, possible_labels=possible_labels)
