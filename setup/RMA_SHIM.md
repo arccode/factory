@@ -199,22 +199,22 @@ which is described in
 [Factory Installer README](https://chromium.googlesource.com/chromiumos/platform/factory_installer/#factory-shim-menu).
 Moreover, if the RMA shim is created using `image_tool rma create` command, the
 tool adds a flag `RMA_AUTORUN=1` in `lsb-factory` file, which sets the default
-action of the menu depending on the cr50 version and hardware write protect
+action of the menu depending on the cr50 version and hardware write protection
 status, such that:
 
-1. If hardware write protection is enabled, and cr50 version is older than the
-   cr50 image in the shim, set the default action to **(U) Update cr50**. After
-   cr50 is updated, the device will reboot. The user should enter recovery mode
-   and boot to shim again.
-1. If hardware write protection is enabled, and cr50 version is not older than
-   the cr50 image in the shim, set the default action to **(E) Reset Cr50**,
-   also known as RSU (RMA Server Unlock) to disable hardware write protect and
-   enter factory mode. After RMA reset, the device will reboot. The user should
-   enter recovery mode and boot to shim again.
-1. If hardware write protection is disabled, set the default action to
-   **(I) install** to install payloads from USB. If hardware write protect is
-   disabled by disconnecting the battery instead of doing RSU, the install
-   script will also enable factory mode at the end of installation.
+1. If cr50 version is older than the cr50 image in the shim, set the default
+   action to **(U) Update cr50**. After cr50 is updated, the device will reboot.
+   The user should enter recovery mode and boot to shim again.
+1. If cr50 version is up-to-date, and hardware write protection is enabled, set
+   the default action to **(E) Reset Cr50**, also known as RSU (RMA Server
+   Unlock) to disable hardware write protection and enter factory mode. After
+   RMA reset, the device will reboot. The user should enter recovery mode and
+   boot to shim again.
+1. If cr50 version is up-to-date, and hardware write protection is disabled, set
+   the default action to **(I) install** to install payloads from USB. If
+   hardware write protection is disabled by disconnecting the battery instead of
+   doing RSU, the install script will also enable factory mode at the end of
+   installation.
 
 You can stop the default action and return to shim menu by pressing any key
 within 3 seconds when the console prompts "press any key to show menu instead".
