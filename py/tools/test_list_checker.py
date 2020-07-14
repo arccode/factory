@@ -115,8 +115,8 @@ def CheckTestList(manager_, test_list_id, dump):
 
     if new_object == base_object:
       logging.warning(
-          'Test object "%s" inherits aother test object but overrides nothing.',
-          object_name)
+          'Test object "%s" inherits from another test object but overrides'
+          ' nothing.', object_name)
       result = False
 
   # Check if there are unreferenced test object definitions in the test list.
