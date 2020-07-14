@@ -12,6 +12,7 @@ import yaml
 from cros.factory.hwid.service.appengine import cloudstorage_adapter
 from cros.factory.hwid.service.appengine import hwid_manager
 from cros.factory.utils import file_utils
+from cros.factory.utils import type_utils
 
 
 _DEFAULT_CONFIGURATION = {
@@ -82,4 +83,4 @@ class _Config:
     self.project_region = conf.get('project_region', '')
 
 
-CONFIG = _Config()
+CONFIG = type_utils.LazyObject(_Config)
