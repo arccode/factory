@@ -84,7 +84,7 @@ run_in_temp() {
 }
 
 prepare_cros_regions() {
-  cros_regions="${TEMP_DIR}/cros-regions.json"
+  cros_regions="${TEMP_DIR}/resource/cros-regions.json"
   ${REGIONS_DIR}/regions.py --format=json --all --notes > "${cros_regions}"
   add_temp "${cros_regions}"
 }

@@ -4,9 +4,16 @@
 
 """Handle site packages and package name conflicts inside docker."""
 
+import functools
 import os
+import os.path
 import site
 import sys
+
+
+_APPENGINE_SRC_ROOT = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    '..', '..', '..', '..', '..')
 
 
 def _PatchImports():
@@ -22,4 +29,13 @@ def _PatchImports():
           os.path.join(appengine_sdk_dir, google))
 
 
+@functools.lru_cache(maxsize=1)
+def _SetRegionPathEnv():
+  if os.environ.get('IS_APPENGINE') == 'true':
+    resource_dir = os.path.join(_APPENGINE_SRC_ROOT, 'resource')
+    os.environ.setdefault('CROS_REGIONS_DATABASE',
+                          os.path.join(resource_dir, 'cros-regions.json'))
+
+
 _PatchImports()
+_SetRegionPathEnv()
