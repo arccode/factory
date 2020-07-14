@@ -75,19 +75,23 @@ def CheckTestList(manager_, test_list_id, dump):
       perform checking.
     test_list_id: ID of the test list (a string).
     dump: true to simply load and print the test list.
+
+  Returns:
+    True if there is no error in the test list and False when there is error.
   """
   logging.info('Checking test list: %s...', test_list_id)
   try:
     test_list = manager_.GetTestListByID(test_list_id)
   except Exception:
     logging.exception('Failed to load test list: %s.', test_list_id)
-    return
+    return False
 
   if dump:
     print(test_list.ToFactoryTestList().__repr__(recursive=True))
-    return
+    return True
 
   raw_config = manager_.loader.Load(test_list_id, allow_inherit=False)
+  result = True
 
   # Check if there are test object definiions that overrides nothing.
   parents_config = {}
@@ -113,6 +117,7 @@ def CheckTestList(manager_, test_list_id, dump):
       logging.warning(
           'Test object "%s" inherits aother test object but overrides nothing.',
           object_name)
+      result = False
 
   # Check if there are unreferenced test object definitions in the test list.
   cache = {}
@@ -133,16 +138,20 @@ def CheckTestList(manager_, test_list_id, dump):
       logging.warning(
           'Test object "%s" is defined but not referenced in any test list',
           test_object_name)
+      result = False
 
   try:
     test_list.CheckValid()
   except Exception as e:
     if isinstance(e, KeyError) and str(e) == repr('tests'):
-      logging.warning('Test list "%s" does not have "tests" field. '
-                      'Fine for generic test lists.', test_list_id)
+      logging.warning('Test list "%s" does not have "tests" field.',
+                      test_list_id)
+      if test_list_id in ('main', 'common') or test_list_id.startswith(
+          'generic'):
+        return result
     else:
       logging.error('Test list "%s" is invalid: %s.', test_list_id, e)
-    return
+    return False
 
   failed_tests = []
   for test in test_list.Walk():
@@ -163,8 +172,10 @@ def CheckTestList(manager_, test_list_id, dump):
   if failed_tests:
     logging.error('The following tests have invalid arguments: \n  %s',
                   '\n  '.join(test.path for test in failed_tests))
-  else:
-    logging.info('Woohoo, test list "%s" looks great!', test_list_id)
+    return False
+
+  logging.info('Woohoo, test list "%s" looks great!', test_list_id)
+  return True
 
 
 def main(args):
@@ -199,8 +210,11 @@ def main(args):
     os.execv(overlay_factory_env, new_args)
 
   manager_ = manager.Manager()
+  success = True
   for test_list_id in options.test_list_id:
-    CheckTestList(manager_, test_list_id, options.dump)
+    success &= CheckTestList(manager_, test_list_id, options.dump)
+
+  sys.exit(not success)
 
 if __name__ == '__main__':
   main(sys.argv[1:])
