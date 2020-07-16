@@ -6,8 +6,8 @@
 # Clear all factory test states when the internal storage has been changed.
 # Note we can't call 'factory clear' because goofy (providing goofy_rpc) is not
 # available at the moment.
-echo "Device ID change detected, resetting all test results..."
-TESTS_DATA="/var/factory/state/tests"
+echo "Device ID change detected, resetting all test states..."
+TESTS_DATA="/var/factory/state"
 # We can't call the file tests.bak here, since shelve_utils assume that all
 # files with prefix 'tests.' part of the shelve.
 BACKUP_TESTS_DATA="${TESTS_DATA}_bak"
