@@ -28,8 +28,8 @@ class MemcacheAdapterTest(unittest.TestCase):
     chunks = adapter.BreakIntoChunks('testkey', serialized_data)
 
     self.assertEqual(2, len(chunks))
-    self.assertEqual(b'aa', chunks['testnamespace:testkey.0'])
-    self.assertEqual(b'bb', chunks['testnamespace:testkey.1'])
+    self.assertEqual(b'aa', chunks['testnamespace.py3:testkey.0'])
+    self.assertEqual(b'bb', chunks['testnamespace.py3:testkey.1'])
 
   def testBreakIntoChunksNone(self):
     memcache_adapter.MEMCACHE_CHUNKSIZE = 2
@@ -49,7 +49,7 @@ class MemcacheAdapterTest(unittest.TestCase):
     adapter.Put('testkey', data)
 
     mock_redis_mset.assert_called_once_with({
-        'testnamespace:testkey.0': b'aabb'})
+        'testnamespace.py3:testkey.0': b'aabb'})
     mock_pickle.assert_called_once_with(
         ['aa', 'bb'], memcache_adapter.PICKLE_PROTOCOL_VERSION)
 
@@ -71,8 +71,8 @@ class MemcacheAdapterTest(unittest.TestCase):
     adapter = memcache_adapter.MemcacheAdapter('testnamespace')
     value = adapter.Get('testkey')
 
-    mock_redis_mget.assert_called_once_with(['testnamespace:testkey.0',
-                                             'testnamespace:testkey.1'])
+    mock_redis_mget.assert_called_once_with(['testnamespace.py3:testkey.0',
+                                             'testnamespace.py3:testkey.1'])
     mock_pickle.assert_called_once_with(b'yyzz')
     self.assertEqual('pickle_return', value)
 
