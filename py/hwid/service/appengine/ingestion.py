@@ -28,6 +28,10 @@ from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.utils import json_utils
 
 
+class PayloadGenerationException(Exception):
+  """Exception to group similar excetpions for error reporting."""
+
+
 def _GetCredentials():
   credential, unused_project_id = google.auth.default(scopes=[
       'https://www.googleapis.com/auth/gerritcodereview'])
@@ -372,8 +376,7 @@ class RefreshHandler(webapp2.RequestHandler):
         logging.debug('No modification is made, skipped')
       except git_util.GitUtilException as ex:
         logging.error('CL is not created: %r', str(ex))
-        # TODO(clarkchung): replace mail notification to Stackdriver Error
-        # Reporting
+        raise PayloadGenerationException('CL is not created') from ex
 
   def UpdatePayloads(self, force_update=False):
     """Update generated payloads to repo.
@@ -405,17 +408,15 @@ class RefreshHandler(webapp2.RequestHandler):
       result = vpg_module.GenerateVerificationPayload(db_list)
       if result.error_msgs:
         logging.error('Generate Payload fail: %s', ' '.join(result.error_msgs))
-        # TODO(clarkchung): replace mail notification to Stackdriver Error
-        # Reporting
-      else:
-        new_files = result.generated_file_contents
-        payload_hash = self.GetPayloadHashIfChanged(board, new_files,
-                                                    force_update)
-        if payload_hash is not None:
-          payload_hash_mapping[board] = payload_hash
-          self.TryCreateCL(
-              service_account_name, auth_cookie, board, new_files,
-              hwid_master_commit)
+        raise PayloadGenerationException('Generate Payload fail')
+      new_files = result.generated_file_contents
+      payload_hash = self.GetPayloadHashIfChanged(board, new_files,
+                                                  force_update)
+      if payload_hash is not None:
+        payload_hash_mapping[board] = payload_hash
+        self.TryCreateCL(
+            service_account_name, auth_cookie, board, new_files,
+            hwid_master_commit)
 
     return hwid_master_commit, payload_hash_mapping
 
