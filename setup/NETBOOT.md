@@ -104,6 +104,14 @@ cd ~/trunk/src/scripts
 ./make_netboot.sh --board "${BOARD}"
 ```
 
+*** note
+If you need to add any USE flags while building kernel, add USE flags to
+environment variables.
+```
+USE="..." ./make_netboot.sh --board "${BOARD}"
+```
+***
+
 And find the netboot kernel in
 `../build/images/${BOARD}/latest/netboot/vmlinuz`.
 
