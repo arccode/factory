@@ -88,6 +88,17 @@ class EvaluateRunIfTest(unittest.TestCase):
     self.test_list.constants['foo'] = {'bar': False}
     self.assertFalse(self._EvaluateRunIf())
 
+  def testExpression(self):
+    self.test.run_if = 'constants.phase == "PVT"'
+
+    self.assertFalse(self._EvaluateRunIf())
+
+    self.test_list.constants['phase'] = 'DVT'
+    self.assertFalse(self._EvaluateRunIf())
+
+    self.test_list.constants['phase'] = 'PVT'
+    self.assertTrue(self._EvaluateRunIf())
+
   def testComplexExpression(self):
     self.test.run_if = 'not device.foo.bar or constants.x.y'
 

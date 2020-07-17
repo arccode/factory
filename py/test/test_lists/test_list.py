@@ -607,7 +607,7 @@ class ITestList(metaclass=abc.ABCMeta):
     try:
       syntax_tree = ast.parse(run_if, mode='eval')
       syntax_tree = NodeTransformer_AddGet(
-          ['device', 'constant']).visit(syntax_tree)
+          ['device', 'constants']).visit(syntax_tree)
       code_object = compile(syntax_tree, '<string>', 'eval')
       return eval(code_object, namespace)  # pylint: disable=eval-used
     except Exception:
