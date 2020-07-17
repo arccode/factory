@@ -113,6 +113,9 @@ class FingerprintTest(unittest.TestCase):
       Arg('max_error_reset_pixels', int,
           'The maximum number of error pixels in the test_reset image.',
           default=5),
+      Arg('fpframe_retry_count', int,
+          'The maximum number of retry for fpframe.',
+          default=0),
   ]
 
   # MKBP index for Fingerprint sensor event
@@ -125,6 +128,26 @@ class FingerprintTest(unittest.TestCase):
 
   def tearDown(self):
     self._fpmcu.FpmcuCommand('fpmode', 'reset')
+
+  def FpmcuTryWaitEvent(self, *args, **kwargs):
+    try:
+      self._fpmcu.FpmcuCommand('waitevent', *args, **kwargs)
+    except Exception as e:
+      logging.error('Wait event fail: %s', e)
+
+  def FpmcuGetFpframe(self, *args, **kwargs):
+    # try fpframe command for at most (fpframe_retry_count + 1) times.
+    for num_retries in range(self.args.fpframe_retry_count + 1):
+      try:
+        img = self._fpmcu.FpmcuCommand('fpframe', *args, **kwargs)
+        break
+      except Exception as e:
+        if num_retries < self.args.fpframe_retry_count:
+          logging.info('Retrying fpframe %d times', num_retries + 1)
+        else:
+          # raise an exception if last attempt failed
+          raise e
+    return img
 
   def IsDetectZone(self, x, y):
     for x1, y1, x2, y2 in self.args.detect_zones:
@@ -169,9 +192,9 @@ class FingerprintTest(unittest.TestCase):
     self._fpmcu.FpmcuCommand('fpmode', 'capture',
                              'pattern1' if inverted else 'pattern0')
     # wait for the end of capture (or timeout after 500 ms)
-    self._fpmcu.FpmcuCommand('waitevent', self.EC_MKBP_EVENT_FINGERPRINT, '500')
+    self.FpmcuTryWaitEvent(self.EC_MKBP_EVENT_FINGERPRINT, '500')
     # retrieve the resulting image as a PNM
-    pnm = self._fpmcu.FpmcuCommand('fpframe')
+    pnm = self.FpmcuGetFpframe()
 
     pixel_lines = self.CheckPnmAndExtractPixels(pnm)
     # Build arrays of black and white pixels (aka Type-1 / Type-2)
@@ -275,9 +298,9 @@ class FingerprintTest(unittest.TestCase):
     # frame.
     self._fpmcu.FpmcuCommand('fpmode', 'capture', 'test_reset')
     # wait for the end of capture (or timeout after 500 ms)
-    self._fpmcu.FpmcuCommand('waitevent', self.EC_MKBP_EVENT_FINGERPRINT, '500')
+    self.FpmcuTryWaitEvent(self.EC_MKBP_EVENT_FINGERPRINT, '500')
     # retrieve the resulting image as a PNM
-    pnm = self._fpmcu.FpmcuCommand('fpframe')
+    pnm = self.FpmcuGetFpframe()
 
     pixel_lines = self.CheckPnmAndExtractPixels(pnm)
     # Compute median value and the deviation of every pixels per column.
@@ -330,9 +353,8 @@ class FingerprintTest(unittest.TestCase):
       # Test sensor image quality
       self._fpmcu.FpmcuCommand('fpmode', 'capture', 'qual')
       # wait for the end of capture (or timeout after 5s)
-      self._fpmcu.FpmcuCommand('waitevent',
-                               self.EC_MKBP_EVENT_FINGERPRINT, '5000')
-      img = self._fpmcu.FpmcuCommand('fpframe', 'raw', encoding=None)
+      self.FpmcuTryWaitEvent(self.EC_MKBP_EVENT_FINGERPRINT, '5000')
+      img = self.FpmcuGetFpframe('raw', encoding=None)
       # record the raw image file for quality evaluation
       testlog.AttachContent(
           content=str(img),
