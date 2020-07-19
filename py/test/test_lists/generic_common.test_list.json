@@ -240,6 +240,16 @@
     "Cr50WriteWhitelabelFlags": {
       "pytest_name": "cr50_write_whitelabel_flags"
     },
+    "DeprovisionCBI": {
+      "inherit": "ExecShell",
+      "label": "Deprovision CBI",
+      "args": {
+        "commands": [
+          "ectool cbi set 2 0x7fffffff 4",
+          "ectool cbi remove 6"
+        ]
+      }
+    },
     "Display": {
       "pytest_name": "display"
     },

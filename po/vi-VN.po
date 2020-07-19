@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-07-08 15:00+CST\n"
+"PO-Revision-Date: 2020-07-19 18:14+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -3314,6 +3314,10 @@ msgstr "EC Khởi động lại lạnh"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Cold Reset"
 msgstr "Khởi động nguội"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Deprovision CBI"
+msgstr "từ chối CBI"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Enable EC Write Protect"
