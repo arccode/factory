@@ -427,9 +427,9 @@ def GenerateVerificationPayload(dbs):
   hw_verification_spec.component_infos.sort(
       key=lambda ci: (ci.component_category, ci.component_uuid))
 
-  # Append the whitelists in the verification spec.
+  # Append the allowlists in the verification spec.
   for ps_info in _GetAllGenericProbeStatementInfoRecords():
-    hw_verification_spec.generic_component_value_whitelists.add(
+    hw_verification_spec.generic_component_value_allowlists.add(
         component_category=_ProbeRequestSupportCategory.Value(
             ps_info.probe_category),
         field_names=ps_info.allowlist_fields)

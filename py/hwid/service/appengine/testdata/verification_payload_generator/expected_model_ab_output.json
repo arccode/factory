@@ -226,7 +226,7 @@
         "qualificationStatus": "QUALIFIED"
       }
     ],
-    "genericComponentValueWhitelists": [
+    "genericComponentValueAllowlists": [
       {
         "componentCategory": "battery",
         "fieldNames": ["manufacturer", "model_name", "technology"]
