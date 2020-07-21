@@ -86,11 +86,12 @@ local_deployment_prepare() {
       "${LOCAL_DEPLOYMENT_PROJECT_ROOT_PATH}/requirements.txt"
 
   info "Start the dependent services."
-  local sid="$(setsid bash -c "gcloud beta emulators datastore start \
-      --no-store-on-disk 2>/dev/null >/dev/null & echo \$\$")"
+  local sid="$(setsid bash -c "gcloud --project='${GCP_PROJECT}' beta \
+      emulators datastore start --no-store-on-disk 2>/dev/null >/dev/null \
+      & echo \$\$")"
   sleep 3  # ensure the datastore emulator is ready
   LOCAL_DEPLOYMENT_SERVICE_SIDS+=("${sid}")
-  $(gcloud beta emulators datastore env-init)
+  $(gcloud --project="${GCP_PROJECT}" beta emulators datastore env-init)
 }
 
 local_deployment_stop() {
