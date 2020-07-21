@@ -60,6 +60,7 @@ LOCAL = 'local'
 TEST_IMAGE_SEARCH_DIRS = ['test_image', 'factory_test']
 RELEASE_IMAGE_SEARCH_DIRS = ['release_image', 'release']
 TOOLKIT_SEARCH_DIRS = ['toolkit', 'factory_toolkit']
+FACTORY_SHIM_SEARCH_DIR = 'factory_shim'
 
 FIRMWARE_SEARCH_DIR = 'firmware'
 # temporary directory for the release image which contains firmware
@@ -183,6 +184,7 @@ class FinalizeBundle:
   toolkit_source = None
   toolkit_path = None
   toolkit_version = None
+  signed_shim_path = None
   gsutil = None
   has_firmware = DEFAULT_FIRMWARES
   work_dir = None
@@ -348,6 +350,31 @@ class FinalizeBundle:
 
     return resource_path
 
+  def _LocateSignedFactoryShim(self, resource_source, search_dir):
+    """Locates a signed factory shim under the search directory.
+
+    Args:
+      resource_source: source of the resource, a version string.
+      search_dir: the directory under self.bundle_dir to search.
+
+    Returns:
+      Path to the resource if its version matches, otherwise returns None.
+    """
+    resource_name = 'signed factory shim'
+    abs_search_dir = os.path.join(self.bundle_dir, search_dir)
+
+    logging.info('Searching %s in %s', resource_name, search_dir)
+    for signed_factory_shim in glob.glob(os.path.join(
+        abs_search_dir, 'chromeos_*_factory*.bin')):
+      pattern = 'chromeos_(.*)_{board}_factory'.format(board=self.board)
+      version_match = re.search(pattern, signed_factory_shim)
+      if version_match and version_match.group(1) == resource_source:
+        logging.info('A local copy of %s is found at %r', resource_name,
+                     signed_factory_shim)
+        return signed_factory_shim
+
+    return None
+
   def LocateResources(self):
     """Locates test image, release image, and factory toolkit.
 
@@ -379,6 +406,11 @@ class FinalizeBundle:
         'factory toolkit', self.toolkit_source, TOOLKIT_SEARCH_DIRS,
         lambda unused_path, unused_version: True)
 
+    if self.toolkit_source != LOCAL:
+      self.signed_shim_path = self._LocateSignedFactoryShim(
+          self.toolkit_source, FACTORY_SHIM_SEARCH_DIR)
+
+
   def _CheckGSUtilVersion(self):
     # Check for gsutil >= 3.32.
     version = self.gsutil.GetVersion()
@@ -409,7 +441,11 @@ class FinalizeBundle:
     #                         factory.zip.
     need_toolkit = (self.toolkit_source != LOCAL)
 
-    if not need_test_image and not need_release_image and not need_toolkit:
+    need_signed_shim = (self.signed_shim_path is None and
+                        self.toolkit_source != LOCAL)
+
+    if (not need_test_image and not need_release_image and not need_toolkit and
+        not need_signed_shim):
       return
 
     # Make sure gsutil is up to date; older versions are pretty broken.
@@ -435,6 +471,16 @@ class FinalizeBundle:
       if need_toolkit:
         self.toolkit_path = self._DownloadFactoryToolkit(self.toolkit_source,
                                                          self.bundle_dir)
+
+      abs_factory_shim_dir = os.path.join(
+          self.bundle_dir, FACTORY_SHIM_SEARCH_DIR)
+      if need_signed_shim:
+        self.signed_shim_path = self._TryDownloadSignedFactoryShim(
+            self.toolkit_source, abs_factory_shim_dir)
+      if self.signed_shim_path:
+        # Remove the unsigned factory shim if the signed factory shim exists.
+        file_utils.TryUnlink(os.path.join(
+            abs_factory_shim_dir, 'factory_install_shim.bin'))
 
       if need_firmware:
         self.firmware_image_source = self._DownloadReleaseImage(
@@ -811,10 +857,12 @@ class FinalizeBundle:
       output_file = os.path.join(
           self.work_dir, 'factory_bundle_%s_%s.tar.bz2' % (self.project,
                                                            self.bundle_name))
-      Spawn(_GetImageTool() +
-            ['bundle', '-o', self.work_dir, '--board', self.board,
-             '--timestamp', self.bundle_name.split('_')[0],
-             '--phase', self.bundle_name.split('_')[1]],
+      args = ['bundle', '-o', self.work_dir, '--board', self.board,
+              '--timestamp', self.bundle_name.split('_')[0],
+              '--phase', self.bundle_name.split('_')[1]]
+      if self.signed_shim_path:
+        args += ['--factory_shim', self.signed_shim_path]
+      Spawn(_GetImageTool() + args,
             log=True, check_call=True, cwd=self.bundle_dir)
       if image_tool_output_file != output_file:
         Spawn(['mv', image_tool_output_file, output_file],
@@ -953,6 +1001,32 @@ class FinalizeBundle:
     return self._LocateOneResource(
         'factory toolkit', LOCAL, TOOLKIT_SEARCH_DIRS,
         lambda unused_path, unused_version: True)
+
+  def _TryDownloadSignedFactoryShim(self, requested_version, target_dir):
+    possible_urls = []
+    for channel in RESOURCE_CHANNELS:
+      url = '%s/%s' % (
+          gsutil.BuildResourceBaseURL(
+              channel, self.build_board.gsutil_name, requested_version),
+          'chromeos_*_factory*.bin')
+      possible_urls.append(url)
+    try:
+      with self._DownloadResource(
+          possible_urls, 'signed factory shim', requested_version
+      ) as (downloaded_path, found_url):
+        shim_basename = os.path.basename(found_url)
+        dst_path = os.path.join(target_dir, shim_basename)
+        logging.info('Moving %r to %r', downloaded_path, dst_path)
+        file_utils.TryMakeDirs(target_dir)
+        shutil.move(downloaded_path, dst_path)
+    except FinalizeBundleException as e:
+      # If the signed factory shim isn't found, there is still an unsigned
+      # factory shim extracted from the factory.zip.  So ignore this exception
+      # here.
+      logging.info(e)
+
+    return self._LocateSignedFactoryShim(
+        requested_version, FACTORY_SHIM_SEARCH_DIR)
 
   @staticmethod
   def _ListAllFilesIn(search_dirs):
