@@ -11,7 +11,7 @@ probed_outcome_prototxt: '
   }
   rp_invocation_result: {
     result_type: INVOCATION_ERROR
-    error_msg: "Unable to invoke ''runtime_probe'': FileNotFoundError(2, \"No such file or directory: ''runtime_probe''\")."
+    error_msg: "Unable to invoke ''runtime_probe'': FileNotFoundError(2, ''No such file or directory'')."
   }'
 
 probe_config_payload: None  # not used

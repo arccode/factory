@@ -180,9 +180,8 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
           if ps_type == stubby_pb2.ProbeMetadata.QUAL_OVERRIDDEN:
             device_id = ''
           probe_data_source_factory.overridden_probe_data.is_tested = True
-          self._ps_storage_connector.UpdateOverriddenProbeData(
-              qual_id, device_id,
-              probe_data_source_factory.overridden_probe_data)
+          self._ps_storage_connector.MarkOverriddenProbeStatementTested(
+              qual_id, device_id)
 
     response.result_type = response.SUCCEED
     response.probe_info_test_results.extend(
