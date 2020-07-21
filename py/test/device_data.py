@@ -112,7 +112,7 @@ API Spec
 --------
 """
 
-import collections
+import collections.abc
 import logging
 import os
 
@@ -353,7 +353,7 @@ def FlattenData(data, parent=''):
   items = []
   for k, v in data.items():
     new_key = JoinKeys(parent, k) if parent else k
-    if isinstance(v, collections.Mapping):
+    if isinstance(v, collections.abc.Mapping):
       items.extend(FlattenData(v, new_key).items())
     else:
       items.append((new_key, v))

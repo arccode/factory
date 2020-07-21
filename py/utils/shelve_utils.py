@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import collections
+import collections.abc
 import glob
 import logging
 import os
@@ -194,7 +194,7 @@ class DictShelfView:
       self._DeleteOneKey(key)
 
     def _SetValue(key, value):
-      if isinstance(value, collections.Mapping):
+      if isinstance(value, collections.abc.Mapping):
         for k in value:
           _SetValue(DictKey.Join(key, k), value[k])
       else:
@@ -207,7 +207,7 @@ class DictShelfView:
 
   def UpdateValue(self, key, value, sync=True):
     def _UpdateValue(key, value):
-      if isinstance(value, collections.Mapping):
+      if isinstance(value, collections.abc.Mapping):
         for k in value:
           _UpdateValue(DictKey.Join(key, k), value[k])
       else:
@@ -261,7 +261,7 @@ class DictShelfView:
 
     Returns:
       the return value will be an iterable the contains all children of `key`
-      :rtype: collections.Iterable
+      :rtype: collections.abc.Iterable
     """
     return self._cached_children[key]
 

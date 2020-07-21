@@ -76,7 +76,7 @@ To invoke a non-standard call 'DoSomething' with args (1, 2) and keyword args
 """
 
 
-import collections
+import collections.abc
 import logging
 import pprint
 import threading
@@ -114,7 +114,7 @@ class ShopfloorService(test_case.TestCase):
       Arg('method', str,
           'Name of shopfloor service method to call'),
       Arg('args', list, 'Arguments for specified method.', default=None),
-      Arg('kargs', collections.Mapping, 'Keyword arguments for method.',
+      Arg('kargs', collections.abc.Mapping, 'Keyword arguments for method.',
           default=None),
       Arg('raw_invocation', bool, 'Allow invocation of arbitrary calls.',
           default=False),

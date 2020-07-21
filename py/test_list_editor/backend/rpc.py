@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import collections
+import collections.abc
 import glob
 import logging
 import numbers
@@ -33,9 +33,9 @@ def _NormalizedArgType(t):
     return _BASIC_ARG_TYPE.FLOAT
   if issubclass(t, str):
     return _BASIC_ARG_TYPE.STR
-  if issubclass(t, collections.Sequence):
+  if issubclass(t, collections.abc.Sequence):
     return _BASIC_ARG_TYPE.LIST
-  if issubclass(t, collections.Mapping):
+  if issubclass(t, collections.abc.Mapping):
     return _BASIC_ARG_TYPE.DICT
   raise ValueError('Unknown argument type %r.' % t)
 

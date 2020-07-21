@@ -4,7 +4,7 @@
 
 """Utilities for data types."""
 
-import collections
+import collections.abc
 import functools
 import inspect
 import queue
@@ -116,7 +116,7 @@ def MakeList(value):
     A list of elements from "value" if it is iterable (except string);
     otherwise, a list contains only one element.
   """
-  if (isinstance(value, collections.Iterable) and
+  if (isinstance(value, collections.abc.Iterable) and
       not isinstance(value, str)):
     return list(value)
   return [value]
@@ -133,7 +133,7 @@ def MakeTuple(value):
     recursively; otherwise, a tuple with only one element.
   """
   def ShouldExpand(v):
-    return (isinstance(v, collections.Iterable) and
+    return (isinstance(v, collections.abc.Iterable) and
             not isinstance(v, str))
 
   def Expand(v):
@@ -151,7 +151,7 @@ def MakeSet(value):
     A set of elements from "value" if it is iterable (except string);
     otherwise, a set contains only one element.
   """
-  if (isinstance(value, collections.Iterable) and
+  if (isinstance(value, collections.abc.Iterable) and
       not isinstance(value, str)):
     return set(value)
   return set([value])

@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import collections
+import collections.abc
 
 from cros.factory.utils import shelve_utils
 
@@ -120,7 +120,7 @@ class DictSelector(ISelector):
     if parent:
       return self[parent][basename]
     new_key = shelve_utils.DictKey.Join(self._key, basename)
-    if isinstance(self._value, collections.Mapping):
+    if isinstance(self._value, collections.abc.Mapping):
       return DictSelector(key=new_key,
                           value=self._value.get(basename, _DEFAULT_NOT_SET))
     return DictSelector(key=new_key)

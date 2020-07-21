@@ -6,7 +6,7 @@
 
 import abc
 import ast
-import collections
+import collections.abc
 import copy
 import json
 import logging
@@ -446,22 +446,22 @@ class ITestList(metaclass=abc.ABCMeta):
     locals_ = type_utils.AttrDict(locals_ or {})
 
     def ConvertToBasicType(value):
-      if isinstance(value, collections.Mapping):
+      if isinstance(value, collections.abc.Mapping):
         return {k: ConvertToBasicType(v) for k, v in value.items()}
       if isinstance(value, str):
         return value
       if isinstance(value, (list, tuple)):
         return type(value)(ConvertToBasicType(v) for v in value)
-      if isinstance(value, collections.Sequence):
+      if isinstance(value, collections.abc.Sequence):
         return [ConvertToBasicType(v) for v in value]
       return value
 
     def ResolveArg(key, value):
-      if isinstance(value, collections.Mapping):
+      if isinstance(value, collections.abc.Mapping):
         return {k: ResolveArg('%s[%r]' % (key, k), v)
                 for k, v in value.items()}
 
-      if isinstance(value, collections.Sequence):
+      if isinstance(value, collections.abc.Sequence):
         if not isinstance(value, str):
           return [
               ResolveArg('%s[%d]' % (key, i), v) for i, v in enumerate(value)

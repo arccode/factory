@@ -5,6 +5,7 @@
 from __future__ import print_function
 
 import collections
+import collections.abc
 from io import StringIO
 import os
 import re
@@ -442,7 +443,7 @@ class TouchscreenCalibration(test_case.TestCase):
     """Writes the sensor data and the test result to a file."""
     logger.write('%s: %s %s\n' % (phase, sn, 'Pass' if test_pass else 'Fail'))
     for row in data:
-      if isinstance(row, collections.Iterable):
+      if isinstance(row, collections.abc.Iterable):
         logger.write(' '.join([str(val) for val in row]))
         logger.write('\n')
       else:

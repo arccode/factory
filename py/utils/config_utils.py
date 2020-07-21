@@ -44,6 +44,7 @@ Usage:
 from __future__ import print_function
 
 import collections
+import collections.abc
 import glob
 import inspect
 import json
@@ -153,7 +154,7 @@ def OverrideConfig(base, overrides, copy_on_write=False):
   changed = False
   result = base.copy() if copy_on_write else base
   for k, v in overrides.items():
-    if isinstance(v, collections.Mapping):
+    if isinstance(v, collections.abc.Mapping):
       v = v.copy()
       if pop_bool(v, _OVERRIDE_DELETE_KEY):
         if k in result:
@@ -164,7 +165,7 @@ def OverrideConfig(base, overrides, copy_on_write=False):
         changed = True
       else:
         old_v = result.get(k)
-        if isinstance(old_v, collections.Mapping):
+        if isinstance(old_v, collections.abc.Mapping):
           result[k] = OverrideConfig(old_v, v, copy_on_write)
         else:
           result[k] = OverrideConfig({}, v)
@@ -184,7 +185,7 @@ def GetNamedTuple(mapping):
   Returns:
     A named tuple generated from argument.
   """
-  if not isinstance(mapping, collections.Mapping):
+  if not isinstance(mapping, collections.abc.Mapping):
     return mapping
   new_mapping = {k: GetNamedTuple(v) for k, v in mapping.items()}
   return collections.namedtuple('Config', new_mapping.keys())(**new_mapping)
