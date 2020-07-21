@@ -8,7 +8,6 @@
 import functools
 import http
 import logging
-import os
 
 # pylint: disable=no-name-in-module, import-error, wrong-import-order
 import flask
@@ -81,7 +80,7 @@ def _CreateApp():
 
 
 def _InitLogging():
-  if os.environ.get('IS_APPENGINE') == 'true':
+  if CONFIG.app_id:  # in App Engine environment
     client = gc_logging.Client()
     client.get_default_handler()
     client.setup_logging()
