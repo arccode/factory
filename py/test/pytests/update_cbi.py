@@ -58,16 +58,15 @@ import os
 
 from cros.factory.device import device_utils
 from cros.factory.test import device_data
-from cros.factory.test.env import paths
 from cros.factory.test import session
 from cros.factory.test import test_case
 from cros.factory.test.utils.cbi_utils import CbiDataName
 from cros.factory.test.utils.cbi_utils import GetCbiData
 from cros.factory.test.utils.cbi_utils import SetCbiData
 from cros.factory.test.utils import cros_config_api_utils
+from cros.factory.test.utils import model_sku_utils
 from cros.factory.test.utils import update_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import config_utils
 from cros.factory.utils.schema import JSONSchemaDict
 from cros.factory.utils import type_utils
 
@@ -114,13 +113,15 @@ class UpdateCBITest(test_case.TestCase):
           default=CONFIG_SOURCE.cros_config_mock),
       Arg('program', str, 'The program of the device.', default=None),
       Arg('project', str, 'The project of the device.', default=None),
-      Arg('product_name', str,
+      Arg(
+          'product_name', str,
           'The product_name of the device. If not specified, read from '
-          '%s on x86 devices and %s on ARM devices.'
-          % (_PRODUCT_NAME_PATH, _DEVICE_TREE_COMPATIBLE_PATH),
-          default=None),
+          '%s on x86 devices and %s on ARM devices.' %
+          (model_sku_utils.PRODUCT_NAME_PATH,
+           model_sku_utils.DEVICE_TREE_COMPATIBLE_PATH), default=None),
       Arg('enable_factory_server', bool,
-          'Update project_config data from factory server.', default=False)]
+          'Update project_config data from factory server.', default=False)
+  ]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
@@ -148,7 +149,6 @@ class UpdateCBITest(test_case.TestCase):
             % self.args.config_source)
 
     self._config_jsonproto = None
-    self._model_sku = None
     # Check settings of config_source.
     if self.args.config_source == CONFIG_SOURCE.config_jsonproto:
       if not cros_config_api_utils.MODULE_READY:
@@ -158,41 +158,19 @@ class UpdateCBITest(test_case.TestCase):
             % self.args.config_source)
       self._config_jsonproto = cros_config_api_utils.SKUConfigs(
           self.args.program, self.args.project)
-    elif self.args.config_source == CONFIG_SOURCE.model_sku:
-      # config_utils.LoadConfig requires a filename without extension.
-      model_sku_path = os.path.join(paths.FACTORY_DIR, 'project_config',
-                                    '%s_%s_model_sku'
-                                    % (self.args.program, self.args.project))
-      self._model_sku = config_utils.LoadConfig(
-          config_name=model_sku_path, schema_name='model_sku')
 
   def GetSKUConfigFromModelSku(self, sku_id):
-    if self.args.product_name is None:
-      try:
-        product_names = [self._dut.ReadFile(_PRODUCT_NAME_PATH).strip()]
-      except Exception:
-        product_names = self._dut.ReadFile(
-            _DEVICE_TREE_COMPATIBLE_PATH).split('\0')
+    # config_utils.LoadConfig requires a filename without extension.
+    if self.args.program and self.args.project:
+      model_sku_path = self._dut.path.join(
+          model_sku_utils.PROJECT_CONFIG_PATH,
+          '%s_%s_model_sku' % (self.args.program, self.args.project))
     else:
-      product_names = [self.args.product_name]
-    try:
-      model_config = self._model_sku['model'][self.args.project]
-    except Exception:
-      model_config = {}
-      logging.warning("Can't get model.%s from model_sku", self.args.project)
-    for product_name in product_names:
-      try:
-        sku_config = self._model_sku['product_sku'][product_name][str(sku_id)]
-        break
-      except Exception:
-        pass
-    else:
-      sku_config = {}
-      logging.warning(
-          "Can't get sku_config from model_sku. product_names: %r, sku: %s",
-          product_names, sku_id)
-    config_utils.OverrideConfig(model_config, sku_config)
-    return model_config
+      model_sku_path = model_sku_utils.BOXSTER
+    return model_sku_utils.GetDesignConfig(
+        self._dut, default_config_dirs=os.path.dirname(__file__),
+        product_name=self.args.product_name, sku_id=sku_id,
+        config_name=model_sku_path, schema_name='model_sku')
 
   def GetCrosConfigData(self, sku_id, path, name, return_type):
     output = self._dut.CallOutput(

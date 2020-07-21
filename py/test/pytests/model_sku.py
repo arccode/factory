@@ -65,6 +65,7 @@ To ask OP to confirm sku information, add this in test list::
 """
 
 import logging
+import os
 
 from cros.factory.device import device_utils
 from cros.factory.gooftool import cros_config as cros_config_module
@@ -74,13 +75,11 @@ from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.i18n import _
+from cros.factory.test.utils import model_sku_utils
 from cros.factory.utils.arg_utils import Arg
-from cros.factory.utils import config_utils
 
 
 _KEY_COMPONENT_SKU = device_data.JoinKeys(device_data.KEY_COMPONENT, 'sku')
-_PRODUCT_NAME_PATH = '/sys/class/dmi/id/product_name'
-_DEVICE_TREE_COMPATIBLE_PATH = '/proc/device-tree/compatible'
 
 _PLATFORM_DATA = ['model', 'sku', 'brand']
 
@@ -89,57 +88,35 @@ class PlatformSKUModelTest(test_case.TestCase):
   """A test to confirm and set SKU and model information."""
 
   ARGS = [
-      Arg('config_name', str,
-          'Name of JSON config to load for setting device data.', default=None),
+      Arg(
+          'config_name', str,
+          'Name of JSON config to load for setting device data. Set this '
+          'argument to %s if you want to load boxster data.' %
+          model_sku_utils.BOXSTER, default=None),
       Arg('schema_name', str,
           'Name of JSON schema to load for setting device data.', default=None),
-      Arg('product_name', str,
+      Arg(
+          'product_name', str,
           'The product_name of the device. If not specified, read from '
-          '%s on x86 devices and %s on ARM devices.'
-          % (_PRODUCT_NAME_PATH, _DEVICE_TREE_COMPATIBLE_PATH),
-          default=None),
+          '%s on x86 devices and %s on ARM devices.' %
+          (model_sku_utils.PRODUCT_NAME_PATH,
+           model_sku_utils.DEVICE_TREE_COMPATIBLE_PATH), default=None),
   ]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
-    self._model_sku = config_utils.LoadConfig(config_name=self.args.config_name,
-                                              schema_name=self.args.schema_name)
     self._platform = {}
     self._goofy_rpc = state.GetInstance()
 
   def ApplyConfig(self):
-    model = self._platform.get('model', '')
-    sku = self._platform.get('sku', '')
-    if self.args.product_name is None:
-      try:
-        product_names = [self._dut.ReadFile(_PRODUCT_NAME_PATH).strip()]
-      except Exception:
-        product_names = self._dut.ReadFile(
-            _DEVICE_TREE_COMPATIBLE_PATH).split('\0')
+    if self.args.config_name is None:
+      config_name = os.path.splitext(os.path.basename(__file__))[0]
     else:
-      product_names = [self.args.product_name]
-    try:
-      model_config = self._model_sku['model'][model]
-    except Exception:
-      model_config = {}
-      logging.warning("Can't get model.%s from model_sku", model)
-    if 'product_sku' in self._model_sku:
-      for product_name in product_names:
-        try:
-          sku_config = self._model_sku['product_sku'][product_name][sku]
-          break
-        except Exception:
-          pass
-      else:
-        sku_config = {}
-        logging.warning(
-            "Can't get sku_config from model_sku. product_names: %r, sku: %s",
-            product_names, sku)
-    else:
-      # TODO(chuntsen): Remove getting config from 'sku' after a period of time.
-      sku_config = self._model_sku.get('sku', {}).get(sku, {})
-
-    config_utils.OverrideConfig(model_config, sku_config)
+      config_name = self.args.config_name
+    model_config = model_sku_utils.GetDesignConfig(
+        self._dut, default_config_dirs=os.path.dirname(__file__),
+        product_name=self.args.product_name, sku_id=self._platform['sku'],
+        config_name=config_name, schema_name=self.args.schema_name)
     if model_config:
       logging.info('Apply model/SKU config: %r', model_config)
       device_data.UpdateDeviceData(model_config)
