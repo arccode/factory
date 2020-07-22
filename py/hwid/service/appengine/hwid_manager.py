@@ -13,7 +13,7 @@ import copy
 import logging
 import re
 
-from google.cloud import ndb
+from google.cloud import ndb  # pylint: disable=no-name-in-module, import-error
 
 from cros.factory.hwid.service.appengine import memcache_adapter
 from cros.factory.hwid.service.appengine import \
