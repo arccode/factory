@@ -110,7 +110,6 @@ class FakePluginAPI(plugin_base.PluginAPI):
     if self._expired:
       raise plugin_base.EventStreamExpired
     self._expired = True
-    return None
 
 
 class TestEvent(unittest.TestCase):
@@ -350,7 +349,6 @@ class TestEventStreamIterator(unittest.TestCase):
       del plugin, event_stream, timeout
       if time_utils.MonotonicTime() > wait_exception_begin:
         raise plugin_base.WaitException
-      return None
 
     # WaitException is thrown at T=1, so the iterator should end shortly
     # afterwards.

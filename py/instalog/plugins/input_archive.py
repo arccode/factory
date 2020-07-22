@@ -77,7 +77,6 @@ class InputArchive(plugin_base.InputPlugin):
         self.exception('Exception while accessing file, check permissions, '
                        'files in archive, and "path" argument.')
         raise
-    return
 
   def Main(self):
     """Main thread of the plugin."""
