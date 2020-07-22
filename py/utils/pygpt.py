@@ -280,7 +280,7 @@ class GPTObject:
     else:
       self.Zero()
 
-    all_names = [f for f in self.__slots__]
+    all_names = list(self.__slots__)
     for name, value in kargs.items():
       if name not in all_names:
         raise GPTError('%s does not support keyword arg <%s>.' %

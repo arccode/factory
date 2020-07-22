@@ -243,9 +243,8 @@ class ECToolTemperatureSensors(ThermalSensorSource):
     ectool has a quick command 'temps all' that is faster then iterating all
     sensor with GetValue, so we want to implement GetAllValues explicitly.
     """
-    raw_values = {sensor_id: value for sensor_id, value in
-                  self.ECTOOL_TEMPS_ALL_RE.findall(
-                      self._device.CallOutput('ectool temps all'))}
+    raw_values = dict(self.ECTOOL_TEMPS_ALL_RE.findall(
+        self._device.CallOutput('ectool temps all')))
 
     # Remap ID to cached names.
     return {name: self._ConvertRawValue(raw_values.get(sensor_id))

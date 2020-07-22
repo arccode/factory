@@ -116,7 +116,7 @@ def _ParseBinaryBlob(blob):
     logging.warning('EDID parse error: unsupported EDID version.')
     return None
   # Verify checksum.
-  if sum([char for char in blob[:CHECKSUM_OFFSET + 1]]) % 0x100 != 0:
+  if sum(list(blob[:CHECKSUM_OFFSET + 1])) % 0x100 != 0:
     logging.warning('EDID parse error: checksum error.')
     return None
   # Currently we don't support EDID not using pixel clock.

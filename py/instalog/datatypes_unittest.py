@@ -289,23 +289,22 @@ class TestEventStreamIterator(unittest.TestCase):
     """Tests non-blocking operations with finite events in the queue."""
     self.q.put(1)
     with RuntimeBound(max=0.1):
-      results = [x for x in self.event_stream.iter(
-          blocking=False, timeout=1, count=1)]
+      results = list(self.event_stream.iter(blocking=False, timeout=1, count=1))
       self.assertEqual(results, [1])
 
     self.q.put(1)
     with RuntimeBound(max=0.1):
-      results = [x for x in self.event_stream.iter(blocking=False, count=1)]
+      results = list(self.event_stream.iter(blocking=False, count=1))
       self.assertEqual(results, [1])
 
     self.q.put(1)
     with RuntimeBound(max=0.1):
-      results = [x for x in self.event_stream.iter(blocking=False, timeout=1)]
+      results = list(self.event_stream.iter(blocking=False, timeout=1))
       self.assertEqual(results, [1])
 
     self.q.put(1)
     with RuntimeBound(max=0.1):
-      results = [x for x in self.event_stream.iter(blocking=False)]
+      results = list(self.event_stream.iter(blocking=False))
       self.assertEqual(results, [1])
 
   def testInfiniteItems(self):
@@ -313,29 +312,29 @@ class TestEventStreamIterator(unittest.TestCase):
     with mock.patch.object(self.q, 'empty', return_value=False):
       with mock.patch.object(self.q, 'get', return_value=1):
         with RuntimeBound(max=0.1):
-          results = [x for x in self.event_stream.iter(
-              blocking=True, timeout=1, count=1)]
+          results = list(
+              self.event_stream.iter(blocking=True, timeout=1, count=1))
           self.assertEqual(results, [1])
 
         with RuntimeBound(max=0.1):
-          results = [x for x in self.event_stream.iter(timeout=1, count=1)]
+          results = list(self.event_stream.iter(timeout=1, count=1))
           self.assertEqual(results, [1])
 
         with RuntimeBound(max=0.1):
           # Shouldn't matter what interval is set to.
-          results = [x for x in self.event_stream.iter(
-              timeout=1, interval=1, count=10)]
+          results = list(
+              self.event_stream.iter(timeout=1, interval=1, count=10))
           self.assertEqual(results, [1] * 10)
 
         with RuntimeBound(max=0.1):
           # Shouldn't matter what interval is set to.
-          results = [x for x in self.event_stream.iter(
-              timeout=1, interval=0.001, count=10)]
+          results = list(
+              self.event_stream.iter(timeout=1, interval=0.001, count=10))
           self.assertEqual(results, [1] * 10)
 
         with RuntimeBound(min=1, max=1.5):
           # No count argument; should run until timeout.
-          results = [x for x in self.event_stream.iter(timeout=1)]
+          results = list(self.event_stream.iter(timeout=1))
           self.assertTrue(all([x == 1 for x in results]))
           # Sanity check to make sure that the EventStreamIterator next() loop
           # is running fast enough.  On my machine I consistently get ~46000
@@ -355,8 +354,7 @@ class TestEventStreamIterator(unittest.TestCase):
     with mock.patch.object(self.plugin_api, 'EventStreamNext',
                            DelayedWaitException):
       with RuntimeBound(min=1, max=1.2):
-        results = [x for x in self.event_stream.iter(
-            timeout=2, interval=0.1, count=1)]
+        results = list(self.event_stream.iter(timeout=2, interval=0.1, count=1))
         self.assertEqual(results, [])
 
   def testBlockUntilCountFulfilled(self):
@@ -371,8 +369,7 @@ class TestEventStreamIterator(unittest.TestCase):
     with mock.patch.object(self.plugin_api, 'EventStreamNext',
                            DelayedEvent):
       with RuntimeBound(min=1, max=1.2):
-        results = [x for x in self.event_stream.iter(
-            timeout=2, interval=0.1, count=1)]
+        results = list(self.event_stream.iter(timeout=2, interval=0.1, count=1))
         self.assertEqual(results, ['delayed_event'])
 
 

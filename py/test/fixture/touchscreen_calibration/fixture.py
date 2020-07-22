@@ -121,7 +121,7 @@ class FixutreNativeUSB(serial_utils.SerialDevice):
   def _ExtractStateList(self, state_string):
     if state_string:
       state, pwm_freq, count = state_string.strip().strip('<>').split('.')
-      state_list = [s for s in state]
+      state_list = list(state)
       state_list.extend([pwm_freq, count])
     else:
       state_list = []
