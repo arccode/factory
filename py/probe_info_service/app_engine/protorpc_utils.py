@@ -6,7 +6,7 @@ import logging
 import uuid
 
 # pylint: disable=wrong-import-order
-import flask  # pylint: disable=import-error
+import flask
 from google.protobuf import symbol_database
 # pylint: enable=wrong-import-order
 

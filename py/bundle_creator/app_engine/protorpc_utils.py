@@ -7,7 +7,7 @@
 #                 them should be moved to a common package.
 import uuid
 
-import flask  # pylint: disable=import-error,no-name-in-module
+import flask
 
 from google.protobuf import symbol_database  # pylint: disable=import-error,no-name-in-module,wrong-import-order
 

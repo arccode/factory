@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import flask  # pylint: disable=import-error
+import flask
 
 from cros.factory.bundle_creator.app_engine import stubby_handler
 from cros.factory.bundle_creator.app_engine import protorpc_utils

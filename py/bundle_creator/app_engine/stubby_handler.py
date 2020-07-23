@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 import datetime
-import flask  # pylint: disable=import-error
+import flask
 
 # pylint: disable=import-error,no-name-in-module,wrong-import-order
 from google.cloud import pubsub_v1
