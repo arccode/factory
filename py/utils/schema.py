@@ -100,7 +100,7 @@ class Scalar(BaseType):
           'element_type %r of Scalar %r is not a scalar type' % (element_type,
                                                                  label))
     self.element_type = element_type
-    self.choices = set(choices) if choices else None
+    self.choices = set(choices) if choices else set()
 
   def __repr__(self):
     return 'Scalar(%r, %r%s)' % (

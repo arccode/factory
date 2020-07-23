@@ -100,8 +100,8 @@ class EDIDFunctionTest(unittest.TestCase):
     self.WriteEDIDToRootDir(self.FAKE_I2C_PATHS, self.FAKE_EDID)
 
   def InitEDIDFunction(self):
-    edid.EDIDFunction.path_to_identity = None
-    edid.EDIDFunction.identity_to_edid = None
+    edid.EDIDFunction.path_to_identity = {}
+    edid.EDIDFunction.identity_to_edid = {}
 
   def testSysfs(self, *unused_mocks):
     # Set up both sysfs and I2C EDID. The probe function should only read from

@@ -254,8 +254,8 @@ class EDIDFunction(probe_function.ProbeFunction):
     }
 
   """
-  path_to_identity = None
-  identity_to_edid = None
+  path_to_identity = {}
+  identity_to_edid = {}
 
   ARGS = [
       Arg('path', str,
@@ -290,11 +290,8 @@ class EDIDFunction(probe_function.ProbeFunction):
 
   @classmethod
   def MayInitCachedData(cls):
-    if cls.path_to_identity is not None:
+    if cls.path_to_identity:
       return
-
-    cls.path_to_identity = {}
-    cls.identity_to_edid = {}
 
     for pattern_type, glob_pattern in [
         ('sysfs_path', os.path.join(cls.ROOT_PATH, cls.SYSFS_PATH_PATTERN)),
