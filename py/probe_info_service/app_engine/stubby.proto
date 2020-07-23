@@ -125,7 +125,7 @@ message GetQualProbeTestBundleRequest {
 }
 
 message GetQualProbeTestBundleResponse {
-  enum ResultType {
+  enum Status {
     UNKNOWN = 0;
 
     SUCCEED = 1;
@@ -133,8 +133,8 @@ message GetQualProbeTestBundleResponse {
     UNKNOWN_ERROR = 3;
   }
 
-  ResultType result_type = 1;  // Required.
-  string error_msg = 2;        // Set if |result_type| is |UNKNOWN_ERROR|.
+  Status status = 1;     // Required.
+  string error_msg = 2;  // Set if |result_type| is |UNKNOWN_ERROR|.
   ProbeInfoParsedResult probe_info_parsed_result = 3;
 
   bytes test_bundle_payload = 4;
@@ -156,13 +156,13 @@ message CreateOverriddenProbeStatementRequest {
 }
 
 message CreateOverriddenProbeStatementResponse {
-  enum ResultType {
+  enum Status {
     UNKNOWN = 0;
 
     SUCCEED = 1;
     ALREADY_OVERRIDDEN_ERROR = 2;
   }
-  ResultType result_type = 1;  // Required.
+  Status status = 1;  // Required.
   string error_msg = 2;
   string result_msg = 3;
 }
@@ -172,7 +172,7 @@ message GetDeviceProbeConfigRequest {
 }
 
 message GetDeviceProbeConfigResponse {
-  enum ResultType {
+  enum Status {
     UNKNOWN = 0;
 
     SUCCEED = 1;
@@ -180,7 +180,7 @@ message GetDeviceProbeConfigResponse {
     UNKNOWN_ERROR = 3;
   }
 
-  ResultType result_type = 1;  // Required.
+  Status status = 1;  // Required.
   string error_msg = 2;
   repeated ProbeInfoParsedResult probe_info_parsed_results = 3;
 
@@ -194,14 +194,14 @@ message UploadDeviceProbeResultRequest {
 }
 
 message UploadDeviceProbeResultResponse {
-  enum ResultType {
+  enum UploadStatus {
     UNKNOWN = 0;
 
     SUCCEED = 2;
     PAYLOAD_INVALID_ERROR = 1;
     INTRIVIAL_ERROR = 3;
   }
-  ResultType result_type = 1;
+  UploadStatus upload_status = 1;
   string error_msg = 2;
   repeated ProbeInfoTestResult probe_info_test_results = 3;
 }

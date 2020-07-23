@@ -65,9 +65,9 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
     response.probe_info_parsed_result.CopyFrom(
         gen_result.probe_info_parsed_results[0])
     if gen_result.output is None:
-      response.result_type = response.INVALID_PROBE_INFO
+      response.status = response.INVALID_PROBE_INFO
     else:
-      response.result_type = response.SUCCEED
+      response.status = response.SUCCEED
       response.test_bundle_payload = gen_result.output
 
     return response
@@ -130,9 +130,9 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
     for pi_parsed_result in gen_result.probe_info_parsed_results:
       response.probe_info_parsed_results.append(pi_parsed_result)
     if gen_result.output is None:
-      response.result_type = response.INVALID_PROBE_INFO
+      response.status = response.INVALID_PROBE_INFO
     else:
-      response.result_type = response.SUCCEED
+      response.status = response.SUCCEED
       response.generated_config_payload = gen_result.output
 
     return response
@@ -153,12 +153,12 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
           self._probe_tool_manager.AnalyzeDeviceProbeResultPayload(
               probe_data_sources, request.probe_result_payload))
     except probe_tool_manager.PayloadInvalidError as e:
-      response.result_type = response.PAYLOAD_INVALID_ERROR
+      response.upload_status = response.PAYLOAD_INVALID_ERROR
       response.error_msg = str(e)
       return response
 
     if analyzed_result.intrivial_error_msg:
-      response.result_type = response.INTRIVIAL_ERROR
+      response.upload_status = response.INTRIVIAL_ERROR
       response.error_msg = analyzed_result.intrivial_error_msg
       return response
 
@@ -183,7 +183,7 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
           self._ps_storage_connector.MarkOverriddenProbeStatementTested(
               qual_id, device_id)
 
-    response.result_type = response.SUCCEED
+    response.upload_status = response.SUCCEED
     response.probe_info_test_results.extend(
         analyzed_result.probe_info_test_results)
     return response
@@ -198,7 +198,7 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
 
     if self._ps_storage_connector.TryLoadOverriddenProbeData(
         comp_identity.qual_id, comp_identity.device_id):
-      response.result_type = response.ALREADY_OVERRIDDEN_ERROR
+      response.status = response.ALREADY_OVERRIDDEN_ERROR
       return response
 
     # Try to generate a default overridden probe statement from the given
@@ -213,7 +213,7 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
     result_msg = self._ps_storage_connector.SetProbeStatementOverridden(
         comp_identity.qual_id, comp_identity.device_id, ps)
 
-    response.result_type = response.SUCCEED
+    response.status = response.SUCCEED
     response.result_msg = result_msg
     return response
 

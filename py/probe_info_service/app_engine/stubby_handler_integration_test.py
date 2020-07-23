@@ -43,14 +43,14 @@ class StubbyHandlerTest(unittest.TestCase):
     req = stubby_pb2.GetQualProbeTestBundleRequest(
         qual_probe_info=unittest_utils.LoadComponentProbeInfo('1-valid'))
     resp = self._stubby_handler.GetQualProbeTestBundle(req)
-    self.assertEqual(resp.result_type, resp.SUCCEED)
+    self.assertEqual(resp.status, resp.SUCCEED)
     qual_probe_info = req.qual_probe_info
 
     # 3. The user gets a differnet test bundle from a different probe info.
     req = stubby_pb2.GetQualProbeTestBundleRequest(
         qual_probe_info=unittest_utils.LoadComponentProbeInfo('1-valid_v2'))
     resp = self._stubby_handler.GetQualProbeTestBundle(req)
-    self.assertEqual(resp.result_type, resp.SUCCEED)
+    self.assertEqual(resp.status, resp.SUCCEED)
     qual_probe_info_v2 = req.qual_probe_info
 
     # 4. The user uploads a positive result for the first bundle, get "LEGACY"
@@ -125,11 +125,11 @@ class StubbyHandlerTest(unittest.TestCase):
     req = stubby_pb2.CreateOverriddenProbeStatementRequest(
         component_probe_info=qual_probe_info)
     resp = self._stubby_handler.CreateOverriddenProbeStatement(req)
-    self.assertEqual(resp.result_type, resp.SUCCEED)
+    self.assertEqual(resp.status, resp.SUCCEED)
 
     # Try to make the request again and the service should block it.
     resp = self._stubby_handler.CreateOverriddenProbeStatement(req)
-    self.assertEqual(resp.result_type, resp.ALREADY_OVERRIDDEN_ERROR)
+    self.assertEqual(resp.status, resp.ALREADY_OVERRIDDEN_ERROR)
 
     # Verify the probe metadata.
     resp = self._stubby_handler.GetProbeMetadata(get_probe_metadata_req)
@@ -148,7 +148,7 @@ class StubbyHandlerTest(unittest.TestCase):
     req = stubby_pb2.GetQualProbeTestBundleRequest(
         qual_probe_info=qual_probe_info)
     resp = self._stubby_handler.GetQualProbeTestBundle(req)
-    self.assertEqual(resp.result_type, resp.INVALID_PROBE_INFO)
+    self.assertEqual(resp.status, resp.INVALID_PROBE_INFO)
     self.assertEqual(
         resp.probe_info_parsed_result.result_type,
         resp.probe_info_parsed_result.OVERRIDDEN_PROBE_STATEMENT_ERROR)
@@ -162,7 +162,7 @@ class StubbyHandlerTest(unittest.TestCase):
     req = stubby_pb2.GetQualProbeTestBundleRequest(
         qual_probe_info=qual_probe_info)
     resp = self._stubby_handler.GetQualProbeTestBundle(req)
-    self.assertEqual(resp.result_type, resp.SUCCEED)
+    self.assertEqual(resp.status, resp.SUCCEED)
 
     # 4. The user upload a positive probe result, the probe statement should
     #    become tested now.
@@ -202,7 +202,7 @@ class StubbyHandlerTest(unittest.TestCase):
     req = stubby_pb2.CreateOverriddenProbeStatementRequest(
         component_probe_info=qual_probe_info_1)
     resp = self._stubby_handler.CreateOverriddenProbeStatement(req)
-    self.assertEqual(resp.result_type, resp.SUCCEED)
+    self.assertEqual(resp.status, resp.SUCCEED)
 
     probe_data = ps_storage_connector_inst.TryLoadOverriddenProbeData(
         qual_probe_info_1.component_identity.qual_id, '')
@@ -216,7 +216,7 @@ class StubbyHandlerTest(unittest.TestCase):
         component_probe_info=unittest_utils.LoadComponentProbeInfo('3-valid'))
     req.component_probe_info.component_identity.device_id = 'device_one'
     resp = self._stubby_handler.CreateOverriddenProbeStatement(req)
-    self.assertEqual(resp.result_type, resp.SUCCEED)
+    self.assertEqual(resp.status, resp.SUCCEED)
 
     # 3. Downloads D1 probe bundle for Q1, Q2, Q3.
     comp_probe_infos = [unittest_utils.LoadComponentProbeInfo('1-valid'),
@@ -227,7 +227,7 @@ class StubbyHandlerTest(unittest.TestCase):
     req = stubby_pb2.GetDeviceProbeConfigRequest(
         component_probe_infos=comp_probe_infos)
     resp = self._stubby_handler.GetDeviceProbeConfig(req)
-    self.assertEqual(resp.result_type, resp.SUCCEED)
+    self.assertEqual(resp.status, resp.SUCCEED)
 
     # 4. Uploads D1 probe result, which found Q2 and Q3.
     req = stubby_pb2.UploadDeviceProbeResultRequest(
@@ -235,7 +235,7 @@ class StubbyHandlerTest(unittest.TestCase):
         probe_result_payload=unittest_utils.LoadRawProbedOutcome(
             '1_2_3-probed_2_3'))
     resp = self._stubby_handler.UploadDeviceProbeResult(req)
-    self.assertEqual(resp.result_type, resp.SUCCEED)
+    self.assertEqual(resp.upload_status, resp.SUCCEED)
     self.assertEqual([r.result_type for r in resp.probe_info_test_results],
                      [stubby_pb2.ProbeInfoTestResult.NOT_PROBED,
                       stubby_pb2.ProbeInfoTestResult.PASSED,
