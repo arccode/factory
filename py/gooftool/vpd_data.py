@@ -46,6 +46,8 @@ KNOWN_RO_DATA = {
     'dsm_calib': r'[0-9a-f ]*',
     'oem_device_requisition': ANY,
     'attested_device_id': ANY,
+    # See util/vpd_icc in https://crrev.com/c/2058225
+    'display_profiles': r'[0-9a-fA-F]{8}:.+',
 }
 
 # Variable key names in regular expression.
