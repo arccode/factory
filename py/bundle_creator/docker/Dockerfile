@@ -41,7 +41,7 @@ RUN cd /usr/src/ && \
 # Install factory toolkit.
 ARG GS_BASE="gs://chromeos-releases/dev-channel"
 ARG BOARD="grunt"
-ARG VERSION="13328.0.0"
+ARG VERSION="13371.0.0"
 ARG TOOLKIT="${GS_BASE}/${BOARD}/${VERSION}/*-factory-*.zip"
 COPY docker/service_account.json /
 RUN gcloud auth activate-service-account --key-file=/service_account.json && \
