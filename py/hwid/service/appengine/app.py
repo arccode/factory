@@ -80,7 +80,7 @@ def _CreateApp():
 
 
 def _InitLogging():
-  if CONFIG.app_id:  # in App Engine environment
+  if CONFIG.cloud_project:  # in App Engine environment
     client = gc_logging.Client()
     client.get_default_handler()
     client.setup_logging()
