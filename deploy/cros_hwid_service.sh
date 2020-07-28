@@ -16,7 +16,9 @@ DEPLOYMENT_PROD="prod"
 DEPLOYMENT_STAGING="staging"
 DEPLOYMENT_LOCAL="local"
 DEPLOYMENT_E2E="e2e"
+ENDPOINTS_SUFFIX=".appspot.com"
 FACTORY_PRIVATE_DIR="${FACTORY_DIR}/../factory-private"
+CLOUDSDK_APP_CLOUD_BUILD_TIMEOUT=1800
 
 . "${FACTORY_DIR}/devtools/mk/common.sh" || exit 1
 . "${FACTORY_PRIVATE_DIR}/config/hwid/service/appengine/config.sh" || exit 1
@@ -105,35 +107,54 @@ prepare_protobuf() {
 do_deploy() {
   local deployment_type="$1"
   shift
+  local appengine_env="flexible"
+  if [[ $# -gt 0 ]] ; then
+    appengine_env="$1"
+    shift
+  fi
   check_gcloud
   check_credentials "${GCP_PROJECT}"
 
   if [ "${deployment_type}" == "${DEPLOYMENT_PROD}" ]; then
     do_test
   fi
+  case "${appengine_env}" in
+    standard|flexible)
+      echo "Deploy HWID Service to App Engine in ${appengine_env}" \
+        "environment."
+      ;;
+    *)
+      die "Unavailable environment: \"${appengine_env}\".  Available" \
+        "environments: \"standard\" or \"flexible\"."
+      ;;
+  esac
 
-  mkdir -p "${TEMP_DIR}/lib"
-  SYMLINK_FILES=(cron.yaml requirements.txt .gcloudignore)
-  for file in "${SYMLINK_FILES[@]}"; do
-    ln -fs "${APPENGINE_DIR}/${file}" "${TEMP_DIR}"
+  mkdir -p "${TEMP_DIR}"
+  add_temp "${TEMP_DIR}"
+  # Change symlink to hard link due to b/70037640.
+  local cp_files=(cron.yaml requirements.txt .gcloudignore)
+  for file in "${cp_files[@]}"; do
+    cp -l "${APPENGINE_DIR}/${file}" "${TEMP_DIR}"
   done
-  ln -fs "${FACTORY_DIR}/py_pkg/cros" "${TEMP_DIR}"
+  cp -lr "${FACTORY_DIR}/py_pkg/cros" "${TEMP_DIR}"
   if [ -d "${FACTORY_PRIVATE_DIR}" ]; then
     mkdir -p "${TEMP_DIR}/resource"
-    cp "\
+    cp -l "\
 ${FACTORY_PRIVATE_DIR}/config/hwid/service/appengine/configurations.yaml" \
       "${TEMP_DIR}/resource"
   fi
 
-  # Fill in env vars in app.yaml
+  # Fill in env vars in app.*.yaml.template
   env GCP_PROJECT="${GCP_PROJECT}" \
     VPC_CONNECTOR_REGION="${VPC_CONNECTOR_REGION}" \
     VPC_CONNECTOR_NAME="${VPC_CONNECTOR_NAME}" \
     REDIS_HOST="${REDIS_HOST}" \
     REDIS_PORT="${REDIS_PORT}" \
+    ENDPOINTS_SERVICE_NAME="${GCP_PROJECT}${ENDPOINTS_SUFFIX}" \
     REDIS_CACHE_URL="${REDIS_CACHE_URL}" \
     DOLLAR='$' \
-    envsubst < "${APPENGINE_DIR}/app.yaml" > "${TEMP_DIR}/app.yaml"
+    envsubst < "${APPENGINE_DIR}/app.${appengine_env}.yaml.template" > \
+    "${TEMP_DIR}/app.yaml"
 
   prepare_protobuf
   prepare_cros_regions
@@ -142,11 +163,13 @@ ${FACTORY_PRIVATE_DIR}/config/hwid/service/appengine/configurations.yaml" \
       run_in_temp dev_appserver.py "${@}" app.yaml
       ;;
     "${DEPLOYMENT_E2E}")
-      run_in_temp gcloud --project="${GCP_PROJECT}" app deploy --no-promote \
+      CLOUDSDK_APP_CLOUD_BUILD_TIMEOUT="$CLOUDSDK_APP_CLOUD_BUILD_TIMEOUT" \
+        run_in_temp gcloud --project="${GCP_PROJECT}" app deploy --no-promote \
         --version=e2e-test app.yaml cron.yaml
       ;;
     *)
-      run_in_temp gcloud --project="${GCP_PROJECT}" app deploy app.yaml \
+      CLOUDSDK_APP_CLOUD_BUILD_TIMEOUT="$CLOUDSDK_APP_CLOUD_BUILD_TIMEOUT" \
+        run_in_temp gcloud --project="${GCP_PROJECT}" app deploy app.yaml \
         cron.yaml
       ;;
   esac
@@ -190,8 +213,10 @@ commands:
       Shows this help message.
       More about HWIDService: go/factory-git/py/hwid/service/appengine/README.md
 
-  $0 deploy [prod|staging]
-      Deploys HWID Service to the given environment by gcloud command.
+  $0 deploy [prod|staging] [flexible|standard]
+      Deploys HWID Service to the given environment by gcloud command.  The
+      last argument is for deploying different App Engine environment which
+      defaults to flexible.
 
   $0 deploy local [args...]
       Deploys HWID Service locally via dep_appserver.py tool.  Arguments will

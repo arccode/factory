@@ -18,8 +18,6 @@ __pycache__/
 # Ignored by the build system
 /setup.cfg
 
-app.yaml
-app.yml
 index.yaml
 index.yml
 #*#

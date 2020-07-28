@@ -1,0 +1,58 @@
+# Copyright 2020 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# This is a template file and should be used with
+# `${FACTORY_REPO}/deploy/cros_hwid_service.sh deploy [prod|staging] flexible`
+# command.
+
+runtime: python
+entrypoint: >-
+  gunicorn -c cros/factory/hwid/service/appengine/gunicorn.conf.py
+  -b :${DOLLAR}PORT cros.factory.hwid.service.appengine.app:hwid_service -t 600
+
+runtime_config:
+  python_version: 3
+
+env: flex
+
+instance_class: F4_1G
+
+automatic_scaling:
+  min_num_instances: 1
+  max_num_instances: 5
+  cool_down_period_sec: 180
+  cpu_utilization:
+    target_utilization: 0.6
+  target_concurrent_requests: 100
+
+endpoints_api_service:
+  name: "${ENDPOINTS_SERVICE_NAME}"
+  rollout_strategy: managed
+
+# Endpoints handler.
+handlers:
+- url: /api/.*
+  secure: always
+  redirect_http_response_code: 301
+  script: auto
+
+- url: /ingestion/.*
+  secure: always
+  redirect_http_response_code: 301
+  script: auto
+
+- url: /favicon.ico
+  secure: always
+  redirect_http_response_code: 301
+  static_files: cros/factory/hwid/service/appengine/static/favicon.ico
+  upload: cros/factory/hwid/service/appengine/static/favicon.ico
+
+vpc_access_connector:
+  name: "projects/${GCP_PROJECT}/locations/${VPC_CONNECTOR_REGION}/connectors/${VPC_CONNECTOR_NAME}"
+
+env_variables:
+  REDIS_HOST: "${REDIS_HOST}"
+  REDIS_PORT: "${REDIS_PORT}"
+  REDIS_CACHE_URL: "${REDIS_CACHE_URL}"
+  CROS_REGIONS_DATABASE: 'resource/cros-regions.json'

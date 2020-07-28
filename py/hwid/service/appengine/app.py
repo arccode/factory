@@ -74,7 +74,13 @@ def _CreateApp():
       view_func=_AuthCheckWrapper(
           goldeneye_ingestion.AllDevicesRefreshHandler.as_view(
               'all_devices_refresh')))
-  hwid_api.bp.before_request(_AuthCheck)
+
+  if CONFIG.gae_env == 'standard':
+    # hwid_api is protected by endpoints settings in Flexible environment.  For
+    # standard environment, we should protected hwid_api by _AuthCheck.  Note
+    # that we do not use `CONFIG.gae_env != 'flexible'` since this environment
+    # variable is not set in flexible environment.
+    hwid_api.bp.before_request(_AuthCheck)
   app.register_blueprint(hwid_api.bp)
   return app
 
@@ -82,8 +88,8 @@ def _CreateApp():
 def _InitLogging():
   if CONFIG.cloud_project:  # in App Engine environment
     client = gc_logging.Client()
-    client.get_default_handler()
-    client.setup_logging()
+    handler = gc_logging.handlers.AppEngineHandler(client)
+    gc_logging.handlers.setup_logging(handler, log_level=logging.DEBUG)
   else:
     logging.basicConfig(level=logging.DEBUG)
 

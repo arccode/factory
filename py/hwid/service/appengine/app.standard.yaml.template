@@ -1,6 +1,11 @@
 # Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
+
+# This is a template file and should be used with
+# `${FACTORY_REPO}/deploy/cros_hwid_service.sh deploy [prod|staging] standard`
+# command.
+
 runtime: python37
 entrypoint:
   gunicorn -b :${DOLLAR}PORT cros.factory.hwid.service.appengine.app:hwid_service -t 600

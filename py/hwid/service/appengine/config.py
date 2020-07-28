@@ -61,6 +61,7 @@ class _Config:
   def __init__(self):
     super(_Config, self).__init__()
     self.cloud_project = os.environ.get('GOOGLE_CLOUD_PROJECT')
+    self.gae_env = os.environ.get('GAE_ENV')
     try:
       confs = yaml.load(file_utils.ReadFile(_PATH_TO_APP_CONFIGURATIONS_FILE))
       conf = confs[self.cloud_project]
