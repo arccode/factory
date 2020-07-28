@@ -7,6 +7,8 @@
     "__comment_default_factory_server_url": "The default URL to factory server, if not defined in locals.",
     "enable_factory_server": true,
     "__comment_enable_factory_server": "Enable factory_server. Change this to false by adding 'disable_factory_server.test_list' to beginning of inherit list in main test list. Note that some factory environment might not need a shopfloor.",
+    "has_device_data": false,
+    "__comment_has_device_data": "When setting to true, some test objects will use the info from device data to decide to run or not.",
     "has_ec_pubkey": false,
     "hwid_need_vpd": false,
     "__comment_hwid_need_vpd": "Set to true if some rules in the HWID database rely on VPD data",
@@ -311,6 +313,7 @@
     },
     "FrontCamera": {
       "inherit": "CameraManual",
+      "run_if": "not constants.has_device_data or device.component.has_front_camera",
       "args": {
         "camera_facing": "front"
       }
@@ -382,7 +385,8 @@
       }
     },
     "KeyboardBacklight": {
-      "pytest_name": "keyboard_backlight"
+      "pytest_name": "keyboard_backlight",
+      "run_if": "not constants.has_device_data or device.component.has_keyboard_backlight"
     },
     "LED": {
       "pytest_name": "led",
@@ -483,6 +487,7 @@
     },
     "RearCamera": {
       "inherit": "CameraManual",
+      "run_if": "not constants.has_device_data or device.component.has_rear_camera",
       "args": {
         "camera_facing": "rear"
       }
@@ -517,6 +522,7 @@
     },
     "ScreenRotation": {
       "label": "Screen Rotation",
+      "run_if": "not constants.has_device_data or device.component.has_tabletmode",
       "subtests": [
         "TabletMode",
         "TabletRotationBase",
@@ -602,7 +608,8 @@
       ]
     },
     "Stylus": {
-      "pytest_name": "stylus"
+      "pytest_name": "stylus",
+      "run_if": "not constants.has_device_data or device.component.has_stylus"
     },
     "SuspendResume": {
       "pytest_name": "suspend_resume"
@@ -629,6 +636,7 @@
     },
     "TabletMode": {
       "pytest_name": "tablet_mode",
+      "run_if": "not constants.has_device_data or device.component.has_tabletmode",
       "args": {
         "timeout_secs": 3600,
         "prompt_flip_tablet": true
@@ -640,6 +648,7 @@
     "TabletRotationBase": {
       "pytest_name": "tablet_rotation",
       "label": "Tablet Rotation Base-Accel",
+      "run_if": "not constants.has_device_data or device.component.has_base_accelerometer",
       "args": {
         "accelerometer_location": "base",
         "spec_offset": [
@@ -674,6 +683,7 @@
     "TabletRotationLid": {
       "pytest_name": "tablet_rotation",
       "label": "Tablet Rotation Lid-Accel",
+      "run_if": "not constants.has_device_data or device.component.has_lid_accelerometer",
       "args": {
         "accelerometer_location": "lid",
         "spec_offset": [
@@ -712,11 +722,13 @@
       "pytest_name": "touchpad"
     },
     "Touchscreen": {
-      "pytest_name": "touchscreen"
+      "pytest_name": "touchscreen",
+      "run_if": "not constants.has_device_data or device.component.has_touchscreen"
     },
     "TouchscreenUniformity": {
       "pytest_name": "touch_uniformity",
-      "label": "Touchscreen Uniformity"
+      "label": "Touchscreen Uniformity",
+      "run_if": "not constants.has_device_data or device.component.has_touchscreen"
     },
     "URandom": {
       "pytest_name": "urandom",
