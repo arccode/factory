@@ -16,12 +16,12 @@ import tempfile
 import time
 import unittest
 
-from cros.factory.testlog.testlog_pkg import testlog
-from cros.factory.testlog.testlog_pkg import testlog_utils
-from cros.factory.testlog.testlog_pkg.utils import file_utils
-from cros.factory.testlog.testlog_pkg.utils import json_utils
-from cros.factory.testlog.testlog_pkg.utils import schema
-from cros.factory.testlog.testlog_pkg.utils import time_utils
+from cros.factory.testlog import testlog
+from cros.factory.testlog import testlog_utils
+from cros.factory.testlog.utils import file_utils
+from cros.factory.testlog.utils import json_utils
+from cros.factory.testlog.utils import schema
+from cros.factory.testlog.utils import time_utils
 
 
 SAMPLE_DATETIME_FLOAT = 618538088.888888
