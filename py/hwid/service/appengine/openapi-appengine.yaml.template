@@ -1,0 +1,361 @@
+# Copyright 2020 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# This is a template file and should be used with
+# `${FACTORY_REPO}/deploy/cros_hwid_service.sh endpoints ...` command set.
+
+swagger: '2.0'
+info:
+  description: Chrome OS Hardware ID API
+  title: chromeoshwid
+  version: v1
+host: "$ENDPOINTS_SERVICE_NAME"
+consumes:
+- application/json
+produces:
+- application/json
+schemes:
+- https
+paths:
+  "/api/chromeoshwid/v1/boards":
+    get:
+      operationId: HwidApi_GetBoards
+      parameters:
+      - collectionFormat: multi
+        in: query
+        items:
+          type: string
+        name: versions
+        type: array
+      responses:
+        '200':
+          description: A successful response
+          schema:
+            "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesBoardsResponse"
+      security:
+      - api_key: []
+  "/api/chromeoshwid/v1/bom/{hwid}":
+    get:
+      operationId: HwidApi_GetBom
+      parameters:
+      - in: path
+        name: hwid
+        required: true
+        type: string
+      responses:
+        '200':
+          description: A successful response
+          schema:
+            "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesBomResponse"
+      security:
+      - api_key: []
+  "/api/chromeoshwid/v1/classes/{board}":
+    get:
+      operationId: HwidApi_GetComponentClasses
+      parameters:
+      - in: path
+        name: board
+        required: true
+        type: string
+      responses:
+        '200':
+          description: A successful response
+          schema:
+            "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesComponentClassesResponse"
+      security:
+      - api_key: []
+  "/api/chromeoshwid/v1/components/{board}":
+    get:
+      operationId: HwidApi_GetComponents
+      parameters:
+      - in: path
+        name: board
+        required: true
+        type: string
+      - collectionFormat: multi
+        in: query
+        items:
+          type: string
+        name: withClasses
+        type: array
+      responses:
+        '200':
+          description: A successful response
+          schema:
+            "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesComponentsResponse"
+      security:
+      - api_key: []
+  "/api/chromeoshwid/v1/dutlabel/{hwid}":
+    get:
+      operationId: HwidApi_GetDUTLabels
+      parameters:
+      - in: path
+        name: hwid
+        required: true
+        type: string
+      responses:
+        '200':
+          description: A successful response
+          schema:
+            "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesDUTLabelResponse"
+      security:
+      - api_key: []
+  "/api/chromeoshwid/v1/hwids/{board}":
+    get:
+      operationId: HwidApi_GetHwids
+      parameters:
+      - in: path
+        name: board
+        required: true
+        type: string
+      - collectionFormat: multi
+        in: query
+        items:
+          type: string
+        name: withClasses
+        type: array
+      - collectionFormat: multi
+        in: query
+        items:
+          type: string
+        name: withoutClasses
+        type: array
+      - collectionFormat: multi
+        in: query
+        items:
+          type: string
+        name: withComponents
+        type: array
+      - collectionFormat: multi
+        in: query
+        items:
+          type: string
+        name: withoutComponents
+        type: array
+      responses:
+        '200':
+          description: A successful response
+          schema:
+            "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesHwidsResponse"
+      security:
+      - api_key: []
+  "/api/chromeoshwid/v1/sku/{hwid}":
+    get:
+      operationId: HwidApi_GetSKU
+      parameters:
+      - in: path
+        name: hwid
+        required: true
+        type: string
+      responses:
+        '200':
+          description: A successful response
+          schema:
+            "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesSKUResponse"
+      security:
+      - api_key: []
+  "/api/chromeoshwid/v1/validateConfig":
+    post:
+      operationId: HwidApi_ValidateConfig
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesValidateConfigRequest"
+      responses:
+        '200':
+          description: A successful response
+          schema:
+            "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesValidateConfigResponse"
+      security:
+      - api_key: []
+  "/api/chromeoshwid/v1/validateConfigAndUpdateChecksum":
+    post:
+      operationId: HwidApi_ValidateConfigAndUpdateChecksum
+      parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesValidateConfigAndUpdateChecksumRequest"
+      responses:
+        '200':
+          description: A successful response
+          schema:
+            "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesValidateConfigAndUpdateChecksumResponse"
+      security:
+      - api_key: []
+  "/ingestion/refresh":
+    get:
+      operationId: refresh_get
+      responses:
+        '200':
+          description: A successful response
+    post:
+      operationId: refresh_post
+      responses:
+        '200':
+          description: A successful response
+  "/ingestion/sync_name_pattern":
+    get:
+      operationId: sync_name_pattern_get
+      responses:
+        '200':
+          description: A successful response
+    post:
+      operationId: sync_name_pattern_post
+      responses:
+        '200':
+          description: A successful response
+  "/ingestion/all_devices_refresh":
+    get:
+      operationId: all_devices_refresh_get
+      responses:
+        '200':
+          description: A successful response
+    post:
+      operationId: all_devices_refresh_post
+      responses:
+        '200':
+          description: A successful response
+definitions:
+  CrosFactoryHwidServiceAppengineHwidApiMessagesBoardsResponse:
+    properties:
+      boards:
+        items:
+          type: string
+        type: array
+    type: object
+  CrosFactoryHwidServiceAppengineHwidApiMessagesBomResponse:
+    properties:
+      components:
+        description: "A component of a BOM.\n\n  Fields:\n    componentClass: the
+          type of component.\n    name: the cannonical name\n    probeResult: the
+          probe result that results for this component.\n  "
+        items:
+          "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesComponent"
+        type: array
+      error:
+        type: string
+      labels:
+        description: "A label on a BOM.\n\n  Fields:\n    componentClass: the component-class
+          this applies to, if any\n    name: the label's name\n    value: the label's
+          value, possibly none.\n  "
+        items:
+          "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesLabel"
+        type: array
+      phase:
+        type: string
+    type: object
+  CrosFactoryHwidServiceAppengineHwidApiMessagesComponent:
+    properties:
+      componentClass:
+        type: string
+      name:
+        type: string
+      probeResult:
+        type: string
+    type: object
+  CrosFactoryHwidServiceAppengineHwidApiMessagesComponentClassesResponse:
+    properties:
+      componentClasses:
+        items:
+          type: string
+        type: array
+    type: object
+  CrosFactoryHwidServiceAppengineHwidApiMessagesComponentsResponse:
+    properties:
+      components:
+        description: "A component of a BOM.\n\n  Fields:\n    componentClass: the
+          type of component.\n    name: the cannonical name\n    probeResult: the
+          probe result that results for this component.\n  "
+        items:
+          "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesComponent"
+        type: array
+    type: object
+  CrosFactoryHwidServiceAppengineHwidApiMessagesDUTLabel:
+    properties:
+      name:
+        type: string
+      value:
+        type: string
+    type: object
+  CrosFactoryHwidServiceAppengineHwidApiMessagesDUTLabelResponse:
+    properties:
+      error:
+        type: string
+      labels:
+        description: "A label of a DUT.\n\n  Fields:\n    name: the name of the label.\n
+          \   value: the value of the property associated with this label name.\n\n
+          \ "
+        items:
+          "${DOLLAR}ref": "#/definitions/CrosFactoryHwidServiceAppengineHwidApiMessagesDUTLabel"
+        type: array
+      possible_labels:
+        items:
+          type: string
+        type: array
+    type: object
+  CrosFactoryHwidServiceAppengineHwidApiMessagesHwidsResponse:
+    properties:
+      hwids:
+        items:
+          type: string
+        type: array
+    type: object
+  CrosFactoryHwidServiceAppengineHwidApiMessagesLabel:
+    properties:
+      componentClass:
+        type: string
+      name:
+        type: string
+      value:
+        type: string
+    type: object
+  CrosFactoryHwidServiceAppengineHwidApiMessagesSKUResponse:
+    properties:
+      board:
+        type: string
+      cpu:
+        type: string
+      error:
+        type: string
+      memory:
+        type: string
+      memoryInBytes:
+        format: int64
+        type: string
+      sku:
+        type: string
+    type: object
+  CrosFactoryHwidServiceAppengineHwidApiMessagesValidateConfigAndUpdateChecksumRequest:
+    properties:
+      hwidConfigContents:
+        type: string
+      prevHwidConfigContents:
+        type: string
+    type: object
+  CrosFactoryHwidServiceAppengineHwidApiMessagesValidateConfigAndUpdateChecksumResponse:
+    properties:
+      errorMessage:
+        type: string
+      newHwidConfigContents:
+        type: string
+    type: object
+  CrosFactoryHwidServiceAppengineHwidApiMessagesValidateConfigRequest:
+    properties:
+      hwidConfigContents:
+        type: string
+    type: object
+  CrosFactoryHwidServiceAppengineHwidApiMessagesValidateConfigResponse:
+    properties:
+      errorMessage:
+        type: string
+    type: object
+securityDefinitions:
+  api_key:
+    in: query
+    name: key
+    type: apiKey
