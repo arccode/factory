@@ -43,3 +43,28 @@ DEFAULT_RO_VPD_KEY_MAP = {
 DEFAULT_RW_VPD_KEY_MAP = {
     'factory.*': KEY_FACTORY
 }
+
+# The keys are the same with boxster config.
+KEY_COMPONENT_ALLOWLIST = [
+    'component.has_base_accelerometer',
+    'component.has_base_gyroscope',
+    'component.has_base_magnetometer',
+    'component.has_daughter_board_usb_a',
+    'component.has_daughter_board_usb_c',
+    'component.has_fingerprint',
+    'component.has_front_camera',
+    'component.has_keyboard_backlight',
+    'component.has_lid_accelerometer',
+    'component.has_lid_gyroscope',
+    'component.has_lid_magnetometer',
+    'component.has_lte',
+    'component.has_mother_board_usb_a',
+    'component.has_mother_board_usb_c',
+    'component.has_proximity_sensor',
+    'component.has_rear_camera',
+    'component.has_sd_reader',
+    'component.has_stylus',
+    'component.has_tabletmode',
+    'component.has_touchscreen',
+    'component.has_wifi'
+]

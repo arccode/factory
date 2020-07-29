@@ -9,8 +9,10 @@ import argparse
 import json
 import logging
 import os
+import re
 import sys
 
+from cros.factory.test import device_data_constants
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import config_utils
@@ -65,6 +67,17 @@ def IsReferenced(test_object_name, cache):
     if test_object_name in cache[_test_list_id]:
       return True
   return False
+
+
+def ValidateRunIf(test_object_value):
+  if 'run_if' not in test_object_value:
+    return True
+
+  for comp in re.findall(r'\bcomponent\.has_\w+', test_object_value['run_if']):
+    if comp not in device_data_constants.KEY_COMPONENT_ALLOWLIST:
+      return False
+
+  return True
 
 
 def CheckTestList(manager_, test_list_id, dump):
@@ -140,6 +153,15 @@ def CheckTestList(manager_, test_list_id, dump):
           test_object_name)
       result = False
 
+  for test_object_name, test_object_value in raw_config['definitions'].items():
+    if not ValidateRunIf(test_object_value):
+      logging.warning(
+          'The value "%s" of run_if in test object "%s" does not use the'
+          ' correct value. Please check if you use the wrong name or maybe you'
+          ' need to add a new key into our allow list.',
+          test_object_value['run_if'], test_object_name)
+      result = False
+
   try:
     test_list.CheckValid()
   except Exception as e:
@@ -172,6 +194,10 @@ def CheckTestList(manager_, test_list_id, dump):
   if failed_tests:
     logging.error('The following tests have invalid arguments: \n  %s',
                   '\n  '.join(test.path for test in failed_tests))
+    return False
+
+  if not result:
+    logging.error('The above warnings should be fixed')
     return False
 
   logging.info('Woohoo, test list "%s" looks great!', test_list_id)
