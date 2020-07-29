@@ -80,7 +80,8 @@ def RunQuery(args):
       [args.bq_path, 'query', '--max_rows', '1000000', '--nouse_legacy_sql',
        '--format', 'json'],
       stdin=subprocess.PIPE,
-      stdout=subprocess.PIPE)
+      stdout=subprocess.PIPE,
+      encoding='utf-8')
   result_json, stderrdata = p.communicate(query)
   if p.returncode:
     print('Query Failed!')
