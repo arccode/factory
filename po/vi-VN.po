@@ -2212,6 +2212,12 @@ msgstr "Nhấn phím số theo màu của <strong>{name}</strong> "
 msgid "Result: "
 msgstr "Kết quả kiểm tra:"
 
+#: ../py/test/pytests/led.py
+msgid ""
+"Plug power into ports: {plug_ports}<br>Unplug power from ports: "
+"{unplug_ports}<br>Current power status: {status}"
+msgstr ""
+
 #: ../py/test/pytests/lid_switch.py
 msgid "Demagnetizing lid sensor"
 msgstr "Cảm biến cảm biến"

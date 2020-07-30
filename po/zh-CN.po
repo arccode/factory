@@ -2166,6 +2166,14 @@ msgstr "请根据 <strong>{name}</strong> 的颜色按下数字键"
 msgid "Result: "
 msgstr "测试结果："
 
+#: ../py/test/pytests/led.py
+msgid ""
+"Plug power into ports: {plug_ports}<br>Unplug power from ports: "
+"{unplug_ports}<br>Current power status: {status}"
+msgstr ""
+"等待插入电源线：{plug_ports}<br>等待拔出电源线：{unplug_ports}<br>目前的电源"
+"状态：{status}"
+
 #: ../py/test/pytests/lid_switch.py
 msgid "Demagnetizing lid sensor"
 msgstr "消磁化上盖感应器"

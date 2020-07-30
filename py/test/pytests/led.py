@@ -11,12 +11,14 @@ or SMT fixture confirm LED functionality.
 
 Test Procedure
 --------------
-1. Operator checks the led color and responses the colors in the UI.
-2. Repeats step 1 for each led.
+1. Operator inserts the power to the correct usb_c (if required).
+2. Operator checks the led color and responses the colors in the UI.
+3. Repeats step 1 and 2 for each led.
 
 Dependency
 ----------
 - Device API ``cros.factory.device.led``.
+- Device API ``cros.factory.device.usb_c`` for led controlled by power status.
 
 Examples
 --------
@@ -25,7 +27,6 @@ An example::
     {
       "pytest_name": "led",
       "args": {
-        "group_by_led_id": true,
         "challenge": true,
         "colors": [
           ["LEFT", "RED"],
@@ -35,10 +36,26 @@ An example::
         ]
       }
     }
+
+An example for led controlled by power status::
+
+    {
+      "pytest_name": "led",
+      "args": {
+        "challenge": true,
+        "colors": [
+          ["POWER", "BLUE", 0],
+          ["POWER", "OFF", 0],
+          ["POWER", "BLUE", 1],
+          ["POWER", "OFF", 1]
+        ]
+      }
+    }
 """
 
 import logging
 import random
+from typing import Dict, Optional
 
 from cros.factory.device import device_utils
 from cros.factory.device import led as led_module
@@ -71,21 +88,33 @@ _INDEX_LABEL = {
     LEDIndex.RECOVERY_HWREINIT: _('recovery hwreinit LED'),
     getattr(LEDIndex, 'SYSRQ DEBUG'): _('sysrq debug LED')}
 
-_ARG_COLORS_SCHEMA = JSONSchemaDict('colors schema object', {
-    'type': 'array',
-    'items': {
-        'oneOf': [
-            {'enum': list(LEDColor)},
-            {
-                'type': 'array',
-                'items': [
-                    {'enum': list(LEDIndex)},
-                    {'enum': list(LEDColor)}
-                ]
-            }
-        ]
-    }
-})
+_ARG_COLORS_SCHEMA = JSONSchemaDict(
+    'colors schema object', {
+        'type': 'array',
+        'items': {
+            'oneOf': [
+                {
+                    'enum': list(LEDColor)
+                },
+                {
+                    'type': 'array',
+                    'items': [
+                        {
+                            'enum': list(LEDIndex)
+                        },
+                        {
+                            'enum': list(LEDColor)
+                        },
+                        {
+                            'type': ['integer', 'null']
+                        },
+                    ],
+                    'minItems': 2,
+                    'maxItems': 3
+                },
+            ]
+        }
+    })
 
 
 class LEDTest(test_case.TestCase):
@@ -97,10 +126,12 @@ class LEDTest(test_case.TestCase):
           'select LED number instead of pre-defined sequence.', default=False),
       Arg(
           'colors', list,
-          'List of colors or [index, color] to test. color must be in '
-          'LEDColor or OFF, and index, if specified, must be in LEDIndex.'
-          'By default, it will automatically detect all supported colors.',
-          default=[], schema=_ARG_COLORS_SCHEMA),
+          'List of colors or [index, color, pd_port] to test. color must be in '
+          'LEDColor or OFF, and index, if specified, must be in LEDIndex. '
+          'By default, it will automatically detect all supported colors. '
+          'If pd_port is None, do not care pd status. If pd_port is -1, then '
+          'wait until no port is sink (SNK). Otherwise, wait until pd_port is '
+          'the only sink.', default=[], schema=_ARG_COLORS_SCHEMA),
       Arg('group_by_led_id', bool, 'If set, the test groups the subtests of '
           'the same led together.', default=True),
       Arg(
@@ -110,7 +141,9 @@ class LEDTest(test_case.TestCase):
   ]
 
   def setUp(self):
-    self._led = device_utils.CreateDUTInterface().led
+    device = device_utils.CreateDUTInterface()
+    self._led = device.led
+    self._usb_c = None
     self._fixture = None
     if self.args.bft_fixture:
       self._fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
@@ -120,9 +153,20 @@ class LEDTest(test_case.TestCase):
     if not self.args.colors:
       self.colors = self._GetColorsFromLEDInfo()
     else:
-      # Transform the colors to a list of [led_name, color].
-      self.colors = [[None, item] if isinstance(item, str) else item
-                     for item in self.args.colors]
+      # Transform the colors to a list of [led_name, color, pd_port].
+      self.colors = []
+      for item in self.args.colors:
+        if isinstance(item, str):
+          self.colors.append((None, item, None))
+        elif isinstance(item, list) and len(item) == 2:
+          self.colors.append((item[0], item[1], None))
+        else:
+          if self.args.bft_fixture:
+            raise ValueError('bft_fixture does not support pd_port')
+          # Only initialize usb_c if we need it.
+          if self._usb_c is None:
+            self._usb_c = device.usb_c
+          self.colors.append(item)
 
     # Shuffle the colors for interactive challenge, so operators can't guess
     # the sequence.
@@ -130,7 +174,7 @@ class LEDTest(test_case.TestCase):
       group_indices = {}
       groups = []
       for item in self.colors:
-        key = item[0]
+        key = (item[0], item[2])
         if key not in group_indices:
           group_indices[key] = len(group_indices)
           groups.append([])
@@ -142,13 +186,16 @@ class LEDTest(test_case.TestCase):
     elif self.args.challenge:
       random.shuffle(self.colors)
 
-    for test_id, [led_name, color] in enumerate(self.colors, 1):
+    if not self.args.bft_fixture:
+      self.ui.ToggleTemplateClass('font-large', True)
+
+    for test_id, [led_name, color, pd_port] in enumerate(self.colors, 1):
       if self._fixture:
         self.AddTask(self.RunFixtureTask, led_name, color)
       elif self.args.challenge:
-        self.AddTask(self.RunChallengeTask, test_id, led_name, color)
+        self.AddTask(self.RunChallengeTask, test_id, led_name, color, pd_port)
       else:
-        self.AddTask(self.RunNormalTask, led_name, color)
+        self.AddTask(self.RunNormalTask, led_name, color, pd_port)
 
   def tearDown(self):
     self._SetAllLED(LEDColor.AUTO)
@@ -162,13 +209,14 @@ class LEDTest(test_case.TestCase):
       if self.args.target_leds and index not in self.args.target_leds:
         continue
       for color in infoes:
-        colors.append([index, color.upper()])
+        colors.append([index, color.upper(), None])
 
     return colors
 
-  def RunNormalTask(self, led_name, color):
+  def RunNormalTask(self, led_name, color, pd_port):
     """Checks for LED colors by asking operator to push ENTER."""
     try:
+      self._WaitForPDStatus(pd_port)
       self._SetLEDColor(led_name, color)
 
       led_name_label = self._GetNameI18nLabel(led_name)
@@ -215,12 +263,14 @@ class LEDTest(test_case.TestCase):
     ]
     return [description, '<br>', buttons_ui, result_line]
 
-  def RunChallengeTask(self, test_id, led_name, color):
+  def RunChallengeTask(self, test_id, led_name, color, pd_port):
     """Checks for LED colors interactively."""
     try:
+      self._WaitForPDStatus(pd_port)
       self._SetLEDColor(led_name, color)
 
-      color_options = sorted(set(color for unused_index, color in self.colors))
+      color_options = sorted(
+          set(color for unused_index, color, unused_pd_port in self.colors))
       answer = color_options.index(color)
 
       self.ui.SetState(
@@ -281,3 +331,39 @@ class LEDTest(test_case.TestCase):
         self._led.SetColor(color, led_name=led)
     else:
       self._led.SetColor(color)
+
+  def _WaitForPDStatus(self, expected_port: Optional[int]):
+    """Wait until pd becomes a certain status.
+
+    Args:
+      expected_port: Return immediately if it is None. If it is -1, then wait
+      until no port is sink (SNK). Otherwise, wait until expected_port is the
+      only sink.
+    """
+    if expected_port is None:
+      return
+    while True:
+      current_pd_status: Dict[int, Dict] = self._usb_c.GetPDPowerStatus()
+      if expected_port != -1 and expected_port not in current_pd_status.keys():
+        self.FailTask('Unable to detect port %d.' % expected_port)
+      plug_ports = []
+      unplug_ports = []
+      for port, status in current_pd_status.items():
+        role = status.get('role')
+        status.clear()
+        status['role'] = role
+        is_connected = role == 'SNK'
+        if port == expected_port and not is_connected:
+          plug_ports.append(port)
+        elif port != expected_port and is_connected:
+          unplug_ports.append(port)
+      if not plug_ports and not unplug_ports:
+        return
+      self.ui.SetState(
+          _(
+              'Plug power into ports: {plug_ports}<br>'
+              'Unplug power from ports: {unplug_ports}<br>'
+              'Current power status: {status}', plug_ports=str(
+                  plug_ports or None), unplug_ports=str(unplug_ports or None),
+              status=str(current_pd_status or None)))
+      self.Sleep(1)
