@@ -25,6 +25,7 @@ An example::
     {
       "pytest_name": "led",
       "args": {
+        "group_by_led_id": true,
         "challenge": true,
         "colors": [
           ["LEFT", "RED"],
@@ -99,6 +100,8 @@ class LEDTest(test_case.TestCase):
           default=[LEDColor.YELLOW, LEDColor.GREEN, LEDColor.RED,
                    LEDColor.OFF],
           schema=_ARG_COLORS_SCHEMA),
+      Arg('group_by_led_id', bool, 'If set, the test groups the subtests of '
+          'the same led together.', default=False),
       Arg('target_leds', list,
           'List of LEDs to test. If specified, it turns off all LEDs first, '
           'and sets them to auto after test.', default=None)]
@@ -117,7 +120,20 @@ class LEDTest(test_case.TestCase):
 
     # Shuffle the colors for interactive challenge, so operators can't guess
     # the sequence.
-    if self.args.challenge:
+    if self.args.group_by_led_id:
+      group_indices = {}
+      groups = []
+      for item in self.colors:
+        key = item[0]
+        if key not in group_indices:
+          group_indices[key] = len(group_indices)
+          groups.append([])
+        groups[group_indices[key]].append(item)
+      if self.args.challenge:
+        for group in groups:
+          random.shuffle(group)
+      self.colors = sum(groups, [])
+    elif self.args.challenge:
       random.shuffle(self.colors)
 
     for test_id, [led_name, color] in enumerate(self.colors, 1):
