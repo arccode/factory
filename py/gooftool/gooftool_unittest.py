@@ -170,26 +170,12 @@ class GooftoolTest(unittest.TestCase):
     stub_result = lambda: None
     stub_result.success = True
     _hash = 'abcdefghijklmnopqrstuvwxyz1234567890abcd'
-    futil_out = ('Public Key file:       %s\n'
-                 '  Vboot API:           2.1\n'
-                 '  ID:                  %s\n'
-                 'Signature:             %s\n'
-                 '  Vboot API:           2.1\n'
-                 '  ID:                  %s\n'
-                 'Signature verification succeeded.\n' % (f.name, _hash, f.name,
-                                                          _hash))
-
     self._gooftool._named_temporary_file.return_value = f
-    self._gooftool._util.shell.side_effect = [
-        stub_result,
-        Obj(stdout=futil_out, success=True),
-        stub_result,
-        Obj(stdout=futil_out, success=True)]
+    self._gooftool._util.GetKeyHashFromFutil.return_value = _hash
+    self._gooftool._util.shell.side_effect = [stub_result, stub_result]
     shell_calls = [
         mock.call('flashrom -p ec -r %s' % f.name),
-        mock.call('futility show --type rwsig %s' % f.name),
-        mock.call('flashrom -p ec -r %s' % f.name),
-        mock.call('futility show --type rwsig %s' % f.name)]
+        mock.call('flashrom -p ec -r %s' % f.name)]
 
     self._gooftool.VerifyECKey(pubkey_hash=_hash)
     self.assertRaises(Error, self._gooftool.VerifyECKey, pubkey_hash='abc123')

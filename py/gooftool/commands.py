@@ -279,6 +279,12 @@ def VerifyECKey(options):
       options.ec_pubkey_path, options.ec_pubkey_hash)
 
 
+@Command('verify_fp_key')
+def VerifyFpKey(options):
+  """Verify fingerprint firmware key."""
+  return GetGooftool(options).VerifyFpKey()
+
+
 @Command('verify_keys',
          _release_rootfs_cmd_arg,
          _firmware_path_cmd_arg)
@@ -586,6 +592,8 @@ def Verify(options):
   VerifySystemTime(options)
   if options.has_ec_pubkey:
     VerifyECKey(options)
+  if HasFpmcu():
+    VerifyFpKey(options)
   VerifyKeys(options)
   VerifyRootFs(options)
   VerifyTPM(options)

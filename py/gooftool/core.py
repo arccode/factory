@@ -9,6 +9,7 @@ from collections import namedtuple
 from contextlib import contextmanager
 import datetime
 from distutils.version import LooseVersion
+import glob
 import logging
 import os
 import re
@@ -117,34 +118,44 @@ class Gooftool:
           raise Error('Failed to verify EC key with pubkey %s: %s' %
                       (pubkey_path, result.stderr))
       elif pubkey_hash:
-        futil_out = self._util.shell(
-            'futility show --type rwsig %s' % tmp_ec_bin.name)
-        if not futil_out.success:
-          raise Error('Failed to get EC pubkey hash: %s' % futil_out.stderr)
-        # The pattern output of the futility show is:
-        # Public Key file:       /tmp/ec_binasdf1234
-        #    Vboot API:           2.1
-        #    Desc:                ""
-        #    Signature Algorithm: 7 RSA3072EXP3
-        #    Hash Algorithm:      2 SHA256
-        #    Version:             0x00000001
-        #    ID:                  c80def123456789058e140bbc44c692cc23ecb4d
-        #  Signature:             /tmp/ec_binasdf1234
-        #    Vboot API:           2.1
-        #    Desc:                ""
-        #    Signature Algorithm: 7 RSA3072EXP3
-        #    Hash Algorithm:      2 SHA256
-        #    Total size:          0x1b8 (440)
-        #    ID:                  c80def123456789058e140bbc44c692cc23ecb4d
-        #    Data size:           0x17164 (94564)
-        #  Signature verification succeeded.
-        live_ec_hash = re.search(r'\n\s*ID:\s*[a-z0-9]*',
-                                 futil_out.stdout).group(0).split()[1]
+        live_ec_hash = self._util.GetKeyHashFromFutil(tmp_ec_bin.name)
         if live_ec_hash != pubkey_hash:
           raise Error('Failed to verify EC key: expects (%s) got (%s)' %
                       (pubkey_hash, live_ec_hash))
       else:
         raise ValueError('All arguments are None.')
+
+  def VerifyFpKey(self):
+    """Verify Fingerprint firmware public key.
+
+    Verify the running fingerprint firmware is signed with the same key
+    used to sign the fingerprint firmware binary in the release rootfs
+    partition.
+    """
+    fp_board_result = self._util.shell(
+        ['cros_config', '/fingerprint', 'board'])
+    if not fp_board_result.success:
+      raise Error('Failed to probe fingerprint board from cros_config')
+    fp_board = fp_board_result.stdout.strip()
+
+    with sys_utils.MountPartition(
+        self._util.GetReleaseRootPartitionPath()) as root:
+      fp_fw_pattern = os.path.join(root,
+                                   'opt/google/biod/fw/%s_v*.bin' % fp_board)
+      fp_fw_files = glob.glob(fp_fw_pattern)
+      if len(fp_fw_files) != 1:
+        raise Error('No uniquely matched fingerprint firmware blob')
+      release_key_id = self._util.GetKeyHashFromFutil(fp_fw_files[0])
+
+    key_id_result = self._util.shell(['ectool', '--name=cros_fp', 'rwsig',
+                                      'dump', 'key_id'])
+    if not key_id_result.success:
+      raise Error('Failed to probe fingerprint key_id from ectool')
+    live_key_id = key_id_result.stdout.strip()
+
+    if live_key_id != release_key_id:
+      raise Error('Failed to verify fingerprint key: expects (%s) got (%s)' %
+                  (release_key_id, live_key_id))
 
   def VerifyKeys(self, release_rootfs=None, firmware_path=None, _tmpexec=None):
     """Verify keys in firmware and SSD match.

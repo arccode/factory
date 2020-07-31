@@ -87,6 +87,39 @@ class Util:
     return (os.path.exists(sysfs_path) and
             open(sysfs_path).read().strip() == '0')
 
+  def GetKeyHashFromFutil(self, fw_file):
+    """Gets the pubkey hash from `futility show` output.
+
+    Args:
+      fw_file: The path to the firmware blob
+
+    Returns:
+      The public key hash of the specified firmware file
+    """
+
+    futil_out = self.shell(['futility', 'show', '--type', 'rwsig', fw_file])
+    if not futil_out.success:
+      raise Error('Failed to get EC pubkey hash: %s' % futil_out.stderr)
+    # A typical example of the output from `futility show` is:
+    # Public Key file:       /tmp/ec_binasdf1234
+    #    Vboot API:           2.1
+    #    Desc:                ""
+    #    Signature Algorithm: 7 RSA3072EXP3
+    #    Hash Algorithm:      2 SHA256
+    #    Version:             0x00000001
+    #    ID:                  c80def123456789058e140bbc44c692cc23ecb4d
+    #  Signature:             /tmp/ec_binasdf1234
+    #    Vboot API:           2.1
+    #    Desc:                ""
+    #    Signature Algorithm: 7 RSA3072EXP3
+    #    Hash Algorithm:      2 SHA256
+    #    Total size:          0x1b8 (440)
+    #    ID:                  c80def123456789058e140bbc44c692cc23ecb4d
+    #    Data size:           0x17164 (94564)
+    #  Signature verification succeeded.
+    key_hash = re.search(r'\n\s*ID:\s*([a-z0-9]*)', futil_out.stdout).group(1)
+    return key_hash
+
   def GetPrimaryDevicePath(self, partition=None):
     """Gets the path for the primary device, which is the only non-removable
     device in the system.
