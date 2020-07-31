@@ -7,6 +7,7 @@
 This file is also the place that all the binding is done for various components.
 """
 
+import functools
 import http
 import logging
 import operator
@@ -100,7 +101,21 @@ def _GetBomAndConfigless(raw_hwid):
   return bom, configless, None
 
 
-@bp.route('/boards', methods=('GET',))
+def HWIDAPI(*args, **kwargs):
+  """ Decorator for HWID APIs"""
+  def _DecorateMethod(method):
+    @bp.route(*args, **kwargs)
+    @functools.wraps(method)
+    def _MethodWrapper(*inner_args, **inner_kwargs):
+      response = method(*inner_args, **inner_kwargs)
+      logging.info("Response: \n%s", response)
+      return flask.jsonify(json_format.MessageToDict(
+          response, preserving_proto_field_name=True))
+    return _MethodWrapper
+  return _DecorateMethod
+
+
+@HWIDAPI('/boards', methods=('GET',))
 def GetBoards():
   """Return all of the supported boards in sorted order."""
 
@@ -111,24 +126,20 @@ def GetBoards():
   logging.debug('Found boards: %r', boards)
   response = hwid_api_messages_pb2.BoardsResponse(boards=sorted(boards))
 
-  return json_format.MessageToJson(response, preserving_proto_field_name=True)
+  return response
 
 
-@bp.route('/bom/<hwid>', methods=('GET',))
+@HWIDAPI('/bom/<hwid>', methods=('GET',))
 def GetBom(hwid):
   """Return the components of the BOM identified by the HWID."""
   error = _FastFailKnownBadHwid(hwid)
   if error:
-    return json_format.MessageToJson(
-        hwid_api_messages_pb2.BomResponse(error=error),
-        preserving_proto_field_name=True)
+    return hwid_api_messages_pb2.BomResponse(error=error)
 
   logging.debug('Retrieving HWID %s', hwid)
   bom, unused_configless, error = _GetBomAndConfigless(hwid)
   if error:
-    return json_format.MessageToJson(
-        hwid_api_messages_pb2.BomResponse(error=error),
-        preserving_proto_field_name=True)
+    return hwid_api_messages_pb2.BomResponse(error=error)
 
   response = hwid_api_messages_pb2.BomResponse()
   response.phase = bom.phase
@@ -143,40 +154,34 @@ def GetBom(hwid):
                         value=label.value)
   response.labels.sort(key=operator.attrgetter('name', 'value'))
 
-  return json_format.MessageToJson(response, preserving_proto_field_name=True)
+  return response
 
 
-@bp.route('/sku/<hwid>', methods=('GET',))
+@HWIDAPI('/sku/<hwid>', methods=('GET',))
 def GetSKU(hwid):
   """Return the components of the SKU identified by the HWID."""
   error = _FastFailKnownBadHwid(hwid)
   if error:
-    return json_format.MessageToJson(
-        hwid_api_messages_pb2.SKUResponse(error=error),
-        preserving_proto_field_name=True)
+    return hwid_api_messages_pb2.SKUResponse(error=error)
 
   bom, configless, error = _GetBomAndConfigless(hwid)
   if error:
-    return json_format.MessageToJson(
-        hwid_api_messages_pb2.SKUResponse(error=error),
-        preserving_proto_field_name=True)
+    return hwid_api_messages_pb2.SKUResponse(error=error)
 
   try:
     sku = hwid_util.GetSkuFromBom(bom, configless)
   except hwid_util.HWIDUtilException as e:
-    return json_format.MessageToJson(
-        hwid_api_messages_pb2.SKUResponse(error=str(e)),
-        preserving_proto_field_name=True)
+    return hwid_api_messages_pb2.SKUResponse(error=str(e))
 
-  return json_format.MessageToJson(hwid_api_messages_pb2.SKUResponse(
+  return hwid_api_messages_pb2.SKUResponse(
       board=sku['board'],
       cpu=sku['cpu'],
       memoryInBytes=sku['total_bytes'],
       memory=sku['memory_str'],
-      sku=sku['sku']), preserving_proto_field_name=True)
+      sku=sku['sku'])
 
 
-@bp.route('/hwids/<board>', methods=('GET',))
+@HWIDAPI('/hwids/<board>', methods=('GET',))
 def GetHwids(board):
   """Return a filtered list of HWIDs for the given board."""
 
@@ -209,12 +214,10 @@ def GetHwids(board):
 
   logging.debug('Found HWIDs: %r', hwids)
 
-  return json_format.MessageToJson(
-      hwid_api_messages_pb2.HwidsResponse(hwids=hwids),
-      preserving_proto_field_name=True)
+  return hwid_api_messages_pb2.HwidsResponse(hwids=hwids)
 
 
-@bp.route('/classes/<board>', methods=('GET',))
+@HWIDAPI('/classes/<board>', methods=('GET',))
 def GetComponentClasses(board):
   """Return a list of all component classes for the given board."""
 
@@ -227,12 +230,11 @@ def GetComponentClasses(board):
 
   logging.debug('Found component classes: %r', classes)
 
-  return json_format.MessageToJson(
-      hwid_api_messages_pb2.ComponentClassesResponse(componentClasses=classes),
-      preserving_proto_field_name=True)
+  return hwid_api_messages_pb2.ComponentClassesResponse(
+      componentClasses=classes)
 
 
-@bp.route('/components/<board>', methods=('GET',))
+@HWIDAPI('/components/<board>', methods=('GET',))
 def GetComponents(board):
   """Return a filtered list of components for the given board."""
 
@@ -254,11 +256,10 @@ def GetComponents(board):
       components_list.append(
           hwid_api_messages_pb2.Component(componentClass=cls, name=comp))
 
-  return json_format.MessageToJson(hwid_api_messages_pb2.ComponentsResponse(
-      components=components_list), preserving_proto_field_name=True)
+  return hwid_api_messages_pb2.ComponentsResponse(components=components_list)
 
 
-@bp.route('/validateConfig', methods=('POST',))
+@HWIDAPI('/validateConfig', methods=('POST',))
 def ValidateConfig():
   """Validate the config.
 
@@ -278,16 +279,12 @@ def ValidateConfig():
     _hwid_validator.Validate(hwidConfigContents)
   except v3_validator.ValidationError as e:
     logging.exception('Validation failed')
-    return json_format.MessageToJson(
-        hwid_api_messages_pb2.ValidateConfigResponse(errorMessage=str(e)),
-        preserving_proto_field_name=True)
+    return hwid_api_messages_pb2.ValidateConfigResponse(errorMessage=str(e))
 
-  return json_format.MessageToJson(
-      hwid_api_messages_pb2.ValidateConfigResponse(),
-      preserving_proto_field_name=True)
+  return hwid_api_messages_pb2.ValidateConfigResponse()
 
 
-@bp.route('/validateConfigAndUpdateChecksum', methods=('POST',))
+@HWIDAPI('/validateConfigAndUpdateChecksum', methods=('POST',))
 def ValidateConfigAndUpdateChecksum():
   """Validate the config and update its checksum.
 
@@ -312,17 +309,14 @@ def ValidateConfigAndUpdateChecksum():
     _hwid_validator.ValidateChange(updated_contents, prevHwidConfigContents)
   except v3_validator.ValidationError as e:
     logging.exception('Validation failed')
-    return json_format.MessageToJson(
-        hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
-            errorMessage=str(e)), preserving_proto_field_name=True)
+    return hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
+        errorMessage=str(e))
 
-  return json_format.MessageToJson(
-      hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
-          newHwidConfigContents=updated_contents),
-      preserving_proto_field_name=True)
+  return hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
+      newHwidConfigContents=updated_contents)
 
 
-@bp.route('/dutlabel/<hwid>', methods=('GET',))
+@HWIDAPI('/dutlabel/<hwid>', methods=('GET',))
 def GetDUTLabels(hwid):
   """Return the components of the SKU identified by the HWID."""
 
@@ -340,26 +334,20 @@ def GetDUTLabels(hwid):
 
   error = _FastFailKnownBadHwid(hwid)
   if error:
-    return json_format.MessageToJson(
-        hwid_api_messages_pb2.DUTLabelResponse(
-            error=error, possible_labels=possible_labels),
-        preserving_proto_field_name=True)
+    return hwid_api_messages_pb2.DUTLabelResponse(
+        error=error, possible_labels=possible_labels)
 
   bom, configless, error = _GetBomAndConfigless(hwid)
 
   if error:
-    return json_format.MessageToJson(
-        hwid_api_messages_pb2.DUTLabelResponse(
-            error=error, possible_labels=possible_labels),
-        preserving_proto_field_name=True)
+    return hwid_api_messages_pb2.DUTLabelResponse(
+        error=error, possible_labels=possible_labels)
 
   try:
     sku = hwid_util.GetSkuFromBom(bom, configless)
   except hwid_util.HWIDUtilException as e:
-    return json_format.MessageToJson(
-        hwid_api_messages_pb2.DUTLabelResponse(
-            error=str(e), possible_labels=possible_labels),
-        preserving_proto_field_name=True)
+    return hwid_api_messages_pb2.DUTLabelResponse(
+        error=str(e), possible_labels=possible_labels)
 
   response = hwid_api_messages_pb2.DUTLabelResponse()
   response.labels.add(name='sku', value=sku['sku'])
@@ -369,10 +357,8 @@ def GetDUTLabels(hwid):
   if not regexp_to_device:
     # TODO(haddowk) Kick off the ingestion to ensure that the memcache is
     # up to date.
-    return json_format.MessageToJson(
-        hwid_api_messages_pb2.DUTLabelResponse(
-            error='Missing Regexp List', possible_labels=possible_labels),
-        preserving_proto_field_name=True)
+    return hwid_api_messages_pb2.DUTLabelResponse(
+        error='Missing Regexp List', possible_labels=possible_labels)
   for (regexp, device, unused_regexp_to_board) in regexp_to_device:
     del unused_regexp_to_board  # unused
     try:
@@ -412,10 +398,10 @@ def GetDUTLabels(hwid):
 
   if unexpected_labels:
     logging.error('unexpected labels: %r', unexpected_labels)
-    return json_format.MessageToJson(hwid_api_messages_pb2.DUTLabelResponse(
+    return hwid_api_messages_pb2.DUTLabelResponse(
         error='Possible labels are out of date',
-        possible_labels=possible_labels), preserving_proto_field_name=True)
+        possible_labels=possible_labels)
 
   response.labels.sort(key=operator.attrgetter('name', 'value'))
   response.possible_labels[:] = possible_labels
-  return json_format.MessageToJson(response, preserving_proto_field_name=True)
+  return response
