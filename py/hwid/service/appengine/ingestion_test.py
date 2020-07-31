@@ -44,50 +44,61 @@ class IngestionTest(unittest.TestCase):
     self.patch_hwid_manager = patcher.start()
     self.addCleanup(patcher.stop)
 
+    patcher = mock.patch('__main__.app.ingestion._GetCredentials',
+                         return_value=('', ''))
+    patcher.start()
+    self.addCleanup(patcher.stop)
+
+    self.git_fs = mock.Mock()
+    patcher = mock.patch('__main__.app.ingestion._GetHwidRepoFilesystemAdapter',
+                         return_value=self.git_fs)
+    patcher.start()
+    self.addCleanup(patcher.stop)
+
   def testRefresh(self):
     def MockReadFile(*args):
-      if args[0] == 'staging/boards.yaml':
+      if args[0] == 'projects.yaml':
         return SERVER_BOARDS_DATA
       return b'Test Data'
 
-    self.patch_hwid_filesystem.ReadFile = mock.Mock(
-        side_effect=MockReadFile)
+    self.git_fs.ReadFile = MockReadFile
 
     response = self.app.post(flask.url_for('refresh'))
 
     self.assertEqual(response.status_code, http.HTTPStatus.OK)
     self.patch_hwid_manager.UpdateBoards.assert_has_calls([
-        mock.call({
-            'COOLCBOARD': {
-                'path': 'COOLCBOARD',
-                'board': 'COOLCBOARD',
-                'version': 3
-            },
-            'SBOARD': {
-                'path': 'SBOARD',
-                'board': 'SBOARD',
-                'version': 3
-            },
-            'KBOARD': {
-                'path': 'KBOARD',
-                'board': 'KBOARD',
-                'version': 2
-            },
-            'KBOARD.old': {
-                'path': 'KBOARD.old',
-                'board': 'KBOARD',
-                'version': 2
-            },
-            'BETTERCBOARD': {
-                'path': 'BETTERCBOARD',
-                'board': 'BETTERCBOARD',
-                'version': 3
-            }
-        }, delete_missing=True)
+        mock.call(
+            self.git_fs, {
+                'COOLCBOARD': {
+                    'path': 'COOLCBOARD',
+                    'board': 'COOLCBOARD',
+                    'version': 3
+                },
+                'SBOARD': {
+                    'path': 'SBOARD',
+                    'board': 'SBOARD',
+                    'version': 3
+                },
+                'KBOARD': {
+                    'path': 'KBOARD',
+                    'board': 'KBOARD',
+                    'version': 2
+                },
+                'KBOARD.old': {
+                    'path': 'KBOARD.old',
+                    'board': 'KBOARD',
+                    'version': 2
+                },
+                'BETTERCBOARD': {
+                    'path': 'BETTERCBOARD',
+                    'board': 'BETTERCBOARD',
+                    'version': 3
+                }
+            }, delete_missing=True)
     ])
 
   def testRefreshWithoutBoardsInfo(self):
-    self.patch_hwid_filesystem.ReadFile = mock.Mock(
+    self.git_fs.ReadFile = mock.Mock(
         side_effect=filesystem_adapter.FileSystemAdapterException)
 
     response = self.app.post(flask.url_for('refresh'))
@@ -142,8 +153,10 @@ class AVLNameTest(unittest.TestCase):
     patcher.start()
     self.addCleanup(patcher.stop)
 
-    patcher = mock.patch('__main__.app.ingestion.git_util.GitFilesystemAdapter')
-    self.patch_git_fs = patcher.start()
+    self.git_fs = mock.Mock()
+    patcher = mock.patch('__main__.app.ingestion._GetHwidRepoFilesystemAdapter',
+                         return_value=self.git_fs)
+    patcher.start()
     self.addCleanup(patcher.stop)
 
     self.init_mapping_data = {
@@ -201,8 +214,9 @@ class AVLNameTest(unittest.TestCase):
       self.assertEqual(folder, self.NAME_PATTERN_FOLDER)
       return mock_name_pattern[filename]
 
-    self.patch_git_fs.FromGitUrl.return_value = mock.MagicMock(
-        ListFiles=PatchGitListFiles, ReadFile=PatchGitReadFile)
+    self.git_fs.ListFiles = PatchGitListFiles
+    self.git_fs.ReadFile = PatchGitReadFile
+
     self.patch_hwid_filesystem.ListFiles.return_value = []
 
     response = self.app.post(flask.url_for('sync_name_pattern'))
@@ -241,9 +255,8 @@ class AVLNameTest(unittest.TestCase):
       return func
 
     # Init mapping
-    self.patch_git_fs.FromGitUrl.return_value = mock.MagicMock(
-        ListFiles=PatchGitListFilesWrapper(self.mock_init_mapping),
-        ReadFile=PatchGitReadFileWrapper(self.mock_init_mapping))
+    self.git_fs.ListFiles = PatchGitListFilesWrapper(self.mock_init_mapping)
+    self.git_fs.ReadFile = PatchGitReadFileWrapper(self.mock_init_mapping)
 
     response = self.app.post(flask.url_for('sync_name_pattern'))
     self.assertEqual(response.status_code, http.HTTPStatus.OK)
@@ -256,9 +269,8 @@ class AVLNameTest(unittest.TestCase):
     self.assertDictEqual(mapping_in_datastore, self.init_mapping_data)
 
     # Update mapping
-    self.patch_git_fs.FromGitUrl.return_value = mock.MagicMock(
-        ListFiles=PatchGitListFilesWrapper(self.mock_update_mapping),
-        ReadFile=PatchGitReadFileWrapper(self.mock_update_mapping))
+    self.git_fs.ListFiles = PatchGitListFilesWrapper(self.mock_update_mapping)
+    self.git_fs.ReadFile = PatchGitReadFileWrapper(self.mock_update_mapping)
 
     response = self.app.post(flask.url_for('sync_name_pattern'))
     self.assertEqual(response.status_code, http.HTTPStatus.OK)

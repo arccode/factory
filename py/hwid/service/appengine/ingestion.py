@@ -56,6 +56,12 @@ def _GetAuthCookie():
       token=token)
 
 
+def _GetHwidRepoFilesystemAdapter():
+  return git_util.GitFilesystemAdapter.FromGitUrl(CHROMEOS_HWID_REPO_URL,
+                                                  _GetAuthCookie(),
+                                                  CONFIG.hwid_repo_branch)
+
+
 class DevUploadHandler(flask.views.MethodView):
 
   def __init__(self, *args, **kwargs):
@@ -119,8 +125,7 @@ class SyncNamePatternHandler(flask.views.MethodView):
   # Task queue executions are POST requests.
   def post(self):
     """Refreshes the ingestion from staging files to live."""
-    git_fs = git_util.GitFilesystemAdapter.FromGitUrl(
-        CHROMEOS_HWID_REPO_URL, _GetAuthCookie(), CONFIG.hwid_repo_branch)
+    git_fs = _GetHwidRepoFilesystemAdapter()
 
     folder = self.NAME_PATTERN_FOLDER
     existing_files = set(self.hwid_filesystem.ListFiles(folder))
@@ -198,10 +203,11 @@ class RefreshHandler(flask.views.MethodView):
     else:
       limit_models = set()
 
+    git_fs = _GetHwidRepoFilesystemAdapter()
     # TODO(yllin): Reduce memory footprint.
-    # Get board.yaml
+    # Get projects.yaml
     try:
-      metadata_yaml = self.hwid_filesystem.ReadFile('staging/boards.yaml')
+      metadata_yaml = git_fs.ReadFile('projects.yaml')
 
       # parse it
       metadata = yaml.safe_load(metadata_yaml)
@@ -209,7 +215,8 @@ class RefreshHandler(flask.views.MethodView):
       if limit_models:
         # only process required models
         metadata = {k: v for (k, v) in metadata.items() if k in limit_models}
-      self.hwid_manager.UpdateBoards(metadata, delete_missing=not do_limit)
+      self.hwid_manager.UpdateBoards(git_fs, metadata,
+                                     delete_missing=not do_limit)
 
     except filesystem_adapter.FileSystemAdapterException:
       logging.error('Missing file during refresh.')

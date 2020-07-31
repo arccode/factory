@@ -332,43 +332,48 @@ class HwidManagerTest(unittest.TestCase):
     """Test the board updater adds a board."""
     mock_storage = mock.Mock()
     mock_storage.ReadFile.return_value = b'junk data'
+    git_fs = mock.Mock()
+    git_fs.ReadFile.return_value = b'junk data'
 
     manager = self._GetManager(adapter=mock_storage, load_datastore=False)
 
     with manager._ndb_client.context():
-      hwid_manager.HwidMetadata(board='old_file', path='old', version='2').put()
-      hwid_manager.HwidMetadata(
-          board='update_file', path='update', version='2').put()
+      hwid_manager.HwidMetadata(board='old', path='old_file', version='2').put()
+      hwid_manager.HwidMetadata(board='update', path='update_file',
+                                version='2').put()
 
-    manager.UpdateBoards({
-        'update': {
-            'board': 'update_file - updated',
-            'version': 2,
-            'path': 'v2',
-        },
-        'new': {
-            'board': 'new_file',
-            'version': 2,
-            'path': 'v2',
-        },
-    })
+    manager.UpdateBoards(
+        git_fs, {
+            'update': {
+                'board': 'update_file - updated',
+                'version': 2,
+                'path': 'path1',
+            },
+            'new': {
+                'board': 'new file - unused',
+                'version': 2,
+                'path': 'path2',
+            },
+        })
 
     with manager._ndb_client.context():
-      self.assertIsNone(hwid_manager.HwidMetadata.query(
-          hwid_manager.HwidMetadata.path == 'old').get())
-      self.assertIsNotNone(hwid_manager.HwidMetadata.query(
-          hwid_manager.HwidMetadata.path == 'update').get())
+      self.assertIsNone(
+          hwid_manager.HwidMetadata.query(
+              hwid_manager.HwidMetadata.path == 'old_file').get())
+      self.assertIsNotNone(
+          hwid_manager.HwidMetadata.query(
+              hwid_manager.HwidMetadata.path == 'update_file').get())
       self.assertIsNotNone(hwid_manager.HwidMetadata.query(
           hwid_manager.HwidMetadata.path == 'new').get())
-      mock_storage.DeleteFile.assert_called_once_with('live/old')
-      mock_storage.WriteFile.assert_has_calls(
-          [mock.call('live/update', mock.ANY),
-           mock.call('live/new', mock.ANY)],
-          any_order=True)
+      mock_storage.DeleteFile.assert_called_once_with('live/old_file')
+      mock_storage.WriteFile.assert_has_calls([
+          mock.call('live/update_file', mock.ANY),
+          mock.call('live/new', mock.ANY)
+      ], any_order=True)
       self.assertEqual(mock_storage.WriteFile.call_count, 2)
-      mock_storage.ReadFile.assert_has_calls(
-          [mock.call('staging/v2') for unused_i in range(2)])
-      self.assertEqual(mock_storage.ReadFile.call_count, 2)
+      git_fs.ReadFile.assert_has_calls(
+          [mock.call('path1'), mock.call('path2')], any_order=True)
+      self.assertEqual(git_fs.ReadFile.call_count, 2)
 
   def testUpdateBoardsWithManyBoards(self):
     """Tests that the updating logic can handle many boards.
@@ -378,7 +383,10 @@ class HwidManagerTest(unittest.TestCase):
     """
     mock_storage = mock.Mock()
     mock_storage.ReadFile.return_value = b'junk data'
+    git_fs = mock.Mock()
+    git_fs.ReadFile.return_value = b'junk data'
     BOARD_COUNT = 40
+    MORE_BOARD_COUNT = 50
 
     manager = self._GetManager(adapter=mock_storage, load_datastore=False)
     with manager._ndb_client.context():
@@ -390,20 +398,28 @@ class HwidManagerTest(unittest.TestCase):
             board='update_file' + str(i), path='update' + str(i),
             version='2').put()
 
-      deletefile_calls = [mock.call('live/old' + str(i)) for i in range(40)]
+      deletefile_calls = [
+          mock.call('live/old' + str(i)) for i in range(BOARD_COUNT)
+      ]
+      # For boards not existed in HwidMetadata, the file path will be the same
+      # as the board name.
       writefile_calls = [
-          mock.call('live/update' + str(i), mock.ANY) for i in range(40)
+          mock.call('live/update' + str(i), mock.ANY)
+          for i in range(BOARD_COUNT)
+      ] + [
+          mock.call('live/update_file' + str(i), mock.ANY)
+          for i in range(BOARD_COUNT, MORE_BOARD_COUNT)
       ]
 
       board_data = {}
-      for i in range(BOARD_COUNT):
-        board_data['update' + str(i)] = {
-            'board': 'update_file' + str(i),
+      for i in range(MORE_BOARD_COUNT):
+        board_data['update_file' + str(i)] = {
+            'board': 'update_' + str(i),
             'version': 2,
             'path': 'v2'
         }
 
-    manager.UpdateBoards(board_data)
+    manager.UpdateBoards(git_fs, board_data)
 
     with manager._ndb_client.context():
       for i in range(BOARD_COUNT):
@@ -411,21 +427,27 @@ class HwidManagerTest(unittest.TestCase):
             hwid_manager.HwidMetadata.path == 'old' + str(i)).get())
         self.assertIsNotNone(hwid_manager.HwidMetadata.query().filter(
             hwid_manager.HwidMetadata.path == 'update' + str(i)).get())
+        self.assertIsNone(hwid_manager.HwidMetadata.query().filter(
+            hwid_manager.HwidMetadata.path == 'update_file' + str(i)).get())
+      for i in range(BOARD_COUNT, MORE_BOARD_COUNT):
+        self.assertIsNotNone(hwid_manager.HwidMetadata.query().filter(
+            hwid_manager.HwidMetadata.path == 'update_file' + str(i)).get())
 
       mock_storage.DeleteFile.assert_has_calls(deletefile_calls, any_order=True)
       self.assertEqual(BOARD_COUNT, mock_storage.DeleteFile.call_count)
       mock_storage.WriteFile.assert_has_calls(writefile_calls, any_order=True)
-      self.assertEqual(BOARD_COUNT, mock_storage.WriteFile.call_count)
-      mock_storage.ReadFile.assert_has_calls(
-          [mock.call('staging/v2') for unused_c in range(BOARD_COUNT)])
-      self.assertEqual(BOARD_COUNT, mock_storage.ReadFile.call_count)
+      self.assertEqual(MORE_BOARD_COUNT, mock_storage.WriteFile.call_count)
+      git_fs.ReadFile.assert_has_calls(
+          [mock.call('v2') for unused_c in range(MORE_BOARD_COUNT)])
+      self.assertEqual(MORE_BOARD_COUNT, git_fs.ReadFile.call_count)
 
   def testUpdateBoardsWithBadData(self):
     manager = self._GetManager(load_blobstore=False, load_datastore=False)
+    git_fs = mock.Mock()
+    git_fs.ReadFile.side_effect = KeyError('Not found')
 
-    self.assertRaises(hwid_manager.MetadataError, manager.UpdateBoards, {
-        'test': {}
-    })
+    self.assertRaises(hwid_manager.MetadataError, manager.UpdateBoards, git_fs,
+                      {'test': {}})
 
   def testGetAVLName(self):
     manager = self._GetManager(load_blobstore=False)

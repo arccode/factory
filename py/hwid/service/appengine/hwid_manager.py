@@ -629,14 +629,16 @@ class HwidManager:
       ndb.delete_multi(keys_to_delete)
       logging.info('Extra categories are Removed')
 
-  def UpdateBoards(self, board_metadata, delete_missing=True):
+  def UpdateBoards(self, git_fs, board_metadata, delete_missing=True):
     """Updates the set of supported boards to be exactly the list provided.
 
     Args:
+      git_fs: A GitFilesystemAdapter instance to provide filesystem_adapter
+          interface of chromeos-hwid repo.
       board_metadata: A list of metadata dictionaries containing path, version
-                      and board name.
+          and board name.
       delete_missing: bool to indicate whether missing metadata should be
-                      deleted.
+          deleted.
     Raises:
       MetadataError: If the metadata is malformed.
     """
@@ -645,32 +647,35 @@ class HwidManager:
 
     # Discard the names for the entries, indexing only by path.
     with self._ndb_client.context(global_cache=self._global_cache):
-      old_files = set(m.path for m in HwidMetadata.query())
+      # Note that the term `board` used in HWID Service is not related to the
+      # `board` in board_metadata from projects.yaml which means the reference
+      # board.  Therefore we will not use the `board` field in board_metadata.
+      q = HwidMetadata.query()
+      existing_metadata = list(q)
+      old_files = set(m.board for m in existing_metadata)
       new_files = set(board_metadata)
 
       files_to_delete = old_files - new_files
       files_to_create = new_files - old_files
 
-      q = HwidMetadata.query()
-      for hwid_metadata in list(q):
-        if hwid_metadata.path in files_to_delete:
+      for hwid_metadata in existing_metadata:
+        if hwid_metadata.board in files_to_delete:
           if delete_missing:
             hwid_metadata.key.delete()
             self._fs_adapter.DeleteFile(self._LivePath(hwid_metadata.path))
         else:
-          new_data = board_metadata[hwid_metadata.path]
-          hwid_metadata.board = new_data['board']
+          new_data = board_metadata[hwid_metadata.board]
           hwid_metadata.version = str(new_data['version'])
-          self._ActivateFile(new_data['path'], hwid_metadata.path)
+          self._ActivateFile(git_fs, new_data['path'], hwid_metadata.path)
           hwid_metadata.put()
 
-    for path in files_to_create:
-      new_data = board_metadata[path]
-      board = new_data['board']
+    for board in files_to_create:
+      path = board  # Use the board name as the file path.
+      new_data = board_metadata[board]
       version = str(new_data['version'])
       with self._ndb_client.context(global_cache=self._global_cache):
         metadata = HwidMetadata(board=board, version=version, path=path)
-        self._ActivateFile(new_data['path'], path)
+        self._ActivateFile(git_fs, new_data['path'], path)
         metadata.put()
 
   def ReloadMemcacheCacheFromFiles(self, limit_models=None):
@@ -704,11 +709,8 @@ class HwidManager:
   def _LivePath(self, file_id):
     return 'live/%s' % file_id
 
-  def _StagingPath(self, file_id):
-    return 'staging/%s' % file_id
-
-  def _ActivateFile(self, stage_file_id, live_file_id):
-    board_data = self._fs_adapter.ReadFile(self._StagingPath(stage_file_id))
+  def _ActivateFile(self, git_fs, stage_file_path, live_file_id):
+    board_data = git_fs.ReadFile(stage_file_path)
     self._fs_adapter.WriteFile(self._LivePath(live_file_id), board_data)
 
   def _ClearMemcache(self):
