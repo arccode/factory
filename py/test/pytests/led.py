@@ -2,8 +2,39 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Uses ectool to control the onboard LED light, and lets either operator
-or SMT fixture confirm LED functionality."""
+"""A factory test for the led function.
+
+Description
+-----------
+Uses ectool to control the onboard LED light, and lets either operator
+or SMT fixture confirm LED functionality.
+
+Test Procedure
+--------------
+1. Operator checks the led color and responses the colors in the UI.
+2. Repeats step 1 for each led.
+
+Dependency
+----------
+- Device API ``cros.factory.device.led``.
+
+Examples
+--------
+An example::
+
+    {
+      "pytest_name": "led",
+      "args": {
+        "challenge": true,
+        "colors": [
+          ["LEFT", "RED"],
+          ["LEFT", "OFF"],
+          ["RIGHT", "RED"],
+          ["RIGHT", "OFF"]
+        ]
+      }
+    }
+"""
 
 import logging
 import random
