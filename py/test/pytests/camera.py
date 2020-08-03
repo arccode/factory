@@ -181,11 +181,10 @@ class CameraTest(test_case.TestCase):
           'resize_ratio', float,
           'The resize ratio of captured image on screen, '
           'has no effect on e2e mode.', default=0.4),
-      Arg(
-          'camera_facing', type_utils.Enum(['front', 'rear', None]),
-          'String "front" or "rear" for the camera to test. '
-          'If in normal mode, default is automatically searching one. '
-          'If in e2e mode, default is "front".', default=None),
+      Arg('camera_facing', type_utils.Enum(['front', 'rear']),
+          ('String "front" or "rear" for the camera to test. '
+           'If in normal mode, default is automatically searching one. '
+           'If in e2e mode, default is "front".'), default=None),
       Arg(
           'flip_image', bool,
           'Whether to flip the image horizontally. This should be set to False'

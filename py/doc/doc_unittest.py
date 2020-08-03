@@ -20,9 +20,7 @@ from cros.factory.utils.process_utils import Spawn
 
 # Files allowed to have errors now.
 BLOCKLIST = []
-RSTS_BLOCKLIST = [
-    'camera', 'touchscreen_calibration.touchscreen_calibration', 'vsync'
-]
+RSTS_BLOCKLIST = []
 
 
 class DocTest(unittest.TestCase):

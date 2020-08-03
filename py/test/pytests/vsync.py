@@ -46,14 +46,13 @@ class SpatialSensorCalibration(test_case.TestCase):
   ARGS = [
       Arg('capture_number', int, 'The number of capture frames.',
           default=DEFAULT_CAPTURE_NUMBER),
-      Arg('camera_facing', type_utils.Enum(['front', 'rear', None]),
-          'Direction the camera faces relative to device screen. Only allow '
-          '"front", "rear" or None. None is automatically searching one.',
+      Arg('camera_facing', type_utils.Enum(['front', 'rear']),
+          ('Direction the camera faces relative to device screen. Only allow '
+           '"front", "rear" or None. None is automatically searching one.'),
           default=None),
       Arg('timeout_secs', int, 'Timeout in seconds when waiting for device.',
           default=60),
-      Arg('repeat_times', int, 'Number of cycles to test.',
-          default=5)
+      Arg('repeat_times', int, 'Number of cycles to test.', default=5)
   ]
 
   def setUp(self):
