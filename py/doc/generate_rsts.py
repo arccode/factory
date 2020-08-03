@@ -188,8 +188,8 @@ def GeneratePyTestsDoc(pytests_output_dir):
       try:
         pytest_info[pytest_name] = GenerateTestDocs(RSTWriter(out), pytest_name)
       except Exception:
-        logging.warning('Failed to generate document for pytest %s.',
-                        pytest_name)
+        logging.exception('Failed to generate document for pytest %s.',
+                          pytest_name)
 
   index_rst = os.path.join(pytests_output_dir, 'index.rst')
   with open(index_rst, 'a') as f:
