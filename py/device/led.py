@@ -45,28 +45,21 @@ class LED(device_types.DeviceComponent):
     """Probe all maximum brightnesses in advance."""
     super(LED, self).__init__(device)
     self.max_brightnesses = {}
-    for name in self.Index:
-      output = self._device.CallOutput(
-          ['ectool', 'led', name.lower(), 'query']) or ''
-      max_brightness = {color.lower(): 255 for color in self.Color}
-      max_brightness.update((color, int(brightness, 0))
-                            for color, brightness in _PATTERN.findall(output))
-      self.max_brightnesses.update({name.lower(): max_brightness})
+    for led_name in self.Index:
+      self._CacheMaximumBrightness(led_name)
 
+  def _CacheMaximumBrightness(self, led_name):
+    output = self._device.CallOutput(
+        ['ectool', 'led', led_name.lower(), 'query']) or ''
+    max_brightness = {color.lower(): 255 for color in self.Color}
+    max_brightness.update((color, int(brightness, 0))
+                          for color, brightness in _PATTERN.findall(output))
+    self.max_brightnesses.update({led_name.lower(): max_brightness})
 
-  def SetColor(self, color, led_name=None, brightness=None):
-    """Sets LED color.
-
-    Args:
-      color: LED color of type LED.Color enum.
-      led_name: target LED name, or None for all.
-      brightness: LED brightness in percentage [0, 100].
-          If color is 'auto' or 'off', brightness is ignored.
-    """
+  def _CheckSetColorParameters(self, color, led_name, brightness):
+    """Check parameters."""
     logging.info('LED.SetColor(color: %r, led_name: %r, brightness: %r)',
                  color, led_name, brightness)
-
-    # Check parameters
     if led_name is not None and led_name.upper() not in self.Index:
       raise ValueError('Invalid led name: %r' % led_name)
     if color not in self.Color:
@@ -77,30 +70,53 @@ class LED(device_types.DeviceComponent):
       # pylint: disable=superfluous-parens
       if not (0 <= brightness <= 100):
         raise ValueError('brightness (%d) out-of-range [0, 100]' % brightness)
-    else:
+
+  def SetColor(self, color, led_name=None, brightness=None):
+    """Sets LED color.
+
+    Args:
+      color: LED color of type LED.Color enum.
+      led_name: target LED name, or None for all.
+      brightness: LED brightness in percentage [0, 100].
+          If color is 'auto' or 'off', brightness is ignored.
+    """
+    self._CheckSetColorParameters(color, led_name, brightness)
+    if brightness is None:
       brightness = 100
 
     # self.Index using Enum will be a frozenset so the for-loop below may be
     # in arbitrary order.
     for name in [led_name] if led_name else self.Index:
-      try:
-        if color in [self.Color.AUTO, self.Color.OFF]:
-          color_brightness = color.lower()
-        else:
-          max_brightness = self.max_brightnesses[name.lower()][color.lower()]
-          scaled_brightness = int(round(brightness / 100.0 * max_brightness))
-          color_brightness = '%s=%d' % (color.lower(), scaled_brightness)
-      except Exception:
-        logging.exception('Failed deciding LED command for %r (%r,%r)',
-                          name, color, brightness)
-        raise
+      self._SetColor(color, name, brightness)
 
-      try:
-        self._device.CheckCall(
-            ['ectool', 'led', name.lower(), color_brightness])
-      except Exception:
-        logging.exception('Unable to set LED %r to %r', name, color_brightness)
-        raise
+  def _SetColor(self, color, led_name, brightness):
+    """Sets one LED color.
+
+    Args:
+      color: LED color of type LED.Color enum.
+      led_name: target LED name.
+      brightness: LED brightness in percentage [0, 100].
+          If color is 'auto' or 'off', brightness is ignored.
+    """
+    try:
+      if color in [self.Color.AUTO, self.Color.OFF]:
+        color_brightness = color.lower()
+      else:
+        max_brightness = self.max_brightnesses[led_name.lower()][color.lower()]
+        scaled_brightness = int(round(brightness / 100.0 * max_brightness))
+        color_brightness = '%s=%d' % (color.lower(), scaled_brightness)
+    except Exception:
+      logging.exception('Failed deciding LED command for %r (%r,%r)',
+                        led_name, color, brightness)
+      raise
+
+    try:
+      self._device.CheckCall(
+          ['ectool', 'led', led_name.lower(), color_brightness])
+    except Exception:
+      logging.exception(
+          'Unable to set LED %r to %r', led_name, color_brightness)
+      raise
 
 
 class BatteryLED(LED):
@@ -136,3 +152,49 @@ class LeftRightPowerLED(LED):
   """
   Index = Enum([LED.CrOSIndexes.LEFT, LED.CrOSIndexes.RIGHT,
                 LED.CrOSIndexes.POWER])
+
+
+class PWMLeftRightLED(LED):
+  """Devices with only Left and Right LEDs which are controlled by PWM."""
+  Index = Enum([LED.CrOSIndexes.LEFT, LED.CrOSIndexes.RIGHT])
+  DefaultDutyMap = {
+      LED.CrOSIndexes.LEFT: 65535,
+      LED.CrOSIndexes.RIGHT: 0,
+      None: 32767
+  }
+
+  def __init__(self, device, ectool_led_name=LED.CrOSIndexes.POWER,
+               pwm_idx=3, duty_map=None):
+    """Construct PWMLeftRightLED.
+
+    Args:
+      device: The sys_interface.
+      ectool_led_name: The led name in ectool.
+      pwm_idx: The index of 'ectool pwmsetduty'.
+      duty_map: The map from led_name to duty value of 'ectool pwmsetduty'.
+    """
+    # pylint: disable=super-init-not-called
+    # pylint: disable=non-parent-init-called
+    device_types.DeviceComponent.__init__(self, device)
+    self.max_brightnesses = {}
+    self._CacheMaximumBrightness(ectool_led_name)
+    self._ectool_led_name = ectool_led_name
+    self._pwm_idx = pwm_idx
+    self._duty_map = duty_map or self.DefaultDutyMap
+    if not set(self._duty_map).issuperset(list(self.Index) + [None]):
+      raise ValueError('Invalid duty map: %r' % self._duty_map)
+
+  def SetColor(self, color, led_name=None, brightness=None):
+    """See LED.SetColor."""
+    self._CheckSetColorParameters(color, led_name, brightness)
+    if brightness is None:
+      brightness = 100
+
+    self._SetColor(color, self._ectool_led_name, brightness)
+
+    if color == self.Color.AUTO or led_name not in self._duty_map:
+      led_name = None
+    duty_value = self._duty_map[led_name]
+
+    self._device.CheckCall(
+        ['ectool', 'pwmsetduty', str(self._pwm_idx), str(duty_value)])
