@@ -124,7 +124,7 @@ class ConnectionManagerTest(unittest.TestCase):
         'Mode': 'managed',
         'AutoConnect': True,
         'SSID': 'fake_server',
-        'Security': 'psk',
+        'SecurityClass': 'psk',
         'Passphrase': 'test0000'
     }, signature=mock.ANY)
     connection_manager.GetBaseNetworkManager.assert_called_once_with()

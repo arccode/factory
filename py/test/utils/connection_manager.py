@@ -204,7 +204,7 @@ class ConnectionManager:
           'Mode': 'managed',
           'AutoConnect': True,
           'SSID': wlan.ssid,
-          'Security': wlan.security
+          'SecurityClass': wlan.security
       }
       # "Passphrase" is only needed for secure wifi.
       if wlan.security != 'none':
