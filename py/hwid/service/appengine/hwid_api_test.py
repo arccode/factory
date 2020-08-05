@@ -16,6 +16,7 @@ from google.protobuf import json_format
 import mock
 # pylint: enable=import-error, no-name-in-module, wrong-import-order
 
+from cros.chromeoshwid import update_checksum
 from cros.factory.hwid.service.appengine import app
 from cros.factory.hwid.service.appengine import hwid_manager
 from cros.factory.hwid.service.appengine import hwid_util
@@ -24,6 +25,10 @@ import hwid_api_messages_pb2  # pylint: disable=import-error
 
 
 TEST_HWID = 'Foo'
+TEST_HWID_CONTENT = ('prefix\n'
+                     'checksum: 1234\n'
+                     'suffix\n')
+EXPECTED_REPLACE_RESULT = update_checksum.ReplaceChecksum(TEST_HWID_CONTENT)
 
 
 # pylint: disable=protected-access
@@ -37,10 +42,6 @@ class HwidApiTest(unittest.TestCase):
 
     patcher = mock.patch('__main__.app.hwid_api._hwid_validator')
     self.patch_hwid_validator = patcher.start()
-    self.addCleanup(patcher.stop)
-
-    patcher = mock.patch('__main__.app.hwid_api._hwid_updater')
-    self.patch_hwid_updater = patcher.start()
     self.addCleanup(patcher.stop)
 
     patcher = mock.patch(
@@ -343,25 +344,23 @@ class HwidApiTest(unittest.TestCase):
 
   def testValidateConfigAndUpdateChecksum(self):
     self.patch_hwid_validator.ValidateChange = mock.Mock()
-    self.patch_hwid_updater.UpdateChecksum.return_value = 'test2'
 
     response = self.app.post(
         flask.url_for('hwid_api.ValidateConfigAndUpdateChecksum'),
-        data=dict(hwidConfigContents='test'))
+        data=dict(hwidConfigContents=TEST_HWID_CONTENT))
     msg = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual('test2', msg.newHwidConfigContents)
+    self.assertEqual(EXPECTED_REPLACE_RESULT, msg.newHwidConfigContents)
     self.assertEqual('', msg.errorMessage)
 
   def testValidateConfigAndUpdateChecksumErrors(self):
-    self.patch_hwid_updater.UpdateChecksum.return_value = 'test2'
     self.patch_hwid_validator.ValidateChange = mock.Mock(
         side_effect=v3_validator.ValidationError('msg'))
 
     response = self.app.post(
         flask.url_for('hwid_api.ValidateConfigAndUpdateChecksum'),
-        data=dict(hwidConfigContents='test'))
+        data=dict(hwidConfigContents=TEST_HWID_CONTENT))
     msg = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse()
     json_format.Parse(response.data, msg)
 

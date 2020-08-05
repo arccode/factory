@@ -21,9 +21,9 @@ import flask.views
 from google.protobuf import json_format
 # pylint: enable=no-name-in-module, import-error, wrong-import-order
 
+from cros.chromeoshwid import update_checksum
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import goldeneye_ingestion
-from cros.factory.hwid.service.appengine import hwid_updater
 from cros.factory.hwid.service.appengine import hwid_util
 from cros.factory.hwid.service.appengine import hwid_validator
 from cros.factory.hwid.service.appengine import memcache_adapter
@@ -38,7 +38,6 @@ KNOWN_BAD_SUBSTR = [
 
 _hwid_manager = CONFIG.hwid_manager
 _hwid_validator = hwid_validator.HwidValidator()
-_hwid_updater = hwid_updater.HwidUpdater()
 _goldeneye_memcache_adapter = memcache_adapter.MemcacheAdapter(
     namespace=goldeneye_ingestion.MEMCACHE_NAMESPACE)
 
@@ -314,7 +313,7 @@ def ValidateConfigAndUpdateChecksum():
     hwidConfigContents = flask.request.values.get('hwidConfigContents')
     prevHwidConfigContents = flask.request.values.get('prevHwidConfigContents')
 
-  updated_contents = _hwid_updater.UpdateChecksum(hwidConfigContents)
+  updated_contents = update_checksum.ReplaceChecksum(hwidConfigContents)
 
   try:
     _hwid_validator.ValidateChange(updated_contents, prevHwidConfigContents)
