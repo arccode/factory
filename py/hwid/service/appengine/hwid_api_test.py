@@ -5,7 +5,9 @@
 
 """Tests for cros.hwid.service.appengine.hwid_api"""
 
+import gzip
 import http
+import json
 import unittest
 
 # pylint: disable=import-error, no-name-in-module, wrong-import-order
@@ -310,6 +312,19 @@ class HwidApiTest(unittest.TestCase):
 
     response = self.app.post(flask.url_for('hwid_api.ValidateConfig'),
                              data=dict(hwidConfigContents='test'))
+    msg = hwid_api_messages_pb2.ValidateConfigResponse()
+    json_format.Parse(response.data, msg)
+
+    self.assertEqual('', msg.errorMessage)
+
+  def testValidateConfigInGzipContentEncoding(self):
+    self.patch_hwid_validator.Validate = mock.Mock()
+
+    data = json.dumps(dict(hwidConfigContents='test')).encode()
+    response = self.app.post(flask.url_for('hwid_api.ValidateConfig'),
+                             data=gzip.compress(data), headers={
+                                 'Content-Type': 'application/json',
+                                 'Content-Encoding': 'gzip'})
     msg = hwid_api_messages_pb2.ValidateConfigResponse()
     json_format.Parse(response.data, msg)
 

@@ -8,6 +8,7 @@ This file is also the place that all the binding is done for various components.
 """
 
 import functools
+import gzip
 import http
 import logging
 import operator
@@ -101,10 +102,20 @@ def _GetBomAndConfigless(raw_hwid):
   return bom, configless, None
 
 
+def _HandleGzipRequests(method):
+  @functools.wraps(method)
+  def _MethodWrapper(*args, **kwargs):
+    if flask.request.content_encoding == 'gzip':
+      flask.request.stream = gzip.GzipFile(fileobj=flask.request.stream)
+    return method(*args, **kwargs)
+  return _MethodWrapper
+
+
 def HWIDAPI(*args, **kwargs):
   """ Decorator for HWID APIs"""
   def _DecorateMethod(method):
     @bp.route(*args, **kwargs)
+    @_HandleGzipRequests
     @functools.wraps(method)
     def _MethodWrapper(*inner_args, **inner_kwargs):
       response = method(*inner_args, **inner_kwargs)
