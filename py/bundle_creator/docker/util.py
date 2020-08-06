@@ -10,7 +10,10 @@ import string
 import subprocess
 import yaml
 
-from google.cloud import storage  # pylint: disable=import-error, no-name-in-module
+# pylint: disable=import-error, no-name-in-module
+from google.cloud import firestore
+from google.cloud import storage
+# pylint: enable=import-error, no-name-in-module
 from google.protobuf import text_format
 
 from cros.factory.utils import file_utils
@@ -18,6 +21,7 @@ from cros.factory.bundle_creator.docker import config  # pylint: disable=no-name
 
 
 SERVICE_ACCOUNT_JSON = '/service_account.json'
+COLLECTION_HAS_FIRMWARE_SETTINGS = 'has_firmware_settings'
 
 
 class CreateBundleException(Exception):
@@ -26,14 +30,35 @@ class CreateBundleException(Exception):
 
 def RandomString(length):
   """Returns a randomly generated string of ascii letters.
+
   Args:
-    length: the length for the returned string
+    length: The length for the returned string.
 
   Returns:
-    a random ascii letters string
+    A random ascii letters string.
   """
   return ''.join([random.choice(string.ascii_letters)
                   for unused_i in range(length)])
+
+
+def TryUpdateManifestWithHasFirmwareSetting(manifest, project):
+  """Try to update the manifest with the existing has_firmware settings.
+
+  Args:
+    manifest: The manifest dictionary to be updated.
+    project: The project name from the request.
+  """
+  logger = logging.getLogger('util.tryupdatemanifest')
+
+  client = firestore.Client(project=config.GCLOUD_PROJECT)
+  doc = client.collection(
+      COLLECTION_HAS_FIRMWARE_SETTINGS).document(project).get()
+  if doc.exists:
+    try:
+      manifest['has_firmware'] = doc.get('has_firmware')
+    except AttributeError:
+      logger.info(
+          'No `has_firmware` attribute found in the existing document.')
 
 
 def CreateBundle(req):
@@ -60,6 +85,7 @@ def CreateBundle(req):
         'release_image': req.release_image_version,
         'firmware': firmware_source,
     }
+    TryUpdateManifestWithHasFirmwareSetting(manifest, req.project)
     with open(os.path.join(temp_dir, 'MANIFEST.yaml'), 'w') as f:
       yaml.dump(manifest, f)
     process = subprocess.Popen(
