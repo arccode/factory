@@ -254,6 +254,10 @@ class FirmwareImage:
         (entry['name'], [entry['offset'], entry['size']])
         for entry in self._fmap['areas'])
 
+  def get_blob(self):
+    """Returns the raw firmware blob."""
+    return self._image
+
   def get_size(self):
     """Returns the size of associate firmware image."""
     return len(self._image)

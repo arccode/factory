@@ -18,11 +18,13 @@ import time
 
 import yaml
 
-from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Util
+from cros.factory.gooftool import bmpblk
 from cros.factory.gooftool import cros_config as cros_config_module
 from cros.factory.gooftool import crosfw
+from cros.factory.gooftool import gbb
 from cros.factory.gooftool import gsctool as gsctool_module
+from cros.factory.gooftool import interval
 from cros.factory.gooftool import vpd
 from cros.factory.gooftool import vpd_data
 from cros.factory.gooftool import wipe
@@ -79,7 +81,8 @@ class Gooftool:
     self._util = Util()
     self._crosfw = crosfw
     self._vpd = vpd.VPDTool()
-    self._unpack_bmpblock = unpack_bmpblock
+    self._unpack_gbb = gbb.UnpackGBB
+    self._unpack_bmpblock = bmpblk.unpack_bmpblock
     self._named_temporary_file = tempfile.NamedTemporaryFile
     self._db = None
 
@@ -858,6 +861,46 @@ class Gooftool:
           {'stable_device_secret_DO_NOT_SHARE':
            codecs.encode(secret_bytes, 'hex').decode('utf-8')},
           partition=vpd.VPD_READONLY_PARTITION_NAME)
+
+  def Cr50SetROHash(self):
+    """Set the AP-RO hash on the Cr50 chip.
+
+    Cr50 after 0.5.5 and 0.6.5 supports RO verification, which needs the factory
+    to write the RO hash to Cr50 before setting board ID.
+    """
+
+    firmware_image = self._crosfw.LoadMainFirmware().GetFirmwareImage()
+    ro_offset, ro_size = firmware_image.get_section_area('RO_SECTION')
+    ro_vpd_offset, ro_vpd_size = firmware_image.get_section_area('RO_VPD')
+    gbb_offset, gbb_size = firmware_image.get_section_area('GBB')
+    gbb_content = self._unpack_gbb(firmware_image.get_blob(), gbb_offset)
+    hwid = gbb_content.hwid
+    hwid_digest = gbb_content.hwid_digest
+
+    # Calculate address intervals of RO_SECTION - RO_VPD - HWID - HWID_DIGEST.
+    include_intervals = [
+        interval.Interval(ro_offset, ro_offset + ro_size),
+        interval.Interval(gbb_offset, gbb_offset + gbb_size)]
+    exclude_intervals = [
+        interval.Interval(ro_vpd_offset, ro_vpd_offset + ro_vpd_size),
+        interval.Interval(hwid.offset, hwid.offset + hwid.size),
+        interval.Interval(hwid_digest.offset,
+                          hwid_digest.offset + hwid_digest.size)]
+    hash_intervals = interval.MergeAndExcludeIntervals(
+        include_intervals, exclude_intervals)
+
+    # ap_ro_hash.py takes offset:size in hex as range parameters.
+    cmd = 'ap_ro_hash.py %s' % ' '.join(
+        ['%x:%x' % (i.start, i.size) for i in hash_intervals])
+    result = self._util.shell(cmd)
+    if result.status == 0:
+      if 'SUCCEEDED' in result.stdout:
+        logging.info('Successfully set AP-RO hash on Cr50.')
+      else:
+        logging.error(result.stderr)
+        raise Error('Failed to set AP-RO hash on Cr50.')
+    else:
+      raise Error('Failed to run ap_ro_hash.py.')
 
   def Cr50SetSnBits(self):
     """Set the serial number bits on the Cr50 chip.

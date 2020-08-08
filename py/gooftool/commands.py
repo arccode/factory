@@ -459,6 +459,11 @@ def GenerateStableDeviceSecret(options):
   event_log.Log('generate_stable_device_secret')
 
 
+@Command('cr50_set_ro_hash')
+def Cr50SetROHash(options):
+  GetGooftool(options).Cr50SetROHash()
+  event_log.Log('cr50_set_ro_hash')
+
 @Command('cr50_set_sn_bits_and_board_id',
          _rma_mode_cmd_arg)
 def Cr50SetSnBitsAndBoardId(options):
@@ -830,6 +835,7 @@ def Finalize(options):
   if not options.rma_mode:
     # Write VPD values related to RLZ ping into VPD.
     GetGooftool(options).WriteVPDForRLZPing(options.embargo_offset)
+    GetGooftool(options).Cr50SetROHash()
     if options.generate_mfg_date:
       GetGooftool(options).WriteVPDForMFGDate()
   Cr50WriteFlashInfo(options)
