@@ -59,7 +59,7 @@ class UmpireClientInfo:
   }
 
   # uuid and drop_slot are not used in XMLRPC calls but for HTTP webapps only.
-  KEY_TRANSLATION_BLACK_LIST = set(['uuid', 'drop_slot'])
+  KEY_TRANSLATION_BLOCK_LIST = set(['uuid', 'drop_slot'])
 
   VARIANT_FIELDS = [
       'serial_number', 'mlb_serial_number', 'firmware_version',
@@ -146,7 +146,7 @@ class UmpireClientInfo:
     """Gets X-Umpire-DUT dict by translating keys."""
     info_dict = {}
     try:
-      keys = common.DUT_INFO_KEYS - UmpireClientInfo.KEY_TRANSLATION_BLACK_LIST
+      keys = common.DUT_INFO_KEYS - UmpireClientInfo.KEY_TRANSLATION_BLOCK_LIST
       for key in keys:
         value = getattr(self, UmpireClientInfo.KEY_TRANSLATION[key])
         info_dict[key] = value

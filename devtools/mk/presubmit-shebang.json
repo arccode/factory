@@ -14,7 +14,7 @@
     "py/test/pytests/offline_test/shell/wait_for.sh",
     "py/utils/testdata/corrupt-gdbm-shelf"
   ],
-  "white_list": [
+  "allow_list": [
     "/bin/bash",
     "/bin/sh",
     "/usr/bin/env bash",

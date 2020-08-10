@@ -20,7 +20,7 @@ def main():
   parser.add_argument(
       'rules_file', metavar='RULES_FILE',
       help=(
-          'A JSON file contains a shebang white list and a file exclusion '
+          'A JSON file contains a shebang allow list and a file exclusion '
           'list.'))
   parser.add_argument(
       'files', metavar='FILE', nargs='*', help='File or directory to check.')
@@ -29,7 +29,7 @@ def main():
   with open(args.rules_file) as f:
     rules = json.load(f)
   exclusion_set = set(rules['exclusion_list'])
-  white_list_set = set(rules['white_list'])
+  allow_list_set = set(rules['allow_list'])
 
   redundant_files = []
   unknown_shebangs = {}
@@ -46,7 +46,7 @@ def main():
       line = f.readline().rstrip('\n')
       if not executable:
         redundant_files.append(filepath)
-      elif line not in white_list_set:
+      elif line not in allow_list_set:
         unknown_shebangs.setdefault(line, []).append(filepath)
 
   for arg in args.files:
