@@ -82,6 +82,7 @@ class _Config:
     self.dryrun_upload = conf.get('dryrun_upload', False)
     self.ingestion_api_key = conf.get('ingestion_api_key', None)
     self.project_region = conf.get('project_region', '')
+    self.queue_name = conf.get('queue_name', '')
 
 
 CONFIG = type_utils.LazyObject(_Config)

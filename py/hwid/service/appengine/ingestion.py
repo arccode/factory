@@ -93,8 +93,8 @@ class SyncNamePatternHandler(flask.views.MethodView):
   # here just queuing a task to be run in the background.
   def get(self):
     client = tasks.CloudTasksClient()
-    parent = client.queue_path(os.environ.get('GOOGLE_CLOUD_PROJECT'),
-                               CONFIG.project_region, 'default')
+    parent = client.queue_path(CONFIG.cloud_project, CONFIG.project_region,
+                               CONFIG.queue_name)
     client.create_task(parent, {
         'app_engine_http_request': {
             'http_method': 'POST',
@@ -156,8 +156,8 @@ class RefreshHandler(flask.views.MethodView):
   # here just queuing a task to be run in the background.
   def get(self):
     client = tasks.CloudTasksClient()
-    parent = client.queue_path(os.environ.get('GOOGLE_CLOUD_PROJECT'),
-                               CONFIG.project_region, 'default')
+    parent = client.queue_path(CONFIG.cloud_project, CONFIG.project_region,
+                               CONFIG.queue_name)
     client.create_task(parent, {
         'app_engine_http_request': {
             'http_method': 'POST',

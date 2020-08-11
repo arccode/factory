@@ -12,6 +12,8 @@ entrypoint:
 
 instance_class: F4_1G
 
+service: ${SERVICE}
+
 automatic_scaling:
   min_idle_instances: 1
   max_idle_instances: automatic

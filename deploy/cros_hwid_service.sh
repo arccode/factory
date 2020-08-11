@@ -144,15 +144,19 @@ ${FACTORY_PRIVATE_DIR}/config/hwid/service/appengine/configurations.yaml" \
       "${TEMP_DIR}/resource"
   fi
 
+  local common_envs=(
+    GCP_PROJECT="${GCP_PROJECT}"
+    VPC_CONNECTOR_REGION="${VPC_CONNECTOR_REGION}"
+    VPC_CONNECTOR_NAME="${VPC_CONNECTOR_NAME}"
+    REDIS_HOST="${REDIS_HOST}"
+    REDIS_PORT="${REDIS_PORT}"
+    ENDPOINTS_SERVICE_NAME="${GCP_PROJECT}${ENDPOINTS_SUFFIX}"
+    REDIS_CACHE_URL="${REDIS_CACHE_URL}"
+    DOLLAR='$'
+  )
+
   # Fill in env vars in app.*.yaml.template
-  env GCP_PROJECT="${GCP_PROJECT}" \
-    VPC_CONNECTOR_REGION="${VPC_CONNECTOR_REGION}" \
-    VPC_CONNECTOR_NAME="${VPC_CONNECTOR_NAME}" \
-    REDIS_HOST="${REDIS_HOST}" \
-    REDIS_PORT="${REDIS_PORT}" \
-    ENDPOINTS_SERVICE_NAME="${GCP_PROJECT}${ENDPOINTS_SUFFIX}" \
-    REDIS_CACHE_URL="${REDIS_CACHE_URL}" \
-    DOLLAR='$' \
+  env "${common_envs[@]}" SERVICE=default \
     envsubst < "${APPENGINE_DIR}/app.${appengine_env}.yaml.template" > \
     "${TEMP_DIR}/app.yaml"
 
@@ -165,12 +169,15 @@ ${FACTORY_PRIVATE_DIR}/config/hwid/service/appengine/configurations.yaml" \
     "${DEPLOYMENT_E2E}")
       CLOUDSDK_APP_CLOUD_BUILD_TIMEOUT="$CLOUDSDK_APP_CLOUD_BUILD_TIMEOUT" \
         run_in_temp gcloud --project="${GCP_PROJECT}" app deploy --no-promote \
-        --version=e2e-test app.yaml cron.yaml
+        --version=e2e-test app.yaml
       ;;
     *)
+      env "${common_envs[@]}" SERVICE=cron \
+        envsubst < "${APPENGINE_DIR}/app.standard.yaml.template" > \
+        "${TEMP_DIR}/app.cron.yaml"
       CLOUDSDK_APP_CLOUD_BUILD_TIMEOUT="$CLOUDSDK_APP_CLOUD_BUILD_TIMEOUT" \
         run_in_temp gcloud --project="${GCP_PROJECT}" app deploy app.yaml \
-        cron.yaml
+        app.cron.yaml cron.yaml
       ;;
   esac
 }
