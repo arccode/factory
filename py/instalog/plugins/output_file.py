@@ -48,10 +48,14 @@ def MoveAndMerge(src_dir, dst_dir):
     att_dst_path = os.path.join(dst_dir, ATT_DIR_NAME, att_name)
     if not os.path.isfile(att_dst_path):
       shutil.move(att_src_path, att_dst_path)
+  file_utils.SyncDirectory(os.path.join(dst_dir, ATT_DIR_NAME))
 
   with open(os.path.join(dst_dir, EVENT_FILE_NAME), 'a') as dst_f:
     with open(os.path.join(src_dir, EVENT_FILE_NAME), 'r') as src_f:
       shutil.copyfileobj(src_f, dst_f)
+      dst_f.flush()
+      os.fdatasync(dst_f.fileno())
+  file_utils.SyncDirectory(dst_dir)
 
 
 class OutputFile(plugin_base.OutputPlugin):
