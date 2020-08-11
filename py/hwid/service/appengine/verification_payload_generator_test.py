@@ -245,6 +245,29 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
         })
 
 
+class EdidProbeStatementGeneratorTest(unittest.TestCase):
+  def testTryGenerate(self):
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['display_panel'][0]
+
+    ps = ps_gen.TryGenerate(
+        'name1',
+        {'height': '1080', 'product_id': '1a2b', 'vendor': 'FOO',
+         'width': '1920'})
+    self.assertEqual(
+        ps,
+        {
+            'display_panel': {
+                'name1': {
+                    'eval': {'edid': {}},
+                    'expect': {'height': [True, 'int', '!eq 1080'],
+                               'product_id': [True, 'hex', '!eq 0x1A2B'],
+                               'vendor': [True, 'str', '!eq FOO'],
+                               'width': [True, 'int', '!eq 1920']}
+                }
+            }
+        })
+
+
 class GenerateVerificationPayloadTest(unittest.TestCase):
   def testSucc(self):
     dbs = [(database.Database.LoadFile(os.path.join(TESTDATA_DIR, name),

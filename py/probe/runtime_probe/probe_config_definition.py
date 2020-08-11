@@ -152,6 +152,18 @@ def _GetAllProbeStatementDefinitions():
                             num_value_digits=4)
   probe_statement_definitions['camera'] = builder.Build()
 
+  builder = probe_config_types.ProbeStatementDefinitionBuilder('display_panel')
+  builder.AddProbeFunction('edid', 'A method that probes devices via edid.')
+  builder.AddIntOutputField('height', 'The height of the device.')
+  builder.AddHexOutputField('product_id', 'The product ID, 16 bits',
+                            num_value_digits=4)
+  builder.AddStrOutputField('vendor', 'The vendor code, 3 letters',
+                            value_pattern=re.compile('[A-Z]{3}$'),
+                            value_format_error_msg=('Must be a 3-letter all '
+                                                    'caps string.'))
+  builder.AddIntOutputField('width', 'The width of the device.')
+  probe_statement_definitions['display_panel'] = builder.Build()
+
   return probe_statement_definitions
 
 def GetProbeStatementDefinition(name):

@@ -66,6 +66,9 @@ def _GetAllGenericProbeStatementInfoRecords():
       GenericProbeStatementInfoRecord(
           'camera', 'usb_camera',
           ['bus_type', 'usb_vendor_id', 'usb_product_id', 'usb_bcd_device']),
+      GenericProbeStatementInfoRecord(
+          'display_panel', 'edid',
+          ['height', 'product_id', 'vendor', 'width']),
   ]
 
 
@@ -282,6 +285,17 @@ def GetAllProbeStatementGenerators():
 
   all_probe_statement_generators['video'] = [
       _ProbeStatementGenerator('camera', 'usb_camera', usb_fields),
+  ]
+
+  display_panel_fields = [
+      same_name_field_converter('height', StrToNum),
+      same_name_field_converter(
+          'product_id', GetHWIDHexStrToHexStrConverter(4, has_prefix=False)),
+      same_name_field_converter('vendor', HWIDValueToStr),
+      same_name_field_converter('width', StrToNum),
+  ]
+  all_probe_statement_generators['display_panel'] = [
+      _ProbeStatementGenerator('display_panel', 'edid', display_panel_fields),
   ]
 
   return all_probe_statement_generators

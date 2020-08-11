@@ -34,6 +34,17 @@
         }
       }
     },
+    "display_panel": {
+      "generic": {
+        "eval": {"edid": {}},
+        "expect": {
+          "height": [false, "int"],
+          "product_id": [false, "hex"],
+          "vendor": [false, "str"],
+          "width": [false, "int"]
+        }
+      }
+    },
     "dram": {
       "generic": {
         "eval": {"memory": {}},
@@ -137,6 +148,17 @@
           "manufacturer": [false, "str"],
           "model_name": [false, "str"],
           "technology": [false, "str"]
+        }
+      }
+    },
+    "display_panel": {
+      "generic": {
+        "eval": {"edid": {}},
+        "expect": {
+          "height": [false, "int"],
+          "product_id": [false, "hex"],
+          "vendor": [false, "str"],
+          "width": [false, "int"]
         }
       }
     },
