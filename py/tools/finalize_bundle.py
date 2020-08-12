@@ -143,6 +143,7 @@ class FinalizeBundle:
     bundle_name: Name of the bundle (e.g., 20121115_proto).
     build_board: The BuildBoard object for the board.
     board: Board name (e.g., link).
+    project: Project name.
     manifest: Parsed YAML manifest.
     readme_path: Path to the README file within the bundle.
     install_shim_version: Build of the install shim.
@@ -205,6 +206,7 @@ class FinalizeBundle:
     self.GetAndSetResourceVersions()
     self.PrepareNetboot()
     self.UpdateInstallShim()
+    self.PrepareProjectConfig()
     self.RemoveUnnecessaryFiles()
     self.UpdateReadme()
     self.Archive()
@@ -708,6 +710,31 @@ class FinalizeBundle:
 
     if not has_install_shim:
       logging.warning('There is no install shim in the bundle.')
+
+  def PrepareProjectConfig(self):
+    config_dir = os.path.join(self.bundle_dir, 'project_config')
+    if not os.path.exists(config_dir):
+      return
+
+    extracted_dir = os.path.join(config_dir, 'extracted')
+    file_utils.TryMakeDirs(extracted_dir)
+
+    config_balls = sorted(glob.glob(os.path.join(config_dir, '*.tar.gz')))
+    for config_ball in config_balls:
+      Spawn(['tar', '-xf', config_ball, '-C', extracted_dir],
+            check_call=True, log=True)
+      os.remove(config_ball)
+
+    config = '%s_%s_model_sku.json' % (self.board, self.project)
+    config_path = os.path.join(extracted_dir, config)
+
+    if not os.path.exists(config_path):
+      logging.warning('There is no project config in the bundle.')
+      return
+
+    Spawn(['tar', '-zcf', os.path.join(config_dir, 'project_config.tar.gz'),
+           '-C', extracted_dir, config], check_call=True, log=True)
+    os.remove(config_path)
 
   def RemoveUnnecessaryFiles(self):
     """Removes vim backup files, pyc files, and empty directories."""
