@@ -596,8 +596,18 @@ class FinalizeBundle:
     # TODO(hungte) Change factory_shim/netboot/ to be netboot/ in factory.zip.
     orig_netboot_dir = os.path.join(self.bundle_dir, 'factory_shim', 'netboot')
     netboot_dir = os.path.join(self.bundle_dir, 'netboot')
-    if os.path.exists(orig_netboot_dir) and not os.path.exists(netboot_dir):
+    netboot_backup_dir = os.path.join(self.bundle_dir, 'netboot_backup')
+    # Overwrite netboot_dir if we download bundle_dir again and orig_netboot_dir
+    # appears again.
+    if os.path.exists(orig_netboot_dir):
+      if os.path.exists(netboot_dir):
+        shutil.rmtree(netboot_dir)
+      if os.path.exists(netboot_backup_dir):
+        shutil.rmtree(netboot_backup_dir)
       shutil.move(orig_netboot_dir, netboot_dir)
+    elif os.path.exists(netboot_backup_dir):
+      for f in glob.glob(os.path.join(netboot_backup_dir, '*')):
+        shutil.move(f, netboot_dir)
 
     if not os.path.exists(netboot_dir):
       logging.info('No netboot resources.')
@@ -614,8 +624,22 @@ class FinalizeBundle:
     tftp_server_ip = (urllib.parse.urlparse(server_url).hostname if server_url
                       else '')
 
-    for netboot_firmware_image in glob.glob(
-        os.path.join(netboot_dir, 'image*.net.bin')):
+    netboot_firmware_images = set(
+        glob.glob(os.path.join(netboot_dir, 'image*.net.bin')))
+    useful_images = netboot_firmware_images
+    if self.designs is not None:
+      useful_images = useful_images & set(
+          [os.path.join(netboot_dir, 'image.net.bin')] + [
+              os.path.join(netboot_dir, 'image-%s.net.bin' % design)
+              for design in self.designs
+          ])
+    not_useful_images = netboot_firmware_images - useful_images
+    if not_useful_images:
+      file_utils.TryMakeDirs(netboot_backup_dir)
+      for netboot_firmware_image in not_useful_images:
+        shutil.move(netboot_firmware_image, netboot_backup_dir)
+
+    for netboot_firmware_image in useful_images:
       new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
       args = ['--argsfile', target_argsfile,
               '--bootfile', target_bootfile,
