@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-08-11 18:24+CST\n"
+"PO-Revision-Date: 2020-08-13 13:14+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -3279,6 +3279,10 @@ msgid "Finish"
 msgstr "结束"
 
 #: ../py/test/test_lists/generic_common.test_list.json
+msgid "Front Camera LED"
+msgstr "前相机 LED"
+
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Volume Down"
 msgstr "音量减"
 
@@ -3325,6 +3329,10 @@ msgstr "侦测硬件"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "QR Scan"
 msgstr "扫描 QR 码"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Rear Camera LED"
+msgstr "后相机 LED"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "SD Performance"

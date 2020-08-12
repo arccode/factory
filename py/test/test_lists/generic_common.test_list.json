@@ -325,6 +325,13 @@
         "camera_facing": "front"
       }
     },
+    "FrontCameraLED": {
+      "inherit": "FrontCamera",
+      "label": "Front Camera LED",
+      "args": {
+        "mode": "manual_led"
+      }
+    },
     "FrontCameraQRScan": {
       "inherit": "FrontCamera",
       "args": {
@@ -497,6 +504,13 @@
       "run_if": "not constants.has_device_data or device.component.has_rear_camera",
       "args": {
         "camera_facing": "rear"
+      }
+    },
+    "RearCameraLED": {
+      "inherit": "RearCamera",
+      "label": "Rear Camera LED",
+      "args": {
+        "mode": "manual_led"
       }
     },
     "RearCameraQRScan": {
