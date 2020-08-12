@@ -38,7 +38,14 @@
       }
     },
     "use_prepvt_cr50_firmware": false,
-    "__comment_use_prepvt_cr50_firmware": "Set this to true if the prepvt cr50 firmware in release image should be used."
+    "__comment_use_prepvt_cr50_firmware": "Set this to true if the prepvt cr50 firmware in release image should be used.",
+    "wireless_services": [
+      [
+        "antenna_test",
+        2412,
+        null
+      ]
+    ]
   },
   "definitions": {
     "Accelerometers": {
@@ -947,13 +954,7 @@
       "inherit": "WirelessRadiotap",
       "args": {
         "device_name": "wlan0",
-        "services": [
-          [
-            "antenna_test",
-            2412,
-            null
-          ]
-        ],
+        "services": "eval! constants.wireless_services",
         "strength": {
           "main": -60,
           "aux": -60,
