@@ -563,21 +563,38 @@ class FinalizeBundle:
     if len(updaters) != 1:
       raise FinalizeBundleException(
           'Not having exactly one file under %s.' % firmware_dir)
+    updater_path = os.path.join(firmware_dir, updaters[0])
 
     firmware_images_dir = os.path.join(self.bundle_dir, 'firmware_images')
     file_utils.TryMakeDirs(firmware_images_dir)
 
-    # TODO(phoenixshen): remove this when we don't need to support old
-    # firmware updater.
     with file_utils.TempDirectory() as temp_dir:
-      Spawn(['sh', os.path.join(firmware_dir, updaters[0]),
-             '--unpack', temp_dir], log=True, check_call=True)
+      Spawn(['sh', updater_path, '--unpack', temp_dir], log=True,
+            check_call=True)
 
       for root, unused_dirs, files in os.walk(temp_dir):
         for filename in files:
           if filename.endswith('.bin'):
             shutil.copy(os.path.join(root, filename),
                         firmware_images_dir)
+
+      # Collect only the desired firmware
+      if self.designs is not None:
+        manifest = json_utils.LoadFile(os.path.join(temp_dir, 'manifest.json'))
+        keep_list = set()
+        for design in manifest:
+          if design in self.designs:
+            keep_list.add(manifest[design].get('host', {}).get('image'))
+            keep_list.add(manifest[design].get('ec', {}).get('image'))
+          else:
+            Spawn(['rm', '-rf',
+                   os.path.join(temp_dir, 'models', design)], log=True,
+                  check_call=True)
+        for f in os.listdir(os.path.join(temp_dir, 'images')):
+          if os.path.join('images', f) not in keep_list:
+            os.remove(os.path.join(temp_dir, 'images', f))
+        Spawn(['sh', updater_path, '--repack', temp_dir], log=True,
+              check_call=True)
 
     # Try to use "chromeos-firmwareupdate --mode=output" to extract bios/ec
     # firmware. This option is available for updaters extracted from image
@@ -586,9 +603,8 @@ class FinalizeBundle:
     models = [self.project] if self.designs is None else self.designs
     for model in models:
       Spawn([
-          'sudo', 'sh',
-          os.path.join(firmware_dir, updaters[0]), '--mode', 'output',
-          '--model', model, '--output_dir', firmware_images_dir
+          'sudo', 'sh', updater_path, '--mode', 'output', '--model', model,
+          '--output_dir', firmware_images_dir
       ], log=True, call=True)
 
   def PrepareNetboot(self):
