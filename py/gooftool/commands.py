@@ -76,18 +76,15 @@ def HasFpmcu():
 
   if _has_fpmcu is None:
     FPMCU_PATH = '/dev/cros_fp'
-    has_fpmcu_path = os.path.exists(FPMCU_PATH)
     has_cros_config_fpmcu = False
     cros_config_output = Shell(['cros_config', '/fingerprint', 'board'])
     if cros_config_output.success and cros_config_output.stdout:
       has_cros_config_fpmcu = True
 
-    if has_fpmcu_path is False and has_cros_config_fpmcu is True:
+    if not os.path.exists(FPMCU_PATH) and has_cros_config_fpmcu:
       raise Error('FPMCU found in cros_config but missing in %s.' % FPMCU_PATH)
-    if has_fpmcu_path is True and has_cros_config_fpmcu is False:
-      raise Error('FPMCU found in %s but missing in cros_config.' % FPMCU_PATH)
 
-    _has_fpmcu = has_fpmcu_path
+    _has_fpmcu = has_cros_config_fpmcu
 
   return _has_fpmcu
 
