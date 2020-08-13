@@ -24,6 +24,7 @@ from cros.factory.tools import get_version
 from cros.factory.tools import gsutil
 from cros.factory.utils import cros_board_utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import json_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils
 from cros.factory.utils.sys_utils import MountPartition
@@ -47,6 +48,8 @@ FIRMWARE_UPDATER_PATH = os.path.join('usr', 'sbin', FIRMWARE_UPDATER_NAME)
 
 # Special string to use a local file instead of downloading one.
 LOCAL = 'local'
+# Special string to find designs from Boxster config.
+BOXSTER_DESIGNS = 'boxster_designs'
 
 
 # Legacy: resources may live in different places due to historical reason. To
@@ -121,6 +124,9 @@ The input is a MANIFEST.yaml file like the following:
 
   board: link
   project: link
+  designs:
+    - link
+    - link_variant
   bundle_name: 20121115_pvt
 
   # Specify the version of test image directly.
@@ -144,6 +150,7 @@ class FinalizeBundle:
     build_board: The BuildBoard object for the board.
     board: Board name (e.g., link).
     project: Project name.
+    designs: Design names, which are used as the index in firmware updater.
     manifest: Parsed YAML manifest.
     readme_path: Path to the README file within the bundle.
     install_shim_version: Build of the install shim.
@@ -173,6 +180,7 @@ class FinalizeBundle:
   readme_path = None
   install_shim_version = None
   project = None
+  designs = None
   test_image_source = None
   test_image_path = None
   test_image_version = None
@@ -201,22 +209,31 @@ class FinalizeBundle:
     self.ProcessManifest()
     self.LocateResources()
     self.DownloadResources()
+    self.PrepareProjectConfig()
     self.AddDefaultCompleteScript()
     self.AddFirmwareUpdaterAndImages()
     self.GetAndSetResourceVersions()
     self.PrepareNetboot()
     self.UpdateInstallShim()
-    self.PrepareProjectConfig()
     self.RemoveUnnecessaryFiles()
     self.UpdateReadme()
     self.Archive()
 
   def ProcessManifest(self):
     try:
-      CheckDictKeys(self.manifest,
-                    ['board', 'project', 'bundle_name', 'server_url',
-                     'toolkit', 'test_image', 'release_image', 'firmware',
-                     'hwid', 'has_firmware'])
+      CheckDictKeys(self.manifest, [
+          'board',
+          'project',
+          'bundle_name',
+          'server_url',
+          'toolkit',
+          'test_image',
+          'release_image',
+          'firmware',
+          'hwid',
+          'has_firmware',
+          'designs',
+      ])
     except ValueError as e:
       logging.error(str(e))
       raise FinalizeBundleException(
@@ -228,6 +245,8 @@ class FinalizeBundle:
     self.gsutil = gsutil.GSUtil(self.board)
     # assume project=board for backward compatibility
     self.project = self.manifest.get('project', self.board).lower()
+    # assume designs=None for backward compatibility
+    self.designs = self.manifest.get('designs', None)
 
     self.bundle_name = self.manifest['bundle_name']
     if not re.match(r'\d{8}_', self.bundle_name):
@@ -562,11 +581,15 @@ class FinalizeBundle:
 
     # Try to use "chromeos-firmwareupdate --mode=output" to extract bios/ec
     # firmware. This option is available for updaters extracted from image
-    # version >= 9962.0.0.
-    Spawn(['sudo', 'sh', os.path.join(firmware_dir, updaters[0]),
-           '--mode', 'output', '--model', self.project,
-           '--output_dir', firmware_images_dir],
-          log=True, call=True)
+    # version >= 9962.0.0. This also checks that the firmwares that we care
+    # exist.
+    models = [self.project] if self.designs is None else self.designs
+    for model in models:
+      Spawn([
+          'sudo', 'sh',
+          os.path.join(firmware_dir, updaters[0]), '--mode', 'output',
+          '--model', model, '--output_dir', firmware_images_dir
+      ], log=True, call=True)
 
   def PrepareNetboot(self):
     """Prepares netboot resource for TFTP setup."""
@@ -732,6 +755,10 @@ class FinalizeBundle:
       logging.warning('There is no project config in the bundle.')
       return
 
+    if self.designs == BOXSTER_DESIGNS:
+      model_sku = json_utils.LoadFile(config_path)
+      self.designs = list(model_sku['model'])
+
     Spawn(['tar', '-zcf', os.path.join(config_dir, 'project_config.tar.gz'),
            '-C', extracted_dir, config], check_call=True, log=True)
     os.remove(config_path)
@@ -793,12 +820,13 @@ class FinalizeBundle:
               if version is not None]
 
     # Get some vital information
-    vitals = [
-        ('Board', self.board),
-        ('Project', self.project),
-        ('Bundle', '%s (created by %s, %s)' % (
-            self.bundle_name, os.environ['USER'],
-            time.strftime('%a %Y-%m-%d %H:%M:%S %z')))]
+    vitals = [('Board', self.board), ('Project', self.project)]
+    if self.designs is not None:
+      vitals.append(('Designs', repr(self.designs)))
+    vitals.append(
+        ('Bundle',
+         '%s (created by %s, %s)' % (self.bundle_name, os.environ['USER'],
+                                     time.strftime('%a %Y-%m-%d %H:%M:%S %z'))))
     if self.toolkit_version:
       vitals.append(('Factory toolkit', self.toolkit_version))
 
