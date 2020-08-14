@@ -185,7 +185,9 @@ class CameraTest(test_case.TestCase):
           'otherwise.',
           default=None),
       Arg('camera_args', dict, 'Dict of args used for enabling the camera '
-          'device. Only "resolution" is supported in e2e mode.', default={})]
+          'device. Only "resolution" is supported in e2e mode.', default={}),
+      Arg('flicker_interval_secs', (int, float),
+          'The flicker interval in seconds in manual_led mode', default=0.5)]
 
   def _Timeout(self):
     if self.mode == TestModes.timeout:
@@ -268,9 +270,9 @@ class CameraTest(test_case.TestCase):
         # Flickers the LED
         self.EnableDevice()
         self.ReadSingleFrame()
-        self.Sleep(0.5)
+        self.Sleep(self.args.flicker_interval_secs)
         self.DisableDevice()
-        self.Sleep(0.5)
+        self.Sleep(self.args.flicker_interval_secs)
     else:
       # Constantly lights the LED
       self.EnableDevice()
