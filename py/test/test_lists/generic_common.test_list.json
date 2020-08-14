@@ -17,6 +17,16 @@
       "sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/mmc_host"
     },
     "__comment_sd_sysfs_path": "Use 'udevadm monitor' to find out udev sysfs path.",
+    "typea_usb": {
+      "left": {
+        "usb2_sysfs_path": "",
+        "usb3_sysfs_path": ""
+      },
+      "right": {
+        "usb2_sysfs_path": "",
+        "usb3_sysfs_path": ""
+      }
+    },
     "typec_usb": {
       "left": {
         "usb2_sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/usb1/?-?",
@@ -786,6 +796,58 @@
         "media": "USB"
       }
     },
+    "USBTypeAManualLeft": {
+      "inherit": "TestGroup",
+      "label": "Manual Test Left USB TypeA",
+      "subtests": [
+        {
+          "inherit": "USBPerformance",
+          "label": "USB2 TypeA Performance",
+          "run_if": "constants.typea_usb.left.usb2_sysfs_path != ''",
+          "args": {
+            "sysfs_path": "eval! constants.typea_usb.left.usb2_sysfs_path"
+          }
+        },
+        {
+          "inherit": "USBPerformance",
+          "label": "USB3 TypeA Performance",
+          "run_if": "constants.typea_usb.left.usb3_sysfs_path != ''",
+          "args": {
+            "sysfs_path": "eval! constants.typea_usb.left.usb3_sysfs_path"
+          }
+        }
+      ]
+    },
+    "USBTypeAManualRight": {
+      "inherit": "TestGroup",
+      "label": "Manual Test Right USB TypeA",
+      "subtests": [
+        {
+          "inherit": "USBPerformance",
+          "label": "USB2 TypeA Performance",
+          "run_if": "constants.typea_usb.right.usb2_sysfs_path != ''",
+          "args": {
+            "sysfs_path": "eval! constants.typea_usb.right.usb2_sysfs_path"
+          }
+        },
+        {
+          "inherit": "USBPerformance",
+          "label": "USB3 TypeA Performance",
+          "run_if": "constants.typea_usb.right.usb3_sysfs_path != ''",
+          "args": {
+            "sysfs_path": "eval! constants.typea_usb.right.usb2_sysfs_path"
+          }
+        }
+      ]
+    },
+    "USBTypeAManualTest": {
+      "inherit": "FlattenGroup",
+      "subtests": [
+        "USBTypeAManualLeft",
+        "USBTypeAManualRight"
+      ]
+    },
+    "USBTypeATest": "USBTypeAManualTest",
     "USBTypeCManualBase": {
       "inherit": "TestGroup",
       "subtests": [

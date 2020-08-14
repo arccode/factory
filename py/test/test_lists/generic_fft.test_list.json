@@ -46,6 +46,7 @@
         "Touchscreen",
         "StylusAndGarage",
         "ExternalDisplay",
+        "USBTypeATest",
         "USBTypeCTest",
         "MRCCache"
       ]

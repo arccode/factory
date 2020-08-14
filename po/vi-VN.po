@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-08-13 13:14+CST\n"
+"PO-Revision-Date: 2020-08-19 09:56+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -3455,6 +3455,22 @@ msgstr "Tạo ngẫu nhiên"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "USB Performance"
 msgstr "Hiệu suất USB"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "USB2 TypeA Performance"
+msgstr "Kiểm tra hiệu năng USB2 TypeA"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "USB3 TypeA Performance"
+msgstr "Kiểm tra hiệu năng USB3 TypeA"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Manual Test Left USB TypeA"
+msgstr "Kiểm tra USB TypeA bằng tay trái"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Manual Test Right USB TypeA"
+msgstr "Kiểm tra USB TypeA thủ công ngay"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "USB3 CC1 Performance"

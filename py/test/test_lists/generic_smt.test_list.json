@@ -71,6 +71,7 @@
         "LidSwitch",
         "AudioJack",
         "LED",
+        "USBTypeATest",
         "USBTypeCTest",
         "SMTKeyboard"
       ]
