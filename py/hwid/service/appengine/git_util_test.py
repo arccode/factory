@@ -6,7 +6,9 @@
 """Tests for cros.factory.hwid.service.appengine.git_util"""
 
 import datetime
+import hashlib
 import http.client
+import os.path
 import unittest
 
 # pylint: disable=wrong-import-order, import-error
@@ -15,6 +17,7 @@ import mock
 # pylint: enable=wrong-import-order, import-error
 
 from cros.factory.hwid.service.appengine import git_util
+from cros.factory.hwid.v3 import filesystem_adapter
 
 
 # pylint: disable=protected-access
@@ -170,6 +173,40 @@ class GitUtilTest(unittest.TestCase):
                      [('c', git_util.NORMAL_FILE_MODE, b'content of a/b/c'),
                       ('d', git_util.NORMAL_FILE_MODE, b'content of a/b/d'),
                       ('e', git_util.DIR_MODE, None)])
+
+
+class GitFilesystemAdapterTest(unittest.TestCase):
+  def setUp(self):
+    self.repo = git_util.MemoryRepo(auth_cookie='')
+    self.repo.shallow_clone(
+        'https://chromium.googlesource.com/chromiumos/platform/factory',
+        branch='stabilize-13360.B')  # use a stabilize branch as a repo snapshot
+    self.git_fs = git_util.GitFilesystemAdapter(self.repo)
+    self.target_dir = 'deploy'
+    self.file_name = 'README.md'
+    self.file_path = os.path.join(self.target_dir, self.file_name)
+
+  def testListFiles(self):
+    self.assertIn(self.file_name, self.git_fs.ListFiles(self.target_dir))
+
+  def testReadFile(self):
+    # Validate the consistency between content hash and object hash in git.
+    content = self.git_fs.ReadFile(self.file_path)
+    head_commit = self.repo[b'HEAD']
+    unused_mode, sha = self.repo[head_commit.tree].lookup_path(
+        self.repo.get_object, self.file_path.encode())
+    self.assertEqual(
+        sha.decode(), hashlib.sha1(
+            (b'blob %d\x00%b' % (len(content), content))).hexdigest())
+
+  def testReadOnly(self):
+    # Test if GitFilesystemAdapter is unsupported for WriteFile and DeleteFile.
+    self.assertRaises(
+        filesystem_adapter.FileSystemAdapterException,
+        self.git_fs.WriteFile, self.file_path, b'')
+    self.assertRaises(
+        filesystem_adapter.FileSystemAdapterException,
+        self.git_fs.DeleteFile, self.file_path)
 
 
 if __name__ == '__main__':

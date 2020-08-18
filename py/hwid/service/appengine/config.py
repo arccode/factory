@@ -83,6 +83,7 @@ class _Config:
     self.ingestion_api_key = conf.get('ingestion_api_key', None)
     self.project_region = conf.get('project_region', '')
     self.queue_name = conf.get('queue_name', '')
+    self.hwid_repo_branch = conf.get('hwid_repo_branch', '')
 
 
 CONFIG = type_utils.LazyObject(_Config)

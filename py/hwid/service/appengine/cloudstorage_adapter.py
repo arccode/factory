@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 """Facade for interfacing with various storage mechanisms."""
 
+import contextlib
 import logging
 import os.path
 
@@ -18,10 +19,7 @@ from cros.factory.utils import type_utils
 class CloudStorageAdapter(filesystem_adapter.FileSystemAdapter):
   """Adapter for Google Cloud Storage."""
 
-  class ExceptionMapper:
-
-    def __enter__(self):
-      pass
+  class ExceptionMapper(contextlib.AbstractContextManager):
 
     def __exit__(self, value_type, value, traceback):
       if isinstance(value, google.cloud.exceptions.NotFound):

@@ -4,6 +4,7 @@
 """Facade for interfacing with various storage mechanisms."""
 
 import abc
+import contextlib
 import os
 import os.path
 
@@ -66,10 +67,7 @@ class FileSystemAdapter(metaclass=abc.ABCMeta):
 
 class LocalFileSystemAdapter(FileSystemAdapter):
 
-  class ExceptionMapper:
-    def __enter__(self):
-      pass
-
+  class ExceptionMapper(contextlib.AbstractContextManager):
     def __exit__(self, value_type, value, traceback):
       if isinstance(value, (OSError, IOError)):
         raise FileSystemAdapterException(str(value))

@@ -30,6 +30,11 @@ from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.utils import json_utils
 
 
+INTERNAL_REPO_URL = 'https://chrome-internal-review.googlesource.com'
+CHROMEOS_HWID_PROJECT = 'chromeos/chromeos-hwid'
+CHROMEOS_HWID_REPO_URL = INTERNAL_REPO_URL + '/' + CHROMEOS_HWID_PROJECT
+
+
 class PayloadGenerationException(Exception):
   """Exception to group similar excetpions for error reporting."""
 
@@ -41,6 +46,13 @@ def _GetCredentials():
   service_account_name = credential.service_account_email
   token = credential.token
   return service_account_name, token
+
+
+def _GetAuthCookie():
+  service_account_name, token = _GetCredentials()
+  return 'o=git-{service_account_name}={token}'.format(
+      service_account_name=service_account_name,
+      token=token)
 
 
 class DevUploadHandler(flask.views.MethodView):
@@ -83,7 +95,7 @@ class SyncNamePatternHandler(flask.views.MethodView):
   This handler will copy the name_pattern directory under chromeos-hwid dir to
   cloud storage.
   """
-  NAME_PATTERN_FOLDER = "name_pattern"
+  AVL_NAME_FOLDERS = ['name_pattern', 'avl_name_mapping']
 
   def __init__(self, *args, **kwargs):
     super(SyncNamePatternHandler, self).__init__(*args, **kwargs)
@@ -104,28 +116,21 @@ class SyncNamePatternHandler(flask.views.MethodView):
   # Task queue executions are POST requests.
   def post(self):
     """Refreshes the ingestion from staging files to live."""
-    git_url = "https://chrome-internal.googlesource.com/chromeos/chromeos-hwid"
-    service_account_name, token = _GetCredentials()
-    auth_cookie = 'o=git-{service_account_name}={token}'.format(
-        service_account_name=service_account_name,
-        token=token)
-    repo = git_util.MemoryRepo(auth_cookie)
 
-    existing_files = set(self.hwid_filesystem.ListFiles(
-        self.NAME_PATTERN_FOLDER))
-    repo.shallow_clone(git_url, branch='master')
-    for name, mode, content in repo.list_files(self.NAME_PATTERN_FOLDER):
-      if mode == git_util.NORMAL_FILE_MODE:
-        self.hwid_filesystem.WriteFile(
-            '%s/%s' % (self.NAME_PATTERN_FOLDER, name), content)
+    git_fs = git_util.GitFilesystemAdapter.FromGitUrl(
+        CHROMEOS_HWID_REPO_URL, _GetAuthCookie(), CONFIG.hwid_repo_branch)
+
+    for folder in self.AVL_NAME_FOLDERS:
+      existing_files = set(self.hwid_filesystem.ListFiles(folder))
+      for name in git_fs.ListFiles(folder):
+        path = '%s/%s' % (folder, name)
+        content = git_fs.ReadFile(path)
+        self.hwid_filesystem.WriteFile(path, content)
         existing_files.discard(name)
-      else:
-        logging.debug('Skip non-file %r under %r folder', name,
-                      self.NAME_PATTERN_FOLDER)
-    # remove files not existed on repo but still on cloud storage
-    for name in existing_files:
-      self.hwid_filesystem.DeleteFile('%s/%s' % (
-          self.NAME_PATTERN_FOLDER, name))
+      # remove files not existed on repo but still on cloud storage
+      for name in existing_files:
+        path = '%s/%s' % (folder, name)
+        self.hwid_filesystem.DeleteFile(path)
     return flask.Response(status=http.HTTPStatus.OK)
 
 
@@ -224,21 +229,17 @@ class RefreshHandler(flask.views.MethodView):
         logging.error('Cannot get board data from cache for %r', model_name)
     return db_lists
 
-  def GetMasterCommitIfChanged(self, auth_cookie, force_update=False):
+  def GetMasterCommitIfChanged(self, force_update=False):
     """Get master commit of repo if it differs from cached commit on datastore.
 
     Args:
-      auth_cookie: Auth cookie for accessing repo.
       force_update: True for always returning commit id for testing purpose.
     Returns:
       latest commit id if it differs from cached commit id, None if not
     """
 
     hwid_master_commit = git_util.GetCommitId(
-        'https://chrome-internal-review.googlesource.com',
-        'chromeos/chromeos-hwid',
-        'master',
-        auth_cookie)
+        INTERNAL_REPO_URL, CHROMEOS_HWID_PROJECT, 'master', _GetAuthCookie())
     latest_commit = self.hwid_manager.GetLatestHWIDMasterCommit()
 
     if latest_commit == hwid_master_commit and not force_update:
@@ -267,9 +268,8 @@ class RefreshHandler(flask.views.MethodView):
       return None
     return payload_hash
 
-  def TryCreateCL(
-      self, service_account_name, auth_cookie, board, new_files,
-      hwid_master_commit):
+  def TryCreateCL(self, service_account_name, board, new_files,
+                  hwid_master_commit):
     """Try to create a CL if possible.
 
     Use git_util to create CL in repo for generated payloads.  If something goes
@@ -277,7 +277,6 @@ class RefreshHandler(flask.views.MethodView):
 
     Args:
       service_account_name: Account name as email
-      auth_cookie: Auth cookie
       board: board name
       new_files: A path-content mapping of payload files
       hwid_master_commit: Commit of master branch of target repo
@@ -335,6 +334,7 @@ class RefreshHandler(flask.views.MethodView):
                                 file_paths='\n'.join(file_paths))
       logging.debug(dryrun_upload_info)
     else:
+      auth_cookie = _GetAuthCookie()
       try:
         change_id = git_util.CreateCL(
             git_url, auth_cookie, branch, new_git_files,
@@ -366,12 +366,8 @@ class RefreshHandler(flask.views.MethodView):
     """
 
     payload_hash_mapping = {}
-    service_account_name, token = _GetCredentials()
-    auth_cookie = 'o=git-{service_account_name}={token}'.format(
-        service_account_name=service_account_name,
-        token=token)
-    hwid_master_commit = self.GetMasterCommitIfChanged(auth_cookie,
-                                                       force_update)
+    service_account_name, unused_token = _GetCredentials()
+    hwid_master_commit = self.GetMasterCommitIfChanged(force_update)
     if hwid_master_commit is None and not force_update:
       return None, payload_hash_mapping
 
@@ -388,8 +384,7 @@ class RefreshHandler(flask.views.MethodView):
       if payload_hash is not None:
         payload_hash_mapping[board] = payload_hash
         self.TryCreateCL(
-            service_account_name, auth_cookie, board, new_files,
-            hwid_master_commit)
+            service_account_name, board, new_files, hwid_master_commit)
 
     return hwid_master_commit, payload_hash_mapping
 

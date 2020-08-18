@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import contextlib
 import datetime
 import hashlib
 import http.client
@@ -22,6 +23,7 @@ import urllib3.exceptions
 from urllib3 import PoolManager
 # pylint: enable=wrong-import-order, import-error
 
+from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.utils import json_utils
 
 
@@ -45,6 +47,55 @@ class GitUtilException(Exception):
 
 class GitUtilNoModificationException(GitUtilException):
   """Raised if no modification is made for commit."""
+
+
+class GitFilesystemAdapter(filesystem_adapter.FileSystemAdapter):
+  def __init__(self, memory_repo):
+    self._memory_repo = memory_repo
+
+  class ExceptionMapper(contextlib.AbstractContextManager):
+
+    def __exit__(self, value_type, value, traceback):
+      if isinstance(value, GitUtilException):
+        raise KeyError(value)
+      if isinstance(value, Exception):
+        raise filesystem_adapter.FileSystemAdapterException(str(value))
+
+  EXCEPTION_MAPPER = ExceptionMapper()
+
+  @classmethod
+  def FromGitUrl(cls, url, auth_cookie='', branch='master'):
+    repo = MemoryRepo(auth_cookie)
+    repo.shallow_clone(url, branch)
+    return cls(repo)
+
+  @classmethod
+  def GetExceptionMapper(cls):
+    return cls.EXCEPTION_MAPPER
+
+  def _ReadFile(self, path):
+    head_commit = self._memory_repo[HEAD]
+    root = self._memory_repo[head_commit.tree]
+    mode, sha = root.lookup_path(self._memory_repo.get_object, _B(path))
+    if mode != NORMAL_FILE_MODE:
+      raise GitUtilException('Path %r is not a file' % (path,))
+    return self._memory_repo[sha].data
+
+  def _WriteFile(self, path, content):
+    raise NotImplementedError('GitFilesystemAdapter is read-only.')
+
+  def _DeleteFile(self, path):
+    raise NotImplementedError('GitFilesystemAdapter is read-only.')
+
+  def _ListFiles(self, prefix=None):
+    if prefix is None:
+      prefix = ''
+
+    ret = []
+    for name, mode, unused_data in self._memory_repo.list_files(prefix):
+      if mode == NORMAL_FILE_MODE:
+        ret.append(name)
+    return ret
 
 
 class MemoryRepo(_MemoryRepo):
@@ -168,7 +219,7 @@ class MemoryRepo(_MemoryRepo):
       mode, sha = root.lookup_path(self.get_object, _B(path))
     except KeyError:
       raise GitUtilException('Path %r not found' % (path,))
-    if mode != DIR_MODE:
+    if mode not in (None, DIR_MODE):  # None for root directory
       raise GitUtilException('Path %r is not a directory' % (path,))
     tree = self[sha]
     for name, mode, file_sha in tree.items():
