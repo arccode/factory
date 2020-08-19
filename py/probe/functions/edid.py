@@ -152,10 +152,10 @@ def _I2CDump(bus, address, size):
     if fcntl.ioctl(fd, I2C_SLAVE, address) != 0:
       return None
     time.sleep(0.05)  # Wait i2c to get ready
-    if os.write(fd, chr(0)) == 1:
+    if os.write(fd, b'\x00') == 1:
       blob = os.read(fd, size)
   except Exception:
-    pass
+    logging.exception('Fail to dump from i2c bus.')
   finally:
     if fd >= 0:
       os.close(fd)
