@@ -77,6 +77,7 @@
     },
     "AccelerometersLidAngle": {
       "pytest_name": "accelerometers_lid_angle",
+      "run_if": "not constants.has_device_data or (device.component.has_lid_accelerometer and device.component.has_base_accelerometer)",
       "args": {
         "spec_offset": [
           0.5,
@@ -142,6 +143,7 @@
     },
     "BaseAccelerometersCalibration": {
       "inherit": "AccelerometersCalibration",
+      "run_if": "not constants.has_device_data or device.component.has_base_accelerometer",
       "args": {
         "location": "base"
       }
@@ -423,6 +425,7 @@
     },
     "LidAccelerometersCalibration": {
       "inherit": "AccelerometersCalibration",
+      "run_if": "not constants.has_device_data or device.component.has_lid_accelerometer",
       "args": {
         "location": "lid"
       }

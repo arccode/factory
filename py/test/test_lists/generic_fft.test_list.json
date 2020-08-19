@@ -48,6 +48,10 @@
         "ExternalDisplay",
         "USBTypeATest",
         "USBTypeCTest",
+        "BaseAccelerometersCalibration",
+        "LidAccelerometersCalibration",
+        "AccelerometersLidAngle",
+        "ScreenRotation",
         "MRCCache"
       ]
     },
