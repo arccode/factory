@@ -835,7 +835,7 @@
           "label": "USB3 TypeA Performance",
           "run_if": "constants.typea_usb.right.usb3_sysfs_path != ''",
           "args": {
-            "sysfs_path": "eval! constants.typea_usb.right.usb2_sysfs_path"
+            "sysfs_path": "eval! constants.typea_usb.right.usb3_sysfs_path"
           }
         }
       ]
