@@ -53,8 +53,19 @@ load_venv() {
 
   source "${PYLINT_VENV}/bin/activate"
 
-  if ! diff <(pip freeze --local) "${PYLINT_REQUIREMENTS}" ; then
-    pip install -r "${PYLINT_REQUIREMENTS}"
+  # pip freeze --local -r REQUIREMENTS.txt outputs something like:
+  #   required_package_1==A.a
+  #   required_package_2==B.b
+  #   ## The following requirements were added by pip freeze:
+  #   added_package_1==C.c
+  #   added_package_2==D.d
+  #   ...
+  #
+  #   required_pacakge_x are packages listed in REQUIREMENTS.txt,
+  #   which are packages we really care about.
+  if ! diff <(pip freeze --local -r "${PYLINT_REQUIREMENTS}" | \
+      sed -n '/^##/,$ !p') "${PYLINT_REQUIREMENTS}" ; then
+    pip install --force-reinstall -r "${PYLINT_REQUIREMENTS}"
   fi
 }
 

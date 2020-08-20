@@ -38,11 +38,14 @@ def CheckVirtualEnv():
   if not os.path.exists(VENV_DIR):
     MakeVirtualEnv()
 
-  current_version = subprocess.check_output(
-      [os.path.join(VENV_BIN, 'pip'), 'freeze', '--local'], encoding='utf-8')
+  current_version = subprocess.check_output([
+      os.path.join(VENV_BIN, 'pip'), 'freeze', '--local', '-r',
+      VENV_REQUIREMNTS_FILE
+  ],
+                                            encoding='utf-8')
   with open(VENV_REQUIREMNTS_FILE) as f:
     expected_version = f.read()
-  if current_version != expected_version:
+  if current_version[:current_version.find('\n##') + 1] != expected_version:
     InstallRequirements()
 
 
