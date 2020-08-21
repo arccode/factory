@@ -8,6 +8,13 @@ message Component {
   optional string name = 2;
   // The probe result that results for this component.
   optional string probeResult = 3;
+  // Extra fields that show all fields defined in HWID DB.
+  repeated Field fields = 4;
+}
+
+message Field {
+  required string name = 1;
+  required string value = 2;
 }
 
 // A label on a BOM.

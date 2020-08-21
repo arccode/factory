@@ -27,6 +27,7 @@ from cros.factory.hwid.service.appengine import goldeneye_ingestion
 from cros.factory.hwid.service.appengine import hwid_util
 from cros.factory.hwid.service.appengine import hwid_validator
 from cros.factory.hwid.service.appengine import memcache_adapter
+from cros.factory.hwid.v3.rule import Value
 from cros.factory.hwid.v3 import validator as v3_validator
 import hwid_api_messages_pb2  # pylint: disable=import-error
 
@@ -84,10 +85,10 @@ def _FastFailKnownBadHwid(hwid):
   return ''
 
 
-def _GetBomAndConfigless(raw_hwid):
+def _GetBomAndConfigless(raw_hwid, verbose=False):
   try:
     hwid = urllib.parse.unquote(raw_hwid)
-    bom, configless = _hwid_manager.GetBomAndConfigless(hwid)
+    bom, configless = _hwid_manager.GetBomAndConfigless(hwid, verbose)
 
     if bom is None:
       raise _NotFoundException('HWID not found.')
@@ -146,8 +147,10 @@ def GetBom(hwid):
   if error:
     return hwid_api_messages_pb2.BomResponse(error=error)
 
+  verbose = ('verbose' in flask.request.args)
+
   logging.debug('Retrieving HWID %s', hwid)
-  bom, unused_configless, error = _GetBomAndConfigless(hwid)
+  bom, unused_configless, error = _GetBomAndConfigless(hwid, verbose)
   if error:
     return hwid_api_messages_pb2.BomResponse(error=error)
 
@@ -156,7 +159,23 @@ def GetBom(hwid):
 
   for component in bom.GetComponents():
     name = _hwid_manager.GetAVLName(component.cls, component.name)
-    response.components.add(componentClass=component.cls, name=name)
+    fields = []
+    if verbose:
+      for fname, fvalue in component.fields.items():
+        field = hwid_api_messages_pb2.Field()
+        field.name = fname
+        if isinstance(fvalue, Value):
+          if fvalue.is_re:
+            field.value = '!re ' + fvalue.raw_value
+          else:
+            field.value = fvalue.raw_value
+        else:
+          field.value = str(fvalue)
+        fields.append(field)
+
+    fields.sort(key=lambda field: field.name)
+    response.components.add(componentClass=component.cls, name=name,
+                            fields=fields)
 
   response.components.sort(key=operator.attrgetter('componentClass', 'name'))
 

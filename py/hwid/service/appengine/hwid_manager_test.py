@@ -13,6 +13,7 @@ import mock
 
 from cros.factory.hwid.service.appengine import cloudstorage_adapter
 from cros.factory.hwid.service.appengine import hwid_manager
+from cros.factory.hwid.v3 import rule
 from cros.factory.utils import file_utils
 
 
@@ -172,6 +173,43 @@ class HwidManagerTest(unittest.TestCase):
 
     self.assertRaises(hwid_manager.TooManyBoardsFound,
                       manager.GetBomAndConfigless, TEST_V2_HWID)
+
+  def testGetBomWithVerboseFlag(self):
+    """Test when fetching from multiple files, both are supported."""
+    manager = self._GetManager()
+
+    manager.RegisterBoard('CHROMEBOOK', 3, 'v3')
+    manager.ReloadMemcacheCacheFromFiles()
+
+    bom, configless = manager.GetBomAndConfigless(TEST_V3_HWID, verbose=True)
+
+    self.assertIsNone(configless)
+
+    dram = bom.GetComponents(cls='dram')
+    self.assertSequenceEqual(dram, [
+        hwid_manager.Component('dram', 'dram_0', fields={
+            'vendor': 'DRAM 0',
+            'size': '4G'
+        })
+    ])
+
+    audio_codec = bom.GetComponents(cls='audio_codec')
+    self.assertSequenceEqual(audio_codec, [
+        hwid_manager.Component('audio_codec', 'codec_1',
+                               fields={'compact_str': 'Codec 1'}),
+        hwid_manager.Component('audio_codec', 'hdmi_1',
+                               fields={'compact_str': 'HDMI 1'}),
+    ])
+
+    storage = bom.GetComponents(cls='storage')
+    self.assertSequenceEqual(storage, [
+        hwid_manager.Component(
+            'storage', 'storage_0', fields={
+                'type': 'SSD',
+                'size': '16G',
+                'serial': rule.Value(r'^#123\d+$', is_re=True)
+            })
+    ])
 
   def testGetHwidsNonExistentBoard(self):
     """Test that a non-existent board raises a BoardNotFoundError."""
@@ -734,15 +772,19 @@ class ComponentTest(unittest.TestCase):
     self.assertEqual(
         hwid_manager.Component('foo', 'bar'),
         hwid_manager.Component('foo', 'bar'))
-
-  def testHash(self):
-    """Tests that two equal objects have the same hash."""
     self.assertEqual(
-        hash(hwid_manager.Component('foo', 'bar')),
-        hash(hwid_manager.Component('foo', 'bar')))
-    self.assertEqual(
-        hash(hwid_manager.Component('foo', None)),
-        hash(hwid_manager.Component('foo', None)))
+        hwid_manager.Component(
+            'foo', 'bar', fields={
+                'f1': 'v1',
+                'f2': 'v2',
+                'f3': rule.Value(r'\d+$', is_re=True)
+            }),
+        hwid_manager.Component(
+            'foo', 'bar', fields={
+                'f1': 'v1',
+                'f2': 'v2',
+                'f3': rule.Value(r'\d+$', is_re=True)
+            }))
 
 
 class BomTest(unittest.TestCase):
@@ -795,6 +837,17 @@ class BomTest(unittest.TestCase):
     self.bom.AddAllComponents({'storage': ['storage_2']}, data.database)
     comp = self.bom.GetComponents('storage')[0]
     self.assertEqual('storage_0', comp.information['comp_group'])
+
+  def testAddAllComponentsWithFields(self):
+    data = hwid_manager._HwidV3Data('CHROMEBOOK', hwid_file=GOLDEN_HWIDV3_FILE)
+    self.bom.AddAllComponents({'storage': ['storage_1']}, data.database, True)
+    comp, = self.bom.GetComponents('storage')
+    self.assertEqual(
+        {
+            'type': 'SSD',
+            'size': '32G',
+            'serial': rule.Value(r'^#123\d+$', is_re=True)
+        }, comp.fields)
 
   def testGetComponents(self):
     self.bom.AddComponent('foo', 'bar')

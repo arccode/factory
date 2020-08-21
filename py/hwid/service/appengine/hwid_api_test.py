@@ -8,6 +8,7 @@
 import gzip
 import http
 import json
+import os.path
 import unittest
 
 # pylint: disable=import-error, no-name-in-module, wrong-import-order
@@ -20,6 +21,7 @@ from cros.chromeoshwid import update_checksum
 from cros.factory.hwid.service.appengine import app
 from cros.factory.hwid.service.appengine import hwid_manager
 from cros.factory.hwid.service.appengine import hwid_util
+from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import validator as v3_validator
 import hwid_api_messages_pb2  # pylint: disable=import-error
 
@@ -29,6 +31,8 @@ TEST_HWID_CONTENT = ('prefix\n'
                      'checksum: 1234\n'
                      'suffix\n')
 EXPECTED_REPLACE_RESULT = update_checksum.ReplaceChecksum(TEST_HWID_CONTENT)
+GOLDEN_HWIDV3_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'testdata', 'v3-golden.yaml')
 
 
 def _MockGetAVLName(unused_category, comp_name):
@@ -84,7 +88,8 @@ class HwidApiTest(unittest.TestCase):
     self.assertEqual(response.data, b'HWID not found.')
     self.assertEqual(response.status_code, http.HTTPStatus.NOT_FOUND)
 
-    self.patch_hwid_manager.GetBomAndConfigless.assert_called_with(TEST_HWID)
+    self.patch_hwid_manager.GetBomAndConfigless.assert_called_with(
+        TEST_HWID, False)
 
   def testGetBomValueError(self):
     self.patch_hwid_manager.GetBomAndConfigless = mock.Mock(
@@ -137,6 +142,46 @@ class HwidApiTest(unittest.TestCase):
     self.assertIn(
         hwid_api_messages_pb2.Component(name='bar', componentClass='foo'),
         msg.components)
+    self.assertEqual(0, len(msg.labels))
+
+  def testGetBomComponentsWithVerboseFlag(self):
+    bom = hwid_manager.Bom()
+    bom.AddAllComponents({
+        'battery': 'battery_small',
+        'cpu': ['cpu_0', 'cpu_1']
+    }, comp_db=database.Database.LoadFile(GOLDEN_HWIDV3_FILE,
+                                          verify_checksum=False), verbose=True)
+    configless = None
+    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
+
+    response = self.app.get(
+        flask.url_for('hwid_api.GetBom', hwid=TEST_HWID, verbose=''))
+    msg = hwid_api_messages_pb2.BomResponse()
+    json_format.Parse(response.data, msg)
+
+    self.assertEqual(3, len(msg.components))
+    self.assertIn(
+        hwid_api_messages_pb2.Component(
+            name='battery_small', componentClass='battery', fields=[
+                hwid_api_messages_pb2.Field(name='size', value='2500000'),
+                hwid_api_messages_pb2.Field(name='tech', value='Battery Li-ion')
+            ]), msg.components)
+
+    self.assertIn(
+        hwid_api_messages_pb2.Component(
+            name='cpu_0', componentClass='cpu', fields=[
+                hwid_api_messages_pb2.Field(name='cores', value='4'),
+                hwid_api_messages_pb2.Field(name='name', value='CPU @ 1.80GHz')
+            ]), msg.components)
+
+    self.assertIn(
+        hwid_api_messages_pb2.Component(
+            name='cpu_1', componentClass='cpu', fields=[
+                hwid_api_messages_pb2.Field(name='cores', value='4'),
+                hwid_api_messages_pb2.Field(name='name', value='CPU @ 2.00GHz')
+            ]), msg.components)
+
     self.assertEqual(0, len(msg.labels))
 
   def testGetBomLabels(self):

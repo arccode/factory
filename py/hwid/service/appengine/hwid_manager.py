@@ -96,9 +96,10 @@ class AVLNameMapping(ndb.Model):
   name = ndb.StringProperty()
 
 
-class Component(collections.namedtuple('Component', ['cls', 'name',
-                                                     'information',
-                                                     'is_vp_related'])):
+class Component(
+    collections.namedtuple(
+        'Component',
+        ['cls', 'name', 'information', 'is_vp_related', 'fields'])):
   """A single BOM component.
 
   Attributes:
@@ -107,10 +108,15 @@ class Component(collections.namedtuple('Component', ['cls', 'name',
     information dict (optional) The extra information bound with the component.
     is_vp_related bool Whether this component is a source of the verification
         payload.
+    fields dict (optional) The detail fields of the component.
   """
-  def __new__(cls, cls_, name, information=None, is_vp_related=False):
-    return super(Component, cls).__new__(
-        cls, cls_, name, information, is_vp_related)
+
+  def __new__(cls, cls_, name, information=None, is_vp_related=False,
+              fields=None):
+    if fields is None:
+      fields = {}
+    return super(Component, cls).__new__(cls, cls_, name, information,
+                                         is_vp_related, fields)
 
 
 class Label(collections.namedtuple('Label', ['cls', 'name', 'value'])):
@@ -156,7 +162,8 @@ class Bom:
 
     return components
 
-  def AddComponent(self, cls, name=None, information=None, is_vp_related=False):
+  def AddComponent(self, cls, name=None, information=None, is_vp_related=False,
+                   fields=None):
     """Adds a component to this bom.
 
     The method must be supplied at least a component class.  If no name is
@@ -167,15 +174,16 @@ class Bom:
       name: The name of the bom.
       information: (optional) The extra information bound with the
                    component.
+      fields dict (optional) The detail fields of the component.
     """
     if cls not in self._components:
       self._components[cls] = []
 
     if name:
       self._components[cls].append(
-          Component(cls, name, information, is_vp_related))
+          Component(cls, name, information, is_vp_related, fields))
 
-  def AddAllComponents(self, component_dict, comp_db=None):
+  def AddAllComponents(self, component_dict, comp_db=None, verbose=False):
     """Adds a dict of components to this bom.
 
     This dict should be of the form class -> name and can take either a single
@@ -185,6 +193,7 @@ class Bom:
     Args:
       component_dict: A dictionary of components to add.
       comp_db: The database for additional component information retrieval.
+      verbose: Adds all fields of the component detail if set to True.
     Returns:
       self
     Raises:
@@ -200,17 +209,20 @@ class Bom:
       db_components = comp_db and comp_db.GetComponents(component_class)
       if isinstance(component_val, str):
         comp_info = db_components and db_components.get(component_val)
+        fields = comp_info.values if verbose and comp_info else None
         self.AddComponent(component_class, component_dict[component_class],
                           comp_info and comp_info.information,
-                          (component_class, component_val) in vp_related_comps)
+                          (component_class, component_val) in vp_related_comps,
+                          fields)
       else:
         for component_name in component_val:
           if isinstance(component_name, str):
             comp_info = db_components and db_components.get(component_name)
-            self.AddComponent(
-                component_class, component_name,
-                comp_info and comp_info.information,
-                (component_class, component_name) in vp_related_comps)
+            fields = comp_info.values if verbose and comp_info else None
+            self.AddComponent(component_class, component_name, comp_info and
+                              comp_info.information,
+                              (component_class, component_name)
+                              in vp_related_comps, fields)
 
   def HasLabel(self, label):
     """Test whether the BOM has a label."""
@@ -334,11 +346,12 @@ class HwidManager:
                    if metadata.version in versions)
       return set(metadata.board for metadata in HwidMetadata.query())
 
-  def GetBomAndConfigless(self, hwid_string):
+  def GetBomAndConfigless(self, hwid_string, verbose=False):
     """Get the BOM and configless for a given HWID.
 
     Args:
       hwid_string: The HWID.
+      verbose: Requires all fields of components in bom if set to True.
 
     Returns:
       A bom dict and configless field dict.
@@ -356,7 +369,7 @@ class HwidManager:
 
     hwid_data = self._LoadHwidData(board)
 
-    return hwid_data.GetBomAndConfigless(hwid_string)
+    return hwid_data.GetBomAndConfigless(hwid_string, verbose)
 
   def GetHwids(self,
                board,
@@ -794,11 +807,12 @@ class _HwidData:
     """Seeds the object from a dict of hwid definitions."""
     raise NotImplementedError()
 
-  def GetBomAndConfigless(self, hwid_string):
+  def GetBomAndConfigless(self, hwid_string, verbose=False):
     """Get the BOM and configless field for a given HWID.
 
     Args:
       hwid_string: The HWID.
+      verbose: Returns all fields in component detail if set to True.
 
     Returns:
       A bom dict and configless field dict.
@@ -948,13 +962,14 @@ class _HwidV2Data(_HwidData):
 
     raise InvalidHwidError('Invalid HWIDv2 format: %r' % hwid_string)
 
-  def GetBomAndConfigless(self, hwid_string):
+  def GetBomAndConfigless(self, hwid_string, verbose=False):
     """Get the BOM and configless field for a given HWID.
 
     Overrides superclass method.
 
     Args:
       hwid_string: The HWID string
+      verbose: Returns all fields in component detail if set to True.
 
     Returns:
       A Bom object and None since HWID v2 doesn't support configless field.
@@ -973,21 +988,23 @@ class _HwidV2Data(_HwidData):
     bom.board = self.board
 
     if name in self._bom_map:
-      bom.AddAllComponents(self._bom_map[name]['primary']['components'])
+      bom.AddAllComponents(self._bom_map[name]['primary']['components'],
+                           verbose=verbose)
     else:
       raise HwidNotFoundError('BOM %r not found for board %r.' % (bom,
                                                                   self.board))
 
     if variant:
       if variant in self._variant_map:
-        bom.AddAllComponents(self._variant_map[variant]['components'])
+        bom.AddAllComponents(self._variant_map[variant]['components'],
+                             verbose=verbose)
       else:
         raise HwidNotFoundError('variant %r not found for board %r.' %
                                 (variant, self.board))
 
     if volatile:
       if volatile in self._volatile_map:
-        bom.AddAllComponents(self._volatile_map[volatile])
+        bom.AddAllComponents(self._volatile_map[volatile], verbose=verbose)
       else:
         raise HwidNotFoundError('volatile %r not found for board %r.' %
                                 (volatile, self.board))
@@ -1178,13 +1195,14 @@ class _HwidV3Data(_HwidData):
     self.database = database.Database.LoadData(
         hwid_data, expected_checksum=None)
 
-  def GetBomAndConfigless(self, hwid_string):
+  def GetBomAndConfigless(self, hwid_string, verbose=False):
     """Get the BOM and configless field for a given HWID.
 
     Overrides superclass method.
 
     Args:
       hwid_string: The HWID.
+      verbose: Returns all fields in component detail if set to True.
 
     Returns:
       A bom dict and configless field dict.
@@ -1204,7 +1222,7 @@ class _HwidV3Data(_HwidData):
 
     bom = Bom()
 
-    bom.AddAllComponents(_bom.components, self.database)
+    bom.AddAllComponents(_bom.components, self.database, verbose=verbose)
     bom.phase = self.database.GetImageName(hwid.image_id)
     bom.board = hwid.project
 
