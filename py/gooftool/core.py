@@ -769,6 +769,8 @@ class Gooftool:
             self._util.shell('gsctool -a -i -M').stdout,
         'cr50_sn_bits':
             self._util.shell('/usr/share/cros/cr50-read-rma-sn-bits.sh').stdout,
+        'cr50_fw_version':
+            self._util.shell('gsctool -a -f -M').stdout,
     }
 
   def ClearFactoryVPDEntries(self):

@@ -635,9 +635,10 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._util.GetCrosSystem.return_value = {'key': 'value'}
 
     self.assertEqual(
-        set(['platform_name', 'crossystem', 'modem_status', 'ec_wp_status',
-             'bios_wp_status', 'cr50_board_id', 'cr50_sn_bits']),
-        set(self._gooftool.GetSystemDetails().keys()))
+        {
+            'platform_name', 'crossystem', 'modem_status', 'ec_wp_status',
+            'bios_wp_status', 'cr50_board_id', 'cr50_sn_bits', 'cr50_fw_version'
+        }, set(self._gooftool.GetSystemDetails().keys()))
 
 
 if __name__ == '__main__':
