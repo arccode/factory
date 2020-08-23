@@ -888,7 +888,8 @@ class Gooftool:
     hwid = gbb_content.hwid
     hwid_digest = gbb_content.hwid_digest
 
-    # Calculate address intervals of RO_SECTION - RO_VPD - HWID - HWID_DIGEST.
+    # Calculate address intervals of
+    # RO_SECTION + GBB - RO_VPD - HWID - HWID_DIGEST.
     include_intervals = [
         interval.Interval(ro_offset, ro_offset + ro_size),
         interval.Interval(gbb_offset, gbb_offset + gbb_size)]
