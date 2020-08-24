@@ -697,7 +697,7 @@ class BluetoothTest(test_case.TestCase):
       self.ui.SetState(_('Scanning...'))
 
       with self.TimedProgressBar(timeout_secs):
-        devices = self.btmgmt.FindDevices()
+        devices = self.btmgmt.FindDevices(timeout_secs=timeout_secs)
 
       logging.info('Found %d device(s).', len(devices))
       for mac, props in devices.items():
@@ -849,7 +849,7 @@ class BluetoothTest(test_case.TestCase):
       self.ui.SetState(
           _('Detect RSSI (count {count}/{total})', count=i, total=scan_counts))
       with self.TimedProgressBar(timeout_secs):
-        devices = self.btmgmt.FindDevices()
+        devices = self.btmgmt.FindDevices(timeout_secs=timeout_secs)
       for mac, props in devices.items():
         if mac == mac_to_scan and 'RSSI' in props:
           session.console.info('RSSI of count %d: %.2f', i, props['RSSI'])

@@ -88,15 +88,18 @@ class BtMgmt:
     """Get the HCI device of the bluetooth adapter."""
     return self._hci_device
 
-  def FindDevices(self, index=0):
+  def FindDevices(self, index=0, timeout_secs=None):
     if self._hci_device:
       index = int(self._hci_device.lstrip('hci'))
 
     patt = re.compile(
         r'^hci\d+\sdev_found:\s(.+)\stype\s.+\srssi\s(\-\d+)\s.*$')
     devices = {}
-    for line in process_utils.CheckOutput(
-        ['btmgmt', '--index', str(index), 'find']).splitlines():
+    find_cmd = ['btmgmt', '--index', str(index)]
+    if find_cmd is not None:
+      find_cmd.extend(['--timeout', str(timeout_secs)])
+    find_cmd.append('find')
+    for line in process_utils.CheckOutput(find_cmd, log=True).splitlines():
       if line.startswith('hci'):
         result = patt.match(line)
         if not result:
@@ -112,6 +115,11 @@ class BtMgmt:
       elif line.startswith('name'):
         name = line.lstrip('name ')
         devices[mac]['Name'] = name
+
+    # The timeout just kill the interactive session but it may not stop
+    # discovery. Use stop-find afterwards to guarantee discovery ends.
+    process_utils.CheckOutput(
+        ['btmgmt', '--index', str(index), 'stop-find'], log=True)
 
     return devices
 
