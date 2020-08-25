@@ -58,8 +58,6 @@ class LED(device_types.DeviceComponent):
 
   def _CheckSetColorParameters(self, color, led_name, brightness):
     """Check parameters."""
-    logging.info('LED.SetColor(color: %r, led_name: %r, brightness: %r)',
-                 color, led_name, brightness)
     if led_name is not None and led_name.upper() not in self.Index:
       raise ValueError('Invalid led name: %r' % led_name)
     if color not in self.Color:
