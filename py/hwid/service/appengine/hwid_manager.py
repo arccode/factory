@@ -89,6 +89,13 @@ class LatestPayloadHash(ndb.Model):  # pylint: disable=no-init
   payload_hash = ndb.StringProperty()
 
 
+class AVLNameMapping(ndb.Model):
+
+  category = ndb.StringProperty()
+  component_id = ndb.IntegerProperty()
+  name = ndb.StringProperty()
+
+
 class Component(collections.namedtuple('Component', ['cls', 'name',
                                                      'information',
                                                      'is_vp_related'])):
@@ -562,6 +569,53 @@ class HwidManager:
 
       metadata.put()
 
+  def SyncAVLNameMapping(self, category, mapping):
+    """Sync the set of AVL name mapping to be exactly the mapping provided.
+
+    Args:
+      category: The component category
+      mapping: The {cid: avl_name} dictionary for updating datastore.
+    """
+
+    with self._ndb_client.context(global_cache=self._global_cache):
+      cids_to_create = set(mapping)
+
+      q = AVLNameMapping.query(AVLNameMapping.category == category)
+      for entry in list(q):
+        # Discard the entries indexed by cid.
+        if entry.component_id not in mapping:
+          entry.key.delete()
+        else:
+          entry.name = mapping[entry.component_id]
+          entry.put()
+          cids_to_create.discard(entry.component_id)
+
+      for cid in cids_to_create:
+        name = mapping[cid]
+        entry = AVLNameMapping(component_id=cid, name=name, category=category)
+        entry.put()
+    logging.info('AVL name mapping of category "%s" is synced.', category)
+
+  def ListExistingAVLCategories(self):
+    with self._ndb_client.context(global_cache=self._global_cache):
+      category_set = set()
+      for entry in AVLNameMapping.query(
+          projection=['category'], distinct_on=['category']):
+        category_set.add(entry.category)
+      logging.debug('category_set: %s', category_set)
+      return category_set
+
+  def RemoveAVLNameMappingCategories(self, category_set):
+    with self._ndb_client.context(global_cache=self._global_cache):
+      keys_to_delete = []
+      for category in category_set:
+        logging.info('Add category "%s" to remove', category)
+        keys_to_delete += AVLNameMapping.query(
+            AVLNameMapping.category == category).fetch(keys_only=True)
+      logging.debug('keys_to_delete: %s', keys_to_delete)
+      ndb.delete_multi(keys_to_delete)
+      logging.info('Extra categories are Removed')
+
   def UpdateBoards(self, board_metadata, delete_missing=True):
     """Updates the set of supported boards to be exactly the list provided.
 
@@ -677,6 +731,36 @@ class HwidManager:
 
   def SaveBoardDataToCache(self, board, hwid_data):
     self._memcache_adapter.Put(board, hwid_data)
+
+  def GetAVLName(self, category, comp_name):
+    """Get AVL Name from hourly updated mapping data.
+
+    Args:
+      category: Component category.
+      comp_name: Component name defined in HWID DB.
+
+    Returns:
+      comp_name if the name does not follow the <category>_<cid>_<qid> rule, or
+      the mapped name defined in datastore.
+    """
+    sp = comp_name.split('_')
+    if len(sp) != 3:  # <category>, <cid>, <qid>
+      return comp_name
+    category_in_name, cid, qid = sp
+    if category != category_in_name or not cid.isdigit() or not qid.isdigit():
+      # does not match naming rule
+      return comp_name
+
+    with self._ndb_client.context(global_cache=self._global_cache):
+      entry = AVLNameMapping.query(
+          AVLNameMapping.category == category,
+          AVLNameMapping.component_id == int(cid)).get()
+    if entry is None:
+      logging.error(
+          'mapping not found for category "%s" and component name"%s"',
+          category, comp_name)
+      return comp_name
+    return entry.name
 
 
 class _HwidData:

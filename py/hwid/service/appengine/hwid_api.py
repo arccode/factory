@@ -155,7 +155,8 @@ def GetBom(hwid):
   response.phase = bom.phase
 
   for component in bom.GetComponents():
-    response.components.add(componentClass=component.cls, name=component.name)
+    name = _hwid_manager.GetAVLName(component.cls, component.name)
+    response.components.add(componentClass=component.cls, name=name)
 
   response.components.sort(key=operator.attrgetter('componentClass', 'name'))
 
@@ -395,13 +396,12 @@ def GetDUTLabels(hwid):
   # runtime probe
   for component in bom.GetComponents():
     if component.name and component.is_vp_related:
-      name = component.name
+      name = _hwid_manager.GetAVLName(component.cls, component.name)
       if component.information is not None:
         name = component.information.get('comp_group', name)
       response.labels.add(
           name="hwid_component",
           value=component.cls + '/' + name)
-
 
   unexpected_labels = set(
       label.name for label in response.labels) - set(possible_labels)

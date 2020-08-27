@@ -9,6 +9,7 @@ import hashlib
 import http
 import logging
 import os
+import os.path
 
 # pylint: disable=no-name-in-module, import-error, wrong-import-order
 import flask
@@ -95,11 +96,13 @@ class SyncNamePatternHandler(flask.views.MethodView):
   This handler will copy the name_pattern directory under chromeos-hwid dir to
   cloud storage.
   """
-  AVL_NAME_FOLDERS = ['name_pattern', 'avl_name_mapping']
+  NAME_PATTERN_FOLDER = 'name_pattern'
+  AVL_NAME_MAPPING_FOLDER = 'avl_name_mapping'
 
   def __init__(self, *args, **kwargs):
     super(SyncNamePatternHandler, self).__init__(*args, **kwargs)
     self.hwid_filesystem = CONFIG.hwid_filesystem
+    self.hwid_manager = CONFIG.hwid_manager
 
   # Cron jobs are always GET requests, we are not acutally doing the work
   # here just queuing a task to be run in the background.
@@ -116,21 +119,34 @@ class SyncNamePatternHandler(flask.views.MethodView):
   # Task queue executions are POST requests.
   def post(self):
     """Refreshes the ingestion from staging files to live."""
-
     git_fs = git_util.GitFilesystemAdapter.FromGitUrl(
         CHROMEOS_HWID_REPO_URL, _GetAuthCookie(), CONFIG.hwid_repo_branch)
 
-    for folder in self.AVL_NAME_FOLDERS:
-      existing_files = set(self.hwid_filesystem.ListFiles(folder))
-      for name in git_fs.ListFiles(folder):
-        path = '%s/%s' % (folder, name)
-        content = git_fs.ReadFile(path)
-        self.hwid_filesystem.WriteFile(path, content)
-        existing_files.discard(name)
-      # remove files not existed on repo but still on cloud storage
-      for name in existing_files:
-        path = '%s/%s' % (folder, name)
-        self.hwid_filesystem.DeleteFile(path)
+    folder = self.NAME_PATTERN_FOLDER
+    existing_files = set(self.hwid_filesystem.ListFiles(folder))
+    for name in git_fs.ListFiles(folder):
+      path = '%s/%s' % (folder, name)
+      content = git_fs.ReadFile(path)
+      self.hwid_filesystem.WriteFile(path, content)
+      existing_files.discard(name)
+    # remove files not existed on repo but still on cloud storage
+    for name in existing_files:
+      path = '%s/%s' % (folder, name)
+      self.hwid_filesystem.DeleteFile(path)
+
+    category_set = self.hwid_manager.ListExistingAVLCategories()
+
+    folder = self.AVL_NAME_MAPPING_FOLDER
+    for name in git_fs.ListFiles(folder):
+      path = '%s/%s' % (folder, name)
+      category, unused_ext = os.path.splitext(name)
+      content = git_fs.ReadFile(path)
+      mapping = yaml.load(content)
+      self.hwid_manager.SyncAVLNameMapping(category, mapping)
+      category_set.discard(category)
+
+    self.hwid_manager.RemoveAVLNameMappingCategories(category_set)
+
     return flask.Response(status=http.HTTPStatus.OK)
 
 

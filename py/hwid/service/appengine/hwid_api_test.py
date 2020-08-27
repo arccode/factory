@@ -31,6 +31,9 @@ TEST_HWID_CONTENT = ('prefix\n'
 EXPECTED_REPLACE_RESULT = update_checksum.ReplaceChecksum(TEST_HWID_CONTENT)
 
 
+def _MockGetAVLName(unused_category, comp_name):
+  return comp_name
+
 # pylint: disable=protected-access
 class HwidApiTest(unittest.TestCase):
 
@@ -124,6 +127,7 @@ class HwidApiTest(unittest.TestCase):
     bom.AddAllComponents({'foo': 'bar', 'baz': ['qux', 'rox']})
     configless = None
     self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
 
     response = self.app.get(flask.url_for('hwid_api.GetBom', hwid=TEST_HWID))
     msg = hwid_api_messages_pb2.BomResponse()
@@ -464,6 +468,7 @@ class HwidApiTest(unittest.TestCase):
     }
 
     self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
 
     response = self.app.get(flask.url_for('hwid_api.GetDUTLabels',
                                           hwid=TEST_HWID))
