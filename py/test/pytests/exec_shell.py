@@ -114,11 +114,14 @@ import subprocess
 import time
 
 from cros.factory.device import device_utils
+from cros.factory.test.env import paths
 from cros.factory.test.i18n import _
+from cros.factory.test import session
 from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
@@ -141,17 +144,16 @@ class ExecShell(test_case.TestCase):
           default='.'),
       Arg('attachment_name', str,
           ('File base name for collecting and creating testlog attachment. '
-           'None to skip creating attachments.'),
-          default=None),
+           'None to skip creating attachments.'), default=None),
       Arg('log_command_output', bool,
-          ('Log the executed results of each commands, which includes '
-           'stdout, stderr and the return code.'),
-          default=True),
+          ('Log the executed results of each commands, which includes stdout,'
+           'stderr and the return code.'), default=True),
       Arg('attachment_path', str,
           ('Source path for collecting logs to create testlog attachment. '
            'None to run commands in a temporary folder and attach everything '
-           'created, otherwise tar everything from given path.'),
-          default=None)
+           'created, otherwise tar everything from given path.'), default=None),
+      Arg('source_codes', (list, str),
+          'A list (or single path) of source codes to log.', default=None)
   ]
 
   @staticmethod
@@ -239,6 +241,20 @@ class ExecShell(test_case.TestCase):
       self._commands = [self.args.commands]
     else:
       self._commands = self.args.commands
+
+    if self.args.source_codes is None:
+      source_codes = []
+    elif isinstance(self.args.source_codes, str):
+      source_codes = [self.args.source_codes]
+    else:
+      source_codes = self.args.source_codes
+
+    log_dir = os.path.join(paths.DATA_TESTS_DIR, session.GetCurrentTestPath())
+    for source_path in source_codes:
+      file_name, extension = os.path.splitext(os.path.basename(source_path))
+      hash_file_name = '%s_%s' % (file_name, file_utils.SHA1InHex(source_path))
+      log_path = os.path.join(log_dir, hash_file_name + extension)
+      file_utils.CopyFileSkipBytes(source_path, log_path, 0)
 
     testlog.UpdateParam(
         'stdout', description='standard output of the command')
