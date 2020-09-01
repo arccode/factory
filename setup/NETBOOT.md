@@ -9,6 +9,10 @@ this can be used in some early phase of projects (e.g. Proto builds), when
 images might be changed during the build, so you don't want to pre-flash it by
 copy machine.
 
+If the netboot firmware isn't ready, **dev firmware** can be used to netboot
+as well. Press `Ctrl + N` in the developer screen. This effectively runs the
+same netboot code as full netboot firmware.
+
 ## Prerequisition
 * A Linux machine, which will be running TFTP and factory server
 * An USB Ethernet dongle for DUT
