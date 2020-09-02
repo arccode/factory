@@ -110,18 +110,16 @@ _RE_EVTEST_EVENT = re.compile(
 
 _POWER_KEY_CODE = 116
 
-_INTEGER_STRING_PATTERN = (
-    r'^(0[Bb][01]+|0[Oo][0-7]+|0[Xx][0-9A-Fa-f]+|[1-9][0-9]*|0)$')
+_INTEGER_STRING_SCHEMA = {
+    'type': 'string',
+    'pattern': r'^(0[Bb][01]+|0[Oo][0-7]+|0[Xx][0-9A-Fa-f]+|[1-9][0-9]*|0)$'
+}
 _REPLACEMENT_KEYMAP_SCHEMA = schema.JSONSchemaDict(
-    'replacement_keymap schema object',
-    {
+    'replacement_keymap schema object', {
         'type': 'object',
-        'propertyNames': _INTEGER_STRING_PATTERN,
+        'propertyNames': _INTEGER_STRING_SCHEMA,
         'patternProperties': {
-            "^.*$": {
-                'type': 'string',
-                'pattern': _INTEGER_STRING_PATTERN
-            }
+            '^.*$': _INTEGER_STRING_SCHEMA
         }
     })
 
