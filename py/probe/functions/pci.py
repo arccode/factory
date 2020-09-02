@@ -12,7 +12,7 @@ from cros.factory.probe.lib import cached_probe_function
 
 def ReadPCISysfs(path):
   logging.debug('Read PCI path: %s', path)
-  ret = sysfs.ReadSysfs(path, ['vendor', 'device'])
+  ret = sysfs.ReadSysfs(path, ['vendor', 'device'], ['subsystem_device'])
   if ret is None:
     return None
 

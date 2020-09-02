@@ -71,7 +71,7 @@ def _GetAllGenericProbeStatementInfoRecords():
       ]),
       GenericProbeStatementInfoRecord('network', 'generic_network', [
           'type', 'bus_type', 'pci_vendor_id', 'pci_device_id', 'pci_revision',
-          'usb_vendor_id', 'usb_product_id', 'usb_bcd_device'
+          'pci_subsystem', 'usb_vendor_id', 'usb_product_id', 'usb_bcd_device'
       ]),
       GenericProbeStatementInfoRecord('dram', 'memory',
                                       ['part', 'size', 'slot']),
@@ -239,6 +239,8 @@ def GetAllProbeStatementGenerators():
                    is_optional=True),
       _FieldRecord('revision_id', 'pci_revision',
                    GetHWIDHexStrToHexStrConverter(2), is_optional=True),
+      _FieldRecord('subsystem_device', 'pci_subsystem',
+                   GetHWIDHexStrToHexStrConverter(4), is_optional=True),
   ]
   usb_fields = [
       _FieldRecord('idVendor', 'usb_vendor_id',

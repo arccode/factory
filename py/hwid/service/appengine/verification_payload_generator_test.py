@@ -151,6 +151,51 @@ class NetworkProbeStatementGeneratorTest(unittest.TestCase):
             }
         })
 
+  def testPCI(self):
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['wireless'][0]
+    ps = ps_gen.TryGenerate('name1', {
+        'vendor': '0x1234',
+        'device': '0x5678'
+    })
+    self.assertEqual(
+        ps, {
+            'network': {
+                'name1': {
+                    'eval': {
+                        'wireless_network': {}
+                    },
+                    'expect': {
+                        'pci_device_id': [True, 'hex', '!eq 0x5678'],
+                        'pci_revision': [False, 'hex'],
+                        'pci_subsystem': [False, 'hex'],
+                        'pci_vendor_id': [True, 'hex', '!eq 0x1234']
+                    }
+                }
+            }
+        })
+
+    ps = ps_gen.TryGenerate('name1', {
+        'vendor': '0x1234',
+        'device': '0x5678',
+        'subsystem_device': '0x0123'
+    })
+    self.assertEqual(
+        ps, {
+            'network': {
+                'name1': {
+                    'eval': {
+                        'wireless_network': {}
+                    },
+                    'expect': {
+                        'pci_device_id': [True, 'hex', '!eq 0x5678'],
+                        'pci_revision': [False, 'hex'],
+                        'pci_subsystem': [True, 'hex', '!eq 0x0123'],
+                        'pci_vendor_id': [True, 'hex', '!eq 0x1234']
+                    }
+                }
+            }
+        })
+
 
 class MemoryProbeStatementGeneratorTest(unittest.TestCase):
   def testTryGenerate(self):

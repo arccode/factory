@@ -269,7 +269,8 @@
         "idVendor",
         "bcdDevice",
         "vendor",
-        "revision_id"
+        "revision_id",
+        "subsystem_device"
       ]
     }
   },

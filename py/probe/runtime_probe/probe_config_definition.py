@@ -104,6 +104,8 @@ def _GetAllProbeStatementDefinitions():
                             num_value_digits=4)
   builder.AddHexOutputField('pci_revision', 'PCI Revision Info.',
                             num_value_digits=2)
+  builder.AddHexOutputField('pci_subsystem', 'PCI subsystem ID.',
+                            num_value_digits=4)
   builder.AddHexOutputField('usb_vendor_id', 'USB Vendor ID.',
                             num_value_digits=4)
   builder.AddHexOutputField('usb_product_id', 'USB Product ID.',
