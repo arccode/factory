@@ -26,3 +26,7 @@ class CrosConfig:
     """
     result = self.GetValue('/identity', 'whitelabel-tag')
     return result.success, (result.stdout.strip() if result.stdout else '')
+
+  def GetPlatformName(self):
+    result = self.GetValue('/identity', 'platform-name')
+    return result.stdout.strip() if result.stdout else ''

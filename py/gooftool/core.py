@@ -747,22 +747,27 @@ class Gooftool:
           {Name_of_the_detail: "result of the detail"}
       Note that the outputs could be multi-line strings.
     """
+    cros_config = cros_config_module.CrosConfig(self._util.shell)
 
     # Note: Handle the shell commands with care since unit tests cannot
     # ensure the correctness of commands executed in shell.
     return {
-        'platform_name': self._util.shell('mosys platform name').stdout.strip(),
-        'crossystem': self._util.GetCrosSystem(),
-        'modem_status': self._util.shell('modem status').stdout.splitlines(),
-        'ec_wp_status': self._util.shell(
-            'flashrom -p ec --flash-size 2>/dev/null && '
-            'flashrom -p ec --wp-status || '
-            'echo "EC is not available."').stdout,
-        'bios_wp_status': self._util.shell(
-            'flashrom -p host --wp-status').stdout,
-        'cr50_board_id': self._util.shell('gsctool -a -i -M').stdout,
-        'cr50_sn_bits': self._util.shell(
-            '/usr/share/cros/cr50-read-rma-sn-bits.sh').stdout,
+        'platform_name':
+            cros_config.GetPlatformName(),
+        'crossystem':
+            self._util.GetCrosSystem(),
+        'modem_status':
+            self._util.shell('modem status').stdout.splitlines(),
+        'ec_wp_status':
+            self._util.shell('flashrom -p ec --flash-size 2>/dev/null && '
+                             'flashrom -p ec --wp-status || '
+                             'echo "EC is not available."').stdout,
+        'bios_wp_status':
+            self._util.shell('flashrom -p host --wp-status').stdout,
+        'cr50_board_id':
+            self._util.shell('gsctool -a -i -M').stdout,
+        'cr50_sn_bits':
+            self._util.shell('/usr/share/cros/cr50-read-rma-sn-bits.sh').stdout,
     }
 
   def ClearFactoryVPDEntries(self):
