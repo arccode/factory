@@ -34,3 +34,12 @@ class CrosConfig:
   def GetModelName(self):
     result = self.GetValue('/', 'name')
     return result.stdout.strip() if result.stdout else ''
+
+  def GetSkuID(self):
+    result = self.GetValue('/identity', 'sku-id')
+    if result.success:
+      return result.stdout.strip() if result.stdout else ''
+
+    # Fall back to mosys command
+    result = self._shell(['mosys', 'platform', 'sku'], sys_interface=self._dut)
+    return result.stdout.strip() if result.stdout else ''

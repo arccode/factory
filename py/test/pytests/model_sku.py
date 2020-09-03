@@ -46,7 +46,7 @@ Test Procedure
 The test runs following commands:
 
 - cros_config / name
-- mosys platform sku
+- cros_config /identity sku-id
 - mosys platform brand
 
 And then asks OP to press ENTER/ESC to confirm if these values are correct.
@@ -174,7 +174,7 @@ class PlatformSKUModelTest(test_case.TestCase):
 
     self.assertEqual(
         str(value), self._platform['sku'],
-        'Value [%s] from "mosys platform sku" does not match '
+        'Value [%s] from "cros_config /identity sku-id" does not match '
         'device data [%s]' % (self._platform['sku'], value))
 
     self.ApplyConfig()
@@ -183,6 +183,7 @@ class PlatformSKUModelTest(test_case.TestCase):
   def GetPlatformData(self):
     cros_config = cros_config_module.CrosConfig(dut=self._dut)
     self._platform['model'] = cros_config.GetModelName()
+    self._platform['sku'] = cros_config.GetSkuID()
 
     # TODO(kerker): delete this loop
     for arg in _PLATFORM_DATA:

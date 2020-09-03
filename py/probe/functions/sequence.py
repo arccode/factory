@@ -26,7 +26,7 @@ class Sequence(combination_function.CombinationFunction):
   information from the device.  The expected probed data should contain two
   fields:
 
-  - ``device_sku`` comes from the command ``mosys platform sku``
+  - ``device_sku`` comes from the command ``cros_config /identity sku-id``
   - ``device_version`` from the command ``mosys platform version``.
 
   Instead of implementing a new probe function, we can reuse the existing
@@ -39,7 +39,7 @@ class Sequence(combination_function.CombinationFunction):
           "functions": [
             {
               "shell": {
-                "command": "mosys platform sku",
+                "command": "cros_config /identity sku-id",
                 "key": "device_sku"
               }
             },
@@ -58,7 +58,7 @@ class Sequence(combination_function.CombinationFunction):
 
     [
       {
-        "device_sku": <output_of_the_mosys_command>,
+        "device_sku": <output_of_the_cros_config_command>,
         "device_version": <output_of_the_mosys_command>
       }
     ]
@@ -71,7 +71,7 @@ class Sequence(combination_function.CombinationFunction):
                  # function.
         {
           "shell": {
-            "command": "mosys platform sku",
+            "command": "cros_config /identity sku-id",
             "key": "device_sku"
           }
         },
