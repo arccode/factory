@@ -241,15 +241,16 @@ def UpdateDatabaseWrapper(options):
 
 @Command(
     'generate',
-    CmdArg('--allow-mismatched-components', action='store_true',
-           help='Allows some probed components to be ignored if no any '
-                'component in the database matches with them.'),
+    CmdArg(
+        '--allow-mismatched-components', action='store_true',
+        help='Allows some probed components to be ignored if no any '
+        'component in the database matches with them.'),
     CmdArg('--use-name-match', action='store_true',
            help='Use component name from probed results as matched component.'),
     CmdArg('--with-configless-fields', action='store_true',
            help='Include the configless field.'),
     CmdArg('--brand-code', default=None,
-           help='Device brand code (mosys platform brand).'),
+           help='Device brand code (cros_config / brand-code).'),
     CmdArg('--no-brand-code', action='store_true',
            help='Do not add brand code to HWID'),
     *(_OUTPUT_FORMAT_COMMON_ARGS + _DEVICE_DATA_COMMON_ARGS + _RMA_COMMON_ARGS))

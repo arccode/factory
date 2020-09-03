@@ -43,3 +43,7 @@ class CrosConfig:
     # Fall back to mosys command
     result = self._shell(['mosys', 'platform', 'sku'], sys_interface=self._dut)
     return result.stdout.strip() if result.stdout else ''
+
+  def GetBrandCode(self):
+    result = self.GetValue('/', 'brand-code')
+    return result.stdout.strip() if result.stdout else ''

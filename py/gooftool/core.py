@@ -464,16 +464,13 @@ class Gooftool:
 
   def VerifyCrosConfig(self):
     """Verify that entries in cros config make sense."""
+    cros_config = cros_config_module.CrosConfig(self._util.shell)
     if phase.GetPhase() >= phase.PVT_DOGFOOD:
-      # The value actually comes from "cros_config / brand-code", however,
-      # most scripts are still using "mosys platform brand" to get the value,
-      # so we also check the value by mosys command.
-      rlz = self._util.shell(['mosys', 'platform', 'brand']).stdout.strip()
+      rlz = cros_config.GetBrandCode()
       if not rlz or rlz == 'ZZCR':
         # this is incorrect...
         raise Error('RLZ code "%s" is not allowed in PVT' % rlz)
 
-    cros_config = cros_config_module.CrosConfig(self._util.shell)
     model = cros_config.GetModelName()
     if not model:
       raise Error('Model name is empty')
@@ -1091,7 +1088,8 @@ class Gooftool:
       except gsctool_module.GSCToolError as e:
         raise Error('Failed to get boardID with gsctool command: %r' % e)
 
-      RLZ = self._util.shell(['mosys', 'platform', 'brand']).stdout.strip()
+      cros_config = cros_config_module.CrosConfig(self._util.shell)
+      RLZ = cros_config.GetBrandCode()
       if RLZ == '':
         raise Error('RLZ code is empty.')
       if board_id.type != int(codecs.encode(RLZ.encode('ascii'), 'hex'), 16):

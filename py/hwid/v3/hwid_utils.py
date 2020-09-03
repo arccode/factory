@@ -388,23 +388,22 @@ def ProbeProject():
 def ProbeBrandCode():
   """Probes the brand code.
 
-  This function will run the command `mosys platform brand` to get the brand
+  This function will run the command `cros_config / brand-code` to get the brand
   code.
 
   Returns:
     The probed brand code as a string.
   """
-  from cros.factory.utils import process_utils
+  from cros.factory.gooftool import cros_config as cros_config_module
   from cros.factory.utils import sys_utils
 
   if sys_utils.InChroot():
     raise ValueError('Cannot probe brand code in chroot. Please use '
                      '--brand-code to specify brand code.')
 
-  brand_code = process_utils.CheckOutput(
-      ['mosys', 'platform', 'brand']).strip().lower()
+  cros_config = cros_config_module.CrosConfig()
 
-  return brand_code
+  return cros_config.GetBrandCode()
 
 
 _HWID_REPO_PATH = None

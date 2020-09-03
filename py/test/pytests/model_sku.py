@@ -47,7 +47,7 @@ The test runs following commands:
 
 - cros_config / name
 - cros_config /identity sku-id
-- mosys platform brand
+- cros_config / brand-code
 
 And then asks OP to press ENTER/ESC to confirm if these values are correct.
 
@@ -184,13 +184,7 @@ class PlatformSKUModelTest(test_case.TestCase):
     cros_config = cros_config_module.CrosConfig(dut=self._dut)
     self._platform['model'] = cros_config.GetModelName()
     self._platform['sku'] = cros_config.GetSkuID()
-
-    # TODO(kerker): delete this loop
-    for arg in _PLATFORM_DATA:
-      output = self._dut.CallOutput(['mosys', 'platform', arg])
-      if output is not None:
-        output = output.strip()
-      self._platform[arg] = output
+    self._platform['brand'] = cros_config.GetBrandCode()
 
   def runTest(self):
     self.GetPlatformData()
