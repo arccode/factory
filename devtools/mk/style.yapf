@@ -340,7 +340,7 @@ split_before_first_argument=False
 split_before_logical_operator=False
 
 # Split named assignments onto individual lines.
-split_before_named_assigns=True
+split_before_named_assigns=False
 
 # Set to True to split list comprehensions and generators that have
 # non-trivial expressions and multiple clauses before each of these
