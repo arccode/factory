@@ -31,7 +31,7 @@ Sample content:
 ```
 Note:
 1. The first level keys of `phaser360`/`bobba360` should be the model name of
-your device which could be get by `#mosys platform model` in dut.
+your device which could be get by `#cros_config / name` in dut.
 2. The second level keys of `dopefish`/`gik360` is the device name of the white
 label device belongs to the model listed as the first level keys. The name could
 be get by `#mosys platform customization` in dut.

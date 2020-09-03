@@ -7,7 +7,7 @@
 
 conf_dir="$(dirname $0)"
 conf_file="${conf_dir}/chrome_dev.conf"
-model="$(mosys platform model || true)"
+model="$(cros_config / name || true)"
 board_conf_file="${conf_dir}/chrome_dev_board.conf"
 model_conf_file="${conf_dir}/chrome_dev_${model}.conf"
 

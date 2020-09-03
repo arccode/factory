@@ -270,7 +270,7 @@ Board name.
 
 The Public Code Name (can be found on Golden Eye), or the "Google Name". Also
 should be same as the "Model Name" displayed in firmware screen (which is
-actually HWID), or reported on by command `mosys platform model`.
+actually HWID), or reported on by command `cros_config / name`.
 
 The `project` is made for projects sharing one board (overlay), especially for
 Zerg projects.

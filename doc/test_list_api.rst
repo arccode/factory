@@ -31,7 +31,7 @@ the active test list.  If this file is not present, then there are two ways to
 determine the default test list;
 
 * ID - ``main_${model}`` would be checked first where ``${model}`` is came from
-  output of command - ``mosys platform model``.
+  output of command - ``cros_config / name``.
 * the test list with ID - ``main`` or ``generic_main`` is used.
 
 If you want a different test list to be included by default, you

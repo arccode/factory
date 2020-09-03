@@ -359,7 +359,7 @@ def ComputeDatabaseChecksum(file_name):
 def ProbeProject():
   """Probes the project name.
 
-  This function will try to run the command `mosys platform model` to get the
+  This function will try to run the command `cros_config / name` to get the
   project name.  If failed, this function will return the board name as legacy
   chromebook projects used to assume that the board name is equal to the
   project name.
@@ -369,12 +369,13 @@ def ProbeProject():
   """
   import subprocess
 
-  from cros.factory.utils import process_utils
+  from cros.factory.gooftool import cros_config as cros_config_module
   from cros.factory.utils import cros_board_utils
 
+
   try:
-    project = process_utils.CheckOutput(
-        ['mosys', 'platform', 'model']).strip().lower()
+    cros_config = cros_config_module.CrosConfig()
+    project = cros_config.GetModelName().lower()
     if project:
       return project
 

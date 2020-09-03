@@ -473,7 +473,8 @@ class Gooftool:
         # this is incorrect...
         raise Error('RLZ code "%s" is not allowed in PVT' % rlz)
 
-    model = self._util.shell(['mosys', 'platform', 'model']).stdout.strip()
+    cros_config = cros_config_module.CrosConfig(self._util.shell)
+    model = cros_config.GetModelName()
     if not model:
       raise Error('Model name is empty')
 

@@ -45,7 +45,7 @@ Test Procedure
 --------------
 The test runs following commands:
 
-- mosys platform model
+- cros_config / name
 - mosys platform sku
 - mosys platform chassis
 - mosys platform brand
@@ -68,6 +68,7 @@ To ask OP to confirm sku information, add this in test list::
 import logging
 
 from cros.factory.device import device_utils
+from cros.factory.gooftool import cros_config as cros_config_module
 from cros.factory.test import device_data
 from cros.factory.test import state
 from cros.factory.test import test_case
@@ -82,7 +83,7 @@ _KEY_COMPONENT_SKU = device_data.JoinKeys(device_data.KEY_COMPONENT, 'sku')
 _PRODUCT_NAME_PATH = '/sys/class/dmi/id/product_name'
 _DEVICE_TREE_COMPATIBLE_PATH = '/proc/device-tree/compatible'
 
-_MOSYS_ARGS = ['model', 'sku', 'chassis', 'brand']
+_PLATFORM_DATA = ['model', 'sku', 'chassis', 'brand']
 
 
 class PlatformSKUModelTest(test_case.TestCase):
@@ -150,11 +151,11 @@ class PlatformSKUModelTest(test_case.TestCase):
   def CheckByOperator(self):
     self.ui.SetInstruction(_('Please confirm following values'))
 
-    table = ui_templates.Table(rows=len(_MOSYS_ARGS) + 1, cols=2,
-                               element_id='mosys_table')
+    table = ui_templates.Table(
+        rows=len(_PLATFORM_DATA) + 1, cols=2, element_id='mosys_table')
     table.SetContent(0, 0, '<strong>Key</strong>')
     table.SetContent(0, 1, '<strong>Value</strong>')
-    for i, arg in enumerate(_MOSYS_ARGS, 1):
+    for i, arg in enumerate(_PLATFORM_DATA, 1):
       table.SetContent(i, 0, arg)
       table.SetContent(
           i, 1,
@@ -181,7 +182,11 @@ class PlatformSKUModelTest(test_case.TestCase):
     return True
 
   def GetPlatformData(self):
-    for arg in _MOSYS_ARGS:
+    cros_config = cros_config_module.CrosConfig(dut=self._dut)
+    self._platform['model'] = cros_config.GetModelName()
+
+    # TODO(kerker): delete this loop
+    for arg in _PLATFORM_DATA:
       output = self._dut.CallOutput(['mosys', 'platform', arg])
       if output is not None:
         output = output.strip()

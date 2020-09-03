@@ -15,6 +15,7 @@ import urllib.parse
 import xmlrpc.client
 
 from cros.factory.gooftool.common import Shell
+from cros.factory.gooftool import cros_config as cros_config_module
 from cros.factory.utils import file_utils
 from cros.factory.utils.string_utils import ParseUrl
 from cros.factory.utils.type_utils import Error
@@ -85,10 +86,8 @@ def ShopFloorUpload(source_path, remote_spec, stage,
   instance = xmlrpc.client.ServerProxy(server_url, allow_none=True,
                                        verbose=False)
   blob = xmlrpc.client.Binary(file_utils.ReadFile(source_path, encoding=None))
-  cmd_result = Shell('mosys platform model')
-  model = ''
-  if cmd_result.status == 0:
-    model = cmd_result.stdout.strip()
+  cros_config = cros_config_module.CrosConfig()
+  model = cros_config.GetModelName()
   option_name = model + '-gooftool' if model else 'gooftool'
 
   def ShopFloorCallback(result):

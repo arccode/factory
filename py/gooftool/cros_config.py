@@ -30,3 +30,7 @@ class CrosConfig:
   def GetPlatformName(self):
     result = self.GetValue('/identity', 'platform-name')
     return result.stdout.strip() if result.stdout else ''
+
+  def GetModelName(self):
+    result = self.GetValue('/', 'name')
+    return result.stdout.strip() if result.stdout else ''

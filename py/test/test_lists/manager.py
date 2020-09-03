@@ -9,13 +9,13 @@ import logging
 import os
 import zipimport
 
+from cros.factory.gooftool import cros_config as cros_config_module
 from cros.factory.test.test_lists import checker as checker_module
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.test_lists import test_list_common
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
-from cros.factory.utils import process_utils
 from cros.factory.utils import type_utils
 
 
@@ -258,9 +258,8 @@ class Manager:
 
   @staticmethod
   def SelectDefaultTestList():
-    model = process_utils.SpawnOutput(['mosys', 'platform', 'model']).strip()
-
-    model_main = 'main_%s' % model
+    cros_config = cros_config_module.CrosConfig()
+    model_main = 'main_%s' % cros_config.GetModelName()
 
     for test_list_id in [model_main, 'main', 'generic_main']:
       if os.path.exists(os.path.join(
