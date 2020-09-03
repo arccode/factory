@@ -8,11 +8,12 @@ from cros.factory.gooftool import common as gooftool_common
 class CrosConfig:
   """Helper class to get data from cros_config."""
 
-  def __init__(self, shell=None):
+  def __init__(self, shell=None, dut=None):
     self._shell = shell or gooftool_common.Shell
+    self._dut = dut
 
   def GetValue(self, path, key):
-    return self._shell(['cros_config', path, key])
+    return self._shell(['cros_config', path, key], sys_interface=self._dut)
 
   def GetWhiteLabelTag(self):
     """Get whitelabel-tag value of this device.
