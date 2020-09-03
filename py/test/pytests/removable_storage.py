@@ -151,12 +151,13 @@ _Event = type_utils.Enum(['WAIT_INSERT', 'WAIT_REMOVE'])
 class RemovableStorageTest(test_case.TestCase):
   """The removable storage factory test."""
   ARGS = [
-      Arg('media', str, 'Media type. '
-          'This is used for several logging messages, and to decide the icons'
-          'shown on UI. Valid values are "SD" or "USB".'),
+      Arg('media', str,
+          ('Media type. '
+           'This is used for several logging messages, and to decide the icons'
+           'shown on UI. Valid values are "SD" or "USB".')),
       Arg('sysfs_path', str,
-          'The expected sysfs path that udev events should '
-          'come from, ex: /sys/devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2',
+          ('The expected sysfs path that udev events should come from, '
+           'ex: /sys/devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2'),
           default=None),
       Arg('block_size', int,
           'Size of each block in bytes used in read / write test',
@@ -173,8 +174,7 @@ class RemovableStorageTest(test_case.TestCase):
           'Number of blocks to test during random read / write test',
           default=3),
       Arg('perform_sequential_test', bool,
-          'Whether to run sequential read / write tes',
-          default=False),
+          'Whether to run sequential read / write tes', default=False),
       Arg('sequential_read_threshold', (int, float),
           'The lowest sequential read rate the device should achieve',
           default=None),
@@ -193,25 +193,27 @@ class RemovableStorageTest(test_case.TestCase):
           'Skip the step of device insertion and removal', default=False),
       Arg('bft_media_device', str,
           'Device name of BFT used to insert/remove the media.', default=None),
-      Arg('usbpd_port_polarity', list,
-          'Two integers [port, polarity]', default=None),
+      Arg('usbpd_port_polarity', list, 'Two integers [port, polarity]',
+          default=None),
       Arg('fail_check_polarity', bool,
-          'If set to True or skip_insert_remove is True, would fail the test '
-          'directly when polarity is wrong. '
-          'Otherwise, will prompt operator to flip the storage.',
+          ('If set to True or skip_insert_remove is True, would fail the test '
+           'directly when polarity is wrong. '
+           'Otherwise, will prompt operator to flip the storage.'),
           default=False),
       Arg('create_partition', bool,
-          'Try to create a small partition on the media. This is to check if '
-          'all the pins on the sd card reader module are intact. If not '
-          'specify, this test will be run for SD card.',
-          default=None),
+          ('Try to create a small partition on the media. This is to check if '
+           'all the pins on the sd card reader module are intact. If not '
+           'specify, this test will be run for SD card.'), default=None),
       Arg('use_busybox_dd', bool,
-          'Use busybox dd. This option can be removed when toybox dd is ready.',
-          default=False),
+          ('Use busybox dd. This option can be removed when toybox dd is '
+           'ready.'), default=False),
+      Arg('expected_max_speed', int,
+          ('The expected max speed of the device in Mpbs.'
+           '480, 5000, 10000 for USB2, USB3.1 gen1, USB3.1 gen2'),
+          default=None),
       i18n_arg_utils.I18nArg(
           'extra_prompt',
-          'An extra prompt, e.g., to specify which USB port to use',
-          default='')
+          'An extra prompt, e.g., to specify which USB port to use', default='')
   ]
 
   def setUp(self):
@@ -219,6 +221,7 @@ class RemovableStorageTest(test_case.TestCase):
     self._errors = []
     self._target_device = None
     self._device_size = None
+    self._device_speed = None
     self._metrics = {}
 
     random.seed(0)
@@ -283,6 +286,15 @@ class RemovableStorageTest(test_case.TestCase):
       if (self.args.create_partition or
           (self.args.media == 'SD' and self.args.create_partition is None)):
         self.CreatePartition()
+      if self._device_speed is not None:
+        logging.info('device speed: %d Mbps', self._device_speed)
+      if self.args.expected_max_speed is not None:
+        if self._device_speed is None:
+          self._errors.append('The device speed is unavailable.')
+        elif self._device_speed != self.args.expected_max_speed:
+          self._errors.append(
+              'The device speed(%d Mbps) does not match the expected_max_speed'
+              '(%d Mpbs)' % (self._device_speed, self.args.expected_max_speed))
       if self.args.perform_random_test:
         self.TestReadWrite(_RWTestMode.RANDOM)
       if self.args.perform_sequential_test:
@@ -334,6 +346,8 @@ class RemovableStorageTest(test_case.TestCase):
     if self._target_device is None:
       self._target_device = device.device_node
       self._device_size = self.GetDeviceSize(self._target_device)
+      if self.args.media == 'USB':
+        self._device_speed = self.GetUsbSpeed(device)
 
   def GetAttrs(self, device, key_set):
     """Gets attributes of a device.
@@ -353,6 +367,11 @@ class RemovableStorageTest(test_case.TestCase):
     if attr_str:
       attr_str = '/' + attr_str
     return self.GetAttrs(device.parent, key_set) + attr_str
+
+  def GetUsbSpeed(self, device):
+    """return speed(Mbps) of USB"""
+    usb_device = device.find_parent('usb', 'usb_device')
+    return int(usb_device.attributes.get('speed'))
 
   def GetDeviceSize(self, dev_path):
     """Gets device size in bytes.
