@@ -47,7 +47,6 @@ The test runs following commands:
 
 - cros_config / name
 - mosys platform sku
-- mosys platform chassis
 - mosys platform brand
 
 And then asks OP to press ENTER/ESC to confirm if these values are correct.
@@ -83,7 +82,7 @@ _KEY_COMPONENT_SKU = device_data.JoinKeys(device_data.KEY_COMPONENT, 'sku')
 _PRODUCT_NAME_PATH = '/sys/class/dmi/id/product_name'
 _DEVICE_TREE_COMPATIBLE_PATH = '/proc/device-tree/compatible'
 
-_PLATFORM_DATA = ['model', 'sku', 'chassis', 'brand']
+_PLATFORM_DATA = ['model', 'sku', 'brand']
 
 
 class PlatformSKUModelTest(test_case.TestCase):
