@@ -51,16 +51,6 @@
       ]
     }
   },
-  "chassis": {
-    "generic": {
-      "eval": {
-        "shell": {
-          "command": "mosys platform chassis",
-          "key": "id"
-        }
-      }
-    }
-  },
   "cpu": {
     "generic": {
       "eval": "generic_cpu",
