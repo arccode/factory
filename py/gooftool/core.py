@@ -399,15 +399,14 @@ class Gooftool:
         return project
       if project not in reg_code_config:
         return project
-      # Get the customization from mosys as device name for whitelabel device
-      customization = self._util.shell(
-          ['mosys', 'platform', 'customization']).stdout.strip()
-      if not customization:
-        raise Error("No customization code found while checking VPD Reg code")
-      if customization not in reg_code_config[project]:
+
+      # Get the whitelabel-tag for whitelabel device
+      cros_config = cros_config_module.CrosConfig(self._util.shell)
+      is_whitelabel, whitelabel_tag = cros_config.GetWhiteLabelTag()
+      if not is_whitelabel or whitelabel_tag not in reg_code_config[project]:
         return project
-      if reg_code_config[project][customization]:
-        return customization
+      if reg_code_config[project][whitelabel_tag]:
+        return whitelabel_tag
       return project
 
     # Check required data
