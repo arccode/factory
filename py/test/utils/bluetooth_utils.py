@@ -96,7 +96,7 @@ class BtMgmt:
         r'^hci\d+\sdev_found:\s(.+)\stype\s.+\srssi\s(\-\d+)\s.*$')
     devices = {}
     find_cmd = ['btmgmt', '--index', str(index)]
-    if find_cmd is not None:
+    if timeout_secs is not None:
       find_cmd.extend(['--timeout', str(timeout_secs)])
     find_cmd.append('find')
     for line in process_utils.CheckOutput(find_cmd, log=True).splitlines():

@@ -48,12 +48,30 @@ class BtMgmtTest(unittest.TestCase):
         'hci0 dev_found: 5C:F3:70:77:72:24 type BR/EDR rssi -59 flags 0x0000\n'
         'name scaned_device_name\n'
         'hci0 type 7 discovering off')
+    expected_result = {
+        '5B:00:39:3C:AD:32': {
+            'RSSI': -79
+        },
+        '5C:F3:70:77:72:24': {
+            'RSSI': -59,
+            'Name': 'scaned_device_name'
+        }
+    }
 
     devices = self.btmgmt.FindDevices()
-    self.assertDictEqual(
-        devices,
-        {'5B:00:39:3C:AD:32': {'RSSI': -79},
-         '5C:F3:70:77:72:24': {'RSSI': -59, 'Name': 'scaned_device_name'}})
+    self.assertEqual(checkoutput_mock.call_args_list, [
+        mock.call(['btmgmt', '--index', '0', 'find'], log=True),
+        mock.call(['btmgmt', '--index', '0', 'stop-find'], log=True)
+    ])
+    self.assertDictEqual(devices, expected_result)
+
+    devices = self.btmgmt.FindDevices(timeout_secs=0)
+    self.assertEqual(checkoutput_mock.call_args_list[-2:], [
+        mock.call(['btmgmt', '--index', '0', '--timeout', '0', 'find'],
+                  log=True),
+        mock.call(['btmgmt', '--index', '0', 'stop-find'], log=True)
+    ])
+    self.assertDictEqual(devices, expected_result)
 
 
 if __name__ == '__main__':
