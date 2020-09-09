@@ -134,7 +134,7 @@ class SwitchAntennaWiFiChip(wifi.WiFiChip):
   _THRESHOLD_LAST_SEEN_MS = 1000
 
   def __init__(self, device, interface, phy_name, services,
-               switch_antenna_config, switch_antenna_sleep_secs):
+               switch_antenna_config, switch_antenna_sleep_secs, scan_timeout):
     super(SwitchAntennaWiFiChip, self).__init__(device, interface, phy_name)
     self._services = [(service.ssid, service.freq) for service in services]
     self._switch_antenna_config = switch_antenna_config
@@ -143,6 +143,7 @@ class SwitchAntennaWiFiChip(wifi.WiFiChip):
                           for antenna in self._switch_antenna_config}
     self._antenna = None
     self._switch_antenna_sleep_secs = switch_antenna_sleep_secs
+    self._scan_timeout = scan_timeout
 
   def ScanSignal(self, service, antenna, scan_count):
     service_index = (service.ssid, service.freq)
@@ -151,8 +152,8 @@ class SwitchAntennaWiFiChip(wifi.WiFiChip):
         break
       self.SwitchAntenna(antenna)
       scan_output = self._device.wifi.FilterAccessPoints(
-          interface=self._interface,
-          frequency=service.freq)
+          interface=self._interface, frequency=service.freq,
+          scan_timeout=self._scan_timeout)
 
       same_freq_service = {s: []
                            for s in self._services if s[1] == service.freq}
@@ -445,7 +446,8 @@ class RadiotapWiFiChip(wifi.WiFiChip):
 
   _ANTENNA_CONFIG = ['all', 'main', 'aux']
 
-  def __init__(self, device, interface, phy_name, services, connect_timeout):
+  def __init__(self, device, interface, phy_name, services, connect_timeout,
+               scan_timeout):
     super(RadiotapWiFiChip, self).__init__(device, interface, phy_name)
     self._services = [(service.ssid, service.freq) for service in services]
     self._signal_table = {service: {antenna: []
@@ -454,6 +456,7 @@ class RadiotapWiFiChip(wifi.WiFiChip):
     self._ap = None
     self._connection = None
     self._connect_timeout = connect_timeout
+    self._scan_timeout = scan_timeout
 
   def ScanSignal(self, service, antenna, scan_count):
     target_service = (service.ssid, service.freq)
@@ -496,9 +499,9 @@ class RadiotapWiFiChip(wifi.WiFiChip):
     Password can be '' or None.
     """
     try:
-      self._ap = self._device.wifi.FindAccessPoint(ssid=service_name,
-                                                   interface=self._interface,
-                                                   frequency=freqs)
+      self._ap = self._device.wifi.FindAccessPoint(
+          ssid=service_name, interface=self._interface, frequency=freqs,
+          scan_timeout=self._scan_timeout)
     except wifi.WiFiError as e:
       session.console.info(
           'Unable to find the service %s: %r' % (service_name, e))
@@ -532,44 +535,50 @@ class WirelessTest(test_case.TestCase):
   """
   ARGS = [
       Arg('device_name', str,
-          'Wireless device name to test. e.g. wlan0. If not specified, it will'
-          'fail if multiple devices are found, otherwise use the only one '
-          'device it found.', default=None),
-      Arg('services', list,
+          ('Wireless device name to test. e.g. wlan0. If not specified, it will'
+           'fail if multiple devices are found, otherwise use the only one '
+           'device it found.'), default=None),
+      Arg('services', list, (
           'A list of ``[<service_ssid>:str, <freq>:int|None, '
           '<password>:str|None]`` sequences like ``[[SSID1, FREQ1, PASS1], '
           '[SSID2, FREQ2, PASS2], ...]``. Each sequence should contain '
           'exactly 3 items. If ``<freq>`` is ``None`` the test '
           'will detect the frequency by ``iw <device_name> scan`` command '
           'automatically.  ``<password>=None`` implies the service can connect '
-          'without a password.', schema=_ARG_SERVICES_SCHEMA),
-      Arg('connect_timeout', int,
-          'Timeout for connecting to the service.',
+          'without a password.'), schema=_ARG_SERVICES_SCHEMA),
+      Arg('ignore_missing_services', bool,
+          ('Ignore services that are not found during scanning. This argument '
+           'is not needed for switch antenna wifi chip'), default=False),
+      Arg('scan_timeout', int, 'Timeout for scanning the services.',
+          default=20),
+      Arg('connect_timeout', int, 'Timeout for connecting to the service.',
           default=10),
       Arg('strength', dict,
-          'A dict of minimal signal strengths. For example, a dict like '
-          '``{"main": strength_1, "aux": strength_2, "all": strength_all}``. '
-          'The test will check signal strength according to the different '
-          'antenna configurations in this dict.', schema=_ARG_STRENGTH_SCHEMA),
-      Arg('scan_count', int,
-          'Number of scans to get average signal strength.', default=5),
+          ('A dict of minimal signal strengths. For example, a dict like '
+           '``{"main": strength_1, "aux": strength_2, "all": strength_all}``. '
+           'The test will check signal strength according to the different '
+           'antenna configurations in this dict.'),
+          schema=_ARG_STRENGTH_SCHEMA),
+      Arg('scan_count', int, 'Number of scans to get average signal strength.',
+          default=5),
       Arg('switch_antenna_config', dict,
-          'A dict of ``{"main": (tx, rx), "aux": (tx, rx), "all": (tx, rx)}`` '
-          'for the config when switching the antenna.',
+          ('A dict of ``{"main": (tx, rx), "aux": (tx, rx), "all": (tx, rx)}`` '
+           'for the config when switching the antenna.'),
           default=_DEFAULT_SWITCH_ANTENNA_CONFIG,
           schema=_ARG_SWITCH_ANTENNA_CONFIG_SCHEMA),
       Arg('switch_antenna_sleep_secs', int,
-          'The sleep time after switching antenna and ifconfig up. Need to '
-          'decide this value carefully since it depends on the platform and '
-          'antenna config to test.', default=10),
-      Arg('press_space_to_start', bool,
-          'Press space to start the test.', default=True),
+          ('The sleep time after switching antenna and ifconfig up. Need to '
+           'decide this value carefully since it depends on the platform and '
+           'antenna config to test.'), default=10),
+      Arg('press_space_to_start', bool, 'Press space to start the test.',
+          default=True),
       Arg('wifi_chip_type', str,
-          'The type of wifi chip. Indicates how the chip test the signal '
-          'strength of different antennas. Currently, the valid options are '
-          '``switch_antenna``, ``radiotap``, or ``disable_switch``. If the '
-          'value is None, it will detect the value automatically.',
-          default=None)]
+          ('The type of wifi chip. Indicates how the chip test the signal '
+           'strength of different antennas. Currently, the valid options are '
+           '``switch_antenna``, ``radiotap``, or ``disable_switch``. If the '
+           'value is None, it will detect the value automatically.'),
+          default=None)
+  ]
 
   def setUp(self):
     self.ui.ToggleTemplateClass('font-large', True)
@@ -692,7 +701,8 @@ class WirelessTest(test_case.TestCase):
     if not self._wifi_chip_type or self._wifi_chip_type == 'switch_antenna':
       self._wifi_chip = SwitchAntennaWiFiChip(
           self._dut, self._device_name, self._phy_name, self._services,
-          self.args.switch_antenna_config, self.args.switch_antenna_sleep_secs)
+          self.args.switch_antenna_config, self.args.switch_antenna_sleep_secs,
+          self.args.scan_timeout)
       if self._wifi_chip_type:
         return
       # If wifi_chip_type is not specified and the device is able to switch
@@ -722,14 +732,15 @@ class WirelessTest(test_case.TestCase):
     if not self._wifi_chip_type or self._wifi_chip_type == 'radiotap':
       self._wifi_chip = RadiotapWiFiChip(
           self._dut, self._device_name, self._phy_name, self._services,
-          self.args.connect_timeout)
+          self.args.connect_timeout, self.args.scan_timeout)
       self._wifi_chip_type = 'radiotap'
       return
 
     if self._wifi_chip_type == 'disable_switch':
       self._wifi_chip = DisableSwitchWiFiChip(
           self._dut, self._device_name, self._phy_name, self._services,
-          self.args.switch_antenna_config, self.args.switch_antenna_sleep_secs)
+          self.args.switch_antenna_config, self.args.switch_antenna_sleep_secs,
+          self.args.scan_timeout)
       return
 
     raise ValueError('Wifi chip type %s is not supported.' %
@@ -738,15 +749,23 @@ class WirelessTest(test_case.TestCase):
   def _ScanAllServices(self):
     self.ui.SetState(_('Checking frequencies...'))
 
-    scan_result = self._dut.wifi.FilterAccessPoints(interface=self._device_name)
+    scan_result = self._dut.wifi.FilterAccessPoints(
+        interface=self._device_name, scan_timeout=self.args.scan_timeout)
     ssid_freqs = {service.ssid: set() for service in self._services}
 
     for scanned_service in scan_result:
       if scanned_service.ssid in ssid_freqs:
         ssid_freqs[scanned_service.ssid].add(scanned_service.frequency)
 
-    for service in self._services:
+    # Make a copy of the list because we might delete services in the loop.
+    for service in list(self._services):
       if not ssid_freqs[service.ssid]:
+        if self.args.ignore_missing_services:
+          logging.info(
+              'The service %s is not found. '
+              'Ignore this service and continue the test.', service.ssid)
+          self._services.remove(service)
+          continue
         self.FailTask('The service %s is not found.' % service.ssid)
       elif service.freq is None:
         if len(ssid_freqs[service.ssid]) > 1:
