@@ -370,6 +370,7 @@
     "Gyroscope": {
       "pytest_name": "gyroscope",
       "label": "Gyroscope",
+      "run_if": "not constants.has_device_data or device.component.has_base_gyroscope",
       "args": {
         "rotation_threshold": 1.0,
         "stop_threshold": 0.1
@@ -377,7 +378,8 @@
     },
     "GyroscopeCalibration": {
       "pytest_name": "gyroscope_calibration",
-      "label": "Gyroscope Calibration"
+      "label": "Gyroscope Calibration",
+      "run_if": "not constants.has_device_data or device.component.has_base_gyroscope"
     },
     "HWButton": {
       "inherit": "TestGroup",

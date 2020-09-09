@@ -51,7 +51,9 @@
         "BaseAccelerometersCalibration",
         "LidAccelerometersCalibration",
         "AccelerometersLidAngle",
-        "ScreenRotation"
+        "ScreenRotation",
+        "GyroscopeCalibration",
+        "Gyroscope"
       ]
     },
     "FFTStart": {
