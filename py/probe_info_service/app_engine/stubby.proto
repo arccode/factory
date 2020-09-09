@@ -103,6 +103,7 @@ message ProbeMetadata {
   bool is_tested = 2;
   bool is_proved_ready_for_overridden = 3;
   ProbeStatementType probe_statement_type = 4;
+  string probe_statement_preview = 5;
 }
 
 message GetProbeSchemaRequest {}
@@ -208,6 +209,7 @@ message UploadDeviceProbeResultResponse {
 
 message GetProbeMetadataRequest {
   repeated ComponentProbeInfo component_probe_infos = 1;  // Required.
+  bool include_probe_statement_preview = 2;
 }
 
 message GetProbeMetadataResponse {

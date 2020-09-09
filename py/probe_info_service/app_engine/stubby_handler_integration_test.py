@@ -29,6 +29,49 @@ class StubbyHandlerTest(unittest.TestCase):
         ['battery.generic_battery', 'storage.mmc_storage',
          'storage.nvme_storage'])
 
+  def test_GetProbeMetadata_IncludeProbeStatementPreviewOfValidInput(self):
+    req = stubby_pb2.GetProbeMetadataRequest(
+        component_probe_infos=[
+            unittest_utils.LoadComponentProbeInfo('1-valid')
+        ], include_probe_statement_preview=True)
+    resp = self._stubby_handler.GetProbeMetadata(req)
+    self.assertEqual(resp.probe_metadatas[0].probe_statement_preview,
+                     unittest_utils.LoadProbeStatementString('1-default'))
+
+  def test_GetProbeMetadata_IncludeProbeStatementPreviewOfInvalidInput(self):
+    req = stubby_pb2.GetProbeMetadataRequest(
+        component_probe_infos=[
+            unittest_utils.LoadComponentProbeInfo('1-param_value_error')
+        ], include_probe_statement_preview=True)
+    resp = self._stubby_handler.GetProbeMetadata(req)
+    self.assertEqual(
+        resp.probe_metadatas[0].probe_statement_preview,
+        self._stubby_handler.MSG_NO_PROBE_STATEMENT_PREVIEW_INVALID_AVL_DATA)
+
+  def test_GetProbeMetadata_IncludeProbeStatementPreviewWithOverridden(self):
+    # Setup a qualification with overridden probe statement for the test.
+    qual_probe_info = unittest_utils.LoadComponentProbeInfo('1-valid')
+    qual_id = qual_probe_info.component_identity.qual_id
+    self._stubby_handler.CreateOverriddenProbeStatement(
+        stubby_pb2.CreateOverriddenProbeStatementRequest(
+            component_probe_info=qual_probe_info))
+    ps_storage_connector_inst = (
+        ps_storage_connector.GetProbeStatementStorageConnector())
+    probe_data = ps_storage_connector_inst.TryLoadOverriddenProbeData(
+        qual_id, '')
+    overridden_ps = unittest_utils.LoadProbeStatementString('1-invalid')
+    probe_data.probe_statement = overridden_ps
+    ps_storage_connector_inst.UpdateOverriddenProbeData(qual_id, '', probe_data)
+
+    # Verify if the returned preview string is the overridden one.
+    req = stubby_pb2.GetProbeMetadataRequest(
+        component_probe_infos=[
+            unittest_utils.LoadComponentProbeInfo('1-param_value_error')
+        ], include_probe_statement_preview=True)
+    resp = self._stubby_handler.GetProbeMetadata(req)
+    self.assertEqual(resp.probe_metadatas[0].probe_statement_preview,
+                     overridden_ps)
+
   def test_StatefulAPIs_Scenario1(self):
     # 1. The user validates the probe info and finds format error.
     req = stubby_pb2.ValidateProbeInfoRequest(

@@ -118,6 +118,26 @@ class ProbeToolManagerTest(unittest.TestCase):
     self._AssertJSONStringEqual(
         ps, unittest_utils.LoadProbeStatementString('1-default'))
 
+  def test_GenerateRawProbeStatement_FromValidProbeInfo(self):
+    s = self._LoadProbeDataSource('1-valid')
+    ps = self._probe_tool_manager.GenerateRawProbeStatement(s).output
+    self._AssertJSONStringEqual(
+        ps, unittest_utils.LoadProbeStatementString('1-default'))
+
+  def test_GenerateRawProbeStatement_FromInvalidProbeInfo(self):
+    s = self._LoadProbeDataSource('1-param_value_error')
+    gen_result = self._probe_tool_manager.GenerateRawProbeStatement(s)
+    self.assertEqual(
+        gen_result.probe_info_parsed_result,
+        unittest_utils.LoadProbeInfoParsedResult('1-param_value_error'))
+    self.assertIsNone(gen_result.output)
+
+  def test_GenerateRawProbeStatement_FromOverriddenProbeStatement(self):
+    overridden_ps = unittest_utils.LoadProbeStatementString('1-valid_modified')
+    s = self._probe_tool_manager.LoadProbeDataSource('comp_name', overridden_ps)
+    generated_ps = self._probe_tool_manager.GenerateRawProbeStatement(s).output
+    self._AssertJSONStringEqual(generated_ps, overridden_ps)
+
   def test_GenerateQualProbeTestBundlePayload_ProbeParameterError(self):
     s = self._LoadProbeDataSource('1-param_value_error')
     resp = self._probe_tool_manager.GenerateProbeBundlePayload([s])

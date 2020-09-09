@@ -30,6 +30,9 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
   SERVICE_DESCRIPTOR = stubby_pb2.DESCRIPTOR.services_by_name[
       'ProbeInfoService']
 
+  MSG_NO_PROBE_STATEMENT_PREVIEW_INVALID_AVL_DATA = (
+      '(no preview available due to the invalid data from AVL)')
+
   def __init__(self):
     self._probe_tool_manager = probe_tool_manager.ProbeToolManager()
     self._probe_metainfo_connector = (
@@ -226,22 +229,31 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
           comp_probe_info)
       if (probe_data_source_factory.probe_statement_type !=
           stubby_pb2.ProbeMetadata.AUTO_GENERATED):
-        response.probe_metadatas.add(
+        probe_metadata = response.probe_metadatas.add(
             probe_statement_type=probe_data_source_factory.probe_statement_type,
             is_tested=probe_data_source_factory.overridden_probe_data.is_tested)
-        continue
+        if request.include_probe_statement_preview:
+          data_src = probe_data_source_factory.probe_data_source_generator()
 
-      qual_metainfo = self._probe_metainfo_connector.GetQualProbeMetaInfo(
-          comp_probe_info.component_identity.qual_id)
-      data_src = self._probe_tool_manager.CreateProbeDataSource(
-          GetProbeDataSourceComponentName(comp_probe_info.component_identity),
-          comp_probe_info.probe_info)
-      fp = data_src.fingerprint
-      response.probe_metadatas.add(
-          probe_statement_type=stubby_pb2.ProbeMetadata.AUTO_GENERATED,
-          is_tested=qual_metainfo.last_tested_probe_info_fp == fp,
-          is_proved_ready_for_overridden=(
-              qual_metainfo.last_probe_info_fp_for_overridden == fp))
+      else:
+        qual_metainfo = self._probe_metainfo_connector.GetQualProbeMetaInfo(
+            comp_probe_info.component_identity.qual_id)
+        data_src = self._probe_tool_manager.CreateProbeDataSource(
+            GetProbeDataSourceComponentName(comp_probe_info.component_identity),
+            comp_probe_info.probe_info)
+        fp = data_src.fingerprint
+        probe_metadata = response.probe_metadatas.add(
+            probe_statement_type=stubby_pb2.ProbeMetadata.AUTO_GENERATED,
+            is_tested=qual_metainfo.last_tested_probe_info_fp == fp,
+            is_proved_ready_for_overridden=(
+                qual_metainfo.last_probe_info_fp_for_overridden == fp))
+
+      if request.include_probe_statement_preview:
+        gen_result = self._probe_tool_manager.GenerateRawProbeStatement(
+            data_src)
+        probe_metadata.probe_statement_preview = (
+            gen_result.output if gen_result.output is not None else
+            self.MSG_NO_PROBE_STATEMENT_PREVIEW_INVALID_AVL_DATA)
 
     return response
 

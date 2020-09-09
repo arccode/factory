@@ -420,10 +420,27 @@ class ProbeToolManager:
         },
     })
 
+  def GenerateRawProbeStatement(
+      self, probe_data_source: ProbeDataSource) -> ProbeInfoArtifact:
+    """Generate raw probe statement string for the given probe data source.
+
+    Args:
+      probe_data_source: The source for the probe statement.
+
+    Returns:
+      An instance of `ProbeInfoArtifact`, which `output` property is a string
+      of the probe statement or `None` if failed.
+    """
+    if probe_data_source.probe_info is None:
+      return ProbeInfoArtifact(
+          ProbeInfoParsedResult(result_type=ProbeInfoParsedResult.PASSED),
+          probe_data_source.probe_statement)
+    return self.DumpProbeDataSource(probe_data_source)
+
   def GenerateProbeBundlePayload(
       self, probe_data_sources: typing.List[ProbeDataSource]
   ) -> ProbeInfoArtifact:
-    """Generates the payload for testing the probe info of a qualification.
+    """Generates the payload for testing the given probe infos.
 
     Args:
       probe_data_source: The source of the test bundle.
