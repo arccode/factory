@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-08-20 10:24+CST\n"
+"PO-Revision-Date: 2020-09-09 13:46+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -3226,6 +3226,10 @@ msgstr "音源孔"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Barrier"
 msgstr "检查关卡"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Camera Tests"
+msgstr "相机测试"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Charge Discharge Current"

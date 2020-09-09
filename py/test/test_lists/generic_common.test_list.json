@@ -183,6 +183,15 @@
         "mode": "manual"
       }
     },
+    "CameraTests": {
+      "label": "Camera Tests",
+      "subtests": [
+        "FrontCamera",
+        "FrontCameraLED",
+        "RearCamera",
+        "RearCameraLED"
+      ]
+    },
     "ChargeDischargeCurrent": {
       "pytest_name": "battery_current",
       "label": "Charge Discharge Current",
