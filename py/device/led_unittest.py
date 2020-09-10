@@ -21,20 +21,24 @@ class LEDTest(unittest.TestCase):
 
   def setUp(self):
     self.board = mock.Mock(device_types.DeviceBoard)
+    self.ectool_led_msg = ('Brightness range for LED 0:\n'
+                           '\tred\t: 0x64\n'
+                           '\tgreen\t: 0xff\n'
+                           '\tblue\t: 0x0\n'
+                           '\tyellow\t: 0x1\n'
+                           '\twhite\t: 0x0\n'
+                           '\tamber\t: 0x0\n')
+
+  def callOutputSideEffect(self, command):
+    """It only returns info for BATTERY LED"""
+    if command[2] == led_module.LED.CrOSIndexes.BATTERY.lower(
+    ) and command[3] == 'query':
+      return self.ectool_led_msg
+    return None
 
   def testSetColor(self):
-    msg = ('Brightness range for LED 0:\n'
-           '\tred\t: 0x64\n'
-           '\tgreen\t: 0xff\n'
-           '\tblue\t: 0x0\n'
-           '\tyellow\t: 0x1\n'
-           '\twhite\t: 0x0\n'
-           '\tamber\t: 0x0\n')
-    self.board.CallOutput.return_value = msg
-
+    self.board.CallOutput.side_effect = self.callOutputSideEffect
     led = led_module.LED(self.board)
-    self.board.CallOutput.assert_called_with(
-        ['ectool', 'led', 'battery', 'query'])
 
     led.SetColor(led.Color.RED, brightness=None)
     self.board.CheckCall.assert_called_with(
@@ -75,7 +79,7 @@ class LEDTest(unittest.TestCase):
     self.board.CheckCall.assert_called_with(['ectool', 'led', 'battery', 'off'])
 
   def testMultipleLEDs(self):
-    self.board.CallOutput.return_value = ''
+    self.board.CallOutput.return_value = self.ectool_led_msg
 
     led = led_module.LeftRightLED(self.board)
     self.board.CallOutput.assert_any_call(['ectool', 'led', 'left', 'query'])
@@ -85,7 +89,7 @@ class LEDTest(unittest.TestCase):
     self.board.CheckCall.assert_any_call(['ectool', 'led', 'left', 'auto'])
     self.board.CheckCall.assert_any_call(['ectool', 'led', 'right', 'auto'])
 
-    led.SetColor(led.Color.GREEN, led_name='left')
+    led.SetColor(led.Color.GREEN, led_name=led_module.LED.CrOSIndexes.LEFT)
     self.board.CheckCall.assert_called_with(
         ['ectool', 'led', 'left', 'green=255'])
 
@@ -102,13 +106,11 @@ class LEDTest(unittest.TestCase):
       led.SetColor(led.Color.RED, brightness=255)
 
   def testSetColorUnsupportedBoard(self):
-    self.board.CallOutput.return_value = ''
+    self.board.CallOutput.side_effect = self.callOutputSideEffect
     msg = 'EC returned error 99'
     self.board.CheckCall.side_effect = led_module.LED.Error(msg)
 
     led = led_module.LED(self.board)
-    self.board.CallOutput.assert_called_once_with(
-        ['ectool', 'led', 'battery', 'query'])
     with self.assertRaisesRegex(device_types.DeviceException, msg):
       led.SetColor(led.Color.RED, brightness=None)
 

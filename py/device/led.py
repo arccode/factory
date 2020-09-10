@@ -38,23 +38,31 @@ class LED(device_types.DeviceComponent):
   Note 'SYSRQ DEBUG' is one single index with space in name, not typo.
   """
 
-  Index = Enum([CrOSIndexes.BATTERY])
+  Index = None
   """List of LEDs available on DUT. Usually a subset from CrOSIndexes."""
 
   def __init__(self, device):
     """Probe all maximum brightnesses in advance."""
     super(LED, self).__init__(device)
-    self.max_brightnesses = {}
-    for led_name in self.Index:
-      self._CacheMaximumBrightness(led_name)
+    self.led_infoes = {}
+    self._GetLEDInfo()
 
-  def _CacheMaximumBrightness(self, led_name):
-    output = self._device.CallOutput(
-        ['ectool', 'led', led_name.lower(), 'query']) or ''
-    max_brightness = {color.lower(): 255 for color in self.Color}
-    max_brightness.update((color, int(brightness, 0))
-                          for color, brightness in _PATTERN.findall(output))
-    self.max_brightnesses.update({led_name.lower(): max_brightness})
+    if self.Index is None:
+      self.Index = Enum(self.led_infoes)
+
+  def _GetLEDInfo(self):
+    for index in self.CrOSIndexes:
+      output = self._device.CallOutput(
+          ['ectool', 'led', index.lower(), 'query'])
+      if output is None:
+        continue
+
+      self.led_infoes[index] = {
+          color: int(brightness, 0)
+          for color, brightness in _PATTERN.findall(output)
+          if int(brightness, 0)
+      }
+      self.led_infoes[index][self.Color.OFF] = 0
 
   def _CheckSetColorParameters(self, color, led_name, brightness):
     """Check parameters."""
@@ -100,7 +108,7 @@ class LED(device_types.DeviceComponent):
       if color in [self.Color.AUTO, self.Color.OFF]:
         color_brightness = color.lower()
       else:
-        max_brightness = self.max_brightnesses[led_name.lower()][color.lower()]
+        max_brightness = self.led_infoes[led_name][color.lower()]
         scaled_brightness = int(round(brightness / 100.0 * max_brightness))
         color_brightness = '%s=%d' % (color.lower(), scaled_brightness)
     except Exception:
@@ -174,8 +182,8 @@ class PWMLeftRightLED(LED):
     # pylint: disable=super-init-not-called
     # pylint: disable=non-parent-init-called
     device_types.DeviceComponent.__init__(self, device)
-    self.max_brightnesses = {}
-    self._CacheMaximumBrightness(ectool_led_name)
+    self.led_infoes = {}
+    self._GetLEDInfo()
     self._ectool_led_name = ectool_led_name
     self._pwm_idx = pwm_idx
     self._duty_map = duty_map or self.DefaultDutyMap
