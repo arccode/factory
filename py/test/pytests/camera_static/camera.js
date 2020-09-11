@@ -11,8 +11,8 @@ const showImage = (data_url) => {
   imageDiv.src = data_url;
 };
 
-const hideImage = (hide) => {
-  document.getElementById('flex-container').classList.toggle('hidden', hide);
+const hideImage = () => {
+  document.getElementById('flex-container').classList.add('hidden');
 };
 
 const getErrorMessage = (error) => `${error.name}: ${error.message}`;
@@ -56,9 +56,14 @@ class CameraTest {
     this.height = options.height;
     this.flipImage = options.flipImage;
     this.videoStream = null;
+
     // The width/height would be set to the true width/height in grabFrame.
     this.canvas = new OffscreenCanvas(this.width, this.height);
-    this.videoElem = document.createElement('video');
+    this.videoElem = document.getElementById('test-video');
+    // We use the video element only on e2e mode.
+    imageDiv.classList.add('hidden')
+    this.videoElem.classList.remove('hidden');
+    this.videoElem.classList.toggle('flip', this.flipImage);
     this.videoElemReadyForStreamCallback = null;
 
     this.videoElem.addEventListener('play', () => {
@@ -135,24 +140,6 @@ class CameraTest {
     const goofy = test.invocation.goofy;
     const path = await goofy.sendRpc('UploadTemporaryFile', blobBase64);
     return path;
-  }
-
-  async showImage(ratio) {
-    const {width, height} = this.canvas;
-    const newWidth = Math.round(width * ratio);
-    const newHeight = Math.round(height * ratio);
-    const tempCanvas = new OffscreenCanvas(newWidth, newHeight);
-    const ctx = tempCanvas.getContext('2d');
-    if (this.flipImage) {
-      // We flip the image horizontally so the image looks like a mirror.
-      ctx.scale(-1, 1);
-      ctx.drawImage(
-          this.canvas, 0, 0, width, height, -newWidth, 0, newWidth, newHeight);
-    } else {
-      ctx.drawImage(
-          this.canvas, 0, 0, width, height, 0, 0, newWidth, newHeight);
-    }
-    showImage(await canvasToDataURL(tempCanvas));
   }
 
   /**

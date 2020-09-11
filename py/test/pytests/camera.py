@@ -118,6 +118,7 @@ don't show the image::
 
 
 import codecs
+import logging
 import numbers
 import os
 import queue
@@ -153,13 +154,14 @@ TestModes = type_utils.Enum(['qr', 'face', 'timeout', 'frame_count', 'manual',
 class CameraTest(test_case.TestCase):
   """Main class for camera test."""
   ARGS = [
-      Arg('mode', TestModes,
-          'The test mode to test camera.', default='manual'),
-      Arg('num_frames_to_pass', int,
+      Arg('mode', TestModes, 'The test mode to test camera.', default='manual'),
+      Arg(
+          'num_frames_to_pass', int,
           'The number of frames with faces in mode "face", '
           'QR code presented in mode "qr", '
           'or any frames in mode "frame_count" to pass the test.', default=10),
-      Arg('process_rate', numbers.Real,
+      Arg(
+          'process_rate', numbers.Real,
           'The process rate of face recognition or '
           'QR code scanning in times per second.', default=5),
       Arg('QR_string', str, 'Encoded string in QR code.',
@@ -167,27 +169,35 @@ class CameraTest(test_case.TestCase):
       Arg('capture_fps', numbers.Real,
           'Camera capture rate in frames per second.', default=30),
       Arg('timeout_secs', int, 'Timeout value for the test.', default=20),
-      Arg('resize_ratio', float,
-          'The resize ratio of captured image on screen.', default=0.4),
-      Arg('show_image', bool,
-          'Whether to actually show the image on screen.', default=True),
-      Arg('e2e_mode', bool, 'Perform end-to-end test or not (for camera).',
+      Arg('show_image', bool, 'Whether to actually show the image on screen.',
+          default=True),
+      Arg(
+          'e2e_mode', bool, 'Perform end-to-end test or not (for camera).'
+          'Normally, camera data is grabbed from video device by OpenCV, '
+          "which doesn't support MIPI camera. In e2e mode, camera data is "
+          'directly streamed on frontend using JavaScript MediaStream API.',
           default=False),
-      Arg('camera_facing', type_utils.Enum(['front', 'rear', None]),
+      Arg(
+          'resize_ratio', float,
+          'The resize ratio of captured image on screen, '
+          'has no effect on e2e mode.', default=0.4),
+      Arg(
+          'camera_facing', type_utils.Enum(['front', 'rear', None]),
           'String "front" or "rear" for the camera to test. '
           'If in normal mode, default is automatically searching one. '
-          'If in e2e mode, default is "front".',
-          default=None),
-      Arg('flip_image', bool,
+          'If in e2e mode, default is "front".', default=None),
+      Arg(
+          'flip_image', bool,
           'Whether to flip the image horizontally. This should be set to False'
           'for the rear facing camera so the displayed image looks correct.'
           'The default value is False if camera_facing is "rear", True '
-          'otherwise.',
-          default=None),
-      Arg('camera_args', dict, 'Dict of args used for enabling the camera '
+          'otherwise.', default=None),
+      Arg(
+          'camera_args', dict, 'Dict of args used for enabling the camera '
           'device. Only "resolution" is supported in e2e mode.', default={}),
       Arg('flicker_interval_secs', (int, float),
-          'The flicker interval in seconds in manual_led mode', default=0.5)]
+          'The flicker interval in seconds in manual_led mode', default=0.5)
+  ]
 
   def _Timeout(self):
     if self.mode == TestModes.timeout:
@@ -263,7 +273,7 @@ class CameraTest(test_case.TestCase):
     self.ShowInstruction(
         _('Press 0 if LED is constantly lit, 1 if LED is flickering,\n'
           'or ESC to fail.'))
-    self.ui.CallJSFunction('hideImage', True)
+    self.ui.CallJSFunction('hideImage')
 
     if flicker:
       while True:
@@ -326,35 +336,32 @@ class CameraTest(test_case.TestCase):
     return scanned_text == self.args.QR_string
 
   def ShowImage(self, cv_image):
-    resize_ratio = self.args.resize_ratio
     if self.e2e_mode:
-      self.RunJSPromiseBlocking('cameraTest.showImage(%s)' % resize_ratio)
-    else:
-      cv_image = cv.resize(
-          cv_image,
-          None,
-          fx=resize_ratio,
-          fy=resize_ratio,
-          interpolation=cv.INTER_AREA)
+      # In e2e mode, the image is directly shown by frontend in a video
+      # element, independent to the calls to ShowImage here.
+      return
 
-      if self.flip_image:
-        cv_image = cv.flip(cv_image, 1)
+    resize_ratio = self.args.resize_ratio
+    cv_image = cv.resize(cv_image, None, fx=resize_ratio, fy=resize_ratio,
+                         interpolation=cv.INTER_AREA)
 
-      unused_retval, jpg_data = cv.imencode(
-          '.jpg', cv_image, (cv.IMWRITE_JPEG_QUALITY, _JPEG_QUALITY))
-      jpg_base64 = codecs.encode(jpg_data.tobytes(), 'base64')
+    if self.flip_image:
+      cv_image = cv.flip(cv_image, 1)
 
-      try:
-        # TODO(pihsun): Don't use CallJSFunction for transmitting image back
-        # to UI. Use URLForData instead, since event server actually
-        # broadcast to all client, and is not suitable for large amount of
-        # data.
-        self.ui.CallJSFunction(
-            'showImage',
-            'data:image/jpeg;base64,' + jpg_base64.decode('utf-8'))
-      except AttributeError:
-        # The websocket is closed because test has passed/failed.
-        return
+    unused_retval, jpg_data = cv.imencode(
+        '.jpg', cv_image, (cv.IMWRITE_JPEG_QUALITY, _JPEG_QUALITY))
+    jpg_base64 = codecs.encode(jpg_data.tobytes(), 'base64')
+
+    try:
+      # TODO(pihsun): Don't use CallJSFunction for transmitting image back
+      # to UI. Use URLForData instead, since event server actually
+      # broadcast to all client, and is not suitable for large amount of
+      # data.
+      self.ui.CallJSFunction(
+          'showImage', 'data:image/jpeg;base64,' + jpg_base64.decode('utf-8'))
+    except AttributeError:
+      # The websocket is closed because test has passed/failed.
+      return
 
   def CaptureTest(self, mode):
     frame_count = 0
@@ -378,6 +385,9 @@ class CameraTest(test_case.TestCase):
     self.ShowInstruction(instructions[mode])
     if mode == TestModes.manual:
       self.ui.BindStandardKeys()
+
+    if not self.args.show_image:
+      self.ui.CallJSFunction('hideImage')
 
     self.EnableDevice()
     try:
@@ -424,6 +434,10 @@ class CameraTest(test_case.TestCase):
     if self.e2e_mode:
       if not self.dut.link.IsLocal():
         raise ValueError('e2e mode does not work on remote DUT.')
+      if self.mode == TestModes.frame_count:
+        logging.warning('frame count mode is NOT real frame count in e2e mode, '
+                        'consider using timeout instead.')
+
       camera_facing = ('front' if self.args.camera_facing is None else
                        self.args.camera_facing)
       options = {

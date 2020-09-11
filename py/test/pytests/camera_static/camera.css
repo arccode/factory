@@ -15,10 +15,19 @@
   height: 100%;
 }
 
+#test-video {
+  width: auto;
+  height: 100%;
+}
+
 #overlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
+}
+
+.flip {
+  transform: scaleX(-1);
 }
