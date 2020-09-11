@@ -877,12 +877,47 @@ class Gooftool:
            codecs.encode(secret_bytes, 'hex').decode('utf-8')},
           partition=vpd.VPD_READONLY_PARTITION_NAME)
 
+  def IsCr50BoardIDSet(self):
+    """Check if cr50 board ID is set.
+
+    Returns:
+      True if cr50 board ID is set and consistent with RLZ.
+      False if cr50 board ID is not set.
+
+    Raises:
+      Error if failed to get board ID, failed to get RLZ, or cr50 board ID is
+      different from RLZ.
+    """
+    gsctool = gsctool_module.GSCTool(self._util.shell)
+    cros_config = cros_config_module.CrosConfig(self._util.shell)
+
+    try:
+      board_id = gsctool.GetBoardID()
+    except gsctool_module.GSCToolError as e:
+      raise Error('Failed to get boardID with gsctool command: %r' % e)
+    if board_id.type == 0xffffffff:
+      return False
+
+    RLZ = cros_config.GetBrandCode()
+    if RLZ == '':
+      raise Error('RLZ code is empty.')
+    if board_id.type != int(codecs.encode(RLZ.encode('ascii'), 'hex'), 16):
+      raise Error('RLZ does not match Board ID.')
+    return True
+
   def Cr50SetROHash(self):
     """Set the AP-RO hash on the Cr50 chip.
 
     Cr50 after 0.5.5 and 0.6.5 supports RO verification, which needs the factory
     to write the RO hash to Cr50 before setting board ID.
     """
+    # If board ID is set, we cannot set RO hash. This happens when a device
+    # reflows in the factory and goes through finalization twice.
+    # TODO(chenghan): Check if the RO hash range in cr50 is the same as what
+    #                 we want to set, after this feature is implemented in cr50.
+    if self.IsCr50BoardIDSet():
+      logging.warning('Cr50 boardID is already set. Skip setting RO hash.')
+      return
 
     firmware_image = self._crosfw.LoadMainFirmware().GetFirmwareImage()
     ro_offset, ro_size = firmware_image.get_section_area('RO_SECTION')
@@ -1081,19 +1116,10 @@ class Gooftool:
 
       return res
 
+    if not self.IsCr50BoardIDSet():
+      raise Error('Cr50 boardID not set.')
+
     try:
-      try:
-        board_id = gsctool.GetBoardID()
-      except gsctool_module.GSCToolError as e:
-        raise Error('Failed to get boardID with gsctool command: %r' % e)
-
-      cros_config = cros_config_module.CrosConfig(self._util.shell)
-      RLZ = cros_config.GetBrandCode()
-      if RLZ == '':
-        raise Error('RLZ code is empty.')
-      if board_id.type != int(codecs.encode(RLZ.encode('ascii'), 'hex'), 16):
-        raise Error('RLZ does not match Board ID.')
-
       try:
         gsctool.SetFactoryMode(False)
         factory_mode_disabled = True
