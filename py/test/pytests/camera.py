@@ -196,7 +196,8 @@ class CameraTest(test_case.TestCase):
           'camera_args', dict, 'Dict of args used for enabling the camera '
           'device. Only "resolution" is supported in e2e mode.', default={}),
       Arg('flicker_interval_secs', (int, float),
-          'The flicker interval in seconds in manual_led mode', default=0.5)
+          'The flicker interval in seconds in manual_led mode', default=0.5),
+      Arg('fullscreen', bool, 'Run the test in fullscreen', default=False)
   ]
 
   def _Timeout(self):
@@ -430,6 +431,9 @@ class CameraTest(test_case.TestCase):
     self.flip_image = self.args.flip_image
     if self.flip_image is None:
       self.flip_image = self.args.camera_facing != 'rear'
+
+    if self.args.fullscreen:
+      self.ui.RunJS('test.setFullScreen(true)')
 
     if self.e2e_mode:
       if not self.dut.link.IsLocal():
