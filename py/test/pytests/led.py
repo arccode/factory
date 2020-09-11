@@ -92,19 +92,22 @@ class LEDTest(test_case.TestCase):
   """Tests if the onboard LED can light up with specified colors."""
   ARGS = [
       Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP, default=None),
-      Arg('challenge', bool, 'Show random LED sequence and let the operator '
+      Arg(
+          'challenge', bool, 'Show random LED sequence and let the operator '
           'select LED number instead of pre-defined sequence.', default=False),
-      Arg('colors', list,
+      Arg(
+          'colors', list,
           'List of colors or [index, color] to test. color must be in '
-          'LEDColor or OFF, and index, if specified, must be in LEDIndex.',
-          default=[LEDColor.YELLOW, LEDColor.GREEN, LEDColor.RED,
-                   LEDColor.OFF],
-          schema=_ARG_COLORS_SCHEMA),
+          'LEDColor or OFF, and index, if specified, must be in LEDIndex.'
+          'By default, it will automatically detect all supported colors.',
+          default=[], schema=_ARG_COLORS_SCHEMA),
       Arg('group_by_led_id', bool, 'If set, the test groups the subtests of '
-          'the same led together.', default=False),
-      Arg('target_leds', list,
+          'the same led together.', default=True),
+      Arg(
+          'target_leds', list,
           'List of LEDs to test. If specified, it turns off all LEDs first, '
-          'and sets them to auto after test.', default=None)]
+          'and sets them to auto after test.', default=None)
+  ]
 
   def setUp(self):
     self._led = device_utils.CreateDUTInterface().led
@@ -114,9 +117,12 @@ class LEDTest(test_case.TestCase):
 
     self._SetAllLED(LEDColor.OFF)
 
-    # Transform the colors to a list of [led_name, color].
-    self.colors = [[None, item] if isinstance(item, str) else item
-                   for item in self.args.colors]
+    if not self.args.colors:
+      self.colors = self._GetColorsFromLEDInfo()
+    else:
+      # Transform the colors to a list of [led_name, color].
+      self.colors = [[None, item] if isinstance(item, str) else item
+                     for item in self.args.colors]
 
     # Shuffle the colors for interactive challenge, so operators can't guess
     # the sequence.
@@ -149,6 +155,16 @@ class LEDTest(test_case.TestCase):
 
     if self._fixture:
       self._fixture.Disconnect()
+
+  def _GetColorsFromLEDInfo(self):
+    colors = []
+    for index, infoes in self._led.led_infoes.items():
+      if self.args.target_leds and index not in self.args.target_leds:
+        continue
+      for color in infoes:
+        colors.append([index, color.upper()])
+
+    return colors
 
   def RunNormalTask(self, led_name, color):
     """Checks for LED colors by asking operator to push ENTER."""
