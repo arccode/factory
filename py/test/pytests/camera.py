@@ -283,20 +283,31 @@ class CameraTest(test_case.TestCase):
   def DetectFaces(self, cv_image):
     # TODO(pihsun): Use the shape detection API in Chrome in e2e mode when it
     # is ready.
+    height, width = cv_image.shape[:2]
     cascade = cv.CascadeClassifier(_HAAR_CASCADE_PATH)
     detected_objs = cascade.detectMultiScale(
-        cv_image,
-        scaleFactor=1.2,
-        minNeighbors=2,
-        flags=cv.CASCADE_DO_CANNY_PRUNING,
-        minSize=(20, 20))
+        cv_image, scaleFactor=1.2, minNeighbors=2,
+        flags=cv.CASCADE_DO_CANNY_PRUNING, minSize=(width // 10, height // 10))
     # pylint: disable=len-as-condition
     # Detected_objs will be numpy array or an empty tuple. bool(numpy_array)
     # will not work (will raise an exception).
     detected = len(detected_objs) > 0
-    if detected:
-      for x, y, w, h in detected_objs:
-        cv.rectangle(cv_image, (x, y), (x + w, y + h), 255)
+
+    if self.args.show_image:
+      if self.e2e_mode:
+        self.RunJSBlocking('cameraTest.clearOverlay()')
+        for x, y, w, h in detected_objs:
+          # Normalize the coordinates / size to [0, 1], since the canvas in the
+          # frontend may not be the same size as the image.
+          self.RunJSBlocking('cameraTest.drawRect({}, {}, {}, {})'.format(
+              float(x) / width,
+              float(y) / height,
+              float(w) / width,
+              float(h) / height))
+      else:
+        for x, y, w, h in detected_objs:
+          cv.rectangle(cv_image, (x, y), (x + w, y + h), 255)
+
     return detected
 
   def ScanQRCode(self, cv_image):
@@ -316,7 +327,7 @@ class CameraTest(test_case.TestCase):
 
   def ShowImage(self, cv_image):
     resize_ratio = self.args.resize_ratio
-    if self.e2e_mode and not self.need_transmit_to_ui:
+    if self.e2e_mode:
       self.RunJSPromiseBlocking('cameraTest.showImage(%s)' % resize_ratio)
     else:
       cv_image = cv.resize(
@@ -406,11 +417,6 @@ class CameraTest(test_case.TestCase):
     # shape detection API.
     self.need_transmit_from_ui = False
 
-    # Whether we need to transmit processed image from Python to UI in e2e mode.
-    # TODO(pihsun): This can be removed after the desktop Chrome implements
-    # shape detection API.
-    self.need_transmit_to_ui = False
-
     self.flip_image = self.args.flip_image
     if self.flip_image is None:
       self.flip_image = self.args.camera_facing != 'rear'
@@ -435,10 +441,6 @@ class CameraTest(test_case.TestCase):
       self.camera_device = None
       if self.mode in [TestModes.qr, TestModes.face]:
         self.need_transmit_from_ui = True
-      if self.mode == TestModes.face:
-        # TODO(pihsun): Only transmit the location of face instead of the whole
-        # image in this case to speed up the process.
-        self.need_transmit_to_ui = True
     else:
       self.camera_device = self.dut.camera.GetCameraDevice(
           self.args.camera_facing)

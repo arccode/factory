@@ -95,7 +95,7 @@ th {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 .goofy-operator-mode .test-engineering-mode-only {

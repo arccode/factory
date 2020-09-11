@@ -5,13 +5,14 @@
 const VIDEO_START_PLAY_TIMEOUT_MS = 5000;
 const imageDiv = document.getElementById('test-image');
 const promptDiv = document.getElementById('prompt');
+const overlayCanvas = document.getElementById('overlay');
 
 const showImage = (data_url) => {
   imageDiv.src = data_url;
 };
 
 const hideImage = (hide) => {
-  imageDiv.classList.toggle('hidden', hide);
+  document.getElementById('flex-container').classList.toggle('hidden', hide);
 };
 
 const getErrorMessage = (error) => `${error.name}: ${error.message}`;
@@ -152,6 +153,43 @@ class CameraTest {
           this.canvas, 0, 0, width, height, 0, 0, newWidth, newHeight);
     }
     showImage(await canvasToDataURL(tempCanvas));
+  }
+
+  /**
+   * Clear the overlay canvas.
+   */
+  clearOverlay() {
+    const ctx = overlayCanvas.getContext('2d');
+    ctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+  }
+
+  /**
+   * Draw a rectangle on the overlay canvas.
+   * The size and coordinate of the rectangle are all in [0, 1] as relative to
+   * the canvas size, so it's independent to the display size of the image.
+   *
+   * @param {number} x the x coordinate of the rectangle.
+   * @param {number} y the y coordinate of the rectangle.
+   * @param {number} w the width of the rectangle.
+   * @param {number} h the height of the rectangle.
+   */
+  drawRect(x, y, w, h) {
+    const ctx = overlayCanvas.getContext('2d');
+    const {width, height} = overlayCanvas;
+    x *= width;
+    y *= height;
+    w *= width;
+    h *= height;
+
+    ctx.beginPath();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'white';
+    if (this.flipImage) {
+      ctx.rect(overlayCanvas.width - x, y, -w, h);
+    } else {
+      ctx.rect(x, y, width, height);
+    }
+    ctx.stroke();
   }
 }
 

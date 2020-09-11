@@ -1,0 +1,24 @@
+#flex-container {
+  flex: 1;
+  align-self: stretch;
+  display: flex;
+}
+
+#image-container {
+  display: inline-block;
+  margin: 0 auto;
+  position: relative;
+}
+
+#test-image {
+  width: auto;
+  height: 100%;
+}
+
+#overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
