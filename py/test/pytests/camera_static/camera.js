@@ -124,6 +124,9 @@ class CameraTest {
     this.canvas.getContext('2d').drawImage(this.videoElem, 0, 0);
   }
 
+  // TODO(pihsun): Can use JavaScript API FaceDetector / BarcodeDetector on
+  // frontend to avoid sending image back to backend in e2e mode after those
+  // APIs are implemented by desktop Chrome.
   async grabFrameAndTransmitBack() {
     await this.grabFrame();
     const blobBase64 = (await canvasToDataURL(this.canvas))
@@ -131,31 +134,6 @@ class CameraTest {
     const goofy = test.invocation.goofy;
     const path = await goofy.sendRpc('UploadTemporaryFile', blobBase64);
     return path;
-  }
-
-  async detectFaces() {
-    const faceDetector = new FaceDetector({maxDetectedFaces: 1});
-    const faces = await faceDetector.detect(this.canvas);
-    if (!faces.length) {
-      return false;
-    }
-    const ctx = this.canvas.getContext('2d');
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = 'white';
-    for (let face of faces) {
-      ctx.rect(face.x, face.y, face.width, face.height);
-      ctx.stroke();
-    }
-    return true;
-  }
-
-  async scanQRCode() {
-    const barcodeDetector = new BarcodeDetector({formats: ['qr_code']});
-    const codes = await barcodeDetector.detect(this.canvas);
-    if (!codes.length) {
-      return null;
-    }
-    return codes[0].rawValue;
   }
 
   async showImage(ratio) {
