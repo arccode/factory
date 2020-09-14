@@ -740,10 +740,12 @@ class HwidManager:
       comp_name: Component name defined in HWID DB.
 
     Returns:
-      comp_name if the name does not follow the <category>_<cid>_<qid> rule, or
-      the mapped name defined in datastore.
+      comp_name if the name does not follow the <category>_<cid>_<qid>#<comment>
+      rule, or the mapped name defined in datastore.
     """
-    sp = comp_name.split('_')
+    # Trim the comment part after '#' if any
+    comp_name_wo_comment = comp_name.split('#')[0]
+    sp = comp_name_wo_comment.split('_')
     if len(sp) != 3:  # <category>, <cid>, <qid>
       return comp_name
     category_in_name, cid, qid = sp

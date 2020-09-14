@@ -53,9 +53,14 @@ class HwidManagerTest(unittest.TestCase):
   def _LoadTestDataStore(self, manager):
     """Loads up the datastore with metadata about one board."""
     with manager._ndb_client.context():
-      metadata = hwid_manager.HwidMetadata(
-          board='CHROMEBOOK', path='v2', version='2')
-      metadata.put()
+      hwid_manager.HwidMetadata(board='CHROMEBOOK', path='v2',
+                                version='2').put()
+      hwid_manager.AVLNameMapping(category='category1', component_id=1234,
+                                  name='comp_name1').put()
+      hwid_manager.AVLNameMapping(category='category1', component_id=5678,
+                                  name='comp_name2').put()
+      hwid_manager.AVLNameMapping(category='category2', component_id=1357,
+                                  name='comp_name3').put()
 
   def _ClearDataStore(self, manager):
     with manager._ndb_client.context():
@@ -383,6 +388,32 @@ class HwidManagerTest(unittest.TestCase):
     self.assertRaises(hwid_manager.MetadataError, manager.UpdateBoards, {
         'test': {}
     })
+
+  def testGetAVLName(self):
+    manager = self._GetManager(load_blobstore=False)
+    testdata = [
+        # normal match
+        (('category1', 'category1_1234_5678'), 'comp_name1'),
+        # with comment
+        (('category1', 'category1_5678_1234#hello-world'), 'comp_name2'),
+        # no match with comment
+        (('category1', 'category1_9012_1234#hello-world'),
+         'category1_9012_1234#hello-world'),
+        # no such component id in datastore
+        (('category2', 'category2_1234_5678'), 'category2_1234_5678'),
+        # category name not in component name
+        (('category1', 'category2_1357_2468'), 'category2_1357_2468'),
+        # category name not in component name
+        (('category2', 'category1_1357_2468'), 'category1_1357_2468'),
+        # incorrect format (not enough splits)
+        (('category1', 'category1_1234'), 'category1_1234'),
+        # incorrect format (too many splits)
+        (('category1', 'category1_1234_5678_9012'), 'category1_1234_5678_9012')
+    ]
+
+    for ((category, comp_name), mapped_comp_name) in testdata:
+      self.assertEqual(mapped_comp_name, manager.GetAVLName(
+          category, comp_name))
 
 
 class HwidDataTest(unittest.TestCase):
