@@ -48,12 +48,6 @@ allow_split_before_dict_value=True
 #
 arithmetic_precedence_indication=False
 
-# Number of blank lines surrounding top-level function and class
-# definitions.
-blank_lines_around_top_level_definition=2
-
-BLANK_LINES_BETWEEN_TOP_LEVEL_IMPORTS_AND_VARIABLES=2
-
 # Insert a blank line before a class-level docstring.
 blank_line_before_class_docstring=False
 
@@ -68,6 +62,14 @@ blank_line_before_module_docstring=False
 #     def method():
 #       ...
 blank_line_before_nested_class_or_def=True
+
+# Number of blank lines surrounding top-level function and class
+# definitions.
+blank_lines_around_top_level_definition=2
+
+# Number of blank lines between top-level imports and variable
+# definitions.
+blank_lines_between_top_level_imports_and_variables=2
 
 # Do not split consecutive brackets. Only relevant when
 # dedent_closing_brackets is set. For example:
@@ -404,4 +406,3 @@ split_penalty_logical_operator=300
 
 # Use the Tab character for indentation.
 use_tabs=False
-
