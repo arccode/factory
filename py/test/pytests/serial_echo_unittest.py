@@ -19,7 +19,7 @@ class SerialEchoUnittest(unittest.TestCase):
     self._test_case = None
     self._test_result = None
 
-  def SetUpTestCase(self, args, test_case_name='testEcho'):
+  def SetUpTestCase(self, args, test_case_name='runTest'):
     self._test_case = serial_echo.SerialEchoTest(test_case_name)
     arg_spec = getattr(self._test_case, 'ARGS', [])
     if 'serial_param' not in args:
@@ -63,7 +63,7 @@ class SerialEchoUnittest(unittest.TestCase):
   def testDefault(self, open_serial_mock):
     mock_serial = mock.Mock(serial.Serial)
     mock_serial.write.return_value = 1
-    mock_serial.read.return_value = chr(0xE1)
+    mock_serial.read.return_value = b'\xE1'
 
     open_serial_mock.return_value = mock_serial
 
@@ -72,7 +72,7 @@ class SerialEchoUnittest(unittest.TestCase):
     self.assertEqual(0, len(self._test_result.errors))
     self.assertEqual(0, len(self._test_result.failures))
     open_serial_mock.assert_called_once_with(port=mock.ANY)
-    mock_serial.write.assert_called_once_with(chr(0xE0))
+    mock_serial.write.assert_called_once_with(b'\xE0')
     mock_serial.read.assert_called_once_with()
     mock_serial.close.assert_called_once_with()
 
@@ -97,7 +97,7 @@ class SerialEchoUnittest(unittest.TestCase):
     self.RunTestCase()
     self.HasFailure('Write fail',
                     'Unable to handle write failure.')
-    mock_serial.write.assert_called_once_with(chr(0xE0))
+    mock_serial.write.assert_called_once_with(b'\xE0')
     mock_serial.close.assert_called_once_with()
 
   @mock.patch('cros.factory.test.utils.serial_utils.OpenSerial')
@@ -112,7 +112,7 @@ class SerialEchoUnittest(unittest.TestCase):
     self.RunTestCase()
     self.HasFailure('Read fail',
                     'Unable to handle read failure.')
-    mock_serial.write.assert_called_once_with(chr(0xE0))
+    mock_serial.write.assert_called_once_with(b'\xE0')
     mock_serial.read.assert_called_once_with()
     mock_serial.close.assert_called_once_with()
 
@@ -127,7 +127,7 @@ class SerialEchoUnittest(unittest.TestCase):
     self.RunTestCase()
     self.HasFailure('Write timeout',
                     'Unable to handle write timeout.')
-    mock_serial.write.assert_called_once_with(chr(0xE0))
+    mock_serial.write.assert_called_once_with(b'\xE0')
     mock_serial.close.assert_called_once_with()
 
   @mock.patch('cros.factory.test.utils.serial_utils.OpenSerial')
@@ -142,7 +142,7 @@ class SerialEchoUnittest(unittest.TestCase):
     self.RunTestCase()
     self.HasFailure('Read timeout',
                     'Unable to handle read timeout.')
-    mock_serial.write.assert_called_once_with(chr(0xE0))
+    mock_serial.write.assert_called_once_with(b'\xE0')
     mock_serial.read.assert_called_once_with()
     mock_serial.close.assert_called_once_with()
 

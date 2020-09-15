@@ -48,7 +48,8 @@ class SerialEchoTest(unittest.TestCase):
     if (len(self.args.send_recv) != 2 or
         not all(isinstance(a, str) for a in self.args.send_recv)):
       self.fail('Invalid dargs send_recv: %s' % str(self.args.send_recv))
-    self._send, self._recv = self.args.send_recv
+    self._send = self.args.send_recv[0].encode('latin1')
+    self._recv = self.args.send_recv[1].encode('latin1')
 
     # Will raise exception if OpenSerial fails.
     self._serial = serial_utils.OpenSerial(**self.args.serial_param)
@@ -57,7 +58,7 @@ class SerialEchoTest(unittest.TestCase):
     if self._serial:
       self._serial.close()
 
-  def testEcho(self):
+  def runTest(self):
     self.assertTrue(self._serial is not None, 'Invalid RS-232 connection.')
     try:
       self.assertEqual(1, self._serial.write(self._send), 'Write fail')
