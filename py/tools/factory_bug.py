@@ -313,10 +313,12 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
     chrome_data_dir_name = 'chrome-data-dir'
 
     # Exclude various items from bug reports.
-    exclude_files = list(chain.from_iterable(('--exclude', x) for x in [
-        os.path.join(env_paths.DATA_STATE_DIR, chrome_data_dir_name),
-        'Extensions',
-    ]))
+    exclude_files = list(
+        chain.from_iterable(('--exclude', x) for x in [
+            os.path.join(env_paths.DATA_STATE_DIR, chrome_data_dir_name),
+            os.path.join(var, 'log', 'journal/*'),
+            'Extensions',
+        ]))
     if not include_network_log:
       exclude_files += ['--exclude', os.path.join(var, 'log', 'net.log')]
 
