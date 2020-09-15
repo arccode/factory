@@ -73,7 +73,8 @@
         "LED",
         "USBTypeATest",
         "USBTypeCTest",
-        "SMTKeyboard"
+        "SMTKeyboard",
+        "HWButton"
       ]
     },
     "SMTKeyboard": {

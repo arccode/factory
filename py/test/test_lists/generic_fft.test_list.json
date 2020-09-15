@@ -38,6 +38,7 @@
         "CameraTests",
         "LED",
         "Keyboard",
+        "HWButton",
         "Wireless",
         "Bluetooth",
         "AudioJack",
