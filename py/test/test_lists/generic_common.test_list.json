@@ -471,7 +471,10 @@
     "ModelSKU": {
       "pytest_name": "model_sku",
       "label": "Model and SKU",
-      "action_on_failure": "STOP"
+      "action_on_failure": "STOP",
+      "args": {
+        "config_name": "model_sku"
+      }
     },
     "ModemSecurity": {
       "pytest_name": "modem_security",
