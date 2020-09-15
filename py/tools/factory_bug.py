@@ -130,14 +130,13 @@ def HasEC():
   return has_ec
 
 
-def AppendLogToABT(abt_file, log_file, enabled=False):
-  if not enabled:
-    return
-
+def AppendLogToABT(abt_file, log_file):
   for f in [abt_file, log_file]:
     if not os.path.isfile(f):
-      logging.error('%s is not a valid file.', f)
+      logging.warning('%s is not a valid file.', f)
       return
+
+  logging.debug('ABT: adding %s.', log_file)
 
   with open(abt_file, 'ab') as f:
     f.write(b'%s=<multi-line>\n' % log_file.encode('utf-8'))
@@ -217,6 +216,12 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
 
   tmp = tempfile.mkdtemp(prefix='factory_bug.')
 
+  # Create abt.txt to support Android Bug Tool (ABT), which lives in tmp dir
+  # but only gets included in bug report when 'abt' is set to True.
+  abt_name = 'abt.txt'
+  abt_file = os.path.join(tmp, abt_name)
+  file_utils.TouchFile(abt_file)
+
   # SuperIO-based platform has no EC chip, check its existence first.
   has_ec = HasEC()
 
@@ -257,8 +262,8 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
         Spawn(['hwid', 'probe'], stdout=f, ignore_stderr=True, call=True)
       files += ['probe_result.json']
 
-    files += sum(
-        [glob(x) for x in [
+    files += sum([
+        glob(x) for x in [
             os.path.join(var, 'log'),
             os.path.join(var, 'factory'),
             os.path.join(var, 'spool', 'crash'),
@@ -272,36 +277,37 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
             '/sys/fs/pstore',
         ]], [])
 
-    # Add an additional file to support android bug tool
-    # abt.txt is created anyway so the file is always available,
-    # but can be a dummy file in tmp dir if 'abt' is False.
-    abt_name = 'abt.txt'
-    abt_file = os.path.join(tmp, abt_name)
-    file_utils.TouchFile(abt_file)
-
-    # Traverse through logs and append to abt file
-    for path_name in files:
-      path_name = os.path.join(tmp, path_name)
-      if os.path.isdir(path_name):
-        file_list = []
-        for root_path, _, log_files in os.walk(path_name):
-          file_list += [os.path.join(root_path, log_file)
-                        for log_file in log_files]
-      else:
-        file_list = [path_name]
-
-      for log_file in file_list:
-        AppendLogToABT(abt_file, log_file, abt)
-
     if abt:
+      # Except those debug info that are explicitly created e.g. cros_system,
+      # dmesg etc., the following files are also valuable.
+      files_for_abt = sum([
+          glob(x) for x in [
+              os.path.join(var, 'factory', 'log', '*.log'),
+              os.path.join(var, 'log', 'messages'),
+              os.path.join(var, 'log', 'power_manager', 'powerd.LATEST'),
+              os.path.join('/sys/fs/pstore', 'console-ramoops-0'),
+          ]], [])
+
+      for path in files + files_for_abt:
+        path = os.path.join(tmp, path)
+        if os.path.isfile(path):
+          # Considering a file is informational for preliminary diagnosis if
+          # it's explicitly included in `files`. Directories and its underlying
+          # files are ignored.
+          # If you know other informational files in some directories,
+          # enumerate them in `files_for_abt`.
+          AppendLogToABT(abt_file, path)
+
+      # Finally, include abt.txt in the archive.
       files += [abt_name]
 
-    # DRAM logs are unreadable, so put it here to avoid abt.txt include them.
+    # Generate DRAM logs after adding files into abt.txt, since some of them
+    # are unreadable and we don't want them to be included.
     if dram:
       files += GenerateDRAMCalibrationLog(tmp)
       # Manually add trimmed DRAMK_LOG into abt file
-      if 'DRAMK_LOG' in files:
-        AppendLogToABT(abt_file, os.path.join(tmp, 'DRAMK_LOG'), abt)
+      if 'DRAMK_LOG' in files and abt:
+        AppendLogToABT(abt_file, os.path.join(tmp, 'DRAMK_LOG'))
 
     # Name of Chrome data directory within the state directory.
     chrome_data_dir_name = 'chrome-data-dir'
