@@ -174,6 +174,10 @@ _hwid_vpd_data_file_cmd_arg = CmdArg(
     help=('Specify the hwid utility to obtain the vpd data from the specified '
           'file.'))
 
+_no_write_protect_cmd_arg = CmdArg(
+    '--no_write_protect', action='store_true',
+    help='Do not enable firmware write protection.')
+
 _rma_mode_cmd_arg = CmdArg(
     '--rma_mode', action='store_true',
     help='Enable RMA mode, do not check for deprecated components.')
@@ -500,6 +504,22 @@ def Cr50DisableFactoryMode(options):
   return GetGooftool(options).Cr50DisableFactoryMode()
 
 
+@Command('cr50_finalize',
+         _no_write_protect_cmd_arg,
+         _rma_mode_cmd_arg,
+         _enable_zero_touch_cmd_arg)
+def Cr50Finalize(options):
+  """Finalize steps for cr50."""
+  if options.no_write_protect:
+    logging.warning('SWWP is not enabled. Skip setting RO hash.')
+  elif options.rma_mode:
+    logging.warning('RMA mode. Skip setting RO hash.')
+  else:
+    Cr50SetROHash(options)
+  Cr50WriteFlashInfo(options)
+  Cr50DisableFactoryMode(options)
+
+
 @Command('enable_release_partition',
          CmdArg('--release_rootfs',
                 help=('path to the release rootfs device. If not specified, '
@@ -555,8 +575,6 @@ def WipeInit(options):
 
 
 @Command('verify',
-         CmdArg('--no_write_protect', action='store_true',
-                help='Do not check write protection switch state.'),
          _hwid_status_list_cmd_arg,
          _hwdb_path_cmd_arg,
          _project_cmd_arg,
@@ -564,6 +582,7 @@ def WipeInit(options):
          _hwid_cmd_arg,
          _hwid_run_vpd_cmd_arg,
          _hwid_vpd_data_file_cmd_arg,
+         _no_write_protect_cmd_arg,
          _rma_mode_cmd_arg,
          _cros_core_cmd_arg,
          _has_ec_pubkey_cmd_arg,
@@ -792,8 +811,6 @@ def UploadReport(options):
 
 
 @Command('finalize',
-         CmdArg('--no_write_protect', action='store_true',
-                help='Do not enable firmware write protection.'),
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'),
          _no_ectool_cmd_arg,
@@ -809,6 +826,7 @@ def UploadReport(options):
          _hwid_cmd_arg,
          _hwid_run_vpd_cmd_arg,
          _hwid_vpd_data_file_cmd_arg,
+         _no_write_protect_cmd_arg,
          _rma_mode_cmd_arg,
          _cros_core_cmd_arg,
          _has_ec_pubkey_cmd_arg,
@@ -843,11 +861,9 @@ def Finalize(options):
   if not options.rma_mode:
     # Write VPD values related to RLZ ping into VPD.
     GetGooftool(options).WriteVPDForRLZPing(options.embargo_offset)
-    GetGooftool(options).Cr50SetROHash()
     if options.generate_mfg_date:
       GetGooftool(options).WriteVPDForMFGDate()
-  Cr50WriteFlashInfo(options)
-  Cr50DisableFactoryMode(options)
+  Cr50Finalize(options)
   Verify(options)
   LogSourceHashes(options)
   UntarStatefulFiles(options)

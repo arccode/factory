@@ -915,6 +915,7 @@ class Gooftool:
     # reflows in the factory and goes through finalization twice.
     # TODO(chenghan): Check if the RO hash range in cr50 is the same as what
     #                 we want to set, after this feature is implemented in cr50.
+    #                 Maybe we can bind it with `Cr50SetBoardId`.
     if self.IsCr50BoardIDSet():
       logging.warning('Cr50 boardID is already set. Skip setting RO hash.')
       return
