@@ -423,7 +423,7 @@ def main():
                       help=('include probe result in the logs'))
   parser.add_argument('--dram', action='store_true',
                       help=('include DRAM calibration info in the logs'))
-  parser.add_argument('--abt', action='store_true',
+  parser.add_argument('--no-abt', action='store_false', dest='abt',
                       help=('create abt.txt for "Android Bug Tool"'))
   args = parser.parse_args()
 
