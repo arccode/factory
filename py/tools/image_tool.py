@@ -171,7 +171,7 @@ class SysUtils:
 
   @staticmethod
   def Shell(commands, sudo=False, output=False, check=True, silent=False,
-            **kargs):
+            log_stderr_on_error=None, **kargs):
     """Helper to execute 'sudo' command in a shell.
 
     A simplified implementation. To reduce dependency, we don't want to use
@@ -179,25 +179,36 @@ class SysUtils:
 
     Args:
       sudo: Execute the command with sudo if needed.
-      output: Returns the output from command (check_call).
+      output: If it is True, returns the output from command. Otherwise, returns
+        the returncode.
+      check: Throws exception if returncode is not zero.
+      silent: Sets stdout and stderr to DEVNULL.
+      log_stderr_on_error: Logs stderr only if the command fails. If it is None,
+        then it is set to 'check and silent'.
     """
+    if log_stderr_on_error is None:
+      log_stderr_on_error = check and silent
     if not isinstance(commands, str):
       commands = ' '.join(pipes.quote(arg) for arg in commands)
     kargs['shell'] = True
     kargs['encoding'] = 'utf-8'
 
-    caller = subprocess.check_output if output else subprocess.check_call
     if sudo and os.geteuid() != 0:
       commands = 'sudo -E ' + commands
     if silent:
-      commands += ' >/dev/null 2>&1'
-    if not check:
-      if output:
-        commands += ' || true'
-      else:
-        caller = subprocess.call
+      kargs['stdout'] = subprocess.DEVNULL
+      kargs['stderr'] = subprocess.DEVNULL
+    if output:
+      kargs['stdout'] = subprocess.PIPE
+    if log_stderr_on_error:
+      kargs['stderr'] = subprocess.PIPE
 
-    return caller(commands, **kargs)
+    process = subprocess.run(commands, check=False, **kargs)
+    if process.returncode != 0 and log_stderr_on_error:
+      print('command: %r stderr:\n%s' % (commands, process.stderr))
+    if check:
+      process.check_returncode()
+    return process.stdout if output else process.returncode
 
   @staticmethod
   def Sudo(commands, **kargs):
