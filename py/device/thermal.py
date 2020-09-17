@@ -269,6 +269,25 @@ class Thermal(device_types.DeviceComponent):
   ENERGY_UNIT_FACTOR = 1.53e-5
   """Factor to use to convert energy readings to Joules."""
 
+  SOURCE_CLASSES = [
+      # ECToolTemperatureSensors doesn't have main sensor name, so it is safe to
+      # add it in the beginning of the list.
+      ECToolTemperatureSensors,
+      # CoreTempSensors is preferred over ThermalZoneSensors.  It returns main
+      # sensor if found. If not found, it normally means that CoreTempSensors is
+      # not supported on this device, and we will fallback to next
+      # implementation: ThermalZoneSensors.
+      CoreTempSensors,
+      # ThermalZoneSensors is the fallback option, it should be available on
+      # most Linux devices, if sensors are not disabled.
+      ThermalZoneSensors,
+  ]
+  """A list of ThermalSensorSource to load in _SetupSensors function.
+
+  Each source will be created in order, and their sensors will be added to
+  self._sensors, until we find the first source that has a main sensor name.
+  """
+
   def __init__(self, dut):
     """Constructor."""
     super(Thermal, self).__init__(dut)
@@ -302,12 +321,12 @@ class Thermal(device_types.DeviceComponent):
     self._main_sensor = None
     self._sources = []
 
-    # CoreTemp should be considered as the better alternative than ThermalZone.
-    self._AddThermalSensorSource(CoreTempSensors(self._device))
-    if not self._main_sensor:
-      self._AddThermalSensorSource(ThermalZoneSensors(self._device))
-    # ECTool provides additional sensors.
-    self._AddThermalSensorSource(ECToolTemperatureSensors(self._device))
+    for source_class in self.SOURCE_CLASSES:
+      assert issubclass(source_class, ThermalSensorSource)
+      source = source_class(self._device)
+      self._AddThermalSensorSource(source)
+      if self._main_sensor:
+        break
 
   def _GetSensors(self):
     """Gets (cached) available sensors."""
