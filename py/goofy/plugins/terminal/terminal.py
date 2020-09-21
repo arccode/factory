@@ -84,14 +84,14 @@ class TerminalManager:
             logging.warning('Len of binary message is %d, not 1.', len(message))
             return
           if self._control_state:
-            if chr(_CONTROL_END) == message.data[0]:
+            if _CONTROL_END == message.data[0]:
               self.HandlePTYControl(self._fd, self._control_string)
               self._control_state = None
               self._control_string = ''
             else:
               logging.warning('Unexpected control message %d', message.data[0])
           else:
-            if chr(_CONTROL_START) == message.data[0]:
+            if _CONTROL_START == message.data[0]:
               self._control_state = _CONTROL_START
             else:
               logging.warning('Unexpected control message %d', message.data[0])
