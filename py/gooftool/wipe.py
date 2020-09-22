@@ -465,8 +465,8 @@ def _WipeStateDev(release_rootfs, root_disk, wipe_args, state_dev,
                            ROOT_DISK=root_disk)
   logging.debug('clobber-state: root_dev=%s, root_disk=%s',
                 release_rootfs, root_disk)
-  process_utils.Spawn(
-      ['clobber-state', wipe_args], env=clobber_state_env, check_call=True)
+  process_utils.Spawn(['clobber-state', wipe_args], env=clobber_state_env,
+                      check_call=True, log=True)
 
   logging.info('Checking if stateful partition is mounted...')
   # Check if the stateful partition is wiped.
