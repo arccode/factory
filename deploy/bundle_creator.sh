@@ -76,6 +76,7 @@ deploy_appengine() {
   mkdir -p "${package_dir}"
 
   cp -r "${SOURCE_DIR}/app_engine" "${package_dir}"
+  cp -r "${SOURCE_DIR}/connector" "${package_dir}"
   local allowed_array=$(printf ", \'%s\'" "${ALLOWED_LOAS_PEER_USERNAMES[@]}")
   allowed_array="${allowed_array:3:$((${#allowed_array}-4))}"
   # Fill in env vars in rpc/config.py

@@ -6,10 +6,11 @@ import base64
 import logging
 import time
 
-from google.cloud import pubsub_v1  # pylint: disable=import-error, no-name-in-module
+from google.cloud import pubsub_v1  # pylint: disable=no-name-in-module,import-error
 from googleapiclient import discovery  # pylint: disable=import-error
 
-from cros.factory.bundle_creator.docker import config  # pylint: disable=no-name-in-module
+from cros.factory.bundle_creator.connector import firestore_connector
+from cros.factory.bundle_creator.docker import config
 from cros.factory.bundle_creator.docker import factorybundle_pb2  # pylint: disable=no-name-in-module
 from cros.factory.bundle_creator.docker import util
 
@@ -43,25 +44,42 @@ def PullTask():
   subscriber = pubsub_v1.SubscriberClient()
   subscription_path = subscriber.subscription_path(
       config.GCLOUD_PROJECT, config.PUBSUB_SUBSCRIPTION)
+  firestore_conn = firestore_connector.FirestoreConnector(config.GCLOUD_PROJECT)
+  message_proto = None
   try:
     response = subscriber.pull(subscription_path, max_messages=1)
     if response and response.received_messages:
       received_message = response.received_messages[0]
       subscriber.acknowledge(subscription_path, [received_message.ack_id])
-      request_proto = factorybundle_pb2.CreateBundleRpcRequest.FromString(
+      message_proto = factorybundle_pb2.CreateBundleMessage.FromString(
           received_message.message.data)
-      gs_path = util.CreateBundle(request_proto)
+
+      firestore_conn.UpdateUserRequestStatus(
+          message_proto.doc_id, firestore_conn.USER_REQUEST_STATUS_IN_PROGRESS)
+      firestore_conn.UpdateUserRequestStartTime(message_proto.doc_id)
+
+      gs_path = util.CreateBundle(message_proto.request)
+
+      firestore_conn.UpdateUserRequestStatus(
+          message_proto.doc_id, firestore_conn.USER_REQUEST_STATUS_SUCCEEDED)
+      firestore_conn.UpdateUserRequestEndTime(message_proto.doc_id)
 
       response_proto = factorybundle_pb2.WorkerResult()
       response_proto.status = factorybundle_pb2.WorkerResult.NO_ERROR
-      response_proto.original_request.MergeFrom(request_proto)
+      response_proto.original_request.MergeFrom(message_proto.request)
       response_proto.gs_path = gs_path
       ResponseResult(tasks, response_proto)
   except util.CreateBundleException as e:
     logger.error(e)
+
+    firestore_conn.UpdateUserRequestStatus(
+        message_proto.doc_id, firestore_conn.USER_REQUEST_STATUS_FAILED)
+    firestore_conn.UpdateUserRequestEndTime(message_proto.doc_id)
+    firestore_conn.UpdateUserRequestErrorMessage(message_proto.doc_id, str(e))
+
     response_proto = factorybundle_pb2.WorkerResult()
     response_proto.status = factorybundle_pb2.WorkerResult.FAILED
-    response_proto.original_request.MergeFrom(request_proto)
+    response_proto.original_request.MergeFrom(message_proto.request)
     response_proto.error_message = str(e)
     ResponseResult(tasks, response_proto)
 

@@ -13,6 +13,7 @@ from google.cloud import storage
 from cros.factory.bundle_creator.app_engine import config
 from cros.factory.bundle_creator.app_engine import factorybundle_pb2  # pylint: disable=no-name-in-module
 from cros.factory.bundle_creator.app_engine import protorpc_utils
+from cros.factory.bundle_creator.connector import firestore_connector
 
 
 class AllowlistException(Exception):
@@ -34,12 +35,20 @@ class FactoryBundleService(protorpc_utils.ProtoRPCServiceBase):
   SERVICE_DESCRIPTOR = factorybundle_pb2.DESCRIPTOR.services_by_name[
       'FactoryBundleService']
 
+  def __init__(self):
+    self._firestore_connector = firestore_connector.FirestoreConnector(
+        config.GCLOUD_PROJECT)
+
   @allowlist
   def CreateBundleAsync(self, request):
+    message = factorybundle_pb2.CreateBundleMessage()
+    message.doc_id = self._firestore_connector.CreateUserRequest(request)
+    message.request.MergeFrom(request)
     publisher = pubsub_v1.PublisherClient()
     topic_path = publisher.topic_path(
         config.GCLOUD_PROJECT, config.PUBSUB_TOPIC)
-    publisher.publish(topic_path, request.SerializeToString())
+    publisher.publish(topic_path, message.SerializeToString())
+
     return factorybundle_pb2.CreateBundleRpcResponse()
 
   @allowlist

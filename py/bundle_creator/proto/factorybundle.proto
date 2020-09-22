@@ -19,6 +19,11 @@ message CreateBundleRpcResponse {
   optional Status status = 1 [default = NO_ERROR];
 }
 
+message CreateBundleMessage {
+  optional string doc_id = 1;
+  optional CreateBundleRpcRequest request = 2;
+}
+
 message WorkerResult {
   enum Status {
     NO_ERROR = 0;
