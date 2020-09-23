@@ -12,6 +12,7 @@ from cros.factory.utils import type_utils
 
 @type_utils.CachedGetter
 def _GetAllProbeStatementDefinitions():
+
   def _GetASCIIStringErrorMsg(length):
     return 'format error, expect a %d-byte ASCII string' % length
 
@@ -38,21 +39,17 @@ def _GetAllProbeStatementDefinitions():
 
   builder.AddProbeFunction('mmc_storage', 'Probe function for eMMC storage.')
   probe_function_names = ['generic_storage', 'mmc_storage']
-  builder.AddHexOutputField('manfid',
-                            'Manufacturer ID (MID) in CID register.',
+  builder.AddHexOutputField('manfid', 'Manufacturer ID (MID) in CID register.',
                             probe_function_names=probe_function_names,
                             num_value_digits=2)
-  builder.AddHexOutputField('oemid',
-                            'OEM/Application ID (OID) in CID register.',
-                            probe_function_names=probe_function_names,
-                            num_value_digits=4)
-  builder.AddStrOutputField('name',
-                            'Product name (PNM) in CID register.',
+  builder.AddHexOutputField(
+      'oemid', 'OEM/Application ID (OID) in CID register.',
+      probe_function_names=probe_function_names, num_value_digits=4)
+  builder.AddStrOutputField('name', 'Product name (PNM) in CID register.',
                             probe_function_names=probe_function_names,
                             value_pattern=re.compile('^[ -~]{6}$'),
                             value_format_error_msg=_GetASCIIStringErrorMsg(6))
-  builder.AddHexOutputField('prv',
-                            'Product revision (PRV) in CID register.',
+  builder.AddHexOutputField('prv', 'Product revision (PRV) in CID register.',
                             probe_function_names=probe_function_names,
                             num_value_digits=2)
 
@@ -93,15 +90,14 @@ def _GetAllProbeStatementDefinitions():
                            ('A method that tries various of way to detect the '
                             'ethernet component.'))
   builder.AddStrOutputField(
-      'type',
-      'Component type, one of "wireless", "ethernet" or "cellular".',
+      'type', 'Component type, one of "wireless", "ethernet" or "cellular".',
       value_pattern=re.compile('(wireless|ethernet|cellular)$'),
       value_format_error_msg=('Must be either "wireless", "ethernet", or '
                               '"cellular".'))
-  builder.AddStrOutputField('bus_type', 'HW interface type of the component.',
-                            value_pattern=re.compile('(pci|usb|sdio)$'),
-                            value_format_error_msg=('Must be either "pci", '
-                                                    '"usb", or "sdio"'))
+  builder.AddStrOutputField(
+      'bus_type', 'HW interface type of the component.',
+      value_pattern=re.compile('(pci|usb|sdio)$'),
+      value_format_error_msg='Must be either "pci", "usb", or "sdio"')
   builder.AddHexOutputField('pci_vendor_id', 'PCI Vendor ID.',
                             num_value_digits=4)
   builder.AddHexOutputField('pci_device_id', 'PCI Device ID.',
@@ -122,8 +118,7 @@ def _GetAllProbeStatementDefinitions():
 
   # Create dram builder
   builder = probe_config_types.ProbeStatementDefinitionBuilder('dram')
-  builder.AddProbeFunction('memory',
-                           'Probe memory from DMI.')
+  builder.AddProbeFunction('memory', 'Probe memory from DMI.')
   builder.AddStrOutputField('part', 'Part number.')
   builder.AddIntOutputField('size', 'Memory size in MiB.')
   builder.AddIntOutputField('slot', 'Memory slot index.')
@@ -150,6 +145,7 @@ def _GetAllProbeStatementDefinitions():
                             num_value_digits=4)
   builder.AddHexOutputField('usb_bcd_device', 'USB BCD Device Info.',
                             num_value_digits=4)
+  builder.AddStrOutputField('usb_removable', 'Whether the device is removable.')
   probe_statement_definitions['camera'] = builder.Build()
 
   builder = probe_config_types.ProbeStatementDefinitionBuilder('display_panel')
@@ -157,14 +153,15 @@ def _GetAllProbeStatementDefinitions():
   builder.AddIntOutputField('height', 'The height of the device.')
   builder.AddHexOutputField('product_id', 'The product ID, 16 bits',
                             num_value_digits=4)
-  builder.AddStrOutputField('vendor', 'The vendor code, 3 letters',
-                            value_pattern=re.compile('[A-Z]{3}$'),
-                            value_format_error_msg=('Must be a 3-letter all '
-                                                    'caps string.'))
+  builder.AddStrOutputField(
+      'vendor', 'The vendor code, 3 letters',
+      value_pattern=re.compile('[A-Z]{3}$'),
+      value_format_error_msg='Must be a 3-letter all caps string.')
   builder.AddIntOutputField('width', 'The width of the device.')
   probe_statement_definitions['display_panel'] = builder.Build()
 
   return probe_statement_definitions
+
 
 def GetProbeStatementDefinition(name):
   """Get the probe statement definition of the given name.

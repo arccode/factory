@@ -27,19 +27,34 @@ class GenericProbeStatementInfoRecord:
   Attributes:
     probe_category: The name of the probe category.
     probe_func_name: The name of the probe function.
-    allowlist_fields: A list of fields that is allowed to be outputted.
+    allowlist_fields: A dictionary which keys are the allowed fields in the
+        output while the corresponding value can be `None` or some value for
+        filtering unwanted generic probed result.  Type of the values must
+        match the definition declared in
+        `cros.factory.probe.runtime_probe.probe_config_definitions` because
+        they will be fed to the probe statement generator.
   """
 
   def __init__(self, probe_category, probe_func_name, allowlist_fields):
+    """Constructor.
+
+    Args:
+      probe_category: The name of the probe category.
+      probe_func_name: The name of the probe function.
+      allowlist_fields: Either a list of allowed fields in the output or
+          a dictionary of allowed fields with values for filtering.
+    """
     self.probe_category = probe_category
     self.probe_func_name = probe_func_name
-    self.allowlist_fields = allowlist_fields
+    self.allowlist_fields = (
+        allowlist_fields if isinstance(allowlist_fields, dict) else
+        {fn: None
+         for fn in allowlist_fields})
 
   def GenerateProbeStatement(self):
     return probe_config_definition.GetProbeStatementDefinition(
         self.probe_category).GenerateProbeStatement(
-            'generic', self.probe_func_name,
-            {fn: None for fn in self.allowlist_fields})
+            'generic', self.probe_func_name, self.allowlist_fields)
 
 
 # TODO(yhong): Remove the expect field when runtime_probe converts the output
@@ -50,29 +65,32 @@ def _GetAllGenericProbeStatementInfoRecords():
       GenericProbeStatementInfoRecord(
           'battery', 'generic_battery',
           ['manufacturer', 'model_name', 'technology']),
-      GenericProbeStatementInfoRecord(
-          'storage', 'generic_storage',
-          ['type', 'sectors', 'manfid', 'name', 'pci_vendor', 'pci_device',
-           'pci_class', 'ata_vendor', 'ata_model']),
-      GenericProbeStatementInfoRecord(
-          'network', 'generic_network',
-          ['type', 'bus_type', 'pci_vendor_id', 'pci_device_id',
-           'pci_revision', 'usb_vendor_id', 'usb_product_id',
-           'usb_bcd_device']),
-      GenericProbeStatementInfoRecord(
-          'dram', 'memory',
-          ['part', 'size', 'slot']),
+      GenericProbeStatementInfoRecord('storage', 'generic_storage', [
+          'type', 'sectors', 'manfid', 'name', 'pci_vendor', 'pci_device',
+          'pci_class', 'ata_vendor', 'ata_model'
+      ]),
+      GenericProbeStatementInfoRecord('network', 'generic_network', [
+          'type', 'bus_type', 'pci_vendor_id', 'pci_device_id', 'pci_revision',
+          'usb_vendor_id', 'usb_product_id', 'usb_bcd_device'
+      ]),
+      GenericProbeStatementInfoRecord('dram', 'memory',
+                                      ['part', 'size', 'slot']),
       # TODO(yhong): Include other type of cameras if needed.
       GenericProbeStatementInfoRecord(
-          'camera', 'usb_camera',
-          ['bus_type', 'usb_vendor_id', 'usb_product_id', 'usb_bcd_device']),
+          'camera', 'usb_camera', {
+              'bus_type': None,
+              'usb_vendor_id': None,
+              'usb_product_id': None,
+              'usb_bcd_device': None,
+              'usb_removable': re.compile('^(FIXED|UNKNOWN)$'),
+          }),
       GenericProbeStatementInfoRecord(
-          'display_panel', 'edid',
-          ['height', 'product_id', 'vendor', 'width']),
+          'display_panel', 'edid', ['height', 'product_id', 'vendor', 'width']),
   ]
 
 
 class _FieldRecord:
+
   def __init__(self, hwid_field_name, probe_statement_field_name,
                value_converter, is_optional=False):
     self.hwid_field_name = hwid_field_name
@@ -92,6 +110,7 @@ class ProbeStatementConversionError(Exception):
 
 
 class _ProbeStatementGenerator:
+
   def __init__(self, probe_category, probe_function_name, field_converters,
                probe_function_argument=None):
     self.probe_category = probe_category
@@ -141,6 +160,7 @@ class _ProbeStatementGenerator:
 
 @type_utils.CachedGetter
 def GetAllProbeStatementGenerators():
+
   def HWIDValueToStr(value):
     if isinstance(value, hwid_rule.Value):
       return re.compile(value.raw_value) if value.is_re else value.raw_value
@@ -178,43 +198,35 @@ def GetAllProbeStatementGenerators():
       ])
   ]
 
-  storage_shared_fields = [
-      same_name_field_converter('sectors', StrToNum)
-  ]
+  storage_shared_fields = [same_name_field_converter('sectors', StrToNum)]
   all_probe_statement_generators['storage'] = [
       # eMMC
       _ProbeStatementGenerator(
-          'storage', 'generic_storage',
-          storage_shared_fields + [
+          'storage', 'generic_storage', storage_shared_fields + [
               same_name_field_converter('name', SimplyForwardValue),
-              same_name_field_converter(
-                  'manfid', GetHWIDHexStrToHexStrConverter(2)),
-              same_name_field_converter(
-                  'oemid', GetHWIDHexStrToHexStrConverter(4)),
-              same_name_field_converter(
-                  'prv', GetHWIDHexStrToHexStrConverter(2)),
-          ]
-      ),
+              same_name_field_converter('manfid',
+                                        GetHWIDHexStrToHexStrConverter(2)),
+              same_name_field_converter('oemid',
+                                        GetHWIDHexStrToHexStrConverter(4)),
+              same_name_field_converter('prv',
+                                        GetHWIDHexStrToHexStrConverter(2)),
+          ]),
       # NVMe
       _ProbeStatementGenerator(
-          'storage', 'generic_storage',
-          storage_shared_fields + [
+          'storage', 'generic_storage', storage_shared_fields + [
               _FieldRecord('vendor', 'pci_vendor',
                            GetHWIDHexStrToHexStrConverter(4)),
               _FieldRecord('device', 'pci_device',
                            GetHWIDHexStrToHexStrConverter(4)),
               _FieldRecord('class', 'pci_class',
                            GetHWIDHexStrToHexStrConverter(6)),
-          ]
-      ),
+          ]),
       # ATA
       _ProbeStatementGenerator(
-          'storage', 'generic_storage',
-          storage_shared_fields + [
+          'storage', 'generic_storage', storage_shared_fields + [
               _FieldRecord('vendor', 'ata_vendor', HWIDValueToStr),
               _FieldRecord('model', 'ata_model', HWIDValueToStr),
-          ]
-      ),
+          ]),
   ]
 
   # TODO(yhong): Also convert SDIO network component probe statements.
@@ -223,12 +235,10 @@ def GetAllProbeStatementGenerators():
                    GetHWIDHexStrToHexStrConverter(4)),
       # TODO(yhong): Set `pci_device_id` to non optional field when b/150914933
       #     is resolved.
-      _FieldRecord('device', 'pci_device_id',
-                   GetHWIDHexStrToHexStrConverter(4),
+      _FieldRecord('device', 'pci_device_id', GetHWIDHexStrToHexStrConverter(4),
                    is_optional=True),
       _FieldRecord('revision_id', 'pci_revision',
-                   GetHWIDHexStrToHexStrConverter(2),
-                   is_optional=True),
+                   GetHWIDHexStrToHexStrConverter(2), is_optional=True),
   ]
   usb_fields = [
       _FieldRecord('idVendor', 'usb_vendor_id',
@@ -240,18 +250,18 @@ def GetAllProbeStatementGenerators():
                    is_optional=True),
   ]
   all_probe_statement_generators['wireless'] = [
-      _ProbeStatementGenerator(
-          'network', 'wireless_network', network_pci_fields),
+      _ProbeStatementGenerator('network', 'wireless_network',
+                               network_pci_fields),
       _ProbeStatementGenerator('network', 'wireless_network', usb_fields),
   ]
   all_probe_statement_generators['cellular'] = [
-      _ProbeStatementGenerator(
-          'network', 'cellular_network', network_pci_fields),
+      _ProbeStatementGenerator('network', 'cellular_network',
+                               network_pci_fields),
       _ProbeStatementGenerator('network', 'cellular_network', usb_fields),
   ]
   all_probe_statement_generators['ethernet'] = [
-      _ProbeStatementGenerator(
-          'network', 'ethernet_network', network_pci_fields),
+      _ProbeStatementGenerator('network', 'ethernet_network',
+                               network_pci_fields),
       _ProbeStatementGenerator('network', 'ethernet_network', usb_fields),
   ]
 
@@ -279,8 +289,8 @@ def GetAllProbeStatementGenerators():
       _ProbeStatementGenerator('touchpad', 'input_device', input_device_fields),
   ]
   all_probe_statement_generators['touchscreen'] = [
-      _ProbeStatementGenerator(
-          'touchscreen', 'input_device', input_device_fields),
+      _ProbeStatementGenerator('touchscreen', 'input_device',
+                               input_device_fields),
   ]
 
   all_probe_statement_generators['video'] = [
@@ -308,6 +318,7 @@ class VerificationPayloadGenerationResult:
         files that should be committed into the bsp package.
     error_msgs: A list of errors encountered during the generation.
   """
+
   def __init__(self):
     self.generated_file_contents = {}
     self.error_msgs = []
@@ -317,14 +328,12 @@ ComponentVerificationPayloadPiece = collections.namedtuple(
     'ComponentVerificationPayloadPiece',
     ['is_duplicate', 'error_msg', 'probe_statement', 'component_info'])
 
-
 _STATUS_MAP = {
     hwid_common.COMPONENT_STATUS.supported: hardware_verifier_pb2.QUALIFIED,
     hwid_common.COMPONENT_STATUS.unqualified: hardware_verifier_pb2.UNQUALIFIED,
     hwid_common.COMPONENT_STATUS.deprecated: hardware_verifier_pb2.REJECTED,
     hwid_common.COMPONENT_STATUS.unsupported: hardware_verifier_pb2.REJECTED,
 }
-
 
 _ProbeRequestSupportCategory = runtime_probe_pb2.ProbeRequest.SupportCategory
 
@@ -363,8 +372,8 @@ def GetAllComponentVerificationPayloadPieces(db, waived_categories):
       try:
         for ps_gen in ps_gens:
           try:
-            ps = ps_gen.TryGenerate(
-                unique_comp_name, comp_info.values, comp_info.information)
+            ps = ps_gen.TryGenerate(unique_comp_name, comp_info.values,
+                                    comp_info.information)
           except MissingComponentValueError:
             continue
           else:
@@ -390,8 +399,7 @@ def GetAllComponentVerificationPayloadPieces(db, waived_categories):
         ps_gen, probe_statement = all_suitable_generator_and_ps[0]
         component_info = hardware_verifier_pb2.ComponentInfo(
             component_category=_ProbeRequestSupportCategory.Value(
-                ps_gen.probe_category),
-            component_uuid=unique_comp_name,
+                ps_gen.probe_category), component_uuid=unique_comp_name,
             qualification_status=_STATUS_MAP[comp_info.status])
       ret[(hwid_comp_category, comp_name)] = ComponentVerificationPayloadPiece(
           is_duplicate, error_msg, probe_statement, component_info)
@@ -445,8 +453,7 @@ def GenerateVerificationPayload(dbs):
   for ps_info in _GetAllGenericProbeStatementInfoRecords():
     hw_verification_spec.generic_component_value_allowlists.add(
         component_category=_ProbeRequestSupportCategory.Value(
-            ps_info.probe_category),
-        field_names=ps_info.allowlist_fields)
+            ps_info.probe_category), field_names=list(ps_info.allowlist_fields))
 
   ret.generated_file_contents[
       'hw_verification_spec.prototxt'] = text_format.MessageToString(
@@ -467,22 +474,24 @@ def main():
   ap = argparse.ArgumentParser(
       description=('Generate the verification payload source files from the '
                    'given HWID databases.'))
-  ap.add_argument('-o', '--output_dir', metavar='PATH',
-                  help=('Base path to the output files. In most of the cases, '
-                        'it should be '
-                        'chromeos-base/chromeos-bsp-<BOARD>-private/files '
-                        'in a private overlay repository.'))
-  ap.add_argument('hwid_db_paths', metavar='HWID_DATABASE_PATH', nargs='+',
-                  help=('Paths to the input HWID databases. If the board '
-                        'has multiple models, users should specify all models '
-                        'at once.'))
+  ap.add_argument(
+      '-o', '--output_dir', metavar='PATH',
+      help=('Base path to the output files. In most of the cases, '
+            'it should be '
+            'chromeos-base/chromeos-bsp-<BOARD>-private/files '
+            'in a private overlay repository.'))
+  ap.add_argument(
+      'hwid_db_paths', metavar='HWID_DATABASE_PATH', nargs='+',
+      help=('Paths to the input HWID databases. If the board '
+            'has multiple models, users should specify all models '
+            'at once.'))
   ap.add_argument('--no_verify_checksum', action='store_false',
                   help="Don't verify the checksum in the HWID databases.",
                   dest='verify_checksum')
-  ap.add_argument('--waived_comp_category', nargs='*', default=[],
-                  dest='waived_categories',
-                  help=('Waived component category, must specify in format of '
-                        '`<model_name>.<category_name>`.'))
+  ap.add_argument(
+      '--waived_comp_category', nargs='*', default=[], dest='waived_categories',
+      help=('Waived component category, must specify in format of '
+            '`<model_name>.<category_name>`.'))
   args = ap.parse_args()
 
   logging.basicConfig(level=logging.INFO)

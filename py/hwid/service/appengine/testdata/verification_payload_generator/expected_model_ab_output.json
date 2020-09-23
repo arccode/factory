@@ -103,7 +103,8 @@
           "bus_type": [false, "str"],
           "usb_vendor_id": [false, "hex"],
           "usb_product_id": [false, "hex"],
-          "usb_bcd_device": [false, "hex"]
+          "usb_bcd_device": [false, "hex"],
+          "usb_removable": [true, "str", "!re ^(FIXED|UNKNOWN)$"]
         }
       }
     }
@@ -210,7 +211,8 @@
           "bus_type": [false, "str"],
           "usb_vendor_id": [false, "hex"],
           "usb_product_id": [false, "hex"],
-          "usb_bcd_device": [false, "hex"]
+          "usb_bcd_device": [false, "hex"],
+          "usb_removable": [true, "str", "!re ^(FIXED|UNKNOWN)$"]
         }
       }
     }
