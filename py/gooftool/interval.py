@@ -95,3 +95,23 @@ def MergeAndExcludeIntervals(include_intervals, exclude_intervals):
       ret.append(include)
 
   return ret
+
+
+def SplitInterval(interval, max_size):
+  """Split an interval into multiple intervals with a size limit.
+
+  Args:
+    interval: An Interval.
+    max_size: Maximum interval size.
+
+  Returns:
+    A list of Interval where the size of each internal is not larger than
+    `max_size`.
+  """
+  ret = []
+  while interval.size:
+    ret.append(
+        Interval(interval.start, min(interval.start + max_size, interval.end)))
+    interval = Interval(interval.start + max_size, interval.end)
+
+  return ret

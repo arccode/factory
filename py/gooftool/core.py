@@ -941,6 +941,10 @@ class Gooftool:
     hash_intervals = interval.MergeAndExcludeIntervals(
         include_intervals, exclude_intervals)
 
+    # Cr50 cannot store hash intervals with size larger than 4MB.
+    hash_intervals = sum(
+        [interval.SplitInterval(i, 0x400000) for i in hash_intervals], [])
+
     # ap_ro_hash.py takes offset:size in hex as range parameters.
     cmd = 'ap_ro_hash.py %s' % ' '.join(
         ['%x:%x' % (i.start, i.size) for i in hash_intervals])

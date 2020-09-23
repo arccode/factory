@@ -53,6 +53,12 @@ class IntervalTest(unittest.TestCase):
         interval.MergeAndExcludeIntervals(include_intervals, exclude_intervals),
         result)
 
+  def testSplitInterval(self):
+    i = interval.Interval(1, 6)
+    max_size = 2
+    result = self.MakeIntervals([(1, 3), (3, 5), (5, 6)])
+    self.assertEqual(interval.SplitInterval(i, max_size), result)
+
 
 if __name__ == '__main__':
   unittest.main()
