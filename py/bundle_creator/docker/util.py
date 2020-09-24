@@ -48,7 +48,7 @@ def TryUpdateManifestWithHasFirmwareSetting(manifest, project):
     manifest: The manifest dictionary to be updated.
     project: The project name from the request.
   """
-  logger = logging.getLogger('util.tryupdatemanifest')
+  logger = logging.getLogger('util.try_update_manifest')
 
   client = firestore.Client(project=config.GCLOUD_PROJECT)
   doc = client.collection(
@@ -62,7 +62,7 @@ def TryUpdateManifestWithHasFirmwareSetting(manifest, project):
 
 
 def CreateBundle(req):
-  logger = logging.getLogger('main.createbundle')
+  logger = logging.getLogger('util.create_bundle')
   storage_client = storage.Client.from_service_account_json(
       SERVICE_ACCOUNT_JSON, project=config.GCLOUD_PROJECT)
 

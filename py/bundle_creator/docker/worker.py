@@ -37,7 +37,7 @@ def ResponseResult(tasks, response_proto):
 
 
 def PullTask():
-  logger = logging.getLogger('main.pulltask')
+  logger = logging.getLogger('worker.pull_task')
   cloudtasks = discovery.build('cloudtasks', 'v2beta3', cache_discovery=False)
   tasks = cloudtasks.projects().locations().queues().tasks()
   subscriber = pubsub_v1.SubscriberClient()
@@ -67,9 +67,8 @@ def PullTask():
 
 
 def main():
-  logging.basicConfig()
-  logger = logging.getLogger('main')
-  logger.setLevel(logging.INFO)
+  logging.basicConfig(level=logging.INFO)
+  logger = logging.getLogger('worker.main')
   while True:
     try:
       PullTask()
