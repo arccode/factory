@@ -29,7 +29,9 @@ from cros.factory.hwid.service.appengine import hwid_validator
 from cros.factory.hwid.service.appengine import memcache_adapter
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.hwid.v3 import validator as v3_validator
-import hwid_api_messages_pb2  # pylint: disable=import-error
+# pylint: disable=import-error, no-name-in-module
+from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
+# pylint: enable=import-error, no-name-in-module
 
 
 KNOWN_BAD_HWIDS = ['DUMMY_HWID', 'dummy_hwid']

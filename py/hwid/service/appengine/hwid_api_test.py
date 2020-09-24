@@ -23,7 +23,9 @@ from cros.factory.hwid.service.appengine import hwid_manager
 from cros.factory.hwid.service.appengine import hwid_util
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import validator as v3_validator
-import hwid_api_messages_pb2  # pylint: disable=import-error
+# pylint: disable=import-error, no-name-in-module
+from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
+# pylint: enable=import-error, no-name-in-module
 
 
 TEST_HWID = 'Foo'

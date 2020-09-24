@@ -1,4 +1,5 @@
 syntax = "proto2";
+package cros.factory.hwid.service.appengine.proto.hwid_api_messages_pb2;
 
 // A component of a BOM.
 message Component {

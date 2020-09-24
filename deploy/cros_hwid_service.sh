@@ -97,11 +97,36 @@ prepare_protobuf() {
   protoc \
     -I="${RT_PROBE_DIR}" \
     -I="${HW_VERIFIER_DIR}" \
-    -I="${APPENGINE_DIR}/proto" \
     --python_out="${protobuf_out}" \
     "${HW_VERIFIER_DIR}/hardware_verifier.proto" \
-    "${RT_PROBE_DIR}/runtime_probe.proto" \
+    "${RT_PROBE_DIR}/runtime_probe.proto"
+
+  protobuf_out="${TEMP_DIR}/cros/factory/hwid/service/appengine/proto/"
+  mkdir -p "${protobuf_out}"
+  protoc \
+    -I="${APPENGINE_DIR}/proto" \
+    --python_out="${protobuf_out}" \
     "${APPENGINE_DIR}/proto/hwid_api_messages.proto"
+}
+
+do_make_build_folder() {
+  mkdir -p "${TEMP_DIR}"
+  add_temp "${TEMP_DIR}"
+  # Change symlink to hard link due to b/70037640.
+  local cp_files=(cron.yaml requirements.txt .gcloudignore)
+  for file in "${cp_files[@]}"; do
+    cp -l "${APPENGINE_DIR}/${file}" "${TEMP_DIR}"
+  done
+  cp -lr "${FACTORY_DIR}/py_pkg/cros" "${TEMP_DIR}"
+  if [ -d "${FACTORY_PRIVATE_DIR}" ]; then
+    mkdir -p "${TEMP_DIR}/resource"
+    cp -l "\
+${FACTORY_PRIVATE_DIR}/config/hwid/service/appengine/configurations.yaml" \
+      "${TEMP_DIR}/resource"
+  fi
+
+  prepare_protobuf
+  prepare_cros_regions
 }
 
 do_deploy() {
@@ -129,20 +154,7 @@ do_deploy() {
       ;;
   esac
 
-  mkdir -p "${TEMP_DIR}"
-  add_temp "${TEMP_DIR}"
-  # Change symlink to hard link due to b/70037640.
-  local cp_files=(cron.yaml requirements.txt .gcloudignore)
-  for file in "${cp_files[@]}"; do
-    cp -l "${APPENGINE_DIR}/${file}" "${TEMP_DIR}"
-  done
-  cp -lr "${FACTORY_DIR}/py_pkg/cros" "${TEMP_DIR}"
-  if [ -d "${FACTORY_PRIVATE_DIR}" ]; then
-    mkdir -p "${TEMP_DIR}/resource"
-    cp -l "\
-${FACTORY_PRIVATE_DIR}/config/hwid/service/appengine/configurations.yaml" \
-      "${TEMP_DIR}/resource"
-  fi
+  do_make_build_folder
 
   local common_envs=(
     GCP_PROJECT="${GCP_PROJECT}"
@@ -160,8 +172,6 @@ ${FACTORY_PRIVATE_DIR}/config/hwid/service/appengine/configurations.yaml" \
     envsubst < "${APPENGINE_DIR}/app.${appengine_env}.yaml.template" > \
     "${TEMP_DIR}/app.yaml"
 
-  prepare_protobuf
-  prepare_cros_regions
   case "${deployment_type}" in
     "${DEPLOYMENT_LOCAL}")
       run_in_temp dev_appserver.py "${@}" app.yaml
@@ -186,21 +196,13 @@ do_build() {
   check_docker
 
   local dockerfile="${TEST_DIR}/Dockerfile"
-  ignore_list+="*\n"
-  ignore_list+="!factory\n"
-  ignore_list+="!chromeos-hwid\n"
-  ignore_list+="factory/build/*\n"
-  ignore_list+="!factory/build/hwid/protobuf_out\n"
-  ignore_list+="!factory-private/config/hwid\n"
-  local dockerignore="${PLATFORM_DIR}"/.dockerignore
-  add_temp "${dockerignore}"
-  echo -e "${ignore_list}" > "${dockerignore}"
-  prepare_protobuf
+
+  do_make_build_folder
 
   ${DOCKER} build \
     --file "${dockerfile}" \
     --tag "appengine_integration" \
-    "${PLATFORM_DIR}"
+    "${TEMP_DIR}"
 }
 
 do_test() {

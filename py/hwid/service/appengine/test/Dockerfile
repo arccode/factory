@@ -7,9 +7,6 @@ FROM python:3.7
 ARG workdir="/usr/src/"
 ARG gcloud_archive_name="google-cloud-sdk-245.0.0-linux-x86_64.tar.gz"
 
-ADD factory/py/hwid/service/appengine/requirements.txt \
-  "${workdir}"/requirements.txt
-
 RUN cd "${workdir}" && \
   wget "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/${gcloud_archive_name}" && \
   tar xvf "${gcloud_archive_name}" && \
@@ -18,23 +15,18 @@ RUN cd "${workdir}" && \
     --rc-path /root/.bashrc \
     --additional-components app-engine-python app-engine-python-extras beta \
     --quiet && \
-  rm "${gcloud_archive_name}" && \
-  pip install \
-    --target "${workdir}"/lib \
-    --requirement "${workdir}"/requirements.txt \
-    mock==2.0.0
+  rm "${gcloud_archive_name}"
 
-ADD factory/py "${workdir}/cros/factory/py"
-ADD factory/py_pkg "${workdir}/cros/factory/py_pkg"
-ADD chromeos-hwid/py "${workdir}/cros/chromeos-hwid/py"
-ADD factory/build/hwid/protobuf_out "${workdir}/protobuf_out"
-ADD factory-private/config/hwid/service/appengine/configurations.yaml \
-  "${workdir}/resource/"
+ADD requirements.txt "${workdir}/requirements.txt"
 
-ENV PYTHONPATH="${workdir}/lib:"\
-"${workdir}/protobuf_out:"\
-"${workdir}/cros/factory/py_pkg"
-ENV HWID_SERVICE_RESOURCE_DIR="${workdir}/resource"
+RUN pip install \
+      --target "${workdir}"/lib \
+      --requirement "${workdir}"/requirements.txt \
+      mock==2.0.0
+
+ADD . "${workdir}/hwid"
+
+ENV PYTHONPATH="${workdir}/lib:${workdir}/hwid"
 ENV CUSTOMIZE_SITE_DIR="${workdir}/lib"
 ENV CLOUDSDK_CORE_PROJECT="chromeos-hwid-local-docker"
 ENV DATASTORE_DATASET="chromeos-hwid-local-docker"

@@ -22,7 +22,7 @@ _DEFAULT_CONFIGURATION = {
     # during tests.
     'ge_bucket': 'chromeos-build-release-console-staging',
     'vpg_targets': {
-        'SARIEN':{  # for unittests
+        'SARIEN': {  # for unittests
             'board': 'sarien',
             'waived_comp_categories': ['ethernet']
         }
@@ -31,10 +31,9 @@ _DEFAULT_CONFIGURATION = {
     'hw_checker_mail': 'noreply@google.com',
 }
 
-_RESOURCE_DIR = os.environ.get(
-    'HWID_SERVICE_RESOURCE_DIR',
-    os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..', '..',
-                 '..', '..', 'resource'))
+_RESOURCE_DIR = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), '..', '..', '..', '..', '..',
+    'resource')
 
 _PATH_TO_APP_CONFIGURATIONS_FILE = os.path.join(_RESOURCE_DIR,
                                                 'configurations.yaml')
