@@ -56,7 +56,7 @@ def TryUpdateManifestWithHasFirmwareSetting(manifest, project):
   if doc.exists:
     try:
       manifest['has_firmware'] = doc.get('has_firmware')
-    except AttributeError:
+    except KeyError:
       logger.info(
           'No `has_firmware` attribute found in the existing document.')
 
