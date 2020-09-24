@@ -1,6 +1,20 @@
 board: CHROMEBOOK
 
-checksum: f15db949ca4578e66e95610ebfee21ad76ba86a6
+
+##### BEGIN CHECKSUM BLOCK
+#
+# WARNING: This checksum is generated and audited by Google. Do not
+# modify it. If you modify it, devices' configurations will be
+# invalid, and the devices may not be sold.
+#
+# 警告：此校验码由 Google 产生及审核，禁止手动修改。
+# 若修改将使设备配置變為无效，并且不得销售此设备。
+#
+#####
+checksum: 1e397568bb54ce242afddde71896a3e1e956fcb1
+
+##### END CHECKSUM BLOCK. See the warning above. 请参考上面的警告。
+
 
 encoding_patterns:
   0: default
@@ -36,6 +50,14 @@ components:
         values:
           cores: '4'
           model: 'abc'
+      cpu_original_1:
+        values:
+          cores: '4'
+          model: 'def'
+      cpu_original_2:
+        values:
+          cores: '5'
+          model: 'def'
   dram:
     items:
       dram_type_4g_0:

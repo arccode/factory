@@ -35,6 +35,10 @@ GOLDEN_HWIDV3_DATA_AFTER_INVALID_NAME_PATTERN = file_utils.ReadFile(
     os.path.join(TESTDATA_PATH, 'v3-golden-after-comp-bad.yaml'))
 GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN = file_utils.ReadFile(
     os.path.join(TESTDATA_PATH, 'v3-golden-after-comp-good.yaml'))
+GOLDEN_HWIDV3_DATA_AFTER_INVALID_NAME_PATTERN_WITH_NOTE = file_utils.ReadFile(
+    os.path.join(TESTDATA_PATH, 'v3-golden-after-comp-note-bad.yaml'))
+GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN_WITH_NOTE = file_utils.ReadFile(
+    os.path.join(TESTDATA_PATH, 'v3-golden-after-comp-note-good.yaml'))
 
 
 @mock.patch(
@@ -98,6 +102,23 @@ class HwidValidatorTest(unittest.TestCase):
   def testValidateComponentNameValid(self):
     hwid_validator.HwidValidator().ValidateChange(
         GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN,
+        GOLDEN_HWIDV3_DATA_BEFORE)
+
+  def testValidateComponentNameInvalidWithNote(self):
+    with self.assertRaises(v3_validator.ValidationError) as ex:
+      hwid_validator.HwidValidator().ValidateChange(
+          GOLDEN_HWIDV3_DATA_AFTER_INVALID_NAME_PATTERN_WITH_NOTE,
+          GOLDEN_HWIDV3_DATA_BEFORE)
+    self.assertEqual(
+        str(ex.exception),
+        ('Invalid component names with sequence number, please modify '
+         'them as follows:\n'
+         '- cpu_2#4 -> cpu_2#3\n'
+         '- cpu_2#non-a-number -> cpu_2#4'))
+
+  def testValidateComponentNameValidWithNote(self):
+    hwid_validator.HwidValidator().ValidateChange(
+        GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN_WITH_NOTE,
         GOLDEN_HWIDV3_DATA_BEFORE)
 
   @classmethod

@@ -246,26 +246,39 @@ class HWIDDBsPatternTest(unittest.TestCase):
       ctx: validator_context.ValidatorContext instance which contains the
            name_pattern information.
     """
-    def FindModifiedComponentNames(old_db, db, comp_cls):
-      name_set = set()
-      for tag in db.GetComponents(comp_cls):
-        name_set.add(tag)
+
+    def FindModifiedComponentNamesWithIdx(old_db, db, comp_cls):
+      name_idx = {}
+      for idx, tag in enumerate(db.GetComponents(comp_cls), 1):
+        name_idx[tag] = idx
 
       if old_db is not None:
         for tag in old_db.GetComponents(comp_cls):
-          name_set.discard(tag)
+          name_idx.pop(tag, None)
 
-      return name_set
+      return name_idx
 
     adapter = name_pattern_adapter.NamePatternAdapter(ctx.filesystem_adapter)
+    rename_component = {}
     for comp_cls in db.GetActiveComponentClasses():
       name_pattern = adapter.GetNamePatterns(comp_cls)
       if name_pattern:
-        modified_names = FindModifiedComponentNames(old_db, db, comp_cls)
-        for tag in modified_names:
+        modified_names = FindModifiedComponentNamesWithIdx(old_db, db, comp_cls)
+        for tag, idx in modified_names.items():
           if not name_pattern.Matches(tag):
             raise common.HWIDException(
                 '%r does not match any available %s pattern' % (tag, comp_cls))
+          sp = tag.split('#', 1)
+          if len(sp) == 2:
+            expected_component_name = '%s#%d' % (sp[0], idx)
+            if tag != expected_component_name:
+              rename_component[tag] = expected_component_name
+
+    if rename_component:
+      raise common.HWIDException(
+          'Invalid component names with sequence number, please modify them as '
+          'follows:\n' +
+          '\n'.join('- ' + k + ' -> ' + v for k, v in rename_component.items()))
 
 
 if __name__ == '__main__':
