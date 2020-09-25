@@ -26,6 +26,7 @@ from cros.factory.hwid.v3 import validator as v3_validator
 # pylint: disable=import-error, no-name-in-module
 from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
 # pylint: enable=import-error, no-name-in-module
+from cros.factory.utils import file_utils
 
 
 TEST_HWID = 'Foo'
@@ -35,6 +36,18 @@ TEST_HWID_CONTENT = ('prefix\n'
 EXPECTED_REPLACE_RESULT = update_checksum.ReplaceChecksum(TEST_HWID_CONTENT)
 GOLDEN_HWIDV3_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'testdata', 'v3-golden.yaml')
+GOLDEN_HWIDV3_CONTENT = file_utils.ReadFile(
+    os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 'testdata',
+        'v3-golden.yaml'))
+HWIDV3_CONTENT_SYNTAX_ERROR_CHANGE = file_utils.ReadFile(
+    os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 'testdata',
+        'v3-syntax-error-change.yaml'))
+HWIDV3_CONTENT_SCHEMA_ERROR_CHANGE = file_utils.ReadFile(
+    os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 'testdata',
+        'v3-schema-error-change.yaml'))
 
 
 def _MockGetAVLName(unused_category, comp_name):
@@ -47,10 +60,6 @@ class HwidApiTest(unittest.TestCase):
     super(HwidApiTest, self).setUp()
     patcher = mock.patch('__main__.app.hwid_api._hwid_manager')
     self.patch_hwid_manager = patcher.start()
-    self.addCleanup(patcher.stop)
-
-    patcher = mock.patch('__main__.app.hwid_api._hwid_validator')
-    self.patch_hwid_validator = patcher.start()
     self.addCleanup(patcher.stop)
 
     patcher = mock.patch(
@@ -359,8 +368,9 @@ class HwidApiTest(unittest.TestCase):
     self.assertEqual(response.data, ('Invalid input: %s' % TEST_HWID).encode())
     self.assertEqual(response.status_code, http.HTTPStatus.BAD_REQUEST)
 
-  def testValidateConfig(self):
-    self.patch_hwid_validator.Validate = mock.Mock()
+  @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
+  def testValidateConfig(self, patch_hwid_validator):
+    patch_hwid_validator.Validate = mock.Mock()
 
     response = self.app.post(flask.url_for('hwid_api.ValidateConfig'),
                              data=dict(hwidConfigContents='test'))
@@ -369,8 +379,9 @@ class HwidApiTest(unittest.TestCase):
 
     self.assertEqual('', msg.errorMessage)
 
-  def testValidateConfigInGzipContentEncoding(self):
-    self.patch_hwid_validator.Validate = mock.Mock()
+  @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
+  def testValidateConfigInGzipContentEncoding(self, patch_hwid_validator):
+    patch_hwid_validator.Validate = mock.Mock()
 
     data = json.dumps(dict(hwidConfigContents='test')).encode()
     response = self.app.post(flask.url_for('hwid_api.ValidateConfig'),
@@ -382,8 +393,9 @@ class HwidApiTest(unittest.TestCase):
 
     self.assertEqual('', msg.errorMessage)
 
-  def testValidateConfigErrors(self):
-    self.patch_hwid_validator.Validate = mock.Mock(
+  @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
+  def testValidateConfigErrors(self, patch_hwid_validator):
+    patch_hwid_validator.Validate = mock.Mock(
         side_effect=v3_validator.ValidationError('msg'))
 
     response = self.app.post(flask.url_for('hwid_api.ValidateConfig'),
@@ -393,8 +405,9 @@ class HwidApiTest(unittest.TestCase):
 
     self.assertEqual('msg', msg.errorMessage)
 
-  def testValidateConfigAndUpdateChecksum(self):
-    self.patch_hwid_validator.ValidateChange = mock.Mock()
+  @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
+  def testValidateConfigAndUpdateChecksum(self, patch_hwid_validator):
+    patch_hwid_validator.ValidateChange = mock.Mock()
 
     response = self.app.post(
         flask.url_for('hwid_api.ValidateConfigAndUpdateChecksum'),
@@ -405,8 +418,9 @@ class HwidApiTest(unittest.TestCase):
     self.assertEqual(EXPECTED_REPLACE_RESULT, msg.newHwidConfigContents)
     self.assertEqual('', msg.errorMessage)
 
-  def testValidateConfigAndUpdateChecksumErrors(self):
-    self.patch_hwid_validator.ValidateChange = mock.Mock(
+  @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
+  def testValidateConfigAndUpdateChecksumErrors(self, patch_hwid_validator):
+    patch_hwid_validator.ValidateChange = mock.Mock(
         side_effect=v3_validator.ValidationError('msg'))
 
     response = self.app.post(
@@ -417,6 +431,44 @@ class HwidApiTest(unittest.TestCase):
 
     self.assertEqual('', msg.newHwidConfigContents)
     self.assertEqual('msg', msg.errorMessage)
+
+  def testValidateConfigAndUpdateChecksumSyntaxError(self):
+    response = self.app.post(
+        flask.url_for('hwid_api.ValidateConfigAndUpdateChecksum'), data=dict(
+            hwidConfigContents=HWIDV3_CONTENT_SYNTAX_ERROR_CHANGE,
+            prevHwidConfigContents=GOLDEN_HWIDV3_CONTENT))
+    msg = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse()
+    json_format.Parse(response.data, msg)
+
+    self.assertEqual(
+        ('while parsing a block mapping\n'
+         '  in "<unicode string>", line 73, column 3:\n'
+         '      audio_codec:\n'
+         '      ^\n'
+         'expected <block end>, but found \'<block mapping start>\'\n'
+         '  in "<unicode string>", line 103, column 7:\n'
+         '          cpu: cpu_0\n'
+         '          ^'), msg.errorMessage)
+    self.assertEqual('', msg.newHwidConfigContents)
+
+  def testValidateConfigAndUpdateChecksumSchemaError(self):
+    response = self.app.post(
+        flask.url_for('hwid_api.ValidateConfigAndUpdateChecksum'), data=dict(
+            hwidConfigContents=HWIDV3_CONTENT_SCHEMA_ERROR_CHANGE,
+            prevHwidConfigContents=GOLDEN_HWIDV3_CONTENT))
+    msg = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse()
+    json_format.Parse(response.data, msg)
+
+    self.assertEqual(
+        '''OrderedDict([('type', OrderedDict([('SSD', 'object')])), '''
+        '''('size', '16G'), ('serial', Value('^#123\\\\d+$', is_re=True))]) '''
+        '''does not match any type in [Dict('probed key-value pairs', '''
+        '''key_type=Scalar('probed key', <class 'str'>), value_type=AnyOf('''
+        '''[Scalar('probed value', <class 'str'>), Scalar('probed value', '''
+        '''<class 'bytes'>), Scalar('probed value regex', <class 'cros.fac'''
+        '''tory.hwid.v3.rule.Value'>)]), size=[1, inf]), Scalar('none', '''
+        '''<class 'NoneType'>)]''', msg.errorMessage)
+    self.assertEqual('', msg.newHwidConfigContents)
 
   @mock.patch.object(hwid_util, 'GetTotalRamFromHwidData')
   def testGetSKU(self, mock_get_total_ram):

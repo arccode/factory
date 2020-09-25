@@ -6,7 +6,8 @@
 
 import logging
 
-# pylint: disable=import-error
+import yaml
+
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import \
     verification_payload_generator as vpg_module
@@ -14,6 +15,7 @@ from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import validator as v3_validator
 from cros.factory.hwid.v3 import validator_context
+from cros.factory.utils import schema
 
 
 class HwidValidator:
@@ -33,7 +35,7 @@ class HwidValidator:
       # Validate config by loading it.
       db = database.Database.LoadData(
           hwid_config_contents, expected_checksum=expected_checksum)
-    except HWIDException as e:
+    except (HWIDException, schema.SchemaException, yaml.error.YAMLError) as e:
       raise v3_validator.ValidationError(str(e))
     v3_validator.ValidateIntegrity(db)
 
@@ -53,7 +55,7 @@ class HwidValidator:
       # Load previous config. This has the side effect of validating it.
       prev_db = database.Database.LoadData(
           prev_hwid_config_contents, expected_checksum=None)
-    except HWIDException as e:
+    except (HWIDException, schema.SchemaException, yaml.error.YAMLError) as e:
       logging.exception('Previous version not valid: %r', e)
       raise v3_validator.ValidationError(
           'Previous version of HWID config is not valid.')
@@ -64,7 +66,7 @@ class HwidValidator:
       # Load and validate current config.
       db = database.Database.LoadData(
           hwid_config_contents, expected_checksum=expected_checksum)
-    except HWIDException as e:
+    except (HWIDException, schema.SchemaException, yaml.error.YAMLError) as e:
       raise v3_validator.ValidationError(str(e))
 
     ctx = validator_context.ValidatorContext(
