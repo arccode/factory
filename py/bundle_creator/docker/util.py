@@ -11,17 +11,16 @@ import subprocess
 import yaml
 
 # pylint: disable=import-error, no-name-in-module
-from google.cloud import firestore
 from google.cloud import storage
 # pylint: enable=import-error, no-name-in-module
 from google.protobuf import text_format
 
 from cros.factory.utils import file_utils
-from cros.factory.bundle_creator.docker import config  # pylint: disable=no-name-in-module
+from cros.factory.bundle_creator.connector import firestore_connector
+from cros.factory.bundle_creator.docker import config
 
 
 SERVICE_ACCOUNT_JSON = '/service_account.json'
-COLLECTION_HAS_FIRMWARE_SETTINGS = 'has_firmware_settings'
 
 
 class CreateBundleException(Exception):
@@ -41,30 +40,11 @@ def RandomString(length):
                   for unused_i in range(length)])
 
 
-def TryUpdateManifestWithHasFirmwareSetting(manifest, project):
-  """Try to update the manifest with the existing has_firmware settings.
-
-  Args:
-    manifest: The manifest dictionary to be updated.
-    project: The project name from the request.
-  """
-  logger = logging.getLogger('util.try_update_manifest')
-
-  client = firestore.Client(project=config.GCLOUD_PROJECT)
-  doc = client.collection(
-      COLLECTION_HAS_FIRMWARE_SETTINGS).document(project).get()
-  if doc.exists:
-    try:
-      manifest['has_firmware'] = doc.get('has_firmware')
-    except KeyError:
-      logger.info(
-          'No `has_firmware` attribute found in the existing document.')
-
-
 def CreateBundle(req):
   logger = logging.getLogger('util.create_bundle')
   storage_client = storage.Client.from_service_account_json(
       SERVICE_ACCOUNT_JSON, project=config.GCLOUD_PROJECT)
+  firestore_conn = firestore_connector.FirestoreConnector(config.GCLOUD_PROJECT)
 
   logger.info(text_format.MessageToString(req, as_utf8=True, as_one_line=True))
 
@@ -74,8 +54,7 @@ def CreateBundle(req):
     bundle_name = '{:%Y%m%d}_{}'.format(current_datetime, req.phase)
 
     firmware_source = ('release_image/' + req.firmware_source
-                       if req.HasField('firmware_source')
-                       else 'release_image')
+                       if req.HasField('firmware_source') else 'release_image')
     manifest = {
         'board': req.board,
         'project': req.project,
@@ -85,7 +64,11 @@ def CreateBundle(req):
         'release_image': req.release_image_version,
         'firmware': firmware_source,
     }
-    TryUpdateManifestWithHasFirmwareSetting(manifest, req.project)
+    has_firmware_setting = firestore_conn.GetHasFirmwareSettingByProject(
+        req.project)
+    if has_firmware_setting:
+      manifest['has_firmware'] = has_firmware_setting
+
     with open(os.path.join(temp_dir, 'MANIFEST.yaml'), 'w') as f:
       yaml.dump(manifest, f)
     process = subprocess.Popen(
