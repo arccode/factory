@@ -32,6 +32,7 @@ RCS/*
 !/cros/factory/__init__.py
 !/cros/factory/README.txt
 !/cros/factory/probe/
+!/cros/factory/probe_info_service/
 !/cros/factory/test/
 !/cros/factory/utils/
 !/env.yaml

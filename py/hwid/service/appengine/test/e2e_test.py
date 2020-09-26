@@ -15,79 +15,80 @@ import logging
 import os
 import unittest
 
-import requests
+from google.protobuf import json_format
+from google.protobuf import text_format
 
-# pylint: disable=import-error
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
+# pylint: disable=no-name-in-module
+from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
+# pylint: enable=no-name-in-module
 
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 APPENGINE_DIR = os.path.dirname(TEST_DIR)
+PROTO_DIR = os.path.join(APPENGINE_DIR, 'proto')
 FACTORY_DIR = os.path.abspath(
     os.path.join(APPENGINE_DIR, '../../../..'))
 FACTORY_PRIVATE_DIR = os.path.abspath(
     os.path.join(FACTORY_DIR, '../factory-private'))
-DEFAULT_CONFIG_PATH = os.path.join(
-    FACTORY_PRIVATE_DIR, 'config/hwid/service/appengine/test/e2e_test')
+TEST_DIR = os.path.join(FACTORY_PRIVATE_DIR,
+                        'config/hwid/service/appengine/test/')
+DEFAULT_CONFIG_PATH = os.path.join(TEST_DIR, 'e2e_test')
 
 
 class E2ETest(unittest.TestCase):
   """e2e tests on staging environment."""
   def setUp(self):
     self.config = config_utils.LoadConfig(DEFAULT_CONFIG_PATH, 'e2e_test')
-    self.default_http_method = self.config['default_http_method']
-    self.apikey = self.config['apikey']
+    self.test_cmd = self.config['test_cmd']
+    self._SetupEnv(self.config['check_env_cmd'], self.config['setup_env_cmd'])
 
-  def _GenerateURL(self, path):
-    return '%s/%s' % (self.config['url_prefix'], path)
+  def _SetupEnv(self, check_env_cmd, setup_env_cmd):
+    check_ret = process_utils.Spawn(check_env_cmd, call=True).returncode
+    if check_ret:
+      logging.info("Setting up environment with command: %s", setup_env_cmd)
+      setup_ret = process_utils.Spawn(setup_env_cmd, call=True).returncode
+      if setup_ret:
+        self.fail('Environment is not ready')
 
-  def _GenerateParams(self, params=None):
-    """Genearate params for requeust."""
-    params = params or {}
-    params['key'] = self.apikey
-    return params
+  def _GenerateCommand(self, test):
+    return [os.path.join(TEST_DIR, self.test_cmd), test['api']]
 
   def testAll(self):
-    failed_tests = []
-    logging.info('Test endpoint: %s', self.config['url_prefix'])
+    logging.info('Test endpoint: %s', self.config['host_name'])
     for test in self.config['tests']:
-      url = self._GenerateURL(test['path'])
-      params = self._GenerateParams(test.get('params', None))
+      with self.subTest(name=test['name']):
+        logging.info('Running test: %s', test['name'])
+        try:
+          response_class = getattr(hwid_api_messages_pb2,
+                                   test['response_class'])
+          request_class = getattr(hwid_api_messages_pb2, test['request_class'])
+          expected_output = json.dumps(test['expected_output'])
+          request = json_format.Parse(
+              json.dumps(test['request']), request_class())
+          cmd = self._GenerateCommand(test)
+          p = process_utils.Spawn(cmd, stdin=process_utils.PIPE,
+                                  stdout=process_utils.PIPE,
+                                  stderr=process_utils.PIPE)
+          stdin = text_format.MessageToString(request)
+          stdout = p.communicate(stdin)[0]
+          out_msg = text_format.Parse(stdout, response_class())
+          expected_msg = json_format.Parse(expected_output, response_class())
+        except Exception as ex:
+          self.fail(str(ex))
 
-      http_method = test.get('http_method', self.default_http_method)
-      if http_method == 'GET':
-        response = requests.get(url, params=params)
-      elif http_method == 'POST':
-        data = test.get('data', None)
-        headers = test.get('headers', None)
-        response = requests.post(url, data=data, headers=headers, params=params)
-      else:
-        raise ValueError('Does not support http_method %s.' % http_method)
+        if out_msg != expected_msg:
+          out_json = json_format.MessageToDict(out_msg)
+          err_msg = json.dumps({
+              'expect': test['expected_output'],
+              'got': out_json
+          })
 
-      try:
-        r = response.json()
-        # Pops non-related keys.
-        for k in ['kind', 'etag']:
-          r.pop(k, None)
-        expecting_output = test['expecting_output']
-        if expecting_output != r:
           with open(file_utils.CreateTemporaryFile(), 'w') as f:
-            # Dumps failure logs in json format.
-            f.write(json.dumps({'expect': expecting_output, 'got': r}))
-            failed_tests.append((test['name'], f.name))
-      except Exception as e:
-        logging.exception('Unknown failure at %s: %s', test['name'], str(e))
-        failed_tests.append(test['name'])
-
-    logging.info('[%d/%d] Passed',
-                 len(self.config['tests']) - len(failed_tests),
-                 len(self.config['tests']))
-
-    for t in failed_tests:
-      logging.error('FAILED: %r', t)
-
-    assert not failed_tests
+            f.write(err_msg)
+          self.fail('%s failed, see report at %s' % (test['name'], f.name))
 
 
 if __name__ == '__main__':

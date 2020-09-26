@@ -3,12 +3,13 @@ package cros.factory.hwid.service.appengine.proto.hwid_api_messages_pb2;
 
 enum Status {
   UNSPECIFIED = 0;
-  KNOWN_BAD_HWID = 1;
-  BAD_REQUEST = 2;
-  NOT_FOUND = 3;
-  SCHEMA_ERROR = 4;
-  YAML_ERROR = 5;
-  SERVER_ERROR = 6;
+  SUCCESS = 1;
+  KNOWN_BAD_HWID = 2;
+  BAD_REQUEST = 3;
+  NOT_FOUND = 4;
+  SCHEMA_ERROR = 5;
+  YAML_ERROR = 6;
+  SERVER_ERROR = 7;
 }
 
 // A component of a BOM.
@@ -67,6 +68,14 @@ message BoardsResponse {
   Status status = 2;
 }
 
+// A request to query BOM data from a given HWID string.
+message BomRequest {
+  // The HWID string.
+  string hwid = 1;
+  // A flag to indicate whether to return the detail fields in response.
+  bool verbose = 2;
+}
+
 // The response to a BOM request.
 message BomResponse {
   // A list of the components in the BOM.
@@ -81,6 +90,20 @@ message BomResponse {
   Status status = 5;
 }
 
+// A request to query all HWIDs with the board and filter.
+message HwidsRequest {
+  // The board as a string.
+  string board = 1;
+  // The included classes to filter the result.
+  repeated string withClasses = 2;
+  // The excluded classes to filter the result.
+  repeated string withoutClasses = 3;
+  // The included components to filter the result.
+  repeated string withComponents = 4;
+  // The excluded components to filter the result.
+  repeated string withoutComponents = 5;
+}
+
 // The response to a HWIDs request.
 message HwidsResponse {
   // A filtered list of the HWIDs for a board.
@@ -90,6 +113,12 @@ message HwidsResponse {
   Status status = 3;
 }
 
+// A request to query possible component classes of a board.
+message ComponentClassesRequest {
+  // The board as a string.
+  string board = 1;
+}
+
 // The response to a component classes request.
 message ComponentClassesResponse {
   // A list of the components for a board.
@@ -97,6 +126,14 @@ message ComponentClassesResponse {
   // Error message if there was a problem looking up components.
   string error = 2;
   Status status = 3;
+}
+
+// A request to query all components with the board and filter.
+message ComponentsRequest {
+  // The board as a string.
+  string board = 1;
+  // The included classes to filter the result.
+  repeated string withClasses = 2;
 }
 
 // The response to a components request.
@@ -124,8 +161,14 @@ message ValidateConfigAndUpdateChecksumResponse {
   Status status = 3;
 }
 
+// A request to query SKU info from a given HWID string.
+message SkuRequest {
+  // The HWID as a string.
+  string hwid = 1;
+}
+
 // The response to a BOM request.
-message SKUResponse {
+message SkuResponse {
   // The board listed in the BOM.
   string board = 1;
   // The listed CPU in the BOM.
@@ -143,20 +186,48 @@ message SKUResponse {
 }
 
 // A label of a DUT.
-message DUTLabel {
+message DutLabel {
   // The name of the label.
   string name = 1;
   // The value of the property associated with this label name.
   string value = 2;
 }
 
+// A request to query DUT labels.
+message DutLabelsRequest {
+  // The HWID as a string.
+  string hwid = 1;
+}
+
 // The response to a DUT label request.
-message DUTLabelResponse {
+message DutLabelsResponse {
   // A list of DUTLabel messages.
-  repeated DUTLabel labels = 1;
+  repeated DutLabel labels = 1;
   // Details of any errors when constructing the list of labels.
   string error = 2;
   // Possible labels in the labels field.
   repeated string possible_labels = 3;
   Status status = 4;
+}
+
+service HwidService {
+  rpc GetBoards(BoardsRequest) returns (BoardsResponse);
+
+  rpc GetBom(BomRequest) returns (BomResponse);
+
+  rpc GetSku(SkuRequest) returns (SkuResponse);
+
+  rpc GetHwids(HwidsRequest) returns (HwidsResponse);
+
+  rpc GetComponentClasses(ComponentClassesRequest)
+      returns (ComponentClassesResponse);
+
+  rpc GetComponents(ComponentsRequest) returns (ComponentsResponse);
+
+  rpc ValidateConfig(ValidateConfigRequest) returns (ValidateConfigResponse);
+
+  rpc ValidateConfigAndUpdateChecksum(ValidateConfigAndUpdateChecksumRequest)
+      returns (ValidateConfigAndUpdateChecksumResponse);
+
+  rpc GetDutLabels(DutLabelsRequest) returns (DutLabelsResponse);
 }

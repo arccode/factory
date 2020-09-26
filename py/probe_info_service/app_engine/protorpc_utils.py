@@ -62,8 +62,10 @@ def ProtoRPCServiceMethod(method):
   """
   def wrapper(self, request):
     assert isinstance(request, wrapper.rpc_method_spec.request_type)
+    logging.info("Request:\n%s", request)
     response = method(self, request)
     assert isinstance(response, wrapper.rpc_method_spec.response_type)
+    logging.info("Response:\n%s", response)
     return response
 
   # Since the service's descriptor will be parsed when the class is created,

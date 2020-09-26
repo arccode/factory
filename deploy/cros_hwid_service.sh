@@ -206,6 +206,13 @@ do_build() {
 }
 
 do_test() {
+  # Compile proto to hwid_api_messages_pb2.py for e2e test.
+  protoc \
+    -I="${APPENGINE_DIR}/proto" \
+    --python_out="${APPENGINE_DIR}/proto" \
+    "${APPENGINE_DIR}/proto/hwid_api_messages.proto"
+  add_temp "${APPENGINE_DIR}/proto/hwid_api_messages_pb2.py"
+
   # Runs all executables in the test folder.
   for test_exec in $(find "${TEST_DIR}" -executable -type f); do
     echo Running "${test_exec}"

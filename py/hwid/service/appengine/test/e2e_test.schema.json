@@ -3,28 +3,42 @@
   "definitions": {},
   "$schema": "http://json-schema.org/draft-07/schema#",
   "properties": {
-    "apikey": {
-      "type": "string",
-      "title": "The apikey",
-      "default": "",
-      "examples": [
-        "ABCDEFGHI123456"
-      ]
-    },
-    "url_prefix": {
+    "host_name": {
       "type": "string",
       "title": "The URL of the API.",
       "default": "",
       "examples": [
-        "https://www.google.com/"
+        "https://chromeos-hwid-dev.appspot.com"
       ]
     },
-    "default_http_method": {
+    "test_cmd": {
       "type": "string",
-      "title": "Default HTTP method",
+      "title": "The test command.",
       "default": "",
       "examples": [
-        "GET"
+        "run.sh"
+      ]
+    },
+    "check_env_cmd": {
+      "type": "array",
+      "title": "The command to check if the environment is ready for test.",
+      "default": [""],
+      "items": {
+        "type": "string"
+      },
+      "examples": [
+        ["check.sh", "--opt1", "true"]
+      ]
+    },
+    "setup_env_cmd": {
+      "type": "array",
+      "title": "The command to setup environment for test.",
+      "default": [""],
+      "items": {
+        "type": "string"
+      },
+      "examples": [
+        ["setup.sh", "--opt1", "true"]
       ]
     },
     "tests": {
@@ -40,17 +54,43 @@
               "TestGetBoards"
             ]
           },
-          "path": {
+          "api": {
             "type": "string",
-            "title": "HTTP Method request path",
+            "title": "The stubby API name",
             "default": "",
             "examples": [
-              "bom/CHROMEBOOK ABC-ABC-123-ABC"
+              "GetBoards"
             ]
           },
-          "expecting_output": {
+          "request_class": {
+            "type": "string",
+            "title": "The request class name.",
+            "default": "",
+            "examples": [
+              "BoardsRequest"
+            ]
+          },
+          "response_class": {
+            "type": "string",
+            "title": "The response class name.",
+            "default": "",
+            "examples": [
+              "BoardsResponse"
+            ]
+          },
+          "request": {
             "type": "object",
-            "title": "Expecting output"
+            "title": "Request object.",
+            "default": "",
+            "examples": [
+              {
+                "hwid": "BOARD A2A-B2B"
+              }
+            ]
+          },
+          "expected_output": {
+            "type": "object",
+            "title": "Expected output"
           }
         }
       }
