@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-09-09 13:46+CST\n"
+"PO-Revision-Date: 2020-09-28 19:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -136,6 +136,11 @@ msgstr "检查 CR50 版号"
 #: ../build/pytests_label_generated.json
 msgid "Check Image Version"
 msgstr "检查映像版本"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Check Secdata Version"
+msgstr "检查Secdata版本"
 
 #: ../build/pytests_label_generated.json
 #: ../py/test/test_lists/generic_common.test_list.json

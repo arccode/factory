@@ -65,6 +65,7 @@
     "SMTItems": {
       "inherit": "FlattenGroup",
       "subtests": [
+        "CheckSecdataVersion",
         "SMTComponents",
         "SMTStress",
         "SMTThermalLoad",

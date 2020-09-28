@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-09-09 13:46+CST\n"
+"PO-Revision-Date: 2020-09-28 19:36+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -136,6 +136,11 @@ msgstr ""
 #: ../build/pytests_label_generated.json
 msgid "Check Image Version"
 msgstr "Kiểm tra phiên bản hình ảnh"
+
+#: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Check Secdata Version"
+msgstr "Kiểm tra phiên bản secdata"
 
 #: ../build/pytests_label_generated.json
 #: ../py/test/test_lists/generic_common.test_list.json

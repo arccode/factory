@@ -232,6 +232,17 @@
         "use_netboot": false
       }
     },
+    "CheckSecdataVersion": {
+      "pytest_name": "check_secdata_version",
+      "label": "Check Secdata Version",
+      "disable_services": [
+        "trunksd"
+      ],
+      "args": {
+        "major_version": 1,
+        "minor_version": 0
+      }
+    },
     "CheckSerialNumber": {
       "pytest_name": "check_serial_number",
       "label": "Check Serial Number"
