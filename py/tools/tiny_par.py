@@ -35,13 +35,13 @@ For examples:
 from __future__ import print_function
 
 import argparse
-import glob
 import logging
 import os
 import shutil
 import sys
 import tempfile
-import zipfile
+
+from cros.factory.utils.process_utils import Spawn
 
 
 # A pattern in TEMPLATE to be replaced with real module list.
@@ -129,11 +129,8 @@ def BuildPythonZip(py_dir, zip_name='_stage.zip'):
   Returns:
     A path to the created Zip file (in py_dir).
   """
-  targets = glob.glob(os.path.join(py_dir, '*'))
   zip_path = os.path.join(py_dir, zip_name)
-  with zipfile.PyZipFile(zip_path, 'w') as par_file:
-    for target in targets:
-      par_file.writepy(target)
+  Spawn(['zip', '-qr', zip_path, '.'], check_call=True, log=True, cwd=py_dir)
   return zip_path
 
 
