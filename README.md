@@ -77,8 +77,9 @@ The basic steps are:
 
 1. An initial/bootable version of the firmware for
    [AP](http://www.chromium.org/chromium-os/2014-firmware-summit) (and
-   [EC](http://www.chromium.org/chromium-os/ec-development)) is pre-flashed
-   onto the SPI-ROM (and Chromium EC chip) before system assembly.
+   [EC](https://chromium.googlesource.com/chromiumos/platform/ec/+/master/README.md))
+   is pre-flashed onto the SPI-ROM (and Chromium EC chip) before system
+   assembly.
 2. After mainboard is ready, use one of the [imaging methods](#Imaging-methods)
    to get the factory toolkit, test image, signed release image, and
    AP/EC firmware are installed or updated. Included on disk are two full Chrome
@@ -103,9 +104,8 @@ The basic steps are:
    boots, the sequence starts at step 4 above, using the factory test image.
 
 ## Building Factory Toolkit
-Under chroot, after [setting up
-board](http://dev.chromium.org/chromium-os/developer-guide), you have few
-different ways to build toolkit.
+Under chroot, after [setting up board][1], you have few different ways to build
+toolkit.
 
 ### Build toolkit with dependency
 If you have only finished `setup_board`, for the first time there are few
@@ -143,9 +143,8 @@ that locally on a DUT, or apply to a test image directly as blow:
     ./install_factory_toolkit.run path/to/chromiumos_test_image.bin
 
 ## Building Test Image
-Under chroot, after [setting up
-board](http://dev.chromium.org/chromium-os/developer-guide), you can get the
-test image by running following commands in `trunk/src/scripts`:
+Under chroot, after [setting up board][1], you can get the test image by running
+following commands in `trunk/src/scripts`:
 
     build_packages --board $BOARD
     build_image --board $BOARD test
@@ -161,9 +160,8 @@ appears as `sdX`):
             iflag=fullblock oflag=dsync
 
 ## Building Factory (Install) Shim
-Under chroot, after [setting up
-board](http://dev.chromium.org/chromium-os/developer-guide), you can get the
-factory shim by running following commands in `trunk/src/scripts`:
+Under chroot, after [setting up board][1], you can get the factory shim by
+running following commands in `trunk/src/scripts`:
 
     build_packages --board $BOARD
     build_image --board $BOARD factory_install
@@ -459,3 +457,5 @@ possible approaches:
 
 ### Work with both public repo and private board repo
 Read [devtools/aufs](devtools/aufs/README.md) for more details.
+
+[1]: https://chromium.googlesource.com/chromiumos/docs/+/master/developer_guide.md#initialize-the-build-for-a-board
