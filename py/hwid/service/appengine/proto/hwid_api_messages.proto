@@ -1,6 +1,16 @@
 syntax = "proto3";
 package cros.factory.hwid.service.appengine.proto.hwid_api_messages_pb2;
 
+enum Status {
+  UNSPECIFIED = 0;
+  KNOWN_BAD_HWID = 1;
+  BAD_REQUEST = 2;
+  NOT_FOUND = 3;
+  SCHEMA_ERROR = 4;
+  YAML_ERROR = 5;
+  SERVER_ERROR = 6;
+}
+
 // A component of a BOM.
 message Component {
   // The type of component.
@@ -54,6 +64,7 @@ message ValidateConfigAndUpdateChecksumRequest {
 message BoardsResponse {
   // A list of the supported boards.
   repeated string boards = 1;
+  Status status = 2;
 }
 
 // The response to a BOM request.
@@ -67,30 +78,41 @@ message BomResponse {
   // Error message if there was a problem decoding the HWID, if error is set
   // the other fields in the message should be disregarded.
   string error = 4;
+  Status status = 5;
 }
 
 // The response to a HWIDs request.
 message HwidsResponse {
   // A filtered list of the HWIDs for a board.
   repeated string hwids = 1;
+  // Error message if there was a problem looking up the HWIDs.
+  string error = 2;
+  Status status = 3;
 }
 
 // The response to a component classes request.
 message ComponentClassesResponse {
   // A list of the components for a board.
   repeated string componentClasses = 1;
+  // Error message if there was a problem looking up components.
+  string error = 2;
+  Status status = 3;
 }
 
 // The response to a components request.
 message ComponentsResponse {
   // A filtered list of the components for a board.
   repeated Component components = 1;
+  // Error message if there was a problem looking up components.
+  string error = 2;
+  Status status = 3;
 }
 
 // The response to a 'validate config' request.
 message ValidateConfigResponse {
   // If an error occurred, this describes the error.
   string errorMessage = 1;
+  Status status = 2;
 }
 
 // The response to a 'validate config and update checksum' request.
@@ -99,6 +121,7 @@ message ValidateConfigAndUpdateChecksumResponse {
   string newHwidConfigContents = 1;
   // If an error occurred, this describes the error.
   string errorMessage = 2;
+  Status status = 3;
 }
 
 // The response to a BOM request.
@@ -116,6 +139,7 @@ message SKUResponse {
   string error = 5;
   // A human readable string representing the memory on the device.
   string memory = 6;
+  Status status = 7;
 }
 
 // A label of a DUT.
@@ -134,4 +158,5 @@ message DUTLabelResponse {
   string error = 2;
   // Possible labels in the labels field.
   repeated string possible_labels = 3;
+  Status status = 4;
 }

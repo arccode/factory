@@ -19,6 +19,7 @@ import urllib.parse
 import flask
 import flask.views
 from google.protobuf import json_format
+import yaml
 # pylint: enable=no-name-in-module, import-error, wrong-import-order
 
 from cros.chromeoshwid import update_checksum
@@ -32,6 +33,7 @@ from cros.factory.hwid.v3 import validator as v3_validator
 # pylint: disable=import-error, no-name-in-module
 from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
 # pylint: enable=import-error, no-name-in-module
+from cros.factory.utils import schema
 
 
 KNOWN_BAD_HWIDS = ['DUMMY_HWID', 'dummy_hwid']
@@ -79,12 +81,14 @@ bp.register_error_handler(HwidApiException, operator.methodcaller(
 
 def _FastFailKnownBadHwid(hwid):
   if hwid in KNOWN_BAD_HWIDS:
-    return 'No metadata present for the requested board: %s' % hwid
+    return (hwid_api_messages_pb2.Status.KNOWN_BAD_HWID,
+            'No metadata present for the requested board: %s' % hwid)
 
   for regexp in KNOWN_BAD_SUBSTR:
     if re.search(regexp, hwid):
-      return 'No metadata present for the requested board: %s' % hwid
-  return ''
+      return (hwid_api_messages_pb2.Status.KNOWN_BAD_HWID,
+              'No metadata present for the requested board: %s' % hwid)
+  return (hwid_api_messages_pb2.Status.UNSPECIFIED, '')
 
 
 def _GetBomAndConfigless(raw_hwid, verbose=False):
@@ -93,15 +97,16 @@ def _GetBomAndConfigless(raw_hwid, verbose=False):
     bom, configless = _hwid_manager.GetBomAndConfigless(hwid, verbose)
 
     if bom is None:
-      raise _NotFoundException('HWID not found.')
+      return (None, None, hwid_api_messages_pb2.Status.NOT_FOUND,
+              'HWID not found.')
   except KeyError as e:
     logging.exception('KeyError -> not found')
-    return None, None, str(e)
+    return None, None, hwid_api_messages_pb2.Status.NOT_FOUND, str(e)
   except ValueError as e:
     logging.exception('ValueError -> bad input')
-    return None, None, str(e)
+    return None, None, hwid_api_messages_pb2.Status.BAD_REQUEST, str(e)
 
-  return bom, configless, None
+  return bom, configless, hwid_api_messages_pb2.Status.UNSPECIFIED, None
 
 
 def _HandleGzipRequests(method):
@@ -111,6 +116,20 @@ def _HandleGzipRequests(method):
       flask.request.stream = gzip.GzipFile(fileobj=flask.request.stream)
     return method(*args, **kwargs)
   return _MethodWrapper
+
+
+def _MapException(ex, cls):
+  if isinstance(ex.__context__, schema.SchemaException):
+    return cls(
+        errorMessage=str(ex), status=hwid_api_messages_pb2.Status.SCHEMA_ERROR)
+  if isinstance(ex.__context__, yaml.error.YAMLError):
+    return cls(
+        errorMessage=str(ex), status=hwid_api_messages_pb2.Status.YAML_ERROR)
+  if isinstance(ex.__context__, yaml.error.YAMLError):
+    return cls(
+        errorMessage=str(ex), status=hwid_api_messages_pb2.Status.YAML_ERROR)
+  return cls(
+      errorMessage=str(ex), status=hwid_api_messages_pb2.Status.BAD_REQUEST)
 
 
 def HWIDAPI(*args, **kwargs):
@@ -145,16 +164,16 @@ def GetBoards():
 @HWIDAPI('/bom/<hwid>', methods=('GET',))
 def GetBom(hwid):
   """Return the components of the BOM identified by the HWID."""
-  error = _FastFailKnownBadHwid(hwid)
-  if error:
-    return hwid_api_messages_pb2.BomResponse(error=error)
+  status, error = _FastFailKnownBadHwid(hwid)
+  if status != hwid_api_messages_pb2.Status.UNSPECIFIED:
+    return hwid_api_messages_pb2.BomResponse(error=error, status=status)
 
   verbose = ('verbose' in flask.request.args)
 
   logging.debug('Retrieving HWID %s', hwid)
-  bom, unused_configless, error = _GetBomAndConfigless(hwid, verbose)
-  if error:
-    return hwid_api_messages_pb2.BomResponse(error=error)
+  bom, unused_configless, status, error = _GetBomAndConfigless(hwid, verbose)
+  if status != hwid_api_messages_pb2.Status.UNSPECIFIED:
+    return hwid_api_messages_pb2.BomResponse(error=error, status=status)
 
   response = hwid_api_messages_pb2.BomResponse()
   response.phase = bom.phase
@@ -192,18 +211,19 @@ def GetBom(hwid):
 @HWIDAPI('/sku/<hwid>', methods=('GET',))
 def GetSKU(hwid):
   """Return the components of the SKU identified by the HWID."""
-  error = _FastFailKnownBadHwid(hwid)
-  if error:
-    return hwid_api_messages_pb2.SKUResponse(error=error)
+  status, error = _FastFailKnownBadHwid(hwid)
+  if status != hwid_api_messages_pb2.Status.UNSPECIFIED:
+    return hwid_api_messages_pb2.SKUResponse(error=error, status=status)
 
-  bom, configless, error = _GetBomAndConfigless(hwid)
-  if error:
-    return hwid_api_messages_pb2.SKUResponse(error=error)
+  bom, configless, status, error = _GetBomAndConfigless(hwid)
+  if status != hwid_api_messages_pb2.Status.UNSPECIFIED:
+    return hwid_api_messages_pb2.SKUResponse(error=error, status=status)
 
   try:
     sku = hwid_util.GetSkuFromBom(bom, configless)
   except hwid_util.HWIDUtilException as e:
-    return hwid_api_messages_pb2.SKUResponse(error=str(e))
+    return hwid_api_messages_pb2.SKUResponse(
+        error=str(e), status=hwid_api_messages_pb2.Status.BAD_REQUEST)
 
   return hwid_api_messages_pb2.SKUResponse(
       board=sku['board'],
@@ -228,21 +248,25 @@ def GetHwids(board):
 
   if (with_classes and without_classes and
       with_classes.intersection(without_classes)):
-    raise _BadRequestException('One or more component classes '
-                               'specified for both with and '
-                               'without')
+    return hwid_api_messages_pb2.HwidsResponse(
+        status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+        error=('One or more component classes specified for both with and '
+               'without'))
 
   if (with_components and without_components and
       with_components.intersection(without_components)):
-    raise _BadRequestException('One or more components specified '
-                               'for both with and without')
+    return hwid_api_messages_pb2.HwidsResponse(
+        status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+        error='One or more components specified for both with and without')
 
   try:
     hwids = _hwid_manager.GetHwids(board, with_classes, without_classes,
                                    with_components, without_components)
   except ValueError:
     logging.exception('ValueError -> bad input')
-    raise _BadRequestException('Invalid input: %s' % board)
+    return hwid_api_messages_pb2.HwidsResponse(
+        status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+        error='Invalid input: %s' % board)
 
   logging.debug('Found HWIDs: %r', hwids)
 
@@ -258,7 +282,9 @@ def GetComponentClasses(board):
     classes = _hwid_manager.GetComponentClasses(board)
   except ValueError:
     logging.exception('ValueError -> bad input')
-    raise _BadRequestException('Invalid input: %s' % board)
+    return hwid_api_messages_pb2.ComponentClassesResponse(
+        status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+        error='Invalid input: %s' % board)
 
   logging.debug('Found component classes: %r', classes)
 
@@ -278,7 +304,9 @@ def GetComponents(board):
     components = _hwid_manager.GetComponents(board, with_classes)
   except ValueError:
     logging.exception('ValueError -> bad input')
-    raise _BadRequestException('Invalid input: %s' % board)
+    return hwid_api_messages_pb2.ComponentsResponse(
+        status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+        error='Invalid input: %s' % board)
 
   logging.debug('Found component classes: %r', components)
 
@@ -311,7 +339,7 @@ def ValidateConfig():
     _hwid_validator.Validate(hwidConfigContents)
   except v3_validator.ValidationError as e:
     logging.exception('Validation failed')
-    return hwid_api_messages_pb2.ValidateConfigResponse(errorMessage=str(e))
+    return _MapException(e, hwid_api_messages_pb2.ValidateConfigResponse)
 
   return hwid_api_messages_pb2.ValidateConfigResponse()
 
@@ -341,8 +369,8 @@ def ValidateConfigAndUpdateChecksum():
     _hwid_validator.ValidateChange(updated_contents, prevHwidConfigContents)
   except v3_validator.ValidationError as e:
     logging.exception('Validation failed')
-    return hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
-        errorMessage=str(e))
+    return _MapException(
+        e, hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse)
 
   return hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
       newHwidConfigContents=updated_contents)
@@ -364,14 +392,14 @@ def GetDUTLabels(hwid):
       'variant',
   ]
 
-  error = _FastFailKnownBadHwid(hwid)
-  if error:
+  status, error = _FastFailKnownBadHwid(hwid)
+  if status != hwid_api_messages_pb2.Status.UNSPECIFIED:
     return hwid_api_messages_pb2.DUTLabelResponse(
-        error=error, possible_labels=possible_labels)
+        error=error, possible_labels=possible_labels, status=status)
 
-  bom, configless, error = _GetBomAndConfigless(hwid)
+  bom, configless, status, error = _GetBomAndConfigless(hwid)
 
-  if error:
+  if status != hwid_api_messages_pb2.Status.UNSPECIFIED:
     return hwid_api_messages_pb2.DUTLabelResponse(
         error=error, possible_labels=possible_labels)
 
@@ -390,7 +418,8 @@ def GetDUTLabels(hwid):
     # TODO(haddowk) Kick off the ingestion to ensure that the memcache is
     # up to date.
     return hwid_api_messages_pb2.DUTLabelResponse(
-        error='Missing Regexp List', possible_labels=possible_labels)
+        error='Missing Regexp List', possible_labels=possible_labels,
+        status=hwid_api_messages_pb2.Status.SERVER_ERROR)
   for (regexp, device, unused_regexp_to_board) in regexp_to_device:
     del unused_regexp_to_board  # unused
     try:
@@ -431,7 +460,8 @@ def GetDUTLabels(hwid):
     logging.error('unexpected labels: %r', unexpected_labels)
     return hwid_api_messages_pb2.DUTLabelResponse(
         error='Possible labels are out of date',
-        possible_labels=possible_labels)
+        possible_labels=possible_labels,
+        status=hwid_api_messages_pb2.Status.SERVER_ERROR)
 
   response.labels.sort(key=operator.attrgetter('name', 'value'))
   response.possible_labels[:] = possible_labels

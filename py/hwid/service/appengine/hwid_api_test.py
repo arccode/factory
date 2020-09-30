@@ -6,7 +6,6 @@
 """Tests for cros.hwid.service.appengine.hwid_api"""
 
 import gzip
-import http
 import json
 import os.path
 import unittest
@@ -79,7 +78,8 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.BoardsResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual(sorted(list(boards)), sorted(list(msg.boards)))
+    self.assertEqual(
+        hwid_api_messages_pb2.BoardsResponse(boards=sorted(boards)), msg)
 
   def testGetBoardsEmpty(self):
     boards = set()
@@ -89,18 +89,34 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.BoardsResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual(0, len(msg.boards))
+    self.assertEqual(hwid_api_messages_pb2.BoardsResponse(), msg)
 
   def testGetBomNone(self):
     self.patch_hwid_manager.GetBomAndConfigless.return_value = (None, None)
 
     response = self.app.get(flask.url_for('hwid_api.GetBom', hwid=TEST_HWID))
+    msg = hwid_api_messages_pb2.BomResponse()
+    json_format.Parse(response.data, msg)
 
-    self.assertEqual(response.data, b'HWID not found.')
-    self.assertEqual(response.status_code, http.HTTPStatus.NOT_FOUND)
+    self.assertEqual(
+        hwid_api_messages_pb2.BomResponse(
+            status=hwid_api_messages_pb2.Status.NOT_FOUND,
+            error='HWID not found.'), msg)
 
     self.patch_hwid_manager.GetBomAndConfigless.assert_called_with(
         TEST_HWID, False)
+
+  def testGetBomFastKnownBad(self):
+    bad_hwid = "FOO TEST"
+    response = self.app.get(flask.url_for('hwid_api.GetBom', hwid=bad_hwid))
+    msg = hwid_api_messages_pb2.BomResponse()
+    json_format.Parse(response.data, msg)
+
+    self.assertEqual(
+        hwid_api_messages_pb2.BomResponse(
+            status=hwid_api_messages_pb2.Status.KNOWN_BAD_HWID,
+            error='No metadata present for the requested board: %s' % bad_hwid),
+        msg)
 
   def testGetBomValueError(self):
     self.patch_hwid_manager.GetBomAndConfigless = mock.Mock(
@@ -109,10 +125,9 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.BomResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual('foo', msg.error)
-    self.assertEqual(0, len(msg.components))
-    self.assertEqual(0, len(msg.labels))
-    self.assertEqual('', msg.phase)
+    self.assertEqual(
+        hwid_api_messages_pb2.BomResponse(
+            status=hwid_api_messages_pb2.Status.BAD_REQUEST, error='foo'), msg)
 
   def testGetBomKeyError(self):
     self.patch_hwid_manager.GetBomAndConfigless = mock.Mock(
@@ -121,10 +136,10 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.BomResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual('\'foo\'', msg.error)
-    self.assertEqual(0, len(msg.components))
-    self.assertEqual(0, len(msg.labels))
-    self.assertEqual('', msg.phase)
+    self.assertEqual(
+        hwid_api_messages_pb2.BomResponse(
+            status=hwid_api_messages_pb2.Status.NOT_FOUND, error='\'foo\''),
+        msg)
 
   def testGetBomEmpty(self):
     bom = hwid_manager.Bom()
@@ -135,8 +150,7 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.BomResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual(0, len(msg.components))
-    self.assertEqual(0, len(msg.labels))
+    self.assertEqual(hwid_api_messages_pb2.BomResponse(), msg)
 
   def testGetBomComponents(self):
     bom = hwid_manager.Bom()
@@ -149,11 +163,12 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.BomResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual(3, len(msg.components))
-    self.assertIn(
-        hwid_api_messages_pb2.Component(name='bar', componentClass='foo'),
-        msg.components)
-    self.assertEqual(0, len(msg.labels))
+    self.assertEqual(
+        hwid_api_messages_pb2.BomResponse(components=[
+            hwid_api_messages_pb2.Component(name='qux', componentClass='baz'),
+            hwid_api_messages_pb2.Component(name='rox', componentClass='baz'),
+            hwid_api_messages_pb2.Component(name='bar', componentClass='foo'),
+        ]), msg)
 
   def testGetBomComponentsWithVerboseFlag(self):
     bom = hwid_manager.Bom()
@@ -171,29 +186,27 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.BomResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual(3, len(msg.components))
-    self.assertIn(
-        hwid_api_messages_pb2.Component(
-            name='battery_small', componentClass='battery', fields=[
-                hwid_api_messages_pb2.Field(name='size', value='2500000'),
-                hwid_api_messages_pb2.Field(name='tech', value='Battery Li-ion')
-            ]), msg.components)
-
-    self.assertIn(
-        hwid_api_messages_pb2.Component(
-            name='cpu_0', componentClass='cpu', fields=[
-                hwid_api_messages_pb2.Field(name='cores', value='4'),
-                hwid_api_messages_pb2.Field(name='name', value='CPU @ 1.80GHz')
-            ]), msg.components)
-
-    self.assertIn(
-        hwid_api_messages_pb2.Component(
-            name='cpu_1', componentClass='cpu', fields=[
-                hwid_api_messages_pb2.Field(name='cores', value='4'),
-                hwid_api_messages_pb2.Field(name='name', value='CPU @ 2.00GHz')
-            ]), msg.components)
-
-    self.assertEqual(0, len(msg.labels))
+    self.assertEqual(
+        hwid_api_messages_pb2.BomResponse(components=[
+            hwid_api_messages_pb2.Component(
+                name='battery_small', componentClass='battery', fields=[
+                    hwid_api_messages_pb2.Field(name='size', value='2500000'),
+                    hwid_api_messages_pb2.Field(name='tech',
+                                                value='Battery Li-ion')
+                ]),
+            hwid_api_messages_pb2.Component(
+                name='cpu_0', componentClass='cpu', fields=[
+                    hwid_api_messages_pb2.Field(name='cores', value='4'),
+                    hwid_api_messages_pb2.Field(name='name',
+                                                value='CPU @ 1.80GHz')
+                ]),
+            hwid_api_messages_pb2.Component(
+                name='cpu_1', componentClass='cpu', fields=[
+                    hwid_api_messages_pb2.Field(name='cores', value='4'),
+                    hwid_api_messages_pb2.Field(name='name',
+                                                value='CPU @ 2.00GHz')
+                ])
+        ]), msg)
 
   def testGetBomLabels(self):
     bom = hwid_manager.Bom()
@@ -205,19 +218,14 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.BomResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual(0, len(msg.components))
-    self.assertEqual(3, len(msg.labels))
-    self.assertIn(
-        hwid_api_messages_pb2.Label(componentClass='foo', name='bar'),
-        msg.labels)
-    self.assertIn(
-        hwid_api_messages_pb2.Label(
-            componentClass='baz', name='qux', value='1'),
-        msg.labels)
-    self.assertIn(
-        hwid_api_messages_pb2.Label(
-            componentClass='baz', name='rox', value='2'),
-        msg.labels)
+    self.assertEqual(
+        hwid_api_messages_pb2.BomResponse(labels=[
+            hwid_api_messages_pb2.Label(componentClass='foo', name='bar'),
+            hwid_api_messages_pb2.Label(componentClass='baz', name='qux',
+                                        value='1'),
+            hwid_api_messages_pb2.Label(componentClass='baz', name='rox',
+                                        value='2'),
+        ]), msg)
 
   def testGetHwids(self):
     hwids = ['alfa', 'bravo', 'charlie']
@@ -227,10 +235,9 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.HwidsResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual(3, len(msg.hwids))
-    self.assertIn('alfa', msg.hwids)
-    self.assertIn('bravo', msg.hwids)
-    self.assertIn('charlie', msg.hwids)
+    self.assertEqual(
+        hwid_api_messages_pb2.HwidsResponse(hwids=['alfa', 'bravo', 'charlie']),
+        msg)
 
   def testGetHwidsEmpty(self):
     hwids = list()
@@ -240,31 +247,45 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.HwidsResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual(0, len(msg.hwids))
+    self.assertEqual(hwid_api_messages_pb2.HwidsResponse(), msg)
 
   def testGetHwidsErrors(self):
     self.patch_hwid_manager.GetHwids.side_effect = ValueError('foo')
 
     response = self.app.get(flask.url_for('hwid_api.GetHwids', board=TEST_HWID))
-    self.assertEqual(response.data, ('Invalid input: %s' % TEST_HWID).encode())
-    self.assertEqual(response.status_code, http.HTTPStatus.BAD_REQUEST)
+    msg = hwid_api_messages_pb2.HwidsResponse()
+    json_format.Parse(response.data, msg)
+
+    self.assertEqual(
+        hwid_api_messages_pb2.HwidsResponse(
+            status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+            error='Invalid input: %s' % TEST_HWID), msg)
 
     response = self.app.get(
         flask.url_for('hwid_api.GetHwids', board=TEST_HWID) + '?'
         'withClasses=foo&withClasses=bar&withoutClasses=bar&withoutClasses=baz')
+    msg = hwid_api_messages_pb2.HwidsResponse()
+    json_format.Parse(response.data, msg)
 
-    self.assertEqual(response.data, (b'One or more component classes specified '
-                                     b'for both with and without'))
-    self.assertEqual(response.status_code, http.HTTPStatus.BAD_REQUEST)
+    self.assertEqual(
+        hwid_api_messages_pb2.HwidsResponse(
+            status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+            error='One or more component classes specified for both with and '
+            'without'), msg)
 
     response = self.app.get(
         flask.url_for('hwid_api.GetHwids', board=TEST_HWID) + '?'
         'withComponents=foo&withComponents=bar&withoutComponents=bar'
         '&withoutComponents=baz')
 
-    self.assertEqual(response.data, (b'One or more components specified for '
-                                     b'both with and without'))
-    self.assertEqual(response.status_code, http.HTTPStatus.BAD_REQUEST)
+    msg = hwid_api_messages_pb2.HwidsResponse()
+    json_format.Parse(response.data, msg)
+
+    self.assertEqual(
+        hwid_api_messages_pb2.HwidsResponse(
+            status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+            error='One or more components specified for both with and without'),
+        msg)
 
   def testGetComponentClasses(self):
     classes = ['alfa', 'bravo', 'charlie']
@@ -275,10 +296,9 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.ComponentClassesResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual(3, len(msg.componentClasses))
-    self.assertIn('alfa', msg.componentClasses)
-    self.assertIn('bravo', msg.componentClasses)
-    self.assertIn('charlie', msg.componentClasses)
+    self.assertEqual(
+        hwid_api_messages_pb2.ComponentClassesResponse(
+            componentClasses=['alfa', 'bravo', 'charlie']), msg)
 
   def testGetComponentClassesEmpty(self):
     classes = list()
@@ -289,14 +309,19 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.ComponentClassesResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual(0, len(msg.componentClasses))
+    self.assertEqual(hwid_api_messages_pb2.ComponentClassesResponse(), msg)
 
   def testGetComponentClassesErrors(self):
     self.patch_hwid_manager.GetComponentClasses.side_effect = ValueError('foo')
     response = self.app.get(flask.url_for('hwid_api.GetComponentClasses',
                                           board=TEST_HWID))
-    self.assertEqual(response.data, ('Invalid input: %s' % TEST_HWID).encode())
-    self.assertEqual(response.status_code, http.HTTPStatus.BAD_REQUEST)
+    msg = hwid_api_messages_pb2.ComponentClassesResponse()
+    json_format.Parse(response.data, msg)
+
+    self.assertEqual(
+        hwid_api_messages_pb2.ComponentClassesResponse(
+            status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+            error='Invalid input: %s' % TEST_HWID), msg)
 
   def testGetComponents(self):
     components = dict(uno=['alfa'], dos=['bravo'], tres=['charlie', 'delta'])
@@ -308,39 +333,15 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.ComponentsResponse()
     json_format.Parse(response.data, msg)
 
-    alfa = hwid_api_messages_pb2.Component(componentClass='uno', name='alfa')
-    bravo = hwid_api_messages_pb2.Component(componentClass='dos', name='bravo')
-    charlie = hwid_api_messages_pb2.Component(componentClass='tres',
-                                              name='charlie')
-    three = hwid_api_messages_pb2.Component(componentClass='tres', name='delta')
-
-    self.assertEqual(4, len(msg.components))
-    self.assertIn(alfa, msg.components)
-    self.assertIn(bravo, msg.components)
-    self.assertIn(charlie, msg.components)
-    self.assertIn(three, msg.components)
-
-  def testGetComponentsWithConfigless(self):
-    components = dict(uno=['alfa'], dos=['bravo'], tres=['charlie', 'delta'])
-
-    self.patch_hwid_manager.GetComponents.return_value = components
-
-    response = self.app.get(flask.url_for('hwid_api.GetComponents',
-                                          board=TEST_HWID))
-    msg = hwid_api_messages_pb2.ComponentsResponse()
-    json_format.Parse(response.data, msg)
-
-    alfa = hwid_api_messages_pb2.Component(componentClass='uno', name='alfa')
-    bravo = hwid_api_messages_pb2.Component(componentClass='dos', name='bravo')
-    charlie = hwid_api_messages_pb2.Component(componentClass='tres',
-                                              name='charlie')
-    three = hwid_api_messages_pb2.Component(componentClass='tres', name='delta')
-
-    self.assertEqual(4, len(msg.components))
-    self.assertIn(alfa, msg.components)
-    self.assertIn(bravo, msg.components)
-    self.assertIn(charlie, msg.components)
-    self.assertIn(three, msg.components)
+    self.assertEqual(
+        hwid_api_messages_pb2.ComponentsResponse(components=[
+            hwid_api_messages_pb2.Component(componentClass='uno', name='alfa'),
+            hwid_api_messages_pb2.Component(componentClass='dos', name='bravo'),
+            hwid_api_messages_pb2.Component(componentClass='tres',
+                                            name='charlie'),
+            hwid_api_messages_pb2.Component(componentClass='tres',
+                                            name='delta'),
+        ]), msg)
 
   def testGetComponentsEmpty(self):
     components = dict()
@@ -357,16 +358,21 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.ComponentsResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual(0, len(msg.components))
+    self.assertEqual(hwid_api_messages_pb2.ComponentsResponse(), msg)
 
   def testGetComponentsErrors(self):
     self.patch_hwid_manager.GetComponents.side_effect = ValueError('foo')
 
     response = self.app.get(flask.url_for('hwid_api.GetComponents',
                                           board=TEST_HWID))
+    msg = hwid_api_messages_pb2.ComponentsResponse()
+    json_format.Parse(response.data, msg)
 
-    self.assertEqual(response.data, ('Invalid input: %s' % TEST_HWID).encode())
-    self.assertEqual(response.status_code, http.HTTPStatus.BAD_REQUEST)
+    self.assertEqual(
+        hwid_api_messages_pb2.ComponentsResponse(
+            status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+            error='Invalid input: %s' % TEST_HWID,
+        ), msg)
 
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
   def testValidateConfig(self, patch_hwid_validator):
@@ -377,7 +383,7 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.ValidateConfigResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual('', msg.errorMessage)
+    self.assertEqual(hwid_api_messages_pb2.ValidateConfigResponse(), msg)
 
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
   def testValidateConfigInGzipContentEncoding(self, patch_hwid_validator):
@@ -391,7 +397,7 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.ValidateConfigResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual('', msg.errorMessage)
+    self.assertEqual(hwid_api_messages_pb2.ValidateConfigResponse(), msg)
 
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
   def testValidateConfigErrors(self, patch_hwid_validator):
@@ -403,7 +409,10 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.ValidateConfigResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual('msg', msg.errorMessage)
+    self.assertEqual(
+        hwid_api_messages_pb2.ValidateConfigResponse(
+            status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+            errorMessage='msg'), msg)
 
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
   def testValidateConfigAndUpdateChecksum(self, patch_hwid_validator):
@@ -415,8 +424,9 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual(EXPECTED_REPLACE_RESULT, msg.newHwidConfigContents)
-    self.assertEqual('', msg.errorMessage)
+    self.assertEqual(
+        hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
+            newHwidConfigContents=EXPECTED_REPLACE_RESULT), msg)
 
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
   def testValidateConfigAndUpdateChecksumErrors(self, patch_hwid_validator):
@@ -429,8 +439,10 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual('', msg.newHwidConfigContents)
-    self.assertEqual('msg', msg.errorMessage)
+    self.assertEqual(
+        hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
+            status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+            errorMessage='msg'), msg)
 
   def testValidateConfigAndUpdateChecksumSyntaxError(self):
     response = self.app.post(
@@ -441,15 +453,16 @@ class HwidApiTest(unittest.TestCase):
     json_format.Parse(response.data, msg)
 
     self.assertEqual(
-        ('while parsing a block mapping\n'
-         '  in "<unicode string>", line 73, column 3:\n'
-         '      audio_codec:\n'
-         '      ^\n'
-         'expected <block end>, but found \'<block mapping start>\'\n'
-         '  in "<unicode string>", line 103, column 7:\n'
-         '          cpu: cpu_0\n'
-         '          ^'), msg.errorMessage)
-    self.assertEqual('', msg.newHwidConfigContents)
+        hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
+            status=hwid_api_messages_pb2.Status.YAML_ERROR, errorMessage=(
+                'while parsing a block mapping\n'
+                '  in "<unicode string>", line 73, column 3:\n'
+                '      audio_codec:\n'
+                '      ^\n'
+                'expected <block end>, but found \'<block mapping start>\'\n'
+                '  in "<unicode string>", line 103, column 7:\n'
+                '          cpu: cpu_0\n'
+                '          ^')), msg)
 
   def testValidateConfigAndUpdateChecksumSchemaError(self):
     response = self.app.post(
@@ -460,15 +473,16 @@ class HwidApiTest(unittest.TestCase):
     json_format.Parse(response.data, msg)
 
     self.assertEqual(
-        '''OrderedDict([('type', OrderedDict([('SSD', 'object')])), '''
-        '''('size', '16G'), ('serial', Value('^#123\\\\d+$', is_re=True))]) '''
-        '''does not match any type in [Dict('probed key-value pairs', '''
-        '''key_type=Scalar('probed key', <class 'str'>), value_type=AnyOf('''
-        '''[Scalar('probed value', <class 'str'>), Scalar('probed value', '''
-        '''<class 'bytes'>), Scalar('probed value regex', <class 'cros.fac'''
-        '''tory.hwid.v3.rule.Value'>)]), size=[1, inf]), Scalar('none', '''
-        '''<class 'NoneType'>)]''', msg.errorMessage)
-    self.assertEqual('', msg.newHwidConfigContents)
+        hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
+            status=hwid_api_messages_pb2.Status.SCHEMA_ERROR, errorMessage=(
+                '''OrderedDict([('type', OrderedDict([('SSD', 'object')])), ('''
+                ''''size', '16G'), ('serial', Value('^#123\\\\d+$', is_re=Tru'''
+                '''e))]) does not match any type in [Dict('probed key-value p'''
+                '''airs', key_type=Scalar('probed key', <class 'str'>), value'''
+                '''_type=AnyOf([Scalar('probed value', <class 'str'>), Scalar'''
+                '''('probed value', <class 'bytes'>), Scalar('probed value re'''
+                '''gex', <class 'cros.factory.hwid.v3.rule.Value'>)]), size=['''
+                '''1, inf]), Scalar('none', <class 'NoneType'>)]''')), msg)
 
   @mock.patch.object(hwid_util, 'GetTotalRamFromHwidData')
   def testGetSKU(self, mock_get_total_ram):
@@ -483,11 +497,10 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.SKUResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual('foo', msg.board)
-    self.assertEqual('bar1_bar2', msg.cpu)
-    self.assertEqual('1Mb', msg.memory)
-    self.assertEqual(100000000, msg.memoryInBytes)
-    self.assertEqual('foo_bar1_bar2_1Mb', msg.sku)
+    self.assertEqual(
+        hwid_api_messages_pb2.SKUResponse(board='foo', cpu='bar1_bar2',
+                                          memory='1Mb', memoryInBytes=100000000,
+                                          sku='foo_bar1_bar2_1Mb'), msg)
 
   @mock.patch.object(hwid_util, 'GetTotalRamFromHwidData')
   def testGetSKUWithConfigless(self, mock_get_total_ram):
@@ -502,11 +515,10 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.SKUResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual('foo', msg.board)
-    self.assertEqual('bar1_bar2', msg.cpu)
-    self.assertEqual('4GB', msg.memory)
-    self.assertEqual(4294967296, msg.memoryInBytes)
-    self.assertEqual('foo_bar1_bar2_4GB', msg.sku)
+    self.assertEqual(
+        hwid_api_messages_pb2.SKUResponse(
+            board='foo', cpu='bar1_bar2', memory='4GB',
+            memoryInBytes=4294967296, sku='foo_bar1_bar2_4GB'), msg)
 
   @mock.patch.object(hwid_util, 'GetTotalRamFromHwidData')
   def testGetSKUBadDRAM(self, mock_get_total_ram):
@@ -520,12 +532,9 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.SKUResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual('X', msg.error)
-    self.assertEqual('', msg.board)
-    self.assertEqual('', msg.cpu)
-    self.assertEqual(0, msg.memoryInBytes)
-    self.assertEqual('', msg.memory)
-    self.assertEqual('', msg.sku)
+    self.assertEqual(
+        hwid_api_messages_pb2.SKUResponse(
+            status=hwid_api_messages_pb2.Status.BAD_REQUEST, error='X'), msg)
 
   @mock.patch.object(hwid_util, 'GetTotalRamFromHwidData')
   def testGetSKUMissingCPU(self, mock_get_total_ram):
@@ -541,11 +550,10 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.SKUResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual('foo', msg.board)
-    self.assertEqual('', msg.cpu)
-    self.assertEqual(2000000, msg.memoryInBytes)
-    self.assertEqual('2Mb', msg.memory)
-    self.assertEqual('foo_None_2Mb', msg.sku)
+    self.assertEqual(
+        hwid_api_messages_pb2.SKUResponse(board='foo', memoryInBytes=2000000,
+                                          memory='2Mb', sku='foo_None_2Mb'),
+        msg)
 
   @mock.patch.object(hwid_util, 'GetSkuFromBom')
   def testGetDUTLabels(self, mock_get_sku_from_bom):
@@ -589,8 +597,18 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.DUTLabelResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual(0, len(msg.labels))
-    self.assertEqual('Missing Regexp List', msg.error)
+    self.assertEqual(
+        hwid_api_messages_pb2.DUTLabelResponse(
+            status=hwid_api_messages_pb2.Status.SERVER_ERROR,
+            error='Missing Regexp List', possible_labels=[
+                'hwid_component',
+                'phase',
+                'sku',
+                'stylus',
+                'touchpad',
+                'touchscreen',
+                'variant',
+            ]), msg)
 
   @mock.patch.object(hwid_util, 'GetSkuFromBom')
   def testGetDUTLabelsWithConfigless(self, mock_get_sku_from_bom):
@@ -632,8 +650,18 @@ class HwidApiTest(unittest.TestCase):
     msg = hwid_api_messages_pb2.DUTLabelResponse()
     json_format.Parse(response.data, msg)
 
-    self.assertEqual(0, len(msg.labels))
-    self.assertEqual('Missing Regexp List', msg.error)
+    self.assertEqual(
+        hwid_api_messages_pb2.DUTLabelResponse(
+            status=hwid_api_messages_pb2.Status.SERVER_ERROR,
+            error='Missing Regexp List', possible_labels=[
+                'hwid_component',
+                'phase',
+                'sku',
+                'stylus',
+                'touchpad',
+                'touchscreen',
+                'variant',
+            ]), msg)
 
   def CheckForLabelValue(self,
                          response,
