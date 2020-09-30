@@ -1243,6 +1243,24 @@ do_passwd() {
     python3 manage.py changepassword "${username}"
 }
 
+do_prune() {
+  check_docker
+
+  local images=(
+      "cros/factory_server"
+      "cros/overlord-builder"
+      "cros/dome-builder"
+  )
+  local ps=()
+  for image in "${images[@]}"; do
+    ps+=( $(${DOCKER} ps -q --filter ancestor="${image}" ) )
+  done
+  if [ "${#ps}" -gt 0 ]; then
+    "${DOCKER}" stop "${ps[@]}"
+  fi
+  "${DOCKER}" system prune -af
+}
+
 usage() {
   cat << __EOF__
 Chrome OS Factory Server Deployment Script
@@ -1287,6 +1305,10 @@ commands for developers:
   $0 build
       Build factory server docker image.
 
+  $0 prune
+      Stop docker instances and clear everything.  Run this command before
+      build to make a clean build.
+
   $0 publish
       Build and publish factory server docker image to chromeos-localmirror.
 
@@ -1325,6 +1347,9 @@ main() {
       ;;
     build)
       do_build
+      ;;
+    prune)
+      do_prune
       ;;
     publish)
       do_publish
