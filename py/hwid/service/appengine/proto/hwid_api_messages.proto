@@ -1,31 +1,31 @@
-syntax = "proto2";
+syntax = "proto3";
 package cros.factory.hwid.service.appengine.proto.hwid_api_messages_pb2;
 
 // A component of a BOM.
 message Component {
   // The type of component.
-  optional string componentClass = 1;
+  string componentClass = 1;
   // The cannonical name
-  optional string name = 2;
+  string name = 2;
   // The probe result that results for this component.
-  optional string probeResult = 3;
+  string probeResult = 3;
   // Extra fields that show all fields defined in HWID DB.
   repeated Field fields = 4;
 }
 
 message Field {
-  required string name = 1;
-  required string value = 2;
+  string name = 1;
+  string value = 2;
 }
 
 // A label on a BOM.
 message Label {
   // The component-class this applies to, if any
-  optional string componentClass = 1;
+  string componentClass = 1;
   // The label's name
-  optional string name = 2;
+  string name = 2;
   // The label's value, possibly none.
-  optional string value = 3;
+  string value = 3;
 }
 
 // A request for all boards supported by the server.
@@ -38,16 +38,16 @@ message BoardsRequest {
 // A request to validate a config.
 message ValidateConfigRequest {
   // The HWID config as a string.
-  optional string hwidConfigContents = 1;
+  string hwidConfigContents = 1;
 }
 
 // A request to validate a config and update its checksum.
 message ValidateConfigAndUpdateChecksumRequest {
   // The HWID config as a string.
-  optional string hwidConfigContents = 1;
+  string hwidConfigContents = 1;
   // The previous version of the HWID config.  If present, it will trigger some
   // additional validation checks.
-  optional string prevHwidConfigContents = 2;
+  string prevHwidConfigContents = 2;
 }
 
 // The response to a boards request.
@@ -63,10 +63,10 @@ message BomResponse {
   // A list of labels of the BOM.
   repeated Label labels = 2;
   // Build phase (corresponding to HWID image_id).
-  optional string phase = 3;
+  string phase = 3;
   // Error message if there was a problem decoding the HWID, if error is set
   // the other fields in the message should be disregarded.
-  optional string error = 4;
+  string error = 4;
 }
 
 // The response to a HWIDs request.
@@ -90,40 +90,40 @@ message ComponentsResponse {
 // The response to a 'validate config' request.
 message ValidateConfigResponse {
   // If an error occurred, this describes the error.
-  optional string errorMessage = 1;
+  string errorMessage = 1;
 }
 
 // The response to a 'validate config and update checksum' request.
 message ValidateConfigAndUpdateChecksumResponse {
   // The updated HWID config as a string.
-  optional string newHwidConfigContents = 1;
+  string newHwidConfigContents = 1;
   // If an error occurred, this describes the error.
-  optional string errorMessage = 2;
+  string errorMessage = 2;
 }
 
 // The response to a BOM request.
 message SKUResponse {
   // The board listed in the BOM.
-  optional string board = 1;
+  string board = 1;
   // The listed CPU in the BOM.
-  optional string cpu = 2;
+  string cpu = 2;
   // Total number of bytes of memory in the BOM.
-  optional int64 memoryInBytes = 3;
+  int64 memoryInBytes = 3;
   // String combination of board, processor and memory.
-  optional string sku = 4;
+  string sku = 4;
   // Error message if there was a problem decoding the HWID, if error is set
   // the other fields in the message should be disregarded.
-  optional string error = 5;
+  string error = 5;
   // A human readable string representing the memory on the device.
-  optional string memory = 6;
+  string memory = 6;
 }
 
 // A label of a DUT.
 message DUTLabel {
   // The name of the label.
-  optional string name = 1;
+  string name = 1;
   // The value of the property associated with this label name.
-  optional string value = 2;
+  string value = 2;
 }
 
 // The response to a DUT label request.
@@ -131,7 +131,7 @@ message DUTLabelResponse {
   // A list of DUTLabel messages.
   repeated DUTLabel labels = 1;
   // Details of any errors when constructing the list of labels.
-  optional string error = 2;
+  string error = 2;
   // Possible labels in the labels field.
   repeated string possible_labels = 3;
 }
