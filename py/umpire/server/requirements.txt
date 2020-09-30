@@ -1,5 +1,5 @@
 jsonschema==2.6.0
-jsonrpclib-pelix==0.4.0
+jsonrpclib-pelix==0.4.1
 python-gnupg==0.4.3
 PyYAML==3.12
 zeep==2.3.0

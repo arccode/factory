@@ -6,8 +6,7 @@ FROM alpine:3.10
 MAINTAINER Mao Huang <littlecvr@google.com>
 
 # need to explicitly assign PYTHONPATH for uwsgi
-ENV PYTHONPATH="/usr/local/lib/python3.6/site-packages:\
-/usr/local/factory/py_pkg"
+ENV PYTHONPATH="/usr/local/factory/py_pkg"
 
 ARG server_dir="/usr/local/factory"
 ARG dome_dir="${server_dir}/py/dome"
@@ -65,6 +64,14 @@ RUN apk upgrade --no-cache && apk add --no-cache \
     uwsgi-python3 \
     xz
 
+# The latest cffi (1.14.3) would always build from source, which requires the
+# follow packages.
+# TODO(b/169730131): revert this when we can install prebuilt cffi again.
+RUN apk add --no-cache \
+    build-base \
+    python3-dev \
+    libffi-dev
+
 # pixz and lbzip2 are not available in alpine.
 ADD build/docker/pixz.tbz2 /usr/bin
 ADD build/docker/lbzip2.tbz2 /usr/bin
@@ -78,7 +85,8 @@ COPY py/umpire/server/requirements.txt "${umpire_dir}/"
 COPY py/dome/requirements.txt "${dome_dir}/"
 COPY py/instalog/requirements.txt "${instalog_dir}/"
 RUN pip3 install --no-cache-dir --upgrade pip && \
-    pip3 install --no-cache-dir --upgrade setuptools
+    pip3 install --no-cache-dir --upgrade setuptools && \
+    pip3 install --no-cache-dir --upgrade wheel
 RUN pip3 install --no-cache-dir \
       -r "${umpire_dir}/requirements.txt" \
       -r "${dome_dir}/requirements.txt" \
