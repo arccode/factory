@@ -54,11 +54,11 @@ class TimeSanitizerBaseTimeTest(TimeSanitizerTestBase):
     # pylint: disable=protected-access
     # (access to protected members)
     with tempfile.NamedTemporaryFile() as f:
-      self.assertEqual(os.stat(f.name).st_mtime,
-                       time_sanitizer.GetBaseTimeFromFile(f.name))
+      self.assertEqual(
+          os.stat(f.name).st_mtime,
+          time_sanitizer.GetBaseTimeFromFile([f.name]))
     self.assertEqual(
-        None,
-        time_sanitizer.GetBaseTimeFromFile('/some-nonexistent-file'))
+        None, time_sanitizer.GetBaseTimeFromFile(['/some-nonexistent-file']))
 
 
 class TimeSanitizerTest(TimeSanitizerTestBase):

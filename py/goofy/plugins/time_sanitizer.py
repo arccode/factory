@@ -34,7 +34,7 @@ class TimeSanitizer(plugin.Plugin):
 
     self._sync_period_secs = sync_period_secs
     self._time_sanitizer = time_sanitizer.TimeSanitizer(
-        base_time=time_sanitizer.GetBaseTimeFromFile(*base_time_files))
+        base_time_files=base_time_files)
     self._time_sanitizer.RunOnce()
     self._time_synced = False
     self._thread = None

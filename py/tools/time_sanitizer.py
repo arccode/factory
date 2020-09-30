@@ -74,18 +74,22 @@ class Time:
                    process_utils.Spawn(['hwclock', '-r'], log=True,
                                        read_stdout=True).stdout_data)
 
+# lsb-factory is written by the factory install shim during
+# installation, so it should have a good time obtained from
+# the Factory Server.  If it's not available, we'll use
+# /etc/lsb-factory (which will be much older, but reasonably
+# sane) and rely on a sync to factory server to set a more accurate
+# time.
+DEFAULT_BASE_TIME_FILES = ['/usr/local/etc/lsb-factory', '/etc/lsb-release']
 SECONDS_PER_DAY = 86400
 
 
 class TimeSanitizer:
 
-  def __init__(self,
-               state_file=os.path.join(paths.DATA_STATE_DIR,
-                                       'time_sanitizer_base_time'),
-               monitor_interval_secs=30,
-               time_bump_secs=60,
-               max_leap_secs=(SECONDS_PER_DAY * 30),
-               base_time=None):
+  def __init__(self, state_file=os.path.join(paths.DATA_STATE_DIR,
+                                             'time_sanitizer_base_time'),
+               monitor_interval_secs=30, time_bump_secs=60,
+               max_leap_secs=(SECONDS_PER_DAY * 30), base_time_files=None):
     """Attempts to ensure that system time is monotonic and sane.
 
     Guarantees that:
@@ -110,15 +114,19 @@ class TimeSanitizer:
         the last-seen-good time if an insane time is observed.
       max_leap_secs: How far ahead the time may increment without
         being considered insane.
-      base_time: A time that is known to be earlier than the current
-        time.
+      base_time_files: A list of files.  We use this argument to find
+        the base time with GetBaseTimeFromFile.
     """
     self.state_file = state_file
     self.monitor_interval_secs = monitor_interval_secs
     self.time_bump_secs = time_bump_secs
     self.max_leap_secs = max_leap_secs
-    self.base_time = base_time
+    self.base_time_files = base_time_files
     self.lock = threading.RLock()
+
+    if self.base_time_files is None:
+      self.base_time_files = DEFAULT_BASE_TIME_FILES
+    self.base_time = GetBaseTimeFromFile(self.base_time_files)
 
     # Whether to avoid re-raising exceptions from unsuccessful factory server
     # operations.  Set to False for testing.
@@ -195,6 +203,22 @@ class TimeSanitizer:
                       _FormatTime(now), self.state_file)
         print(now, file=f)
 
+  def _TouchBaseTimeFiles(self):
+    """Touch the base time files with current time"""
+    now = self._time.Time()
+    if self.base_time > now:
+      logging.info('The base time is ahead of the system time on factory '
+                   'server.  Touch base time files to change their modify '
+                   'times.')
+      for f in self.base_time_files:
+        if os.path.exists(f):
+          try:
+            if os.stat(f).st_mtime > now:
+              process_utils.CheckCall(['touch', '-d', '@%d' % now, f], log=True)
+          except Exception:
+            logging.exception('Unable to touch %s.', f)
+      self.base_time = now
+
   def SyncWithFactoryServerHtpdate(self):
     """Attempts to synchronize the clock with the factory server.
 
@@ -213,11 +237,17 @@ class TimeSanitizer:
 
       self._time.SetTime()
       self.SaveTime()
+
+      # If the base_time is greater than the system time on the factory server
+      # we believe the factory server and modify the base_time.  This can
+      # prevent the reboot tests from failing (b/169542240).
+      self._TouchBaseTimeFiles()
+
     except OSError:
       raise Error('htpdate is not installed.')
 
 
-def GetBaseTimeFromFile(*base_time_files):
+def GetBaseTimeFromFile(base_time_files):
   """Returns the base time to use.
 
   This will be the mtime of the first existing file in
@@ -250,26 +280,17 @@ if __name__ == '__main__':
                       default=60, help='how far ahead the time should be '
                       'moved past the last-seen-good time if an insane time '
                       'is observed.')
-  parser.add_argument('--max-leap', metavar='SECS', type=int,
-                      default=(SECONDS_PER_DAY * 30),
-                      help='how far ahead the time may increment without '
-                      'being considered insane.')
+  parser.add_argument(
+      '--max-leap', metavar='SECS', type=int, default=(SECONDS_PER_DAY * 30),
+      help='how far ahead the time may increment without '
+      'being considered insane.')
 
   args = parser.parse_args()
 
-  time_sanitizer = TimeSanitizer(
-      monitor_interval_secs=args.monitor_interval,
-      time_bump_secs=args.time_bump,
-      max_leap_secs=args.max_leap,
-      base_time=GetBaseTimeFromFile(
-          # lsb-factory is written by the factory install shim during
-          # installation, so it should have a good time obtained from
-          # the Factory Server.  If it's not available, we'll use
-          # /etc/lsb-factory (which will be much older, but reasonably
-          # sane) and rely on a sync to factory server to set a more accurate
-          # time.
-          '/usr/local/etc/lsb-factory',
-          '/etc/lsb-release'))
+  time_sanitizer = TimeSanitizer(monitor_interval_secs=args.monitor_interval,
+                                 time_bump_secs=args.time_bump,
+                                 max_leap_secs=args.max_leap,
+                                 base_time_files=DEFAULT_BASE_TIME_FILES)
 
   if args.run_once:
     time_sanitizer.RunOnce()
