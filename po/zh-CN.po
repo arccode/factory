@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-03-30 14:20+CST\n"
+"PO-Revision-Date: 2021-04-07 12:21+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -1901,6 +1901,7 @@ msgstr "移除外接显示屏: {display}"
 
 #: ../py/test/pytests/external_display.py
 #: ../py/test/pytests/removable_storage.py
+#: ../py/test/pytests/thunderbolt_loopback.py
 msgid "Wrong USB side, please flip over {media}."
 msgstr "USB 方向错误，请将 {media} 反转方向..."
 
@@ -2770,6 +2771,10 @@ msgid ""
 "Rotate the tablet to correctly align the picture, holding it at an upright "
 "90-degree angle."
 msgstr "竖立平板电脑使其垂直于桌面，并开始旋转到对齐图片。"
+
+#: ../py/test/pytests/thunderbolt_loopback.py
+msgid "Please unplug and replug."
+msgstr "请拔下再插入"
 
 #: ../py/test/pytests/thunderbolt_loopback.py
 msgid "Do not insert more than one loopback card."

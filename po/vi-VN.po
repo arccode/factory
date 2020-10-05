@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-03-30 14:20+CST\n"
+"PO-Revision-Date: 2021-04-07 12:21+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -1943,6 +1943,7 @@ msgstr "Tháo màn hình ngoài: {display}"
 
 #: ../py/test/pytests/external_display.py
 #: ../py/test/pytests/removable_storage.py
+#: ../py/test/pytests/thunderbolt_loopback.py
 msgid "Wrong USB side, please flip over {media}."
 msgstr "Định hướng USB sai, vui lòng đảo ngược hướng của {media} ..."
 
@@ -2830,6 +2831,10 @@ msgid ""
 msgstr ""
 "Lắp máy tính bảng sao cho nó vuông góc với màn hình nền và bắt đầu xoay để "
 "căn chỉnh hình ảnh."
+
+#: ../py/test/pytests/thunderbolt_loopback.py
+msgid "Please unplug and replug."
+msgstr ""
 
 #: ../py/test/pytests/thunderbolt_loopback.py
 msgid "Do not insert more than one loopback card."

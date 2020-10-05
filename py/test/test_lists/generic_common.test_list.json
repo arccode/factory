@@ -952,7 +952,10 @@
           "inherit": "TBTLoopback",
           "run_if": "locals.usb.tbt_controller_port != ''",
           "args": {
-            "controller_port": "eval! locals.usb.tbt_controller_port"
+            "controller_port": "eval! locals.usb.tbt_controller_port",
+            "usbpd_spec": {
+              "port": "eval! locals.usb.usbpd_id"
+            }
           }
         },
         "USBTypeCManualChargeItems",

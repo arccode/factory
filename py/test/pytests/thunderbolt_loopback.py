@@ -27,7 +27,12 @@ Examples
 The minimal working example::
 
   {
-    "pytest_name": "thunderbolt_loopback"
+    "pytest_name": "thunderbolt_loopback",
+    "args": {
+      "usbpd_spec": {
+        "port": 0
+      }
+    }
   }
 
 Test specific controller and test lane margining with 60 seconds timeout::
@@ -35,9 +40,26 @@ Test specific controller and test lane margining with 60 seconds timeout::
   {
     "pytest_name": "thunderbolt_loopback"
     "args": {
+      "usbpd_spec": {
+        "port": 0
+      },
       "timeout_secs": 60,
       "controller_port": "0-1.*",
       "lane_margining": true
+    }
+  }
+
+Test controller 0-3 with CC1 port 1 with 60 seconds timeout::
+
+  {
+    "pytest_name": "thunderbolt_loopback"
+    "args": {
+      "usbpd_spec": {
+        "port": 1,
+        "polarity": 1
+      },
+      "timeout_secs": 60,
+      "controller_port": "0-3.*"
     }
   }
 """
@@ -49,6 +71,7 @@ import subprocess
 import time
 
 from cros.factory.device import device_utils
+from cros.factory.device import usb_c
 from cros.factory.test import device_data
 from cros.factory.test.env import paths
 from cros.factory.test.i18n import _
@@ -118,7 +141,12 @@ class ThunderboltLoopbackTest(test_case.TestCase):
       Arg('debugfs_path', str, 'The path of debugfs to test.', default=None),
       Arg('controller_port', str, 'The name of the controller port to test.',
           default=None),
+      Arg('usbpd_spec', dict,
+          ('A dict which must contain "port" and optionally specify "polarity".'
+           ' For example, `{"port": 1, "polarity": 1}`.'),
+          schema=usb_c.USB_PD_SPEC_SCHEMA, _transform=usb_c.MigrateUSBPDSpec),
       Arg('load_module', bool, 'Load test module.', default=True),
+      Arg('check_muxinfo_only', bool, 'Check muxinfo only.', default=False),
       Arg('lane_margining', bool, 'Collet lane margining data.', default=False),
       Arg('lane_margining_timeout_secs', (int, float),
           'Timeout for colleting lane margining data.', default=10),
@@ -127,8 +155,17 @@ class ThunderboltLoopbackTest(test_case.TestCase):
   def setUp(self):
     self.ui.ToggleTemplateClass('font-large', True)
     self._dut = device_utils.CreateDUTInterface()
+    self._usbpd_port = self.args.usbpd_spec['port']
+    self._usbpd_polarity = {
+        1: 'NORMAL',
+        2: 'INVERTED'
+    }.get(self.args.usbpd_spec.get('polarity'))
     self._remove_module = False
     self._card_state = None
+    self._muxinfo = {}
+    self._first_typec_control = True
+    self._first_check_mux_info = True
+
     self.server = None
     self._group_checker = None
     if self.args.lane_margining:
@@ -155,6 +192,57 @@ class ThunderboltLoopbackTest(test_case.TestCase):
       return False
     self._card_state = state
     return True
+
+  def _SendTypecControl(self):
+    """Send typeccontrol control command."""
+    _first_typec_control = self._first_typec_control
+    self._first_typec_control = False
+    mode = {
+        'DP': '0',
+        'TBT': '1',
+        'USB4': '2'
+    }
+    try:
+      self._dut.CheckCall(
+          ['ectool', 'typeccontrol',
+           str(self._usbpd_port), '2', mode['TBT']], log=_first_typec_control)
+    except Exception:
+      pass
+
+  def _CheckMuxinfo(self):
+    """Returns True if TBT=1."""
+    fail_tag = 'GetPDMuxInfo'
+    _first_check_mux_info = self._first_check_mux_info
+    self._first_check_mux_info = False
+    try:
+      outputs = self._dut.usb_c.GetPDMuxInfo(self._usbpd_port,
+                                             log=_first_check_mux_info)
+    except Exception:
+      if self._muxinfo.get(fail_tag) != 1:
+        logging.exception('%s failed', fail_tag)
+        self.ui.SetState(_('Please unplug and replug.'))
+        self._muxinfo = {
+            fail_tag: 1
+        }
+      return False
+    else:
+      if self._muxinfo != outputs:
+        logging.info('%s %r', fail_tag, outputs)
+        self.ui.SetState(
+            'Port %d<br>%s %r' % (self._usbpd_port, fail_tag, outputs))
+        self._muxinfo = outputs
+      if self._usbpd_polarity:
+        if outputs['POLARITY'] != self._usbpd_polarity:
+          self.ui.SetInstruction(
+              _('Wrong USB side, please flip over {media}.',
+                media='Loopback card'))
+          return False
+        self.ui.SetInstruction('')
+      if outputs['TBT']:
+        return True
+      if outputs['USB']:
+        self._SendTypecControl()
+      return False
 
   def _FindLoopbackPath(self):
     if self.args.debugfs_path:
@@ -253,6 +341,20 @@ class ThunderboltLoopbackTest(test_case.TestCase):
         messages = 'Unable to sync with server %s' % server_proxy.GetServerURL()
         logging.exception(messages)
         self.FailTask(messages)
+
+    if self.args.timeout_secs:
+      stop_muxinfo_test_timer = self.ui.StartFailingCountdownTimer(
+          self.args.timeout_secs)
+    else:
+      stop_muxinfo_test_timer = None
+    # Wait for the loopback card.
+    self.ui.SetState(_('Insert the loopback card.'))
+    sync_utils.WaitFor(self._CheckMuxinfo, self.args.timeout_secs,
+                       poll_interval=0.5)
+    if stop_muxinfo_test_timer:
+      stop_muxinfo_test_timer.set()
+    if self.args.check_muxinfo_only:
+      self.PassTask()
 
     if self.args.load_module:
       # Fail the test if the module doesn't exist.
