@@ -1256,9 +1256,9 @@ do_prune() {
     ps+=( $(${DOCKER} ps -q --filter ancestor="${image}" ) )
   done
   if [ "${#ps}" -gt 0 ]; then
-    "${DOCKER}" stop "${ps[@]}"
+    ${DOCKER} stop "${ps[@]}"
   fi
-  "${DOCKER}" system prune -af
+  ${DOCKER} system prune -af
 }
 
 usage() {
