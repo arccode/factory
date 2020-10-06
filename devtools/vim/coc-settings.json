@@ -1,0 +1,14 @@
+{
+  /* To use this file, make a symbolic link at .vim/coc-settings.json in */
+  /* factory folder to this file. */
+  "python.jediEnabled": false,
+  "python.linting.pylintArgs": [
+    "--rcfile",
+    "./devtools/mk/pylint.rc"
+  ],
+  "python.linting.pylintEnabled": true,
+  "python.linting.enabled": true,
+  "sh.enable": true,
+  "python.formatting.provider": "yapf",
+  "python.formatting.yapfArgs": ["--style", "./devtools/mk/style.yapf"]
+}

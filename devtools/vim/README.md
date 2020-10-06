@@ -25,8 +25,17 @@ you can use `DOT_VIM=... VIMRC=... ./setup.sh` to change it.
 * `devtools/vim/plugin/add_pythonpath.vim`
     - add factory files into PYTHONPATH (for
     [Valloric/YouCompleteMe](https://github.com/Valloric/YouCompleteMe) or
-    [davidhalter/jedi-vim](https://github.com/davidhalter/jedi-vim))
+    [davidhalter/jedi-vim](https://github.com/davidhalter/jedi-vim) or other
+    python autocomplete plugins)
 * `devtools/vim/autoload/localrc.vim`
     - `.local.vimrc` loader
 * `devtools/vim/plugin/iconv.vim`
     - convert selected traditional Chinese string into simplified Chinese.
+* `devtools/vim/coc-settings.json`
+    - a sample setting file for [coc.nvim](https://github.com/neoclide/coc.nvim)
+      plugin.
+    - to use coc.nvim
+      * install the plugin by following the instructions on github.
+      * in vim, `:CocInstall coc-python` to install python extension.
+      * copy or symlink this file to `platform/factory/.vim/` folder (already
+        added by default).
