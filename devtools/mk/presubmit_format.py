@@ -5,7 +5,7 @@
 
 import argparse
 import json
-import multiprocessing
+import multiprocessing.pool
 import os
 import subprocess
 import sys
@@ -97,7 +97,7 @@ def main():
 
   line_diffs = presubmit_common.ComputeDiffRange(args.commit, args.files)
 
-  with multiprocessing.Pool() as pool:
+  with multiprocessing.pool.ThreadPool() as pool:
     # Only check filenames end with '.py'.  We filter these again in case
     # args.files is an empty list, in this case, line_diffs will be all files
     # changed by args.commit.
