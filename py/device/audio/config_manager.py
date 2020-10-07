@@ -622,9 +622,7 @@ class UCMConfigManager(BaseConfigManager):
     return out_msg
 
   def _InvokeCardCommands(self, card, *commands):
-    return self._InvokeAlsaUCM(
-        'open "%s" h' % self._GetCardName(card),
-        *commands)
+    return self._InvokeAlsaUCM('open "%s"' % self._GetCardName(card), *commands)
 
   def _InvokeDeviceCommands(self, card, *suffix_commands):
     commands = ['reset', 'set _verb %s' % self._verb]
@@ -636,13 +634,11 @@ class UCMConfigManager(BaseConfigManager):
         continue
       device_name = self._GetDeviceName(card, device)
       # The ucm config expects enable before disable so we always enable it
-      # after reset. Also 'alsaucm' may return 1 if the command ends with
-      # quotes. The quotes are used to pass device name with space, such as
-      # "Internal Mic". So we append a 'h' at the end of these kind of commands.
-      # 'h' prints the help page of alsaucm.
-      commands.append('set _enadev "%s" h' % device_name)
+      # after reset. The quotes are used to pass device name with space, such as
+      # "Internal Mic".
+      commands.append('set _enadev "%s"' % device_name)
       if state == DEVICE_STATE.Disabled:
-        commands.append('set _disdev "%s" h' % device_name)
+        commands.append('set _disdev "%s"' % device_name)
     return self._InvokeCardCommands(card, *commands, *suffix_commands)
 
   def Initialize(self, card='0'):
@@ -678,7 +674,7 @@ class UCMConfigManager(BaseConfigManager):
     card_name = self._GetCardName(card)
     device_name = self._GetDeviceName(card, device)
     identity = '%s/%s' % (category, device_name)
-    output = self._InvokeDeviceCommands(card, 'get "%s" h' % identity).strip()
+    output = self._InvokeDeviceCommands(card, 'get "%s"' % identity)
     match = re.search(r'^(.+)=hw:.+,(\d+)$', output, re.MULTILINE)
     if match and match.group(1).strip() == identity:
       return match.group(2)
