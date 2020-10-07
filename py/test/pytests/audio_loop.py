@@ -765,13 +765,12 @@ class AudioLoopTest(test_case.TestCase):
     last_success_rate = None
     while self._MatchPatternLines(process.stdout,
                                   _AUDIOFUNTEST_RUN_START_RE) is not None:
-      last_success_rate = self._ParseSingleRunOutput(process.stdout,
-                                                     input_channels)
+      last_success_rate = self._ParseSingleRunOutput(
+          process.stdout, list(range(len(input_channels))))
       if last_success_rate is None:
         break
-      rate_msg = ', '.join(
-          'Mic %d: %.1f%%' %
-          (channel, rate) for channel, rate in last_success_rate.items())
+      rate_msg = ', '.join('Mic %d: %.1f%%' % (input_channels[channel], rate)
+                           for channel, rate in last_success_rate.items())
       self.ui.CallJSFunction('testInProgress', rate_msg)
 
     if last_success_rate is None:
