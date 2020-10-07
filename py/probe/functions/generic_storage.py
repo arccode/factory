@@ -69,7 +69,8 @@ def CookVersion(raw_version):
   # Note vendor may choose SPACE (0x20) or NUL (0x00) to pad version string,
   # so we want to strip both in the human readable part.
   ascii_string = ''.join(map(chr, raw_version)).strip(' \0')
-  if ascii_string and all(c in string.printable for c in ascii_string):
+  if ascii_string and all(
+      (c in string.ascii_letters or c in string.digits) for c in ascii_string):
     version += ' (%s)' % ascii_string
   else:
     # Try to decode it as a 64-bit little-endian integer.
