@@ -123,6 +123,7 @@ def ParseCmdline(top_level_description, *common_args, **kwargs):
 
   if subcommands:
     subparsers = root_parser.add_subparsers(dest='command_name')
+    subparsers.required = True
     for cmd_name, (fun, doc, arg_list) in subcommands.items():
       subparser = subparsers.add_parser(
           cmd_name, description=doc,

@@ -7,6 +7,8 @@
 import sys
 import unittest
 
+import mock
+
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import Command
 from cros.factory.utils.argparse_utils import ParseCmdline
@@ -28,40 +30,53 @@ args = [CmdArg('--defarg', default='42'),
 def Parse(argv):
   sys.argv = ['cmd'] + argv.split()
   result = vars(ParseCmdline('', *args))
-  del result['command']
+  if 'command' in result:
+    del result['command']
   return result
 
 class HackedArgparseTest(unittest.TestCase):
 
-  def testSubcommand(self):
-    with self.assertRaises(KeyError):
+  @mock.patch('cros.factory.utils.argparse_utils.HackedArgParser.error')
+  def testSubcommand(self, error_mock):
+    error_mock.side_effect = Exception
+
+    with self.assertRaises(Exception):
       Parse('')
-    self.assertEqual({'command_name': 'do_this',
-                      'defarg': '42',
-                      'arg': None,
-                      'foo': None},
-                     Parse('do_this'))
-    self.assertEqual({'command_name': 'do_that',
-                      'defarg': '42',
-                      'arg': None,
-                      'bar': None},
-                     Parse('do_that'))
-    self.assertEqual({'command_name': 'do_this',
-                      'defarg': '123',
-                      'arg': 'abc',
-                      'foo': None},
-                     Parse('--defarg=123 --arg=abc do_this'))
-    self.assertEqual({
-        'command_name': 'do_this',
-        'defarg': '234',
-        'arg': 'xyz',
-        'foo': None
-    }, Parse('--defarg=123 --arg=abc do_this --defarg=234 --arg=xyz'))
-    self.assertEqual({'command_name': 'do_this',
-                      'defarg': '234',
-                      'arg': 'xyz',
-                      'foo': None},
-                     Parse('do_this --defarg=234 --arg=xyz'))
+    self.assertEqual(
+        {
+            'command_name': 'do_this',
+            'defarg': '42',
+            'arg': None,
+            'foo': None
+        }, Parse('do_this'))
+    self.assertEqual(
+        {
+            'command_name': 'do_that',
+            'defarg': '42',
+            'arg': None,
+            'bar': None
+        }, Parse('do_that'))
+    self.assertEqual(
+        {
+            'command_name': 'do_this',
+            'defarg': '123',
+            'arg': 'abc',
+            'foo': None
+        }, Parse('--defarg=123 --arg=abc do_this'))
+    self.assertEqual(
+        {
+            'command_name': 'do_this',
+            'defarg': '234',
+            'arg': 'xyz',
+            'foo': None
+        }, Parse('--defarg=123 --arg=abc do_this --defarg=234 --arg=xyz'))
+    self.assertEqual(
+        {
+            'command_name': 'do_this',
+            'defarg': '234',
+            'arg': 'xyz',
+            'foo': None
+        }, Parse('do_this --defarg=234 --arg=xyz'))
 
 
 if __name__ == '__main__':
