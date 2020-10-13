@@ -107,6 +107,7 @@ run_in_factory() {
 # Base directories
 SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 FACTORY_DIR="$(dirname "${SCRIPT_DIR}")"
+FACTORY_PRIVATE_DIR="${FACTORY_DIR}/../factory-private/"
 UMPIRE_DIR="${FACTORY_DIR}/py/umpire"
 DOME_DIR="${FACTORY_DIR}/py/dome"
 OVERLORD_DIR="${FACTORY_DIR}/go/src/overlord"
@@ -590,6 +591,14 @@ goofy_main() {
     "${commands[@]}"
 }
 
+show_instructions_to_import_rootCA() {
+  echo "Import the rootCA into your chrome browser : "
+  echo "1. Goto chrome://settings/certificates."
+  echo "2. Choose Authorities tab."
+  echo "3. Click Import button and choose your rootCA.pem."
+  echo
+}
+
 # Section for Overlord subcommand
 do_overlord_setup() {
   check_docker
@@ -604,6 +613,17 @@ do_overlord_setup() {
   echo "Running setup script ..."
   echo
 
+  local overlord_cert_dir="${FACTORY_PRIVATE_DIR}/overlord/certificate/"
+  local ssl_setting=""
+  if [ -f "${overlord_cert_dir}/cert.pem" ] && \
+     [ -f "${overlord_cert_dir}/key.pem" ]; then
+    echo "Found default certificate, skip ssl setting."
+    ssl_setting="skip_ssl_setting"
+
+    sudo cp "${overlord_cert_dir}/cert.pem" "${HOST_OVERLORD_DIR}/config/"
+    sudo cp "${overlord_cert_dir}/key.pem" "${HOST_OVERLORD_DIR}/config/"
+  fi
+
   ${DOCKER} run \
     --interactive \
     --tty \
@@ -611,19 +631,31 @@ do_overlord_setup() {
     --name "${overlord_setup_container_name}" \
     --volume "${HOST_OVERLORD_CONFIG_DIR}:${DOCKER_OVERLORD_CONFIG_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
-    "${DOCKER_OVERLORD_DIR}/setup.sh" || \
+    "${DOCKER_OVERLORD_DIR}/setup.sh" "${ssl_setting}" || \
     (echo "Setup failed... removing Overlord settings."; \
      sudo rm -rf "${HOST_OVERLORD_DIR}"; \
      die "Overlord setup failed.")
 
-  # Copy the certificate to script directory, and set it's permission to all
+  if [ "${ssl_setting}" = "skip_ssl_setting" ]; then
+    echo
+    echo "Setup done!"
+    echo "You can find the root CA at ${overlord_cert_dir}/rootCA.pem"
+    show_instructions_to_import_rootCA
+    return
+  fi
+
+  # Copy the certificate to script directory, and set its permission to all
   # readable, so it's easier to use (since the file is owned by root).
   sudo cp "${HOST_OVERLORD_DIR}/config/cert.pem" "${SCRIPT_DIR}/cert.pem"
+  sudo cp "${HOST_OVERLORD_DIR}/config/rootCA.pem" "${SCRIPT_DIR}/rootCA.pem"
   sudo chmod 644 "${SCRIPT_DIR}/cert.pem"
+  sudo chmod 644 "${SCRIPT_DIR}/rootCA.pem"
 
   echo
   echo "Setup done!"
-  echo "You can find the generated certificate at ${SCRIPT_DIR}/cert.pem"
+  echo "You can find the certificate at ${SCRIPT_DIR}/cert.pem"
+  echo "You can find the root CA at ${SCRIPT_DIR}/rootCA.pem"
+  show_instructions_to_import_rootCA
 }
 
 do_overlord_run() {
@@ -637,6 +669,14 @@ do_overlord_run() {
 
   if [ ! -d "${HOST_OVERLORD_DIR}" ]; then
     do_overlord_setup
+  fi
+
+  if [ ! -f "${HOST_OVERLORD_CONFIG_DIR}/cert.pem" ] || \
+     [ ! -f "${HOST_OVERLORD_CONFIG_DIR}/key.pem" ]; then
+    echo "Certificate and key (cert.pem and key.pem) not exist!"
+    echo "Please put certificate and key into ${HOST_OVERLORD_CONFIG_DIR}."
+    echo "Or run \"./cros_docker.sh overlord setup\" to gen certificate."
+    exit 1
   fi
 
   ${DOCKER} run \
