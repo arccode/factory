@@ -66,8 +66,9 @@ def _GetAllGenericProbeStatementInfoRecords():
           'battery', 'generic_battery',
           ['manufacturer', 'model_name', 'technology']),
       GenericProbeStatementInfoRecord('storage', 'generic_storage', [
-          'type', 'sectors', 'manfid', 'name', 'pci_vendor', 'pci_device',
-          'pci_class', 'ata_vendor', 'ata_model'
+          'type', 'sectors', 'mmc_hwrev', 'mmc_manfid', 'mmc_name', 'mmc_oemid',
+          'mmc_prv', 'mmc_serial', 'pci_vendor', 'pci_device', 'pci_class',
+          'ata_vendor', 'ata_model'
       ]),
       GenericProbeStatementInfoRecord('network', 'generic_network', [
           'type', 'bus_type', 'pci_vendor_id', 'pci_device_id', 'pci_revision',
@@ -203,13 +204,17 @@ def GetAllProbeStatementGenerators():
       # eMMC
       _ProbeStatementGenerator(
           'storage', 'generic_storage', storage_shared_fields + [
-              same_name_field_converter('name', SimplyForwardValue),
-              same_name_field_converter('manfid',
-                                        GetHWIDHexStrToHexStrConverter(2)),
-              same_name_field_converter('oemid',
-                                        GetHWIDHexStrToHexStrConverter(4)),
-              same_name_field_converter('prv',
-                                        GetHWIDHexStrToHexStrConverter(2)),
+              _FieldRecord('hwrev', 'mmc_hwrev',
+                           GetHWIDHexStrToHexStrConverter(1), is_optional=True),
+              _FieldRecord('name', 'mmc_name', SimplyForwardValue),
+              _FieldRecord('manfid', 'mmc_manfid',
+                           GetHWIDHexStrToHexStrConverter(2)),
+              _FieldRecord('oemid', 'mmc_oemid',
+                           GetHWIDHexStrToHexStrConverter(4)),
+              _FieldRecord('prv', 'mmc_prv', GetHWIDHexStrToHexStrConverter(2),
+                           is_optional=True),
+              _FieldRecord('serial', 'mmc_serial',
+                           GetHWIDHexStrToHexStrConverter(8), is_optional=True),
           ]),
       # NVMe
       _ProbeStatementGenerator(

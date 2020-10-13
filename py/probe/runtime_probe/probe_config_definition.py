@@ -39,19 +39,25 @@ def _GetAllProbeStatementDefinitions():
 
   builder.AddProbeFunction('mmc_storage', 'Probe function for eMMC storage.')
   probe_function_names = ['generic_storage', 'mmc_storage']
-  builder.AddHexOutputField('manfid', 'Manufacturer ID (MID) in CID register.',
+  builder.AddHexOutputField('mmc_hwrev', 'Hardware revision in CID register.',
                             probe_function_names=probe_function_names,
-                            num_value_digits=2)
+                            num_value_digits=1)
   builder.AddHexOutputField(
-      'oemid', 'OEM/Application ID (OID) in CID register.',
+      'mmc_manfid', 'Manufacturer ID (MID) in CID register.',
+      probe_function_names=probe_function_names, num_value_digits=2)
+  builder.AddHexOutputField(
+      'mmc_oemid', 'OEM/Application ID (OID) in CID register.',
       probe_function_names=probe_function_names, num_value_digits=4)
-  builder.AddStrOutputField('name', 'Product name (PNM) in CID register.',
+  builder.AddStrOutputField('mmc_name', 'Product name (PNM) in CID register.',
                             probe_function_names=probe_function_names,
                             value_pattern=re.compile('^[ -~]{6}$'),
                             value_format_error_msg=_GetASCIIStringErrorMsg(6))
-  builder.AddHexOutputField('prv', 'Product revision (PRV) in CID register.',
+  builder.AddHexOutputField(
+      'mmc_prv', 'Product revision (PRV) in CID register.',
+      probe_function_names=probe_function_names, num_value_digits=2)
+  builder.AddHexOutputField('mmc_serial', 'Product Serial Number (PSN)',
                             probe_function_names=probe_function_names,
-                            num_value_digits=2)
+                            num_value_digits=8)
 
   builder.AddProbeFunction('nvme_storage', 'Probe function for NVMe storage.')
   probe_function_names = ['generic_storage', 'nvme_storage']

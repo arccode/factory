@@ -75,20 +75,26 @@
       "model_a_storage_0_unsupported": {
         "eval": {"generic_storage": {}},
         "expect": {
-          "name": [true, "str", "!eq ABCxyz"],
-          "manfid": [true, "hex", "!eq 0x22"],
-          "oemid": [true, "hex", "!eq 0x4455"],
-          "prv": [true, "hex", "!eq 0x0A"],
-          "sectors": [true, "int", "!eq 1000000"]
+          "sectors": [true, "int", "!eq 1000000"],
+          "mmc_hwrev": [false, "hex"],
+          "mmc_name": [true, "str", "!eq ABCxyz"],
+          "mmc_manfid": [true, "hex", "!eq 0x22"],
+          "mmc_oemid": [true, "hex", "!eq 0x4455"],
+          "mmc_prv": [true, "hex", "!eq 0x0A"],
+          "mmc_serial": [true, "hex", "!eq 0x1234ABCD"]
         }
       },
       "generic": {
         "eval": {"generic_storage": {}},
         "expect": {
-          "type": [false, "str"],
           "sectors": [false, "int"],
-          "manfid": [false, "hex"],
-          "name": [false, "str"],
+          "type": [false, "str"],
+          "mmc_hwrev": [false, "hex"],
+          "mmc_manfid": [false, "hex"],
+          "mmc_name": [false, "str"],
+          "mmc_oemid": [false, "hex"],
+          "mmc_prv": [false, "hex"],
+          "mmc_serial": [false, "hex"],
           "ata_model": [false, "str"],
           "ata_vendor": [false, "str"],
           "pci_class": [false, "hex"],
@@ -194,10 +200,14 @@
       "generic": {
         "eval": {"generic_storage": {}},
         "expect": {
-          "type": [false, "str"],
           "sectors": [false, "int"],
-          "manfid": [false, "hex"],
-          "name": [false, "str"],
+          "type": [false, "str"],
+          "mmc_hwrev": [false, "hex"],
+          "mmc_manfid": [false, "hex"],
+          "mmc_name": [false, "str"],
+          "mmc_oemid": [false, "hex"],
+          "mmc_prv": [false, "hex"],
+          "mmc_serial": [false, "hex"],
           "ata_model": [false, "str"],
           "ata_vendor": [false, "str"],
           "pci_class": [false, "hex"],
@@ -259,7 +269,8 @@
       },
       {
         "componentCategory": "storage",
-        "fieldNames": ["type", "sectors", "manfid", "name", "pci_class",
+        "fieldNames": ["type", "sectors", "mmc_hwrev", "mmc_manfid", "mmc_name",
+                       "mmc_oemid", "mmc_prv", "mmc_serial", "pci_class",
                        "pci_vendor", "pci_device", "ata_vendor", "ata_model"]
       }
     ]

@@ -28,7 +28,6 @@ TESTDATA_DIR = os.path.join(
 
 class GenericBatteryProbeStatementGeneratorTest(unittest.TestCase):
   def testTryGenerate(self):
-    self.maxDiff = None
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['battery'][0]
 
     ps = ps_gen.TryGenerate(
@@ -58,47 +57,61 @@ class GenericBatteryProbeStatementGeneratorTest(unittest.TestCase):
 
 class GenericStorageMMCProbeStatementGeneratorTest(unittest.TestCase):
   def testTryGenerate(self):
+    comp_values = {
+        'sectors': '112233',
+        'name': 'ABCxyz',
+        'manfid': '0x00022',
+        'oemid': '0x4455',
+        'prv': '0xa',
+        'serial': '0x1234abcd'
+    }
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['storage'][0]
-    ps = ps_gen.TryGenerate(
-        'name1',
-        {'sectors': '112233', 'name': 'ABCxyz', 'manfid': '0x00022',
-         'oemid': '0x4455', 'prv': '0xa'})
+    ps = ps_gen.TryGenerate('name1', comp_values)
     self.assertEqual(
-        ps,
-        {
+        ps, {
             'storage': {
                 'name1': {
-                    'eval': {'generic_storage': {}},
-                    'expect': {'sectors': [True, 'int', '!eq 112233'],
-                               'name': [True, 'str', '!eq ABCxyz'],
-                               'manfid': [True, 'hex', '!eq 0x22'],
-                               'oemid': [True, 'hex', '!eq 0x4455'],
-                               'prv': [True, 'hex', '!eq 0x0A']}
+                    'eval': {
+                        'generic_storage': {}
+                    },
+                    'expect': {
+                        'sectors': [True, 'int', '!eq 112233'],
+                        'mmc_hwrev': [False, 'hex'],
+                        'mmc_name': [True, 'str', '!eq ABCxyz'],
+                        'mmc_manfid': [True, 'hex', '!eq 0x22'],
+                        'mmc_oemid': [True, 'hex', '!eq 0x4455'],
+                        'mmc_prv': [True, 'hex', '!eq 0x0A'],
+                        'mmc_serial': [True, 'hex', '!eq 0x1234ABCD']
+                    }
                 }
             }
         })
 
     # Should report not supported if some fields are missing.
+    invalid_comp_values = dict(comp_values)
+    del invalid_comp_values['manfid']
     self.assertRaises(MissingComponentValueError, ps_gen.TryGenerate, 'n1',
-                      {'sectors': '112233', 'name': 'ABCxyz', 'oemid': '0x4455',
-                       'prv': '0xa'})
+                      invalid_comp_values)
 
-    # Should report not supported because `manfid` has incorrect bit length.
+    # Should report not supported because `oemid` has incorrect bit length.
+    invalid_comp_values = dict(comp_values, oemid='0x44556677')
     self.assertRaises(ProbeStatementConversionError, ps_gen.TryGenerate, 'n1',
-                      {'sectors': '112233', 'name': 'ABCxyz', 'manfid': '0xaa',
-                       'oemid': '0x44556677', 'prv': '0xaabbccdd'})
+                      invalid_comp_values)
+
     # Should report not supported because `name` should be a string of 6 bytes.
+    invalid_comp_values = dict(comp_values, name='A')
     self.assertRaises(ProbeStatementConversionError, ps_gen.TryGenerate, 'n1',
-                      {'sectors': '1133', 'name': 'A', 'manfid': '0xaabbcc',
-                       'oemid': '0x4455', 'prv': '0xaabbccdd'})
+                      invalid_comp_values)
+
     # Should report not supported because `sectors` should be an integer.
+    invalid_comp_values = dict(comp_values, sectors='?')
     self.assertRaises(ProbeStatementConversionError, ps_gen.TryGenerate, 'n1',
-                      {'sectors': '?', 'name': 'ABCxyz', 'manfid': '0xaabbcc',
-                       'oemid': '0x4455', 'prv': '0xa'})
+                      invalid_comp_values)
+
     # Should report not supported because `manfid` is not a valid hex number.
+    invalid_comp_values = dict(comp_values, manfid='0x00ZZZZ')
     self.assertRaises(ProbeStatementConversionError, ps_gen.TryGenerate, 'n1',
-                      {'sectors': '112233', 'name': 'ABCxyz',
-                       'manfid': '0x00ZZZZ', 'oemid': '0x4455', 'prv': '0xa'})
+                      invalid_comp_values)
 
 
 class GenericStorageNVMeProbeStatementGeneratorTest(unittest.TestCase):
