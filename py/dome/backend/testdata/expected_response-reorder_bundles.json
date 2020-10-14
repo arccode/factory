@@ -28,6 +28,10 @@
         "type": "netboot_kernel",
         "version": "N/A"
       },
+      "projectConfig": {
+        "type": "project_config",
+        "version": "N/A"
+      },
       "releaseImage": {
         "type": "release_image",
         "version": "N/A"
@@ -69,6 +73,10 @@
       },
       "netbootKernel": {
         "type": "netboot_kernel",
+        "version": "N/A"
+      },
+      "projectConfig": {
+        "type": "project_config",
         "version": "N/A"
       },
       "releaseImage": {
@@ -114,6 +122,10 @@
         "type": "netboot_kernel",
         "version": "N/A"
       },
+      "projectConfig": {
+        "type": "project_config",
+        "version": "N/A"
+      },
       "releaseImage": {
         "type": "release_image",
         "version": "N/A"
@@ -157,6 +169,10 @@
         "type": "netboot_kernel",
         "version": "N/A"
       },
+      "projectConfig": {
+        "type": "project_config",
+        "version": "N/A"
+      },
       "releaseImage": {
         "type": "release_image",
         "version": "N/A"
@@ -198,6 +214,10 @@
       },
       "netbootKernel": {
         "type": "netboot_kernel",
+        "version": "N/A"
+      },
+      "projectConfig": {
+        "type": "project_config",
         "version": "N/A"
       },
       "releaseImage": {
