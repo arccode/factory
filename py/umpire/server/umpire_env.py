@@ -372,7 +372,12 @@ class UmpireEnv:
         f_path = os.path.join(self.resources_dir, f)
         deleted_size += os.path.getsize(f_path)
         os.unlink(f_path)
-    return {'files': deleted_files, 'size': deleted_size}
+    # XML-RPC does not support 64-bits integer so we need to convert
+    # deleted_size to string.
+    return {
+        'files': deleted_files,
+        'size': str(deleted_size)
+    }
 
 
 class UmpireEnvForTest(UmpireEnv):

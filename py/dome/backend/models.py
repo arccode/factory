@@ -618,7 +618,9 @@ class Resource:
   @staticmethod
   def GarbageCollection(project_name):
     umpire_server = GetUmpireServer(project_name)
-    return umpire_server.ResourceGarbageCollection()
+    payloads = umpire_server.ResourceGarbageCollection()
+    payloads['size'] = int(payloads['size'])
+    return payloads
 
   @staticmethod
   def Download(project_name, bundle_name, resource_type):
