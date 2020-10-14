@@ -9,9 +9,6 @@
 Sends events to input HTTP plugin.
 """
 
-from __future__ import division
-from __future__ import print_function
-
 import logging
 import os
 import time
@@ -149,7 +146,7 @@ class OutputHTTP(plugin_base.OutputPlugin):
                       'the request')
             # This won't be 0 since it will stop on above when
             # self._batch_size=1.
-            self._batch_size /= 2
+            self._batch_size //= 2
             continue
 
           if status_code != 200:  # Bad Request
@@ -161,7 +158,7 @@ class OutputHTTP(plugin_base.OutputPlugin):
           elapsed_time = time.time() - start_time
 
           # Size and speed information.
-          total_kbytes = clen / 1024.0
+          total_kbytes = clen / 1024
           self.info(
               'Transmitted %d events, total %.2f kB in %.1f sec (%.2f kB/sec)',
               len(events), total_kbytes, elapsed_time,

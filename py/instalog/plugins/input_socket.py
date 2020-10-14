@@ -12,9 +12,6 @@ See socket_common.py for protocol definition.
 See input_socket_unittest.py for reference examples.
 """
 
-from __future__ import division
-from __future__ import print_function
-
 import hashlib
 import logging
 import socket
@@ -153,8 +150,8 @@ class InputSocketReceiver(log_utils.LoggerMixin):
         start_time = time.time()
         for event_id in range(num_events):
           event_bytes, event = self.RecvEvent()
-          self.debug('Received event[%d] size: %.2f kB',
-                     event_id, event_bytes / 1024.0)
+          self.debug('Received event[%d] size: %.2f kB', event_id,
+                     event_bytes / 1024)
           total_bytes += event_bytes
           events.append(event)
         receive_time = time.time() - start_time
@@ -196,7 +193,7 @@ class InputSocketReceiver(log_utils.LoggerMixin):
                        'to confirm success with remote side: duplicate data '
                        'may occur')
       finally:
-        total_kbytes = total_bytes / 1024.0
+        total_kbytes = total_bytes / 1024
         self.info('Received %d events, total %.2f kB in %.1f+%.1f sec '
                   '(%.2f kB/sec)',
                   len(events), total_kbytes, receive_time, emit_time,

@@ -19,8 +19,6 @@ This unittest serves as proof that failure will occur without this import, and
 that including this import solves the problem.
 """
 
-from __future__ import print_function
-
 import datetime
 import subprocess
 import sys

@@ -26,8 +26,6 @@
 #                 - consumer metadata missing cur_pos or cur_seq
 # TODO(kitching): Add tests for failure during Truncate operation.
 
-from __future__ import print_function
-
 import collections
 import functools
 import logging

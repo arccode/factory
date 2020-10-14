@@ -6,8 +6,6 @@
 
 """Tests for log-related utilities."""
 
-from __future__ import print_function
-
 import logging
 import unittest
 from unittest import mock

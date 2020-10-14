@@ -6,8 +6,6 @@
 
 """Tests for Instalog datatypes."""
 
-from __future__ import print_function
-
 import copy
 import datetime
 import logging

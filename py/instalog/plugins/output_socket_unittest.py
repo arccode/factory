@@ -6,8 +6,6 @@
 
 """Unittests for output socket plugin."""
 
-from __future__ import print_function
-
 import logging
 import tempfile
 import time

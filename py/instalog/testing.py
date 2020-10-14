@@ -6,8 +6,6 @@
 
 # TODO(kitching): Add locks to ensure multi-threading support.
 
-from __future__ import print_function
-
 import copy
 import logging
 import os

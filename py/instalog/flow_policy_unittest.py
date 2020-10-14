@@ -6,8 +6,6 @@
 
 """Tests for Instalog Event flow policy."""
 
-from __future__ import print_function
-
 import logging
 import unittest
 

@@ -10,8 +10,6 @@ If this module is imported directly as `plugin_loader` instead of its full
 loaded.  Beware.
 """
 
-from __future__ import print_function
-
 import imp
 import inspect
 import logging

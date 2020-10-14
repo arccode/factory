@@ -50,8 +50,6 @@ $ curl -i -X POST \
 (See datatypes.py Event.Deserialize for details of event format.)
 """
 
-from __future__ import print_function
-
 import logging
 import time
 

@@ -6,8 +6,6 @@
 
 """Cloud Storage attachment upload output plugin."""
 
-from __future__ import print_function
-
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.utils.arg_utils import Arg
 from cros.factory.instalog.utils import file_utils

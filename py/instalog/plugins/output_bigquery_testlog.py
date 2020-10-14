@@ -9,8 +9,6 @@
 Subclasses OutputBigQuery to create table rows for Testlog events.
 """
 
-from __future__ import print_function
-
 import datetime
 import json
 import math

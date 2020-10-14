@@ -6,8 +6,6 @@
 
 """Priority multi-file-based testlog buffer."""
 
-from __future__ import print_function
-
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.plugins import buffer_priority_file
 

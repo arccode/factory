@@ -19,8 +19,8 @@ try:
 except ImportError:
   # These lines can be used in a requirements.txt file:
   #
-  #   google-cloud-storage==1.6.0
-  #   google-auth==1.0.2
+  #   google-cloud-storage==1.31.0
+  #   google-auth==1.21.1
   #
   # Then, to install them:
   #

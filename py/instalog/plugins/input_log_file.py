@@ -16,8 +16,6 @@ Default implementation assumes log files contain lines of JSON.  Can be
 subclassed with different implementation of either ParseEvents or ParseLine.
 """
 
-from __future__ import print_function
-
 import glob
 import json
 import logging

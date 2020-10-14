@@ -12,8 +12,6 @@ node.
 See socket_common.py for protocol definition.
 """
 
-from __future__ import print_function
-
 import socket
 
 from cros.factory.instalog import plugin_base

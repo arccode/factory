@@ -25,8 +25,6 @@ The archive structure:
 
 # TODO(kitching): Add a unittest.
 
-from __future__ import print_function
-
 import glob
 import os
 import tarfile

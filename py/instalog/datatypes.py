@@ -8,8 +8,6 @@ Represents data that moves through Instalog (events, attachments) and ways of
 iterating through it.
 """
 
-from __future__ import print_function
-
 import copy
 import datetime
 import filecmp

@@ -6,8 +6,6 @@
 
 # TODO(kitching): Consider moving this to the cros.factory.utils directory.
 
-from __future__ import print_function
-
 import datetime
 import inspect
 import json

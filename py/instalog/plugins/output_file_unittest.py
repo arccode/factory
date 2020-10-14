@@ -6,8 +6,6 @@
 
 """Unittests for output file plugin."""
 
-from __future__ import print_function
-
 import logging
 import os
 import tempfile

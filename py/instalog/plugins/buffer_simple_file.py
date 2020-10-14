@@ -10,8 +10,6 @@ A simple buffer plugin which writes its events to a single file on disk, and
 separately maintains metadata. See buffer_file_common.py for details.
 """
 
-from __future__ import print_function
-
 import os
 import shutil
 

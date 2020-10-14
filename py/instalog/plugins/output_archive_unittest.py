@@ -6,8 +6,6 @@
 
 """Unittests for output archive plugin."""
 
-from __future__ import print_function
-
 import copy
 import glob
 import logging

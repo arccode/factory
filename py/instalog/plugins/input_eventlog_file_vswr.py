@@ -110,8 +110,6 @@ Sample VSWR event_log event:
     ---
 """
 
-from __future__ import print_function
-
 import datetime
 
 from cros.factory.instalog import datatypes

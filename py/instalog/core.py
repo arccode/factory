@@ -2,8 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-from __future__ import print_function
-
 # Fix for bug b/30904731: Import _strptime manually.  Otherwise,
 # threads may initially raise the exception `AttributeError: _strptime`.
 import logging

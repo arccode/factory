@@ -17,8 +17,6 @@
 #                 py/instalog.  Come up with a better way of testing plugins
 #                 that fall under this case.
 
-from __future__ import print_function
-
 import logging
 import os
 import shutil

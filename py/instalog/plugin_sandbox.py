@@ -8,8 +8,6 @@ Loads the plugin class instance (using plugin_loader), manages the plugin's
 state, and implements PluginAPI functions for the plugin.
 """
 
-from __future__ import print_function
-
 import inspect
 import logging
 import os

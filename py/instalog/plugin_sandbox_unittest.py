@@ -11,8 +11,6 @@ plugins can only run particular Plugin API commands during those different
 states.
 """
 
-from __future__ import print_function
-
 import logging
 import threading
 import time

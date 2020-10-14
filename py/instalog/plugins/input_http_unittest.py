@@ -6,8 +6,6 @@
 
 """Unittests for input HTTP plugin."""
 
-from __future__ import print_function
-
 import http.client
 import logging
 import os

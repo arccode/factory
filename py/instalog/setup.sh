@@ -10,28 +10,23 @@ INSTALOG_DIR="$(dirname "$(readlink -f "$0")")"
 REQUIREMENTS_TXT="${INSTALOG_DIR}/requirements.txt"
 VIRTUAL_ENV_DIR="${INSTALOG_DIR}/virtual_env"
 
-if ! [ -x "$(command -v virtualenv)" ]; then
-  echo "'virtualenv' is not installed!"
-  exit 1
-fi
-
 rm -fr "${VIRTUAL_ENV_DIR}"
-echo "Creating an isolated Python environment by virtualenv."
+echo "Creating an isolated Python3 environment by virtualenv."
 mkdir "${VIRTUAL_ENV_DIR}"
-virtualenv "${VIRTUAL_ENV_DIR}"
+# venv is new in Python3.3
+python3 -m venv "${VIRTUAL_ENV_DIR}"
 
 source "${VIRTUAL_ENV_DIR}/bin/activate"
 echo -n "Installing third-party libraries to the virtual environment..."
 # We need to upgrade pip first, or the following line will fail.
-pip install --quiet --upgrade pip
-pip install --quiet --upgrade -r "${REQUIREMENTS_TXT}"
-# If your Python2.7 verion is not 2.7.9+, you can run this line to reduce
-# warnings.
-# pip install --quiet --upgrade "requests[security]==2.18.0"
+pip3 install --quiet --upgrade --no-cache-dir pip
+pip3 install --quiet --upgrade --no-cache-dir wheel
+pip3 install --quiet --upgrade --no-cache-dir -r "${REQUIREMENTS_TXT}"
 echo "done."
 deactivate
 
 echo "Finished!"
 echo "You can go to the directory '$(dirname ${INSTALOG_DIR})' and"
 echo "run Instalog by 'source instalog/virtual_env/bin/activate &&" \
-     "python3 instalog [--config /path/to/instalog.yaml] start && deactivate'"
+     "python3 /path/to/factory/bin/instalog" \
+     "[--config /path/to/instalog.yaml] start && deactivate'"

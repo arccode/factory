@@ -9,8 +9,6 @@
 Logs screenshots of the framebuffer every interval.
 """
 
-from __future__ import print_function
-
 import datetime
 
 from cros.factory.instalog import datatypes

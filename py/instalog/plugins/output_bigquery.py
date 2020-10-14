@@ -20,16 +20,13 @@ Partitioned table updates limits:
 ( Source: https://cloud.google.com/bigquery/quotas )
 """
 
-from __future__ import division
-from __future__ import print_function
-
 import datetime
 import os
 import time
 
 # pylint: disable=import-error, no-name-in-module
+from google.api_core import exceptions
 from google.cloud import bigquery
-from google.cloud import exceptions
 from google.oauth2 import service_account
 
 from cros.factory.instalog import plugin_base
@@ -208,7 +205,7 @@ class OutputBigQuery(plugin_base.OutputPlugin):
             f.write(json_row + '\n')
             row_count += 1
             # We are using time column as the timePartitioning field
-            partition_set.add(int(event['time'] / _SECONDS_IN_A_DAY))
+            partition_set.add(event['time'] // _SECONDS_IN_A_DAY)
         if len(partition_set) == _PARTITION_LIMIT:
           break
 

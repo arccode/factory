@@ -11,9 +11,6 @@ Transmits events to an input socket plugin running on another Instalog node.
 See socket_common.py for protocol definition.
 """
 
-from __future__ import division
-from __future__ import print_function
-
 import hashlib
 import logging
 import os
@@ -136,7 +133,7 @@ class OutputSocketSender(log_utils.LoggerMixin):
       emit_time = time.time() - start_time
 
       # Size and speed information.
-      total_kbytes = total_bytes / 1024.0
+      total_kbytes = total_bytes / 1024
       self.info(
           'Transmitted %d events, total %.2f kB in %.1f+%.1f sec (%.2f kB/sec)',
           len(events), total_kbytes, send_time, emit_time,

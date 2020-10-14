@@ -16,9 +16,6 @@ plugin has many consumers of simple file buffer.
 Since this is a priority multi-file-based buffer plugin, it doesn't guarantee
 the order of its events."""
 
-from __future__ import division
-from __future__ import print_function
-
 import itertools
 import multiprocessing
 import os
@@ -34,11 +31,11 @@ from cros.factory.instalog.utils import file_utils
 
 
 _PRIORITY_LEVEL = 4
+# emit timeout in 10 seconds =
+# (_LOCK_ACQUIRE_LOOP_TIMES * _PARTITION * _LOCK_ACQUIRE_TIMEOUT)
 _PARTITION = 4
 _LOCK_ACQUIRE_TIMEOUT = 0.1
-_LOCK_ACQUIRE_LOOP_TIMES = 25  # emit timeout in
-                               # (_LOCK_ACQUIRE_LOOP_TIMES * _PARTITION *
-                               #  _LOCK_ACQUIRE_TIMEOUT) = 10sec
+_LOCK_ACQUIRE_LOOP_TIMES = 25
 _PROCESSES_NUMBER = 10
 _TEMPORARY_METADATA_DIR = 'metadata_tmp_dir'
 _TEMPORARY_ATTACHMENT_DIR = 'attachments_tmp_dir'
@@ -138,8 +135,8 @@ class BufferPriorityFile(plugin_base.BufferPlugin):
 
       self.Truncate()
       self.info('Truncating complete.  Sleeping %d secs...',
-                self.args.truncate_interval / _PARTITION)
-      self.Sleep(self.args.truncate_interval / _PARTITION)
+                self.args.truncate_interval // _PARTITION)
+      self.Sleep(self.args.truncate_interval // _PARTITION)
 
   def ProduceOrderIter(self):
     """Returns a iterator to get produce order of partitioned buffers."""

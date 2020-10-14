@@ -9,8 +9,6 @@
 Subclasses InputLogFile to correctly parse an event_log file.
 """
 
-from __future__ import print_function
-
 import logging
 
 from cros.factory.instalog import datatypes
