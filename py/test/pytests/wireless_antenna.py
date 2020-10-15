@@ -55,8 +55,6 @@ To run this test on DUT, add a test item in the test list::
   }
 """
 
-from __future__ import division
-
 import collections
 import logging
 import re

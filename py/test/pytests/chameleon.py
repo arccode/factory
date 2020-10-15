@@ -4,8 +4,6 @@
 
 """A factory test that utilizes Chameleon to do automated display testing."""
 
-from __future__ import division
-
 import contextlib
 import logging
 import os

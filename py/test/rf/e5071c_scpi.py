@@ -7,8 +7,6 @@
 
 # TODO(itspeter): write unittest and verify it on a real E5071C
 
-from __future__ import division
-
 import bisect
 import itertools
 import logging

@@ -43,8 +43,6 @@ To select about 20% of the devices, and mark using 'run_audio' key::
   }
 """
 
-from __future__ import division
-
 import hashlib
 import logging
 import unittest

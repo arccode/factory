@@ -4,8 +4,6 @@
 
 """Verifies the integrity of the root partition."""
 
-from __future__ import division
-
 import logging
 import os
 import re

@@ -10,8 +10,6 @@ tool is aimed to better understand the accuracy and speed of different
 configuration/ sensor combination.
 """
 
-from __future__ import division
-
 import argparse
 import time
 

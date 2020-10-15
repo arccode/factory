@@ -64,8 +64,6 @@ Test 20V charge without checking the input current::
 
 """
 
-from __future__ import division
-
 import logging
 
 from cros.factory.device import device_utils

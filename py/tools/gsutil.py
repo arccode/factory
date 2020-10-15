@@ -4,8 +4,6 @@
 
 """A tool for gsutil."""
 
-from __future__ import division
-
 import argparse
 from distutils import version as version_utils
 import logging

@@ -5,8 +5,6 @@
 
 """Tools to finalize a factory bundle."""
 
-from __future__ import division
-
 import argparse
 import contextlib
 import errno

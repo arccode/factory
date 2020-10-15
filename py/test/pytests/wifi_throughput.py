@@ -81,8 +81,6 @@ looks like this::
   }
 """
 
-from __future__ import division
-
 import contextlib
 import json
 import logging

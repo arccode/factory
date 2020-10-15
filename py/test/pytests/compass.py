@@ -5,8 +5,6 @@
 """Compass test which requires operator place the DUT heading north and south.
 """
 
-from __future__ import division
-
 import math
 
 from cros.factory.device import device_utils

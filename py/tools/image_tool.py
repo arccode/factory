@@ -10,8 +10,6 @@ Run "image_tool help" for more info and a list of subcommands.
 To add a subcommand, just add a new SubCommand subclass to this file.
 """
 
-from __future__ import division
-
 import argparse
 import contextlib
 import copy

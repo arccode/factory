@@ -22,8 +22,6 @@ In mode A, the steps are:
    [target_rpm - error_margin, target_rpm + error_margin].
 """
 
-from __future__ import division
-
 import logging
 import time
 

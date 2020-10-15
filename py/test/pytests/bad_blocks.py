@@ -57,8 +57,6 @@ or netboot.  You can find different ways to install images at here:
 https://chromium.googlesource.com/chromiumos/platform/factory/+/master#Imaging-methods
 """
 
-from __future__ import division
-
 from collections import namedtuple
 import logging
 import re

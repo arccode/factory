@@ -25,8 +25,6 @@ Quick Start:
   device.ungrab()
 """
 
-from __future__ import division
-
 import copy
 import fcntl
 import struct

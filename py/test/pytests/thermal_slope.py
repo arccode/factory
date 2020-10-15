@@ -32,8 +32,6 @@ u"""Determines how fast the processor heats/cools.
    fails.
 """
 
-from __future__ import division
-
 import logging
 import time
 import unittest

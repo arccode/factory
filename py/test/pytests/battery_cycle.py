@@ -10,8 +10,6 @@ cycling the battery between a minimum charge (e.g., 5%) and a maximum
 charge (e.g., 95%).  Cycle times are logged to event logs.
 """
 
-from __future__ import division
-
 import collections
 import logging
 import time

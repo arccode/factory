@@ -9,8 +9,6 @@ Because N1914A enables up to 4 ports, methods in this class default to
 expose a parameter called port to specify where action will take place.
 """
 
-from __future__ import division
-
 import struct
 
 from cros.factory.test.rf import agilent_scpi

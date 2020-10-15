@@ -63,8 +63,6 @@ checks the successful pings are >= 70% overall::
   }
 """
 
-from __future__ import division
-
 import logging
 
 from cros.factory.test import test_case

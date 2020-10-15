@@ -9,8 +9,6 @@ USB type-C CC2 functionailty. Note that during pull-high test USB type-C port
 should be disconnected.
 """
 
-from __future__ import division
-
 import logging
 
 from cros.factory.device import device_utils

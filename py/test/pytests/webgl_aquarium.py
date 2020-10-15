@@ -4,8 +4,6 @@
 
 """WebGL performance test that executes a set of WebGL operations."""
 
-from __future__ import division
-
 import time
 
 from cros.factory.test import test_case

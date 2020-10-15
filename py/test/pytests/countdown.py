@@ -49,8 +49,6 @@ exceeding 65 Celcius::
   }
 """
 
-from __future__ import division
-
 import collections
 import logging
 import os

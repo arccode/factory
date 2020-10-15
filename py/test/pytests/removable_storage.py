@@ -102,8 +102,6 @@ If this test can not properly find the device with a specific sysfs_path, try:
   "/sys" as prefix to get the full path.
 """
 
-from __future__ import division
-
 import logging
 import random
 import re

@@ -11,8 +11,6 @@ Note: this module does not have any dependency on factory stuffs so that
       it could be run as a pure server e.g. on a Beagle Bone.
 """
 
-from __future__ import division
-
 import codecs
 import configparser
 import logging

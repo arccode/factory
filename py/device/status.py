@@ -5,8 +5,6 @@
 
 """Module to retrieve system information and status."""
 
-from __future__ import division
-
 import copy
 import functools
 import logging

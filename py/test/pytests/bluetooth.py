@@ -74,8 +74,6 @@ To pair, connect with, and disconnect with the bluetooth input device::
   }
 """
 
-from __future__ import division
-
 import contextlib
 import glob
 import logging

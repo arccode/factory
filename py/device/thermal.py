@@ -7,8 +7,6 @@
 This module reports readings from system thermal sensors and power usage.
 """
 
-from __future__ import division
-
 import logging
 import re
 import struct
