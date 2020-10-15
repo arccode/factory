@@ -49,18 +49,21 @@ _DEFAULT_BATCH_SIZE = 3000
 class OutputBigQuery(plugin_base.OutputPlugin):
 
   ARGS = [
-      Arg('interval', (int, float),
+      Arg(
+          'interval', (int, float),
           'Frequency to upload a BigQuery import, in seconds.  Since BigQuery '
           'only allows 1000 imports per day per table, a value above 86.4 '
           'seconds is recommended to guarantee this limit will not be reached.',
           default=_DEFAULT_INTERVAL),
-      Arg('batch_size', int,
-          'How many events to queue before transmitting.',
+      Arg('batch_size', int, 'How many events to queue before transmitting.',
           default=_DEFAULT_BATCH_SIZE),
       Arg('key_path', str,
           'Path to BigQuery/CloudStorage service account JSON key file.'),
-      Arg('gcs_target_dir', str,
-          'Path to the target bucket and directory on Google Cloud Storage.'),
+      Arg(
+          'gcs_target_dir', str,
+          'Path to the target bucket and directory on Google Cloud Storage.  '
+          'If set to None, not upload attachments to GCS (default).',
+          default=None),
       Arg('project_id', str, 'Google Cloud project ID.'),
       Arg('dataset_id', str, 'BigQuery dataset ID.'),
       Arg('table_id', str, 'BigQuery target table name.')
@@ -182,7 +185,7 @@ class OutputBigQuery(plugin_base.OutputPlugin):
       for event in event_stream.iter(timeout=self.args.interval,
                                      count=self.args.batch_size):
         event_count += 1
-        if not self.UploadAttachments(event):
+        if self.args.gcs_target_dir and not self.UploadAttachments(event):
           return event_count, -1
         json_row = None
         try:
