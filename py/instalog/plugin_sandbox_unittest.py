@@ -17,8 +17,7 @@ import logging
 import threading
 import time
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.instalog import log_utils
 from cros.factory.instalog import plugin_base

@@ -13,8 +13,7 @@ import re
 import shutil
 import tempfile
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.test import session
 

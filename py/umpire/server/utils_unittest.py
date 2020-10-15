@@ -5,8 +5,7 @@
 
 import errno
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.umpire.server import utils
 

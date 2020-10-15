@@ -14,8 +14,7 @@ import logging
 import queue
 import tempfile
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import json_utils

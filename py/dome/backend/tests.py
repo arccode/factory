@@ -6,9 +6,9 @@ import contextlib
 import errno
 import json
 import os
+from unittest import mock
 import xmlrpc.client
 
-import mock
 import rest_framework.status
 import rest_framework.test
 

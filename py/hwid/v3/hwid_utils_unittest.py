@@ -7,8 +7,7 @@
 
 import os
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.hwid.v3.bom import BOM
 from cros.factory.hwid.v3 import common

@@ -14,8 +14,7 @@ import os
 from tempfile import NamedTemporaryFile
 import time
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Shell

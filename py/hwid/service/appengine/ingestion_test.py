@@ -10,11 +10,11 @@ import http
 import io
 import os
 import unittest
+from unittest import mock
 
 # pylint: disable=import-error, wrong-import-order, no-name-in-module
 import flask
 from google.cloud import ndb
-import mock
 import yaml
 # pylint: enable=import-error, wrong-import-order, no-name-in-module
 

@@ -14,8 +14,7 @@ import subprocess
 import sys
 import time
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils

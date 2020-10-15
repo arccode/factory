@@ -7,8 +7,7 @@
 
 import logging
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.device import device_utils
 from cros.factory.test import device_data

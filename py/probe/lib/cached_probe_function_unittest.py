@@ -7,8 +7,7 @@ import os
 import re
 import tempfile
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.probe.lib import cached_probe_function
 from cros.factory.utils import file_utils

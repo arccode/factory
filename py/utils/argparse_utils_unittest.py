@@ -6,8 +6,7 @@
 
 import sys
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import Command

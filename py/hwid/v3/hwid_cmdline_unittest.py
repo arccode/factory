@@ -6,8 +6,8 @@
 import json
 import os
 import unittest
+from unittest import mock
 
-import mock
 import yaml
 
 from cros.factory.hwid.v3.common import HWIDException

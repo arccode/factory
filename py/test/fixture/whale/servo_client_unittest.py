@@ -7,8 +7,7 @@
 """Unittest for servo_client."""
 
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.test.fixture.whale import servo_client
 

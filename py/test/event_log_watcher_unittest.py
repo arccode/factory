@@ -9,8 +9,7 @@ import shutil
 import tempfile
 import time
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.test import event_log
 from cros.factory.test import event_log_watcher

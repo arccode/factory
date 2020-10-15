@@ -18,9 +18,9 @@ import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
 import uuid
 
-import mock
 import yaml
 
 from cros.factory.test import event_log

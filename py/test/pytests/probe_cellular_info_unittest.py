@@ -9,8 +9,7 @@ Requested data are probed, written to the event log, and saved to device data.
 """
 
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.test.pytests import probe_cellular_info
 from cros.factory.utils.arg_utils import Args

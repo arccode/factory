@@ -5,8 +5,7 @@
 
 import subprocess
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.probe.functions import flash_chip
 

@@ -6,8 +6,7 @@
 """Tests for temporary files module dut.temp."""
 
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.device import device_utils
 from cros.factory.device import temp as temp_module

@@ -6,8 +6,7 @@
 """Tests for DeviceInterface in LinuxBoard."""
 
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.device.boards import chromeos
 from cros.factory.device import device_types

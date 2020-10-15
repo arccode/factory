@@ -9,8 +9,7 @@ from itertools import count
 import queue
 import threading
 import time
-
-import mock
+from unittest import mock
 
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
@@ -160,7 +159,7 @@ def MockAll(timeline):
 
     def _Stub(*args, **kwargs):
       frame = inspect.currentframe().f_back
-      while inspect.getmodule(frame).__name__.startswith('mock'):
+      while inspect.getmodule(frame).__name__.startswith('unittest.mock'):
         frame = frame.f_back
       caller_module_name = inspect.getmodule(frame).__name__
       if caller_module_name.startswith('cros.factory.'):

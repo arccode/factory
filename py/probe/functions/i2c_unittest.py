@@ -7,8 +7,7 @@ import os
 import tempfile
 import textwrap
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.probe.functions import i2c
 

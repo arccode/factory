@@ -13,8 +13,7 @@ import random
 import re
 import sys
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.test import event as test_event
 from cros.factory.test import state

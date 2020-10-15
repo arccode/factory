@@ -11,8 +11,8 @@ from __future__ import print_function
 import logging
 import os
 import re
+from unittest import mock
 
-import mock
 from twisted.internet import reactor
 from twisted.trial import unittest
 from twisted.web import server

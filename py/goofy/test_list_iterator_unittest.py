@@ -6,8 +6,7 @@
 import logging
 import pickle
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.goofy import test_list_iterator
 from cros.factory.test import state

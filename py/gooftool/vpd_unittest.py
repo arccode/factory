@@ -4,8 +4,7 @@
 # found in the LICENSE file.
 
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.gooftool import common
 from cros.factory.gooftool import vpd

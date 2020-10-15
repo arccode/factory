@@ -10,8 +10,7 @@ import os
 import shutil
 import tempfile
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.test.pytests.rf_graphyte import rf_graphyte
 

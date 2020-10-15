@@ -12,8 +12,7 @@ import os
 import subprocess
 import tempfile
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.device import device_utils
 from cros.factory.utils.process_utils import Spawn

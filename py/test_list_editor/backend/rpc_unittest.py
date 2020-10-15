@@ -7,8 +7,7 @@ import json
 import numbers
 import os
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.test.env import paths
 from cros.factory.test.test_lists import test_list_common

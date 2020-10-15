@@ -13,8 +13,7 @@ import logging
 import os
 import tempfile
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.instalog import datatypes
 from cros.factory.instalog import log_utils

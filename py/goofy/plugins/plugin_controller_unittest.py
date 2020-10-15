@@ -7,8 +7,7 @@
 
 import os
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.goofy import goofy
 from cros.factory.goofy import goofy_server

@@ -10,8 +10,7 @@ import os
 import shutil
 import tempfile
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.test import device_data
 from cros.factory.test import state

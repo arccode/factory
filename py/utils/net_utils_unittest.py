@@ -12,9 +12,8 @@ import socket
 import threading
 import time
 import unittest
+from unittest import mock
 import xmlrpc.server
-
-import mock
 
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils

@@ -10,8 +10,7 @@ from __future__ import print_function
 import queue
 import threading
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.unittest_utils import mock_time_utils
 from cros.factory.utils import type_utils

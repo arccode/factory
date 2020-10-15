@@ -12,8 +12,7 @@ import shutil
 import sys
 import tempfile
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.tools import migrate_board_dir
 from cros.factory.tools.migrate_board_dir import MigrateBoardException

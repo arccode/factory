@@ -10,10 +10,10 @@ import hashlib
 import http.client
 import os.path
 import unittest
+from unittest import mock
 
 # pylint: disable=wrong-import-order, import-error
 from dulwich.objects import Tree
-import mock
 # pylint: enable=wrong-import-order, import-error
 
 from cros.factory.hwid.service.appengine import git_util

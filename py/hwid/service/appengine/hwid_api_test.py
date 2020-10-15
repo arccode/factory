@@ -9,11 +9,11 @@ import gzip
 import json
 import os.path
 import unittest
+from unittest import mock
 
 # pylint: disable=import-error, no-name-in-module, wrong-import-order
 import flask
 from google.protobuf import json_format
-import mock
 # pylint: enable=import-error, no-name-in-module, wrong-import-order
 
 from cros.chromeoshwid import update_checksum

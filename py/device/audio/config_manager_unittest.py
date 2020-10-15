@@ -5,8 +5,7 @@
 
 import os
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.device.audio import config_manager
 

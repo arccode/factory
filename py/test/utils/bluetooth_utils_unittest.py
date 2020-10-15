@@ -7,8 +7,7 @@
 """Unittest for bluetooth_utils."""
 
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.test.utils import bluetooth_utils
 

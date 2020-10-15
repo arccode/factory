@@ -7,8 +7,7 @@
 
 import os
 import unittest
-
-import mock
+from unittest import mock
 
 # pylint: disable=import-error
 from cros.factory.hwid.service.appengine import hwid_validator

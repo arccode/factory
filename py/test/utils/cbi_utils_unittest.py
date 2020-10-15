@@ -5,8 +5,7 @@
 
 import subprocess
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.test.utils import cbi_utils
 

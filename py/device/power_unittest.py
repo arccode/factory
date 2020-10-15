@@ -12,8 +12,7 @@ from __future__ import print_function
 from subprocess import CalledProcessError
 import textwrap
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.device import device_utils
 from cros.factory.device import power

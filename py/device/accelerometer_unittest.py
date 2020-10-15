@@ -6,8 +6,7 @@
 """Unittest for accelerometer module."""
 
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.device import accelerometer
 

@@ -11,8 +11,7 @@ import os
 import shutil
 import tempfile
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.test.utils import core_dump_manager
 

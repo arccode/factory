@@ -20,8 +20,8 @@ import threading
 import time
 import traceback
 import unittest
+from unittest import mock
 
-import mock
 from ws4py.client import WebSocketBaseClient
 
 from cros.factory.device import info as device_info

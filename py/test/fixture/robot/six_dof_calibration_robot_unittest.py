@@ -5,8 +5,8 @@
 # found in the LICENSE file.
 
 import unittest
+from unittest import mock
 
-import mock
 import serial
 
 from cros.factory.test.fixture.robot import six_dof_calibration_robot

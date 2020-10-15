@@ -16,9 +16,8 @@ import queue
 import shutil
 import threading
 import unittest
+from unittest import mock
 import urllib.parse
-
-import mock
 
 from cros.factory.test import state
 from cros.factory.utils import debug_utils

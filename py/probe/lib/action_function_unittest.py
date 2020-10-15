@@ -4,8 +4,7 @@
 # found in the LICENSE file.
 
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.probe import function
 from cros.factory.probe.lib import action_function

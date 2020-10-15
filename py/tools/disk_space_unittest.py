@@ -8,8 +8,7 @@
 import collections
 import os
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.tools import disk_space
 

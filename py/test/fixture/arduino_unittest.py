@@ -7,8 +7,8 @@
 """Unittest for serial_utils."""
 
 import unittest
+from unittest import mock
 
-import mock
 import serial
 
 from cros.factory.test.fixture import arduino

@@ -7,8 +7,7 @@
 """Unittest for serial_utils."""
 
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.test.utils import serial_utils
 

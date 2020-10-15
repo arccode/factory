@@ -7,8 +7,8 @@
 
 import pickle
 import unittest
+from unittest import mock
 
-import mock
 import redis
 
 from cros.factory.hwid.service.appengine import memcache_adapter

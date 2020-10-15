@@ -21,8 +21,7 @@ ADD requirements.txt "${workdir}/requirements.txt"
 
 RUN pip install \
       --target "${workdir}"/lib \
-      --requirement "${workdir}"/requirements.txt \
-      mock==2.0.0
+      --requirement "${workdir}"/requirements.txt
 
 ADD . "${workdir}/hwid"
 

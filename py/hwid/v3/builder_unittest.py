@@ -5,8 +5,7 @@
 
 import os
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.hwid.v3 import builder
 from cros.factory.hwid.v3 import common

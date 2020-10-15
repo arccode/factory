@@ -5,9 +5,9 @@
 # found in the LICENSE file.
 
 import unittest
+from unittest import mock
 
 import dbus
-import mock
 
 from cros.factory.test.utils import connection_manager
 from cros.factory.utils.net_utils import WLAN

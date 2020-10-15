@@ -10,8 +10,7 @@ import os
 import tempfile
 import time
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.tools import time_sanitizer
 from cros.factory.utils import file_utils

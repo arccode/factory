@@ -10,8 +10,7 @@ from __future__ import print_function
 
 import logging
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.instalog import log_utils
 

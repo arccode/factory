@@ -5,8 +5,7 @@
 """Unit tests for mrc_cache."""
 
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.tools import mrc_cache
 

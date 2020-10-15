@@ -7,9 +7,9 @@
 import collections
 import os.path
 import unittest
+from unittest import mock
 
 import google.cloud.exceptions  # pylint: disable=no-name-in-module, import-error
-import mock
 
 from cros.factory.hwid.service.appengine import cloudstorage_adapter
 

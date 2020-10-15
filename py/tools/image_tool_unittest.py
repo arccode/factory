@@ -17,8 +17,7 @@ import sys
 import tempfile
 import time
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.tools import image_tool
 from cros.factory.utils import process_utils

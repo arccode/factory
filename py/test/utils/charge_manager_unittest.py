@@ -8,8 +8,7 @@
 
 import logging
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.device.power import Power
 from cros.factory.test.utils import charge_manager

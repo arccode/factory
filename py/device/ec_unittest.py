@@ -11,8 +11,7 @@ from __future__ import print_function
 
 import textwrap
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.device import device_types
 from cros.factory.device import ec

@@ -7,8 +7,7 @@
 
 import codecs
 import unittest
-
-import mock
+from unittest import mock
 
 from cros.factory.doc import generate_rsts
 from cros.factory.utils.arg_utils import Arg

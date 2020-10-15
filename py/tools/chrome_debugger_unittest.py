@@ -9,10 +9,10 @@ from io import StringIO
 import json
 import logging
 import unittest
+from unittest import mock
 import urllib.error
 import urllib.request
 
-import mock
 from ws4py.client.threadedclient import WebSocketClient
 
 from cros.factory.tools import chrome_debugger
