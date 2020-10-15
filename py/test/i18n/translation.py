@@ -4,8 +4,6 @@
 
 """Module to handle internationalization in goofy tests."""
 
-from __future__ import print_function
-
 import gettext
 import glob
 import json

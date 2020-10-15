@@ -4,8 +4,6 @@
 
 """Module to handle i18n arguments in goofy tests."""
 
-from __future__ import print_function
-
 from cros.factory.test.i18n import translation
 from cros.factory.utils import arg_utils
 

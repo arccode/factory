@@ -4,8 +4,6 @@
 
 """A module for creating and interacting with factory test UI."""
 
-from __future__ import print_function
-
 import collections
 import functools
 import html as html_module

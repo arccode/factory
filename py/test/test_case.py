@@ -4,8 +4,6 @@
 
 """A module for base test case for pytests."""
 
-from __future__ import print_function
-
 import collections
 import sys
 import threading

@@ -4,8 +4,6 @@
 
 """functions for probing components."""
 
-from __future__ import print_function
-
 import logging
 
 from cros.factory.probe import common

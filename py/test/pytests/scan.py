@@ -46,8 +46,6 @@ A regular expression can also be specified to check the validity::
   }
 """
 
-from __future__ import print_function
-
 import logging
 import re
 

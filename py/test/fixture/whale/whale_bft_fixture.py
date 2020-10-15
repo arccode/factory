@@ -3,8 +3,6 @@
 # found in the LICENSE file.
 """Provides interfaces to interact with Whale BFT fixture."""
 
-from __future__ import print_function
-
 import ast
 import logging
 import os

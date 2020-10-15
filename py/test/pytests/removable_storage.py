@@ -103,7 +103,6 @@ If this test can not properly find the device with a specific sysfs_path, try:
 """
 
 from __future__ import division
-from __future__ import print_function
 
 import logging
 import random

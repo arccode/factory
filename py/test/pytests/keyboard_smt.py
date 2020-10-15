@@ -9,8 +9,6 @@ scan lines' row-column crossing points. It also can trigger a SMT testing
 fixture to send out signals to simulate key presses on the key sequence.
 """
 
-from __future__ import print_function
-
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test import session
 from cros.factory.test import test_case

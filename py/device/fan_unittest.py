@@ -7,8 +7,6 @@
 
 """Unittest for FanControl component."""
 
-from __future__ import print_function
-
 import os.path
 import unittest
 from unittest import mock

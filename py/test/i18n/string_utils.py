@@ -4,8 +4,6 @@
 
 """Module to handle string operations for i18n text."""
 
-from __future__ import print_function
-
 import html
 import logging
 import string

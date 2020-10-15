@@ -11,8 +11,6 @@ related files and this installer. This installer is invoked when the toolkit
 is deployed and is responsible for installing files.
 """
 
-from __future__ import print_function
-
 import argparse
 from contextlib import contextmanager
 import getpass

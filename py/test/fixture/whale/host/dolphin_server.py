@@ -5,8 +5,6 @@
 
 """RPCServer to support serial connection to Plankton-Raiden of Dolphin."""
 
-from __future__ import print_function
-
 import argparse
 import logging
 import os

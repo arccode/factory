@@ -12,8 +12,6 @@ Provides an interface to communicate w/ a serial device: SerialDevice. See
 class comment for details.
 """
 
-from __future__ import print_function
-
 import glob
 import logging
 import os

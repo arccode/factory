@@ -60,9 +60,6 @@ To show a message for 20 seconds, and automatically pass::
   }
 """
 
-
-from __future__ import print_function
-
 from cros.factory.test.i18n import _
 from cros.factory.test.i18n import arg_utils as i18n_arg_utils
 from cros.factory.test import test_case

@@ -8,8 +8,6 @@
 #                  keys directly with ODM's public key, and the key server
 #                  merely stores them without knowing anything about them.
 
-from __future__ import print_function
-
 import argparse
 import hashlib
 import imp

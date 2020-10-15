@@ -7,8 +7,6 @@
 See ConfigDeployer for detail.
 """
 
-from __future__ import print_function
-
 import logging
 
 from twisted.python import failure as twisted_failure

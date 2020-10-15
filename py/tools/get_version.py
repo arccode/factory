@@ -4,8 +4,6 @@
 
 """Utility to get release image and firmware version."""
 
-from __future__ import print_function
-
 import logging
 import os
 import re

@@ -17,8 +17,6 @@
     ref: src/platform/vboot_reference/firmware/lib/include/vboot_struct.h
 """
 
-from __future__ import print_function
-
 import struct
 import sys
 

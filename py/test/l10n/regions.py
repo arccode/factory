@@ -8,8 +8,6 @@
 Run this module to display all known regions (use --help to see options).
 """
 
-from __future__ import print_function
-
 import argparse
 import json
 import os

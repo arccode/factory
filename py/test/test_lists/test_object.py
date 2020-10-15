@@ -9,8 +9,6 @@ infrastructure. This library explicitly does not import gtk, to
 allow its use by the autotest control process.
 """
 
-from __future__ import print_function
-
 import itertools
 import json
 import logging

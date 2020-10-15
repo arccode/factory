@@ -12,8 +12,6 @@ provides all of the Google required test functionality and must be run
 on each device as part of the assembly process.
 """
 
-from __future__ import print_function
-
 import logging
 import os
 import pipes

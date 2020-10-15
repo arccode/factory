@@ -12,8 +12,6 @@ factory stuffs, e.g., on a Beagle Bone, this module does not depend on
 any factory modules on purpose.
 """
 
-from __future__ import print_function
-
 import glob
 import logging
 import os

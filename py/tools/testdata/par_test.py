@@ -5,9 +5,6 @@
 
 """Test program for tiny_par_unittest.py."""
 
-
-from __future__ import print_function
-
 import sys
 
 

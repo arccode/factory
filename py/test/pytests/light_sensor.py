@@ -84,8 +84,6 @@ Note that you have to specify ``subtest_list``, ``subtests_instruction``,
 ``subtest_cfg`` at the same time.
 """
 
-from __future__ import print_function
-
 import logging
 import math
 import os

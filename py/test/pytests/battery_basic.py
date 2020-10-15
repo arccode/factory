@@ -41,8 +41,6 @@ To relax the limitation of battery cycle count to 5::
   }
 """
 
-from __future__ import print_function
-
 import logging
 
 from cros.factory.device import device_utils

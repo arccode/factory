@@ -14,8 +14,6 @@
     ref: src/platform/vboot_reference/firmware/include/bmpblk_header.h
 """
 
-from __future__ import print_function
-
 import struct
 import sys
 

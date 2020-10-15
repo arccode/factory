@@ -5,8 +5,6 @@
 
 """Command-line interface for probe utilities."""
 
-from __future__ import print_function
-
 import argparse
 import logging
 import sys

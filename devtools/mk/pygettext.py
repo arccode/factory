@@ -21,8 +21,6 @@
 # The original version is from Python source repository:
 # https://hg.python.org/cpython/file/2.7/Tools/i18n/pygettext.py
 
-from __future__ import print_function
-
 import argparse
 import ast
 import collections

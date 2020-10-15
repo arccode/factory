@@ -9,8 +9,6 @@ The tool sets py_pkg to the env path properly, so that cros.factory.* can be
 located for the command. After env is set, it runs the command directly.
 """
 
-from __future__ import print_function
-
 import os
 import sys
 

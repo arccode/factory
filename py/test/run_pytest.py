@@ -8,8 +8,6 @@
 Note that this is tested indirectly by make_par_unittest.py.
 """
 
-from __future__ import print_function
-
 import argparse
 import ast
 import logging

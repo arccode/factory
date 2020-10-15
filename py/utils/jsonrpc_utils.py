@@ -4,8 +4,6 @@
 
 """JSONRPC-related utilities."""
 
-from __future__ import print_function
-
 import http.server
 import inspect
 import threading

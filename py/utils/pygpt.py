@@ -25,9 +25,6 @@ This pygpt.py provides a simple and customized implementation for processing
 GPT, as a replacement for `cgpt`.
 """
 
-
-from __future__ import print_function
-
 import argparse
 import binascii
 import codecs

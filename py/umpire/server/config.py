@@ -9,8 +9,6 @@ To validate a Umpire config file 'abc.json':
   umpire_config = UmpireConfig(file_path='abc.json')
 """
 
-from __future__ import print_function
-
 import copy
 
 from cros.factory.umpire import common

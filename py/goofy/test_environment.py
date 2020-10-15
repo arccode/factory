@@ -4,8 +4,6 @@
 
 """Enviroment objects that handles external test operations."""
 
-from __future__ import print_function
-
 import logging
 import subprocess
 import threading

@@ -7,9 +7,6 @@
 
 """The unittest for the main factory flow that runs the factory test."""
 
-
-from __future__ import print_function
-
 import collections
 import inspect
 import logging

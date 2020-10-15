@@ -8,7 +8,6 @@
 This script output all pytests in py/test/pytests in JSON format, with most
 non-pytest items filtered (unittests, utils, ...)
 """
-from __future__ import print_function
 
 import argparse
 import json

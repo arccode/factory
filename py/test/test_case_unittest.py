@@ -5,8 +5,6 @@
 
 """Unit tests for TestCase module."""
 
-from __future__ import print_function
-
 import queue
 import unittest
 from unittest import mock

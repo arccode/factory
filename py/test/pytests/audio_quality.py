@@ -50,8 +50,6 @@ Here is an example, assuming your audio device is ``<audio_device>``::
 server.
 """
 
-from __future__ import print_function
-
 import binascii
 import logging
 import os

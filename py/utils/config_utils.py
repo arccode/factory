@@ -41,8 +41,6 @@ Usage:
  2
 """
 
-from __future__ import print_function
-
 import collections
 import collections.abc
 import glob

@@ -8,8 +8,6 @@ This module is intended to work with Chrome OS DUTs only as it uses Chrome OS
 testing_rsa identity.
 """
 
-from __future__ import print_function
-
 import logging
 import os
 

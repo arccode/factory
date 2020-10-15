@@ -65,8 +65,6 @@ To manual checking external display at USB Port 0, add this in test list::
   }
 """
 
-from __future__ import print_function
-
 import collections
 import logging
 import os

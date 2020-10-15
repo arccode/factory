@@ -11,8 +11,6 @@ test equipment. All of the unittests assumed to simulate on port 1 if no
 explicit annotation is given.
 """
 
-from __future__ import print_function
-
 import logging
 import socketserver
 import threading

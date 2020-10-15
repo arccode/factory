@@ -4,8 +4,6 @@
 
 """Accesses I2C devies via Linux i2c-dev driver."""
 
-from __future__ import print_function
-
 import fcntl
 import io
 import struct

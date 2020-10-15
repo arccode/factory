@@ -9,8 +9,6 @@
 Remove all factory toolkit related files on CrOS device.
 """
 
-from __future__ import print_function
-
 import argparse
 import os
 import sys

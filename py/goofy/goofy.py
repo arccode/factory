@@ -5,8 +5,6 @@
 
 """The main factory flow that runs the factory test and finalizes a device."""
 
-from __future__ import print_function
-
 import argparse
 import logging
 import os

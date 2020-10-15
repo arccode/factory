@@ -12,9 +12,6 @@ See the URL for more details:
 https://chromium.googlesource.com/chromiumos/platform/factory/+/master/resources/README.md
 """
 
-
-from __future__ import print_function
-
 import argparse
 import glob
 import itertools

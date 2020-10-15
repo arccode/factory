@@ -6,8 +6,6 @@
 This is audio utility module to setup tinymix related options.
 """
 
-from __future__ import print_function
-
 import copy
 import logging
 from multiprocessing import Process

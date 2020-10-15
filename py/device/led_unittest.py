@@ -6,8 +6,6 @@
 
 """Unittest for LED."""
 
-from __future__ import print_function
-
 import unittest
 from unittest import mock
 

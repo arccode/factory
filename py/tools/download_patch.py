@@ -9,8 +9,6 @@ specific topic or hashtag.  If BOARD is given, will also cherry-pick changes in
 private overlay.  Please refer to tools/README.md for more detailed information.
 """
 
-from __future__ import print_function
-
 import argparse
 import logging
 import os

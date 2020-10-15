@@ -4,8 +4,6 @@
 
 """Platform-specific utilities."""
 
-from __future__ import print_function
-
 import os
 import platform
 import time

@@ -27,7 +27,6 @@ under DUT shell. For example::
   You may specify config like:
   bft_fixture --config whale/bft.conf Ping
 """
-from __future__ import print_function
 
 import argparse
 import logging

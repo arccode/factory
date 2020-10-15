@@ -4,8 +4,6 @@
 
 # TODO(hungte) Remove this legacy file when migration is over.
 
-from __future__ import print_function
-
 from cros.factory.device import device_types
 
 DeviceLink = device_types.DeviceLink

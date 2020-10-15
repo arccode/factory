@@ -4,8 +4,6 @@
 
 """Module for methods of creating i18n UIs."""
 
-from __future__ import print_function
-
 from cros.factory.test.i18n import translation
 
 

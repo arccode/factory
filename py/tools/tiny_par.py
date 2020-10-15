@@ -32,8 +32,6 @@ For examples:
   ./tools.par pygpt ...
 """
 
-from __future__ import print_function
-
 import argparse
 import logging
 import os

@@ -9,8 +9,6 @@
 BigQuery / GCS across a given date range, and to save them to disk.
 """
 
-from __future__ import print_function
-
 import argparse
 import hashlib
 import json

@@ -15,9 +15,6 @@ The `state` provides two different data set using shelve_utils.DictShelfView:
    - other global or session variables.
 """
 
-
-from __future__ import print_function
-
 import logging
 import os
 import pickle

@@ -5,9 +5,6 @@
 
 """An utility to convert existing YAML files to JSON format."""
 
-
-from __future__ import print_function
-
 import json
 import os
 import sys

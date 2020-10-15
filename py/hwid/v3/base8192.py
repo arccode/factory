@@ -5,8 +5,6 @@
 
 """Implementation of base8192 utilities."""
 
-from __future__ import print_function
-
 import argparse
 from zlib import crc32
 

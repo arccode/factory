@@ -7,8 +7,6 @@
 This module provides reading and setting system fan speed.
 """
 
-from __future__ import print_function
-
 import re
 
 from cros.factory.device import device_types

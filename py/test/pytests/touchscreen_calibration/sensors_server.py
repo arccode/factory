@@ -12,7 +12,6 @@ Note: this module does not have any dependency on factory stuffs so that
 """
 
 from __future__ import division
-from __future__ import print_function
 
 import codecs
 import configparser

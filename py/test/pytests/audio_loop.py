@@ -166,8 +166,6 @@ for your sound card. Otherwise the test will use audio.json instead of ucm::
     }
 """
 
-from __future__ import print_function
-
 import logging
 import os
 import re

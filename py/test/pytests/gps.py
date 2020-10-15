@@ -29,8 +29,6 @@ Here's an example of input arguments::
                  ('ref_clock_offset', 'mean', '<', 3000)]})}
 """
 
-from __future__ import print_function
-
 import logging
 import os
 import re

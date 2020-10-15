@@ -5,8 +5,6 @@
 
 """Client to connect to serial server."""
 
-from __future__ import print_function
-
 import argparse
 import logging
 import sys

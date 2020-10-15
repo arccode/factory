@@ -4,8 +4,6 @@
 
 """Syncronization-related utilities (waiting for state change)."""
 
-from __future__ import print_function
-
 from contextlib import contextmanager
 import functools
 import inspect

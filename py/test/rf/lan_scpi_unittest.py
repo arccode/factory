@@ -9,8 +9,6 @@
 It starts a local server to mock the test equipment.
 """
 
-from __future__ import print_function
-
 import logging
 import socketserver
 import threading

@@ -12,8 +12,6 @@ Run "factory --help" for more info and a list of subcommands.
 To add a subcommand, just add a new Subcommand subclass to this file.
 """
 
-from __future__ import print_function
-
 import argparse
 import csv
 import inspect

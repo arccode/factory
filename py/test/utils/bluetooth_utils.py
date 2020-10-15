@@ -11,8 +11,6 @@ battery level and the firmware revision string of the target bluetooth device.
 This module is mostly inspired by rel_tester.py written by mylesgw@chromium.org
 """
 
-from __future__ import print_function
-
 import argparse
 import binascii
 import datetime

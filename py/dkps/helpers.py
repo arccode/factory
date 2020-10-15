@@ -19,8 +19,6 @@ To use the helper, the user can either:
   2. Import this module and use the APIs of UploaderHelper, RequesterHelper.
 """
 
-from __future__ import print_function
-
 import argparse
 import os
 import shutil

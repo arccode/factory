@@ -9,8 +9,6 @@ Scans given python modules and see their dependency. Usage:
   deps.py PYTHON_FILE(s)...
 """
 
-from __future__ import print_function
-
 import argparse
 import ast
 from distutils import sysconfig

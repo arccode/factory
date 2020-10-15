@@ -7,8 +7,6 @@
 
 """Unittest for Embedded Controller."""
 
-from __future__ import print_function
-
 import textwrap
 import unittest
 from unittest import mock

@@ -4,8 +4,6 @@
 
 """This is audio utility module to setup amixer related options."""
 
-from __future__ import print_function
-
 import logging
 import re
 

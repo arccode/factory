@@ -7,8 +7,6 @@
 
 """Unittest for Thermal component."""
 
-from __future__ import print_function
-
 import fnmatch
 import os.path
 import unittest

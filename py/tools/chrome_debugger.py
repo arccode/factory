@@ -21,9 +21,6 @@ Example:
 See https://developer.chrome.com/devtools/docs/debugger-protocol for more
 information."""
 
-
-from __future__ import print_function
-
 import json
 import sys
 import threading

@@ -59,7 +59,6 @@ if g:vim_sort_import_map != ''
 endif
 
 VimPython <<EOF
-from __future__ import print_function
 import vim
 
 def SortImports():

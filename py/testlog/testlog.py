@@ -35,9 +35,6 @@ TODO(itspeter): Move to Instalog folder and remove the dependency of
                    └─ testlog_seq
 """
 
-
-from __future__ import print_function
-
 import json
 import logging
 import os

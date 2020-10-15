@@ -11,8 +11,6 @@ MockFixtureConnection: a fake FixtureConnection for testing purpose.
 SerialFixtureConnection: a serial port based FixtureConnection.
 """
 
-from __future__ import print_function
-
 import abc
 import time
 

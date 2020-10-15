@@ -5,8 +5,6 @@
 
 """Unit tests for mock_time_utils module."""
 
-from __future__ import print_function
-
 import queue
 import threading
 import unittest

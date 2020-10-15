@@ -6,8 +6,6 @@
 
 """Creates a self-extracting Python executable."""
 
-from __future__ import print_function
-
 import argparse
 import glob
 import logging

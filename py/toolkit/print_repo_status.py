@@ -10,8 +10,6 @@ This is used to generate the file containing the status of each repositories
 in the factory toolkit.
 """
 
-from __future__ import print_function
-
 import argparse
 import os
 
