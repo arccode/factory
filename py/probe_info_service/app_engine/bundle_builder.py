@@ -42,6 +42,8 @@ class BundleBuilder:
   _REGULAR_MODE = 0o644
   _EXECUTABLE_MODE = 0o755
 
+  FILE_NAME_EXT = '.sh'
+
   def __init__(self):
     self._file_entries = []
     self._runner_path = None

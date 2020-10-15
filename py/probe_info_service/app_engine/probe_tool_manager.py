@@ -317,6 +317,12 @@ class ProbeInfoArtifact(typing.NamedTuple):
     return self.probe_info_parsed_result
 
 
+class NamedFile(typing.NamedTuple):
+  """A placeholder represents a named file."""
+  name: str
+  content: bytes
+
+
 @type_utils.CachedGetter
 def _GetClientPayloadPb2Content():
   return file_utils.ReadFile(client_payload_pb2.__file__, encoding=None)
@@ -446,8 +452,9 @@ class ProbeToolManager:
       probe_data_source: The source of the test bundle.
 
     Returns:
-      An instance of `ProbeInfoArtifact`, which `output` property is a string
-      of the result payload.
+      An instance of `ProbeInfoArtifact`, which `output` property is an instance
+      of `NamedFile`, which represents the result payload for the user to
+      download.
     """
     probe_info_parsed_results = []
     probe_statements = []
@@ -495,7 +502,11 @@ class ProbeToolManager:
     builder.AddRegularFile(
         'metadata.prototxt', text_format.MessageToBytes(metadata))
 
-    return ProbeInfoArtifact(probe_info_parsed_results, builder.Build())
+    # TODO(yhong): Construct a more meaningful file name according to the
+    #     expected user scenario.
+    result_file = NamedFile('probe_bundle' + builder.FILE_NAME_EXT,
+                            builder.Build())
+    return ProbeInfoArtifact(probe_info_parsed_results, result_file)
 
   def AnalyzeQualProbeTestResultPayload(
       self, probe_data_source: ProbeDataSource,

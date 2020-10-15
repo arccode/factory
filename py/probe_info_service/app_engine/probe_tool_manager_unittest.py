@@ -138,14 +138,14 @@ class ProbeToolManagerTest(unittest.TestCase):
     generated_ps = self._probe_tool_manager.GenerateRawProbeStatement(s).output
     self._AssertJSONStringEqual(generated_ps, overridden_ps)
 
-  def test_GenerateQualProbeTestBundlePayload_ProbeParameterError(self):
+  def test_GenerateProbeBundlePayload_ProbeParameterError(self):
     s = self._LoadProbeDataSource('1-param_value_error')
     resp = self._probe_tool_manager.GenerateProbeBundlePayload([s])
     self.assertEqual(
         resp.probe_info_parsed_results[0],
         unittest_utils.LoadProbeInfoParsedResult('1-param_value_error'))
 
-  def test_GenerateQualProbeTestBundlePayload_IncompatibleError(self):
+  def test_GenerateProbeBundlePayload_IncompatibleError(self):
     probe_info, comp_name = _LoadProbeInfoAndCompName('1-valid')
     for probe_param in probe_info.probe_parameters:
       if probe_param.name == 'manfid':
@@ -159,14 +159,14 @@ class ProbeToolManagerTest(unittest.TestCase):
   def test_GenerateQualProbeTestBundlePayload_Passed(self):
     info = unittest_utils.FakeProbedOutcomeInfo('1-succeed')
 
-    resp = self._GenerateQualProbeTestBundlePayloadForFakeRuntimeProbe(info)
+    resp = self._GenerateProbeBundlePayloadForFakeRuntimeProbe(info)
     self.assertEqual(resp.probe_info_parsed_results[0].result_type,
                      resp.probe_info_parsed_results[0].PASSED)
 
     # Invoke the probe bundle file with a fake `runtime_probe` to verify if the
     # probe bundle works.
     unpacked_dir, probed_outcome = self._InvokeProbeBundleWithFakeRuntimeProbe(
-        resp.output, info.envs)
+        resp.output.content, info.envs)
     arg_str, pc_payload = self._ExtractFakeRuntimeProbeStderr(probed_outcome)
     self.assertEqual(probed_outcome, info.probed_outcome)
     self.assertEqual(arg_str,
@@ -176,7 +176,7 @@ class ProbeToolManagerTest(unittest.TestCase):
   def test_GenerateQualProbeTestBundlePayload_MultipleSourcePassed(self):
     info = unittest_utils.FakeProbedOutcomeInfo('1_2-succeed')
 
-    resp = self._GenerateQualProbeTestBundlePayloadForFakeRuntimeProbe(info)
+    resp = self._GenerateProbeBundlePayloadForFakeRuntimeProbe(info)
     self.assertEqual(resp.probe_info_parsed_results[0].result_type,
                      resp.probe_info_parsed_results[0].PASSED)
     self.assertEqual(resp.probe_info_parsed_results[1].result_type,
@@ -185,7 +185,7 @@ class ProbeToolManagerTest(unittest.TestCase):
     # Invoke the probe bundle file with a fake `runtime_probe` to verify if the
     # probe bundle works.
     unpacked_dir, probed_outcome = self._InvokeProbeBundleWithFakeRuntimeProbe(
-        resp.output, info.envs)
+        resp.output.content, info.envs)
     arg_str, pc_payload = self._ExtractFakeRuntimeProbeStderr(probed_outcome)
     self.assertEqual(probed_outcome, info.probed_outcome)
     self.assertEqual(arg_str,
@@ -195,12 +195,13 @@ class ProbeToolManagerTest(unittest.TestCase):
   def test_GenerateQualProbeTestBundlePayload_NoRuntimeProbe(self):
     info = unittest_utils.FakeProbedOutcomeInfo('1-bin_not_found')
 
-    resp = self._GenerateQualProbeTestBundlePayloadForFakeRuntimeProbe(info)
+    resp = self._GenerateProbeBundlePayloadForFakeRuntimeProbe(info)
     self.assertEqual(resp.probe_info_parsed_results[0].result_type,
                      resp.probe_info_parsed_results[0].PASSED)
 
     unused_unpacked_dir, probed_outcome = (
-        self._InvokeProbeBundleWithFakeRuntimeProbe(resp.output, info.envs))
+        self._InvokeProbeBundleWithFakeRuntimeProbe(resp.output.content,
+                                                    info.envs))
     self.assertTrue(bool(probed_outcome.rp_invocation_result.error_msg))
     self.assertEqual(probed_outcome, info.probed_outcome)
 
@@ -310,8 +311,8 @@ class ProbeToolManagerTest(unittest.TestCase):
     return self._probe_tool_manager.CreateProbeDataSource(
         comp_name or default_comp_name, probe_info)
 
-  def _GenerateQualProbeTestBundlePayloadForFakeRuntimeProbe(
-      self, fake_probe_outcome_info):
+  def _GenerateProbeBundlePayloadForFakeRuntimeProbe(self,
+                                                     fake_probe_outcome_info):
     probe_info_sources = []
     for testdata_name in fake_probe_outcome_info.component_testdata_names:
       probe_info_sources.append(self._LoadProbeDataSource(testdata_name))

@@ -71,7 +71,8 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
       response.status = response.INVALID_PROBE_INFO
     else:
       response.status = response.SUCCEED
-      response.test_bundle_payload = gen_result.output
+      response.test_bundle_payload = gen_result.output.content
+      response.test_bundle_file_name = gen_result.output.name
 
     return response
 
@@ -136,7 +137,8 @@ class ProbeInfoService(protorpc_utils.ProtoRPCServiceBase):
       response.status = response.INVALID_PROBE_INFO
     else:
       response.status = response.SUCCEED
-      response.generated_config_payload = gen_result.output
+      response.generated_config_payload = gen_result.output.content
+      response.generated_config_file_name = gen_result.output.name
 
     return response
 

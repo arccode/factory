@@ -139,6 +139,7 @@ message GetQualProbeTestBundleResponse {
   ProbeInfoParsedResult probe_info_parsed_result = 3;
 
   bytes test_bundle_payload = 4;
+  string test_bundle_file_name = 5;
 }
 
 message UploadQualProbeTestResultRequest {
@@ -186,6 +187,7 @@ message GetDeviceProbeConfigResponse {
   repeated ProbeInfoParsedResult probe_info_parsed_results = 3;
 
   bytes generated_config_payload = 4;
+  string generated_config_file_name = 5;
 }
 
 message UploadDeviceProbeResultRequest {
