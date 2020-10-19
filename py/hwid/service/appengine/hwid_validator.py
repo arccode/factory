@@ -50,6 +50,9 @@ class HwidValidator:
     Args:
       hwid_config_contents: the current HWID config as a string.
       prev_hwid_config_contents: the previous HWID config as a string.
+    Returns:
+      dict in the form of {category: [(ciq, qid, status),...]} which collects
+      created/updated component names in the ${category}_${cid}_${qid} pattern.
     """
     try:
       # Load previous config. This has the side effect of validating it.
@@ -71,7 +74,7 @@ class HwidValidator:
 
     ctx = validator_context.ValidatorContext(
         filesystem_adapter=CONFIG.hwid_filesystem)
-    v3_validator.ValidateChange(prev_db, db, ctx)
+    new_components = v3_validator.ValidateChange(prev_db, db, ctx)
     v3_validator.ValidateIntegrity(db)
 
     vpg_target = CONFIG.vpg_targets.get(db.project)
@@ -80,3 +83,4 @@ class HwidValidator:
           [(db, vpg_target.waived_comp_categories)]).error_msgs
       if errors:
         raise v3_validator.ValidationError(str(errors))
+    return new_components

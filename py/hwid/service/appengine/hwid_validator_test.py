@@ -11,6 +11,7 @@ from unittest import mock
 
 # pylint: disable=import-error
 from cros.factory.hwid.service.appengine import hwid_validator
+from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.hwid.v3 import validator as v3_validator
 from cros.factory.utils import file_utils
@@ -48,17 +49,20 @@ class HwidValidatorTest(unittest.TestCase):
   """Test for HwidValidator."""
 
   def testValidateChange_withValidChange(self):
-    hwid_validator.HwidValidator().ValidateChange(GOLDEN_HWIDV3_DATA_AFTER_GOOD,
-                                                  GOLDEN_HWIDV3_DATA_BEFORE)
+    ret = hwid_validator.HwidValidator().ValidateChange(
+        GOLDEN_HWIDV3_DATA_AFTER_GOOD, GOLDEN_HWIDV3_DATA_BEFORE)
+    self.assertFalse(ret)
 
   def testValidateChange_withInvalidChange(self):
     with self.assertRaises(v3_validator.ValidationError):
-      hwid_validator.HwidValidator().ValidateChange(
+      ret = hwid_validator.HwidValidator().ValidateChange(
           GOLDEN_HWIDV3_DATA_AFTER_BAD, GOLDEN_HWIDV3_DATA_BEFORE)
+      self.assertFalse(ret)
 
   def testValidateSarien_withValidChange(self):
-    hwid_validator.HwidValidator().ValidateChange(SARIEN_DATA_GOOD,
-                                                  SARIEN_DATA_GOOD)
+    ret = hwid_validator.HwidValidator().ValidateChange(SARIEN_DATA_GOOD,
+                                                        SARIEN_DATA_GOOD)
+    self.assertFalse(ret)
 
   def testValidateSarien_withGeneratePayloadFail(self):
     with self.assertRaises(v3_validator.ValidationError):
@@ -72,9 +76,9 @@ class HwidValidatorTest(unittest.TestCase):
     with mock.patch.object(
         hwid_validator.vpg_module, 'GenerateVerificationPayload',
         return_value=self.CreateBadVPGResult()):
-      hwid_validator.HwidValidator().ValidateChange(
-          GOLDEN_HWIDV3_DATA_AFTER_GOOD,
-          GOLDEN_HWIDV3_DATA_BEFORE)
+      ret = hwid_validator.HwidValidator().ValidateChange(
+          GOLDEN_HWIDV3_DATA_AFTER_GOOD, GOLDEN_HWIDV3_DATA_BEFORE)
+      self.assertFalse(ret)
 
   def testValidateDramChange1(self):
     with self.assertRaises(v3_validator.ValidationError) as error:
@@ -99,9 +103,10 @@ class HwidValidatorTest(unittest.TestCase):
           GOLDEN_HWIDV3_DATA_BEFORE)
 
   def testValidateComponentNameValid(self):
-    hwid_validator.HwidValidator().ValidateChange(
-        GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN,
-        GOLDEN_HWIDV3_DATA_BEFORE)
+    ret = hwid_validator.HwidValidator().ValidateChange(
+        GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN, GOLDEN_HWIDV3_DATA_BEFORE)
+    self.assertEqual({'cpu': [(1234, 5678, common.COMPONENT_STATUS.supported)]},
+                     ret)
 
   def testValidateComponentNameInvalidWithNote(self):
     with self.assertRaises(v3_validator.ValidationError) as ex:
@@ -112,13 +117,18 @@ class HwidValidatorTest(unittest.TestCase):
         str(ex.exception),
         ('Invalid component names with sequence number, please modify '
          'them as follows:\n'
-         '- cpu_2#4 -> cpu_2#3\n'
-         '- cpu_2#non-a-number -> cpu_2#4'))
+         '- cpu_2_3#4 -> cpu_2_3#3\n'
+         '- cpu_2_3#non-a-number -> cpu_2_3#4'))
 
   def testValidateComponentNameValidWithNote(self):
-    hwid_validator.HwidValidator().ValidateChange(
+    ret = hwid_validator.HwidValidator().ValidateChange(
         GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN_WITH_NOTE,
         GOLDEN_HWIDV3_DATA_BEFORE)
+    self.assertEqual(
+        {
+            'cpu': [(2, 3, common.COMPONENT_STATUS.supported),
+                    (3, 4, common.COMPONENT_STATUS.unsupported)]
+        }, ret)
 
   @classmethod
   def CreateBadVPGResult(cls):

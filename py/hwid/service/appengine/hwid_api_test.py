@@ -13,6 +13,7 @@ from cros.chromeoshwid import update_checksum
 from cros.factory.hwid.service.appengine import hwid_api
 from cros.factory.hwid.service.appengine import hwid_manager
 from cros.factory.hwid.service.appengine import hwid_util
+from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import validator as v3_validator
 # pylint: disable=import-error, no-name-in-module
@@ -391,7 +392,7 @@ class HwidApiTest(unittest.TestCase):
 
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
   def testValidateConfigAndUpdateChecksum(self, patch_hwid_validator):
-    patch_hwid_validator.ValidateChange = mock.Mock()
+    patch_hwid_validator.ValidateChange.return_value = {}
 
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
         hwidConfigContents=TEST_HWID_CONTENT)
@@ -401,6 +402,34 @@ class HwidApiTest(unittest.TestCase):
         hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS,
             newHwidConfigContents=EXPECTED_REPLACE_RESULT), msg)
+
+  @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
+  def testValidateConfigAndUpdateUpdatedComponents(self, patch_hwid_validator):
+    patch_hwid_validator.ValidateChange.return_value = {
+        'wireless': [(1234, 5678, common.COMPONENT_STATUS.supported),
+                     (1111, 2222, common.COMPONENT_STATUS.unqualified)]
+    }
+
+    req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
+        hwidConfigContents=TEST_HWID_CONTENT)
+    msg = self.service.ValidateConfigAndUpdateChecksum(req)
+
+    supported = hwid_api_messages_pb2.AvlEntry.SupportStatus.SUPPORTED
+    unqualified = hwid_api_messages_pb2.AvlEntry.SupportStatus.UNQUALIFIED
+
+    self.assertEqual(
+        hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
+            status=hwid_api_messages_pb2.Status.SUCCESS,
+            newHwidConfigContents=EXPECTED_REPLACE_RESULT,
+            newComponentsPerCategory={
+                'wireless':
+                    hwid_api_messages_pb2.AvlEntries(entries=[
+                        hwid_api_messages_pb2.AvlEntry(cid=1234, qid=5678,
+                                                       supportStatus=supported),
+                        hwid_api_messages_pb2.AvlEntry(
+                            cid=1111, qid=2222, supportStatus=unqualified)
+                    ])
+            }), msg)
 
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
   def testValidateConfigAndUpdateChecksumErrors(self, patch_hwid_validator):
@@ -451,6 +480,22 @@ class HwidApiTest(unittest.TestCase):
                 '''('probed value', <class 'bytes'>), Scalar('probed value re'''
                 '''gex', <class 'cros.factory.hwid.v3.rule.Value'>)]), size=['''
                 '''1, inf]), Scalar('none', <class 'NoneType'>)]''')), msg)
+
+  @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
+  def testValidateConfigAndUpdateChecksumUnknwonStatus(self,
+                                                       patch_hwid_validator):
+    patch_hwid_validator.ValidateChange.return_value = {
+        'wireless': [(1234, 5678, common.COMPONENT_STATUS.supported),
+                     (1111, 2222, 'new_status')]
+    }
+    req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
+        hwidConfigContents=TEST_HWID_CONTENT)
+    msg = self.service.ValidateConfigAndUpdateChecksum(req)
+
+    self.assertEqual(
+        hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
+            status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+            errorMessage='Unknown status: \'new_status\''), msg)
 
   @mock.patch.object(hwid_util, 'GetTotalRamFromHwidData')
   def testGetSku(self, mock_get_total_ram):

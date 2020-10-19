@@ -7,6 +7,7 @@
 import os.path
 import unittest
 
+from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.hwid.v3 import validator
 from cros.factory.hwid.v3 import validator_context
@@ -59,7 +60,8 @@ class ValidatorTest(unittest.TestCase):
     ctx = validator_context.ValidatorContext(
         filesystem_adapter=filesystem_adapter.LocalFileSystemAdapter(
             _TEST_DATA_PATH))
-    validator.ValidateChange(prev_db, db, ctx)
+    ret = validator.ValidateChange(prev_db, db, ctx)
+    self.assertEqual({'cpu': [(9, 10, common.COMPONENT_STATUS.supported)]}, ret)
 
   def testBadCompNameChange(self):
     prev_db = Database.LoadFile(DB_COMP_BEFORE_PATH)

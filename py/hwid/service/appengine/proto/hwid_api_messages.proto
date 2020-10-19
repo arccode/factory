@@ -145,6 +145,25 @@ message ComponentsResponse {
   Status status = 3;
 }
 
+message AvlEntry {
+  enum SupportStatus {
+    SUPPORT_STATUS_UNSPECIFIED = 0;
+    SUPPORTED = 1;
+    DEPRECATED = 2;
+    UNSUPPORTED = 3;
+    UNQUALIFIED = 4;
+    DUPLICATE = 5;
+  }
+
+  int64 cid = 1;
+  int64 qid = 2;
+  SupportStatus supportStatus = 3;
+}
+
+message AvlEntries {
+  repeated AvlEntry entries = 1;
+}
+
 // The response to a 'validate config' request.
 message ValidateConfigResponse {
   // If an error occurred, this describes the error.
@@ -159,6 +178,7 @@ message ValidateConfigAndUpdateChecksumResponse {
   // If an error occurred, this describes the error.
   string errorMessage = 2;
   Status status = 3;
+  map<string, AvlEntries> newComponentsPerCategory = 4;
 }
 
 // A request to query SKU info from a given HWID string.

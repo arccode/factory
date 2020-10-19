@@ -27,9 +27,13 @@ class ValidationError(ValueError):
 
 
 def ValidateChange(prev_db, db, ctx):
-  """Verify that the change is valid."""
+  """Verify that the change is valid.
+
+  Returns:
+    changed/added component information (ciq, qid, status) if available.
+  """
   try:
-    verify_db_pattern.HWIDDBsPatternTest.ValidateChange(prev_db, db, ctx)
+    return verify_db_pattern.HWIDDBsPatternTest.ValidateChange(prev_db, db, ctx)
   except common.HWIDException as e:
     raise ValidationError(str(e))
 

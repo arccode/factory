@@ -298,7 +298,8 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
 
     Returns:
       A ValidateConfigAndUpdateChecksumResponse containing either the updated
-      config or an error message.
+      config or an error message.  Also the cid, qid, status will also be
+      responded if the component name follows the naming rule.
     """
 
     hwidConfigContents = request.hwidConfigContents
@@ -307,15 +308,29 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     updated_contents = update_checksum.ReplaceChecksum(hwidConfigContents)
 
     try:
-      _hwid_validator.ValidateChange(updated_contents, prevHwidConfigContents)
+      new_components = _hwid_validator.ValidateChange(updated_contents,
+                                                      prevHwidConfigContents)
+
     except v3_validator.ValidationError as e:
       logging.exception('Validation failed')
       return _MapException(
           e, hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse)
 
-    return hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
+    resp = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
         status=hwid_api_messages_pb2.Status.SUCCESS,
         newHwidConfigContents=updated_contents)
+
+    status_desc = hwid_api_messages_pb2.AvlEntry.SupportStatus.DESCRIPTOR
+    for comp_cls, comps in new_components.items():
+      entries = resp.newComponentsPerCategory.get_or_create(comp_cls).entries
+      for cid, qid, status in comps:
+        status_val = status_desc.values_by_name.get(status.upper())
+        if status_val is None:
+          return hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
+              status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+              errorMessage='Unknown status: \'%s\'' % status)
+        entries.add(cid=cid, qid=qid, supportStatus=status_val.number)
+    return resp
 
   @protorpc_utils.ProtoRPCServiceMethod
   def GetDutLabels(self, request):

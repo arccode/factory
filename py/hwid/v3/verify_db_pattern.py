@@ -16,6 +16,7 @@ This test may be invoked in multiple ways:
 """
 
 import argparse
+import collections
 import logging
 import multiprocessing
 import os
@@ -228,13 +229,15 @@ class HWIDDBsPatternTest(unittest.TestCase):
       new_db: db after the change.
       ctx: validator_context.ValidatorContext instance which contains the
            name_pattern information.
+    Returns:
+      dict of created/updated component information if available.
     """
 
     if old_db is None:
       HWIDDBsPatternTest.VerifyNewCreatedDatabasePattern(new_db)
     else:
       HWIDDBsPatternTest.VerifyParsedDatabasePattern(old_db, new_db)
-    HWIDDBsPatternTest.ValidateComponentChange(old_db, new_db, ctx)
+    return HWIDDBsPatternTest.ValidateComponentChange(old_db, new_db, ctx)
 
   @staticmethod
   def ValidateComponentChange(old_db, db, ctx):
@@ -245,12 +248,14 @@ class HWIDDBsPatternTest(unittest.TestCase):
       new_db: db after the change.
       ctx: validator_context.ValidatorContext instance which contains the
            name_pattern information.
+    Returns:
+      dict of created/updated component information if available.
     """
 
-    def FindModifiedComponentNamesWithIdx(old_db, db, comp_cls):
+    def FindModifiedComponentsWithIdx(old_db, db, comp_cls):
       name_idx = {}
-      for idx, tag in enumerate(db.GetComponents(comp_cls), 1):
-        name_idx[tag] = idx
+      for idx, (tag, comp) in enumerate(db.GetComponents(comp_cls).items(), 1):
+        name_idx[tag] = (idx, comp)
 
       if old_db is not None:
         for tag in old_db.GetComponents(comp_cls):
@@ -258,17 +263,26 @@ class HWIDDBsPatternTest(unittest.TestCase):
 
       return name_idx
 
+    def CollectNewComponents(bucket, component_name, status):
+      sp = component_name.split('_')
+      if len(sp) != 3:
+        logging.error('Invalid component name %r', component_name)
+      else:
+        bucket[sp[0]].append((int(sp[1]), int(sp[2]), status))
+
     adapter = name_pattern_adapter.NamePatternAdapter(ctx.filesystem_adapter)
     rename_component = {}
+    bucket = collections.defaultdict(list)
     for comp_cls in db.GetActiveComponentClasses():
       name_pattern = adapter.GetNamePatterns(comp_cls)
       if name_pattern:
-        modified_names = FindModifiedComponentNamesWithIdx(old_db, db, comp_cls)
-        for tag, idx in modified_names.items():
+        modified_names = FindModifiedComponentsWithIdx(old_db, db, comp_cls)
+        for tag, (idx, comp) in modified_names.items():
           if not name_pattern.Matches(tag):
             raise common.HWIDException(
                 '%r does not match any available %s pattern' % (tag, comp_cls))
           sp = tag.split('#', 1)
+          CollectNewComponents(bucket, sp[0], comp.status)
           if len(sp) == 2:
             expected_component_name = '%s#%d' % (sp[0], idx)
             if tag != expected_component_name:
@@ -279,6 +293,7 @@ class HWIDDBsPatternTest(unittest.TestCase):
           'Invalid component names with sequence number, please modify them as '
           'follows:\n' +
           '\n'.join('- ' + k + ' -> ' + v for k, v in rename_component.items()))
+    return bucket
 
 
 if __name__ == '__main__':
