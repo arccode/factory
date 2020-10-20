@@ -158,13 +158,14 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
 
   new_root = tempfile.mkdtemp(prefix='tmpfs.')
   binary_deps = [
-      'activate_date', 'backlight_tool', 'busybox', 'cgpt', 'cgpt.bin',
+      'activate_date', 'backlight_tool', 'bash', 'busybox', 'cgpt', 'cgpt.bin',
       'clobber-log', 'clobber-state', 'coreutils', 'crossystem', 'dd',
       'display_boot_message', 'dumpe2fs', 'ectool', 'flashrom', 'halt',
       'initctl', 'mkfs.ext4', 'mktemp', 'mosys', 'mount', 'mount-encrypted',
       'od', 'pango-view', 'pkill', 'pv', 'python', 'reboot', 'setterm', 'sh',
       'shutdown', 'stop', 'umount', 'vpd', 'curl', 'lsof', 'jq', '/sbin/frecon',
-      'stressapptest', 'fuser', 'login']
+      'stressapptest', 'fuser', 'login'
+  ]
 
   etc_issue = textwrap.dedent("""
     You are now in tmp file system created for in-place wiping.
