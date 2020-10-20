@@ -504,11 +504,10 @@ class MIPICameraDevice(CameraDevice):
     try:
       # Power on camera so we can read from I2C
       fd = os.open(self._sn_i2c_param['dev_node'], os.O_RDWR)
-      slave = self._dut.i2c.GetSlave(self._sn_i2c_param['bus'],
-                                     self._sn_i2c_param['chip_addr'],
-                                     16)
-      return slave.Read(self._sn_i2c_param['data_addr'],
-                        self._sn_i2c_param['length'])[::-2]
+      peripheral = self._dut.i2c.GetPeripheral(
+          self._sn_i2c_param['bus'], self._sn_i2c_param['chip_addr'], 16)
+      return peripheral.Read(self._sn_i2c_param['data_addr'],
+                             self._sn_i2c_param['length'])[::-2]
     except Exception as e:
       raise CameraError('Fail to read serial number: %r' % e)
     finally:

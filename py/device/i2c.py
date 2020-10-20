@@ -13,23 +13,23 @@ import struct
 from cros.factory.device import device_types
 
 
-class I2CSlave(device_types.DeviceComponent):
-  """Access a slave device on I2C bus."""
+class I2CPeripheral(device_types.DeviceComponent):
+  """Access a peripheral device on I2C bus."""
 
-  _I2C_SLAVE_FORCE = 0x0706
+  _I2C_PERIPHERAL_FORCE = 0x0706
 
-  def __init__(self, dut, bus, slave, reg_width):
+  def __init__(self, dut, bus, peripheral, reg_width):
     """Constructor.
 
     Args:
       dut: A reference to device under test. See DeviceComponent for more info.
       bus: A path to I2C bus device.
-      slave: 7 bit I2C slave address.
+      peripheral: 7 bit I2C peripheral address.
       reg_width: Number of bits to write for register address.
     """
-    super(I2CSlave, self).__init__(dut)
+    super(I2CPeripheral, self).__init__(dut)
     self._bus = bus
-    self._slave = slave
+    self._peripheral = peripheral
     self._reg_width = reg_width
 
   def _EncodeRegisterAddress(self, address):
@@ -55,7 +55,7 @@ class I2CSlave(device_types.DeviceComponent):
       raise NotImplementedError('I2CBus currently supports only local targets')
 
     bus = io.open(self._bus, mode='r+b', buffering=0)
-    fcntl.ioctl(bus.fileno(), self._I2C_SLAVE_FORCE, self._slave)
+    fcntl.ioctl(bus.fileno(), self._I2C_PERIPHERAL_FORCE, self._peripheral)
     if write_data:
       bus.write(write_data)
     if read_count:
@@ -88,33 +88,33 @@ class I2CBus(device_types.DeviceComponent):
   """Provides access to devices on I2C bus.
 
   Usage:
-    # Declare an address using bus 0, slave 0x48, reg width 8 bit.
+    # Declare an address using bus 0, peripheral 0x48, reg width 8 bit.
     from cros.factory.device import device_utils
     i2c = device_utils.CreateDUTInterface().i2c
-    slave = i2c.GetSlave(0, 0x48, 8)
-    slave1 = i2c.GetSlave('/dev/i2c-1', 0x48, 8)
+    peripheral = i2c.GetPeripheral(0, 0x48, 8)
+    peripheral1 = i2c.GetPeripheral('/dev/i2c-1', 0x48, 8)
 
     # Read 1 byte from register(0x16)
-    print ord(slave.Read(0x16, 1))
+    print ord(peripheral.Read(0x16, 1))
 
     # Write 2 bytes register(0x20)
-    slave.Write(0x20, '\x01\x02')
+    peripheral.Write(0x20, '\x01\x02')
 
     # For more complicated I/O composition you should use struct.pack.
-    slave.write(0x30, struct.pack('>I', myvalue))
+    peripheral.write(0x30, struct.pack('>I', myvalue))
   """
 
-  def GetSlave(self, bus, slave, reg_width):
-    """Gets an I2CSlave instance.
+  def GetPeripheral(self, bus, peripheral, reg_width):
+    """Gets an I2CPeripheral instance.
 
     Args:
       bus: I2C bus number, or a path to I2C bus device.
-      slave: 7 bit I2C slave address, or known as "chipset address".
+      peripheral: 7 bit I2C peripheral address, or known as "chipset address".
       reg_width: Number of bits to write for register.
     """
     if isinstance(bus, int):
       bus = '/dev/i2c-%d' % bus
-    assert slave & (0xfe) == 0, 'I2C Slave address has only 7 bits.'
+    assert peripheral & (0xfe) == 0, 'I2C peripheral address has only 7 bits.'
     assert reg_width % 8 == 0, 'Register must be aligned with 8 bits.'
     assert reg_width <= 32, 'Only 0~32 bits of reg addresses are supported.'
-    return I2CSlave(self._device, bus, slave, reg_width)
+    return I2CPeripheral(self._device, bus, peripheral, reg_width)

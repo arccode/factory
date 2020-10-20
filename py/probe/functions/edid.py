@@ -145,11 +145,11 @@ def _ParseBinaryBlob(blob):
 def _I2CDump(bus, address, size):
   """Reads binary dump from i2c bus."""
   fd = -1
-  I2C_SLAVE = 0x0703
+  I2C_PERIPHERAL = 0x0703
   blob = None
   try:
     fd = os.open(bus, os.O_RDWR)
-    if fcntl.ioctl(fd, I2C_SLAVE, address) != 0:
+    if fcntl.ioctl(fd, I2C_PERIPHERAL, address) != 0:
       return None
     time.sleep(0.05)  # Wait i2c to get ready
     if os.write(fd, b'\x00') == 1:

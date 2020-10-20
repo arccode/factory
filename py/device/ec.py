@@ -94,11 +94,11 @@ class EmbeddedController(device_types.DeviceComponent):
 
     Args:
       port: I2C port ID.
-      addr: I2C slave address.
-      reg: Slave register address.
+      addr: I2C peripheral address.
+      reg: Peripheral register address.
 
     Returns:
-      Integer value read from slave.
+      Integer value read from peripheral.
     """
     try:
       ectool_output = self._device.CheckOutput(
@@ -114,8 +114,8 @@ class EmbeddedController(device_types.DeviceComponent):
 
     Args:
       port: I2C port ID.
-      addr: I2C slave address.
-      reg: Slave register address.
+      addr: I2C peripheral address.
+      reg: Peripheral register address.
       value: 16-bit value to write.
     """
     try:
