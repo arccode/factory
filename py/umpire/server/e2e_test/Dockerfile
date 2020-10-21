@@ -5,7 +5,7 @@
 # This is the image for running integration tests for umpire docker. We use
 # docker to ensure that everyone can run test in same environment.
 
-FROM python:3.6
+FROM alpine:3.10
 MAINTAINER Pi-Hsun Shih <pihsun@google.com>
 
 ARG server_dir="/usr/local/factory"
@@ -15,7 +15,10 @@ ENV PYTHONPATH="${server_dir}/py_pkg"
 
 # rsync: Used in e2e_test.py
 # sudo: Used in cros_docker.sh.
-RUN apt-get update && apt-get install -y \
+RUN apk upgrade --no-cache && apk add --no-cache \
+  bash \
+  py3-pip \
+  python3 \
   rsync \
   sudo
 
@@ -29,7 +32,7 @@ COPY bin "${server_dir}/bin/"
 # do this again if requirements.txt hasn't been modified
 COPY py/umpire/server/e2e_test/requirements.txt \
   "${umpire_dir}/server/e2e_test/requirements.txt"
-RUN pip install --no-cache-dir -r \
+RUN pip3 install --no-cache-dir -r \
   "${umpire_dir}/server/e2e_test/requirements.txt"
 
 COPY setup/cros_docker.sh "${server_dir}/setup/"
