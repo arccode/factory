@@ -485,7 +485,7 @@ def main():
       '-o', '--output_dir', metavar='PATH',
       help=('Base path to the output files. In most of the cases, '
             'it should be '
-            'chromeos-base/chromeos-bsp-<BOARD>-private/files '
+            'chromeos-base/racc-config-<BOARD>/files '
             'in a private overlay repository.'))
   ap.add_argument(
       'hwid_db_paths', metavar='HWID_DATABASE_PATH', nargs='+',
