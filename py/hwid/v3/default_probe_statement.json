@@ -32,7 +32,7 @@
     "generic": {
       "eval": {
         "shell": {
-          "command": "mosys platform version",
+          "command": "get_version --board",
           "key": "version"
         }
       }

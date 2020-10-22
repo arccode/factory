@@ -234,10 +234,6 @@ class SystemInfo(device_types.DeviceComponent):
     return self._device.CallOutput(['crossystem', 'mainfw_type']).strip()
 
   @InfoProperty
-  def board_version(self):
-    return self._device.CallOutput(['mosys', 'platform', 'version']).strip()
-
-  @InfoProperty
   def ec_version(self):
     """Version of embedded controller."""
     return self._device.ec.GetECVersion().strip()

@@ -17,6 +17,7 @@ binaries:
   factory_uninstall: full
   flash_netboot:     full
   image_tool:        mini
+  get_version:       full
   gooftool:          mini
   goofy:             full
   goofy_control:     full

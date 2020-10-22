@@ -27,7 +27,7 @@ class Sequence(combination_function.CombinationFunction):
   fields:
 
   - ``device_sku`` comes from the command ``cros_config /identity sku-id``
-  - ``device_version`` from the command ``mosys platform version``.
+  - ``device_version`` from the command ``get_version --board``.
 
   Instead of implementing a new probe function, we can reuse the existing
   :doc:`shell function <shell>`, which executes a single command, and writes
@@ -45,7 +45,7 @@ class Sequence(combination_function.CombinationFunction):
             },
             {
               "shell": {
-                "command": "mosys platform version",
+                "command": "get_version --board",
                 "key": "device_version"
               }
             }
@@ -59,7 +59,7 @@ class Sequence(combination_function.CombinationFunction):
     [
       {
         "device_sku": <output_of_the_cros_config_command>,
-        "device_version": <output_of_the_mosys_command>
+        "device_version": <output_of_the_get_version_command>
       }
     ]
 
@@ -77,7 +77,7 @@ class Sequence(combination_function.CombinationFunction):
         },
         {
           "shell": {
-            "command": "mosys platform version",
+            "command": "get_version --board",
             "key": "device_version"
           }
         }

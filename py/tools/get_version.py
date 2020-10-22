@@ -1,9 +1,12 @@
+#!/usr/bin/env python3
+#
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 """Utility to get release image and firmware version."""
 
+import argparse
 import logging
 import os
 import re
@@ -137,3 +140,55 @@ def GetHWIDVersion(path):
                     expected_checksum, actual_checksum)
     return None
   return expected_checksum
+
+
+def GetBoardVersion():
+  """Gets board version.
+
+  The purpose of this function is to replace `mosys platform version`.
+
+  Get board version from the following orders:
+  1. File: /proc/device-tree/firmware/coreboot/board-id (For ARM FDT board)
+     Note: This is a big-endian 32-bit integer (4 bytes).
+  2. File: /sys/class/dmi/id/product_version (For x86 SMBIOS board)
+  3. Command: `ectool boardversion` (Fall back purpose)
+
+  Returns:
+    Board version, empty string if all methods fail.
+    e.g. 'rev0', ''.
+  """
+  board_id_path = '/proc/device-tree/firmware/coreboot/board-id'
+  if os.path.exists(board_id_path):
+    with open(board_id_path, 'rb') as f:
+      return 'rev' + str(int.from_bytes(f.read(), 'big'))
+
+  commands = [['cat', '/sys/class/dmi/id/product_version'],
+              ['ectool', 'boardversion']]
+
+  for cmd in commands:
+    version = process_utils.SpawnOutput(cmd, ignore_stderr=True).strip(' \0\n')
+    if version:
+      if version.isnumeric():
+        version = 'rev' + version
+
+      return version
+
+  return ''
+
+
+def main():
+  logging.basicConfig(level=logging.INFO)
+
+  parser = argparse.ArgumentParser(
+      description=('Get version from artifact we used.'),
+      formatter_class=argparse.RawDescriptionHelpFormatter)
+  group = parser.add_mutually_exclusive_group(required=True)
+  group.add_argument('--board', action='store_true', help='Get board version.')
+  args = parser.parse_args()
+
+  if args.board:
+    print(GetBoardVersion())
+
+
+if __name__ == '__main__':
+  main()
