@@ -129,18 +129,10 @@ class HwidConverterTest(unittest.TestCase):
             ))
 
     result.storage.add(
-        name="storage1_name",
-        values=runtime_probe_pb2.Storage.Fields(
-            path="storage_path",
-            sectors=2,
-            size=3,
-            type="storage_type",
-            manfid=5,
-            name="storage_name",
-            prv=7,
-            serial=8,
-            oemid=9
-            ))
+        name="storage1_name", values=runtime_probe_pb2.Storage.Fields(
+            path="storage_path", sectors=2, size=3, type="storage_type",
+            mmc_manfid=5, mmc_name="storage_name", mmc_prv=7, mmc_serial=8,
+            mmc_oemid=9))
 
     result.audio_codec.add(
         name="audio_codec2_name",
