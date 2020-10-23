@@ -10,6 +10,7 @@
 
 # Shortcut to allow arbitrary format.
 ANY = r'.+'
+ANY_OR_EMPTY = r'.*'
 
 # The data is described in a mapping as key_name: value_re_format.
 # Note value_re_format has implicit '^' and '$' (see MatchWhole in core.py).
@@ -37,7 +38,7 @@ KNOWN_RO_DATA = {
 
     # Optional values.
     'mlb_serial_number': ANY,
-    'whitelabel_tag': ANY,
+    'whitelabel_tag': ANY_OR_EMPTY,
     'System_UUID': ANY,
     'sku_number': ANY,
     'model_name': ANY,
