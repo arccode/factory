@@ -123,3 +123,19 @@ class FirestoreConnector:
     doc_ref = self._client.collection(
         self.COLLECTION_USER_REQUESTS).document(doc_id)
     doc_ref.update({'error_message': error_msg})
+
+  def GetUserRequestsByEmail(self, email):
+    """Returns user requests with the specific email.
+
+    Args:
+      email: The requestor's email.
+
+    Returns:
+      A list of dictionaries which represent the specific user requests in
+      descending order of `request_time`.
+    """
+    col_ref = self._client.collection(self.COLLECTION_USER_REQUESTS)
+    return [
+        doc.to_dict() for doc in col_ref.where('email', '==', email).order_by(
+            'request_time', direction=firestore.Query.DESCENDING).stream()
+    ]

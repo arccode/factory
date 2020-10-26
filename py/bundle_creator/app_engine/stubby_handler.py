@@ -56,6 +56,7 @@ class FactoryBundleService(protorpc_utils.ProtoRPCServiceBase):
     client = storage.Client(project=config.GCLOUD_PROJECT)
     bucket = client.bucket(config.BUNDLE_BUCKET)
 
+    # Generate a board/device pair filtering set from the request.
     board_set = {}
     for blob in bucket.list_blobs():
       bundle = factorybundle_pb2.Bundle()
@@ -98,4 +99,47 @@ class FactoryBundleService(protorpc_utils.ProtoRPCServiceBase):
     response = factorybundle_pb2.DownloadBundleRpcResponse()
     response.download_link = 'https://storage.cloud.google.com/{}/{}'.format(
         config.BUNDLE_BUCKET, request.path)
+    return response
+
+  @allowlist
+  def GetUserRequests(self, request):
+    response = factorybundle_pb2.GetUserRequestsRpcResponse()
+
+    board_set = {}
+    for board in request.boards:
+      project_set = board_set.setdefault(board.name, {})
+      for project in board.projects:
+        project_set[project.name] = True
+
+    snapshots = self._firestore_connector.GetUserRequestsByEmail(request.email)
+    for snapshot in snapshots:
+      board = snapshot.get('board', '-')
+      project = snapshot.get('project', '-')
+      if board not in board_set or project not in board_set[board]:
+        continue
+
+      user_request = factorybundle_pb2.GetUserRequestsRpcResponse.UserRequest()
+      user_request.board = board
+      user_request.project = project
+      user_request.phase = snapshot.get('phase', '-')
+      user_request.toolkit_version = snapshot.get('toolkit_version', '-')
+      user_request.test_image_version = snapshot.get('test_image_version', '-')
+      user_request.release_image_version = snapshot.get('release_image_version',
+                                                        '-')
+      user_request.firmware_source = snapshot.get('firmware_source', '-')
+      user_request.email = snapshot.get('email', '-')
+      user_request.status = snapshot.get('status', '-')
+      # The returned fields with suffix `_time` are `DatetimeWithNanoseconds`
+      # objects.
+      if 'request_time' in snapshot:
+        user_request.request_time_s = datetime.datetime.timestamp(
+            snapshot.get('request_time'))
+      if 'start_time' in snapshot:
+        user_request.start_time_s = datetime.datetime.timestamp(
+            snapshot.get('request_time'))
+      if 'end_time' in snapshot:
+        user_request.end_time_s = datetime.datetime.timestamp(
+            snapshot.get('end_time'))
+      response.user_requests.append(user_request)
+
     return response
