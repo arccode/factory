@@ -6,26 +6,26 @@
 # This is presubmit check for private overlay to check the health of test lists.
 # Example CL : go/croscli/3164743.
 
+if [[ "${PRESUBMIT_PROJECT}" =~ chromeos/overlays/overlay-(.+)-private ]]; then
+  board="${BASH_REMATCH[1]}"
+else
+  exit 0
+fi
+
+test_list_ids=""
+for file in ${PRESUBMIT_FILES}
+do
+  filename="$(basename "${file}")"
+  if [[ "${filename}" =~ (.+).test_list.json ]]; then
+    test_list_ids="${test_list_ids} ${BASH_REMATCH[1]}"
+  fi
+done
+
+if [ -z "$test_list_ids" ]; then
+  exit 0
+fi
+
 if [ -f /etc/debian_chroot ]; then
-  if [[ ${PRESUBMIT_PROJECT} =~ chromeos/overlays/overlay-(.+)-private ]]; then
-    board=${BASH_REMATCH[1]}
-  else
-    exit 0
-  fi
-
-  test_list_ids=""
-  for file in ${PRESUBMIT_FILES}
-  do
-    filename="$(basename "${file}")"
-    if [[ ${filename} =~ (.+).test_list.json ]]; then
-      test_list_ids="${test_list_ids} ${BASH_REMATCH[1]}"
-    fi
-  done
-
-  if [ -z "$test_list_ids" ]; then
-    exit 0
-  fi
-
   factory_dir="$(dirname "$(dirname " $(dirname "$(readlink -f "$0")")")")"
   test_list_checker_path="${factory_dir}/bin/test_list_checker"
 
