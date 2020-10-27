@@ -16,6 +16,13 @@ clone the factory git repo without the entire chromiumos source tree:
 $ git clone https://chromium.googlesource.com/chromiumos/platform/factory
 ```
 
+## User manual guide
+
+Please refer to the [user manual
+guide](https://docs.google.com/document/d/1X_ELnv4OFuSY7xAeVn5m_2Eo6sMj0dMgfWzY97xHH40/edit?usp=sharing&resourcekey=0-S2X0Gp4ehe_m9i_INZqZLA)
+
+-----
+# Deprecated
 ## Build
 
 Make sure you have the Go lang toolchain installed (`apt-get install
