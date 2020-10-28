@@ -195,13 +195,10 @@ class RefreshHandler(flask.views.MethodView):
     """Refreshes the ingestion from staging files to live."""
 
     # Limit boards for ingestion (e2e test only).
-    limit_models = flask.request.values.get('limit_models')
-    do_limit = False
-    if limit_models:
-      limit_models = set(json_utils.LoadStr(limit_models))
-      do_limit = True
-    else:
-      limit_models = set()
+    limit_models = set()
+    if flask.request.is_json:
+      limit_models.update(flask.request.json.get('limit_models'))
+    do_limit = bool(limit_models)
 
     git_fs = _GetHwidRepoFilesystemAdapter()
     # TODO(yllin): Reduce memory footprint.
@@ -212,7 +209,7 @@ class RefreshHandler(flask.views.MethodView):
       # parse it
       metadata = yaml.safe_load(metadata_yaml)
 
-      if limit_models:
+      if do_limit:
         # only process required models
         metadata = {k: v for (k, v) in metadata.items() if k in limit_models}
       self.hwid_manager.UpdateBoards(git_fs, metadata,
