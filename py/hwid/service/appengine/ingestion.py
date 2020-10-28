@@ -5,7 +5,6 @@
 """Handler for ingestion."""
 
 import collections
-import hashlib
 import http
 import logging
 import os
@@ -268,25 +267,26 @@ class RefreshHandler(flask.views.MethodView):
       return None
     return hwid_master_commit
 
-  def GetPayloadHashIfChanged(self, board, payload_dict, force_update=False):
+  def ShouldUpdatePayload(self, board, result, force_update=False):
     """Get payload hash if it differs from cached hash on datastore.
 
     Args:
       board: Board name
-      payload_dict: A path-content mapping of payload files
+      result: Instance of `VerificationPayloadGenerationResult`.
       force_update: True for always returning payload hash for testing purpose.
     Returns:
-      hash if it differs from cached hash, None if not
+      A boolean which indicates if updating verification payload is needed.
     """
 
-    payload = json_utils.DumpStr(payload_dict, sort_keys=True)
-    payload_hash = hashlib.sha1(payload.encode('utf-8')).hexdigest()
-    latest_hash = self.hwid_manager.GetLatestPayloadHash(board)
+    if force_update:
+      logging.info('Forcing an update as hash %s', result.payload_hash)
+      return True
 
-    if latest_hash == payload_hash and not force_update:
+    latest_hash = self.hwid_manager.GetLatestPayloadHash(board)
+    if latest_hash == result.payload_hash:
       logging.debug('Payload is not changed as %s, skipped', latest_hash)
-      return None
-    return payload_hash
+      return False
+    return True
 
   def TryCreateCL(self, service_account_name, board, new_files,
                   hwid_master_commit):
@@ -399,10 +399,8 @@ class RefreshHandler(flask.views.MethodView):
         logging.error('Generate Payload fail: %s', ' '.join(result.error_msgs))
         raise PayloadGenerationException('Generate Payload fail')
       new_files = result.generated_file_contents
-      payload_hash = self.GetPayloadHashIfChanged(board, new_files,
-                                                  force_update)
-      if payload_hash is not None:
-        payload_hash_mapping[board] = payload_hash
+      if self.ShouldUpdatePayload(board, result, force_update):
+        payload_hash_mapping[board] = result.payload_hash
         self.TryCreateCL(
             service_account_name, board, new_files, hwid_master_commit)
 

@@ -5,8 +5,10 @@
 """Methods to generate the verification payload from the HWID database."""
 
 import collections
-import re
 import functools
+import hashlib
+import re
+import typing
 
 # pylint: disable=import-error, no-name-in-module
 from google.protobuf import text_format
@@ -18,6 +20,7 @@ from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import rule as hwid_rule
 from cros.factory.probe.runtime_probe import probe_config_definition
 from cros.factory.probe.runtime_probe import probe_config_types
+from cros.factory.utils import json_utils
 from cros.factory.utils import type_utils
 
 
@@ -318,17 +321,17 @@ def GetAllProbeStatementGenerators():
   return all_probe_statement_generators
 
 
-class VerificationPayloadGenerationResult:
+class VerificationPayloadGenerationResult(typing.NamedTuple):
   """
   Attributes:
     generated_file_contents: A string-to-string dictionary which represents the
         files that should be committed into the bsp package.
     error_msgs: A list of errors encountered during the generation.
+    payload_hash: Hash of the payload.
   """
-
-  def __init__(self):
-    self.generated_file_contents = {}
-    self.error_msgs = []
+  generated_file_contents: dict
+  error_msgs: list
+  payload_hash: str
 
 
 ComponentVerificationPayloadPiece = collections.namedtuple(
@@ -429,7 +432,8 @@ def GenerateVerificationPayload(dbs):
   Returns:
     Instance of `VerificationPayloadGenerationResult`.
   """
-  ret = VerificationPayloadGenerationResult()
+  error_msgs = []
+  generated_file_contents = {}
 
   hw_verification_spec = hardware_verifier_pb2.HwVerificationSpec()
   for db, waived_categories in dbs:
@@ -440,7 +444,7 @@ def GenerateVerificationPayload(dbs):
       if comp_vp_piece.is_duplicate:
         continue
       if comp_vp_piece.error_msg:
-        ret.error_msgs.append(comp_vp_piece.error_msg)
+        error_msgs.append(comp_vp_piece.error_msg)
         continue
       probe_config.AddComponentProbeStatement(comp_vp_piece.probe_statement)
       hw_verification_spec.component_infos.append(comp_vp_piece.component_info)
@@ -450,8 +454,7 @@ def GenerateVerificationPayload(dbs):
       probe_config.AddComponentProbeStatement(ps_gen.GenerateProbeStatement())
 
     probe_config_pathname = 'runtime_probe/%s/probe_config.json' % model_prefix
-    ret.generated_file_contents[
-        probe_config_pathname] = probe_config.DumpToString()
+    generated_file_contents[probe_config_pathname] = probe_config.DumpToString()
 
   hw_verification_spec.component_infos.sort(
       key=lambda ci: (ci.component_category, ci.component_uuid))
@@ -462,11 +465,14 @@ def GenerateVerificationPayload(dbs):
         component_category=_ProbeRequestSupportCategory.Value(
             ps_info.probe_category), field_names=list(ps_info.allowlist_fields))
 
-  ret.generated_file_contents[
+  generated_file_contents[
       'hw_verification_spec.prototxt'] = text_format.MessageToString(
           hw_verification_spec)
+  payload_json = json_utils.DumpStr(generated_file_contents, sort_keys=True)
+  payload_hash = hashlib.sha1(payload_json.encode('utf-8')).hexdigest()
 
-  return ret
+  return VerificationPayloadGenerationResult(generated_file_contents,
+                                             error_msgs, payload_hash)
 
 
 def main():
@@ -519,16 +525,17 @@ def main():
   logging.info('Generate the verification payload data.')
   result = GenerateVerificationPayload(dbs)
 
-  for error_msg in result.error_msgs:
-    logging.error(error_msg)
+  if result.error_msgs:
+    for error_msg in result.error_msgs:
+      logging.error(error_msg)
     sys.exit(1)
 
-  if not result.error_msgs:
-    for pathname, content in result.generated_file_contents.items():
-      logging.info('Output the verification payload file (%s).', pathname)
-      fullpath = os.path.join(args.output_dir, pathname)
-      file_utils.TryMakeDirs(os.path.dirname(fullpath))
-      file_utils.WriteFile(fullpath, content)
+  for pathname, content in result.generated_file_contents.items():
+    logging.info('Output the verification payload file (%s).', pathname)
+    fullpath = os.path.join(args.output_dir, pathname)
+    file_utils.TryMakeDirs(os.path.dirname(fullpath))
+    file_utils.WriteFile(fullpath, content)
+  logging.info('Payload hash: %s', result.payload_hash)
 
 
 if __name__ == '__main__':

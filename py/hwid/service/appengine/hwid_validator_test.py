@@ -137,8 +137,9 @@ class HwidValidatorTest(unittest.TestCase):
 
   @classmethod
   def CreateBadVPGResult(cls):
-    ret = hwid_validator.vpg_module.VerificationPayloadGenerationResult()
-    ret.error_msgs = ['err1', 'err2']
+    ret = hwid_validator.vpg_module.VerificationPayloadGenerationResult(
+        generated_file_contents={}, error_msgs=['err1', 'err2'],
+        payload_hash='')
     return ret
 
 
