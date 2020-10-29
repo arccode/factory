@@ -150,12 +150,15 @@ class ECToolTemperatureSensors(unittest.TestCase):
 
   def testAll(self):
     call_output_mapping = {
-        'ectool tempsinfo all': '\n'.join([
-            '0: 0 I2C_CPU-Die',
-            '1: 1 ECInternal',
-            '2: 0 PECI']),
-        'ectool temps 2': '323',
-        'ectool temps all': '\n'.join(['0: 273', '1: 283', '2: 293'])}
+        'ectool tempsinfo all':
+            '\n'.join(['0: 0 I2C_CPU-Die', '1: 1 ECInternal', '2: 0 PECI']),
+        'ectool temps 1':
+            '313 K',
+        'ectool temps 2':
+            '323',
+        'ectool temps all':
+            '\n'.join(['0: 273', '1: 283', '2: 293'])
+    }
 
     def CallOutputSideEffect(*args, **unused_kwargs):
       return call_output_mapping[args[0]]

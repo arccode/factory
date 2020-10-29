@@ -216,6 +216,9 @@ class ECToolTemperatureSensors(ThermalSensorSource):
   ECTOOL_TEMPS_ALL_RE = re.compile(r'^(\d+): (\d+)(?: K)?$', re.MULTILINE)
   """ectool 'temps all' output format: <id: value>"""
 
+  ECTOOL_TEMPS_SENSORID_RE = re.compile(r'(\d+)(?: K)?$')
+  """ectool 'temps sensor_id' output format: <Reading temperature...305 K>"""
+
   def _Probe(self):
     """Probes ectool sensors by "tempsinfo all" command."""
     return {'ectool ' + name: sensor_id for sensor_id, name in
@@ -231,8 +234,8 @@ class ECToolTemperatureSensors(ThermalSensorSource):
     sensor_id = self.GetSensors()[sensor]
     # 'ectool temps' prints a message like Reading 'temperature...(\d+)'
     return self._ConvertRawValue(
-        self._device.CallOutput(
-            'ectool temps %s' % sensor_id).rpartition('.')[2])
+        self.ECTOOL_TEMPS_SENSORID_RE.findall(
+            self._device.CallOutput('ectool temps %s' % sensor_id))[0])
 
   def GetAllValues(self):
     """Returns all ectool temps values.
