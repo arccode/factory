@@ -6,6 +6,7 @@
 """Tools to finalize a factory bundle."""
 
 import argparse
+import concurrent.futures
 import contextlib
 import errno
 import glob
@@ -199,11 +200,12 @@ class FinalizeBundle:
   firmware_source = None
   firmware_image_source = None
 
-  def __init__(self, manifest, work_dir, download=True, archive=True):
+  def __init__(self, manifest, work_dir, download=True, archive=True, jobs=1):
     self.manifest = manifest
     self.work_dir = work_dir
     self.download = download
     self.archive = archive
+    self.jobs = jobs
 
   def Main(self):
     self.ProcessManifest()
@@ -470,44 +472,105 @@ class FinalizeBundle:
     self._CheckGSUtilVersion()
 
     if self.download:
-      if need_test_image:
-        self.test_image_path = self._DownloadTestImage(
-            self.test_image_source,
-            os.path.join(self.bundle_dir, TEST_IMAGE_SEARCH_DIRS[0]))
-      if not os.path.exists(self.test_image_path):
+      max_workers = 1 + (need_toolkit or need_signed_shim or
+                         self.signed_shim_path
+                        ) + need_test_image + need_release_image + need_firmware
+      max_workers = min(max_workers, self.jobs)
+      try:
+        executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=max_workers)
+        not_done_jobs = []
+        if need_test_image:
+          download_test_image = executor.submit(
+              self._DownloadTestImage, self.test_image_source,
+              os.path.join(self.bundle_dir, TEST_IMAGE_SEARCH_DIRS[0]))
+          not_done_jobs.append(download_test_image)
+
+        if need_release_image:
+          download_release_image = executor.submit(
+              self._DownloadReleaseImage, self.release_image_source,
+              os.path.join(self.bundle_dir, RELEASE_IMAGE_SEARCH_DIRS[0]))
+          not_done_jobs.append(download_release_image)
+        else:
+          download_release_image = None
+
+        if need_toolkit:
+          download_toolkit = executor.submit(self._DownloadFactoryToolkit,
+                                             self.toolkit_source,
+                                             self.bundle_dir)
+          not_done_jobs.append(download_toolkit)
+        else:
+          download_toolkit = None
+
+        abs_factory_shim_dir = os.path.join(self.bundle_dir,
+                                            FACTORY_SHIM_SEARCH_DIR)
+
+        if need_signed_shim or self.signed_shim_path:
+
+          def GetInstallShim():
+            if need_signed_shim:
+              if download_toolkit:
+                # Make sure we have downloaded the toolkit.
+                download_toolkit.result()
+              return self._TryDownloadSignedFactoryShim(self.toolkit_source,
+                                                        abs_factory_shim_dir)
+            return self.signed_shim_path
+
+          get_install_shim = executor.submit(GetInstallShim)
+          not_done_jobs.append(get_install_shim)
+
+        if need_firmware:
+          firmware_source_version = self.firmware_source.split('/')[1]
+          if firmware_source_version != self.release_image_source:
+            download_firmware_image = executor.submit(
+                self._DownloadReleaseImage, firmware_source_version,
+                os.path.join(self.bundle_dir, FIRMWARE_IMAGE_SOURCE_DIR))
+            not_done_jobs.append(download_firmware_image)
+          elif download_release_image:
+            download_firmware_image = download_release_image
+          else:
+            download_firmware_image = None
+            self.firmware_image_source = self.release_image_path
+        # This loop raises an exception if any job raises an exception or
+        # there is a keyboard interrupt.
+        while not_done_jobs:
+          done_jobs, not_done_jobs = concurrent.futures.wait(
+              not_done_jobs, return_when=concurrent.futures.FIRST_EXCEPTION)
+          for done_job in done_jobs:
+            if done_job.exception():
+              raise done_job.exception()
+        # All jobs should be done.
+        if need_test_image:
+          self.test_image_path = download_test_image.result()
+        if need_release_image:
+          self.release_image_path = download_release_image.result()
+        if need_toolkit:
+          self.toolkit_path = download_toolkit.result()
+        if need_signed_shim or self.signed_shim_path:
+          self.signed_shim_path = get_install_shim.result()
+          if self.signed_shim_path:
+            # Remove the unsigned factory shim if the signed factory shim
+            # exists.
+            file_utils.TryUnlink(
+                os.path.join(abs_factory_shim_dir, 'factory_install_shim.bin'))
+        if need_firmware and download_firmware_image:
+          self.firmware_image_source = download_firmware_image.result()
+      finally:
+        # Cancel all not done jobs if there is an exception.
+        for job in not_done_jobs:
+          job.cancel()
+        executor.shutdown(wait=True)
+      if (not self.test_image_path or not os.path.exists(self.test_image_path)):
         raise FinalizeBundleException(
             'No test image at %s' % self.test_image_path)
-
-      if need_release_image:
-        self.release_image_path = self._DownloadReleaseImage(
-            self.release_image_source,
-            os.path.join(self.bundle_dir, RELEASE_IMAGE_SEARCH_DIRS[0]))
-      if not os.path.exists(self.release_image_path):
+      if (not self.release_image_path or
+          not os.path.exists(self.release_image_path)):
         raise FinalizeBundleException(
             'No release image at %s' % self.release_image_path)
-
-      if need_toolkit:
-        self.toolkit_path = self._DownloadFactoryToolkit(self.toolkit_source,
-                                                         self.bundle_dir)
-
-      abs_factory_shim_dir = os.path.join(
-          self.bundle_dir, FACTORY_SHIM_SEARCH_DIR)
-      if need_signed_shim:
-        self.signed_shim_path = self._TryDownloadSignedFactoryShim(
-            self.toolkit_source, abs_factory_shim_dir)
-      if self.signed_shim_path:
-        # Remove the unsigned factory shim if the signed factory shim exists.
-        file_utils.TryUnlink(os.path.join(
-            abs_factory_shim_dir, 'factory_install_shim.bin'))
-
-      if need_firmware:
-        self.firmware_image_source = self._DownloadReleaseImage(
-            self.firmware_source.split('/')[1],
-            os.path.join(self.bundle_dir, FIRMWARE_IMAGE_SOURCE_DIR))
-        if not os.path.exists(self.firmware_image_source):
-          raise FinalizeBundleException(
-              'No release image for firmware at %s' %
-              self.firmware_image_source)
+      if (need_firmware and (not self.firmware_image_source or
+                             not os.path.exists(self.firmware_image_source))):
+        raise FinalizeBundleException(
+            'No release image for firmware at %s' % self.firmware_image_source)
 
   def GetAndSetResourceVersions(self):
     """Gets and sets versions of test, release image, and factory toolkit."""
@@ -655,7 +718,7 @@ class FinalizeBundle:
       for netboot_firmware_image in not_useful_images:
         shutil.move(netboot_firmware_image, netboot_backup_dir)
 
-    for netboot_firmware_image in useful_images:
+    def SetOneNetbootImage(netboot_firmware_image):
       new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
       args = ['--argsfile', target_argsfile,
               '--bootfile', target_bootfile,
@@ -666,6 +729,10 @@ class FinalizeBundle:
                  '--tftpserverip=%s' % tftp_server_ip]
       Spawn(_GetImageTool() + ['netboot'] + args, check_call=True, log=True)
       shutil.move(new_netboot_firmware_image, netboot_firmware_image)
+
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=self.jobs) as executor:
+      executor.map(SetOneNetbootImage, useful_images)
 
     tftp_root = os.path.join(self.bundle_dir, 'netboot', 'tftp')
     tftp_board_dir = os.path.join(tftp_root, files_dir)
@@ -1150,7 +1217,8 @@ class FinalizeBundle:
       logging.error('Please refer to setup/BUNDLE.md (https://goo.gl/pM1pxo)')
       raise
     work_dir = args.dir or os.path.dirname(os.path.realpath(manifest_path))
-    return FinalizeBundle(manifest, work_dir, args.download, args.archive)
+    return FinalizeBundle(manifest, work_dir, args.download, args.archive,
+                          args.jobs)
 
   @staticmethod
   def _ParseArgs():
@@ -1164,6 +1232,8 @@ class FinalizeBundle:
     parser.add_argument(
         '--no-archive', dest='archive', action='store_false',
         help="Don't make a tarball (for testing only)")
+    parser.add_argument('--jobs', dest='jobs', type=int, default=1,
+                        help='How many workers to work at maximum.')
 
     parser.add_argument('manifest', metavar='MANIFEST',
                         help=(
@@ -1172,7 +1242,9 @@ class FinalizeBundle:
     parser.add_argument('dir', metavar='DIR', nargs='?',
                         default=None, help='Working directory')
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    assert args.jobs > 0
+    return args
 
 
 if __name__ == '__main__':

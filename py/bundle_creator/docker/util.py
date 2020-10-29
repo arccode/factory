@@ -71,13 +71,11 @@ def CreateBundle(req):
 
     with open(os.path.join(temp_dir, 'MANIFEST.yaml'), 'w') as f:
       yaml.dump(manifest, f)
-    process = subprocess.Popen(
-        ['/usr/local/factory/factory.par', 'finalize_bundle',
-         os.path.join(temp_dir, 'MANIFEST.yaml')],
-        bufsize=1,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        encoding='utf-8')
+    process = subprocess.Popen([
+        '/usr/local/factory/factory.par', 'finalize_bundle',
+        os.path.join(temp_dir, 'MANIFEST.yaml'), '--jobs', '7'
+    ], bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                               encoding='utf-8')
     output = ''
     while True:
       line = process.stdout.readline()
