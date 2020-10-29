@@ -50,7 +50,7 @@ def GetAllVFSInfo():
     try:
       ret[k] = VFSInfo(sorted(v), os.statvfs(v[0]))
     except OSError:
-      # Oh well; skip this guy
+      # Oh well; skip this
       pass
 
   return ret
