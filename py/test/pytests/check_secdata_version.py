@@ -7,6 +7,9 @@ Description
 -----------
 This test checks if the secdata version is the expected version.
 
+Secdata is set by AP firmware. If the test fails, please confirm the expected
+secdata version with the firmware team, and check if the AP firmware is too old.
+
 According to platform/vboot_reference/firmware/2lib/include/2secdata_struct.h,
 secdata version is an 8-bit integer defined as (major << 4 | minor << 0).
 
