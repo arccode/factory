@@ -73,6 +73,9 @@ DOC_ARCHIVE_PATH = $(BUILD_DIR)/doc.zip
 DOC_OUTPUT_DIR = $(BUILD_DIR)/doc
 DOC_PUBLISH_URL = gs://chromeos-factory-docs/sdk
 
+EBUILD_TEMP_DIR = $(TEMP_DIR)/ebuild
+EBUILD_TEST_BLOCKED_LIST = atlas dedede endeavour hatch kukui nocturne
+
 CLOSURE_DIR = py/goofy/static
 CLOSURE_OUTPUT_FILENAMES = js/goofy.js css/closure.css
 CLOSURE_OUTPUT_DIR ?= \
@@ -126,7 +129,7 @@ PRESUBMIT_TARGETS := \
   .phony default clean closure proto overlord ovl-bin par doc resource toolkit \
   bundle presubmit presubmit-chroot $(PRESUBMIT_TARGETS) \
   lint smartlint smart_lint test testall overlay check-regions-database \
-  publish-docs po
+  publish-docs po test-list-check ebuild-test
 
 # This must be the first rule.
 default: closure
@@ -436,3 +439,26 @@ par-overlay-%: overlay-%
 
 po:
 	$(MAKE) -C po build BOARD=$(BOARD) BUILD_DIR=$(abspath $(BUILD_DIR))
+
+test-list-check:
+	$(if $(TOOLKITPATH),, \
+	  $(error "You must specify a TOOLKITPATH to test-list-check."))
+	$(TOOLKITPATH)/bin/test_list_checker \
+	  --waived W \
+	  $(basename $(basename $(notdir $(wildcard \
+	    $(TOOLKITPATH)/py/test/test_lists/*.test_list.json))))
+
+# Only run this test if factory-board is overlayed and the board name does not
+# contain '-' as a substring since we want to skip *-arc and *-kernelnext
+# overlays.
+ebuild-test:
+ifeq ($(findstring third_party/chromiumos-overlay,$(BOARD_EBUILD)),)
+ifeq ($(findstring -,$(BOARD)),)
+ifneq ($(filter-out $(EBUILD_TEST_BLOCKED_LIST), $(BOARD)),)
+	rm -rf $(EBUILD_TEMP_DIR)
+	$(BUILD_DIR)/$(TOOLKIT_FILENAME) --noexec --noprogress --nox11 \
+	  --target $(EBUILD_TEMP_DIR)
+	$(MAKE) test-list-check TOOLKITPATH=$(EBUILD_TEMP_DIR)$(TARGET_DIR)
+endif
+endif
+endif
