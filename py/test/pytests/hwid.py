@@ -252,4 +252,5 @@ class HWIDV3Test(test_case.TestCase):
       self.ui.SetState(
           _('Setting HWID (v3): {encoded_string}...',
             encoded_string=encoded_string))
-      self.factory_tools.CheckCall(['hwid', 'write', encoded_string])
+      self.factory_tools.CheckCall(['hwid', 'write', encoded_string] +
+                                   project_arg)
