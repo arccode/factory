@@ -410,12 +410,12 @@ def ParseArgument():
                       help=('Include DRAM calibration info in the logs.'))
   parser.add_argument('--no-abt', action='store_false', dest='abt',
                       help=('Create abt.txt for "Android Bug Tool".'))
+  parser.add_argument('--verbosity', '-v', action='count', default=0,
+                      help=('Change the logging verbosity.'))
   return parser, parser.parse_args()
 
 
 def main():
-  logging.basicConfig(level=logging.INFO)
-
   # First parse mtab, since that will affect some of our defaults.
   root_is_usb = False
   have_ssd_stateful = False
@@ -435,6 +435,7 @@ def main():
       mounted_sda3 = mount_point
 
   parser, args = ParseArgument()
+  logging.basicConfig(level=logging.WARNING - 10 * args.verbosity)
 
   paths = {}
   if not args.output_dir:
