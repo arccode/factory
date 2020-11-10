@@ -372,6 +372,47 @@ EXAMPLES = """Examples:
 """
 
 
+def ParseArgument():
+  """argparse config
+
+  Returns:
+    (parser, args)
+    parser: the argparse.ArgumentParser object, export for `parser.error()`.
+    args: parsed command line arguments.
+  """
+  parser = argparse.ArgumentParser(
+      epilog=EXAMPLES, formatter_class=argparse.RawDescriptionHelpFormatter,
+      description=('Save logs to a file or USB drive and/or mount encrypted '
+                   'SSD partition.'))
+  parser.add_argument(
+      '--output_dir', '-o', dest='output_dir', metavar='DIR',
+      help=('Output directory in which to save file. Normally default to '
+            f'`/tmp`, but defaults to `{USB_ROOT_OUTPUT_DIR}` when booted '
+            'from USB.'))
+  parser.add_argument(
+      '--mount', action='store_true',
+      help=("When booted from USB, only mount encrypted SSD and exit. (Don't "
+            'save logs)'))
+  parser.add_argument(
+      '--usb', action='store_true',
+      help=('Save logs to a USB stick. (Using any mounted USB drive partition '
+            'if available, otherwise attempting to temporarily mount one)'))
+  parser.add_argument(
+      '--net', action='store_true',
+      help=('Whether to include network related logs or not. Network logs are '
+            'excluded by default.'))
+  parser.add_argument(
+      '--id', '-i', metavar='ID',
+      help=('Short ID to include in file name to help differentiate archives.'))
+  parser.add_argument('--probe', action='store_true',
+                      help=('Include probe result in the logs.'))
+  parser.add_argument('--dram', action='store_true',
+                      help=('Include DRAM calibration info in the logs.'))
+  parser.add_argument('--no-abt', action='store_false', dest='abt',
+                      help=('Create abt.txt for "Android Bug Tool".'))
+  return parser, parser.parse_args()
+
+
 def main():
   logging.basicConfig(level=logging.INFO)
 
@@ -393,39 +434,11 @@ def main():
     elif dev == '/dev/sda3':
       mounted_sda3 = mount_point
 
-  parser = argparse.ArgumentParser(
-      description=('Save logs to a file or USB drive '
-                   'and/or mount encrypted SSD partition.'),
-      epilog=EXAMPLES,
-      formatter_class=argparse.RawDescriptionHelpFormatter)
-  parser.add_argument('--output_dir', '-o', dest='output_dir', metavar='DIR',
-                      default=(USB_ROOT_OUTPUT_DIR if root_is_usb else '/tmp'),
-                      help=('output directory in which to save file. Normally '
-                            'default to /tmp, but defaults to ' +
-                            USB_ROOT_OUTPUT_DIR + ' when booted '
-                            'from USB'))
-  parser.add_argument('--mount', action='store_true',
-                      help=('when booted from USB, only '
-                            "mount encrypted SSD and exit (don't save logs)"))
-  parser.add_argument('--usb', action='store_true',
-                      help=('save logs to a USB stick (using any mounted '
-                            'USB drive partition if available, otherwise '
-                            'attempting to temporarily mount one)'))
-  parser.add_argument('--net', action='store_true',
-                      help=('whether to include network related logs or not. '
-                            'Network logs are excluded by default.'))
-  parser.add_argument('--id', '-i', metavar='ID',
-                      help=('short ID to include in file name to help '
-                            'differentiate archives'))
-  parser.add_argument('--probe', action='store_true',
-                      help=('include probe result in the logs'))
-  parser.add_argument('--dram', action='store_true',
-                      help=('include DRAM calibration info in the logs'))
-  parser.add_argument('--no-abt', action='store_false', dest='abt',
-                      help=('create abt.txt for "Android Bug Tool"'))
-  args = parser.parse_args()
+  parser, args = ParseArgument()
 
   paths = {}
+  if not args.output_dir:
+    args.output_dir = USB_ROOT_OUTPUT_DIR if root_is_usb else '/tmp'
 
   if root_is_usb:
     logging.warning('Root partition is a USB drive')
@@ -488,6 +501,7 @@ def main():
     logging.info('SSD remains mounted:')
     logging.info(' - sda3 = %s', mounted_sda3)
     logging.info(' - encrypted stateful partition = %s', SSD_STATEFUL_ROOT)
+
 
 if __name__ == '__main__':
   main()
