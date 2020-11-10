@@ -111,12 +111,6 @@ def MountUSB(read_only=False):
   raise IOError('Unable to mount any of %s' % tried)
 
 
-@contextmanager
-def DummyContext(arg):
-  """A context manager that simply yields its argument."""
-  yield arg
-
-
 def HasEC():
   """Return whether the platform has EC chip."""
   try:
@@ -209,7 +203,7 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
       open(os.path.join(os.path.join(d, 'dummy-factory-bug')), 'w').close()
       Spawn(['zip', os.path.join(d, output_file),
              os.path.join(d, 'dummy-factory-bug')], check_call=True)
-    return output_file
+    return
 
   tmp = tempfile.mkdtemp(prefix='factory_bug.')
 
@@ -333,7 +327,8 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
       raise IOError('zip process failed with returncode %d' %
                     process.returncode)
 
-    return output_file
+    logging.info('Wrote %s (%d bytes)', output_file,
+                 os.path.getsize(output_file))
   finally:
     shutil.rmtree(tmp, ignore_errors=True)
 
@@ -496,11 +491,11 @@ def main():
   # When --mount is specified, we only mount and don't actually
   # collect logs.
   if not args.mount:
-    with (MountUSB() if args.usb else
-          DummyContext(MountUSBInfo(None, args.output_dir, False))) as mount:
-      output_file = SaveLogs(mount.mount_point, args.id, **options, **paths)
-      logging.info('Wrote %s (%d bytes)',
-                   output_file, os.path.getsize(output_file))
+    if args.usb:
+      with MountUSB() as mount:
+        SaveLogs(mount.mount_point, args.id, **options, **paths)
+    else:
+      SaveLogs(args.output_dir, args.id, **options, **paths)
 
   if root_is_usb:
     logging.info('SSD remains mounted:')
