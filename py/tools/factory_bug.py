@@ -175,9 +175,8 @@ def GenerateDRAMCalibrationLog(tmp_dir):
           if os.path.isfile(os.path.join(tmp_dir, log))]
 
 
-def SaveLogs(output_dir, include_network_log=False, archive_id=None,
-             probe=False, dram=False, abt=False,
-             var='/var', usr_local='/usr/local', etc='/etc'):
+def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
+             abt=False, var='/var', usr_local='/usr/local', etc='/etc'):
   """Saves dmesg and relevant log files to a new archive in output_dir.
 
   The archive will be named factory_bug.<description>.<timestamp>.zip,
@@ -317,7 +316,7 @@ def SaveLogs(output_dir, include_network_log=False, archive_id=None,
             os.path.join(var, 'log', 'journal/*'),
             'Extensions',
         ]))
-    if not include_network_log:
+    if not net:
       exclude_files += ['--exclude', os.path.join(var, 'log', 'net.log')]
 
     file_utils.TryMakeDirs(os.path.dirname(output_file))
@@ -410,6 +409,11 @@ def ParseArgument():
                       help=('Include DRAM calibration info in the logs.'))
   parser.add_argument('--no-abt', action='store_false', dest='abt',
                       help=('Create abt.txt for "Android Bug Tool".'))
+  parser.add_argument(
+      '--full', action='store_true',
+      help=('Produce a complete factory_bug. When --full is set --net, --probe'
+            ' and --dram are implied. For details see the description of each '
+            'option.'))
   parser.add_argument('--verbosity', '-v', action='count', default=0,
                       help=('Change the logging verbosity.'))
   return parser, parser.parse_args()
@@ -436,6 +440,8 @@ def main():
 
   parser, args = ParseArgument()
   logging.basicConfig(level=logging.WARNING - 10 * args.verbosity)
+  options = dict((key, getattr(args, key) or args.full)
+                 for key in ['net', 'probe', 'dram'])
 
   paths = {}
   if not args.output_dir:
@@ -492,9 +498,7 @@ def main():
   if not args.mount:
     with (MountUSB() if args.usb else
           DummyContext(MountUSBInfo(None, args.output_dir, False))) as mount:
-      output_file = SaveLogs(
-          mount.mount_point, args.net, args.id, args.probe, args.dram, args.abt,
-          **paths)
+      output_file = SaveLogs(mount.mount_point, args.id, **options, **paths)
       logging.info('Wrote %s (%d bytes)',
                    output_file, os.path.getsize(output_file))
 
