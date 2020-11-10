@@ -35,8 +35,14 @@ import uuid
 import jsonrpclib
 from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
 
+from cros.factory.gooftool import cros_config as cros_config_module
+from cros.factory.test import state
+from cros.factory.test.state import TestState
 from cros.factory.test.test_lists import manager
+from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
+from cros.factory.utils.type_utils import Enum
 
 
 _GHOST_RPC_PORT = int(os.getenv('GHOST_RPC_PORT', '4499'))
@@ -1101,6 +1107,84 @@ class Ghost:
     logging.info('Received reconnect request from RPC server, reconnecting...')
     self._reset.set()
 
+  def CollectPytestAndStatus(self):
+    STATUS = Enum(['failed', 'running', 'idle'])
+    goofy = state.GetInstance()
+    tests = goofy.GetTests()
+
+    # Ignore parents
+    tests = [x for x in tests if not x.get('parent')]
+
+    scheduled_tests = (
+        goofy.GetTestRunStatus(None).get('scheduled_tests') or [])
+    scheduled_tests = {t['path']
+                       for t in scheduled_tests}
+    tests = [x for x in tests if x['path'] in scheduled_tests]
+    data = {
+        'pytest': '',
+        'status': STATUS.idle
+    }
+
+    def parse_pytest_name(test):
+      # test['path'] format: 'test_list_name:pytest_name'
+      return test['path'][test['path'].index(':') + 1:]
+
+    for test in filter(lambda t: t['status'] == TestState.ACTIVE, tests):
+      data['pytest'] = parse_pytest_name(test)
+      data['status'] = STATUS.running
+      return data
+
+    for test in filter(lambda t: t['status'] == TestState.FAILED, tests):
+      data['pytest'] = parse_pytest_name(test)
+      data['status'] = STATUS.failed
+      return data
+
+    if tests:
+      data['pytest'] = parse_pytest_name(tests[0])
+
+    return data
+
+  def CollectModelName(self):
+    return {
+        'model': cros_config_module.CrosConfig().GetModelName()
+    }
+
+  def CollectIP(self):
+    ip_addrs = []
+    for interface in net_utils.GetNetworkInterfaces():
+      ip = net_utils.GetEthernetIp(interface)[0]
+      if ip:
+        ip_addrs.append(ip)
+
+    return {
+        'ip': ip_addrs
+    }
+
+  def CollectData(self):
+    """Collect dut data.
+
+    Data includes:
+    1. status: Current test status
+    2. pytest: Current pytest
+    3. model: Model name
+    4. ip: IP
+    """
+    data = {}
+    data.update(self.CollectPytestAndStatus())
+    data.update(self.CollectModelName())
+    data.update(self.CollectIP())
+
+    return data
+
+  def SendData(self):
+    if not sys_utils.InCrOSDevice():
+      return
+
+    data = self.CollectData()
+    logging.info('data = %s', data)
+
+    self.SendRequest('update_dut_data', data)
+
   def GetStatus(self):
     status = self._register_status
     if self._register_status == SUCCESS:
@@ -1165,6 +1249,7 @@ class Ghost:
     logging.info('RPC Server: started')
     rpc_server = SimpleJSONRPCServer((_DEFAULT_BIND_ADDRESS, _GHOST_RPC_PORT),
                                      logRequests=False)
+    rpc_server.register_function(self.SendData, 'SendData')
     rpc_server.register_function(self.Reconnect, 'Reconnect')
     rpc_server.register_function(self.GetStatus, 'GetStatus')
     rpc_server.register_function(self.RegisterTTY, 'RegisterTTY')
@@ -1304,27 +1389,31 @@ def main():
   parser.add_argument('--tls', dest='tls_mode', default='detect',
                       choices=('y', 'n', 'detect'),
                       help="specify 'y' or 'n' to force enable/disable TLS")
-  parser.add_argument('--tls-cert-file', metavar='TLS_CERT_FILE',
-                      dest='tls_cert_file', type=str, default=None,
-                      help='file containing the server TLS certificate in PEM '
-                           'format')
+  parser.add_argument(
+      '--tls-cert-file', metavar='TLS_CERT_FILE', dest='tls_cert_file',
+      type=str, default=None,
+      help='file containing the server TLS certificate in PEM '
+      'format')
   parser.add_argument('--tls-no-verify', dest='tls_no_verify',
                       action='store_true', default=False,
                       help='do not verify certificate if TLS is enabled')
-  parser.add_argument('--prop-file', metavar='PROP_FILE', dest='prop_file',
-                      type=str, default=None,
-                      help='file containing the JSON representation of client '
-                           'properties')
+  parser.add_argument(
+      '--prop-file', metavar='PROP_FILE', dest='prop_file', type=str,
+      default=None, help='file containing the JSON representation of client '
+      'properties')
   parser.add_argument('--download', metavar='FILE', dest='download', type=str,
                       default=None, help='file to download')
   parser.add_argument('--reset', dest='reset', default=False,
                       action='store_true',
                       help='reset ghost and reload all configs')
+  parser.add_argument('--send-data', dest='send_data', default=False,
+                      action='store_true',
+                      help='send client data to overlord server')
   parser.add_argument('--status', dest='status', default=False,
                       action='store_true',
                       help='show status of the client')
-  parser.add_argument('overlord_ip', metavar='OVERLORD_IP', type=str,
-                      nargs='*', help='overlord server address')
+  parser.add_argument('overlord_ip', metavar='OVERLORD_IP', type=str, nargs='*',
+                      help='overlord server address')
   args = parser.parse_args()
 
   if args.status:
@@ -1336,6 +1425,10 @@ def main():
 
   if args.reset:
     GhostRPCServer().Reconnect()
+    sys.exit()
+
+  if args.send_data:
+    GhostRPCServer().SendData()
     sys.exit()
 
   if args.download:

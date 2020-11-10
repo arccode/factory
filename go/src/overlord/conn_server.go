@@ -42,6 +42,13 @@ type fileDownloadContext struct {
 	Ready bool        // Ready for download
 }
 
+type DutContext struct {
+	Status string   // Pytest status
+	Pytest string   // Pytest name
+	Model  string   // Dut model
+	Ip     []string // Dut IP
+}
+
 // ConnServer is the main struct for storing connection context between
 // Overlord and Ghost.
 type ConnServer struct {
@@ -58,6 +65,7 @@ type ConnServer struct {
 	wsConn      *websocket.Conn        // WebSocket for Terminal and Shell
 	logcat      logcatContext          // Logcat context
 	Download    fileDownloadContext    // File download context
+	Dut         DutContext             // Dut info
 	stopListen  chan bool              // Stop the Listen() loop
 	lastPing    int64                  // Last time the client pinged
 }
@@ -294,6 +302,32 @@ func (c *ConnServer) handlePingRequest(req *Request) error {
 	return c.SendResponse(res)
 }
 
+func (c *ConnServer) handleUpdateDutDataRequest(req *Request) error {
+	type RequestArgs struct {
+		Status string   `json:"status"`
+		Pytest string   `json:"pytest"`
+		Model  string   `json:"model"`
+		Ip     []string `json:"ip"`
+	}
+
+	var args RequestArgs
+	if err := json.Unmarshal(req.Params, &args); err != nil {
+		return err
+	}
+
+	log.Printf("Update dut data from mid: %s", c.Mid)
+	log.Printf("Status: %s", args.Status)
+	log.Printf("Pytest: %s", args.Pytest)
+	log.Printf("Model: %s", args.Model)
+	log.Println(args.Ip)
+
+	c.Dut = DutContext{args.Status, args.Pytest, args.Model, args.Ip}
+	c.lastPing = time.Now().Unix()
+
+	res := NewResponse(req.Rid, Success, nil)
+	return c.SendResponse(res)
+}
+
 func (c *ConnServer) handleRegisterRequest(req *Request) error {
 	type RequestArgs struct {
 		Sid        string                 `json:"sid"`
@@ -383,6 +417,8 @@ func (c *ConnServer) handleRequest(req *Request) error {
 		err = c.handleDownloadRequest(req)
 	case "clear_to_upload":
 		err = c.handleClearToUploadRequest(req)
+	case "update_dut_data":
+		err = c.handleUpdateDutDataRequest(req)
 	}
 	return err
 }
