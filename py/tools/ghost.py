@@ -1098,6 +1098,7 @@ class Ghost:
       except socket.error:
         pass
       else:
+        self.SendData()
         sock.settimeout(None)
         self.Listen()
 

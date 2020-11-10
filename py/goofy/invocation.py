@@ -27,6 +27,7 @@ from cros.factory.testlog import testlog
 from cros.factory.testlog import testlog_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
 from cros.factory.utils.service_utils import ServiceManager
 from cros.factory.utils.string_utils import DecodeUTF8
 from cros.factory.utils import time_utils
@@ -330,6 +331,9 @@ class TestInvocation:
     logging.info('Running test %s%s%s', self.test.path,
                  iteration_string, retries_string)
 
+    if sys_utils.InCrOSDevice():
+      process_utils.Spawn(['ghost', '--send-data'])
+
     service_manager = ServiceManager()
     service_manager.SetupServices(enable_services=self.test.enable_services,
                                   disable_services=self.test.disable_services)
@@ -526,6 +530,9 @@ class TestInvocation:
       self.goofy.RunEnqueue(self._on_test_failure)
     if self._on_completion:
       self.goofy.RunEnqueue(self._on_completion)
+
+    if sys_utils.InCrOSDevice():
+      process_utils.Spawn(['ghost', '--send-data'])
 
 
 class _TestInvocationTestLogHelper:
