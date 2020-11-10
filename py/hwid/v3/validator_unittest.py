@@ -61,7 +61,8 @@ class ValidatorTest(unittest.TestCase):
         filesystem_adapter=filesystem_adapter.LocalFileSystemAdapter(
             _TEST_DATA_PATH))
     ret = validator.ValidateChange(prev_db, db, ctx)
-    self.assertEqual({'cpu': [(9, 10, common.COMPONENT_STATUS.supported)]}, ret)
+    self.assertEqual(
+        {'cpu': [('cpu_9_10', 9, 10, common.COMPONENT_STATUS.supported)]}, ret)
 
   def testBadCompNameChange(self):
     prev_db = Database.LoadFile(DB_COMP_BEFORE_PATH)

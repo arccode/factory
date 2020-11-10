@@ -16,6 +16,7 @@ from cros.factory.hwid.service.appengine import hwid_util
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import validator as v3_validator
+from cros.factory.hwid.v3 import verify_db_pattern
 # pylint: disable=import-error, no-name-in-module
 from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
 # pylint: enable=import-error, no-name-in-module
@@ -406,8 +407,14 @@ class HwidApiTest(unittest.TestCase):
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
   def testValidateConfigAndUpdateUpdatedComponents(self, patch_hwid_validator):
     patch_hwid_validator.ValidateChange.return_value = {
-        'wireless': [(1234, 5678, common.COMPONENT_STATUS.supported),
-                     (1111, 2222, common.COMPONENT_STATUS.unqualified)]
+        'wireless': [
+            verify_db_pattern.ComponentAvlInfo(
+                'wireless_1234_5678', 1234, 5678,
+                common.COMPONENT_STATUS.supported),
+            verify_db_pattern.ComponentAvlInfo(
+                'wireless_1111_2222', 1111, 2222,
+                common.COMPONENT_STATUS.unqualified)
+        ]
     }
 
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
@@ -424,10 +431,12 @@ class HwidApiTest(unittest.TestCase):
             newComponentsPerCategory={
                 'wireless':
                     hwid_api_messages_pb2.AvlEntries(entries=[
-                        hwid_api_messages_pb2.AvlEntry(cid=1234, qid=5678,
-                                                       supportStatus=supported),
                         hwid_api_messages_pb2.AvlEntry(
-                            cid=1111, qid=2222, supportStatus=unqualified)
+                            cid=1234, qid=5678, supportStatus=supported,
+                            componentName='wireless_1234_5678'),
+                        hwid_api_messages_pb2.AvlEntry(
+                            cid=1111, qid=2222, supportStatus=unqualified,
+                            componentName='wireless_1111_2222')
                     ])
             }), msg)
 
@@ -485,8 +494,13 @@ class HwidApiTest(unittest.TestCase):
   def testValidateConfigAndUpdateChecksumUnknwonStatus(self,
                                                        patch_hwid_validator):
     patch_hwid_validator.ValidateChange.return_value = {
-        'wireless': [(1234, 5678, common.COMPONENT_STATUS.supported),
-                     (1111, 2222, 'new_status')]
+        'wireless': [
+            verify_db_pattern.ComponentAvlInfo(
+                'wireless_1234_5678', 1234, 5678,
+                common.COMPONENT_STATUS.supported),
+            verify_db_pattern.ComponentAvlInfo('wireless_1111_2222', 1111, 2222,
+                                               'new_status')
+        ]
     }
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
         hwidConfigContents=TEST_HWID_CONTENT)

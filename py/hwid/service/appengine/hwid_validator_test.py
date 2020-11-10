@@ -105,8 +105,12 @@ class HwidValidatorTest(unittest.TestCase):
   def testValidateComponentNameValid(self):
     ret = hwid_validator.HwidValidator().ValidateChange(
         GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN, GOLDEN_HWIDV3_DATA_BEFORE)
-    self.assertEqual({'cpu': [(1234, 5678, common.COMPONENT_STATUS.supported)]},
-                     ret)
+    self.assertEqual(
+        {
+            'cpu': [
+                ('cpu_1234_5678', 1234, 5678, common.COMPONENT_STATUS.supported)
+            ]
+        }, ret)
 
   def testValidateComponentNameInvalidWithNote(self):
     with self.assertRaises(v3_validator.ValidationError) as ex:
@@ -124,10 +128,11 @@ class HwidValidatorTest(unittest.TestCase):
     ret = hwid_validator.HwidValidator().ValidateChange(
         GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN_WITH_NOTE,
         GOLDEN_HWIDV3_DATA_BEFORE)
+    print(ret)
     self.assertEqual(
         {
-            'cpu': [(2, 3, common.COMPONENT_STATUS.supported),
-                    (3, 4, common.COMPONENT_STATUS.unsupported)]
+            'cpu': [('cpu_2_3#3', 2, 3, common.COMPONENT_STATUS.supported),
+                    ('cpu_3_4#5', 3, 4, common.COMPONENT_STATUS.unsupported)]
         }, ret)
 
   @classmethod

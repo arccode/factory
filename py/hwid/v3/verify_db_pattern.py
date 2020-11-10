@@ -23,6 +23,7 @@ import os
 import subprocess
 import sys
 import traceback
+import typing
 import unittest
 
 from cros.factory.hwid.v3 import common
@@ -34,6 +35,14 @@ from cros.factory.hwid.v3 import validator_context
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import process_utils
 from cros.factory.utils.schema import SchemaException
+
+
+class ComponentAvlInfo(typing.NamedTuple):
+  """A data structure to collect the new/updated component info"""
+  comp_name: str
+  cid: int
+  qid: int
+  status: str
 
 
 def _TestDatabase(targs):
@@ -249,7 +258,8 @@ class HWIDDBsPatternTest(unittest.TestCase):
       ctx: validator_context.ValidatorContext instance which contains the
            name_pattern information.
     Returns:
-      dict of created/updated component information if available.
+      dict of created/updated component information {category:
+      [ComponentAvlInfo, ...]} if available.
     """
 
     def FindModifiedComponentsWithIdx(old_db, db, comp_cls):
@@ -263,12 +273,13 @@ class HWIDDBsPatternTest(unittest.TestCase):
 
       return name_idx
 
-    def CollectNewComponents(bucket, component_name, status):
-      sp = component_name.split('_')
+    def CollectNewComponents(bucket, comp_name, trimmed_name, status):
+      sp = trimmed_name.split('_')
       if len(sp) != 3:
-        logging.error('Invalid component name %r', component_name)
+        logging.error('Invalid component name %r', trimmed_name)
       else:
-        bucket[sp[0]].append((int(sp[1]), int(sp[2]), status))
+        bucket[sp[0]].append(
+            ComponentAvlInfo(comp_name, int(sp[1]), int(sp[2]), status))
 
     adapter = name_pattern_adapter.NamePatternAdapter(ctx.filesystem_adapter)
     rename_component = {}
@@ -282,7 +293,7 @@ class HWIDDBsPatternTest(unittest.TestCase):
             raise common.HWIDException(
                 '%r does not match any available %s pattern' % (tag, comp_cls))
           sp = tag.split('#', 1)
-          CollectNewComponents(bucket, sp[0], comp.status)
+          CollectNewComponents(bucket, tag, sp[0], comp.status)
           if len(sp) == 2:
             expected_component_name = '%s#%d' % (sp[0], idx)
             if tag != expected_component_name:
