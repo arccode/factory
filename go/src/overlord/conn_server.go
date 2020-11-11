@@ -53,21 +53,23 @@ type DutContext struct {
 // Overlord and Ghost.
 type ConnServer struct {
 	*RPCCore
-	Mode        int                    // Client mode, see constants.go
-	Command     chan interface{}       // Channel for overlord command
-	Response    chan string            // Channel for reponsing overlord command
-	Sid         string                 // Session ID
-	Mid         string                 // Machine ID
-	TerminalSid string                 // Associated terminal session ID
-	Properties  map[string]interface{} // Client properties
-	ovl         *Overlord              // Overlord handle
-	registered  bool                   // Whether we are registered or not
-	wsConn      *websocket.Conn        // WebSocket for Terminal and Shell
-	logcat      logcatContext          // Logcat context
-	Download    fileDownloadContext    // File download context
-	Dut         DutContext             // Dut info
-	stopListen  chan bool              // Stop the Listen() loop
-	lastPing    time.Time              // Last time the client pinged
+	Mode            int                    // Client mode, see constants.go
+	Command         chan interface{}       // Channel for overlord command
+	Response        chan string            // Channel for reponsing overlord command
+	Sid             string                 // Session ID
+	Mid             string                 // Machine ID
+	TerminalSid     string                 // Associated terminal session ID
+	Properties      map[string]interface{} // Client properties
+	ovl             *Overlord              // Overlord handle
+	registered      bool                   // Whether we are registered or not
+	TrackConnection bool                   // Track connection even disconnected
+	wsConn          *websocket.Conn        // WebSocket for Terminal and Shell
+	logcat          logcatContext          // Logcat context
+	Download        fileDownloadContext    // File download context
+	Dut             DutContext             // Dut info
+	stopListen      chan bool              // Stop the Listen() loop
+	lastPing        time.Time              // Last time the client pinged
+	Timeout         time.Duration          // Timeout seconds for disconnected status
 }
 
 // NewConnServer create a ConnServer object.
@@ -329,6 +331,26 @@ func (c *ConnServer) handleUpdateDutDataRequest(req *Request) error {
 	return c.SendResponse(res)
 }
 
+func (c *ConnServer) handleTrackConnectionRequest(req *Request) error {
+	type RequestArgs struct {
+		Enabled     bool  `json:"enabled"`
+		TimeoutSecs int64 `json:"timeout_secs"`
+	}
+
+	var args RequestArgs
+	if err := json.Unmarshal(req.Params, &args); err != nil {
+		return err
+	}
+
+	log.Printf("mid: %s, track_connection: %t, timeout_secs: %d", c.Mid, args.Enabled, args.TimeoutSecs)
+
+	c.TrackConnection = args.Enabled
+	c.Timeout = time.Duration(args.TimeoutSecs) * time.Second
+
+	res := NewResponse(req.Rid, Success, nil)
+	return c.SendResponse(res)
+}
+
 func (c *ConnServer) handleRegisterRequest(req *Request) error {
 	type RequestArgs struct {
 		Sid        string                 `json:"sid"`
@@ -420,6 +442,8 @@ func (c *ConnServer) handleRequest(req *Request) error {
 		err = c.handleClearToUploadRequest(req)
 	case "update_dut_data":
 		err = c.handleUpdateDutDataRequest(req)
+	case "track_connection":
+		err = c.handleTrackConnectionRequest(req)
 	}
 	return err
 }

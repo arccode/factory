@@ -1187,6 +1187,15 @@ class Ghost:
 
     self.SendRequest('update_dut_data', data)
 
+  def TrackConnection(self, enabled, timeout_secs):
+    logging.info('TrackConnection, enabled = %s, timeout_secs = %d', enabled,
+                 timeout_secs)
+
+    self.SendRequest('track_connection', {
+        'enabled': enabled,
+        'timeout_secs': timeout_secs
+    })
+
   def GetStatus(self):
     status = self._register_status
     if self._register_status == SUCCESS:
@@ -1256,6 +1265,7 @@ class Ghost:
     rpc_server.register_function(self.GetStatus, 'GetStatus')
     rpc_server.register_function(self.RegisterTTY, 'RegisterTTY')
     rpc_server.register_function(self.RegisterSession, 'RegisterSession')
+    rpc_server.register_function(self.TrackConnection, 'TrackConnection')
     rpc_server.register_function(self.AddToDownloadQueue, 'AddToDownloadQueue')
     t = threading.Thread(target=rpc_server.serve_forever)
     t.daemon = True
@@ -1415,6 +1425,12 @@ def main():
   parser.add_argument('--status', dest='status', default=False,
                       action='store_true',
                       help='show status of the client')
+  parser.add_argument('--track-connection', dest='track_connection',
+                      default=None, choices=('y', 'n'),
+                      help="specify 'y' or 'n' to track connection or not")
+  parser.add_argument('--timeout-seconds', dest='timeout_secs', type=int,
+                      default=900,
+                      help='timeout seconds when track the connection')
   parser.add_argument('overlord_ip', metavar='OVERLORD_IP', type=str, nargs='*',
                       help='overlord server address')
   args = parser.parse_args()
@@ -1432,6 +1448,11 @@ def main():
 
   if args.send_data:
     GhostRPCServer().SendData()
+    sys.exit()
+
+  if args.track_connection:
+    GhostRPCServer().TrackConnection(args.track_connection == 'y',
+                                     args.timeout_secs)
     sys.exit()
 
   if args.download:
