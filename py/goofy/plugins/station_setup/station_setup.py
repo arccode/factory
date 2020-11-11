@@ -109,7 +109,7 @@ class StationSetup(plugin.Plugin):
       logging.warning("Can't connect to overlord server, skipping check.")
       return False
 
-    ls_cmd = [_OVL_BIN, 'ls']
+    ls_cmd = [_OVL_BIN, 'ls', '--mid-only']
     for key, value in check_dict.items():
       ls_cmd.extend(['-f', '%s=^%s$' % (key, re.escape(value))])
     match_clients = process_utils.CheckOutput(ls_cmd, log=True).splitlines()

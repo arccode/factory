@@ -1039,21 +1039,51 @@ class OverlordCLIClient:
     return clients
 
   @Command('ls', 'list clients', [
-      Arg('-f', '--filter', default=[], dest='filters', action='append',
+      Arg(
+          '-f', '--filter', default=[], dest='filters', action='append',
           help=('Conditions to filter clients by properties. '
                 'Should be in form "key=regex", where regex is the regular '
                 'expression that should be found in the value. '
                 'Multiple --filter arguments would be ANDed.')),
+      Arg('-m', '--mid-only', default=False, action='store_true',
+          help='Print mid only.'),
       Arg('-v', '--verbose', default=False, action='store_true',
           help='Print properties of each client.')
   ])
   def ListClients(self, args):
     clients = self._FilterClients(self._server.Clients(), args.filters)
-    for client in clients:
-      if args.verbose:
+
+    if args.verbose:
+      for client in clients:
         print(yaml.safe_dump(client, default_flow_style=False))
-      else:
+      return
+
+    # Used in station_setup to ckeck if there is duplicate mid.
+    if args.mid_only:
+      for client in clients:
         print(client['mid'])
+      return
+
+    def FormatPrint(length, string):
+      print('%*s' % (length + 2, string), end='|')
+
+    columns = ['mid', 'status', 'pytest', 'model', 'ip']
+    columns_max_len = {column: len(column)
+                       for column in columns}
+
+    for client in clients:
+      for column in columns:
+        columns_max_len[column] = max(columns_max_len[column],
+                                      len(str(client[column])))
+
+    for column in columns:
+      FormatPrint(columns_max_len[column], column)
+    print()
+
+    for client in clients:
+      for column in columns:
+        FormatPrint(columns_max_len[column], str(client[column]))
+      print()
 
   @Command('select', 'select default client', [
       Arg('-f', '--filter', default=[], dest='filters', action='append',
