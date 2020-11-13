@@ -101,6 +101,11 @@ var App = React.createClass({
       this.updateClient(client);
     }.bind(this));
 
+    socket.on("agent disconnected", function (msg) {
+      var client = JSON.parse(msg);
+      this.updateClient(client);
+    }.bind(this));
+
     // Initiate a file download
     socket.on("file download", function (sid) {
       var url = window.location.protocol + "//" + window.location.host +
@@ -210,6 +215,10 @@ var ClientRow = React.createClass({
   },
   getManageSpan: function() {
     var manage_span = null;
+
+    if (this.props.client.status == "disconnected") {
+      return manage_span;
+    }
 
     if (typeof(this.props.client.properties) != "undefined" &&
         typeof(this.props.client.properties.context) != "undefined" &&

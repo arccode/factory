@@ -53,38 +53,41 @@ type DutContext struct {
 // Overlord and Ghost.
 type ConnServer struct {
 	*RPCCore
-	Mode            int                    // Client mode, see constants.go
-	Command         chan interface{}       // Channel for overlord command
-	Response        chan string            // Channel for reponsing overlord command
-	Sid             string                 // Session ID
-	Mid             string                 // Machine ID
-	TerminalSid     string                 // Associated terminal session ID
-	Properties      map[string]interface{} // Client properties
-	ovl             *Overlord              // Overlord handle
-	registered      bool                   // Whether we are registered or not
-	TrackConnection bool                   // Track connection even disconnected
-	wsConn          *websocket.Conn        // WebSocket for Terminal and Shell
-	logcat          logcatContext          // Logcat context
-	Download        fileDownloadContext    // File download context
-	Dut             DutContext             // Dut info
-	stopListen      chan bool              // Stop the Listen() loop
-	lastPing        time.Time              // Last time the client pinged
-	Timeout         time.Duration          // Timeout seconds for disconnected status
+	Mode               int                    // Client mode, see constants.go
+	Command            chan interface{}       // Channel for overlord command
+	Response           chan string            // Channel for reponsing overlord command
+	Sid                string                 // Session ID
+	Mid                string                 // Machine ID
+	TerminalSid        string                 // Associated terminal session ID
+	Properties         map[string]interface{} // Client properties
+	ovl                *Overlord              // Overlord handle
+	registered         bool                   // Whether we are registered or not
+	TrackConnection    bool                   // Track connection even disconnected
+	IsDisconnected     bool                   // The connection is disconnected
+	wsConn             *websocket.Conn        // WebSocket for Terminal and Shell
+	logcat             logcatContext          // Logcat context
+	Download           fileDownloadContext    // File download context
+	Dut                DutContext             // Dut info
+	stopListen         chan bool              // Stop the Listen() loop
+	lastPing           time.Time              // Last time the client pinged
+	Timeout            time.Duration          // Timeout seconds for disconnected status
+	UpdateDisconnected *time.Timer            // A timer to update disconnected status
 }
 
 // NewConnServer create a ConnServer object.
 func NewConnServer(ovl *Overlord, conn net.Conn) *ConnServer {
 	return &ConnServer{
-		RPCCore:    NewRPCCore(conn),
-		Mode:       ModeNone,
-		Command:    make(chan interface{}),
-		Response:   make(chan string),
-		Properties: make(map[string]interface{}),
-		ovl:        ovl,
-		stopListen: make(chan bool, 1),
-		registered: false,
-		Download:   fileDownloadContext{Data: make(chan []byte)},
-		lastPing:   time.Time{}, // Zero time
+		RPCCore:        NewRPCCore(conn),
+		Mode:           ModeNone,
+		Command:        make(chan interface{}),
+		Response:       make(chan string),
+		Properties:     make(map[string]interface{}),
+		ovl:            ovl,
+		stopListen:     make(chan bool, 1),
+		registered:     false,
+		IsDisconnected: false,
+		Download:       fileDownloadContext{Data: make(chan []byte)},
+		lastPing:       time.Time{}, // Zero time
 	}
 }
 
@@ -115,6 +118,11 @@ func (c *ConnServer) Terminate() {
 		c.wsConn.WriteMessage(websocket.CloseMessage, []byte(""))
 		c.wsConn.Close()
 	}
+}
+
+// Update DUT status.
+func (c *ConnServer) UpdateDUTStatus(status string) {
+	c.Dut.Status = status
 }
 
 // writeWebsocket is a helper function for written text to websocket in the

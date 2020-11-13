@@ -169,9 +169,24 @@ func (ovl *Overlord) Register(conn *ConnServer) (*websocket.Conn, error) {
 	switch conn.Mode {
 	case ModeControl:
 		ovl.agentsMu.Lock()
-		if _, ok := ovl.agents[conn.Mid]; ok {
-			ovl.agentsMu.Unlock()
-			return nil, errors.New("duplicate machine ID: " + conn.Mid)
+		if oldConn, ok := ovl.agents[conn.Mid]; ok {
+			if oldConn.IsDisconnected {
+				// Same Mid registers again, and old connection is disconnected.
+				// Invalidate the old connection.
+				oldConn.registered = false
+
+				// Stop updating status to disconnected.
+				if oldConn.UpdateDisconnected != nil {
+					oldConn.UpdateDisconnected.Stop()
+				}
+
+				// Inherit TrackConnection and Timeout from old connection.
+				conn.TrackConnection = oldConn.TrackConnection
+				conn.Timeout = oldConn.Timeout
+			} else {
+				ovl.agentsMu.Unlock()
+				return nil, errors.New("duplicate machine ID: " + conn.Mid)
+			}
 		}
 		ovl.agents[conn.Mid] = conn
 		ovl.agentsMu.Unlock()
@@ -219,8 +234,11 @@ func (ovl *Overlord) Register(conn *ConnServer) (*websocket.Conn, error) {
 // Unregister a client.
 func (ovl *Overlord) Unregister(conn *ConnServer) {
 	msg, err := json.Marshal(map[string]interface{}{
-		"mid": conn.Mid,
-		"sid": conn.Sid,
+		"mid":    conn.Mid,
+		"sid":    conn.Sid,
+		"status": dutStatusDisconnected,
+		"pytest": conn.Dut.Pytest,
+		"model":  conn.Dut.Model,
 	})
 
 	if err != nil {
@@ -229,10 +247,26 @@ func (ovl *Overlord) Unregister(conn *ConnServer) {
 
 	switch conn.Mode {
 	case ModeControl:
-		ovl.ioserver.BroadcastTo("monitor", "agent left", string(msg))
-		ovl.agentsMu.Lock()
-		delete(ovl.agents, conn.Mid)
-		ovl.agentsMu.Unlock()
+		log.Printf("Agent mid %s left, track = %t", conn.Mid, conn.TrackConnection)
+		if conn.TrackConnection {
+			conn.IsDisconnected = true
+
+			var sleepDuration = conn.Timeout - time.Since(conn.lastPing)
+			log.Printf("Last ping: %s", conn.lastPing)
+			log.Printf("Wait %s and then change to disconnected status", sleepDuration)
+
+			conn.UpdateDisconnected = time.AfterFunc(sleepDuration, func() {
+				conn.UpdateDUTStatus(dutStatusDisconnected)
+				ovl.ioserver.BroadcastTo("monitor", "agent disconnected", string(msg))
+			})
+
+			return
+		} else {
+			ovl.ioserver.BroadcastTo("monitor", "agent left", string(msg))
+			ovl.agentsMu.Lock()
+			delete(ovl.agents, conn.Mid)
+			ovl.agentsMu.Unlock()
+		}
 	case ModeLogcat:
 		ovl.logcatsMu.Lock()
 		if _, ok := ovl.logcats[conn.Mid]; ok {

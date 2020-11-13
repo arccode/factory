@@ -55,3 +55,10 @@ func ModeStr(mode int) string {
 		ModeForward:  "ModeForward",
 	}[mode]
 }
+
+const (
+	dutStatusIdle         = "idle"
+	dutStatusRunning      = "running"
+	dutStatusDisconnected = "disconnected"
+	dutStatusFailed       = "failed"
+)
