@@ -120,6 +120,8 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
+from cros.factory.external import pyudev
+
 # The GPT ( http://en.wikipedia.org/wiki/GUID_Partition_Table )
 # occupies the first 34 and the last 33 512-byte blocks.
 #
@@ -421,7 +423,7 @@ class RemovableStorageTest(test_case.TestCase):
     """
     block_dirs = self._dut.Glob('/sys/block/sd*')
     for block_dir in block_dirs:
-      if sys_path in self._dut.path.realpath(block_dir):
+      if re.match(sys_path, self._dut.path.realpath(block_dir)) is not None:
         return self._dut.path.basename(block_dir)
     return None
 
@@ -733,9 +735,9 @@ class RemovableStorageTest(test_case.TestCase):
       device_node = sync_utils.WaitFor(
           lambda: self.GetDeviceNodeBySysPath(self.args.sysfs_path),
           self.args.timeout_secs)
-      device = self._dut.udev.Device(
-          self._dut.path.join(self._dut.udev.GetDevBlockPath(), device_node),
-          self.args.sysfs_path)
+      path = self._dut.path.join(self._dut.udev.GetDevBlockPath(), device_node)
+      context = pyudev.Context()
+      device = pyudev.Device.from_device_file(context, path)
       self._SetTargetDevice(device)
       # If skip_insert_remove is True, would fail the test directly when
       # polarity is wrong.
