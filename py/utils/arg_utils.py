@@ -189,11 +189,14 @@ class Args:
     # Throws an exception on duplicate arguments
     self.args_by_name = {x.name: x for x in args}
 
-  def Parse(self, dargs):
+  def Parse(self, dargs, unresolvable_type=None):
     """Parses a dargs object from the test list.
 
     Args:
       dargs: A name/value map of arguments from the test list.
+      unresolvable_type: A type indicates the arguments can not be resolved at
+          compile time but may be resolved at runtime. We do not validate or
+          transform unresolvable_type arguments.
 
     Returns:
       An object containing an attribute for each argument.
@@ -213,11 +216,15 @@ class Args:
         errors.append('Argument %s=%r' % (arg.name, value))
         continue
 
-      if arg.schema:
-        arg.schema.Validate(value)
+      if not unresolvable_type or not isinstance(value, unresolvable_type):
+        if arg.schema:
+          try:
+            arg.schema.Validate(value)
+          except Exception as e:
+            errors.append(repr(e))
 
-      if arg.transform:
-        value = arg.transform(value)
+        if arg.transform:
+          value = arg.transform(value)
 
       attributes[arg.name] = value
 

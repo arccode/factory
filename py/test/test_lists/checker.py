@@ -238,7 +238,7 @@ class Checker:
     args_spec = arg_utils.Args(*args_spec)
 
     resolved_args = self.StaticallyResolveTestArgs(test, test_list)
-    args_spec.Parse(resolved_args)
+    args_spec.Parse(resolved_args, unresolvable_type=UnresolvableValue)
 
   def StaticallyResolveTestArgs(self, test, test_list):
     """Resolve test args without accessing DUT or station.
