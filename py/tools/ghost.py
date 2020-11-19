@@ -35,6 +35,7 @@ import uuid
 import jsonrpclib
 from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
 
+from cros.factory.test.test_lists import manager
 from cros.factory.utils import process_utils
 
 
@@ -1173,6 +1174,26 @@ class Ghost:
     t.daemon = True
     t.start()
 
+  def ApplyTestListParams(self):
+    mgr = manager.Manager()
+    constants = mgr.GetTestListByID(mgr.GetActiveTestListId()).constants
+
+    if 'overlord' not in constants:
+      return
+
+    if 'overlord_urls' in constants['overlord']:
+      for addr in [(x, _OVERLORD_PORT) for x in
+                   constants['overlord']['overlord_urls']]:
+        if addr not in self._overlord_addrs:
+          self._overlord_addrs.append(addr)
+
+    # This is sugar for ODM to turn off the verification quickly if they forgot.
+    # So we don't support to turn on again.
+    # If we want to turn on, we need to restart the ghost daemon.
+    if 'tls_no_verify' in constants['overlord']:
+      if constants['overlord']['tls_no_verify']:
+        self._tls_settings = TLSSettings(None, False)
+
   def ScanServer(self):
     for meth in [self.GetGateWayIP, self.GetFactoryServerIP]:
       for addr in [(x, _OVERLORD_PORT) for x in meth()]:
@@ -1204,6 +1225,9 @@ class Ghost:
           if isinstance(addr, tuple) and addr not in self._overlord_addrs:
             logging.info('LAN Discovery: got overlord address %s:%d', *addr)
             self._overlord_addrs.append(addr)
+
+        if self._mode == Ghost.AGENT:
+          self.ApplyTestListParams()
 
         try:
           self.ScanServer()

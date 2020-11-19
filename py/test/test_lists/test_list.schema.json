@@ -121,6 +121,22 @@
         "^[A-Za-z0-9][A-Za-z0-9_-]*$": {
         }
       },
+      "properties": {
+        "overlord": {
+          "type": "object",
+          "properties": {
+            "overlord_urls": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "tls_no_verify": {
+              "type": "boolean"
+            }
+          }
+        }
+      },
       "additionalProperties": false
     },
     "test_ui_layout_type": {

@@ -32,10 +32,10 @@ def _Start(args):
   cmd = [
       'ghost', '--fork', '--prop-file', ghost_prop.GOOFY_GHOST_PROPERTIES_FILE
   ]
-  # TODO(pihsun): Have a way to specify --tls-no-verify.
   pem_file = os.path.join(paths.DATA_DIR, 'overlord.pem')
   if os.path.exists(pem_file):
     cmd.extend(['--tls-cert-file', pem_file])
+
   subprocess.check_call(cmd)
 
 

@@ -12,6 +12,12 @@
     "has_ec_pubkey": false,
     "hwid_need_vpd": false,
     "__comment_hwid_need_vpd": "Set to true if some rules in the HWID database rely on VPD data",
+    "overlord": {
+      "overlord_urls": [],
+      "tls_no_verify": false
+    },
+    "__comment_overlord_overlord_urls": "The urls of overlord server. e.g. 192.168.1.1. Don't contain http or port number.",
+    "__comment_overlord_tls_no_verify": "Skip the certificate verification or not. DUTs are usually in local network, it's fine to skip the verification.",
     "rma_mode": false,
     "sd": {
       "sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/mmc_host"
