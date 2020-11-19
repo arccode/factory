@@ -291,7 +291,8 @@ def TouchFile(path):
 
 def ReadOneLine(filename):
   """Returns the first line as a string from the given file."""
-  return open(filename, 'r').readline().rstrip('\n')
+  with open(filename, 'r') as f:
+    return f.readline().rstrip('\n')
 
 
 def SetFileExecutable(path):
