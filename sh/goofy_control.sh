@@ -21,7 +21,7 @@ BOARD_SETUP="${FACTORY}/board/board_setup_factory.sh"
 
 # Put '/usr/local/factory/bin' at the head of PATH so that Goofy doesn't need to
 # specify full path name when running factory binaries.
-export PATH="/usr/local/factory/bin:/usr/local/factory/bin/overlord:${PATH}"
+export PATH="/usr/local/factory/bin:${PATH}"
 
 # Default args for Goofy.
 GOOFY_ARGS=""
@@ -227,9 +227,6 @@ start_factory() {
   Device ID: $(cat /var/factory/.device_id) " >>"$FACTORY_LOG_FILE"
   # shellcheck disable=SC2086
   "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
-
-  echo "Starting goofy_ghost..."
-  "${FACTORY}"/bin/goofy_ghost start >/dev/null 2>&1
 
   wait
 }
