@@ -83,6 +83,7 @@ class _Config:
     self.project_region = conf.get('project_region', '')
     self.queue_name = conf.get('queue_name', '')
     self.hwid_repo_branch = conf.get('hwid_repo_branch', '')
+    self.client_allowlist = conf.get('client_allowlist', [])
 
 
 CONFIG = type_utils.LazyObject(_Config)

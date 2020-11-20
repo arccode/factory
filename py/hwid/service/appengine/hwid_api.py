@@ -9,6 +9,7 @@ This file is also the place that all the binding is done for various components.
 
 import functools
 import gzip
+import http
 import logging
 import operator
 import re
@@ -98,11 +99,30 @@ def _MapException(ex, cls):
       errorMessage=str(ex), status=hwid_api_messages_pb2.Status.BAD_REQUEST)
 
 
+def _AuthClient(func):
+
+  @functools.wraps(func)
+  def _MethodWrapper(self, request):
+    if CONFIG.env == 'dev':  # for integration test
+      return func(self, request)
+
+    loas_peer_username = flask.request.headers.get(
+        'X-Appengine-Loas-Peer-Username')
+    if loas_peer_username not in CONFIG.client_allowlist:
+      raise protorpc_utils.ProtoRPCException(
+          status=http.HTTPStatus.FORBIDDEN,
+          code=protorpc_utils.RPC_CODE_PERMISSION_DENIED)
+    return func(self, request)
+
+  return _MethodWrapper
+
+
 class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
   SERVICE_DESCRIPTOR = hwid_api_messages_pb2.DESCRIPTOR.services_by_name[
       'HwidService']
 
   @protorpc_utils.ProtoRPCServiceMethod
+  @_AuthClient
   def GetBoards(self, request):
     """Return all of the supported boards in sorted order."""
 
@@ -116,6 +136,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     return response
 
   @protorpc_utils.ProtoRPCServiceMethod
+  @_AuthClient
   def GetBom(self, request):
     """Return the components of the BOM identified by the HWID."""
     verbose = request.verbose
@@ -164,6 +185,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     return response
 
   @protorpc_utils.ProtoRPCServiceMethod
+  @_AuthClient
   def GetSku(self, request):
     """Return the components of the SKU identified by the HWID."""
     status, error = _FastFailKnownBadHwid(request.hwid)
@@ -186,6 +208,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
         memory=sku['memory_str'], sku=sku['sku'])
 
   @protorpc_utils.ProtoRPCServiceMethod
+  @_AuthClient
   def GetHwids(self, request):
     """Return a filtered list of HWIDs for the given board."""
 
@@ -224,6 +247,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
         status=hwid_api_messages_pb2.Status.SUCCESS, hwids=hwids)
 
   @protorpc_utils.ProtoRPCServiceMethod
+  @_AuthClient
   def GetComponentClasses(self, request):
     """Return a list of all component classes for the given board."""
 
@@ -242,6 +266,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
         status=hwid_api_messages_pb2.Status.SUCCESS, componentClasses=classes)
 
   @protorpc_utils.ProtoRPCServiceMethod
+  @_AuthClient
   def GetComponents(self, request):
     """Return a filtered list of components for the given board."""
 
@@ -268,6 +293,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
         status=hwid_api_messages_pb2.Status.SUCCESS, components=components_list)
 
   @protorpc_utils.ProtoRPCServiceMethod
+  @_AuthClient
   def ValidateConfig(self, request):
     """Validate the config.
 
@@ -290,6 +316,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
         status=hwid_api_messages_pb2.Status.SUCCESS)
 
   @protorpc_utils.ProtoRPCServiceMethod
+  @_AuthClient
   def ValidateConfigAndUpdateChecksum(self, request):
     """Validate the config and update its checksum.
 
@@ -335,6 +362,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     return resp
 
   @protorpc_utils.ProtoRPCServiceMethod
+  @_AuthClient
   def GetDutLabels(self, request):
     """Return the components of the SKU identified by the HWID."""
     hwid = request.hwid
