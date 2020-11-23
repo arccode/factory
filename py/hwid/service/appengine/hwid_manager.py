@@ -183,7 +183,8 @@ class Bom:
       self._components[cls].append(
           Component(cls, name, information, is_vp_related, fields))
 
-  def AddAllComponents(self, component_dict, comp_db=None, verbose=False):
+  def AddAllComponents(self, component_dict, comp_db=None, verbose=False,
+                       waived_comp_categories=None):
     """Adds a dict of components to this bom.
 
     This dict should be of the form class -> name and can take either a single
@@ -194,14 +195,19 @@ class Bom:
       component_dict: A dictionary of components to add.
       comp_db: The database for additional component information retrieval.
       verbose: Adds all fields of the component detail if set to True.
+      waived_comp_categories: List of waived component categories which means
+      they are not verification-payload-related.
     Returns:
       self
     Raises:
       ValueError: if any of the classes are None.
     """
+    if waived_comp_categories is None:
+      waived_comp_categories = []
     if comp_db:
       vp_related_comps = set(
-          vpg_module.GetAllComponentVerificationPayloadPieces(comp_db, []))
+          vpg_module.GetAllComponentVerificationPayloadPieces(
+              comp_db, waived_comp_categories))
     else:
       vp_related_comps = set()
 
@@ -293,8 +299,9 @@ class HwidManager:
   information.
   """
 
-  def __init__(self, fs_adapter):
+  def __init__(self, fs_adapter, vpg_targets):
     self._fs_adapter = fs_adapter
+    self._vpg_targets = vpg_targets
     self._memcache_adapter = memcache_adapter.MemcacheAdapter(
         namespace='HWIDObject')
 
@@ -370,9 +377,13 @@ class HwidManager:
     del unusedi  # unused
     del unusedj  # unused
 
+    model_info = self._vpg_targets.get(board)
+    waived_comp_categories = model_info and model_info.waived_comp_categories
+
     hwid_data = self._LoadHwidData(board)
 
-    return hwid_data.GetBomAndConfigless(hwid_string, verbose)
+    return hwid_data.GetBomAndConfigless(hwid_string, verbose,
+                                         waived_comp_categories)
 
   def GetHwids(self,
                board,
@@ -812,12 +823,15 @@ class _HwidData:
     """Seeds the object from a dict of hwid definitions."""
     raise NotImplementedError()
 
-  def GetBomAndConfigless(self, hwid_string, verbose=False):
+  def GetBomAndConfigless(self, hwid_string, verbose=False,
+                          waived_comp_categories=None):
     """Get the BOM and configless field for a given HWID.
 
     Args:
       hwid_string: The HWID.
       verbose: Returns all fields in component detail if set to True.
+      waived_comp_categories: List of waived component categories which means
+      they are not verification-payload-related.
 
     Returns:
       A bom dict and configless field dict.
@@ -967,7 +981,8 @@ class _HwidV2Data(_HwidData):
 
     raise InvalidHwidError('Invalid HWIDv2 format: %r' % hwid_string)
 
-  def GetBomAndConfigless(self, hwid_string, verbose=False):
+  def GetBomAndConfigless(self, hwid_string, verbose=False,
+                          waived_comp_categories=None):
     """Get the BOM and configless field for a given HWID.
 
     Overrides superclass method.
@@ -975,6 +990,8 @@ class _HwidV2Data(_HwidData):
     Args:
       hwid_string: The HWID string
       verbose: Returns all fields in component detail if set to True.
+      waived_comp_categories: List of waived component categories which means
+      they are not verification-payload-related.
 
     Returns:
       A Bom object and None since HWID v2 doesn't support configless field.
@@ -1200,7 +1217,8 @@ class _HwidV3Data(_HwidData):
     self.database = database.Database.LoadData(
         hwid_data, expected_checksum=None)
 
-  def GetBomAndConfigless(self, hwid_string, verbose=False):
+  def GetBomAndConfigless(self, hwid_string, verbose=False,
+                          waived_comp_categories=None):
     """Get the BOM and configless field for a given HWID.
 
     Overrides superclass method.
@@ -1208,6 +1226,8 @@ class _HwidV3Data(_HwidData):
     Args:
       hwid_string: The HWID.
       verbose: Returns all fields in component detail if set to True.
+      waived_comp_categories: List of waived component categories which means
+      they are not verification-payload-related.
 
     Returns:
       A bom dict and configless field dict.
@@ -1227,7 +1247,8 @@ class _HwidV3Data(_HwidData):
 
     bom = Bom()
 
-    bom.AddAllComponents(_bom.components, self.database, verbose=verbose)
+    bom.AddAllComponents(_bom.components, self.database, verbose=verbose,
+                         waived_comp_categories=waived_comp_categories)
     bom.phase = self.database.GetImageName(hwid.image_id)
     bom.board = hwid.project
 

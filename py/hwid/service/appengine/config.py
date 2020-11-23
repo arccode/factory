@@ -72,12 +72,13 @@ class _Config:
         conf['ge_bucket'])
     self.hwid_filesystem = cloudstorage_adapter.CloudStorageAdapter(
         conf['bucket'])
-    self.hwid_manager = hwid_manager.HwidManager(self.hwid_filesystem)
     self.hw_checker_mail = conf.get('hw_checker_mail', '')
     self.vpg_targets = {
         k: _VerificationPayloadGenerationTargetInfo(
             v['board'], v.get('waived_comp_categories', []))
         for k, v in conf.get('vpg_targets', {}).items()}
+    self.hwid_manager = hwid_manager.HwidManager(self.hwid_filesystem,
+                                                 self.vpg_targets)
     self.dryrun_upload = conf.get('dryrun_upload', False)
     self.ingestion_api_key = conf.get('ingestion_api_key', None)
     self.project_region = conf.get('project_region', '')

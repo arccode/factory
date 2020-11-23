@@ -100,7 +100,9 @@ class HwidManagerTest(unittest.TestCase):
     if adapter is None:
       adapter = self.filesystem_adapter
 
-    manager = hwid_manager.HwidManager(adapter)
+    vpg_target_info = mock.Mock()
+    vpg_target_info.waived_comp_categories = ['battery']
+    manager = hwid_manager.HwidManager(adapter, {'CHROMEBOOK': vpg_target_info})
 
     self._ClearDataStore(manager)
     if load_datastore:
@@ -188,9 +190,9 @@ class HwidManagerTest(unittest.TestCase):
     dram = bom.GetComponents(cls='dram')
     self.assertSequenceEqual(dram, [
         hwid_manager.Component('dram', 'dram_0', fields={
-            'vendor': 'DRAM 0',
+            'part': 'part0',
             'size': '4G'
-        })
+        }, is_vp_related=True)
     ])
 
     audio_codec = bom.GetComponents(cls='audio_codec')
@@ -205,10 +207,11 @@ class HwidManagerTest(unittest.TestCase):
     self.assertSequenceEqual(storage, [
         hwid_manager.Component(
             'storage', 'storage_0', fields={
-                'type': 'SSD',
-                'size': '16G',
+                'model': 'model0',
+                'sectors': '0',
+                'vendor': 'vendor0',
                 'serial': rule.Value(r'^#123\d+$', is_re=True)
-            })
+            }, is_vp_related=True)
     ])
 
   def testGetHwidsNonExistentBoard(self):
@@ -475,6 +478,23 @@ class HwidManagerTest(unittest.TestCase):
       self.assertEqual(mapped_comp_name, manager.GetAVLName(
           category, comp_name))
 
+  def testGetBomAndConfiglessWithVpgWaivedComponentCategory(self):
+    """Test if GetBomAndConfigless follows the waived_comp_categories defined in
+    vpg_targets."""
+    manager = self._GetManager()
+
+    manager.RegisterBoard('CHROMEBOOK', 3, 'v3')
+    manager.ReloadMemcacheCacheFromFiles()
+
+    bom, unused_configless = manager.GetBomAndConfigless(TEST_V3_HWID)
+    del unused_configless
+
+    for comp in bom.GetComponents(cls='battery'):
+      self.assertFalse(comp.is_vp_related)
+
+    for comp in bom.GetComponents(cls='storage'):
+      self.assertTrue(comp.is_vp_related)
+
 
 class HwidDataTest(unittest.TestCase):
   """Tests the _HwidData class."""
@@ -727,7 +747,8 @@ class HwidV3DataTest(unittest.TestCase):
         hwid_manager.Component('keyboard', 'keyboard_us'),
         bom.GetComponents('keyboard'))
     self.assertIn(
-        hwid_manager.Component('dram', 'dram_0'), bom.GetComponents('dram'))
+        hwid_manager.Component('dram', 'dram_0', is_vp_related=True),
+        bom.GetComponents('dram'))
     self.assertEqual('EVT', bom.phase)
     self.assertEqual('CHROMEBOOK', bom.board)
     self.assertEqual(None, configless)
@@ -747,11 +768,12 @@ class HwidV3DataTest(unittest.TestCase):
         hwid_manager.Component('keyboard', 'keyboard_us'),
         bom.GetComponents('keyboard'))
     self.assertIn(
-        hwid_manager.Component('dram', 'dram_0'), bom.GetComponents('dram'))
+        hwid_manager.Component('dram', 'dram_0', is_vp_related=True),
+        bom.GetComponents('dram'))
     self.assertEqual('EVT', bom.phase)
     self.assertIn(
-        hwid_manager.Component('storage', 'storage_2', {
-            "comp_group": "storage_0"}),
+        hwid_manager.Component('storage', 'storage_2',
+                               {"comp_group": "storage_0"}, is_vp_related=True),
         bom.GetComponents('storage'))
     self.assertEqual('CHROMEBOOK', bom.board)
     self.assertEqual(
@@ -866,8 +888,9 @@ class BomTest(unittest.TestCase):
     comp, = self.bom.GetComponents('storage')
     self.assertEqual(
         {
-            'type': 'SSD',
-            'size': '32G',
+            'model': 'model1',
+            'sectors': '100',
+            'vendor': 'vendor1',
             'serial': rule.Value(r'^#123\d+$', is_re=True)
         }, comp.fields)
 

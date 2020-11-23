@@ -187,9 +187,11 @@ class HwidApiTest(unittest.TestCase):
             status=hwid_api_messages_pb2.Status.SUCCESS, components=[
                 hwid_api_messages_pb2.Component(
                     name='battery_small', componentClass='battery', fields=[
-                        hwid_api_messages_pb2.Field(name='size',
-                                                    value='2500000'),
-                        hwid_api_messages_pb2.Field(name='tech',
+                        hwid_api_messages_pb2.Field(name='manufacturer',
+                                                    value='manufacturer1'),
+                        hwid_api_messages_pb2.Field(name='model_name',
+                                                    value='model1'),
+                        hwid_api_messages_pb2.Field(name='technology',
                                                     value='Battery Li-ion')
                     ]),
                 hwid_api_messages_pb2.Component(
@@ -481,14 +483,15 @@ class HwidApiTest(unittest.TestCase):
     self.assertEqual(
         hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
             status=hwid_api_messages_pb2.Status.SCHEMA_ERROR, errorMessage=(
-                '''OrderedDict([('type', OrderedDict([('SSD', 'object')])), ('''
-                ''''size', '16G'), ('serial', Value('^#123\\\\d+$', is_re=Tru'''
-                '''e))]) does not match any type in [Dict('probed key-value p'''
-                '''airs', key_type=Scalar('probed key', <class 'str'>), value'''
-                '''_type=AnyOf([Scalar('probed value', <class 'str'>), Scalar'''
-                '''('probed value', <class 'bytes'>), Scalar('probed value re'''
-                '''gex', <class 'cros.factory.hwid.v3.rule.Value'>)]), size=['''
-                '''1, inf]), Scalar('none', <class 'NoneType'>)]''')), msg)
+                '''OrderedDict([('model', OrderedDict([('model0', 'object')])'''
+                '''), ('vendor', 'vendor0'), ('serial', Value('^#123\\\\d+$','''
+                ''' is_re=True))]) does not match any type in [Dict('probed k'''
+                '''ey-value pairs', key_type=Scalar('probed key', <class 'st'''
+                '''r'>), value_type=AnyOf([Scalar('probed value', <class 'st'''
+                '''r'>), Scalar('probed value', <class 'bytes'>), Scalar('pr'''
+                '''obed value regex', <class 'cros.factory.hwid.v3.rule.Valu'''
+                '''e'>)]), size=[1, inf]), Scalar('none', <class 'NoneType'>)'''
+                ''']''')), msg)
 
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
   def testValidateConfigAndUpdateChecksumUnknwonStatus(self,

@@ -163,23 +163,27 @@ components:
     items:
       battery_small:
         values:
-          tech: Battery Li-ion
-          size: '2500000'
+          manufacturer: manufacturer1
+          model_name: model1
+          technology: Battery Li-ion
 
       battery_medium:
         values:
-          tech: Battery Li-ion
-          size: '5000000'
+          manufacturer: manufacturer2
+          model_name: model2
+          technology: Battery Li-ion
 
       battery_large:
         values:
-          tech: Battery Li-ion
-          size: '7500000'
+          manufacturer: manufacturer3
+          model_name: model3
+          technology: Battery Li-ion
 
       battery_huge:
         values:
-          tech: Battery Li-ion
-          size: '10000000'
+          manufacturer: manufacturer4
+          model_name: model4
+          technology: Battery Li-ion
 
   bluetooth:
     items:
@@ -252,12 +256,12 @@ components:
     items:
       dram_0:
         values:
-          vendor: DRAM 0
+          part: part0
           size: 4G
 
       dram_1:
         values:
-          vendor: DRAM 1
+          part: part1
           size: 4G
 
   ec_flash_chip:
@@ -288,21 +292,23 @@ components:
     items:
       storage_0:
         values:
-          type: SSD
-          size: 16G
+          model: model0
+          sectors: '0'
+          vendor: vendor0
           serial: !re '^#123\d+$'
 
       storage_1:
         values:
-          type: SSD
-          size: 32G
+          model: model1
+          sectors: '100'
+          vendor: vendor1
           serial: !re '^#123\d+$'
 
       storage_2:
         values:
-          type: HDD
-          size: 500G
-          serial: !re '^#123\d+$'
+          model: model2
+          sectors: '200'
+          vendor: vendor2
         information:
           comp_group: storage_0
 
