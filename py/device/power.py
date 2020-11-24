@@ -5,12 +5,11 @@
 import collections
 import logging
 import re
+import statistics
 import time
 
 from cros.factory.device import device_types
 from cros.factory.utils import type_utils
-
-from cros.factory.external import numpy
 
 
 class PowerException(device_types.DeviceException):
@@ -133,7 +132,7 @@ class PowerInfoMixinBase:
       if charge_now:
         charge_nows.append(charge_now)
       time.sleep(0.1)
-    return numpy.median(charge_nows)
+    return statistics.median(charge_nows)
 
   def GetChargeFull(self):
     """Get full charge level in mAh."""
