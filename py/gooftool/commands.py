@@ -35,6 +35,7 @@ from cros.factory.test import event_log
 from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test import state
+from cros.factory.test.utils.cbi_utils import CbiEepromWpStatus
 from cros.factory.utils import argparse_utils
 from cros.factory.utils.argparse_utils import CmdArg
 from cros.factory.utils.argparse_utils import ParseCmdline
@@ -270,6 +271,11 @@ _enable_zero_touch_cmd_arg = CmdArg(
     '--enable_zero_touch', action='store_true',
     help='Set attested_device_id for zero-touch feature.')
 
+_cbi_eeprom_wp_status_cmd_arg = CmdArg(
+    '--cbi_eeprom_wp_status', type=str, default=CbiEepromWpStatus.Locked,
+    choices=CbiEepromWpStatus,
+    help='The expected status of CBI EEPROM after factory mode disabled.')
+
 
 @Command(
     'verify_ec_key',
@@ -378,6 +384,22 @@ def VerifyCrosConfig(options):
 def VerifySnBits(options):
   if options.enable_zero_touch:
     GetGooftool(options).VerifySnBits()
+
+
+@Command(
+    'verify_cbi_eeprom_wp_status',
+    _cbi_eeprom_wp_status_cmd_arg,
+)
+def VerifyCBIEEPROMWPStatus(options):
+  """Verify CBI EEPROM status.
+
+  If cbi_eeprom_wp_status is Absent, CBI EEPROM must be absent. If
+  cbi_eeprom_wp_status is Locked, write protection must be on. Otherwise, write
+  protection must be off.
+  """
+
+  return GetGooftool(options).VerifyCBIEEPROMWPStatus(
+      options.cbi_eeprom_wp_status)
 
 
 @Command('write_protect')
@@ -572,27 +594,30 @@ def WipeInit(options):
       options.test_umount)
 
 
-@Command('verify',
-         _hwid_status_list_cmd_arg,
-         _hwdb_path_cmd_arg,
-         _project_cmd_arg,
-         _probe_results_cmd_arg,
-         _hwid_cmd_arg,
-         _hwid_run_vpd_cmd_arg,
-         _hwid_vpd_data_file_cmd_arg,
-         _no_write_protect_cmd_arg,
-         _rma_mode_cmd_arg,
-         _cros_core_cmd_arg,
-         _has_ec_pubkey_cmd_arg,
-         _ec_pubkey_path_cmd_arg,
-         _ec_pubkey_hash_cmd_arg,
-         _release_rootfs_cmd_arg,
-         _firmware_path_cmd_arg,
-         _enforced_release_channels_cmd_arg,
-         _waive_list_cmd_arg,
-         _skip_list_cmd_arg,
-         _no_ectool_cmd_arg,
-         _enable_zero_touch_cmd_arg)
+@Command(
+    'verify',
+    _hwid_status_list_cmd_arg,
+    _hwdb_path_cmd_arg,
+    _project_cmd_arg,
+    _probe_results_cmd_arg,
+    _hwid_cmd_arg,
+    _hwid_run_vpd_cmd_arg,
+    _hwid_vpd_data_file_cmd_arg,
+    _no_write_protect_cmd_arg,
+    _rma_mode_cmd_arg,
+    _cros_core_cmd_arg,
+    _has_ec_pubkey_cmd_arg,
+    _ec_pubkey_path_cmd_arg,
+    _ec_pubkey_hash_cmd_arg,
+    _release_rootfs_cmd_arg,
+    _firmware_path_cmd_arg,
+    _enforced_release_channels_cmd_arg,
+    _waive_list_cmd_arg,
+    _skip_list_cmd_arg,
+    _no_ectool_cmd_arg,
+    _enable_zero_touch_cmd_arg,
+    _cbi_eeprom_wp_status_cmd_arg,
+)
 def Verify(options):
   """Verifies if whole factory process is ready for finalization.
 
@@ -605,6 +630,7 @@ def Verify(options):
   if not options.no_write_protect:
     VerifyWPSwitch(options)
     VerifyManagementEngineLocked(options)
+  VerifyCBIEEPROMWPStatus(options)
   VerifyHWID(options)
   VerifySystemTime(options)
   if options.has_ec_pubkey:
@@ -808,39 +834,42 @@ def UploadReport(options):
     raise Error('unknown report upload method %r' % method)
 
 
-@Command('finalize',
-         CmdArg('--fast', action='store_true',
-                help='use non-secure but faster wipe method.'),
-         _no_ectool_cmd_arg,
-         _shopfloor_url_args_cmd_arg,
-         _hwdb_path_cmd_arg,
-         _hwid_status_list_cmd_arg,
-         _upload_method_cmd_arg,
-         _upload_max_retry_times_arg,
-         _upload_retry_interval_arg,
-         _upload_allow_fail_arg,
-         _add_file_cmd_arg,
-         _probe_results_cmd_arg,
-         _hwid_cmd_arg,
-         _hwid_run_vpd_cmd_arg,
-         _hwid_vpd_data_file_cmd_arg,
-         _no_write_protect_cmd_arg,
-         _rma_mode_cmd_arg,
-         _cros_core_cmd_arg,
-         _has_ec_pubkey_cmd_arg,
-         _ec_pubkey_path_cmd_arg,
-         _ec_pubkey_hash_cmd_arg,
-         _release_rootfs_cmd_arg,
-         _firmware_path_cmd_arg,
-         _enforced_release_channels_cmd_arg,
-         _station_ip_cmd_arg,
-         _station_port_cmd_arg,
-         _wipe_finish_token_cmd_arg,
-         _rlz_embargo_end_date_offset_cmd_arg,
-         _waive_list_cmd_arg,
-         _skip_list_cmd_arg,
-         _no_generate_mfg_date_cmd_arg,
-         _enable_zero_touch_cmd_arg)
+@Command(
+    'finalize',
+    CmdArg('--fast', action='store_true',
+           help='use non-secure but faster wipe method.'),
+    _no_ectool_cmd_arg,
+    _shopfloor_url_args_cmd_arg,
+    _hwdb_path_cmd_arg,
+    _hwid_status_list_cmd_arg,
+    _upload_method_cmd_arg,
+    _upload_max_retry_times_arg,
+    _upload_retry_interval_arg,
+    _upload_allow_fail_arg,
+    _add_file_cmd_arg,
+    _probe_results_cmd_arg,
+    _hwid_cmd_arg,
+    _hwid_run_vpd_cmd_arg,
+    _hwid_vpd_data_file_cmd_arg,
+    _no_write_protect_cmd_arg,
+    _rma_mode_cmd_arg,
+    _cros_core_cmd_arg,
+    _has_ec_pubkey_cmd_arg,
+    _ec_pubkey_path_cmd_arg,
+    _ec_pubkey_hash_cmd_arg,
+    _release_rootfs_cmd_arg,
+    _firmware_path_cmd_arg,
+    _enforced_release_channels_cmd_arg,
+    _station_ip_cmd_arg,
+    _station_port_cmd_arg,
+    _wipe_finish_token_cmd_arg,
+    _rlz_embargo_end_date_offset_cmd_arg,
+    _waive_list_cmd_arg,
+    _skip_list_cmd_arg,
+    _no_generate_mfg_date_cmd_arg,
+    _enable_zero_touch_cmd_arg,
+    _cbi_eeprom_wp_status_cmd_arg,
+)
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.
 

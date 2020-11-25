@@ -34,6 +34,7 @@ from cros.factory.test.rules import phase
 from cros.factory.test.rules.privacy import FilterDict
 from cros.factory.test.rules import registration_codes
 from cros.factory.test.rules.registration_codes import RegistrationCode
+from cros.factory.test.utils import cbi_utils
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
@@ -660,6 +661,12 @@ class Gooftool:
     if 'SN Bits have not been set yet' in stdout:
       if 'BoardID is set' in stdout:
         logging.warning('SN Bits cannot be set anymore.')
+
+  def VerifyCBIEEPROMWPStatus(self, cbi_eeprom_wp_status):
+    """Verifies CBI EEPROM write protection status."""
+
+    cbi_utils.VerifyCbiEepromWpStatus(self._util.sys_interface,
+                                      cbi_eeprom_wp_status)
 
   def GetBitmapLocales(self, image_file):
     """Get bitmap locales

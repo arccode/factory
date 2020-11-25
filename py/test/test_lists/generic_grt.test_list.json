@@ -6,6 +6,8 @@
     "grt": {
       "force_write_protect": false,
       "__comment_force_write_protect": "*** Write protection is required for mass production and shippable devices. By default we enable write protection starting from PVT stages, but you can start trying write protection earlier by this option.",
+      "cbi_eeprom_wp_status": "Locked",
+      "__comment_cbi_eeprom_wp_status": "Set this to 'Absent' for board without CBI EEPROM. Set this to 'Unlocked' for MLB layouts which requires CBI WP being disabled in pre-PVT and enabled in PVT.",
       "ec_pubkey_path": null,
       "ec_pubkey_hash": null,
       "enable_zero_touch": false,
@@ -55,7 +57,8 @@
         "rma_mode": "eval! constants.rma_mode",
         "secure_wipe": "eval! constants.grt.secure_wipe",
         "upload_method": "eval! 'shopfloor' if constants.enable_factory_server else 'none'",
-        "write_protection": "eval! constants.grt.force_write_protect or options.phase == 'PVT'"
+        "write_protection": "eval! constants.grt.force_write_protect or options.phase == 'PVT'",
+        "cbi_eeprom_wp_status": "eval! 'Locked' if constants.grt.cbi_eeprom_wp_status != 'Absent' and options.phase == 'PVT' else constants.grt.cbi_eeprom_wp_status"
       }
     },
     "GRTItems": {

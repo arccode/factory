@@ -111,6 +111,7 @@ from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import state
 from cros.factory.test import test_case
+from cros.factory.test.utils import cbi_utils
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test.utils import update_utils
 from cros.factory.testlog import testlog
@@ -136,27 +137,24 @@ MSG_FINALIZING = _('Finalizing, please wait.<br>'
 class Finalize(test_case.TestCase):
   """The main class for finalize pytest."""
   ARGS = [
-      Arg('write_protection', bool,
-          'Check and enable write protection.', default=None),
+      Arg('write_protection', bool, 'Check and enable write protection.',
+          default=None),
       Arg('has_ectool', bool, 'Has ectool utility or not.', default=True),
       Arg('secure_wipe', bool,
           'Wipe the stateful partition securely (False for a fast wipe).',
           default=True),
-      Arg('upload_method', str,
-          'Upload method for "gooftool finalize"',
+      Arg('upload_method', str, 'Upload method for "gooftool finalize"',
           default=None),
       Arg('upload_max_retry_times', int,
-          'Number of tries to upload. 0 to retry infinitely.',
-          default=0),
+          'Number of tries to upload. 0 to retry infinitely.', default=0),
       Arg('upload_retry_interval', int,
-          'Retry interval in seconds between retries.',
-          default=None),
+          'Retry interval in seconds between retries.', default=None),
       Arg('upload_allow_fail', bool,
-          'Continue finalize if report upload fails, instead of raising error.',
-          default=False),
-      Arg('enable_factory_server', bool,
+          ('Continue finalize if report upload fails, instead of raising error.'
+          ), default=False),
+      Arg('enable_factory_server', bool, (
           'Perform factory server operations: update HWID data and flush event '
-          'logs.', default=True),
+          'logs.'), default=True),
       Arg('hwid_need_vpd', bool,
           'Whether the HWID validation process needs the vpd data.',
           default=False),
@@ -166,35 +164,34 @@ class Finalize(test_case.TestCase):
       Arg('is_cros_core', bool,
           'For ChromeOS Core device, skip setting firmware bitmap locale.',
           default=False),
-      Arg('has_ec_pubkey', bool,
-          'Perform VerifyECKey.',
-          default=None),
+      Arg('has_ec_pubkey', bool, 'Perform VerifyECKey.', default=None),
       Arg('enforced_release_channels', list,
-          'A list of string indicating the enforced release image channels. '
-          'Each item should be one of "dev", "beta" or "stable".',
+          ('A list of string indicating the enforced release image channels. '
+           'Each item should be one of "dev", "beta" or "stable".'),
           default=None),
       Arg('ec_pubkey_path', str,
           ('Path to public key in vb2 format. Verify EC key with pubkey file.'
-           'Verify by pubkey file should have higher priority.'),
-          default=None),
+           'Verify by pubkey file should have higher priority.'), default=None),
       Arg('ec_pubkey_hash', str,
           'A string for public key hash. Verify EC key with the given hash.',
           default=None),
       Arg('use_local_gooftool', bool,
-          'If DUT is local, use factory.par or local gooftool? If DUT is not '
-          'local, factory.par is always used.', default=True),
-      Arg('station_ip', str,
-          'IP address of this station.', default=None),
+          ('If DUT is local, use factory.par or local gooftool? If DUT is not '
+           'local, factory.par is always used.'), default=True),
+      Arg('station_ip', str, 'IP address of this station.', default=None),
       Arg('gooftool_waive_list', list,
-          'A list of waived checks for "gooftool finalize", '
-          'see "gooftool finalize --help" for available items.',
-          default=[]),
+          ('A list of waived checks for "gooftool finalize", '
+           'see "gooftool finalize --help" for available items.'), default=[]),
       Arg('gooftool_skip_list', list,
-          'A list of skipped checks for "gooftool finalize", '
-          'see "gooftool finalize --help" for available items.',
-          default=[]),
-      Arg('enable_zero_touch', bool,
-          'Set SN bits to enable zero-touch.', default=False)
+          ('A list of skipped checks for "gooftool finalize", '
+           'see "gooftool finalize --help" for available items.'), default=[]),
+      Arg('enable_zero_touch', bool, 'Set SN bits to enable zero-touch.',
+          default=False),
+      Arg('cbi_eeprom_wp_status', cbi_utils.CbiEepromWpStatus,
+          ('If set to "Locked", checks that CBI EEPROM write protection is '
+           'enabled. If set to "Unlocked", checks that CBI EEPROM write '
+           'protection is disabled. If set to "Absent", checks that CBI EEPROM '
+           'is absent.'), default=cbi_utils.CbiEepromWpStatus.Locked),
   ]
 
   FINALIZE_TIMEOUT = 180
@@ -223,6 +220,11 @@ class Finalize(test_case.TestCase):
       self.args.write_protection = phase.GetPhase() >= phase.PVT
     phase.AssertStartingAtPhase(phase.PVT, self.args.write_protection,
                                 'Write protection must be enabled')
+    if self.args.cbi_eeprom_wp_status != cbi_utils.CbiEepromWpStatus.Absent:
+      phase.AssertStartingAtPhase(
+          phase.PVT,
+          self.args.cbi_eeprom_wp_status == cbi_utils.CbiEepromWpStatus.Locked,
+          'CBI Write protection must be enabled')
 
     def GetState(v):
       return (['<b style="color: green;">', MSG_ENABLED, '</b>']
@@ -332,6 +334,8 @@ class Finalize(test_case.TestCase):
     if not self.args.write_protection:
       self.Warn('WRITE PROTECTION IS DISABLED.')
       command += ' --no_write_protect'
+    command += ' --cbi_eeprom_wp_status %s' % self.args.cbi_eeprom_wp_status
+
     if not self.args.has_ectool:
       command += ' --no_ectool'
     if not self.args.secure_wipe:
