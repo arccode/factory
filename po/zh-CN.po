@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-10-23 13:10+CST\n"
+"PO-Revision-Date: 2020-11-25 13:51+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -371,6 +371,10 @@ msgid "Probe SIM Card Tray"
 msgstr "探測 SIM 卡卡盘"
 
 #: ../build/pytests_label_generated.json
+msgid "Proximity Sensor"
+msgstr "距离感测器"
+
+#: ../build/pytests_label_generated.json
 msgid "Read Device Data From VPD"
 msgstr "从 VPD 读机器资料"
 
@@ -397,10 +401,6 @@ msgstr ""
 #: ../build/pytests_label_generated.json
 msgid "Sample Customized Test"
 msgstr "范例自订测试"
-
-#: ../build/pytests_label_generated.json
-msgid "Sar Proximity Sensor"
-msgstr "SAR 距离感测器"
 
 #: ../build/pytests_label_generated.json
 msgid "Scan"
@@ -2307,6 +2307,18 @@ msgstr "请插入SIM卡卡盘"
 msgid "Detected! Please remove the SIM card tray"
 msgstr "已经侦测SIM卡卡盘, 请移除SIM卡卡盘"
 
+#: ../py/test/pytests/proximity_sensor.py
+msgid "Please cover the sensor by hand"
+msgstr "请用手遮住感应器"
+
+#: ../py/test/pytests/proximity_sensor.py
+msgid "Please un-cover the sensor"
+msgstr "请将手远离感应器"
+
+#: ../py/test/pytests/proximity_sensor.py
+msgid "Setting the sensor"
+msgstr "设定感测器中"
+
 #: ../py/test/pytests/read_device_data_from_vpd.py
 msgid "Reading device data from {vpd_section} VPD..."
 msgstr "正在从 {vpd_section} VPD 读机器资料..."
@@ -2380,18 +2392,6 @@ msgstr "校正中..."
 #: ../py/test/pytests/robot_movement.py
 msgid "Pushing the result..."
 msgstr "储存结果中..."
-
-#: ../py/test/pytests/sar_proximity_sensor.py
-msgid "Please cover the sensor by hand"
-msgstr "请用手遮住感应器"
-
-#: ../py/test/pytests/sar_proximity_sensor.py
-msgid "Please un-cover the sensor"
-msgstr "请将手远离感应器"
-
-#: ../py/test/pytests/sar_proximity_sensor.py
-msgid "Setting the sensor"
-msgstr "设定感测器中"
 
 #: ../py/test/pytests/scan.py
 msgid "The scanned value is empty."

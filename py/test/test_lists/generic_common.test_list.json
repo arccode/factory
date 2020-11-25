@@ -518,6 +518,13 @@
         "config_file": "probe.json"
       }
     },
+    "ProximitySensor": {
+      "pytest_name": "proximity_sensor",
+      "run_if": "not constants.has_device_data or device.component.has_proximity_sensor",
+      "disable_services": [
+        "powerd"
+      ]
+    },
     "QRScan": {
       "inherit": "Camera",
       "label": "QR Scan",
@@ -567,13 +574,6 @@
         "perform_sequential_test": true,
         "sequential_block_count": 8
       }
-    },
-    "SARSensor": {
-      "pytest_name": "sar_proximity_sensor",
-      "run_if": "not constants.has_device_data or device.component.has_proximity_sensor",
-      "disable_services": [
-        "powerd"
-      ]
     },
     "SDPerformance": {
       "inherit": "RemovableStorage",

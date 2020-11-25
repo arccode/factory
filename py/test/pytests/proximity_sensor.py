@@ -1,14 +1,15 @@
 # Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-
-"""A test to check if the SAR proximity sensor triggers events properly.
+"""A test to check if the proximity sensor triggers events properly.
 
 Description
 -----------
 It captures the proximity events from the given sensor device
 (usually ``/dev/proximity-*``) and verifies if the ``close/far`` events are
 triggered properly.
+
+A typical use case of proximity sensor is controlling SAR.
 
 Note that:
 
@@ -42,7 +43,7 @@ Let's assume we want to test the sensor device ``/dev/iio:device7``, which
 item in the test list::
 
   {
-    "pytest_name": "sar_proximity_sensor",
+    "pytest_name": "proximity_sensor",
     "disable_services": [
       "powerd"
     ],
@@ -55,7 +56,7 @@ To provide the operator detail instructions, we can specify the messages to
 show in the test list::
 
   {
-    "pytest_name": "sar_proximity_sensor",
+    "pytest_name": "proximity_sensor",
     "disable_services": [
       "powerd"
     ],
@@ -92,7 +93,7 @@ _DEFAULT_CALIBRATE_PATH = 'events/in_proximity0_thresh_either_en'
 _DEFAULT_SENSOR_VALUE_PATH = 'in_proximity0_raw'
 
 
-class SARProximitySensor(test_case.TestCase):
+class ProximitySensor(test_case.TestCase):
   ARGS = [
       Arg('device_name', str,
           'If present, the device name specifying which sensor to test. Auto'
@@ -163,8 +164,9 @@ class SARProximitySensor(test_case.TestCase):
         return False
       try:
         # self.ui is not available after StartFailingCountdownTimer timeout
-        self.ui.SetHTML(self.args.far_instruction, id='sar-instruction')
-        self.ui.SetHTML(_('Setting the sensor'), id='sar-value')
+        self.ui.SetHTML(self.args.far_instruction,
+                        id='proximity-sensor-instruction')
+        self.ui.SetHTML(_('Setting the sensor'), id='proximity-sensor-value')
       except Exception:
         pass
       self._dut.WriteFile(path, value)
@@ -182,7 +184,7 @@ class SARProximitySensor(test_case.TestCase):
     """
     output = self._dut.ReadFile(self._sensor_value_path).strip()
     if log:
-      self.ui.SetHTML(output, id='sar-value')
+      self.ui.SetHTML(output, id='proximity-sensor-value')
       logging.info('sensor value: %s', output)
     return int(output)
 
@@ -195,8 +197,9 @@ class SARProximitySensor(test_case.TestCase):
     try:
       # Before the test, make sure the sensor is un-covered
       if self.args.sensor_initial_max is not None:
-        self.ui.SetHTML(self.args.far_instruction, id='sar-instruction')
-        self.ui.SetHTML(_('Setting the sensor'), id='sar-value')
+        self.ui.SetHTML(self.args.far_instruction,
+                        id='proximity-sensor-instruction')
+        self.ui.SetHTML(_('Setting the sensor'), id='proximity-sensor-value')
         while True:
           values = [self._GetSensorValue(False) for unused_index in range(32)]
           if max(values) < self.args.sensor_initial_max:
@@ -215,7 +218,7 @@ class SARProximitySensor(test_case.TestCase):
       test_flow = [(PROXIMITY_EVENT_TYPE.close, self.args.close_instruction),
                    (PROXIMITY_EVENT_TYPE.far, self.args.far_instruction)]
       for expect_event_type, instruction in test_flow:
-        self.ui.SetHTML(instruction, id='sar-instruction')
+        self.ui.SetHTML(instruction, id='proximity-sensor-instruction')
 
         buf = self._ReadEventBuffer()
 
