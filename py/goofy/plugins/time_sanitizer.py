@@ -7,6 +7,7 @@ import logging
 import threading
 
 from cros.factory.goofy.plugins import plugin
+from cros.factory.test import state
 from cros.factory.tools import time_sanitizer
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
@@ -35,7 +36,6 @@ class TimeSanitizer(plugin.Plugin):
     self._sync_period_secs = sync_period_secs
     self._time_sanitizer = time_sanitizer.TimeSanitizer(
         base_time_files=base_time_files)
-    self._time_sanitizer.RunOnce()
     self._time_synced = False
     self._thread = None
     self._lock = threading.Lock()
@@ -55,9 +55,29 @@ class TimeSanitizer(plugin.Plugin):
 
   def _RunTarget(self):
     while True:
-      if net_utils.ExistPluggedEthernet():
-        self._time_sanitizer.SaveTime()
-        self.SyncTimeWithFactoryServer()
+      # After the device reboots in reboot tests, time_sanitizer plugin comes up
+      # before we check the reboot test result.  In such case, we'll change the
+      # system time before the reboot test complete, and the reboot test might
+      # think the reboot takes too long or the clock was moving backward.
+      # So we make sure the post_shutdown key is not present before syncing the
+      # time.
+      post_shutdown = False
+      for test in self.goofy.test_list.Walk():
+        if not test.IsLeaf():
+          continue
+
+        test_state = test.GetState()
+        if test_state.status == state.TestState.ACTIVE:
+          key_post_shutdown = state.KEY_POST_SHUTDOWN % test.path
+          if self.goofy.state_instance.DataShelfGetValue(
+              key_post_shutdown, True) is not None:
+            post_shutdown = True
+            break
+
+      if not post_shutdown:
+        self._time_sanitizer.RunOnce()
+        if net_utils.ExistPluggedEthernet():
+          self.SyncTimeWithFactoryServer()
 
       if self._time_synced or self._stop_event.wait(self._sync_period_secs):
         return
