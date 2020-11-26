@@ -513,6 +513,20 @@
         "prompt_flip_notebook": true
       }
     },
+    "NotifyOverlordTrackConnection": {
+      "pytest_name": "exec_shell",
+      "label": "Notify Overlord to track connection",
+      "args": {
+        "commands": "ghost --track-connection y"
+      }
+    },
+    "NotifyOverlordUntrackConnection": {
+      "pytest_name": "exec_shell",
+      "label": "Notify Overlord not to track connection",
+      "args": {
+        "commands": "ghost --track-connection n"
+      }
+    },
     "PartitionTable": {
       "pytest_name": "partition_table"
     },

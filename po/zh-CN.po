@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-01-06 19:38+CST\n"
+"PO-Revision-Date: 2021-01-07 16:38+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -3335,6 +3335,14 @@ msgstr "组态与样式(SKU)"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Notebook Mode"
 msgstr "笔电模式"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Notify Overlord to track connection"
+msgstr "通知 Overlord 以追踪连接"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Notify Overlord not to track connection"
+msgstr "通知 Overlord 不要追踪连接"
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Placeholder"
