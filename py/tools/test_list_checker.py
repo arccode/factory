@@ -101,20 +101,23 @@ def CheckTestList(manager_, test_list_id, dump):
     print(test_list.ToFactoryTestList().__repr__(recursive=True))
     return True
 
+  _DEFINITIONS = 'definitions'
   raw_config = manager_.loader.Load(test_list_id, allow_inherit=False)
+  raw_definitions = raw_config.get(_DEFINITIONS, {})
   result = True
 
   # Check if there are test object definiions that overrides nothing.
   parents_config = {}
-  for parent_name in reversed(raw_config['inherit']):
+  for parent_name in reversed(raw_config.get('inherit', ())):
     _parent_config = manager_.loader.Load(GetTestListID(parent_name)).ToDict()
     parents_config = config_utils.OverrideConfig(
         parents_config, _parent_config)
 
-  for object_name, overrides in raw_config['definitions'].items():
-    if object_name not in parents_config['definitions']:
+  parents_definitions = parents_config.get(_DEFINITIONS, {})
+  for object_name, overrides in raw_definitions.items():
+    if object_name not in parents_definitions:
       continue
-    base_object = parents_config['definitions'][object_name]
+    base_object = parents_definitions[object_name]
 
     if not isinstance(base_object, str) and not isinstance(overrides, str):
       new_object = config_utils.OverrideConfig(
@@ -144,14 +147,14 @@ def CheckTestList(manager_, test_list_id, dump):
     for _test_object in _config['tests']:
       _test_list.MakeTest(_test_object, cache[child_test_list_id])
 
-  for test_object_name in raw_config['definitions']:
+  for test_object_name in raw_definitions:
     if not IsReferenced(test_object_name, cache):
       logging.warning(
           'Test object "%s" is defined but not referenced in any test list',
           test_object_name)
       result = False
 
-  for test_object_name, test_object_value in raw_config['definitions'].items():
+  for test_object_name, test_object_value in raw_definitions.items():
     if not ValidateRunIf(test_object_value):
       logging.warning(
           'The value "%s" of run_if in test object "%s" does not use the'
