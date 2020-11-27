@@ -327,6 +327,8 @@ func (c *ConnServer) handleUpdateDutDataRequest(req *Request) error {
 	c.Dut = DutContext{args.Status, args.Pytest, args.Model, args.Ip}
 	c.lastPing = time.Now()
 
+	c.ovl.Update(c)
+
 	res := NewResponse(req.Rid, Success, nil)
 	return c.SendResponse(res)
 }

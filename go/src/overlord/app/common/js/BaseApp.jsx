@@ -125,10 +125,7 @@ var BaseApp = {
       }
 
       this.setState(function (state, props) {
-        state.clients.push(client);
-        state.clients.sort(function (a, b) {
-          return a.mid.localeCompare(b.mid);
-        });
+        this.addClientToList(state.clients, client);
       });
     }.bind(this));
   },
@@ -136,6 +133,20 @@ var BaseApp = {
     this.setState(function (state, props) {
       this.removeClientFromList(state.clients, data);
     });
+  },
+  updateClient: function (client) {
+    if (!this.isClientInList(this.state.clients, client)) {
+      return;
+    }
+
+    this.fetchProperties(client.mid, function (properties) {
+      client.properties = properties;
+
+      this.setState(function (state, unused_props) {
+        this.removeClientFromList(state.clients, client);
+        this.addClientToList(state.clients, client);
+      });
+    }.bind(this));
   },
   // Add a hook to @this.addClient, when a client is going to be added to
   // @this.state.clients, handlers will be invoke to determine whether we
@@ -200,6 +211,12 @@ var BaseApp = {
   isClientInList: function (target_list, client) {
     return target_list.some(function (el) {
       return el.mid == client.mid;
+    });
+  },
+  addClientToList: function (target_list, obj) {
+    target_list.push(obj);
+    target_list.sort(function (a, b) {
+      return a.mid.localeCompare(b.mid);
     });
   },
   removeClientFromList: function (target_list, obj) {

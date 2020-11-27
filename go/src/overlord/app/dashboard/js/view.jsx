@@ -96,6 +96,11 @@ var App = React.createClass({
       this.removeFixture(client.mid);
     }.bind(this));
 
+    socket.on("agent update", function (msg) {
+      var client = JSON.parse(msg);
+      this.updateClient(client);
+    }.bind(this));
+
     // Initiate a file download
     socket.on("file download", function (sid) {
       var url = window.location.protocol + "//" + window.location.host +

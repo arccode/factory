@@ -271,6 +271,23 @@ func (ovl *Overlord) Unregister(conn *ConnServer) {
 	log.Printf("%s %s unregistered\n", ModeStr(conn.Mode), id)
 }
 
+// Update client's data.
+func (ovl *Overlord) Update(conn *ConnServer) {
+	msg, err := json.Marshal(map[string]interface{}{
+		"mid":    conn.Mid,
+		"sid":    conn.Sid,
+		"status": conn.Dut.Status,
+		"pytest": conn.Dut.Pytest,
+		"model":  conn.Dut.Model,
+	})
+	if err != nil {
+		log.Printf("Failed to update UI data. Mid: %s\n", conn.Mid)
+		return
+	}
+
+	ovl.ioserver.BroadcastTo("monitor", "agent update", string(msg))
+}
+
 // AddWebsocketContext adds an websocket context to the overlord state.
 func (ovl *Overlord) AddWebsocketContext(wc *webSocketContext) {
 	ovl.wsctxsMu.Lock()
