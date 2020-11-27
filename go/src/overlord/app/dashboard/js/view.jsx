@@ -90,7 +90,7 @@ var App = React.createClass({
     });
   },
   getInitialState: function () {
-    return {cameras: [], fixtures: [], recentclients: [], terminals: {}};
+    return {cameras: [], fixtures: [], terminals: {}};
   },
   componentDidMount: function () {
     var socket = io(window.location.protocol + "//" + window.location.host,
@@ -100,16 +100,12 @@ var App = React.createClass({
     socket.on("agent joined", function (msg) {
       var client = JSON.parse(msg);
       this.addClient(client);
-
-      this.state.recentclients.splice(0, 0, client);
-      this.state.recentclients = this.state.recentclients.slice(0, 5);
     }.bind(this));
 
     socket.on("agent left", function (msg) {
       var client = JSON.parse(msg);
 
       this.removeClientFromList(this.state.clients, client);
-      this.removeClientFromList(this.state.recentclients, client);
       this.removeFixture(client.mid);
     }.bind(this));
 
@@ -126,8 +122,7 @@ var App = React.createClass({
       <div id="main">
         <NavBar name="Dashboard" url="/api/apps/list" ref="navbar" />
         <div id="container">
-          <SideBar clients={this.getFilteredClientList()} ref="sidebar"
-              recentclients={this.state.recentclients} app={this} />
+          <SideBar clients={this.getFilteredClientList()} ref="sidebar" app={this} />
           <FixtureGroup data={this.state.fixtures} app={this}
            uploadProgress={this.refs.uploadProgress} />
         </div>
@@ -148,8 +143,7 @@ var SideBar = React.createClass({
   render: function () {
     return (
       <div className="sidebar">
-        <ClientBox data={this.props.clients} app={this.props.app} />
-        <RecentList data={this.props.recentclients} app={this.props.app} />
+        <ClientBox clients={this.props.clients} app={this.props.app} />
       </div>
     );
   }
@@ -162,7 +156,7 @@ var ClientBox = React.createClass({
         <div className="panel-heading">Clients</div>
         <div className="panel-body">
           <FilterInput app={this.props.app} />
-          <ClientList data={this.props.data} app={this.props.app} />
+          <ClientTable clients={this.props.clients} app={this.props.app} />
         </div>
       </div>
     );
@@ -183,110 +177,86 @@ var FilterInput = React.createClass({
   }
 });
 
-var ClientList = React.createClass({
+var ClientTable = React.createClass({
   render: function () {
+    var headers = ["mid", "status", "pytest", "model", "manage"];
     return (
-      <div className="list-box client-list">
-        {
-          this.props.data.map(function (item) {
-            return (
-              <ClientInfo key={item.mid} data={item} app={this.props.app}>
-                {displayClient(item)}
-              </ClientInfo>
+      <table className="client-table">
+        <thead>
+          <tr>
+          {
+            headers.map(function (name) {
+              return (
+                <th className={"table-" + name + "-col table-cell-common"}>
+                  {this.props.app.renderText(name, false, true)}
+                </th>
               );
+            }.bind(this))
+          }
+          </tr>
+        </thead>
+        <tbody>
+        {
+          this.props.clients.map(function (client) {
+            return (
+              <ClientRow client={client} app={this.props.app} headers={headers}></ClientRow>
+            );
           }.bind(this))
         }
-      </div>
+        </tbody>
+      </table>
     );
   }
 });
 
-var RecentList = React.createClass({
-  render: function () {
-    return (
-      <div className="recent-box panel panel-info">
-        <div className="panel-heading">Recent Connected Clients</div>
-        <div className="panel-body">
-          <div className="list-box recent-list">
-            {
-              this.props.data.map(function (item) {
-                return (
-                  <ClientInfo key={item.mid} data={item} app={this.props.app}>
-                    {displayClient(item)}
-                  </ClientInfo>
-                  );
-              }.bind(this))
-            }
-          </div>
-        </div>
-      </div>
-    )
-  }
-});
-
-var ClientInfo = React.createClass({
+var ClientRow = React.createClass({
   openTerminal: function (event) {
-    this.props.app.addTerminal(randomID(), this.props.data);
+    this.props.app.addTerminal(randomID(), this.props.client);
   },
-  openCamera: function (event) {
-    this.props.app.addCamera(this.props.data.mid, this.props.data);
+  onManageBtnClick: function (event) {
+    this.props.app.toggleFixtureState(this.props.client);
   },
-  onUIButtonClick: function (event) {
-    this.props.app.toggleFixtureState(this.props.data);
-  },
-  componentDidMount: function (event) {
-    // Since the button covers the machine ID text, abbrieviate to match the
-    // current visible width.
-    var chPerLine = 50;
-    var pxPerCh = this.refs.mid.clientWidth / chPerLine;
-    this.refs.mid.innerText =
-      abbr(this.refs.mid.innerText,
-           chPerLine - (this.refs["info-buttons"].clientWidth)/ pxPerCh);
-  },
-  render: function () {
-    var display = "block";
-    var ui_span = null;
-    var cam_span = null;
+  getManageSpan: function() {
+    var manage_span = null;
 
-    if (typeof(this.props.data.properties) != "undefined" &&
-        typeof(this.props.data.properties.context) != "undefined" &&
-        this.props.data.properties.context.indexOf("ui") !== -1) {
+    if (typeof(this.props.client.properties) != "undefined" &&
+        typeof(this.props.client.properties.context) != "undefined" &&
+        this.props.client.properties.context.indexOf("ui") !== -1) {
       var ui_state = this.props.app.isClientInList(
-          this.props.app.state.fixtures, this.props.data);
+          this.props.app.state.fixtures, this.props.client);
       var ui_light_css = LIGHT_CSS_MAP[ui_state ? "light-toggle-on"
                                                 : "light-toggle-off"];
-      ui_span = (
+      manage_span = (
         <div className={"label " + ui_light_css + " client-info-button"}
-            data-mid={this.props.data.key} onClick={this.onUIButtonClick}>
-          UI
+            data-mid={this.props.client.key} onClick={this.onManageBtnClick}>
+          Manage
         </div>
       );
     }
-    if (typeof(this.props.data.properties) != "undefined" &&
-        typeof(this.props.data.properties.context) != "undefined" &&
-        this.props.data.properties.context.indexOf("cam") !== -1) {
-      cam_span = (
-        <div className="label label-success client-info-button"
-            data-mid={this.props.data.key} onClick={this.openCamera}>
-          CAM
-        </div>
-      );
-    }
+
+    return manage_span;
+  },
+  render: function () {
     return (
-      <div className="client-info">
-        <div className="client-info-mid" ref="mid">
-          {this.props.children}
-        </div>
-        <div className="client-info-buttons" ref="info-buttons">
-          {cam_span}
-          {ui_span}
-          <div className="label label-warning client-info-button"
-              data-mid={this.props.data.key} onClick={this.openTerminal}>
-            Terminal
-          </div>
-        </div>
-      </div>
-    );
+      <tr>
+      {
+        this.props.headers.map(function (name) {
+          var span = null;
+          if (name == "manage") {
+            span = this.getManageSpan();
+          } else {
+            span = this.props.app.renderText(this.props.client[name]);
+          }
+
+          return (
+            <td className={"table-" + name + "-col table-cell-common"}>
+              {span}
+            </td>
+          );
+        }.bind(this))
+      }
+      </tr>
+    )
   }
 });
 

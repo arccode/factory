@@ -8,30 +8,13 @@ html, body, #main {
   margin-left: 2%;
   display: inline-block;
   float: left;
-  width: 450px;
+  width: 40%;
   height: calc(100% - 120px);
 }
 
 .client-box {
-  height: 75%;
+  height: 100%;
   overflow: hidden;
-}
-
-.recent-box {
-  height: 25%;
-}
-
-.list-box {
-  width: 100%;
-  overflow-x: hidden;
-}
-
-.client-list {
-  max-height: calc(100% - 110px);
-}
-
-.recent-list {
-  max-height: calc(100% - 65px);
 }
 
 .filter-input {
@@ -42,24 +25,6 @@ html, body, #main {
   margin: 2px 0px;
   padding: 2px;
   position: relative;
-}
-
-.client-info-hidden {
-  display: none;
-}
-
-.client-info-mid {
-  display: inline-block;
-  width: 50ch;
-  font-family: monospace;
-}
-
-.client-info-buttons {
-  position: absolute;
-  right: 0px;
-  top: 0px;
-  background-color: white;
-  height: 20px;
 }
 
 .client-info-button {
@@ -84,11 +49,45 @@ html, body, #main {
 .fixture-group {
   display: inline-block;
   margin: -10px 10px 0px 10px;
-  width: calc(95% - 435px);
+  width: 55%;
 }
 
 .upload-progress-bars {
   position: fixed;
   right: 50px;
   bottom: 0px;
+}
+
+.client-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.table-cell-common {
+  overflow: hidden;
+  padding: 10px 0px 10px 10px;
+}
+
+.table-mid-col {
+  width: 30%;
+}
+
+.table-status-col {
+  width: 15%;
+}
+
+.table-pytest-col {
+  width: 30%;
+}
+
+.table-model-col {
+  width: 15%;
+}
+
+.table-manage-col {
+  width: 10%;
+}
+
+tr {
+  border-bottom: 1px solid #ccc;
 }

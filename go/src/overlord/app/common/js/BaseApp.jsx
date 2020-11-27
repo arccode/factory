@@ -50,7 +50,12 @@ var BaseApp = {
     if (typeof(this.state.displayPattern) == "undefined") {
       return true;
     }
-    return this.state.displayPattern.test(client.mid);
+
+    test_result = this.state.displayPattern.test(client.mid) ||
+        this.state.displayPattern.test(client.status) ||
+        this.state.displayPattern.test(client.pytest) ||
+        this.state.displayPattern.test(client.model);
+    return test_result;
   },
   getInitialState: function () {
     this.onNewClientHandlers = [];
@@ -205,5 +210,33 @@ var BaseApp = {
       target_list.splice(index, 1);
     }
     return target_list;
+  },
+  renderText: function (text, add_tooltip = true, capitalize = false) {
+    var color = "black";
+
+    switch (text) {
+      case "running":
+        color = "green";
+        break;
+      case "failed":
+        color = "red";
+        break;
+      case "idle":
+        color = "blue";
+        break;
+      case "disconnected":
+        color = "gray";
+        break;
+    }
+
+    if (capitalize) {
+      text = text.charAt(0).toUpperCase() + text.slice(1);
+    }
+
+    if (add_tooltip) {
+      return (<font color={color} data-toggle="tooltip" title={text}>{text}</font>);
+    }
+
+    return (<font color={color}>{text}</font>);
   },
 };
