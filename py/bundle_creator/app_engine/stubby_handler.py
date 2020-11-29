@@ -108,8 +108,8 @@ class FactoryBundleService(protorpc_utils.ProtoRPCServiceBase):
     board_set = {}
     for board in request.boards:
       project_set = board_set.setdefault(board.name, {})
-      for project in board.projects:
-        project_set[project.name] = True
+      for project_name in board.project_names:
+        project_set[project_name] = True
 
     snapshots = self._firestore_connector.GetUserRequestsByEmail(request.email)
     for snapshot in snapshots:
@@ -132,13 +132,13 @@ class FactoryBundleService(protorpc_utils.ProtoRPCServiceBase):
       # The returned fields with suffix `_time` are `DatetimeWithNanoseconds`
       # objects.
       if 'request_time' in snapshot:
-        user_request.request_time_s = datetime.datetime.timestamp(
+        user_request.request_time_sec = datetime.datetime.timestamp(
             snapshot.get('request_time'))
       if 'start_time' in snapshot:
-        user_request.start_time_s = datetime.datetime.timestamp(
+        user_request.start_time_sec = datetime.datetime.timestamp(
             snapshot.get('request_time'))
       if 'end_time' in snapshot:
-        user_request.end_time_s = datetime.datetime.timestamp(
+        user_request.end_time_sec = datetime.datetime.timestamp(
             snapshot.get('end_time'))
       response.user_requests.append(user_request)
 

@@ -1,6 +1,11 @@
 syntax = "proto2";
 package cros.factory.proto;
 
+message FactoryBundleBoard {
+  optional string name = 1;
+  repeated string project_names = 2;
+}
+
 message CreateBundleRpcRequest {
   optional string board = 1;
   optional string project = 2;
@@ -35,6 +40,8 @@ message WorkerResult {
   optional string gs_path = 4;
 }
 
+// TODO(b/178182522): Remove `BundleHistoryProject` and use `FactoryBundleBoard`
+// instead of `BundleHistoryBoard`.
 message BundleHistoryProject {
   optional string name = 1;
 }
@@ -76,17 +83,8 @@ message DownloadBundleRpcResponse {
 }
 
 message GetUserRequestsRpcRequest {
-  message Project {
-    optional string name = 1;
-  }
-
-  message Board {
-    optional string name = 1;
-    repeated Project projects = 2;
-  }
-
   optional string email = 1;
-  repeated Board boards = 2;
+  repeated FactoryBundleBoard boards = 2;
 }
 
 message GetUserRequestsRpcResponse {
@@ -100,9 +98,9 @@ message GetUserRequestsRpcResponse {
     optional string firmware_source = 7;
     optional string email = 8;
     optional string status = 9;
-    optional double request_time_s = 10;
-    optional double start_time_s = 11;
-    optional double end_time_s = 12;
+    optional double request_time_sec = 10;
+    optional double start_time_sec = 11;
+    optional double end_time_sec = 12;
   }
 
   repeated UserRequest user_requests = 1;
