@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import json
 import os
 import subprocess
 
@@ -14,6 +13,7 @@ from cros.factory.utils import argparse_utils
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_interface
+from cros.factory.utils import json_utils
 
 
 def _WriteGhostProperties():
@@ -22,8 +22,7 @@ def _WriteGhostProperties():
   properties['active_test_list'] = manager.Manager.GetActiveTestListId(device)
   file_utils.TryMakeDirs(
       os.path.dirname(ghost_prop.GOOFY_GHOST_PROPERTIES_FILE))
-  file_utils.WriteFile(ghost_prop.GOOFY_GHOST_PROPERTIES_FILE,
-                       json.dumps(properties))
+  json_utils.DumpFile(ghost_prop.GOOFY_GHOST_PROPERTIES_FILE, properties)
 
 
 @argparse_utils.Command('start')

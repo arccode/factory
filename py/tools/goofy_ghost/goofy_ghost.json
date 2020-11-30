@@ -1,1 +1,46 @@
-{}
+{
+  "context": ["ui"],
+  "ui": {
+    "update_ui_command": "update_ui_status",
+    "display": {
+      "template": "<b>Device Info</b><ul><li>Version: {{:version}}</li><li>Battery %: {{:battery_percent}}</li></ul>",
+      "data": [{
+        "id": "version",
+        "init_cmd": "echo DATA[version]=\\'$(cat /etc/lsb-release | sed -n 's/^CHROMEOS_RELEASE_VERSION=//p')\\'"
+      }, {
+        "id": "battery_percent",
+        "poll": {
+          "cmd": "echo DATA[battery_percent]=\\'$(ectool chargestate show | sed -n 's/^batt_state_of_charge = //p')\\'",
+          "interval": 2000
+        }
+      }]
+    },
+    "lights": [{
+      "id": "ac_present",
+      "label": "AC_PRESENT",
+      "light": "light-toggle-off",
+      "poll": {
+        "cmd": "(ectool battery | grep -qw AC_PRESENT) && echo LIGHT[ac_present]=\\'light-toggle-on\\' || echo LIGHT[ac_present]=\\'light-toggle-off\\'",
+        "interval": 1000
+      }
+    }],
+    "terminals": [{
+      "name": "TERMINAL"
+    }],
+    "controls": [{
+      "name": "Factory Restart",
+      "command": "factory_restart"
+    }, {
+      "name": "Upgrade Toolkit",
+      "type": "upload",
+      "dest": "/tmp/install_factory_toolkit.run",
+      "command": "rm -rf /usr/local/factory && sh /tmp/install_factory_toolkit.run -- -y && factory_restart"
+    }, {
+      "name": "Download factory_bug",
+      "type": "download",
+      "command": "rm -f /tmp/factory_bug.overlord.zip && factory_bug -i overlord",
+      "filename": "/tmp/factory_bug.overlord.zip"
+    }],
+    "logs": ["/var/log/factory.log"]
+  }
+}

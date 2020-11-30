@@ -16,10 +16,12 @@ The script does the following things:
 ## Ghost properties file
 The properties file use the standard config hierarchy for ChromeOS Factory.
 This means that there are three levels of config:
-* `/usr/local/factory/py/tools/goofy_ghost/goofy_ghost.json`: The default empty
-  config.
-* `/usr/local/factory/py/config/goofy_ghost.json`: Board specific config.
-* `/var/factory/config/goofy_ghost.json`: Device specific config.
+* `/usr/local/factory/py/tools/goofy_ghost/goofy_ghost.json`: The default config
+  for DUT, we'll put general items in this file.
+* `/usr/local/factory/py/config/goofy_ghost.json`: Board specific config. ODM
+  can put their customization in this config to override the previous one.
+* `/var/factory/config/goofy_ghost.json`: Device specific config. This is only
+  used by station now.
 
 The latter config would be merged to the former one, with latter config taking
 priority.
@@ -29,6 +31,11 @@ reset`.
 
 The format of the properties file is described in [a later
 section](#Format-of-ghost-properties-file).
+
+For development: If we need to modify the properties file temporarily for
+testing, we can modify the runtime config at `/run/factory/goofy_ghost.json`.
+After modifying that config, run `ghost --reset`. (Don't run `goofy_ghost
+reset`, it'll re-generate the runtime config again.)
 
 ## Goofy active test list as ghost client properties
 The script would put the id of active test list in the ghost properties by the
