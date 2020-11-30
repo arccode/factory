@@ -140,8 +140,57 @@ var SideBar = React.createClass({
   render: function () {
     return (
       <div className="sidebar">
+        <OverallStatus clients={this.props.clients} app={this.props.app} />
         <ClientBox clients={this.props.clients} app={this.props.app} />
       </div>
+    );
+  }
+});
+
+var OverallStatus = React.createClass({
+  render: function () {
+    return (
+      <div className="overall-status panel panel-success">
+        <div className="panel-heading">Overall Status</div>
+        <div className="panel-body">
+          <StatusTable clients={this.props.clients} app={this.props.app} />
+        </div>
+      </div>
+    );
+  }
+})
+
+var StatusTable = React.createClass({
+  render: function () {
+    var headers = ["total", "running", "failed", "idle", "disconnected"];
+    return (
+      <table className="status-table">
+        <thead>
+          <tr>
+          {
+            headers.map(function (name) {
+              return (
+                <th className="table-cell-common">
+                  {this.props.app.renderText(name, false, true)}
+                </th>
+              );
+            }.bind(this))
+          }
+          </tr>
+        </thead>
+        <tbody>
+          <td className="table-cell-common">{this.props.clients.length}</td>
+          {
+            headers.slice(1).map(function (name) {
+              return (
+                <td className="table-cell-common">
+                  {this.props.clients.filter(client => client.status==name).length}
+                </td>
+              );
+            }.bind(this))
+          }
+        </tbody>
+      </table>
     );
   }
 });
