@@ -16,6 +16,17 @@ from cros.factory.test.test_lists import manager
 from cros.factory.utils import config_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
+from cros.factory.utils import type_utils
+
+
+ERROR_LEVEL = type_utils.Obj(NONE=0, CONVENTION=1, WARNING=2, ERROR=3, FATAL=4)
+ERROR_LEVEL_SHORT = {
+    'N': ERROR_LEVEL.NONE,
+    'C': ERROR_LEVEL.CONVENTION,
+    'W': ERROR_LEVEL.WARNING,
+    'E': ERROR_LEVEL.ERROR,
+    'F': ERROR_LEVEL.FATAL,
+}
 
 
 def GetTestListID(test_list_config_name):
@@ -78,12 +89,14 @@ def ValidateRunIf(test_object_value):
   return True
 
 
-def CheckTestList(manager_, test_list_id, dump):
+def CheckTestList(manager_, waived_level, test_list_id, dump):
   """Check the test list with given `test_list_id`.
 
   Args:
     manager: a test list manager instance, will be used to load test list and
       perform checking.
+    waived_level: The messages which are less or equal to this value do not
+      count as failures.
     test_list_id: ID of the test list (a string).
     dump: true to simply load and print the test list.
 
@@ -95,7 +108,7 @@ def CheckTestList(manager_, test_list_id, dump):
     test_list = manager_.GetTestListByID(test_list_id)
   except Exception:
     logging.exception('Failed to load test list: %s.', test_list_id)
-    return False
+    return ERROR_LEVEL.FATAL <= waived_level
 
   if dump:
     print(test_list.ToFactoryTestList().__repr__(recursive=True))
@@ -131,7 +144,7 @@ def CheckTestList(manager_, test_list_id, dump):
       logging.warning(
           'Test object "%s" inherits from another test object but overrides'
           ' nothing.', object_name)
-      result = False
+      result &= ERROR_LEVEL.WARNING <= waived_level
 
   # Check if there are unreferenced test object definitions in the test list.
   cache = {}
@@ -152,7 +165,7 @@ def CheckTestList(manager_, test_list_id, dump):
       logging.warning(
           'Test object "%s" is defined but not referenced in any test list',
           test_object_name)
-      result = False
+      result &= ERROR_LEVEL.WARNING <= waived_level
 
   for test_object_name, test_object_value in raw_definitions.items():
     if not ValidateRunIf(test_object_value):
@@ -161,41 +174,42 @@ def CheckTestList(manager_, test_list_id, dump):
           ' correct value. Please check if you use the wrong name or maybe you'
           ' need to add a new key into our allow list.',
           test_object_value['run_if'], test_object_name)
-      result = False
+      result &= ERROR_LEVEL.CONVENTION <= waived_level
 
   try:
     test_list.CheckValid()
   except Exception as e:
     if isinstance(e, KeyError) and str(e) == repr('tests'):
-      logging.warning('Test list "%s" does not have "tests" field.',
-                      test_list_id)
-      if test_list_id in ('main', 'common') or test_list_id.startswith(
-          'generic'):
-        return result
+      if not (test_list_id in ('main', 'common', 'base') or
+              test_list_id.startswith('generic')):
+        logging.warning('Test list "%s" does not have "tests" field.',
+                        test_list_id)
+        result &= ERROR_LEVEL.ERROR <= waived_level
     else:
       logging.error('Test list "%s" is invalid: %s.', test_list_id, e)
-    return False
-
-  failed_tests = []
-  for test in test_list.Walk():
-    try:
-      manager_.checker.CheckArgsType(test, test_list)
-    except Exception as e:
-      test_object = {  # We are not checking other fields, no need to show them.
-          'pytest_name': test.pytest_name,
-          'args': test.dargs,
-          'locals': test.locals_,
-      }
-      logging.error('Failed checking %s: %s', test.path, e)
-      logging.error('%s = %s\n', test.path,
-                    json.dumps(test_object, indent=2, sort_keys=True,
-                               separators=(',', ': ')))
-      failed_tests.append(test)
-
-  if failed_tests:
-    logging.error('The following tests have invalid arguments: \n  %s',
-                  '\n  '.join(test.path for test in failed_tests))
-    return False
+      result &= ERROR_LEVEL.ERROR <= waived_level
+  else:
+    failed_tests = []
+    for test in test_list.Walk():
+      try:
+        manager_.checker.CheckArgsType(test, test_list)
+      except Exception as e:
+        # We are not checking other fields, no need to show them.
+        test_object = {
+            'pytest_name': test.pytest_name,
+            'args': test.dargs,
+            'locals': test.locals_,
+        }
+        logging.error('Failed checking %s: %s', test.path, e)
+        logging.error(
+            '%s = %s\n', test.path,
+            json.dumps(test_object, indent=2, sort_keys=True,
+                       separators=(',', ': ')))
+        failed_tests.append(test)
+    if failed_tests:
+      logging.error('The following tests have invalid arguments: \n  %s',
+                    '\n  '.join(test.path for test in failed_tests))
+      result &= ERROR_LEVEL.ERROR <= waived_level
 
   if not result:
     logging.error('The above warnings should be fixed')
@@ -206,13 +220,26 @@ def CheckTestList(manager_, test_list_id, dump):
 
 
 def main(args):
-  parser = argparse.ArgumentParser(description='Static Test List Checker')
+  parser = argparse.ArgumentParser(
+      description='Static Test List Checker',
+      formatter_class=argparse.RawTextHelpFormatter)
   parser.add_argument('--board', help='board name')
   parser.add_argument('--dump', '-d', help='dump test list content and exit',
                       action='store_true')
   parser.add_argument('--verbose', '-v', help='verbose mode',
                       action='store_true')
   parser.add_argument('test_list_id', help='test list id', nargs='+')
+  parser.add_argument(
+      '--waived', help=('The messages which are less or equal to this value'
+                        ' do not count as failures. Levels from low to high'
+                        ' N, C, W, E, F.'
+                        '\n* (N) none, which fails if any check fails'
+                        '\n* (C) convention, for programming standard violation'
+                        '\n* (W) warning, for test list specific problems'
+                        '\n* (E) error, for much probably bugs in the test list'
+                        '\n* (F) fatal, if an error occurred which prevented '
+                        'test_list_checker from doing'), default='N',
+      choices=ERROR_LEVEL_SHORT)
   options = parser.parse_args(args)
 
   logging.basicConfig(
@@ -239,7 +266,8 @@ def main(args):
   manager_ = manager.Manager()
   success = True
   for test_list_id in options.test_list_id:
-    success &= CheckTestList(manager_, test_list_id, options.dump)
+    success &= CheckTestList(manager_, ERROR_LEVEL_SHORT[options.waived],
+                             test_list_id, options.dump)
 
   sys.exit(not success)
 
