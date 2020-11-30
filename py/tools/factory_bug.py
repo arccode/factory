@@ -20,7 +20,6 @@ from cros.factory.test.env import paths as env_paths
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils
-from cros.factory.utils import time_utils
 
 
 # Info about a mounted partition.
@@ -173,8 +172,8 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
              abt=False, var='/var', usr_local='/usr/local', etc='/etc'):
   """Saves dmesg and relevant log files to a new archive in output_dir.
 
-  The archive will be named factory_bug.<description>.<timestamp>.zip,
-  where description is the 'description' argument (if provided).
+  The archive will be named factory_bug.<description>.zip,
+  where description is the 'archive_id' argument (if provided).
 
   Args:
     output_dir: The directory in which to create the file.
@@ -192,10 +191,12 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
   filename = 'factory_bug.'
   if archive_id:
     filename += archive_id.replace('/', '') + '.'
-  filename += '%s.zip' % time_utils.TimeString(time_separator='_',
-                                               milliseconds=False)
+  filename += 'zip'
 
   output_file = os.path.join(output_dir, filename)
+  if os.path.exists(output_file):
+    raise RuntimeError('Same filename [%s] exists. Use `factory_bug --id` or '
+                       'add description in goofy UI dialog.' % filename)
 
   if sys_utils.InChroot():
     # Just save a dummy zip.
