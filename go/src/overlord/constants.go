@@ -62,3 +62,14 @@ const (
 	dutStatusDisconnected = "disconnected"
 	dutStatusFailed       = "failed"
 )
+
+// StatusScoreMapping maps the status to an integer for sorting.
+func StatusScoreMapping(status string) int {
+	return map[string]int{
+		dutStatusIdle:         1,
+		dutStatusRunning:      2,
+		dutStatusDisconnected: 3,
+		dutStatusFailed:       4,
+		// For other status, map would return 0 for int type.
+	}[status]
+}

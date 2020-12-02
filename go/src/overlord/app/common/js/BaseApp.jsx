@@ -101,6 +101,12 @@ var BaseApp = {
       }.bind(this)
     });
   },
+  clientCmp: function(client_a, client_b) {
+    if (client_a.status_score != client_b.status_score) {
+      return (client_a.status_score < client_b.status_score) ? 1 : -1;
+    }
+    return client_a.mid.localeCompare(client_b.mid)
+  },
   // Adds a client to @this.state.clients, will call @this.fetchProperties to
   // get "properties" attribute of the client.
   // Will pass the client to each onNewClientHandler, if any handler returns
@@ -215,9 +221,7 @@ var BaseApp = {
   },
   addClientToList: function (target_list, obj) {
     target_list.push(obj);
-    target_list.sort(function (a, b) {
-      return a.mid.localeCompare(b.mid);
-    });
+    target_list.sort(this.clientCmp);
   },
   removeClientFromList: function (target_list, obj) {
     var index = target_list.findIndex(function (el) {

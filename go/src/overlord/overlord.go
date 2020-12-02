@@ -231,16 +231,23 @@ func (ovl *Overlord) Register(conn *ConnServer) (*websocket.Conn, error) {
 	return wsconn, nil
 }
 
-// Unregister a client.
-func (ovl *Overlord) Unregister(conn *ConnServer) {
+// Get UI broadcast data.
+func (ovl *Overlord) GetUIData(conn *ConnServer) (string, error) {
 	msg, err := json.Marshal(map[string]interface{}{
-		"mid":    conn.Mid,
-		"sid":    conn.Sid,
-		"status": dutStatusDisconnected,
-		"pytest": conn.Dut.Pytest,
-		"model":  conn.Dut.Model,
+		"mid":          conn.Mid,
+		"sid":          conn.Sid,
+		"status":       conn.Dut.Status,
+		"status_score": conn.Dut.StatusScore,
+		"pytest":       conn.Dut.Pytest,
+		"model":        conn.Dut.Model,
 	})
 
+	return string(msg), err
+}
+
+// Unregister a client.
+func (ovl *Overlord) Unregister(conn *ConnServer) {
+	msg, err := ovl.GetUIData(conn)
 	if err != nil {
 		panic(err)
 	}
@@ -257,12 +264,17 @@ func (ovl *Overlord) Unregister(conn *ConnServer) {
 
 			conn.UpdateDisconnected = time.AfterFunc(sleepDuration, func() {
 				conn.UpdateDUTStatus(dutStatusDisconnected)
-				ovl.ioserver.BroadcastTo("monitor", "agent disconnected", string(msg))
+				msg, err := ovl.GetUIData(conn)
+				if err == nil {
+					ovl.ioserver.BroadcastTo("monitor", "agent disconnected", msg)
+				} else {
+					log.Printf("Failed to UpdateDisconnected. Mid: %s", conn.Mid)
+				}
 			})
 
 			return
 		} else {
-			ovl.ioserver.BroadcastTo("monitor", "agent left", string(msg))
+			ovl.ioserver.BroadcastTo("monitor", "agent left", msg)
 			ovl.agentsMu.Lock()
 			delete(ovl.agents, conn.Mid)
 			ovl.agentsMu.Unlock()
@@ -270,7 +282,7 @@ func (ovl *Overlord) Unregister(conn *ConnServer) {
 	case ModeLogcat:
 		ovl.logcatsMu.Lock()
 		if _, ok := ovl.logcats[conn.Mid]; ok {
-			ovl.ioserver.BroadcastTo("monitor", "logcat left", string(msg))
+			ovl.ioserver.BroadcastTo("monitor", "logcat left", msg)
 			delete(ovl.logcats[conn.Mid], conn.Sid)
 			if len(ovl.logcats[conn.Mid]) == 0 {
 				delete(ovl.logcats, conn.Mid)
@@ -307,19 +319,13 @@ func (ovl *Overlord) Unregister(conn *ConnServer) {
 
 // Update client's data.
 func (ovl *Overlord) Update(conn *ConnServer) {
-	msg, err := json.Marshal(map[string]interface{}{
-		"mid":    conn.Mid,
-		"sid":    conn.Sid,
-		"status": conn.Dut.Status,
-		"pytest": conn.Dut.Pytest,
-		"model":  conn.Dut.Model,
-	})
+	msg, err := ovl.GetUIData(conn)
 	if err != nil {
 		log.Printf("Failed to update UI data. Mid: %s\n", conn.Mid)
 		return
 	}
 
-	ovl.ioserver.BroadcastTo("monitor", "agent update", string(msg))
+	ovl.ioserver.BroadcastTo("monitor", "agent update", msg)
 }
 
 // AddWebsocketContext adds an websocket context to the overlord state.
@@ -490,11 +496,17 @@ func (ovl *Overlord) GetAppNames(ignoreSpecial bool) ([]string, error) {
 	return appNames, nil
 }
 
-type byMid []map[string]interface{}
+type byStatusMid []map[string]interface{}
 
-func (a byMid) Len() int      { return len(a) }
-func (a byMid) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a byMid) Less(i, j int) bool {
+func (a byStatusMid) Len() int      { return len(a) }
+func (a byStatusMid) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a byStatusMid) Less(i, j int) bool {
+	score_i := a[i]["status_score"].(int)
+	score_j := a[j]["status_score"].(int)
+	if score_i != score_j {
+		return score_i > score_j
+	}
+
 	return a[i]["mid"].(string) < a[j]["mid"].(string)
 }
 
@@ -546,13 +558,14 @@ func (ovl *Overlord) RegisterHTTPHandlers() {
 				"sid":              agent.Sid,
 				"model":            agent.Dut.Model,
 				"status":           agent.Dut.Status,
+				"status_score":     agent.Dut.StatusScore,
 				"pytest":           agent.Dut.Pytest,
 				"properties":       agent.Properties,
 				"track_connection": agent.TrackConnection,
 			})
 		}
 		ovl.agentsMu.Unlock()
-		sort.Sort(byMid(data))
+		sort.Sort(byStatusMid(data))
 
 		result, err := json.Marshal(data)
 		if err != nil {

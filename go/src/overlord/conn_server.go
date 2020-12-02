@@ -43,10 +43,11 @@ type fileDownloadContext struct {
 }
 
 type DutContext struct {
-	Status string   // Pytest status
-	Pytest string   // Pytest name
-	Model  string   // Dut model
-	Ip     []string // Dut IP
+	Status      string   // Pytest status
+	Pytest      string   // Pytest name
+	Model       string   // Dut model
+	Ip          []string // Dut IP
+	StatusScore int      // Status score, used by sort function
 }
 
 // ConnServer is the main struct for storing connection context between
@@ -123,6 +124,7 @@ func (c *ConnServer) Terminate() {
 // Update DUT status.
 func (c *ConnServer) UpdateDUTStatus(status string) {
 	c.Dut.Status = status
+	c.Dut.StatusScore = StatusScoreMapping(status)
 }
 
 // writeWebsocket is a helper function for written text to websocket in the
@@ -332,7 +334,8 @@ func (c *ConnServer) handleUpdateDutDataRequest(req *Request) error {
 	log.Printf("Model: %s", args.Model)
 	log.Println(args.Ip)
 
-	c.Dut = DutContext{args.Status, args.Pytest, args.Model, args.Ip}
+	c.Dut = DutContext{args.Status, args.Pytest, args.Model, args.Ip, 0}
+	c.UpdateDUTStatus(args.Status)
 	c.lastPing = time.Now()
 
 	c.ovl.Update(c)
