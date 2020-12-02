@@ -35,6 +35,7 @@ from cros.factory.test.test_lists import test_list_common
 from cros.factory.utils import debug_utils
 from cros.factory.utils import log_utils
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import sys_interface
 
 from cros.factory.external import setproctitle
 
@@ -325,6 +326,7 @@ class TestListCommand(Subcommand):
         help='If restarting goofy, clear all state (like factory_restart -a)')
 
   def Run(self):
+    device = sys_interface.SystemInterface()
     mgr = manager.Manager()
     all_test_lists, unused_errors = mgr.BuildAllTestLists()
 
@@ -338,10 +340,10 @@ class TestListCommand(Subcommand):
           test_list_common.ACTIVE_TEST_LIST_CONFIG_PATH))
       sys.stdout.flush()
     else:
-      print(mgr.GetActiveTestListId())
+      print(mgr.GetActiveTestListId(device))
 
     if self.args.list:
-      active_id = mgr.GetActiveTestListId()
+      active_id = mgr.GetActiveTestListId(device)
 
       # Calculate the maximum width of test_lists for alignment of displaying.
       test_lists_id_maxlen = max(map(len, all_test_lists), default=0)

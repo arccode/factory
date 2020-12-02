@@ -13,6 +13,7 @@ from cros.factory.gooftool import cros_config as cros_config_module
 from cros.factory.test.test_lists import checker as checker_module
 from cros.factory.test.test_lists import test_list as test_list_module
 from cros.factory.test.test_lists import test_list_common
+from cros.factory.test.utils import model_sku_utils
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
@@ -232,12 +233,15 @@ class Manager:
     return valid_test_lists, failed_test_lists
 
   @staticmethod
-  def GetActiveTestListId():
+  def GetActiveTestListId(device):
     """Returns the ID of the active test list.
 
     This method first try to load the active test list id by loading the
     ``active_test_list`` config file.  If there is no such configuration,
     'main' is returned.
+
+    Args:
+      device: The sys_interface of the system.
     """
     try:
       config_data = config_utils.LoadConfig(
@@ -254,14 +258,25 @@ class Manager:
       logging.warning(
           'Failed to load the active test list configuration: %r.', e)
 
-    return Manager.SelectDefaultTestList()
+    return Manager.SelectDefaultTestList(device)
 
   @staticmethod
-  def SelectDefaultTestList():
-    cros_config = cros_config_module.CrosConfig()
-    model_main = 'main_%s' % cros_config.GetModelName()
+  def SelectDefaultTestList(device):
+    candidates = []
 
-    for test_list_id in [model_main, 'main', 'generic_main']:
+    cros_config = cros_config_module.CrosConfig(dut=device)
+    candidates.append('main_%s' % cros_config.GetModelName())
+
+    try:
+      model_sku = model_sku_utils.GetDesignConfig(device)
+      if 'project' in model_sku:
+        candidates.append('main_%s' % model_sku['project'])
+    except FileNotFoundError:
+      # Get here if the project is not using Boxster config
+      pass
+
+    candidates.extend(['main', 'generic_main'])
+    for test_list_id in candidates:
       if os.path.exists(os.path.join(
           test_list_common.TEST_LISTS_PATH,
           test_list_common.GetTestListConfigFile(test_list_id))):

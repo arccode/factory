@@ -1134,7 +1134,7 @@ class Goofy:
           startup_errors.append('Error in test list %s:\n%s'
                                 % (test_list_id, reason))
 
-      active_test_list = self.test_list_manager.GetActiveTestListId()
+      active_test_list = self.test_list_manager.GetActiveTestListId(self.dut)
 
       # Check for a non-existent test list ID.
       try:

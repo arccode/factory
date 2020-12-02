@@ -13,11 +13,13 @@ from cros.factory.tools.goofy_ghost import ghost_prop
 from cros.factory.utils import argparse_utils
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import sys_interface
 
 
 def _WriteGhostProperties():
   properties = config_utils.LoadConfig('goofy_ghost')
-  properties['active_test_list'] = manager.Manager.GetActiveTestListId()
+  device = sys_interface.SystemInterface()
+  properties['active_test_list'] = manager.Manager.GetActiveTestListId(device)
   file_utils.TryMakeDirs(
       os.path.dirname(ghost_prop.GOOFY_GHOST_PROPERTIES_FILE))
   file_utils.WriteFile(ghost_prop.GOOFY_GHOST_PROPERTIES_FILE,

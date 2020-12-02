@@ -41,6 +41,7 @@ from cros.factory.test.state import TestState
 from cros.factory.test.test_lists import manager
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sys_interface
 from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Enum
 
@@ -1262,7 +1263,8 @@ class Ghost:
 
   def ApplyTestListParams(self):
     mgr = manager.Manager()
-    constants = mgr.GetTestListByID(mgr.GetActiveTestListId()).constants
+    device = sys_interface.SystemInterface()
+    constants = mgr.GetTestListByID(mgr.GetActiveTestListId(device)).constants
 
     if 'overlord' not in constants:
       return
