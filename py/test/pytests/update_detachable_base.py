@@ -44,8 +44,8 @@ Dependency
 - hammerd
 - usb_updater2
 
-Example
--------
+Examples
+--------
 If detachable base information is ready in cros_config::
 
   {
