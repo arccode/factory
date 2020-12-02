@@ -12,15 +12,13 @@ import os
 import os.path
 
 # pylint: disable=no-name-in-module, import-error, wrong-import-order
-import flask
-import flask.views
 import google.auth
 from google.auth.transport.requests import Request
-from google.cloud import tasks
 import urllib3
 import yaml
 # pylint: enable=no-name-in-module, import-error, wrong-import-order
 
+from cros.factory.hwid.service.appengine import auth
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import git_util
 from cros.factory.hwid.service.appengine import hwid_manager
@@ -28,7 +26,10 @@ from cros.factory.hwid.service.appengine import memcache_adapter
 from cros.factory.hwid.service.appengine import \
     verification_payload_generator as vpg_module
 from cros.factory.hwid.v3 import filesystem_adapter
-from cros.factory.utils import json_utils
+# pylint: disable=import-error, no-name-in-module
+from cros.factory.hwid.service.appengine.proto import ingestion_pb2
+# pylint: enable=import-error, no-name-in-module
+from cros.factory.probe_info_service.app_engine import protorpc_utils
 
 
 INTERNAL_REPO_URL = 'https://chrome-internal-review.googlesource.com'
@@ -37,8 +38,13 @@ CHROMEOS_HWID_REPO_URL = INTERNAL_REPO_URL + '/' + CHROMEOS_HWID_PROJECT
 GOLDENEYE_MEMCACHE_NAMESPACE = 'SourceGoldenEye'
 
 
-class PayloadGenerationException(Exception):
-  """Exception to group similar excetpions for error reporting."""
+class PayloadGenerationException(protorpc_utils.ProtoRPCException):
+  """Exception to group similar exceptions for error reporting."""
+
+  def __init__(self, msg):
+    super(PayloadGenerationException, self).__init__(
+        status=http.HTTPStatus.INTERNAL_SERVER_ERROR,
+        code=protorpc_utils.RPC_CODE_INTERNAL, detail=msg)
 
 
 def _GetCredentials():
@@ -62,101 +68,36 @@ def _GetHwidRepoFilesystemAdapter():
                                                   CONFIG.hwid_repo_branch)
 
 
-def _IngestAllDevicesJson():
-  """Retrieve the file, parse and save the board to HWID regexp mapping."""
+class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
+  SERVICE_DESCRIPTOR = ingestion_pb2.DESCRIPTOR.services_by_name[
+      'HwidIngestion']
 
-  memcache = memcache_adapter.MemcacheAdapter(namespace='SourceGoldenEye')
-  all_devices_json = CONFIG.goldeneye_filesystem.ReadFile('all_devices.json')
-  parsed_json = json.loads(all_devices_json)
-
-  regexp_to_device = []
-
-  for device in parsed_json['devices']:
-    regexp_to_board = []
-    for board in device.get('boards', []):
-      regexp_to_board.append((board['hwid_match'], board['public_codename']))
-      logging.info('Board: %s', (board['hwid_match'], board['public_codename']))
-
-    if device['hwid_match']:  # only allow non-empty patterns
-      regexp_to_device.append(
-          (device['hwid_match'], device['public_codename'], regexp_to_board))
-
-      logging.info('Device: %s',
-                   (device['hwid_match'], device['public_codename']))
-    else:
-      logging.warning('Empty pattern: %s',
-                      (device['hwid_match'], device['public_codename']))
-
-  memcache.Put('regexp_to_device', regexp_to_device)
-
-
-class AllDevicesRefreshHandler(flask.views.MethodView):
-  """Handle update of a possibly new all_devices.json file."""
-
-  # Cron jobs are always GET requests, we are not actually doing the work
-  # here just queuing a task to be run in the background.
-  def get(self):
-    client = tasks.CloudTasksClient()
-    parent = client.queue_path(CONFIG.cloud_project, CONFIG.project_region,
-                               CONFIG.queue_name)
-    client.create_task(
-        parent, {
-            'app_engine_http_request': {
-                'http_method': 'POST',
-                'relative_uri': '/ingestion/all_devices_refresh'
-            }
-        })
-    return flask.Response(status=http.HTTPStatus.OK)
-
-  # Task queue executions are POST requests.
-  def post(self):
-    """Refreshes the ingestion from staging files to live."""
-    try:
-      _IngestAllDevicesJson()
-    except filesystem_adapter.FileSystemAdapterException:
-      logging.exception('Missing all_devices.json file during refresh.')
-      flask.abort(http.HTTPStatus.INTERNAL_SERVER_ERROR,
-                  'Missing all_devices.json file during refresh.')
-
-    return flask.Response(response='all_devices.json Ingestion complete.',
-                          status=http.HTTPStatus.OK)
-
-
-class SyncNamePatternHandler(flask.views.MethodView):
-  """Sync name pattern from chromeos-hwid repo
-
-  In normal circumstances the cron job triggers the refresh hourly, however it
-  can be triggered by admins.  The actual work is done by the default
-  background task queue.
-
-  The task queue POSTS back into this hander to do the actual work.
-
-  This handler will copy the name_pattern directory under chromeos-hwid dir to
-  cloud storage.
-  """
   NAME_PATTERN_FOLDER = 'name_pattern'
   AVL_NAME_MAPPING_FOLDER = 'avl_name_mapping'
 
   def __init__(self, *args, **kwargs):
-    super(SyncNamePatternHandler, self).__init__(*args, **kwargs)
+    super(ProtoRPCService, self).__init__(*args, **kwargs)
     self.hwid_filesystem = CONFIG.hwid_filesystem
     self.hwid_manager = CONFIG.hwid_manager
+    self.vpg_targets = CONFIG.vpg_targets
+    self.dryrun_upload = CONFIG.dryrun_upload
 
-  # Cron jobs are always GET requests, we are not acutally doing the work
-  # here just queuing a task to be run in the background.
-  def get(self):
-    client = tasks.CloudTasksClient()
-    parent = client.queue_path(CONFIG.cloud_project, CONFIG.project_region,
-                               CONFIG.queue_name)
-    client.create_task(parent, {
-        'app_engine_http_request': {
-            'http_method': 'POST',
-            'relative_uri': '/ingestion/sync_name_pattern'}})
-    return flask.Response(status=http.HTTPStatus.OK)
+  @protorpc_utils.ProtoRPCServiceMethod
+  @auth.RpcCheck
+  def SyncNamePattern(self, request):
+    """Sync name pattern from chromeos-hwid repo
 
-  # Task queue executions are POST requests.
-  def post(self):
-    """Refreshes the ingestion from staging files to live."""
+    In normal circumstances the cron job triggers the refresh hourly, however it
+    can be triggered by admins.  The actual work is done by the default
+    background task queue.
+
+    The task queue POSTs back into this handler to do the actual work.
+
+    This handler will copy the name_pattern directory under chromeos-hwid dir to
+    cloud storage.
+    """
+
+    del request  # unused
     git_fs = _GetHwidRepoFilesystemAdapter()
 
     folder = self.NAME_PATTERN_FOLDER
@@ -184,53 +125,28 @@ class SyncNamePatternHandler(flask.views.MethodView):
 
     self.hwid_manager.RemoveAVLNameMappingCategories(category_set)
 
-    return flask.Response(status=http.HTTPStatus.OK)
+    return ingestion_pb2.SyncNamePatternResponse()
 
+  @protorpc_utils.ProtoRPCServiceMethod
+  @auth.RpcCheck
+  def IngestHwidDb(self, request):
+    """Handle update of possibly new yaml files.
 
-class RefreshHandler(flask.views.MethodView):
-  """Handle update of possibley new yaml files.
+    In normal circumstances the cron job triggers the refresh hourly, however it
+    can be triggered by admins.  The actual work is done by the default
+    background task queue.
 
-  In normal circumstances the cron job triggers the refresh hourly, however it
-  can be triggered by admins.  The actual work is done by the default
-  background task queue.
+    The task queue POSTs back into this handler to do the actual work.
 
-  The task queue POSTS back into this hander to do the
-  actual work.
-
-  Refresing the data regularly take just over the 60 second timeout for
-  interactive requests.  Using a task process extends this deadline to 10
-  minutes which should be more than enough headroom for the next few years.
-  """
-
-  def __init__(self, *args, **kwargs):
-    super(RefreshHandler, self).__init__(*args, **kwargs)
-    self.hwid_filesystem = CONFIG.hwid_filesystem
-    self.hwid_manager = CONFIG.hwid_manager
-    self.vpg_targets = CONFIG.vpg_targets
-    self.dryrun_upload = CONFIG.dryrun_upload
-    self.hw_checker_mail = CONFIG.hw_checker_mail
-
-  # Cron jobs are always GET requests, we are not acutally doing the work
-  # here just queuing a task to be run in the background.
-  def get(self):
-    client = tasks.CloudTasksClient()
-    parent = client.queue_path(CONFIG.cloud_project, CONFIG.project_region,
-                               CONFIG.queue_name)
-    client.create_task(parent, {
-        'app_engine_http_request': {
-            'http_method': 'POST',
-            'relative_uri': '/ingestion/refresh'}})
-    return flask.Response(status=http.HTTPStatus.OK)
-
-  # Task queue executions are POST requests.
-  def post(self):
-    """Refreshes the ingestion from staging files to live."""
+    Refreshing the data regularly take just over the 60 second timeout for
+    interactive requests.  Using a task process extends this deadline to 10
+    minutes which should be more than enough headroom for the next few years.
+    """
 
     # Limit boards for ingestion (e2e test only).
-    limit_models = set()
-    if flask.request.is_json:
-      limit_models.update(flask.request.json.get('limit_models'))
+    limit_models = set(request.limit_models)
     do_limit = bool(limit_models)
+    force_push = request.force_push
 
     git_fs = _GetHwidRepoFilesystemAdapter()
     # TODO(yllin): Reduce memory footprint.
@@ -249,22 +165,66 @@ class RefreshHandler(flask.views.MethodView):
 
     except filesystem_adapter.FileSystemAdapterException:
       logging.error('Missing file during refresh.')
-      flask.abort(flask.Response('Missing file during refresh.',
-                                 http.HTTPStatus.INTERNAL_SERVER_ERROR))
+      raise protorpc_utils.ProtoRPCException(
+          status=http.HTTPStatus.INTERNAL_SERVER_ERROR,
+          code=protorpc_utils.RPC_CODE_INTERNAL,
+          detail='Missing file during refresh.')
 
     self.hwid_manager.ReloadMemcacheCacheFromFiles(
         limit_models=list(limit_models))
 
     # Skip if env is local (dev)
     if CONFIG.env == 'dev':
-      return flask.Response(response='Skip for local env',
-                            status=http.HTTPStatus.OK)
+      return ingestion_pb2.IngestHwidDbResponse(msg='Skip for local env')
 
-    response = self.UpdatePayloadsAndSync(do_limit)
+    response = self._UpdatePayloadsAndSync(force_push, do_limit)
     logging.info('Ingestion complete.')
-    return flask.Response(response=response, status=http.HTTPStatus.OK)
+    return response
 
-  def GetPayloadDBLists(self):
+  @protorpc_utils.ProtoRPCServiceMethod
+  @auth.RpcCheck
+  def IngestDevicesVariants(self, request):
+    """Retrieve the file, parse and save the board to HWID regexp mapping."""
+    del request  # unused
+
+    try:
+      memcache = memcache_adapter.MemcacheAdapter(
+          namespace=GOLDENEYE_MEMCACHE_NAMESPACE)
+      all_devices_json = CONFIG.goldeneye_filesystem.ReadFile(
+          'all_devices.json')
+      parsed_json = json.loads(all_devices_json)
+
+      regexp_to_device = []
+
+      for device in parsed_json['devices']:
+        regexp_to_board = []
+        for board in device.get('boards', []):
+          regexp_to_board.append(
+              (board['hwid_match'], board['public_codename']))
+          logging.info('Board: %s',
+                       (board['hwid_match'], board['public_codename']))
+
+        if device['hwid_match']:  # only allow non-empty patterns
+          regexp_to_device.append((device['hwid_match'],
+                                   device['public_codename'], regexp_to_board))
+
+          logging.info('Device: %s',
+                       (device['hwid_match'], device['public_codename']))
+        else:
+          logging.warning('Empty pattern: %s',
+                          (device['hwid_match'], device['public_codename']))
+
+      memcache.Put('regexp_to_device', regexp_to_device)
+    except filesystem_adapter.FileSystemAdapterException:
+      logging.exception('Missing all_devices.json file during refresh.')
+      raise protorpc_utils.ProtoRPCException(
+          status=http.HTTPStatus.INTERNAL_SERVER_ERROR,
+          code=protorpc_utils.RPC_CODE_INTERNAL,
+          detail='Missing all_devices.json file during refresh.')
+
+    return ingestion_pb2.IngestDevicesVariantsResponse()
+
+  def _GetPayloadDBLists(self):
     """Get payload DBs specified in config.
 
     Returns:
@@ -281,7 +241,7 @@ class RefreshHandler(flask.views.MethodView):
         logging.error('Cannot get board data from cache for %r', model_name)
     return db_lists
 
-  def GetMasterCommitIfChanged(self, force_update=False):
+  def _GetMasterCommitIfChanged(self, force_update):
     """Get master commit of repo if it differs from cached commit on datastore.
 
     Args:
@@ -300,7 +260,7 @@ class RefreshHandler(flask.views.MethodView):
       return None
     return hwid_master_commit
 
-  def ShouldUpdatePayload(self, board, result, force_update=False):
+  def _ShouldUpdatePayload(self, board, result, force_update):
     """Get payload hash if it differs from cached hash on datastore.
 
     Args:
@@ -321,14 +281,15 @@ class RefreshHandler(flask.views.MethodView):
       return False
     return True
 
-  def TryCreateCL(self, service_account_name, board, new_files,
-                  hwid_master_commit):
+  def _TryCreateCL(self, force_push, service_account_name, board, new_files,
+                   hwid_master_commit):
     """Try to create a CL if possible.
 
     Use git_util to create CL in repo for generated payloads.  If something goes
     wrong, email to the hw-checker group.
 
     Args:
+      force_push: True to always push to git repo.
       service_account_name: Account name as email
       board: board name
       new_files: A path-content mapping of payload files
@@ -338,10 +299,9 @@ class RefreshHandler(flask.views.MethodView):
     """
 
     dryrun_upload = self.dryrun_upload
-    force_push = flask.request.values.get('force_push', '')
 
     # force push, set dryrun_upload to False
-    if force_push.lower() == 'true':
+    if force_push:
       dryrun_upload = False
     author = 'chromeoshwid <{account_name}>'.format(
         account_name=service_account_name)
@@ -404,27 +364,27 @@ class RefreshHandler(flask.views.MethodView):
         logging.error('CL is not created: %r', str(ex))
         raise PayloadGenerationException('CL is not created') from ex
 
-  def UpdatePayloads(self, force_update=False):
+  def _UpdatePayloads(self, force_push, force_update):
     """Update generated payloads to repo.
 
     Also return the hash of master commit and payloads to skip unnecessary
     actions.
 
     Args:
+      force_push: True to always push to git repo.
       force_update: True for always returning payload_hash_mapping for testing
                     purpose.
-
     Returns:
       tuple (commit_id, {board: payload_hash,...}), possibly None for commit_id
     """
 
     payload_hash_mapping = {}
     service_account_name, unused_token = _GetCredentials()
-    hwid_master_commit = self.GetMasterCommitIfChanged(force_update)
+    hwid_master_commit = self._GetMasterCommitIfChanged(force_update)
     if hwid_master_commit is None and not force_update:
       return None, payload_hash_mapping
 
-    db_lists = self.GetPayloadDBLists()
+    db_lists = self._GetPayloadDBLists()
 
     for board, db_list in db_lists.items():
       result = vpg_module.GenerateVerificationPayload(db_list)
@@ -432,14 +392,14 @@ class RefreshHandler(flask.views.MethodView):
         logging.error('Generate Payload fail: %s', ' '.join(result.error_msgs))
         raise PayloadGenerationException('Generate Payload fail')
       new_files = result.generated_file_contents
-      if self.ShouldUpdatePayload(board, result, force_update):
+      if self._ShouldUpdatePayload(board, result, force_update):
         payload_hash_mapping[board] = result.payload_hash
-        self.TryCreateCL(
-            service_account_name, board, new_files, hwid_master_commit)
+        self._TryCreateCL(force_push, service_account_name, board, new_files,
+                          hwid_master_commit)
 
     return hwid_master_commit, payload_hash_mapping
 
-  def UpdatePayloadsAndSync(self, force_update=False):
+  def _UpdatePayloadsAndSync(self, force_push, force_update):
     """Update generated payloads to private overlays.
 
     This method will handle the payload creation request as follows:
@@ -457,16 +417,18 @@ class RefreshHandler(flask.views.MethodView):
     generated.
 
     Args:
+      force_push: True to always push to git repo.
       force_update: True for always getting payload_hash_mapping for testing
                     purpose.
     """
 
-    response = ''
-    commit_id, payload_hash_mapping = self.UpdatePayloads(force_update)
+    response = ingestion_pb2.IngestHwidDbResponse()
+    commit_id, payload_hash_mapping = self._UpdatePayloads(
+        force_push, force_update)
     if commit_id:
       self.hwid_manager.SetLatestHWIDMasterCommit(commit_id)
     if force_update:
-      response = json_utils.DumpStr(payload_hash_mapping, sort_keys=True)
+      response.payload_hash.update(payload_hash_mapping)
     for board, payload_hash in payload_hash_mapping.items():
       self.hwid_manager.SetLatestPayloadHash(board, payload_hash)
     return response

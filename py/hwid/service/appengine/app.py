@@ -5,11 +5,13 @@
 
 """The service handler for APIs."""
 
+import http
 import logging
 
 # pylint: disable=no-name-in-module, import-error, wrong-import-order
 import flask
 import google.cloud.logging as gc_logging
+from google.cloud import tasks
 # pylint: enable=no-name-in-module, import-error, wrong-import-order
 
 from cros.factory.hwid.service.appengine import auth
@@ -19,24 +21,33 @@ from cros.factory.hwid.service.appengine import ingestion
 from cros.factory.probe_info_service.app_engine import protorpc_utils
 
 
+@auth.HttpCheck
+def _CronJobHandler(service, method):
+  del service, method  # Unused since we only rewrite the request path.
+  client = tasks.CloudTasksClient()
+  parent = client.queue_path(CONFIG.cloud_project, CONFIG.project_region,
+                             CONFIG.queue_name)
+  path = flask.request.path
+  client.create_task(
+      parent, {
+          'app_engine_http_request': {
+              'http_method': 'POST',
+              'relative_uri': path.replace('/cron/', '/_ah/stubby/')
+          }
+      })
+  return flask.Response(status=http.HTTPStatus.OK)
+
+
 def _CreateApp():
   app = flask.Flask(__name__)
   app.url_map.strict_slashes = False
 
-  app.add_url_rule(
-      rule='/ingestion/sync_name_pattern', endpoint='sync_name_pattern',
-      view_func=auth.HttpCheck(
-          ingestion.SyncNamePatternHandler.as_view('sync_name_pattern')))
-  app.add_url_rule(
-      rule='/ingestion/refresh', endpoint='refresh', view_func=auth.HttpCheck(
-          ingestion.RefreshHandler.as_view('refresh')))
-  app.add_url_rule(
-      rule='/ingestion/all_devices_refresh', endpoint='all_devices_refresh',
-      view_func=auth.HttpCheck(
-          ingestion.AllDevicesRefreshHandler.as_view('all_devices_refresh')))
+  app.route('/cron/<service>.<method>', methods=('GET', ))(_CronJobHandler)
 
   protorpc_utils.RegisterProtoRPCServiceToFlaskApp(app, '/_ah/stubby',
                                                    hwid_api.ProtoRPCService())
+  protorpc_utils.RegisterProtoRPCServiceToFlaskApp(app, '/_ah/stubby',
+                                                   ingestion.ProtoRPCService())
   return app
 
 

@@ -6,20 +6,22 @@
 """Tests for ingestion."""
 
 import collections
-import http
 import os
 import unittest
 from unittest import mock
 
 # pylint: disable=import-error, wrong-import-order, no-name-in-module
-import flask
 from google.cloud import ndb
 import yaml
 # pylint: enable=import-error, wrong-import-order, no-name-in-module
 
-from cros.factory.hwid.service.appengine import app
 from cros.factory.hwid.service.appengine import hwid_manager
+from cros.factory.hwid.service.appengine import ingestion
+# pylint: disable=import-error, no-name-in-module
+from cros.factory.hwid.service.appengine.proto import ingestion_pb2
+# pylint: enable=import-error, no-name-in-module
 from cros.factory.hwid.v3 import filesystem_adapter
+from cros.factory.probe_info_service.app_engine import protorpc_utils
 from cros.factory.utils import file_utils
 
 
@@ -31,28 +33,26 @@ SERVER_BOARDS_DATA = file_utils.ReadFile(SERVER_BOARDS_YAML, encoding=None)
 class IngestionTest(unittest.TestCase):
 
   def setUp(self):
-    hwid_service = app.hwid_service
-    self.app = hwid_service.test_client()
-    hwid_service.test_request_context().push()
-
-    patcher = mock.patch('__main__.app.ingestion.CONFIG.hwid_filesystem')
+    patcher = mock.patch('__main__.ingestion.CONFIG.hwid_filesystem')
     self.patch_hwid_filesystem = patcher.start()
     self.addCleanup(patcher.stop)
 
-    patcher = mock.patch('__main__.app.ingestion.CONFIG.hwid_manager')
+    patcher = mock.patch('__main__.ingestion.CONFIG.hwid_manager')
     self.patch_hwid_manager = patcher.start()
     self.addCleanup(patcher.stop)
 
-    patcher = mock.patch('__main__.app.ingestion._GetCredentials',
+    patcher = mock.patch('__main__.ingestion._GetCredentials',
                          return_value=('', ''))
     patcher.start()
     self.addCleanup(patcher.stop)
 
     self.git_fs = mock.Mock()
-    patcher = mock.patch('__main__.app.ingestion._GetHwidRepoFilesystemAdapter',
+    patcher = mock.patch('__main__.ingestion._GetHwidRepoFilesystemAdapter',
                          return_value=self.git_fs)
     patcher.start()
     self.addCleanup(patcher.stop)
+
+    self.service = ingestion.ProtoRPCService()
 
   def testRefresh(self):
     def MockReadFile(*args):
@@ -62,9 +62,11 @@ class IngestionTest(unittest.TestCase):
 
     self.git_fs.ReadFile = MockReadFile
 
-    response = self.app.post(flask.url_for('refresh'))
+    request = ingestion_pb2.IngestHwidDbRequest()
+    response = self.service.IngestHwidDb(request)
 
-    self.assertEqual(response.status_code, http.HTTPStatus.OK)
+    self.assertEqual(
+        response, ingestion_pb2.IngestHwidDbResponse(msg='Skip for local env'))
     self.patch_hwid_manager.UpdateBoards.assert_has_calls([
         mock.call(
             self.git_fs, {
@@ -100,10 +102,10 @@ class IngestionTest(unittest.TestCase):
     self.git_fs.ReadFile = mock.Mock(
         side_effect=filesystem_adapter.FileSystemAdapterException)
 
-    response = self.app.post(flask.url_for('refresh'))
-    self.assertEqual(response.data, b'Missing file during refresh.')
-    self.assertEqual(response.status_code,
-                     http.HTTPStatus.INTERNAL_SERVER_ERROR)
+    request = ingestion_pb2.IngestHwidDbRequest()
+    with self.assertRaises(protorpc_utils.ProtoRPCException) as ex:
+      self.service.IngestHwidDb(request)
+    self.assertEqual(ex.exception.detail, 'Missing file during refresh.')
 
 
 class AVLNameTest(unittest.TestCase):
@@ -112,23 +114,21 @@ class AVLNameTest(unittest.TestCase):
   NAME_MAPPING_FOLDER = 'avl_name_mapping'
 
   def setUp(self):
-    hwid_service = app.hwid_service
-    self.app = hwid_service.test_client()
-    hwid_service.test_request_context().push()
-
-    patcher = mock.patch('__main__.app.ingestion.CONFIG.hwid_filesystem')
+    patcher = mock.patch('__main__.ingestion.CONFIG.hwid_filesystem')
     self.patch_hwid_filesystem = patcher.start()
     self.addCleanup(patcher.stop)
 
-    patcher = mock.patch('__main__.app.ingestion._GetAuthCookie')
+    patcher = mock.patch('__main__.ingestion._GetAuthCookie')
     patcher.start()
     self.addCleanup(patcher.stop)
 
     self.git_fs = mock.Mock()
-    patcher = mock.patch('__main__.app.ingestion._GetHwidRepoFilesystemAdapter',
+    patcher = mock.patch('__main__.ingestion._GetHwidRepoFilesystemAdapter',
                          return_value=self.git_fs)
     patcher.start()
     self.addCleanup(patcher.stop)
+
+    self.service = ingestion.ProtoRPCService()
 
     self.init_mapping_data = {
         'category1': {
@@ -190,8 +190,9 @@ class AVLNameTest(unittest.TestCase):
 
     self.patch_hwid_filesystem.ListFiles.return_value = []
 
-    response = self.app.post(flask.url_for('sync_name_pattern'))
-    self.assertEqual(response.status_code, http.HTTPStatus.OK)
+    request = ingestion_pb2.SyncNamePatternRequest()
+    response = self.service.SyncNamePattern(request)
+    self.assertEqual(response, ingestion_pb2.SyncNamePatternResponse())
 
     self.patch_hwid_filesystem.ListFiles.assert_has_calls(
         [mock.call(self.NAME_PATTERN_FOLDER)])
@@ -229,8 +230,9 @@ class AVLNameTest(unittest.TestCase):
     self.git_fs.ListFiles = PatchGitListFilesWrapper(self.mock_init_mapping)
     self.git_fs.ReadFile = PatchGitReadFileWrapper(self.mock_init_mapping)
 
-    response = self.app.post(flask.url_for('sync_name_pattern'))
-    self.assertEqual(response.status_code, http.HTTPStatus.OK)
+    request = ingestion_pb2.SyncNamePatternRequest()
+    response = self.service.SyncNamePattern(request)
+    self.assertEqual(response, ingestion_pb2.SyncNamePatternResponse())
 
     mapping_in_datastore = collections.defaultdict(dict)
     with ndb.Client().context():
@@ -243,8 +245,9 @@ class AVLNameTest(unittest.TestCase):
     self.git_fs.ListFiles = PatchGitListFilesWrapper(self.mock_update_mapping)
     self.git_fs.ReadFile = PatchGitReadFileWrapper(self.mock_update_mapping)
 
-    response = self.app.post(flask.url_for('sync_name_pattern'))
-    self.assertEqual(response.status_code, http.HTTPStatus.OK)
+    request = ingestion_pb2.SyncNamePatternRequest()
+    response = self.service.SyncNamePattern(request)
+    self.assertEqual(response, ingestion_pb2.SyncNamePatternResponse())
 
     mapping_in_datastore = collections.defaultdict(dict)
     with ndb.Client().context():

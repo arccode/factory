@@ -13,16 +13,18 @@ from google.protobuf import symbol_database
 
 # Referenced from google.rpc.code
 RPC_CODE_PERMISSION_DENIED = 7
+RPC_CODE_INTERNAL = 13
 
 
 class ProtoRPCException(Exception):
   """RPC exceptions with addition information to set error status/code in stubby
   requests."""
 
-  def __init__(self, status, code):
+  def __init__(self, status, code, detail=None):
     super(ProtoRPCException, self).__init__()
     self.status = status
     self.code = code
+    self.detail = detail
 
 
 class _ProtoRPCServiceBaseMeta(type):
@@ -109,6 +111,8 @@ class _ProtoRPCServiceFlaskAppViewFunc:
     except ProtoRPCException as ex:
       resp = flask.Response(status=ex.status)
       resp.headers['RPC-Canonical-Code'] = ex.code
+      if ex.detail:
+        resp.headers['RPC-Error-Detail'] = ex.detail
       return resp
     except Exception:
       logging.exception('Caught exception from RPC method %r.', method_name)

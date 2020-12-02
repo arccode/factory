@@ -1,0 +1,33 @@
+syntax = "proto3";
+package cros.factory.hwid.service.appengine.proto.ingestion_pb2;
+
+message IngestHwidDbRequest {
+  repeated string limit_models = 1;
+  bool force_push = 2;
+}
+
+message IngestHwidDbResponse {
+  string msg = 1;
+  map<string, string> payload_hash = 2;
+}
+
+message IngestDevicesVariantsRequest {
+}
+
+message IngestDevicesVariantsResponse {
+}
+
+message SyncNamePatternRequest {
+}
+
+message SyncNamePatternResponse {
+}
+
+service HwidIngestion {
+  rpc IngestHwidDb(IngestHwidDbRequest) returns (IngestHwidDbResponse);
+
+  rpc IngestDevicesVariants(IngestDevicesVariantsRequest)
+      returns (IngestDevicesVariantsResponse);
+
+  rpc SyncNamePattern(SyncNamePatternRequest) returns (SyncNamePatternResponse);
+}

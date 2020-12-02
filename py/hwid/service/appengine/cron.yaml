@@ -1,10 +1,10 @@
 cron:
 - description: "Refresh HWID files."
-  url: /ingestion/refresh
+  url: /cron/HwidIngestion.IngestHwidDb
   schedule: every 1 hours
 - description: "Refresh GoldenEye all_devices.json information."
-  url: /ingestion/all_devices_refresh
+  url: /cron/HwidIngestion.IngestDevicesVariants
   schedule: every 1 hours
 - description: "Sync name pattern from chromeos-hwid repo"
-  url: /ingestion/sync_name_pattern
+  url: /cron/HwidIngestion.SyncNamePattern
   schedule: every 1 hours

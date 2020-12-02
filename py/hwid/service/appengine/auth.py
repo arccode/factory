@@ -32,11 +32,6 @@ def HttpCheck(func):
       logging.info('Allow cron job requests')
       return func(*args, **kwargs)
 
-    from_cloud_task = flask.request.headers.get('X-AppEngine-QueueName')
-    if from_cloud_task:
-      logging.info('Allow cloud task requests')
-      return func(*args, **kwargs)
-
     flask.abort(http.HTTPStatus.FORBIDDEN)
 
   return _MethodWrapper
@@ -52,6 +47,11 @@ def RpcCheck(func):
   @functools.wraps(func)
   def _MethodWrapper(*args, **kwargs):
     if CONFIG.env == 'dev':  # for integration test
+      return func(*args, **kwargs)
+
+    from_cloud_task = flask.request.headers.get('X-AppEngine-QueueName')
+    if from_cloud_task:
+      logging.info('Allow cloud task requests')
       return func(*args, **kwargs)
 
     loas_peer_username = flask.request.headers.get(
