@@ -22,9 +22,9 @@ import yaml
 
 from cros.chromeoshwid import update_checksum
 from cros.factory.hwid.service.appengine.config import CONFIG
-from cros.factory.hwid.service.appengine import goldeneye_ingestion
 from cros.factory.hwid.service.appengine import hwid_util
 from cros.factory.hwid.service.appengine import hwid_validator
+from cros.factory.hwid.service.appengine import ingestion
 from cros.factory.hwid.service.appengine import memcache_adapter
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.hwid.v3 import validator as v3_validator
@@ -43,7 +43,7 @@ KNOWN_BAD_SUBSTR = [
 _hwid_manager = CONFIG.hwid_manager
 _hwid_validator = hwid_validator.HwidValidator()
 _goldeneye_memcache_adapter = memcache_adapter.MemcacheAdapter(
-    namespace=goldeneye_ingestion.MEMCACHE_NAMESPACE)
+    namespace=ingestion.GOLDENEYE_MEMCACHE_NAMESPACE)
 
 
 def _FastFailKnownBadHwid(hwid):

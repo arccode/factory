@@ -15,7 +15,6 @@ import google.cloud.logging as gc_logging
 # pylint: enable=no-name-in-module, import-error, wrong-import-order
 
 from cros.factory.hwid.service.appengine.config import CONFIG
-from cros.factory.hwid.service.appengine import goldeneye_ingestion
 from cros.factory.hwid.service.appengine import hwid_api
 from cros.factory.hwid.service.appengine import ingestion
 from cros.factory.probe_info_service.app_engine import protorpc_utils
@@ -63,9 +62,6 @@ def _CreateApp():
   app.url_map.strict_slashes = False
 
   app.add_url_rule(
-      rule='/ingestion/upload', endpoint='upload',
-      view_func=ingestion.DevUploadHandler.as_view('upload'))
-  app.add_url_rule(
       rule='/ingestion/sync_name_pattern', endpoint='sync_name_pattern',
       view_func=ingestion.SyncNamePatternHandler.as_view('sync_name_pattern'))
   app.add_url_rule(
@@ -74,8 +70,7 @@ def _CreateApp():
   app.add_url_rule(
       rule='/ingestion/all_devices_refresh', endpoint='all_devices_refresh',
       view_func=_AuthCheckWrapper(
-          goldeneye_ingestion.AllDevicesRefreshHandler.as_view(
-              'all_devices_refresh')))
+          ingestion.AllDevicesRefreshHandler.as_view('all_devices_refresh')))
 
   protorpc_utils.RegisterProtoRPCServiceToFlaskApp(app, '/_ah/stubby',
                                                    hwid_api.ProtoRPCService())

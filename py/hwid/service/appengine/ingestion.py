@@ -6,6 +6,7 @@
 
 import collections
 import http
+import json
 import logging
 import os
 import os.path
@@ -17,13 +18,13 @@ import google.auth
 from google.auth.transport.requests import Request
 from google.cloud import tasks
 import urllib3
-import werkzeug
 import yaml
 # pylint: enable=no-name-in-module, import-error, wrong-import-order
 
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import git_util
 from cros.factory.hwid.service.appengine import hwid_manager
+from cros.factory.hwid.service.appengine import memcache_adapter
 from cros.factory.hwid.service.appengine import \
     verification_payload_generator as vpg_module
 from cros.factory.hwid.v3 import filesystem_adapter
@@ -33,6 +34,7 @@ from cros.factory.utils import json_utils
 INTERNAL_REPO_URL = 'https://chrome-internal-review.googlesource.com'
 CHROMEOS_HWID_PROJECT = 'chromeos/chromeos-hwid'
 CHROMEOS_HWID_REPO_URL = INTERNAL_REPO_URL + '/' + CHROMEOS_HWID_PROJECT
+GOLDENEYE_MEMCACHE_NAMESPACE = 'SourceGoldenEye'
 
 
 class PayloadGenerationException(Exception):
@@ -51,8 +53,7 @@ def _GetCredentials():
 def _GetAuthCookie():
   service_account_name, token = _GetCredentials()
   return 'o=git-{service_account_name}={token}'.format(
-      service_account_name=service_account_name,
-      token=token)
+      service_account_name=service_account_name, token=token)
 
 
 def _GetHwidRepoFilesystemAdapter():
@@ -61,32 +62,64 @@ def _GetHwidRepoFilesystemAdapter():
                                                   CONFIG.hwid_repo_branch)
 
 
-class DevUploadHandler(flask.views.MethodView):
+def _IngestAllDevicesJson():
+  """Retrieve the file, parse and save the board to HWID regexp mapping."""
 
-  def __init__(self, *args, **kwargs):
-    super(DevUploadHandler, self).__init__(*args, **kwargs)
-    self._hwid_filesystem = CONFIG.hwid_filesystem
+  memcache = memcache_adapter.MemcacheAdapter(namespace='SourceGoldenEye')
+  all_devices_json = CONFIG.goldeneye_filesystem.ReadFile('all_devices.json')
+  parsed_json = json.loads(all_devices_json)
 
+  regexp_to_device = []
+
+  for device in parsed_json['devices']:
+    regexp_to_board = []
+    for board in device.get('boards', []):
+      regexp_to_board.append((board['hwid_match'], board['public_codename']))
+      logging.info('Board: %s', (board['hwid_match'], board['public_codename']))
+
+    if device['hwid_match']:  # only allow non-empty patterns
+      regexp_to_device.append(
+          (device['hwid_match'], device['public_codename'], regexp_to_board))
+
+      logging.info('Device: %s',
+                   (device['hwid_match'], device['public_codename']))
+    else:
+      logging.warning('Empty pattern: %s',
+                      (device['hwid_match'], device['public_codename']))
+
+  memcache.Put('regexp_to_device', regexp_to_device)
+
+
+class AllDevicesRefreshHandler(flask.views.MethodView):
+  """Handle update of a possibly new all_devices.json file."""
+
+  # Cron jobs are always GET requests, we are not actually doing the work
+  # here just queuing a task to be run in the background.
+  def get(self):
+    client = tasks.CloudTasksClient()
+    parent = client.queue_path(CONFIG.cloud_project, CONFIG.project_region,
+                               CONFIG.queue_name)
+    client.create_task(
+        parent, {
+            'app_engine_http_request': {
+                'http_method': 'POST',
+                'relative_uri': '/ingestion/all_devices_refresh'
+            }
+        })
+    return flask.Response(status=http.HTTPStatus.OK)
+
+  # Task queue executions are POST requests.
   def post(self):
-    """Uploads a file to the cloud storage of the server."""
-    if 'data' not in flask.request.files or 'path' not in flask.request.values:
-      logging.warning('Required fields missing on request: %r',
-                      flask.request.values)
-      flask.abort(flask.Response(status=http.HTTPStatus.BAD_REQUEST))
+    """Refreshes the ingestion from staging files to live."""
+    try:
+      _IngestAllDevicesJson()
+    except filesystem_adapter.FileSystemAdapterException:
+      logging.exception('Missing all_devices.json file during refresh.')
+      flask.abort(http.HTTPStatus.INTERNAL_SERVER_ERROR,
+                  'Missing all_devices.json file during refresh.')
 
-    data = flask.request.files.get('data')
-    path = flask.request.values.get('path')
-
-    if not isinstance(data, werkzeug.datastructures.FileStorage):
-      logging.warning('Got request without file in data field.')
-      flask.abort(flask.Response(status=http.HTTPStatus.BAD_REQUEST))
-
-    self._hwid_filesystem.WriteFile(path, data.read())
-
-    def processFiles():
-      for filename in self._hwid_filesystem.ListFiles():
-        yield '%s\n' % filename
-    return flask.Response(response=processFiles(), status=http.HTTPStatus.OK)
+    return flask.Response(response='all_devices.json Ingestion complete.',
+                          status=http.HTTPStatus.OK)
 
 
 class SyncNamePatternHandler(flask.views.MethodView):

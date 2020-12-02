@@ -7,7 +7,6 @@
 
 import collections
 import http
-import io
 import os
 import unittest
 from unittest import mock
@@ -105,34 +104,6 @@ class IngestionTest(unittest.TestCase):
     self.assertEqual(response.data, b'Missing file during refresh.')
     self.assertEqual(response.status_code,
                      http.HTTPStatus.INTERNAL_SERVER_ERROR)
-
-  def testUpload(self):
-    self.patch_hwid_filesystem.ListFiles.return_value = ['foo']
-
-    response = self.app.post(
-        flask.url_for('upload'), content_type='multipart/form-data', data={
-            'data': (io.BytesIO(b'bar'), 'bar'),
-            'path': 'foo'})
-
-    self.assertEqual(response.status_code, http.HTTPStatus.OK)
-    self.patch_hwid_filesystem.WriteFile.assert_called_with('foo', b'bar')
-
-  def testUploadInvalid(self):
-    response = self.app.post(
-        flask.url_for('upload'), content_type='multipart/form-data', data={
-            'data': (io.BytesIO(b'bar'), 'bar')})
-    self.assertEqual(response.status_code, http.HTTPStatus.BAD_REQUEST)
-
-    response = self.app.post(
-        flask.url_for('upload'), content_type='multipart/form-data', data={
-            'path': 'foo'})
-    self.assertEqual(response.status_code, http.HTTPStatus.BAD_REQUEST)
-
-    response = self.app.post(
-        flask.url_for('upload'), content_type='multipart/form-data', data={
-            'path': 'foo',
-            'data': b'bar'})
-    self.assertEqual(response.status_code, http.HTTPStatus.BAD_REQUEST)
 
 
 class AVLNameTest(unittest.TestCase):
