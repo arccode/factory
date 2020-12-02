@@ -5,8 +5,6 @@
 
 """The service handler for APIs."""
 
-import functools
-import http
 import logging
 
 # pylint: disable=no-name-in-module, import-error, wrong-import-order
@@ -14,47 +12,11 @@ import flask
 import google.cloud.logging as gc_logging
 # pylint: enable=no-name-in-module, import-error, wrong-import-order
 
+from cros.factory.hwid.service.appengine import auth
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import hwid_api
 from cros.factory.hwid.service.appengine import ingestion
 from cros.factory.probe_info_service.app_engine import protorpc_utils
-
-
-def _AuthCheck():
-  if CONFIG.env == 'dev':  # for integration test
-    return
-
-  from_cron = flask.request.headers.get('X-AppEngine-Cron')
-  if from_cron:
-    logging.info('Allow cron job requests')
-    return
-
-  from_cloud_task = flask.request.headers.get('X-AppEngine-QueueName')
-  if from_cloud_task:
-    logging.info('Allow cloud task requests')
-    return
-
-  if CONFIG.ingestion_api_key:
-    key = flask.request.args.get('key')
-    if key == CONFIG.ingestion_api_key:
-      logging.info('Allow normal requests with API key')
-      return
-
-  flask.abort(http.HTTPStatus.FORBIDDEN)
-
-
-def _AuthCheckWrapper(func):
-  """Checks if requests are from known source.
-
-  For /ingestion/refresh  and /ingestion/sync_name_pattern API, hwid service
-  only allows cron job (via GET) and cloud task (via POST) requests.  However,
-  for e2e testing purpose, requests with API key are also allowed.
-  """
-  @functools.wraps(func)
-  def wrapper(*args, **kwargs):
-    _AuthCheck()
-    return func(*args, **kwargs)
-  return wrapper
 
 
 def _CreateApp():
@@ -63,13 +25,14 @@ def _CreateApp():
 
   app.add_url_rule(
       rule='/ingestion/sync_name_pattern', endpoint='sync_name_pattern',
-      view_func=ingestion.SyncNamePatternHandler.as_view('sync_name_pattern'))
+      view_func=auth.HttpCheck(
+          ingestion.SyncNamePatternHandler.as_view('sync_name_pattern')))
   app.add_url_rule(
-      rule='/ingestion/refresh', endpoint='refresh',
-      view_func=_AuthCheckWrapper(ingestion.RefreshHandler.as_view('refresh')))
+      rule='/ingestion/refresh', endpoint='refresh', view_func=auth.HttpCheck(
+          ingestion.RefreshHandler.as_view('refresh')))
   app.add_url_rule(
       rule='/ingestion/all_devices_refresh', endpoint='all_devices_refresh',
-      view_func=_AuthCheckWrapper(
+      view_func=auth.HttpCheck(
           ingestion.AllDevicesRefreshHandler.as_view('all_devices_refresh')))
 
   protorpc_utils.RegisterProtoRPCServiceToFlaskApp(app, '/_ah/stubby',
