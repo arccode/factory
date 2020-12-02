@@ -183,7 +183,10 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
     probe: True to include probe result in the logs.
     dram: True to include DRAM calibration logs.
     abt: True to include abt.txt for Android Bug Tool.
-    var, usr_local, etc: Paths to the relavant directories.
+    var, usr_local, etc: Paths to the relevant directories.
+
+  Returns:
+    The name of the zip archive joined with `output_dir`.
   """
   output_dir = os.path.realpath(output_dir)
   files = []
@@ -204,7 +207,7 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
       open(os.path.join(os.path.join(d, 'dummy-factory-bug')), 'w').close()
       Spawn(['zip', os.path.join(d, output_file),
              os.path.join(d, 'dummy-factory-bug')], check_call=True)
-    return
+    return output_file
 
   tmp = tempfile.mkdtemp(prefix='factory_bug.')
 
@@ -332,6 +335,8 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
                  os.path.getsize(output_file))
   finally:
     shutil.rmtree(tmp, ignore_errors=True)
+
+  return output_file
 
 
 # Root directory to use when root partition is USB
