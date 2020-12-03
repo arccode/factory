@@ -180,10 +180,15 @@ def CheckTestList(manager_, waived_level, test_list_id, dump):
     test_list.CheckValid()
   except Exception as e:
     if isinstance(e, KeyError) and str(e) == repr('tests'):
-      if not (test_list_id in ('main', 'common', 'base') or
+      # The list of header test list. For header test lists in private overlay,
+      # we should name them with prefix 'generic'.
+      header_list = ('main', 'common', 'base', 'disable_factory_server', 'smt',
+                     'fat', 'runin', 'run_in', 'fft', 'grt')
+      if not (test_list_id in header_list or
               test_list_id.startswith('generic')):
-        logging.warning('Test list "%s" does not have "tests" field.',
-                        test_list_id)
+        logging.warning(
+            'Test list "%s" does not have "tests" field. Rename it "generic_%s"'
+            ' or add missing "tests" field.', test_list_id, test_list_id)
         result &= ERROR_LEVEL.ERROR <= waived_level
     else:
       logging.error('Test list "%s" is invalid: %s.', test_list_id, e)
