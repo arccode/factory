@@ -22,14 +22,48 @@ from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils
 
 
+# Root directory to use when root partition is USB
+USB_ROOT_OUTPUT_DIR = '/mnt/stateful_partition/factory_bug'
+
+# Encrypted var partition mount point.
+SSD_STATEFUL_ROOT = '/tmp/sda1'
+
+# Stateful partition mount point
+SSD_STATEFUL_MOUNT_POINT = os.path.join(SSD_STATEFUL_ROOT,
+                                        'mnt/stateful_partition')
+
+DESCRIPTION = ('Save logs to a file or USB drive and/or mount encrypted '
+               'SSD partition.')
+
+EXAMPLES = """Examples:
+
+  When booting from SSD:
+
+    # Save logs to /tmp
+    factory_bug
+
+    # Save logs to a USB drive (using the first one already mounted, or the
+    # first mountable on any USB device if none is mounted yet)
+    factory_bug --usb
+
+  When booting from a USB drive:
+
+    # Mount sda1, sda3, encrypted stateful partition from SSD,
+    # and save logs to the USB drive's stateful partition
+    factory_bug
+
+    # Same as above, but don't save the logs
+    factory_bug --mount
+
+"""
+
 # Info about a mounted partition.
 #
 # Properties:
 #   dev: The device that was mounted or re-used.
 #   mount_point: The mount point of the device.
 #   temporary: Whether the device is being temporarily mounted.
-MountUSBInfo = namedtuple('MountUSBInfo',
-                          ['dev', 'mount_point', 'temporary'])
+MountUSBInfo = namedtuple('MountUSBInfo', ['dev', 'mount_point', 'temporary'])
 
 
 @contextmanager
@@ -339,39 +373,6 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
   return output_file
 
 
-# Root directory to use when root partition is USB
-USB_ROOT_OUTPUT_DIR = '/mnt/stateful_partition/factory_bug'
-
-# Encrypted var partition mount point.
-SSD_STATEFUL_ROOT = '/tmp/sda1'
-
-# Stateful partition mount point
-SSD_STATEFUL_MOUNT_POINT = os.path.join(SSD_STATEFUL_ROOT,
-                                        'mnt/stateful_partition')
-
-EXAMPLES = """Examples:
-
-  When booting from SSD:
-
-    # Save logs to /tmp
-    factory_bug
-
-    # Save logs to a USB drive (using the first one already mounted, or the
-    # first mountable on any USB device if none is mounted yet)
-    factory_bug --usb
-
-  When booting from a USB drive:
-
-    # Mount sda1, sda3, encrypted stateful partition from SSD,
-    # and save logs to the USB drive's stateful partition
-    factory_bug
-
-    # Same as above, but don't save the logs
-    factory_bug --mount
-
-"""
-
-
 def ParseArgument():
   """argparse config
 
@@ -381,11 +382,10 @@ def ParseArgument():
     args: parsed command line arguments.
   """
   parser = argparse.ArgumentParser(
-      epilog=EXAMPLES, formatter_class=argparse.RawDescriptionHelpFormatter,
-      description=('Save logs to a file or USB drive and/or mount encrypted '
-                   'SSD partition.'))
+      description=DESCRIPTION, epilog=EXAMPLES,
+      formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument(
-      '--output_dir', '-o', dest='output_dir', metavar='DIR',
+      '--output-dir', '-o', metavar='DIR',
       help=('Output directory in which to save file. Normally default to '
             f'`/tmp`, but defaults to `{USB_ROOT_OUTPUT_DIR}` when booted '
             'from USB.'))
