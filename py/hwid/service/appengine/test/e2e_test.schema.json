@@ -54,12 +54,20 @@
               "TestGetBoards"
             ]
           },
+          "proto_filename": {
+            "type": "string",
+            "title": "The name of the proto file",
+            "default": "",
+            "examples": [
+              "hwid_api_messages"
+            ]
+          },
           "api": {
             "type": "string",
             "title": "The stubby API name",
             "default": "",
             "examples": [
-              "GetBoards"
+              "HwidService.GetBoards"
             ]
           },
           "request_class": {

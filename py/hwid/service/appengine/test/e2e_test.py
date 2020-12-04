@@ -10,6 +10,7 @@ on the staging environment. The test loads a test config files in the
 factory-private repository, and executes the speicified tests.
 """
 
+import importlib
 import json
 import logging
 import os
@@ -21,9 +22,6 @@ from google.protobuf import text_format
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
-# pylint: disable=no-name-in-module
-from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
-# pylint: enable=no-name-in-module
 
 
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -36,6 +34,7 @@ FACTORY_PRIVATE_DIR = os.path.abspath(
 TEST_DIR = os.path.join(FACTORY_PRIVATE_DIR,
                         'config/hwid/service/appengine/test/')
 DEFAULT_CONFIG_PATH = os.path.join(TEST_DIR, 'e2e_test')
+PROTO_PKG = 'cros.factory.hwid.service.appengine.proto'
 
 
 class E2ETest(unittest.TestCase):
@@ -54,7 +53,10 @@ class E2ETest(unittest.TestCase):
         self.fail('Environment is not ready')
 
   def _GenerateCommand(self, test):
-    return [os.path.join(TEST_DIR, self.test_cmd), test['api']]
+    return [
+        os.path.join(TEST_DIR, self.test_cmd), test['proto_filename'],
+        test['api']
+    ]
 
   def testAll(self):
     logging.info('Test endpoint: %s', self.config['host_name'])
@@ -62,9 +64,10 @@ class E2ETest(unittest.TestCase):
       with self.subTest(name=test['name']):
         logging.info('Running test: %s', test['name'])
         try:
-          response_class = getattr(hwid_api_messages_pb2,
-                                   test['response_class'])
-          request_class = getattr(hwid_api_messages_pb2, test['request_class'])
+          pkg = importlib.import_module('.' + test['proto_filename'] + '_pb2',
+                                        PROTO_PKG)
+          response_class = getattr(pkg, test['response_class'])
+          request_class = getattr(pkg, test['request_class'])
           expected_output = json.dumps(test['expected_output'])
           request = json_format.Parse(
               json.dumps(test['request']), request_class())
