@@ -50,6 +50,7 @@
         "ExternalDisplay",
         "USBTypeATest",
         "USBTypeCTest",
+        "SDPerformance",
         "BaseAccelerometersCalibration",
         "LidAccelerometersCalibration",
         "AccelerometersLidAngle",

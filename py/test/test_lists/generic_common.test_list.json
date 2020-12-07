@@ -20,7 +20,7 @@
     "__comment_overlord_tls_no_verify": "Skip the certificate verification or not. DUTs are usually in local network, it's fine to skip the verification.",
     "rma_mode": false,
     "sd": {
-      "sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/mmc_host"
+      "sysfs_path": ""
     },
     "__comment_sd_sysfs_path": "Use 'udevadm monitor' to find out udev sysfs path.",
     "typea_usb": {
@@ -584,9 +584,11 @@
     "SDPerformance": {
       "inherit": "RemovableStorage",
       "label": "SD Performance",
+      "run_if": "constants.sd.sysfs_path != ''",
       "args": {
         "media": "SD",
-        "sysfs_path": "eval! constants.sd.sysfs_path"
+        "sysfs_path": "eval! constants.sd.sysfs_path",
+        "timeout_secs": 60
       }
     },
     "Scan": {
