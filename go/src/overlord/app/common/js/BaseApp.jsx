@@ -202,6 +202,14 @@ var BaseApp = {
     }
     return filteredList;
   },
+  getRuntimeClient: function(mid) {
+    var index = this.state.clients.findIndex(function (el) {
+      return el.mid == mid;
+    });
+    if (index !== -1) {
+      return this.state.clients[index];
+    }
+  },
   // See @this._clientMidFilter.
   setMidFilterPattern: function (pattern) {
     if (typeof(pattern) != "undefined") {

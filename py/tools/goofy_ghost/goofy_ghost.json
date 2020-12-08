@@ -31,6 +31,9 @@
       "name": "Factory Restart",
       "command": "factory_restart"
     }, {
+      "name": "Rerun Current Test",
+      "command": "factory run"
+    }, {
       "name": "Upgrade Toolkit",
       "type": "upload",
       "dest": "/tmp/install_factory_toolkit.run",

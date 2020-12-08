@@ -120,7 +120,7 @@ var App = React.createClass({
         <NavBar name="Dashboard" url="/api/apps/list" ref="navbar" />
         <div id="container">
           <SideBar clients={this.getFilteredClientList()} ref="sidebar" app={this} />
-          <FixtureGroup data={this.state.fixtures} app={this}
+          <FixtureGroup fixtures={this.state.fixtures} app={this}
            uploadProgress={this.refs.uploadProgress} />
         </div>
         <div className="windows">
@@ -377,9 +377,10 @@ var FixtureGroup = React.createClass({
     return (
       <div className="fixture-group">
         {
-          this.props.data.map(function (item) {
+          this.props.fixtures.map(function (fixture) {
             return (
-              <FixtureWidget key={item.mid} client={item}
+              <FixtureWidget key={fixture.mid}
+               client={this.props.app.getRuntimeClient(fixture.mid)}
                progressBars={this.props.uploadProgress}
                app={this.props.app}
                width='45%' />

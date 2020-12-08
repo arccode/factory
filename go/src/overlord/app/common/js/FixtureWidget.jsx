@@ -475,6 +475,10 @@ var Controls = React.createClass({
       } else {
         startDownload();
       }
+    } else if (ctrl.command == "factory run") {
+      // Use `target.attr()` to prevent cache.
+      command = ctrl.command + " " + target.attr("data-pytest");
+      fixture.executeRemoteCmd(mid, command);
     } else {
       fixture.executeRemoteCmd(mid, ctrl.command);
     }
@@ -557,6 +561,7 @@ var Controls = React.createClass({
               <div key={control.name}
                className={"command-btn " + btnClasses}
                data-mid={mid} data-ctrl={JSON.stringify(control)}
+               data-pytest={client.pytest}
                onClick={this.onCommandClicked}>
                 {control.name}
               </div>
