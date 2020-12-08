@@ -216,7 +216,7 @@ PARTITION_FIELDS = [
 # The PMBR has so many variants. The basic format is defined in
 # https://en.wikipedia.org/wiki/Master_boot_record#Sector_layout, and our
 # implementation, as derived from `cgpt`, is following syslinux as:
-# https://chromium.googlesource.com/chromiumos/platform/vboot_reference/+/master/cgpt/cgpt.h#32
+# https://chromium.googlesource.com/chromiumos/platform/vboot_reference/+/HEAD/cgpt/cgpt.h#32
 PMBR_FIELDS = [
     StructField('424s', 'BootCode'),
     GUIDStructField('BootGUID'),

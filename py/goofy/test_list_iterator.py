@@ -51,7 +51,7 @@ class PickableFrame:
 class TestListIterator:
   """An iterator of test list.
 
-  https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/test/test_lists/TEST_LIST.md
+  https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/py/test/test_lists/JSON_TEST_LIST.md
 
   * The iterator will return the test to be run next when "next()" is called.
   * A status filter can be applied to skip some tests according to their states.

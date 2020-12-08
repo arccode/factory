@@ -121,7 +121,7 @@ class TestListIteratorTest(unittest.TestCase):
 class TestListIteratorBaseTest(TestListIteratorTest):
   """Test test_list_iterator.TestListIterator.
 
-  https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/test/test_lists/TEST_LIST.md
+  https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/py/test/test_lists/JSON_TEST_LIST.md
   """
 
   TEST_LIST = {
@@ -740,7 +740,7 @@ class TestListIteratorParallelTest(TestListIteratorTest):
   def testParallel(self):
     """Test cases for FactoryTest.parallel option.
 
-    https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/test/test_lists/TEST_LIST.md#Parallel-Tests
+    https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/py/test/test_lists/JSON_TEST_LIST.md#Parallel-Tests
     """
     self._AssertTestSequence(
         self.test_list,
@@ -751,7 +751,7 @@ class TestListIteratorParallelTest(TestListIteratorTest):
 class TestListIteratorActionOnFailureTest(TestListIteratorTest):
   """Test behavior of action_on_failure attribute.
 
-  https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/test/test_lists/TEST_LIST.md#Action-On-Failure
+  https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/py/test/test_lists/JSON_TEST_LIST.md#Action-On-Failure
   """
   def testActionOnFailureNext(self):
     test_list = self._BuildTestList(
@@ -841,7 +841,7 @@ class TestListIteratorActionOnFailureTest(TestListIteratorTest):
 class TestListIteratorTeardownTest(TestListIteratorTest):
   """Test handling teardown processes.
 
-  https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/test/test_lists/TEST_LIST.md#Teardown
+  https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/py/test/test_lists/JSON_TEST_LIST.md#Teardown
   """
   def testTeardown(self):
     test_list = self._BuildTestList(

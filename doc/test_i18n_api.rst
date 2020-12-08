@@ -287,7 +287,7 @@ Manage translation files
 ------------------------
 See
 `Localization for ChromeOS Factory Software
-<https://chromium.googlesource.com/chromiumos/platform/factory/+/master/po/README.md>`_
+<https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/po/README.md>`_
 for detail on how to update or add .po files.
 
 Method reference

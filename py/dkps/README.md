@@ -36,7 +36,7 @@ sudo apt-get install rng-tools
 ```
 
 Check out DKPS source
-[here](https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/dkps/).
+[here](https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/py/dkps/).
 
 You'll also need the uploader and requester's GnuPG exported public key files.
 

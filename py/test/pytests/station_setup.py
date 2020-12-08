@@ -28,7 +28,7 @@ The pytest needs to be run in Goofy, and needs the station_setup Goofy plugin
 to be enabled.
 
 See `README for Goofy plugin
-<https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/goofy/plugins/README.md#Use-a-Plugin>`_
+<https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/py/goofy/plugins/README.md#Use-a-Plugin>`_
 on how to enable a plugin.
 
 This test depends on the plugin named ``"station_setup.station_setup"``.

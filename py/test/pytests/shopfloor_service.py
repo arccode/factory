@@ -13,7 +13,7 @@ following the protocol.
 
 For more information about Chrome OS Factory Shopfloor Service Specification,
 read
-https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/shopfloor/README.md
+https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/py/shopfloor/README.md
 
 By default, the protocol has been simplified so you don't need to manually
 generate or process ``FactoryDeviceData`` or ``DeviceData`` - just provide
@@ -160,7 +160,7 @@ class ShopfloorService(test_case.TestCase):
     # Warning: DO NOT ADD ANY EXTRA DOMAINS HERE WITHOUT REVIEW.
     # Any protocol here must be compliant to Chrome OS Factory Shopfloor Service
     # Specification:
-    # https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/shopfloor/
+    # https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/py/shopfloor/README.md
     # Extra fields may cause security or privacy concern, and fail other
     # partners sharing same factory branch. Especially that DOMAIN_VPD cannot be
     # added since that would break privacy concern by registration (ECHO) codes.

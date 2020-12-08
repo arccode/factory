@@ -29,7 +29,7 @@ a combination of existing [Chrome OS factory bundle](./BUNDLE.md) components,
 all combined into one disk, including:
 
 * [Factory install
-  shim](https://chromium.googlesource.com/chromiumos/platform/factory_installer/+/master/README.md)
+  shim](https://chromium.googlesource.com/chromiumos/platform/factory_installer/+/HEAD/README.md)
 * Release image (FSI)
 * Test image
 * Factory toolkit
@@ -155,7 +155,7 @@ from the RMA shim.
 
 Note: The following instructions only work for a Google signed RMA shim. If you
 are using a developer signed RMA shim, the boot process is the same as
-[booting from a test image](https://chromium.googlesource.com/chromiumos/docs/+/master/developer_guide.md#boot-from-your-usb-disk).
+[booting from a test image](https://chromium.googlesource.com/chromiumos/docs/+/HEAD/developer_guide.md#boot-from-your-usb-disk).
 
 ### Flash an image to USB drive
 
@@ -165,7 +165,7 @@ Use `dd` command to flash a shim image to a USB drive or SD card, replacing
     $ sudo dd if=rma_image.bin of=/dev/sdX bs=8M iflag=fullblock oflag=dsync
 
 If you have a
-[Chromium OS development environment](https://chromium.googlesource.com/chromiumos/docs/+/master/developer_guide.md),
+[Chromium OS development environment](https://chromium.googlesource.com/chromiumos/docs/+/HEAD/developer_guide.md),
 you can also use
 [`cros flash`](https://sites.google.com/a/chromium.org/dev/chromium-os/build/cros-flash)
 command in chroot.

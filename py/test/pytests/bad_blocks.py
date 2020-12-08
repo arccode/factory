@@ -54,7 +54,7 @@ Troubleshooting
 If the test image is installed by `chromeos-install` and pytest complains
 there's no unused space to be checked, re-install the image via factory shim
 or netboot.  You can find different ways to install images at here:
-https://chromium.googlesource.com/chromiumos/platform/factory/+/master#Imaging-methods
+https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/README.md#Imaging-methods
 """
 
 from collections import namedtuple

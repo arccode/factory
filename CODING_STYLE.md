@@ -11,18 +11,18 @@ ones most relevant for factory work are:
 
 *   Python
     *   [Chromium OS Python style
-        guide](https://chromium.googlesource.com/chromiumos/docs/+/master/styleguide/python.md)
+        guide](https://chromium.googlesource.com/chromiumos/docs/+/HEAD/styleguide/python.md)
     *   [Python PEP-8 style guide](http://www.python.org/dev/peps/pep-0008/)
     *   [Google Python style guide
         (public)](https://google.github.io/styleguide/pyguide.html)
 *   JavaScript:
     *   [Chromium Web Development style
-        guide](https://chromium.googlesource.com/chromium/src/+/master/styleguide/web/web.md)
+        guide](https://chromium.googlesource.com/chromium/src/+/HEAD/styleguide/web/web.md)
     *   [Google JavaScript style guide
         (public)](https://google.github.io/styleguide/javascriptguide.xml)
 *   HTML/CSS
     *   [Chromium Web Development style
-        guide](https://chromium.googlesource.com/chromium/src/+/master/styleguide/web/web.md)
+        guide](https://chromium.googlesource.com/chromium/src/+/HEAD/styleguide/web/web.md)
     *   [Google HTML/CSS style guide
         (public)](https://google.github.io/styleguide/htmlcssguide.xml)
 
@@ -36,7 +36,7 @@ common sense!
 ## Python
 
 Follow the [Chromium OS Python style
-guide](https://chromium.googlesource.com/chromiumos/docs/+/master/styleguide/python.md),
+guide](https://chromium.googlesource.com/chromiumos/docs/+/HEAD/styleguide/python.md),
 which says that Chromium OS code should be "PEP-8 with exceptions". The biggest
 exceptions are that,
 
@@ -127,7 +127,7 @@ class B(A):
 
 For easy cutting-and-pasting, here's the header you should use for Python files
 (based on
-[this](https://chromium.googlesource.com/chromium/src/+/master/styleguide/c++/c++.md#file-headers)).
+[this](https://chromium.googlesource.com/chromium/src/+/HEAD/styleguide/c++/c++.md#file-headers)).
 
 ```
 #!/usr/bin/env python3
@@ -232,7 +232,7 @@ args.no_upload`).
 ## Javascript/HTML/CSS
 
 Follow the [Chromium OS Web
-Development](https://chromium.googlesource.com/chromium/src/+/master/styleguide/web/web.md)
+Development](https://chromium.googlesource.com/chromium/src/+/HEAD/styleguide/web/web.md)
 style guide.
 
 ## Dealing with inconsistencies
@@ -244,4 +244,4 @@ away. Such is life. Please use the official conventions when writing new files
 old conventions in existing files. Use your judgment!
 
 ## Inclusive Language
-Please see [Inclusive Chromium Code](https://chromium.googlesource.com/chromium/src/+/master/styleguide/inclusive_code.md).
+Please see [Inclusive Chromium Code](https://chromium.googlesource.com/chromium/src/+/HEAD/styleguide/inclusive_code.md).

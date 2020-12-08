@@ -19,7 +19,7 @@ Scripts in this directory helps you find data from Google Cloud easily.
 
 *   Run the following command
 ```
-    curl --location --fail "https://chromium.googlesource.com/chromiumos/platform/factory/+/master/devtools/instalog/get_attachments.py?format=TEXT" |
+    curl --location --fail "https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/devtools/instalog/get_attachments.py?format=TEXT" |
     base64 --decode > get_attachments.py &&
     chmod +x get_attachments.py
 ```

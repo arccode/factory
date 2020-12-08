@@ -23,7 +23,7 @@ Test Procedure
 
 Note that one might want to disable hammerd being inited on boot by configuring
 upstart. See `here
-<https://chromium.googlesource.com/chromiumos/platform/factory/+/refs/heads/master/init/preinit.d/inhibit_jobs/README.md>`_
+<https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/init/preinit.d/inhibit_jobs/README.md>`_
 for detail.
 
 In addition, it's recommended to configure detachable base info in

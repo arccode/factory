@@ -36,7 +36,7 @@ In summary, to design and implement a test item with external fixture:
 4. Fixture should drive the test and implement all logic and test procedure.
    To access Chromebooks, execute programs using SSH (you can find the private
    key for root in
-   https://chromium.googlesource.com/chromiumos/platform/factory/+/master/misc/sshkeys/testing_rsa
+   https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/misc/sshkeys/testing_rsa
    ). For Android, use ``adb shell``.
 5. When the test by fixture is finished, invoke the ``factory_external_result``
    to set result or manually create the files under ``/run/factory/external``.

@@ -36,5 +36,5 @@
   },
   "additionalProperties": false,
   "type": "object",
-  "id": "https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/test/pytests/network_setup/network_config.schema.json"
+  "id": "https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/py/test/utils/network_config.schema.json"
 }

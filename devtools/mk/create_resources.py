@@ -9,7 +9,7 @@ This utility scans for *.rsrc, and creates the resource files based on the rules
 defined in rsrc files.
 
 See the URL for more details:
-https://chromium.googlesource.com/chromiumos/platform/factory/+/master/resources/README.md
+https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/resources/README.md
 """
 
 import argparse

@@ -20,7 +20,7 @@ installed.  The overall introduction is in this README_.
 
 This document describes all functions available throughout the Probe Framework.
 
-.. _README: https://chromium.googlesource.com/chromiumos/platform/factory/+/master/py/probe/README.md
+.. _README: https://chromium.googlesource.com/chromiumos/platform/factory/+/HEAD/py/probe/README.md
 
 Functions
 ---------

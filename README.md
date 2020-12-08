@@ -77,7 +77,7 @@ The basic steps are:
 
 1. An initial/bootable version of the firmware for
    [AP](http://www.chromium.org/chromium-os/2014-firmware-summit) (and
-   [EC](https://chromium.googlesource.com/chromiumos/platform/ec/+/master/README.md))
+   [EC](https://chromium.googlesource.com/chromiumos/platform/ec/+/HEAD/README.md))
    is pre-flashed onto the SPI-ROM (and Chromium EC chip) before system
    assembly.
 2. After mainboard is ready, use one of the [imaging methods](#Imaging-methods)
@@ -458,4 +458,4 @@ possible approaches:
 ### Work with both public repo and private board repo
 Read [devtools/aufs](devtools/aufs/README.md) for more details.
 
-[1]: https://chromium.googlesource.com/chromiumos/docs/+/master/developer_guide.md#initialize-the-build-for-a-board
+[1]: https://chromium.googlesource.com/chromiumos/docs/+/HEAD/developer_guide.md#initialize-the-build-for-a-board

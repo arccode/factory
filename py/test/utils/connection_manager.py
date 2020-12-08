@@ -95,7 +95,7 @@ def GetBaseNetworkManager():
   provided the OS.
 
   You can find exposed DBUS API from:
-    https://chromium.googlesource.com/aosp/platform/system/connectivity/shill/+/master/doc/
+    https://chromium.googlesource.com/aosp/platform/system/connectivity/shill/+/HEAD/doc/
   """
   return flimflam.FlimFlam()
 
