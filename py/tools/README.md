@@ -34,7 +34,7 @@ Above command downloads changes with hashtag `fix-download-patch` on Gerrit in
 *factory repository*.  The following things will happen:
 
 1. Stash all unstaged local changes.
-2. Check out `cros/master` (the remote master branch) of factory repo.
+2. Check out `cros/main` (the remote main branch) of factory repo.
 3. Cherry-pick changes with hashtag `fix-download-patch` from Gerrit.  The
    program tries its best to resolve dependencies between each changes.
 4. Print a summary line showing CLs that successfully downloaded and CLs that

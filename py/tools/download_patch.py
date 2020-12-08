@@ -251,7 +251,7 @@ def main():
                       help='limit to specific topic')
   parser.add_argument('--hashtag',
                       help='search changes with this hashtag')
-  parser.add_argument('--branch', default='master',
+  parser.add_argument('--branch', default='main',
                       help='limit to specific branch')
   parser.add_argument('--board',
                       help='board name (to specify the private overlay)')
