@@ -38,21 +38,8 @@ var App = React.createClass({
       return;
     }
 
-    // compute how many fixtures we can put in the screen
-    var screen = {
-        width: window.innerWidth,
-    };
-
-    var sidebar = ReactDOM.findDOMNode(this.refs.sidebar).getBoundingClientRect();
-
-    screen.width -= sidebar.right;
-
-    var nFixturePerRow = Math.floor(
-       screen.width / (FIXTURE_WINDOW_WIDTH + FIXTURE_WINDOW_MARGIN * 2));
-    nFixturePerRow = Math.max(1, nFixturePerRow);
-    var nTotalFixture = Math.min(2 * nFixturePerRow, 8);
-
     // only keep recently opened @nTotalFixture fixtures.
+    var nTotalFixture = 2;
     this.setState(function (state, props) {
       state.fixtures.push(client);
       return {fixtures: state.fixtures.slice(-nTotalFixture)};
@@ -331,7 +318,8 @@ var FixtureGroup = React.createClass({
             return (
               <FixtureWidget key={item.mid} client={item}
                progressBars={this.props.uploadProgress}
-               app={this.props.app} />
+               app={this.props.app}
+               width='45%' />
             );
           }.bind(this))
         }

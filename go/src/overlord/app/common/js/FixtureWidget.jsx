@@ -24,7 +24,6 @@
 
 var LOG_BUF_SIZE = 8192;
 
-var FIXTURE_WINDOW_WIDTH = 420;
 var FIXTURE_WINDOW_MARGIN = 10;
 
 var LIGHT_CSS_MAP = {
@@ -275,7 +274,7 @@ var FixtureWidget = React.createClass({
     var client = this.props.client;
     var ui = client.properties.ui;
     var style = {
-      width: FIXTURE_WINDOW_WIDTH + 'px',
+      width: this.props.width,
       margin: FIXTURE_WINDOW_MARGIN + 'px',
     };
     var display = ui.display && (

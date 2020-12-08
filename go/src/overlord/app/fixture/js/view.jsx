@@ -18,6 +18,8 @@
 // Identifier for selecting all clients
 ALL = "All";
 
+var FIXTURE_WINDOW_WIDTH = 420;
+
 var App = React.createClass({
   mixins: [BaseApp],
   onNewClient: function (client) {
@@ -134,7 +136,8 @@ var App = React.createClass({
             this.getFilteredClientList().map(function (data) {
               return (
                 <FixtureWidget key={data.mid} client={data} app={this}
-                 progressBars={this.refs.uploadProgress}/>
+                 progressBars={this.refs.uploadProgress}
+                 width={FIXTURE_WINDOW_WIDTH + 'px'}/>
               );
             }.bind(this))
           }

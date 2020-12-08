@@ -166,10 +166,9 @@
 .log {
   color: white;
   background-color: black !important;
-  font-size: 8px;
+  font-size: 12px;
   font-family: monospace;
-  height: 80px;
-  width: calc(48em + 4px);
+  height: 240px;
   overflow-x: hidden;
   overflow-y: auto;
   white-space: pre-wrap;
