@@ -27,8 +27,9 @@ _DEFAULT_CONFIGURATION = {
             'waived_comp_categories': ['ethernet']
         }
     },
-    'dryrun_upload': True,
-    'hw_checker_mail': 'noreply@google.com',
+    'hwid_repo_branch': 'no_such_branch',
+    'project_region': '',
+    'queue_name': ''
 }
 
 _RESOURCE_DIR = os.path.join(
@@ -72,18 +73,17 @@ class _Config:
         conf['ge_bucket'])
     self.hwid_filesystem = cloudstorage_adapter.CloudStorageAdapter(
         conf['bucket'])
-    self.hw_checker_mail = conf.get('hw_checker_mail', '')
     self.vpg_targets = {
         k: _VerificationPayloadGenerationTargetInfo(
             v['board'], v.get('waived_comp_categories', []))
         for k, v in conf.get('vpg_targets', {}).items()}
     self.hwid_manager = hwid_manager.HwidManager(self.hwid_filesystem,
                                                  self.vpg_targets)
-    self.dryrun_upload = conf.get('dryrun_upload', False)
-    self.ingestion_api_key = conf.get('ingestion_api_key', None)
-    self.project_region = conf.get('project_region', '')
-    self.queue_name = conf.get('queue_name', '')
-    self.hwid_repo_branch = conf.get('hwid_repo_branch', '')
+    self.dryrun_upload = conf.get('dryrun_upload', True)
+    self.project_region = conf['project_region']
+    self.queue_name = conf['queue_name']
+    # Setting this config empty means the branch HEAD tracks.
+    self.hwid_repo_branch = conf['hwid_repo_branch']
     self.client_allowlist = conf.get('client_allowlist', [])
 
 

@@ -34,7 +34,6 @@ from cros.factory.probe_info_service.app_engine import protorpc_utils
 
 INTERNAL_REPO_URL = 'https://chrome-internal-review.googlesource.com'
 CHROMEOS_HWID_PROJECT = 'chromeos/chromeos-hwid'
-CHROMEOS_HWID_REPO_URL = INTERNAL_REPO_URL + '/' + CHROMEOS_HWID_PROJECT
 GOLDENEYE_MEMCACHE_NAMESPACE = 'SourceGoldenEye'
 
 
@@ -63,9 +62,11 @@ def _GetAuthCookie():
 
 
 def _GetHwidRepoFilesystemAdapter():
-  return git_util.GitFilesystemAdapter.FromGitUrl(CHROMEOS_HWID_REPO_URL,
-                                                  _GetAuthCookie(),
-                                                  CONFIG.hwid_repo_branch)
+  branch = CONFIG.hwid_repo_branch or git_util.GetCurrentBranch(
+      INTERNAL_REPO_URL, CHROMEOS_HWID_PROJECT, _GetAuthCookie())
+  repo_url = INTERNAL_REPO_URL + '/' + CHROMEOS_HWID_PROJECT
+  return git_util.GitFilesystemAdapter.FromGitUrl(repo_url, branch,
+                                                  _GetAuthCookie())
 
 
 class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
@@ -241,8 +242,8 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
         logging.error('Cannot get board data from cache for %r', model_name)
     return db_lists
 
-  def _GetMasterCommitIfChanged(self, force_update):
-    """Get master commit of repo if it differs from cached commit on datastore.
+  def _GetMainCommitIfChanged(self, force_update):
+    """Get main commit of repo if it differs from cached commit on datastore.
 
     Args:
       force_update: True for always returning commit id for testing purpose.
@@ -250,15 +251,15 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
       latest commit id if it differs from cached commit id, None if not
     """
 
-    hwid_master_commit = git_util.GetCommitId(
-        INTERNAL_REPO_URL, CHROMEOS_HWID_PROJECT, 'master', _GetAuthCookie())
-    latest_commit = self.hwid_manager.GetLatestHWIDMasterCommit()
+    hwid_main_commit = git_util.GetCommitId(
+        INTERNAL_REPO_URL, CHROMEOS_HWID_PROJECT, auth_cookie=_GetAuthCookie())
+    latest_commit = self.hwid_manager.GetLatestHWIDMainCommit()
 
-    if latest_commit == hwid_master_commit and not force_update:
-      logging.debug('The HWID master commit %s is already processed, skipped',
-                    hwid_master_commit)
+    if latest_commit == hwid_main_commit and not force_update:
+      logging.debug('The HWID main commit %s is already processed, skipped',
+                    hwid_main_commit)
       return None
-    return hwid_master_commit
+    return hwid_main_commit
 
   def _ShouldUpdatePayload(self, board, result, force_update):
     """Get payload hash if it differs from cached hash on datastore.
@@ -282,7 +283,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     return True
 
   def _TryCreateCL(self, force_push, service_account_name, board, new_files,
-                   hwid_master_commit):
+                   hwid_main_commit):
     """Try to create a CL if possible.
 
     Use git_util to create CL in repo for generated payloads.  If something goes
@@ -293,7 +294,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
       service_account_name: Account name as email
       board: board name
       new_files: A path-content mapping of payload files
-      hwid_master_commit: Commit of master branch of target repo
+      hwid_main_commit: Commit of main branch of target repo
     Returns:
       None
     """
@@ -312,7 +313,8 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     repo_path = setting['repo_path']
     git_url = repo_host + repo_path
     project = setting['project']
-    branch = setting['branch']
+    branch = setting['branch'] or git_util.GetCurrentBranch(
+        review_host, project, _GetAuthCookie())
     prefix = setting['prefix']
     reviewers = self.hwid_manager.GetCLReviewers()
     ccs = self.hwid_manager.GetCLCCs()
@@ -321,10 +323,9 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
       new_git_files.append((os.path.join(prefix, filepath),
                             git_util.NORMAL_FILE_MODE, filecontent))
 
-    commit_msg = (
-        'verification payload: update payload from hwid\n'
-        '\n'
-        'From chromeos/chromeos-hwid: %s\n' % (hwid_master_commit,))
+    commit_msg = ('verification payload: update payload from hwid\n'
+                  '\n'
+                  'From chromeos/chromeos-hwid: %s\n' % (hwid_main_commit, ))
 
     if dryrun_upload:
       # file_info = (file_path, mode, content)
@@ -367,7 +368,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
   def _UpdatePayloads(self, force_push, force_update):
     """Update generated payloads to repo.
 
-    Also return the hash of master commit and payloads to skip unnecessary
+    Also return the hash of main commit and payloads to skip unnecessary
     actions.
 
     Args:
@@ -380,8 +381,8 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
 
     payload_hash_mapping = {}
     service_account_name, unused_token = _GetCredentials()
-    hwid_master_commit = self._GetMasterCommitIfChanged(force_update)
-    if hwid_master_commit is None and not force_update:
+    hwid_main_commit = self._GetMainCommitIfChanged(force_update)
+    if hwid_main_commit is None and not force_update:
       return None, payload_hash_mapping
 
     db_lists = self._GetPayloadDBLists()
@@ -395,16 +396,16 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
       if self._ShouldUpdatePayload(board, result, force_update):
         payload_hash_mapping[board] = result.payload_hash
         self._TryCreateCL(force_push, service_account_name, board, new_files,
-                          hwid_master_commit)
+                          hwid_main_commit)
 
-    return hwid_master_commit, payload_hash_mapping
+    return hwid_main_commit, payload_hash_mapping
 
   def _UpdatePayloadsAndSync(self, force_push, force_update):
     """Update generated payloads to private overlays.
 
     This method will handle the payload creation request as follows:
 
-      1. Check if the master commit of HWID DB is the same as cached one on
+      1. Check if the main commit of HWID DB is the same as cached one on
          Datastore and exit if they match.
       2. Generate a dict of board->payload_hash by vpg_module.
       3. Check if the cached payload hashs of boards in Datastore and generated
@@ -426,7 +427,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     commit_id, payload_hash_mapping = self._UpdatePayloads(
         force_push, force_update)
     if commit_id:
-      self.hwid_manager.SetLatestHWIDMasterCommit(commit_id)
+      self.hwid_manager.SetLatestHWIDMainCommit(commit_id)
     if force_update:
       response.payload_hash.update(payload_hash_mapping)
     for board, payload_hash in payload_hash_mapping.items():

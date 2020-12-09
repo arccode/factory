@@ -91,7 +91,7 @@ class GitUtilTest(unittest.TestCase):
   def testGetCommitId(self):
     git_url_prefix = 'https://chromium-review.googlesource.com'
     project = 'chromiumos/platform/factory'
-    branch = 'master'
+    branch = None
 
     auth_cookie = ''  # auth_cookie is not needed in chromium repo
     commit = git_util.GetCommitId(git_url_prefix, project, branch, auth_cookie)
@@ -139,20 +139,15 @@ class GitUtilTest(unittest.TestCase):
     repo = git_util.MemoryRepo(auth_cookie='')
     repo.shallow_clone(
         'https://chromium.googlesource.com/chromiumos/platform/factory',
-        branch='master')
+        branch='stabilize-rust-13562.B')
     tree = repo[repo[b'HEAD'].tree]
     unused_size, object_id = tree[file_name.encode()]
     new_files = [(file_name, 0o100644, repo[object_id].data)]
     self.assertRaises(
-        git_util.GitUtilNoModificationException,
-        git_util.CreateCL,
-        'https://chromium.googlesource.com/chromiumos/platform/factory',
-        '',
-        'master',
-        new_files,
-        'John Doe <no-reply@google.com>',
-        'John Doe <no-reply@google.com>',
-        '')
+        git_util.GitUtilNoModificationException, git_util.CreateCL,
+        'https://chromium.googlesource.com/chromiumos/platform/factory', '',
+        'stabilize-rust-13562.B', new_files, 'John Doe <no-reply@google.com>',
+        'John Doe <no-reply@google.com>', '')
 
   def testListFiles(self):
     new_files = [

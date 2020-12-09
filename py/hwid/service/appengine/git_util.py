@@ -64,7 +64,7 @@ class GitFilesystemAdapter(filesystem_adapter.FileSystemAdapter):
   EXCEPTION_MAPPER = ExceptionMapper()
 
   @classmethod
-  def FromGitUrl(cls, url, auth_cookie='', branch='master'):
+  def FromGitUrl(cls, url, branch, auth_cookie=''):
     repo = MemoryRepo(auth_cookie)
     repo.shallow_clone(url, branch)
     return cls(repo)
@@ -106,7 +106,7 @@ class MemoryRepo(_MemoryRepo):
     _MemoryRepo.__init__(self, *args, **kwargs)
     self.auth_cookie = auth_cookie
 
-  def shallow_clone(self, remote_location, branch='master'):
+  def shallow_clone(self, remote_location, branch):
     """Shallow clone objects of a branch from a remote server.
 
     Args:
@@ -312,18 +312,58 @@ def CreateCL(git_url, auth_cookie, branch, new_files, author,
   return change_id
 
 
-def GetCommitId(git_url_prefix, project, branch, auth_cookie):
-  '''Get branch commit.
+def GetCurrentBranch(git_url_prefix, project, auth_cookie=''):
+  '''Get the branch HEAD tracks.
 
-  Use the gerrit API to get the commit id.  Note that the response starts with a
-  magic prefix line )]}' which should be stripped.
+  Use the gerrit API to get the branch name HEAD tracks.
 
   Args:
-    git_url: HTTPS repo url
+    git_url_prefix: HTTPS repo url
     project: Project name
-    branch: Branch name
     auth_cookie: Auth cookie
   '''
+
+  git_url = '{git_url_prefix}/projects/{project}/HEAD'.format(
+      git_url_prefix=git_url_prefix, project=urllib.parse.quote(
+          project, safe=''))
+  pool_manager = PoolManager(ca_certs=certifi.where())
+  pool_manager.headers['Cookie'] = auth_cookie
+  pool_manager.headers['Content-Type'] = 'application/json'
+  # Suppress ResourceWarning
+  pool_manager.headers['Connection'] = 'close'
+  try:
+    r = pool_manager.urlopen('GET', git_url)
+  except urllib3.exceptions.HTTPError:
+    raise GitUtilException('Invalid url %r' % (git_url, ))
+
+  if r.status != http.client.OK:
+    raise GitUtilException('Request unsuccessfully with code %s' % (r.status, ))
+
+  try:
+    # the response starts with a magic prefix line for preventing XSSI which
+    # should be stripped.
+    stripped_json = r.data.split(b'\n', 1)[1]
+    branch_name = json_utils.LoadStr(stripped_json)
+  except Exception:
+    raise GitUtilException('Response format Error: %r' % (r.data, ))
+
+  if branch_name.startswith(REF_HEADS_PREFIX.decode()):
+    branch_name = branch_name[len(REF_HEADS_PREFIX.decode()):]
+  return branch_name
+
+
+def GetCommitId(git_url_prefix, project, branch=None, auth_cookie=''):
+  '''Get branch commit.
+
+  Use the gerrit API to get the commit id.
+
+  Args:
+    git_url_prefix: HTTPS repo url
+    project: Project name
+    branch: Branch name, use the branch HEAD tracks if set to None.
+    auth_cookie: Auth cookie
+  '''
+  branch = branch or GetCurrentBranch(git_url_prefix, project, auth_cookie)
 
   git_url = '{git_url_prefix}/projects/{project}/branches/{branch}'.format(
       git_url_prefix=git_url_prefix,
@@ -344,6 +384,8 @@ def GetCommitId(git_url_prefix, project, branch, auth_cookie):
                            (r.status,))
 
   try:
+    # the response starts with a magic prefix line for preventing XSSI which
+    # should be stripped.
     stripped_json = r.data.split(b'\n', 1)[1]
     branch_info = json_utils.LoadStr(stripped_json)
   except Exception:

@@ -77,8 +77,8 @@ class CLNotification(ndb.Model):  # pylint: disable=no-init
   email = ndb.StringProperty()
 
 
-class LatestHWIDMasterCommit(ndb.Model):  # pylint: disable=no-init
-  """Latest master commit of private overlay repo with generated payloads."""
+class LatestHWIDMainCommit(ndb.Model):  # pylint: disable=no-init
+  """Latest main commit of private overlay repo with generated payloads."""
 
   commit = ndb.StringProperty()
 
@@ -335,7 +335,7 @@ class HwidManager:
         'prefix': ('chromeos-base/'
                    'racc-config-{board}/files/').format(board=board),
         'branch':
-            'master'
+            None
     }
 
   def GetBoards(self, versions=None):
@@ -465,18 +465,16 @@ class HwidManager:
         ccs.append(notification.email.encode('utf-8'))
       return ccs
 
-  def GetLatestHWIDMasterCommit(self):
+  def GetLatestHWIDMainCommit(self):
     with self._ndb_client.context(global_cache=self._global_cache):
-      key = ndb.Key(LatestHWIDMasterCommit, 'commit')
-      entry = LatestHWIDMasterCommit.query(
-          LatestHWIDMasterCommit.key == key).get()
+      key = ndb.Key(LatestHWIDMainCommit, 'commit')
+      entry = LatestHWIDMainCommit.query(LatestHWIDMainCommit.key == key).get()
       return entry.commit
 
-  def SetLatestHWIDMasterCommit(self, commit):
+  def SetLatestHWIDMainCommit(self, commit):
     with self._ndb_client.context(global_cache=self._global_cache):
-      key = ndb.Key(LatestHWIDMasterCommit, 'commit')
-      entity = LatestHWIDMasterCommit.query(
-          LatestHWIDMasterCommit.key == key).get()
+      key = ndb.Key(LatestHWIDMainCommit, 'commit')
+      entity = LatestHWIDMainCommit.query(LatestHWIDMainCommit.key == key).get()
       entity.commit = commit
       entity.put()
 
