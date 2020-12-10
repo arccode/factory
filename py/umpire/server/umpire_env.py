@@ -56,9 +56,9 @@ _HTTP_POST_PORT_OFFSET = 5
 _INSTALOG_PULL_SOCKET_OFFSET = 6
 _INSTALOG_HTTP_PORT_OFFSET = 7
 _INSTALOG_CUSTOMIZED_OUTPUT_OFFSET = 8
-_MULTICAST_BEGIN_PORT_OFFSET = 11
 
 PROJECT_NAME_ENV_KEY = 'UMPIRE_PROJECT_NAME'
+PROJECT_PORT_ENV_KEY = 'UMPIRE_PROJECT_PORT'
 
 
 def GetRsyncPortFromBasePort(base_port):
@@ -157,7 +157,7 @@ class UmpireEnv:
 
   @property
   def umpire_multicast_begin_port(self):
-    return self.umpire_base_port + _MULTICAST_BEGIN_PORT_OFFSET
+    return self.umpire_host_port
 
   @type_utils.LazyProperty
   def docker_host_ip(self):
@@ -197,6 +197,10 @@ class UmpireEnv:
   @property
   def project(self):
     return os.environ.get(PROJECT_NAME_ENV_KEY)
+
+  @property
+  def umpire_host_port(self):
+    return int(os.environ.get(PROJECT_PORT_ENV_KEY))
 
   @type_utils.LazyProperty
   def parameters(self):

@@ -46,8 +46,6 @@ UMPIRE_RSYNC_PORT_OFFSET = 4
 UMPIRE_INSTALOG_PULL_SOCKET_PORT_OFFSET = 6
 UMPIRE_START_WAIT_SECS = 5
 UMPIRE_INSTALOG_CUSTOMIZED_OUTPUT_PORT_OFFSET = 8
-UMPIRE_MULTICAST_BEGIN_PORT_OFFSET = 11
-UMPIRE_MULTICAST_END_PORT_OFFSET = 30
 
 # TODO(littlecvr): use volume container instead of absolute path.
 # TODO(littlecvr): these constants are shared between here and cros_docker.sh,
@@ -471,42 +469,38 @@ class Project(django.db.models.Model):
       #                  function in that script because this job should be
       #                  done by Dome only
       cmd = [
-          'docker', 'run', '--detach', '--privileged',
-          '--tmpfs', '/run:rw,size=16384k',
-          '--volume', '%s:/mnt' % DOCKER_SHARED_DIR,
-          '--volume', '%s/%s:%s' % (UMPIRE_DOCKER_DIR,
-                                    self.name,
-                                    UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER),
-          '--volume', '%s:%s' % (DOCKER_SHARED_TMP_VOLUME, SHARED_TMP_DIR),
-          '--publish', '%d:%d' % (port, UMPIRE_BASE_PORT),
-          '--publish', '%d:%d' % (
-              port + UMPIRE_RPC_PORT_OFFSET,
-              UMPIRE_BASE_PORT + UMPIRE_RPC_PORT_OFFSET),
-          '--publish', '%d:%d' % (
-              port + UMPIRE_RSYNC_PORT_OFFSET,
-              UMPIRE_BASE_PORT + UMPIRE_RSYNC_PORT_OFFSET),
-          '--publish', '%d:%d' % (
-              port + UMPIRE_INSTALOG_PULL_SOCKET_PORT_OFFSET,
-              UMPIRE_BASE_PORT + UMPIRE_INSTALOG_PULL_SOCKET_PORT_OFFSET),
-          '--publish', '%d:%d' % (
-              port + UMPIRE_INSTALOG_CUSTOMIZED_OUTPUT_PORT_OFFSET,
-              UMPIRE_BASE_PORT + UMPIRE_INSTALOG_CUSTOMIZED_OUTPUT_PORT_OFFSET),
-          '--publish', '%d-%d:%d-%d/udp' % (
-              port + UMPIRE_MULTICAST_BEGIN_PORT_OFFSET,
-              port + UMPIRE_MULTICAST_END_PORT_OFFSET,
-              UMPIRE_BASE_PORT + UMPIRE_MULTICAST_BEGIN_PORT_OFFSET,
-              UMPIRE_BASE_PORT + UMPIRE_MULTICAST_END_PORT_OFFSET),
-          '--env', 'UMPIRE_PROJECT_NAME=%s' % self.name,
-          '--restart', 'unless-stopped',
-          '--name', container_name]
+          'docker', 'run', '--detach', '--privileged', '--tmpfs',
+          '/run:rw,size=16384k', '--volume',
+          '%s:/mnt' % DOCKER_SHARED_DIR, '--volume',
+          '%s/%s:%s' %
+          (UMPIRE_DOCKER_DIR, self.name, UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER),
+          '--volume',
+          '%s:%s' % (DOCKER_SHARED_TMP_VOLUME, SHARED_TMP_DIR), '--publish',
+          '%d:%d' % (port, UMPIRE_BASE_PORT), '--publish',
+          '%d:%d' % (port + UMPIRE_RPC_PORT_OFFSET,
+                     UMPIRE_BASE_PORT + UMPIRE_RPC_PORT_OFFSET), '--publish',
+          '%d:%d' % (port + UMPIRE_RSYNC_PORT_OFFSET,
+                     UMPIRE_BASE_PORT + UMPIRE_RSYNC_PORT_OFFSET), '--publish',
+          '%d:%d' %
+          (port + UMPIRE_INSTALOG_PULL_SOCKET_PORT_OFFSET,
+           UMPIRE_BASE_PORT + UMPIRE_INSTALOG_PULL_SOCKET_PORT_OFFSET),
+          '--publish',
+          '%d:%d' %
+          (port + UMPIRE_INSTALOG_CUSTOMIZED_OUTPUT_PORT_OFFSET,
+           UMPIRE_BASE_PORT + UMPIRE_INSTALOG_CUSTOMIZED_OUTPUT_PORT_OFFSET),
+          '--env',
+          'UMPIRE_PROJECT_NAME=%s' % self.name, '--env',
+          'UMPIRE_PROJECT_PORT=%s' % port, '--restart', 'unless-stopped',
+          '--name', container_name
+      ]
       if LOCALTIME_DOCKER_PATH:
         cmd += ['--volume', '%s:/etc/localtime:ro' % LOCALTIME_DOCKER_PATH]
       cmd += [FACTORY_SERVER_IMAGE_NAME, UMPIRED_FILEPATH]
       logger.info('Running command %r', cmd)
       subprocess.check_call(cmd)
       # Update default project for 'cros_docker.sh umpire' commands.
-      with open(os.path.join(UMPIRE_BASE_DIR,
-                             UMPIRE_DEFAULT_PROJECT_FILE), 'w') as f:
+      with open(
+          os.path.join(UMPIRE_BASE_DIR, UMPIRE_DEFAULT_PROJECT_FILE), 'w') as f:
         f.write(self.name)
     except Exception:
       logger.error('Failed to create Umpire container %r', container_name)
