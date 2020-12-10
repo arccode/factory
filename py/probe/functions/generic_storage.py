@@ -66,9 +66,9 @@ def CookVersion(raw_version):
   # and returns '0300000000000000 (3)' for the second example.
 
   # Try to decode it as a ASCII string.
-  # Note vendor may choose SPACE (0x20) or NUL (0x00) to pad version string,
-  # so we want to strip both in the human readable part.
-  ascii_string = ''.join(map(chr, raw_version)).strip(' \0')
+  # Note vendor may choose SPACE (0x20), NEWLINE (0x0a) or NUL (0x00) to pad
+  # version string, so we want to strip both in the human readable part.
+  ascii_string = ''.join(map(chr, raw_version)).strip(' \0\n')
   if ascii_string and all(
       (c in string.ascii_letters or c in string.digits) for c in ascii_string):
     version += ' (%s)' % ascii_string
@@ -106,6 +106,9 @@ def GetStorageFirmwareVersion(node_path):
                                     binary_mode=True)
   if nvme_fw_vr:
     raw_version = [int(x, 0) for x in nvme_fw_vr.split(' ')[0:8]]
+    # Some firmware versions are less than 8 bytes.
+    if len(raw_version) < 8:
+      raw_version.extend([0] * (8 - len(raw_version)))
     return CookVersion(raw_version)
   # Use smartctl (e.g., for SATA)
   sata_dev_path = os.path.join('/dev', os.path.basename(node_path))
