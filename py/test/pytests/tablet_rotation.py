@@ -161,7 +161,7 @@ class TabletRotationTest(test_case.TestCase):
   def setUp(self):
     self.degrees_to_orientations = {
         int(k): v for k, v in self.args.degrees_to_orientations.items()}
-    if set(self.degrees_to_orientations) != set(_TEST_DEGREES):
+    if not set(self.degrees_to_orientations).issubset(set(_TEST_DEGREES)):
       self.fail('Please provide proper arguments for degrees_to_orientations.')
     self.dut = device_utils.CreateDUTInterface()
     self.accel_controller = self.dut.accelerometer.GetController(
@@ -205,6 +205,8 @@ class TabletRotationTest(test_case.TestCase):
           'an upright 90-degree angle.'))
 
     for degree_target in _TEST_DEGREES:
+      if degree_target not in self.degrees_to_orientations:
+        continue
       self.ui.RunJS('document.getElementById("picture").style.transform = '
                     '"rotate(%ddeg)"' % degree_target)
       self.ui.SetView('main')
