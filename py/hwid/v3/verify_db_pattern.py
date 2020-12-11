@@ -54,9 +54,9 @@ def _TestDatabase(targs):
   try:
     title = '%s %s:%s' % (project_name, commit, db_path)
     logging.info('Checking %s', title)
-    if projects_info[project_name]['branch'] != 'master':
-      raise Exception('Project %r is not on master' % (
-          projects_info[project_name]['branch'],))
+    if projects_info[project_name]['branch'] != 'main':
+      raise Exception('Project %r is not on main' %
+                      (projects_info[project_name]['branch'], ))
     HWIDDBsPatternTest.VerifyDatabasePattern(hwid_dir, commit, db_path)
     return None
   except Exception:
@@ -80,8 +80,9 @@ class HWIDDBsPatternTest(unittest.TestCase):
 
     # Always read projects.yaml from ToT as all projects are required to have an
     # entry in it.
-    target_commit = (self.commit or os.environ.get('PRESUBMIT_COMMIT') or
-                     'cros-internal/master')
+    target_commit = (
+        self.commit or os.environ.get('PRESUBMIT_COMMIT') or
+        'cros-internal/main')
     projects_info = yaml.load(process_utils.CheckOutput(
         ['git', 'show', '%s:projects.yaml' % target_commit], cwd=hwid_dir))
 

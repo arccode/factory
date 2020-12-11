@@ -51,7 +51,7 @@ def _CheckProject(args):
   """
   project_name, db_path, project_info, hwid_dir = args
   presubmit_commit = os.environ.get('PRESUBMIT_COMMIT')
-  commit = presubmit_commit or 'cros-internal/master'
+  commit = presubmit_commit or 'cros-internal/main'
 
   title = '%s %s:%s' % (project_name, commit, db_path)
   logging.info('Checking %s', title)
@@ -77,7 +77,7 @@ def _CheckProject(args):
       raise ValueError(
           'missing metadata in projects.yaml for the project %r' % project_name)
 
-    assert project_info['branch'] == 'master'
+    assert project_info['branch'] == 'main'
 
     db_raw = process_utils.CheckOutput(
         ['git', 'show', '%s:%s' % (commit, db_path)], cwd=hwid_dir,
@@ -111,8 +111,7 @@ class ValidHWIDDBsTest(unittest.TestCase):
       logging.info('ValidHWIDDBsTest: ignored, no %s in source tree.', hwid_dir)
       return
 
-    target_commit = (
-        os.environ.get('PRESUBMIT_COMMIT') or 'cros-internal/master')
+    target_commit = (os.environ.get('PRESUBMIT_COMMIT') or 'cros-internal/main')
     projects_info = yaml.load(process_utils.CheckOutput(
         ['git', 'show', '%s:projects.yaml' % target_commit], cwd=hwid_dir))
 

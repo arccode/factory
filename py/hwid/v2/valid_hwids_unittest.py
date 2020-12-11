@@ -36,7 +36,7 @@ class ValidHWIDsTest(unittest.TestCase):
 
     freezed_hwid_db_checksums = json_utils.LoadFile(_FREEZED_DB_CHECKSUM_FILE)
 
-    target_commit = os.environ.get('PRESUBMIT_COMMIT') or 'cros-internal/master'
+    target_commit = os.environ.get('PRESUBMIT_COMMIT') or 'cros-internal/main'
 
     projects_info = yaml.load(process_utils.CheckOutput(
         ['git', 'show', '%s:projects.yaml' % target_commit], cwd=hwid_dir))
@@ -46,7 +46,7 @@ class ValidHWIDsTest(unittest.TestCase):
       if proj_info['version'] != 2:
         continue
 
-      self.assertEqual(proj_info['branch'], 'master')
+      self.assertEqual(proj_info['branch'], 'main')
 
       expected_checksum = freezed_hwid_db_checksums.pop(proj_info['path'])
       raw_hwid_db = process_utils.CheckOutput(
