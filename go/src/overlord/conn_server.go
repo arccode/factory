@@ -20,7 +20,7 @@ type RegistrationFailedError error
 
 const (
 	logBufferSize   = 1024 * 16
-	pingRecvTimeout = pingTimeout * 2
+	pingRecvTimeout = time.Duration(pingTimeout * 2 * time.Second)
 )
 
 // TerminalControl is a JSON struct for storing terminal control messages.
@@ -67,7 +67,7 @@ type ConnServer struct {
 	Download    fileDownloadContext    // File download context
 	Dut         DutContext             // Dut info
 	stopListen  chan bool              // Stop the Listen() loop
-	lastPing    int64                  // Last time the client pinged
+	lastPing    time.Time              // Last time the client pinged
 }
 
 // NewConnServer create a ConnServer object.
@@ -82,6 +82,7 @@ func NewConnServer(ovl *Overlord, conn net.Conn) *ConnServer {
 		stopListen: make(chan bool, 1),
 		registered: false,
 		Download:   fileDownloadContext{Data: make(chan []byte)},
+		lastPing:   time.Time{}, // Zero time
 	}
 }
 
@@ -281,8 +282,8 @@ func (c *ConnServer) Listen() {
 				log.Println(err)
 			}
 
-			if c.Mode == ModeControl && c.lastPing != 0 &&
-				time.Now().Unix()-c.lastPing > pingRecvTimeout {
+			if c.Mode == ModeControl && !c.lastPing.IsZero() &&
+				time.Since(c.lastPing) > pingRecvTimeout {
 				log.Printf("Client %s timeout\n", c.Mid)
 				return
 			}
@@ -297,7 +298,7 @@ func (c *ConnServer) Listen() {
 // Request handlers
 
 func (c *ConnServer) handlePingRequest(req *Request) error {
-	c.lastPing = time.Now().Unix()
+	c.lastPing = time.Now()
 	res := NewResponse(req.Rid, "pong", nil)
 	return c.SendResponse(res)
 }
@@ -322,7 +323,7 @@ func (c *ConnServer) handleUpdateDutDataRequest(req *Request) error {
 	log.Println(args.Ip)
 
 	c.Dut = DutContext{args.Status, args.Pytest, args.Model, args.Ip}
-	c.lastPing = time.Now().Unix()
+	c.lastPing = time.Now()
 
 	res := NewResponse(req.Rid, Success, nil)
 	return c.SendResponse(res)
@@ -373,7 +374,7 @@ func (c *ConnServer) handleRegisterRequest(req *Request) error {
 	}
 
 	c.registered = true
-	c.lastPing = time.Now().Unix()
+	c.lastPing = time.Now()
 	res := NewResponse(req.Rid, Success, nil)
 	return c.SendResponse(res)
 }
