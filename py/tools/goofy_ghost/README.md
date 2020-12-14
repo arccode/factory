@@ -10,7 +10,6 @@ ghost client with proper configurations for Goofy.
 The script does the following things:
 * Read the properties file using the [standard config hierarchy for ChromeOS
   Factory](http://go/cros-factory-config).
-* Put the active test list id into the ghost properties.
 * Set TLS certificate if found.
 
 ## Ghost properties file
@@ -36,17 +35,6 @@ For development: If we need to modify the properties file temporarily for
 testing, we can modify the runtime config at `/run/factory/goofy_ghost.json`.
 After modifying that config, run `ghost --reset`. (Don't run `goofy_ghost
 reset`, it'll re-generate the runtime config again.)
-
-## Goofy active test list as ghost client properties
-The script would put the id of active test list in the ghost properties by the
-key `active_test_list`, which can be retrieved by `ovl ls -v` or viewed on the
-dashboard web interface.
-
-The ghost client would automatically reset and reconnect to server when the
-active test list is changed in Goofy.
-
-To list all ghost clients running some test list, run `ovl ls -f
-'active_test_list=^some_test_list$'`.
 
 ## Set TLS certificate for Overlord server
 If the Overlord server is configured with TLS enabled, the server certificate

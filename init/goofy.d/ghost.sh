@@ -5,5 +5,5 @@
 
 FACTORY_DIR="/usr/local/factory"
 
-export PATH=${FACTORY_DIR}/bin:${FACTORY_DIR}/bin/overlord:$PATH
-${FACTORY_DIR}/bin/goofy_ghost start >/dev/null 2>&1
+export PATH="${FACTORY_DIR}/bin:${FACTORY_DIR}/bin/overlord:${PATH}"
+"${FACTORY_DIR}"/bin/goofy_ghost start >/dev/null 2>&1

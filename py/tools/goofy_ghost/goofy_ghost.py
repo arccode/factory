@@ -7,19 +7,15 @@ import os
 import subprocess
 
 from cros.factory.test.env import paths
-from cros.factory.test.test_lists import manager
 from cros.factory.tools.goofy_ghost import ghost_prop
 from cros.factory.utils import argparse_utils
 from cros.factory.utils import config_utils
 from cros.factory.utils import file_utils
-from cros.factory.utils import sys_interface
 from cros.factory.utils import json_utils
 
 
 def _WriteGhostProperties():
   properties = config_utils.LoadConfig('goofy_ghost')
-  device = sys_interface.SystemInterface()
-  properties['active_test_list'] = manager.Manager.GetActiveTestListId(device)
   file_utils.TryMakeDirs(
       os.path.dirname(ghost_prop.GOOFY_GHOST_PROPERTIES_FILE))
   json_utils.DumpFile(ghost_prop.GOOFY_GHOST_PROPERTIES_FILE, properties)

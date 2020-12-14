@@ -50,7 +50,7 @@ var BaseApp = {
     if (typeof(this.state.displayPattern) == "undefined") {
       return true;
     }
-    return this.state.displayPattern.test(displayClient(client));
+    return this.state.displayPattern.test(client.mid);
   },
   getInitialState: function () {
     this.onNewClientHandlers = [];
