@@ -4,9 +4,14 @@ bundle
 bin/generate_rsts
 bin/list_dir_as_yaml
 py/bundle_creator
+py/dkps
 py/doc
 py/dome
+py/hwid/service/appengine
 py/instalog/virtual_env
 py/probe/runtime_probe
+py/probe_info_service
 py/test_list_editor
+py/umpire/server
+
 .wh..wh.*
