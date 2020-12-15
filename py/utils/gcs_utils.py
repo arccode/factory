@@ -6,7 +6,6 @@
 
 import logging
 import os
-import sys
 
 from . import file_utils
 
@@ -14,7 +13,7 @@ try:
   # pylint: disable=import-error, no-name-in-module
   from google.cloud import storage
   from google.oauth2 import service_account
-except ImportError:
+except ImportError as e:
   # These lines can be used in a requirements.txt file:
   #
   #   google-cloud-storage==1.31.0
@@ -23,11 +22,10 @@ except ImportError:
   # Then, to install them:
   #
   #  pip install -t external_dir -r requirements.txt
-  unused_exc_class, unused_exc, tb = sys.exc_info()
   new_exc = ImportError(
       'Please install these Python libraries before proceeding: '
-      'google-cloud-storage==1.4.0 google-auth==1.0.2')
-  raise new_exc.__class__(new_exc).with_traceback(tb)
+      'google-cloud-storage==1.31.0 google-auth==1.21.1')
+  raise new_exc from e
 
 
 _GCS_SCOPE = 'https://www.googleapis.com/auth/devstorage.read_write'
