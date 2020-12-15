@@ -89,11 +89,6 @@ class CloudStorage:
     try:
       bucket_id, path_in_bucket = self._HandleTargetPath(target_path)
       bucket = storage.Bucket(self.client, bucket_id)
-      if not bucket.exists():
-        self.logger.error(
-            'Bucket (%s) doesn\'t exist! Please create it before you upload '
-            'file', bucket_id)
-        return False
 
       self.logger.info(
           'Going to upload the file from local (%s) to GCS ([/%s]/%s)',
@@ -152,9 +147,6 @@ class CloudStorage:
     try:
       bucket_id, path_in_bucket = self._HandleTargetPath(target_path)
       bucket = storage.Bucket(self.client, bucket_id)
-      if not bucket.exists():
-        self.logger.error('Bucket (%s) doesn\'t exist!', bucket_id)
-        return False
 
       blob = storage.Blob(path_in_bucket, bucket)
       if not blob.exists():
