@@ -214,10 +214,11 @@ class ExtDisplayTest(test_case.TestCase):
   def CheckVideo(self, args):
     self.ui.BindStandardFailKeys()
     original, target = self.VerifyDisplayConfig()
-    # When there's only one display connected with MST display port, target and
-    # original will be the same. In this situation, it is possible that we get
-    # display info from drm sysfs path and run this function, but the system
-    # haven't reflect this and fails on setting main display.
+    # We need to check ``target != original`` because when we test MST ports on
+    # a Chromebox device (i.e., no built-in display), `target` and `original`
+    # will be the same.  In this situation, we might get the display info from
+    # drm sysfs path before the Chrome browser noticing the new external
+    # monitor, and thus fail to set the main display.
     if target != original:
       self.SetMainDisplay(target)
     try:
@@ -225,6 +226,12 @@ class ExtDisplayTest(test_case.TestCase):
         self.CheckVideoFixture(args)
       else:
         self.CheckVideoManual(args)
+
+      # Check the current main display to ensure that the main display is not
+      # changed during the test.
+      current = self.GetMainDisplay()
+      if current != target:
+        self.FailTask('Main display has changed during the test.')
     finally:
       if target != original:
         self.SetMainDisplay(original)
@@ -331,6 +338,23 @@ class ExtDisplayTest(test_case.TestCase):
     err = state.GetInstance().DeviceSetDisplayProperties(display_id,
                                                          {'isPrimary': True})
     self.assertIsNone(err, 'Failed to set the main display: %s' % err)
+
+  def GetMainDisplay(self):
+    """Gets the current main display.
+
+    Returns:
+      The display id of the current main display.
+    """
+    display_info = state.GetInstance().DeviceGetDisplayInfo()
+
+    primary = []
+    for info in display_info:
+      if info['isPrimary']:
+        primary.append(info)
+
+    self.assertEqual(len(primary), 1, "invalid number of primary displays")
+
+    return primary[0]['id']
 
   def SetupAudio(self, args):
     for card, action in args.init_actions:
