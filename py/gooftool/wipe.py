@@ -306,15 +306,16 @@ def _StopAllUpstartJobs(exclude_list=None):
       process_utils.Spawn(stop_cmd, log=True, log_stderr_on_error=True)
 
 
-def _UnmountStatefulPartition(root, state_dev):
+def _UnmountStatefulPartition(root, state_dev, test_umount):
   logging.debug('Unmount stateful partition.')
 
   # Expected stateful partition mount point.
   state_dir = os.path.join(root, STATEFUL_PARTITION_PATH.strip(os.path.sep))
 
-  # Touch a mark file so we can check if the stateful partition is wiped
-  # successfully.
-  file_utils.WriteFile(os.path.join(state_dir, WIPE_MARK_FILE), '')
+  # If not in testing mode, touch a mark file so we can check if the stateful
+  # partition is wiped successfully.
+  if not test_umount:
+    file_utils.WriteFile(os.path.join(state_dir, WIPE_MARK_FILE), '')
 
   # Backup extension cache (crx_cache) if available (will be restored after
   # wiping by clobber-state).
@@ -575,7 +576,7 @@ def WipeInit(wipe_args, shopfloor_url, state_dev, release_rootfs,
         # sslh is a service in ARC++ for muxing between ssh and adb.
         'sslh'
     ])
-    _UnmountStatefulPartition(old_root, state_dev)
+    _UnmountStatefulPartition(old_root, state_dev, test_umount)
 
     # When testing, stop the wiping process with no error. In normal
     # process, this function will run forever until reboot.
