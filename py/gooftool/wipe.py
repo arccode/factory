@@ -327,11 +327,16 @@ def _UnmountStatefulPartition(root, state_dev):
   mount_output = process_utils.SpawnOutput(['mount'], log=True)
 
   mount_point_list = []
+  namespace_list = []
   for line in mount_output.splitlines():
     fields = line.split()
     if fields[0] == state_dev:
       mount_point_list.append(fields[2])
+    if fields[0] == 'nsfs':
+      namespace_list.append(fields[2])
+
   logging.debug('stateful partitions mounted on: %s', mount_point_list)
+  logging.debug('namespace mounted on: %s', namespace_list)
 
   def _ListProcOpening(path_list):
     lsof_cmd = ['lsof', '-t'] + path_list
@@ -399,6 +404,10 @@ def _UnmountStatefulPartition(root, state_dev):
     assert not proc_list, (
         "processes still using minijail: %s" %
         process_utils.SpawnOutput(['pgrep', '-al', 'minijail']))
+
+    # Remove all mounted namespace to release stateful partition.
+    for ns_mount_point in namespace_list:
+      _Unmount(ns_mount_point, True)
 
     # Doing what 'mount-encrypted umount' should do.
     for mount_point in mount_point_list:
