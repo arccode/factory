@@ -1099,7 +1099,9 @@ class Ghost:
       except socket.error:
         pass
       else:
-        self.SendData()
+        # We only send dut data when it's agent mode.
+        if self._mode == Ghost.AGENT:
+          self.SendData()
         sock.settimeout(None)
         self.Listen()
 
