@@ -1,0 +1,1 @@
+../hwid_extractor/hwid_extractor.py

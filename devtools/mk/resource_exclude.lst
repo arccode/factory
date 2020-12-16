@@ -8,6 +8,7 @@ py/dkps
 py/doc
 py/dome
 py/hwid/service/appengine
+py/hwid_extractor
 py/instalog/virtual_env
 py/probe/runtime_probe
 py/probe_info_service
