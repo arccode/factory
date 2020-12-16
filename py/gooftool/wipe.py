@@ -115,6 +115,8 @@ def Daemonize(logfile=None):
     os.open(logfile, os.O_RDWR | os.O_CREAT)
     os.dup2(1, 2)  # stderr
 
+  # Set the default umask.
+  os.umask(0o022)
 
 def ResetLog(logfile=None):
   if logging.getLogger().handlers:
@@ -147,9 +149,6 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
   _CheckBug78323428()
 
   Daemonize()
-
-  # Set the default umask.
-  os.umask(0o022)
 
   logfile = os.path.join('/tmp', WIPE_IN_TMPFS_LOG)
   ResetLog(logfile)
