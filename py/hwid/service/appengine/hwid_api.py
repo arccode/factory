@@ -317,8 +317,8 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     updated_contents = update_checksum.ReplaceChecksum(hwidConfigContents)
 
     try:
-      new_components = _hwid_validator.ValidateChange(updated_contents,
-                                                      prevHwidConfigContents)
+      model, new_components = _hwid_validator.ValidateChange(
+          updated_contents, prevHwidConfigContents)
 
     except v3_validator.ValidationError as e:
       logging.exception('Validation failed')
@@ -327,7 +327,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
 
     resp = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
         status=hwid_api_messages_pb2.Status.SUCCESS,
-        newHwidConfigContents=updated_contents)
+        newHwidConfigContents=updated_contents, model=model)
 
     status_desc = hwid_api_messages_pb2.AvlEntry.SupportStatus.DESCRIPTOR
     for comp_cls, comps in new_components.items():

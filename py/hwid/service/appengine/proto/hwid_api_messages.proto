@@ -180,6 +180,8 @@ message ValidateConfigAndUpdateChecksumResponse {
   string errorMessage = 2;
   Status status = 3;
   map<string, AvlEntries> newComponentsPerCategory = 4;
+  // model name.
+  string model = 5;
 }
 
 // A request to query SKU info from a given HWID string.

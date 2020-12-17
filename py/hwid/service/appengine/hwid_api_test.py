@@ -23,6 +23,7 @@ from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
 from cros.factory.utils import file_utils
 
 
+TEST_MODEL = 'FOO'
 TEST_HWID = 'Foo'
 TEST_HWID_CONTENT = ('prefix\n'
                      'checksum: 1234\n'
@@ -395,7 +396,7 @@ class HwidApiTest(unittest.TestCase):
 
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
   def testValidateConfigAndUpdateChecksum(self, patch_hwid_validator):
-    patch_hwid_validator.ValidateChange.return_value = {}
+    patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {})
 
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
         hwidConfigContents=TEST_HWID_CONTENT)
@@ -404,11 +405,12 @@ class HwidApiTest(unittest.TestCase):
     self.assertEqual(
         hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS,
-            newHwidConfigContents=EXPECTED_REPLACE_RESULT), msg)
+            newHwidConfigContents=EXPECTED_REPLACE_RESULT, model=TEST_MODEL),
+        msg)
 
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
   def testValidateConfigAndUpdateUpdatedComponents(self, patch_hwid_validator):
-    patch_hwid_validator.ValidateChange.return_value = {
+    patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {
         'wireless': [
             verify_db_pattern.ComponentAvlInfo(
                 'wireless_1234_5678', 1234, 5678,
@@ -417,7 +419,7 @@ class HwidApiTest(unittest.TestCase):
                 'wireless_1111_2222', 1111, 2222,
                 common.COMPONENT_STATUS.unqualified)
         ]
-    }
+    })
 
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
         hwidConfigContents=TEST_HWID_CONTENT)
@@ -440,7 +442,7 @@ class HwidApiTest(unittest.TestCase):
                             cid=1111, qid=2222, supportStatus=unqualified,
                             componentName='wireless_1111_2222')
                     ])
-            }), msg)
+            }, model=TEST_MODEL), msg)
 
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
   def testValidateConfigAndUpdateChecksumErrors(self, patch_hwid_validator):
@@ -496,7 +498,7 @@ class HwidApiTest(unittest.TestCase):
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
   def testValidateConfigAndUpdateChecksumUnknwonStatus(self,
                                                        patch_hwid_validator):
-    patch_hwid_validator.ValidateChange.return_value = {
+    patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {
         'wireless': [
             verify_db_pattern.ComponentAvlInfo(
                 'wireless_1234_5678', 1234, 5678,
@@ -504,7 +506,7 @@ class HwidApiTest(unittest.TestCase):
             verify_db_pattern.ComponentAvlInfo('wireless_1111_2222', 1111, 2222,
                                                'new_status')
         ]
-    }
+    })
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
         hwidConfigContents=TEST_HWID_CONTENT)
     msg = self.service.ValidateConfigAndUpdateChecksum(req)

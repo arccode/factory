@@ -51,8 +51,9 @@ class HwidValidator:
       hwid_config_contents: the current HWID config as a string.
       prev_hwid_config_contents: the previous HWID config as a string.
     Returns:
-      dict in the form of {category: [(ciq, qid, status),...]} which collects
-      created/updated component names in the ${category}_${cid}_${qid} pattern.
+      A tuple (project, new_comps) where new_comps is a dict in the form of
+      {category: [(ciq, qid, status),...]} which collects created/updated
+      component names in the ${category}_${cid}_${qid} pattern.
     """
     try:
       # Load previous config. This has the side effect of validating it.
@@ -83,4 +84,4 @@ class HwidValidator:
           [(db, vpg_target.waived_comp_categories)]).error_msgs
       if errors:
         raise v3_validator.ValidationError(str(errors))
-    return new_components
+    return db.project, new_components
