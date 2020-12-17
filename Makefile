@@ -125,7 +125,7 @@ PRESUBMIT_TARGETS := \
 .PHONY: \
   .phony default clean closure proto overlord ovl-bin par doc resource toolkit \
   bundle presubmit presubmit-chroot $(PRESUBMIT_TARGETS) \
-  lint smartlint smart_lint test testall overlay check-board-resources \
+  lint smartlint smart_lint test testall overlay check-regions-database \
   publish-docs po
 
 # This must be the first rule.
@@ -185,31 +185,53 @@ func-check-package = @\
     $(MK_DIR)/die.sh "Need to run 'emerge-$(BOARD) $(1)' for rule '$(2)'." ; \
   fi ${\n}
 
-# Checks if all board resources (from packages) are ready.
-# $(BOARD_PACKAGE_NAME) is checked by comparing ebuild and package file
-# timestamp, but 'git checkout' does not keep file timestamps, and portage looks
-# at version instead of timestamp. So pre-built package may be older than ebuild
-# files, and this will be a problem for fresh checkout.
-# The solution is to do timestamp comparison only in an interactive quickfix
-# (modify, make, test) cycle, by checking if the build is triggered by ebuild
-# ($(FROM_EBUILD) is set in factory-9999.ebuild).
-check-board-resources:
-	$(if $(BOARD_EBUILD),\
-	   $(if $(FROM_EBUILD),\
-	     $(info Ignore $(BOARD_PACKAGE_NAME) check.), \
-	     $(call func-check-package,$(BOARD_PACKAGE_NAME), \
-	       [ "$(realpath $(BOARD_EBUILD))" -ot "$(BOARD_PACKAGE_FILE)" ])) \
-	   $(call func-check-package,chromeos-regions, \
-	     [ -e "$(CROS_REGIONS_DATABASE)" ] ))
+check-regions-database: .phony
+	@$(info Checking region database...)
+	$(call func-check-package,chromeos-regions, \
+	  [ -e "$(CROS_REGIONS_DATABASE)" ] )
+
+# Checks if all resources (from ebuild packages) are ready.
+# The function check by comparing ebuild and package file timestamp, but 'git
+# checkout' does not keep file timestamps, and portage looks at version instead
+# of timestamp. So pre-built package may be older than ebuild files, and this
+# will be a problem for fresh checkout.  The solution is to do timestamp
+# comparison only in an interactive quickfix (modify, make, test) cycle, by
+# checking if the build is triggered by ebuild ($(FROM_EBUILD) is set in
+# factory-9999.ebuild).
+# If the FILESDIR of the package exists, the path will be added to
+# $(EXTRA_RESOURCE_ARGS), which will be added to toolkit later.
+define func-add-package
+# Declare some useful variables.
+# The $(1)_EBUILD variable should be defined in common.mk.
+@$(eval CURRENT_EBUILD := $($(1)_EBUILD))
+@$(eval CURRENT_PACKAGE_NAME := $(notdir $(realpath \
+	$(dir $(CURRENT_EBUILD)))))
+@$(eval CURRENT_PACKAGE_FILES_DIR := $($(1)_FILES_DIR))
+@$(eval CURRENT_PACKAGE_FILE = \
+  $(if $(CURRENT_EBUILD),$(SYSROOT)/packages/chromeos-base/$(basename \
+    $(notdir $(CURRENT_EBUILD))).tbz2))
+# Check if overlay resources are out of date
+$(if $(CURRENT_EBUILD),\
+   $(if $(FROM_EBUILD),\
+     $(info Ignore $(CURRENT_EBUILD) check.), \
+     $(call func-check-package,$(CURRENT_PACKAGE_NAME), \
+       [ "$(realpath $(CURRENT_EBUILD))" -ot "$(CURRENT_PACKAGE_FILE)" ])))
+# If the FILESDIR exists, append to the argument list.
+@$(info Adding content of FILESDIR from $(CURRENT_PACKAGE_NAME))
+$(if $(wildcard $(CURRENT_PACKAGE_FILES_DIR)), \
+  $(eval EXTRA_RESOURCE_ARGS += --exclude '$(RESOURCE_SRC_DIR)' \
+    -C $(CURRENT_PACKAGE_FILES_DIR) .))
+endef
 
 # Prepare files from source folder into resource folder.
-resource: closure check-board-resources po
+resource: closure po check-regions-database
+	@$(call func-add-package,BOARD)
+	@$(info EXTRA_RESOURCE_ARGS: $(EXTRA_RESOURCE_ARGS))
 	@$(info Create resource $(if $(BOARD),for [$(BOARD)],without board).)
 	mkdir -p $(RESOURCE_DIR)
 	tar -cf $(RESOURCE_PATH) -X $(MK_DIR)/resource_exclude.lst \
 	  bin misc py py_pkg sh init \
-	  $(if $(wildcard $(BOARD_FILES_DIR)), \
-	  --exclude '$(RESOURCE_SRC_DIR)' -C $(BOARD_FILES_DIR) .)
+	  $(EXTRA_RESOURCE_ARGS)
 	tar -rf $(RESOURCE_PATH) -C $(BUILD_DIR) locale
 	$(if $(OUTOFTREE_BUILD),\
 	  tar -rf $(RESOURCE_PATH) --transform 's"^"./py/goofy/static/"' \
