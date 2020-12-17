@@ -23,3 +23,9 @@ _BOARD_EBUILD = \
                         equery-$(BOARD) which chromeos-factory-board))
 BOARD_EBUILD ?= $(call memoized,_BOARD_EBUILD)
 BOARD_FILES_DIR ?= $(if $(BOARD_EBUILD),$(dir $(BOARD_EBUILD))files)
+
+_BASEBOARD_EBUILD = \
+  $(if $(BOARD),$(shell equery-$(BOARD) which factory-baseboard))
+
+BASEBOARD_EBUILD ?= $(call memoized,_BASEBOARD_EBUILD)
+BASEBOARD_FILES_DIR ?= $(if $(BASEBOARD_EBUILD),$(dir $(BASEBOARD_EBUILD))files)

@@ -225,6 +225,7 @@ endef
 
 # Prepare files from source folder into resource folder.
 resource: closure po check-regions-database
+	@$(call func-add-package,BASEBOARD)
 	@$(call func-add-package,BOARD)
 	@$(info EXTRA_RESOURCE_ARGS: $(EXTRA_RESOURCE_ARGS))
 	@$(info Create resource $(if $(BOARD),for [$(BOARD)],without board).)
