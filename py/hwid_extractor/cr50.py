@@ -2,7 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import codecs
 import logging
+import re
 import time
 
 import serial
@@ -19,6 +21,10 @@ CR50_DROP_OUTPUT_INTERVAL = 0.05
 # retries.
 CR50_COMMAND_MAX_RETRY = 3
 CR50_COMMAND_RETRY_INTERVAL = 1
+# The maximum number of retries of the failed `rma_auth` commands and the
+# interval between retries.
+CR50_RMA_AUTH_MAX_RETRY = 3
+CR50_RMA_AUTH_RETRY_INTERVAL = 1
 
 
 class Cr50Console:
@@ -100,3 +106,129 @@ class Cr50Console:
                      self._cr50_uart_pty)
       logging.debug('Cr50 command: "%s":\n%s', cmd, output)
     return output
+
+
+class Cr50:
+  """A high level interface of Cr50.
+
+  Args:
+    cr50_uart_pty: The device of cr50 console.
+  """
+
+  def __init__(self, cr50_uart_pty):
+    self._cr50_console = Cr50Console(cr50_uart_pty)
+
+  def GetRLZ(self):
+    """Get RLZ code from Cr50.
+
+    Examples of the output of bid command:
+      Board ID: 57565257:a8a9ada8, flags 00007f7f
+      Board ID: 59565251, flags 00000010
+
+    Returns:
+      RLZ code or None
+    """
+    output = self._cr50_console.Command('bid')
+    m = re.search(r'Board ID: ([0-9A-Fa-f]+?)[:,]', output)
+    if not m:
+      return None
+    hex_rlz = m.group(1)
+    try:
+      return codecs.decode(hex_rlz, 'hex').decode()
+    except UnicodeDecodeError:
+      return None
+
+  def GetChallenge(self):
+    """Get the rma_auth challenge
+
+    There are two challenge formats
+    "
+    ABEQ8 UGA4F AVEQP SHCKV
+    DGGPR N8JHG V8PNC LCHR2
+    T27VF PRGBS N3ZXF RCCT2
+    UBMKP ACM7E WUZUA A4GTN
+    "
+    and
+    "
+    generated challenge:
+    CBYRYBEMH2Y75TC...rest of challenge
+    "
+    support extracting the challenge from both.
+
+    `rma_auth` may fail if the interval between the last call is too short.
+    Retry if the command return `RMA Auth error`. After these retries the
+    command is considered to be failed.
+
+    Returns:
+      The RMA challenge with all whitespace removed.
+    """
+    for unused_i in range(CR50_RMA_AUTH_MAX_RETRY):
+      output = self._cr50_console.Command('rma_auth').strip()
+      if 'RMA Auth error' not in output:
+        break
+      time.sleep(CR50_RMA_AUTH_RETRY_INTERVAL)
+    if 'generated challenge:' in output:
+      return output.split('generated challenge:')[-1].strip()
+    challenge = ''.join(re.findall(r' \S{5}' * 4, output))
+    # Remove all whitespace
+    return ''.join(challenge.split())
+
+  def IsRestricted(self):
+    """The restricted status of the device.
+
+    Check the output of `ccd` command. If it contains 'IfOpened' or
+    'IfUnlocked', the device is considered as restricted.
+
+    If 'Capabilities' is not in the output of `ccd` command, the execution of
+    `ccd` command is considered as failed.
+
+    Returns:
+      True if the device is restricted.
+    Raises:
+      ValueError: Cannot get the output of `ccd` from device.
+    """
+    logging.info('Update restricted status')
+    output = self._cr50_console.Command('ccd')
+    if 'Capabilities' not in output:
+      logging.error('`Capabilities` not in output of `ccd`, output:\n%s',
+                    output)
+      raise ValueError('Could not get ccd output.')
+
+    is_restricted = 'IfOpened' in output or 'IfUnlocked' in output
+    logging.info('Restricted status: %s', is_restricted)
+    return is_restricted
+
+  def Unlock(self, authcode):
+    """Unlock the device with `authcode`.
+
+    If unlock successfully, Cr50 will reboot and may be unresponsive for several
+    seconds.
+
+    Args:
+      authcode: The authcode for rma_auth to unlock the device.
+    Returns:
+      True if unlock successfully.
+    """
+    logging.info('Unlock the device with authcode: %s', authcode)
+    output = self._cr50_console.Command(f'rma_auth {authcode}')
+    logging.info('Unlock result:\n%s', output)
+    return 'process_response: success!' in output
+
+  def Lock(self):
+    """Lock the device.
+
+    Assume that the device is not restricted.
+
+    Returns:
+      True if lock successfully.
+    """
+    logging.info('Lock the device')
+    # `ccd reset` needs ccd to be in open state.
+    self._cr50_console.Command('ccd open')
+    self._cr50_console.Command('ccd reset')
+    # Wait for Cr50 resetting.
+    time.sleep(1)
+    self._cr50_console.Command('ccd lock')
+    # Wait for Cr50 resetting.
+    time.sleep(1)
+    return self.IsRestricted()
