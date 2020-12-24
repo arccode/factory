@@ -10,6 +10,31 @@ from unittest import mock
 from cros.factory.test.utils import cbi_utils
 
 
+def _CreatePopenMock(returncode, stdout=None, stderr=None):
+  mock_popen = mock.MagicMock()
+  mock_process = mock.MagicMock()
+  mock_process.returncode = returncode
+  mock_process.communicate.return_value = stdout, stderr
+  mock_popen.return_value = mock_process
+  return mock_popen
+
+
+def _SetMockStatus(wp_status, present_mock, get_cbi_mock, set_cbi_mock):
+  present_mock.reset_mock()
+  get_cbi_mock.reset_mock()
+  set_cbi_mock.reset_mock()
+  if wp_status == cbi_utils.CbiEepromWpStatus.Absent:
+    present_mock.return_value = False
+  elif wp_status == cbi_utils.CbiEepromWpStatus.Locked:
+    present_mock.return_value = True
+    get_cbi_mock.side_effect = [54321, 54321]
+    set_cbi_mock.side_effect = cbi_utils.CbiException(cbi_utils.WpErrorMessages)
+  else:
+    present_mock.return_value = True
+    get_cbi_mock.side_effect = [54321, 54322]
+    set_cbi_mock.side_effect = [None, None]
+
+
 class CbiUtilsTest(unittest.TestCase):
 
   def setUp(self):
@@ -56,31 +81,48 @@ class CbiUtilsTest(unittest.TestCase):
                       cbi_utils.SetCbiData, self.dut, 'OEM_NAME', 0)
 
   def testSetSuccess(self):
-    mock_popen = mock.MagicMock()
-    mock_process = mock.MagicMock()
-    mock_process.returncode = 0
-    mock_process.communicate.return_value = None, None
-    self.dut.Popen = mock_popen
-    mock_popen.return_value = mock_process
+    self.dut.Popen = _CreatePopenMock(0)
     cbi_utils.SetCbiData(self.dut, 'SKU_ID', 1)
-    mock_popen.assert_called_once_with(
-        command=['ectool', 'cbi', 'set', '2', '1', '4'],
-        stdout=subprocess.PIPE,
+    self.dut.Popen.assert_called_once_with(
+        command=['ectool', 'cbi', 'set', '2', '1', '4'], stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
 
   def testSetFail(self):
-    mock_popen = mock.MagicMock()
-    mock_process = mock.MagicMock()
-    mock_process.returncode = 1
-    mock_process.communicate.return_value = None, None
-    self.dut.Popen = mock_popen
-    mock_popen.return_value = mock_process
+    self.dut.Popen = _CreatePopenMock(1)
     self.assertRaises(cbi_utils.CbiException,
                       cbi_utils.SetCbiData, self.dut, 'SKU_ID', 1)
-    mock_popen.assert_called_once_with(
-        command=['ectool', 'cbi', 'set', '2', '1', '4'],
-        stdout=subprocess.PIPE,
+    self.dut.Popen.assert_called_once_with(
+        command=['ectool', 'cbi', 'set', '2', '1', '4'], stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
+
+  def testProbePresent(self):
+    self.dut.Popen = _CreatePopenMock(0)
+    self.assertEqual(cbi_utils.CheckCbiEepromPresent(self.dut), True)
+    self.dut.Popen.assert_called_once_with(
+        command=['ectool', 'locatechip', '0', '0'], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+
+  def testProbeAbsent(self):
+    self.dut.Popen = _CreatePopenMock(10, 'fake stdout', 'fake stderr')
+    self.assertEqual(cbi_utils.CheckCbiEepromPresent(self.dut), False)
+    self.dut.Popen.assert_called_once_with(
+        command=['ectool', 'locatechip', '0', '0'], stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE)
+
+  @mock.patch(cbi_utils.__name__ + '.SetCbiData')
+  @mock.patch(cbi_utils.__name__ + '.GetCbiData')
+  @mock.patch(cbi_utils.__name__ + '.CheckCbiEepromPresent')
+  def testVerifyWpStatus(self, present_mock, get_cbi_mock, set_cbi_mock):
+    for expected_wp_status in cbi_utils.CbiEepromWpStatus:
+      for actual_wp_status in cbi_utils.CbiEepromWpStatus:
+        _SetMockStatus(actual_wp_status, present_mock, get_cbi_mock,
+                       set_cbi_mock)
+        if expected_wp_status == actual_wp_status:
+          cbi_utils.VerifyCbiEepromWpStatus(self.dut, expected_wp_status)
+        else:
+          self.assertRaises(cbi_utils.CbiException,
+                            cbi_utils.VerifyCbiEepromWpStatus, self.dut,
+                            expected_wp_status)
 
 
 if __name__ == '__main__':

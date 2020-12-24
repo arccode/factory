@@ -54,6 +54,9 @@ CbiDataDict = {
     CbiDataName.FW_CONFIG: CbiDataAttr(6, int, 4),
     CbiDataName.PCB_SUPPLIER: CbiDataAttr(7, int, 1)
 }
+CbiEepromWpStatus = type_utils.Enum(['Locked', 'Unlocked', 'Absent'])
+WpErrorMessages = ('Write-protect is enabled or EC explicitly '
+                   'refused to change the requested field.')
 
 
 def GetCbiData(dut, data_name):
@@ -98,3 +101,99 @@ def SetCbiData(dut, data_name, value):
     raise CbiException('Failed to set data_name=%s to EEPROM. '
                        'returncode=%d, stdout=%s, stderr=%s' %
                        (data_name, process.returncode, stdout, stderr))
+
+
+def CheckCbiEepromPresent(dut):
+  """Check that the CBI EEPROM chip is present.
+
+  Args:
+    dut: The SystemInterface of the device.
+
+  Returns:
+    True if the CBI EEPROM chip is present otherwise False.
+  """
+  CBI_EEPROM_EC_CHIP_TYPE = 0
+  CBI_EEPROM_EC_CHIP_INDEX = 0
+  command = [
+      'ectool', 'locatechip',
+      str(CBI_EEPROM_EC_CHIP_TYPE),
+      str(CBI_EEPROM_EC_CHIP_INDEX)
+  ]
+  process = dut.Popen(command=command, stdout=subprocess.PIPE,
+                      stderr=subprocess.PIPE)
+  stdout, stderr = process.communicate()
+  logging.debug('command=%r, returncode=%d, stdout=%r, stderr=%r', command,
+                process.returncode, stdout, stderr)
+  return process.returncode == 0
+
+
+def VerifyCbiEepromWpStatus(dut, cbi_eeprom_wp_status):
+  """Verify CBI EEPROM status.
+
+  If cbi_eeprom_wp_status is Absent, CBI EEPROM must be absent. If
+  cbi_eeprom_wp_status is Locked, write protection must be on. Otherwise, write
+  protection must be off.
+
+  Args:
+    dut: The SystemInterface of the device.
+    cbi_eeprom_wp_status: The expected status, must be one of CbiEepromWpStatus.
+
+  Raises:
+    CbiException if the status is not expected, GetCbiData fails when CBI is
+    expected to be present, or SetCbiData fails when CBI is expected to be
+    unlocked.
+  """
+  detect_presence = CheckCbiEepromPresent(dut)
+  expected_presence = cbi_eeprom_wp_status != CbiEepromWpStatus.Absent
+  if detect_presence != expected_presence:
+    raise CbiException(('CheckCbiEepromPresent returns %r but is expected to be'
+                        ' %r.' % (detect_presence, expected_presence)))
+  if not detect_presence:
+    return
+
+  def _GetSKUId():
+    result = GetCbiData(dut, CbiDataName.SKU_ID)
+    if result is None:
+      raise CbiException('GetCbiData fails.')
+    return result
+
+  def _SetSKUId(value):
+    try:
+      SetCbiData(dut, CbiDataName.SKU_ID, value)
+    except CbiException as e:
+      return False, str(e)
+    else:
+      return True, None
+
+  sku_id = _GetSKUId()
+  # The allowed range of sku id is [0, 0x7FFFFFFF].
+  test_sku_id = (sku_id + 1) % 0x80000000
+
+  write_success, messages = _SetSKUId(test_sku_id)
+  sku_id_afterward = _GetSKUId()
+  detect_write_protect = sku_id == sku_id_afterward
+  expected_write_protect = cbi_eeprom_wp_status == CbiEepromWpStatus.Locked
+  errors = []
+  if expected_write_protect:
+    if write_success:
+      errors.append('_SetSKUId should return False but get True.')
+    elif WpErrorMessages not in messages:
+      errors.append('Output of _SetSKUId should contain %r but get %r' %
+                    (WpErrorMessages, messages))
+  else:
+    if not write_success:
+      errors.append('_SetSKUId should return True but get False.')
+
+  if detect_write_protect:
+    if not expected_write_protect:
+      errors.append('_SetSKUId should write the CBI EEPROM but it does not.')
+  else:
+    if expected_write_protect:
+      errors.append('_SetSKUId should not write the CBI EEPROM but it does.')
+    write_success, unused_messages = _SetSKUId(sku_id)
+    if not write_success:
+      errors.append('_SetSKUId fails.')
+  if errors:
+    errors.append('write protection switch of CBI EEPROM is%s enabled.' %
+                  (' not' if expected_write_protect else ''))
+    raise CbiException(' '.join(errors))
