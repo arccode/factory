@@ -18,8 +18,12 @@ UTILS_SOURCES := \
 		process_utils.py \
 		type_utils.py
 
+JS_SOURCES := \
+		www/index.js
+
 HWID_EXTRACTOR_SOURCES := \
 	www/index.html \
+	$(JS_SOURCES) \
 	$(wildcard *.py)
 
 SOURCES := \
@@ -40,9 +44,17 @@ CHROMITE_SOURCES := \
 INSTALL_TARGET := $(addprefix install_,$(SOURCES))
 CHROMITE_INSTALL_TARGET := $(addprefix install_,$(CHROMITE_SOURCES))
 
-.PHONY: all $(INSTALL_TARGET) $(CHROMITE_INSTALL_TARGET) install
+.PHONY: all check_js $(INSTALL_TARGET) $(CHROMITE_INSTALL_TARGET) install
 
 all:
+
+check_js:
+	closure-compiler \
+	  --warning_level=VERBOSE \
+	  --jscomp_warning=lintChecks \
+	  --language_in ECMASCRIPT_NEXT \
+	  --checks-only \
+	  $(JS_SOURCES)
 
 $(INSTALL_TARGET):
 	mkdir -p $(DESTDIR)$(LIB_DIR)/py/$(dir $(@:install_%=%))
