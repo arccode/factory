@@ -10,12 +10,12 @@ from subprocess import PIPE
 from subprocess import Popen
 
 from cros.factory.test.env import paths
+from cros.factory.utils import sys_interface as sys_interface_module
 from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error
 from cros.factory.utils.type_utils import Obj
 
 
-# TODO(hungte) Deprecate this by dut.Shell
 def Shell(cmd, stdin=None, log=True, sys_interface=None):
   """Run cmd in a shell, return Obj containing stdout, stderr, and status.
 
@@ -26,6 +26,7 @@ def Shell(cmd, stdin=None, log=True, sys_interface=None):
       redirection (pipes, etc).
     stdin: String that will be passed as stdin to the command.
     log: log command and result.
+    sys_interface: The SystemInterface of the device. If set to None, use Popen.
   """
   if not isinstance(cmd, str):
     cmd = ' '.join(pipes.quote(param) for param in cmd)
@@ -70,6 +71,9 @@ class Util:
 
   def __init__(self):
     self.shell = Shell
+    # TODO(cyueh): Remove self.sys_interface after we moving cbi_utils into
+    # gooftool/.
+    self.sys_interface = sys_interface_module.SystemInterface()
 
   def _IsDeviceFixed(self, dev):
     """Check if a device is a fixed device, i.e. not a removable device.
