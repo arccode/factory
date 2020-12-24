@@ -419,6 +419,8 @@ overlay:
 	rm -rf $@-$(BOARD)
 	mkdir -p $@-$(BOARD)
 	rsync -aK --exclude build --exclude overlay-\* ./ $@-$(BOARD)/
+	$(if $(wildcard $(BASEBOARD_FILES_DIR)), \
+	  rsync -aK "$(BASEBOARD_FILES_DIR)/" $@-$(BOARD)/)
 	rsync -aK $(if $(filter $(BOARD),private), \
 	  --exclude Makefile ../factory-private/ $@-$(BOARD)/, \
 	  "$(BOARD_FILES_DIR)/" $@-$(BOARD)/)
