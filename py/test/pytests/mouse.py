@@ -41,10 +41,12 @@ If you want to change the time limit to 100 seconds::
 """
 
 import logging
+import time
 
 from cros.factory.test import test_case
 from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import process_utils
 
 from cros.factory.external import evdev
 
@@ -53,12 +55,14 @@ class MouseTest(test_case.TestCase):
   """Tests the function of a mouse/trackpoint."""
   ARGS = [
       Arg('device_filter', (int, str),
-          'Mouse input event id or evdev name. The test will probe for '
-          'event id if it is not given.',
-          default=None),
+          ('Mouse input event id or evdev name. The test will probe for '
+           'event id if it is not given.'), default=None),
       Arg('timeout_secs', int, 'Timeout for thte test.', default=20),
+      Arg('button_updown_secs', float,
+          'Max duration between button up and down.', default=0.6),
       Arg('move_threshold', int, 'Speed threshold to detect the move direction',
-          default=3)]
+          default=3)
+  ]
 
   def setUp(self):
     self.assertGreater(self.args.move_threshold, 0,
@@ -69,6 +73,7 @@ class MouseTest(test_case.TestCase):
 
     self.frontend_proxy = None
     self.dispatcher = None
+    self.down_keycode_time = {}
 
     self.move_tested = {
         'up': False,
@@ -78,11 +83,16 @@ class MouseTest(test_case.TestCase):
     self.click_tested = {
         'left': False,
         'middle': False,
-        'right': False}
+        'right': False
+    }
+    # Disable lid function since lid open|close will trigger button up event.
+    process_utils.CheckOutput(['ectool', 'forcelidopen', '1'])
 
   def tearDown(self):
     self.dispatcher.close()
     self.mouse_device.ungrab()
+    # Enable lid function.
+    process_utils.CheckOutput(['ectool', 'forcelidopen', '0'])
 
   def HandleEvent(self, event):
     """Handler for evdev events."""
@@ -99,8 +109,17 @@ class MouseTest(test_case.TestCase):
     }
     button = button_map[keycode]
     if value == 1:
+      if self.down_keycode_time:
+        self.FailTask('More than one button clicked')
+      self.down_keycode_time[keycode] = time.time()
       self.frontend_proxy.MarkClickButtonDown(button)
     else:
+      duration = time.time() - self.down_keycode_time[keycode]
+      if duration > self.args.button_updown_secs:
+        self.FailTask(
+            'The time between button up and down is %f second(s), longer '
+            'than %f second(s).' % (duration, self.args.button_updown_secs))
+      del self.down_keycode_time[keycode]
       self.frontend_proxy.MarkClickButtonTested(button)
       self.click_tested[button] = True
       self.CheckTestPassed()
