@@ -17,13 +17,7 @@ from cros.factory.utils import file_utils
 def _GetV4L2Data(video_idx):
   # Get information from video4linux2 (v4l2) interface.
   # See /usr/include/linux/videodev2.h for definition of these consts.
-  # 'ident' values are defined in include/media/v4l2-chip-ident.h
   info = {}
-  VIDIOC_DBG_G_CHIP_IDENT = 0xc02c5651
-  V4L2_DBG_CHIP_IDENT_SIZE = 11
-  V4L2_INDEX_REVISION = V4L2_DBG_CHIP_IDENT_SIZE - 1
-  V4L2_INDEX_IDENT = V4L2_INDEX_REVISION - 1
-  V4L2_VALID_IDENT = 3  # V4L2_IDENT_UNKNOWN + 1
 
   # Get v4l2 capability
   V4L2_CAPABILITY_FORMAT = '<16B32B32BII4I'
@@ -62,13 +56,6 @@ def _GetV4L2Data(video_idx):
 
   try:
     with open('/dev/video%d' % video_idx, 'r') as f:
-      # Read chip identifier.
-      buf = array.array('i', [0] * V4L2_DBG_CHIP_IDENT_SIZE)
-      _TryIoctl(f.fileno(), VIDIOC_DBG_G_CHIP_IDENT, buf, 1)
-      v4l2_ident = buf[V4L2_INDEX_IDENT]
-      if v4l2_ident >= V4L2_VALID_IDENT:
-        info['ident'] = 'V4L2:%04x %04x' % (v4l2_ident,
-                                            buf[V4L2_INDEX_REVISION])
       # Read V4L2 capabilities.
       buf = array.array('B', [0] * V4L2_CAPABILITY_STRUCT_SIZE)
       _TryIoctl(f.fileno(), IOCTL_VIDIOC_QUERYCAP, buf, 1)
