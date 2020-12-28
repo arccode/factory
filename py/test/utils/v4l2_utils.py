@@ -2,30 +2,38 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import array
+import ctypes
 import fcntl
-import struct
+import logging
+
+
+class V4L2Capability(ctypes.Structure):
+  """struct v4l2_capability: the output of VIDIOC_QUERYCAP ioctl call.
+
+  Reference:
+  https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/vidioc-querycap.html#c.V4L.v4l2_capability
+  """
+  _fields_ = [
+      ('driver', ctypes.c_ubyte * 16),
+      ('card', ctypes.c_ubyte * 32),
+      ('bus_info', ctypes.c_ubyte * 32),
+      ('version', ctypes.c_uint32),
+      ('capabilities', ctypes.c_uint32),
+      ('device_caps', ctypes.c_uint32),
+      ('reserved', ctypes.c_uint32 * 3),
+  ]
+
+
+def _TryIoctl(fileno, request, *args):
+  """Try to invoke ioctl without raising an exception if it fails."""
+  try:
+    fcntl.ioctl(fileno, request, *args)
+  except Exception:
+    pass
 
 
 def GetV4L2Data(video_idx):
-  # Get information from video4linux2 (v4l2) interface.
-  # See /usr/include/linux/videodev2.h for definition of these consts.
-  info = {}
-
-  # Get v4l2 capability
-  V4L2_CAPABILITY_FORMAT = '<16B32B32BII4I'
-  V4L2_CAPABILITY_STRUCT_SIZE = struct.calcsize(V4L2_CAPABILITY_FORMAT)
-  V4L2_CAPABILITIES_OFFSET = struct.calcsize(V4L2_CAPABILITY_FORMAT[0:-3])
-  # struct v4l2_capability
-  # {
-  #   __u8  driver[16];
-  #   __u8  card[32];
-  #   __u8  bus_info[32];
-  #   __u32 version;
-  #   __u32 capabilities;  /* V4L2_CAPABILITIES_OFFSET */
-  #   __u32 reserved[4];
-  # };
-
+  """Get information from video4linux2 (v4l2) interface."""
   IOCTL_VIDIOC_QUERYCAP = 0x80685600
 
   # Webcam should have CAPTURE capability but no OUTPUT capability.
@@ -40,24 +48,20 @@ def GetV4L2Data(video_idx):
       V4L2_CAP_VIDEO_CAPTURE_MPLANE | V4L2_CAP_VIDEO_OUTPUT_MPLANE
       | V4L2_CAP_STREAMING)
 
-  def _TryIoctl(fileno, request, *args):
-    """Try to invoke ioctl without raising an exception if it fails."""
-    try:
-      fcntl.ioctl(fileno, request, *args)
-    except Exception:
-      pass
+  info = {}
+  dev_path = '/dev/video%d' % video_idx
 
   try:
-    with open('/dev/video%d' % video_idx, 'r') as f:
-      # Read V4L2 capabilities.
-      buf = array.array('B', [0] * V4L2_CAPABILITY_STRUCT_SIZE)
-      _TryIoctl(f.fileno(), IOCTL_VIDIOC_QUERYCAP, buf, 1)
-      capabilities = struct.unpack_from('<I', buf, V4L2_CAPABILITIES_OFFSET)[0]
-      if ((capabilities & V4L2_CAP_VIDEO_CAPTURE) and
-          (not capabilities & V4L2_CAP_VIDEO_OUTPUT)):
+    with open(dev_path, 'r') as f:
+      v4l2_capability = V4L2Capability()
+      _TryIoctl(f.fileno(), IOCTL_VIDIOC_QUERYCAP, v4l2_capability)
+
+      cap = v4l2_capability.capabilities
+      if (cap & V4L2_CAP_VIDEO_CAPTURE) and (not cap & V4L2_CAP_VIDEO_OUTPUT):
         info['type'] = 'webcam'
-      elif capabilities & V4L2_CAP_VIDEO_CODEC == V4L2_CAP_VIDEO_CODEC:
+      elif cap & V4L2_CAP_VIDEO_CODEC == V4L2_CAP_VIDEO_CODEC:
         info['type'] = 'video_codec'
   except Exception:
-    pass
+    logging.exception('Failed to get V4L2 attribute from %r', dev_path)
+
   return info
