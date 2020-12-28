@@ -6,13 +6,14 @@
 
 import argparse
 from collections import namedtuple
-from contextlib import contextmanager
+import contextlib
 from glob import glob
 from itertools import chain
 import logging
 import os
 import re
 import shutil
+import stat
 import sys
 import tempfile
 
@@ -30,19 +31,16 @@ ROOT_DEV_NAME_CANDIDATE = ['sda', 'nvme0n1', 'mmcblk0']
 # Root directory to use when root partition is USB
 USB_ROOT_OUTPUT_DIR = '/mnt/stateful_partition/factory_bug'
 
-# Encrypted var partition mount point.
-SSD_STATEFUL_ROOT = '/tmp/sda1'
+DESCRIPTION = """Generate and save zip archive of log files.
 
-# Stateful partition mount point
-SSD_STATEFUL_MOUNT_POINT = os.path.join(SSD_STATEFUL_ROOT,
-                                        'mnt/stateful_partition')
-
-DESCRIPTION = ('Save logs to a file or USB drive and/or mount encrypted '
-               'SSD partition.')
+  This tool always tries to collect log from the on board storage device.
+  That is, if the current rootfs is a removable devices like usb drive,
+  this tool will try to find the on board device and collect log from it.
+"""
 
 EXAMPLES = """Examples:
 
-  When booting from SSD:
+  When booting from the internal hard disk:
 
     # Save logs to /tmp
     factory_bug
@@ -51,15 +49,14 @@ EXAMPLES = """Examples:
     # first mountable on any USB device if none is mounted yet)
     factory_bug --usb
 
-  When booting from a USB drive:
+  When booting from an USB drive:
 
-    # Mount sda1, sda3, encrypted stateful partition from SSD,
-    # and save logs to the USB drive's stateful partition
+    # Mount on board rootfs, collect logs from there, and save logs to the USB
+    # drive's stateful partition
     factory_bug
 
-    # Same as above, but don't save the logs
-    factory_bug --mount
-
+    # Specify the input device for logs collecting.
+    factory_bug --input-device /dev/sda
 """
 
 # Info about a mounted partition.
@@ -149,7 +146,50 @@ def GetPartitionName(dev, index):
   return f'{dev}{index}' if dev.startswith('sd') else f'{dev}p{index}'
 
 
-@contextmanager
+@contextlib.contextmanager
+def MountInputDevice(dev):
+  """Mount the rootfs on the device and yield the paths.
+
+  Try to mount each partition we need if it is not already mounted.
+
+  According to `src/platform2/init/upstart/test-init/factory_utils.sh`, when
+  device is booted with a test image (usually it should be, if the devices have
+  run factory toolkit), there are two partitions 1 and 3 which contain the info
+  we need.
+  `/etc` is under root partition which is partition 3.
+  `/usr/local` is bind-mounted to '/mnt/stateful_partition/dev_image' which is
+  `dev_image` under partition 1.
+  Normally, '/var' is mounted by `mount_encrypted`. However, if factory toolkit
+  is enabled, `/var` is bind-mounted to '/mnt/stateful_partition/var' which is
+  `var` under partition 1.
+
+  Note that partition 3 (rootfs) is mounted with ext2. Don't use ext4 which may
+  modify fs superblock information and making rootfs verification fail.
+
+  Yields:
+    A dict of paths indicating where should the log directories be redirected
+    to.
+  """
+  mount_point_map = GetDeviceMountPointMapping(dev)
+  with contextlib.ExitStack() as stack:
+    mount = {}
+    for part_id, fstype in [(1, 'ext4'), (3, 'ext2')]:
+      part = GetPartitionName(dev, part_id)
+      if mount_point_map[part]:
+        mount[part_id] = mount_point_map[part]
+      else:
+        # If the partition is mounted by us, unmount it at the end.
+        unmounter = sys_utils.MountPartition(f'/dev/{part}', fstype=fstype)
+        mount[part_id] = stack.enter_context(unmounter)
+
+    yield {
+        'var': os.path.join(mount[1], 'var'),
+        'usr_local': os.path.join(mount[1], 'dev_image'),
+        'etc': os.path.join(mount[3], 'etc'),
+    }
+
+
+@contextlib.contextmanager
 def MountUSB(read_only=False):
   """Mounts (or re-uses) a USB drive, returning the path.
 
@@ -473,13 +513,13 @@ def ParseArgument():
             f'`/tmp`, but defaults to `{USB_ROOT_OUTPUT_DIR}` when booted '
             'from USB.'))
   parser.add_argument(
-      '--mount', action='store_true',
-      help=("When booted from USB, only mount encrypted SSD and exit. (Don't "
-            'save logs)'))
-  parser.add_argument(
       '--usb', action='store_true',
       help=('Save logs to a USB stick. (Using any mounted USB drive partition '
             'if available, otherwise attempting to temporarily mount one)'))
+  parser.add_argument(
+      '--input-device', '-d', metavar='DEV',
+      help=('Collect logs from the specific device. Input device is detected '
+            'automatically if omitted.'))
   parser.add_argument(
       '--net', action='store_true',
       help=('Whether to include network related logs or not. Network logs are '
@@ -503,93 +543,55 @@ def ParseArgument():
   return parser, parser.parse_args()
 
 
-def main():
-  # First parse mtab, since that will affect some of our defaults.
-  root_is_usb = False
-  have_ssd_stateful = False
-  mounted_sda1 = None
-  mounted_sda3 = None
-  for line in open('/etc/mtab'):
-    dev, mount_point = line.split()[0:2]
-    if ((mount_point == '/mnt/stateful_partition') and
-        '/usb' in os.readlink(os.path.join('/sys/class/block',
-                                           os.path.basename(dev)))):
-      root_is_usb = True
-    elif mount_point == os.path.join(SSD_STATEFUL_ROOT, 'var'):
-      have_ssd_stateful = True
-    elif dev == '/dev/sda1':
-      mounted_sda1 = mount_point
-    elif dev == '/dev/sda3':
-      mounted_sda3 = mount_point
+def IsBlockDevice(dev_path):
+  return os.path.exists(dev_path) and stat.S_ISBLK(os.stat(dev_path).st_mode)
 
+
+@contextlib.contextmanager
+def InputDevice(root_is_removable, input_device):
+  """Get input paths. See `MountInputDevice`."""
+  if input_device:
+    if not IsBlockDevice(input_device):
+      logging.error('"%s" is not a block device.', input_device)
+      sys.exit(1)
+  elif root_is_removable:
+    input_device = GetOnboardRootDevice()
+    logging.info('Root is removable. Try to collect logs from "%s"',
+                 input_device)
+  else:
+    yield {}
+    return
+  with MountInputDevice(input_device) as paths:
+    yield paths
+
+
+@contextlib.contextmanager
+def OutputDevice(root_is_removable, save_to_usb, output_dir, parser):
+  """Get output path."""
+  if save_to_usb:
+    if root_is_removable:
+      parser.error('--usb only applies when root device is not removable.')
+    with MountUSB() as mount:
+      yield mount.mount_point
+    return
+
+  if not output_dir:
+    output_dir = USB_ROOT_OUTPUT_DIR if root_is_removable else '/tmp'
+  yield output_dir
+
+
+def main():
   parser, args = ParseArgument()
   logging.basicConfig(level=logging.WARNING - 10 * args.verbosity)
   options = dict((key, getattr(args, key) or args.full)
                  for key in ['net', 'probe', 'dram'])
+  root_is_removable = IsDeviceRemovable(GetRootDevice())
 
-  paths = {}
-  if not args.output_dir:
-    args.output_dir = USB_ROOT_OUTPUT_DIR if root_is_usb else '/tmp'
-
-  if root_is_usb:
-    logging.warning('Root partition is a USB drive')
-    if not os.path.exists('/dev/sda1'):
-      # TODO(jsalz): Make this work on ARM too.
-      logging.error('/dev/sda1 does not exist; cannot mount SSD')
-      sys.exit(1)
-    logging.warning('Saving report to the %s directory', USB_ROOT_OUTPUT_DIR)
-    args.usb = False
-
-    def Mount(device, mount_point=None, options=None):
-      dev = os.path.join('/dev', device)
-      mount_point = mount_point or os.path.join('/tmp', device)
-
-      file_utils.TryMakeDirs(mount_point)
-      Spawn(['mount'] + (options or []) + [dev, mount_point],
-            log=True, check_call=True)
-      return mount_point
-
-    if not have_ssd_stateful:
-      if not mounted_sda1:
-        file_utils.TryMakeDirs(SSD_STATEFUL_MOUNT_POINT)
-        Mount('/dev/sda1', SSD_STATEFUL_MOUNT_POINT)
-        mounted_sda1 = SSD_STATEFUL_MOUNT_POINT
-      elif mounted_sda1 != SSD_STATEFUL_MOUNT_POINT:
-        parser.error('Works only when sda1 is mounted at %s (not %s)' % (
-            SSD_STATEFUL_MOUNT_POINT, mounted_sda1))
-
-      new_env = dict(os.environ)
-      new_env['MOUNT_ENCRYPTED_ROOT'] = SSD_STATEFUL_ROOT
-      for d in ['var', 'home/chronos']:
-        file_utils.TryMakeDirs(os.path.join(SSD_STATEFUL_ROOT, d))
-      Spawn(['mount-encrypted', 'factory'], env=new_env, log=True,
-            check_call=True)
-
-    # Use ext2 to make sure that we don't accidentally use ext4 (which
-    # may write to the partition even in read-only mode)
-    mounted_sda3 = mounted_sda3 or Mount(
-        'sda3', '/tmp/sda3',
-        ['-o', 'ro', '-t', 'ext2'])
-
-    paths = dict(var=os.path.join(SSD_STATEFUL_ROOT, 'var'),
-                 usr_local=os.path.join(mounted_sda1, 'dev_image'),
-                 etc=os.path.join(mounted_sda3, 'etc'))
-  elif args.mount:
-    parser.error('--mount only applies when root device is USB')
-
-  # When --mount is specified, we only mount and don't actually
-  # collect logs.
-  if not args.mount:
-    if args.usb:
-      with MountUSB() as mount:
-        SaveLogs(mount.mount_point, args.id, **options, **paths)
-    else:
-      SaveLogs(args.output_dir, args.id, **options, **paths)
-
-  if root_is_usb:
-    logging.info('SSD remains mounted:')
-    logging.info(' - sda3 = %s', mounted_sda3)
-    logging.info(' - encrypted stateful partition = %s', SSD_STATEFUL_ROOT)
+  input_device = InputDevice(root_is_removable, args.input_device)
+  output_device = OutputDevice(root_is_removable, args.usb, args.output_dir,
+                               parser)
+  with input_device as input_paths, output_device as output_path:
+    SaveLogs(output_path, args.id, **options, **input_paths)
 
 
 if __name__ == '__main__':
