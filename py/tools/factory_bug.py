@@ -22,6 +22,11 @@ from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils import sys_utils
 
 
+# The candidate of device names which the ChromeOS may mount on rootfs.
+# Assume that ChromeOS has only one device, and always has a smaller index.
+# That is, it should always be `sda`, `nvme0n1`... not `sdb`, `nvme0n2`...
+ROOT_DEV_NAME_CANDIDATE = ['sda', 'nvme0n1', 'mmcblk0']
+
 # Root directory to use when root partition is USB
 USB_ROOT_OUTPUT_DIR = '/mnt/stateful_partition/factory_bug'
 
@@ -64,6 +69,84 @@ EXAMPLES = """Examples:
 #   mount_point: The mount point of the device.
 #   temporary: Whether the device is being temporarily mounted.
 MountUSBInfo = namedtuple('MountUSBInfo', ['dev', 'mount_point', 'temporary'])
+
+
+def GetRootDevice():
+  """Get the device name on which current rootfs is mounted.
+
+  Add '-d' option to return the block device. Otherwise `rootdev` may return
+  virtual device like `/dev/dm-0`.
+
+  Returns:
+    The rootfs device name, i.e. sda.
+  """
+  dev_raw = Spawn(['rootdev', '-s', '-d'], read_stdout=True,
+                  check_call=True).stdout_data
+  return os.path.basename(dev_raw.strip())
+
+
+def IsDeviceRemovable(dev):
+  """Check if device is a removable device.
+
+  Args:
+    dev: i.e. sda.
+  Returns:
+    True if device is removable.
+  """
+  return file_utils.ReadOneLine(f'/sys/block/{dev}/removable') == '1'
+
+
+def GetOnboardRootDevice():
+  """Get the device name of the on board rootfs.
+
+  Returns:
+    The on board rootfs device name, i.e. sda.
+  Raises:
+    RuntimeError if cannot determine the on board rootfs device.
+  """
+  devs = [
+      dev for dev in ROOT_DEV_NAME_CANDIDATE
+      if os.path.isdir(f'/sys/block/{dev}') and not IsDeviceRemovable(dev)
+  ]
+  if not devs:
+    raise RuntimeError(
+        'Cannot find on board rootfs device. None of these devices exists and '
+        f'is not removable: {ROOT_DEV_NAME_CANDIDATE}')
+  if len(devs) > 1:
+    raise RuntimeError(
+        'Multiple devices are found, cannot determine the on board rootfs '
+        f'device: {devs}')
+  return devs[0]
+
+
+def GetDeviceMountPointMapping(dev):
+  """Get a mapping of partition -> mount_point.
+
+  Args:
+    dev: i.e. sda.
+  Returns:
+    Partition to mount_point mapping. If the partition is not mounted,
+    mount_point is None.
+  """
+  lines = Spawn(['lsblk', '-nro', 'NAME,MOUNTPOINT', f'/dev/{dev}'],
+                read_stdout=True, check_call=True).stdout_data.splitlines()
+  res = {}
+  for line in lines:
+    tokens = line.split()
+    if not tokens:
+      continue
+    res[tokens[0]] = tokens[1] if len(tokens) > 1 else None
+  return res
+
+
+def GetPartitionName(dev, index):
+  """Get partition name from device name and index.
+
+  Returns:
+    Partition name, add `p` between device name and index if the device is not a
+    sata device.
+  """
+  return f'{dev}{index}' if dev.startswith('sd') else f'{dev}p{index}'
 
 
 @contextmanager
