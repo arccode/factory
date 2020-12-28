@@ -1,6 +1,6 @@
 board: SARIEN
 
-checksum: 3da2c25677f11bb6583f904525653440ae666aa5
+checksum: 7e9eaece99284ab5c42ae7bb9c355c1a1ae78078
 
 encoding_patterns:
   0: default
@@ -16,11 +16,11 @@ pattern:
 
 encoded_fields:
   cpu_field:
-    0: { test_component: cpu_0 }
-    1: { test_component: cpu_1 }
+    0: { cpu: cpu_0 }
+    1: { cpu: cpu_1 }
 
 components:
-  test_component:
+  cpu:
     items:
       cpu_0:
         values:

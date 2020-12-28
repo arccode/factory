@@ -2,31 +2,33 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import os.path
 import re
-import yaml
 
 
-NAME_PATTERN_DIR = 'name_pattern/'
+_SUPPORTED_CATEGORIES = set([
+    'wireless',
+])
+
+
+def GetSupportedCategories():
+  return _SUPPORTED_CATEGORIES
 
 
 class NamePattern:
   def __init__(self, regex):
-    self.patterns = [re.compile(s) for s in regex]
+    self.pattern = re.compile(regex)
 
   def Matches(self, tag):
-    return any(pat.match(tag) for pat in self.patterns)
+    ret = self.pattern.match(tag)
+    if ret:
+      return int(ret.group(1)), int(ret.group(2))
+    return None
 
 
 class NamePatternAdapter:
-  def __init__(self, filesystem_adapter):
-    self.filesystem_adapter = filesystem_adapter
-    self.name_patterns = {}
-    for filename in self.filesystem_adapter.ListFiles(NAME_PATTERN_DIR):
-      filepath = os.path.join(NAME_PATTERN_DIR, filename)
-      category, unused_ext = os.path.splitext(filename)
-      regexes = yaml.load(filesystem_adapter.ReadFile(filepath))
-      self.name_patterns[category] = NamePattern(regexes)
 
-  def GetNamePatterns(self, comp_cls):
-    return self.name_patterns.get(comp_cls)
+  def GetNamePattern(self, comp_cls):
+    if comp_cls not in GetSupportedCategories():
+      return None
+    return NamePattern(
+        r'{comp_cls}_(\d+)_(\d+)(?:#.*)?$'.format(comp_cls=re.escape(comp_cls)))

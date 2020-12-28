@@ -26,29 +26,29 @@ pattern:
   - image_ids: [0]
     encoding_scheme: base8192
     fields:
-    - cpu_field: 1
+    - display_panel_field: 1
     - ram_field: 1
 
 encoded_fields:
-  cpu_field:
-    0: { test_component: cpu_0 }
-    1: { test_component: cpu_1 }
+  display_panel_field:
+    0: { display_panel: display_panel_0 }
+    1: { display_panel: display_panel_1 }
   ram_field:
-    0: { test_component2: ram_0 }
-    1: { test_component2: ram_1 }
+    0: { ram: ram_0 }
+    1: { ram: ram_1 }
 
 components:
-  test_component:
+  display_panel:
     items:
-      cpu_0:
+      display_panel_0:
         values:
           cores: '1'
           model: 'x'
-      cpu_1:
+      display_panel_1:
         values:
           cores: '4'
           model: 'abc'
-  test_component2:
+  ram:
     items:
       ram_0:
         values:

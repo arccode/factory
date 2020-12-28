@@ -11,7 +11,7 @@ board: CHROMEBOOK
 # 若修改将使设备配置變為无效，并且不得销售此设备。
 #
 #####
-checksum: dfa581cbadebb355a30001085dbef7bf4b4bc840
+checksum: f99d8c92472213d815b515611e1e86c080e9c562
 
 ##### END CHECKSUM BLOCK. See the warning above. 请参考上面的警告。
 
@@ -31,8 +31,8 @@ pattern:
 
 encoded_fields:
   cpu_field:
-    0: { test_component: cpu_0 }
-    1: { test_component: cpu_1 }
+    0: { cpu: cpu_0 }
+    1: { cpu: cpu_1 }
   dram_field:
     0:
       dram: dram_type_4g_0
@@ -40,7 +40,7 @@ encoded_fields:
       dram: dram_type_not_mention_size
 
 components:
-  test_component:
+  cpu:
     items:
       cpu_0:
         values:

@@ -14,7 +14,6 @@ from cros.factory.hwid.service.appengine import \
 from cros.factory.hwid.v3.common import HWIDException
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import validator as v3_validator
-from cros.factory.hwid.v3 import validator_context
 from cros.factory.utils import schema
 
 
@@ -73,9 +72,7 @@ class HwidValidator:
     except (HWIDException, schema.SchemaException, yaml.error.YAMLError) as e:
       raise v3_validator.ValidationError(str(e))
 
-    ctx = validator_context.ValidatorContext(
-        filesystem_adapter=CONFIG.hwid_filesystem)
-    new_components = v3_validator.ValidateChange(prev_db, db, ctx)
+    new_components = v3_validator.ValidateChange(prev_db, db)
     v3_validator.ValidateIntegrity(db)
 
     vpg_target = CONFIG.vpg_targets.get(db.project)

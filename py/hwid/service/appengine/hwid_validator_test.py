@@ -102,13 +102,19 @@ class HwidValidatorTest(unittest.TestCase):
         str(error.exception),
         'Invalid DRAM: dram_type_not_mention_size')
 
-  def testValidateComponentNameInvalid(self):
+  @mock.patch(('cros.factory.hwid.v3.name_pattern_adapter'
+               '.GetSupportedCategories'), return_value=set(['cpu']))
+  def testValidateComponentNameInvalid(self, unused_func):
+    del unused_func
     with self.assertRaises(v3_validator.ValidationError):
       hwid_validator.HwidValidator().ValidateChange(
           GOLDEN_HWIDV3_DATA_AFTER_INVALID_NAME_PATTERN,
           GOLDEN_HWIDV3_DATA_BEFORE)
 
-  def testValidateComponentNameValid(self):
+  @mock.patch(('cros.factory.hwid.v3.name_pattern_adapter'
+               '.GetSupportedCategories'), return_value=set(['cpu']))
+  def testValidateComponentNameValid(self, unused_func):
+    del unused_func
     model, ret = hwid_validator.HwidValidator().ValidateChange(
         GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN, GOLDEN_HWIDV3_DATA_BEFORE)
     self.assertEqual(model, GOLDEN_MODEL_NAME)
@@ -119,7 +125,10 @@ class HwidValidatorTest(unittest.TestCase):
             ]
         }, ret)
 
-  def testValidateComponentNameInvalidWithNote(self):
+  @mock.patch(('cros.factory.hwid.v3.name_pattern_adapter'
+               '.GetSupportedCategories'), return_value=set(['cpu']))
+  def testValidateComponentNameInvalidWithNote(self, unused_func):
+    del unused_func
     with self.assertRaises(v3_validator.ValidationError) as ex:
       hwid_validator.HwidValidator().ValidateChange(
           GOLDEN_HWIDV3_DATA_AFTER_INVALID_NAME_PATTERN_WITH_NOTE,
@@ -131,7 +140,10 @@ class HwidValidatorTest(unittest.TestCase):
          '- cpu_2_3#4 -> cpu_2_3#3\n'
          '- cpu_2_3#non-a-number -> cpu_2_3#4'))
 
-  def testValidateComponentNameValidWithNote(self):
+  @mock.patch(('cros.factory.hwid.v3.name_pattern_adapter'
+               '.GetSupportedCategories'), return_value=set(['cpu']))
+  def testValidateComponentNameValidWithNote(self, unused_func):
+    del unused_func
     model, ret = hwid_validator.HwidValidator().ValidateChange(
         GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN_WITH_NOTE,
         GOLDEN_HWIDV3_DATA_BEFORE)

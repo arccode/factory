@@ -28,10 +28,8 @@ import unittest
 
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.database import Database
-from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.hwid.v3 import hwid_utils
 from cros.factory.hwid.v3 import name_pattern_adapter
-from cros.factory.hwid.v3 import validator_context
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import process_utils
 from cros.factory.utils.schema import SchemaException
@@ -168,9 +166,7 @@ class HWIDDBsPatternTest(unittest.TestCase):
       db_path: Path of the HWID database to be verified.
     """
     old_db, new_db = HWIDDBsPatternTest.GetOldNewDB(hwid_dir, commit, db_path)
-    ctx = validator_context.ValidatorContext(
-        filesystem_adapter=filesystem_adapter.LocalFileSystemAdapter(hwid_dir))
-    HWIDDBsPatternTest.ValidateChange(old_db, new_db, ctx)
+    HWIDDBsPatternTest.ValidateChange(old_db, new_db)
 
   @staticmethod
   def VerifyNewCreatedDatabasePattern(new_db):
@@ -221,7 +217,7 @@ class HWIDDBsPatternTest(unittest.TestCase):
               'Style of existing region field should remain unchanged.')
 
   @staticmethod
-  def ValidateChange(old_db, new_db, ctx):
+  def ValidateChange(old_db, new_db):
     """Validate changes between old_db and new_db.
 
     This method checks 3 things:
@@ -237,8 +233,6 @@ class HWIDDBsPatternTest(unittest.TestCase):
     Args:
       old_db: db before the change.
       new_db: db after the change.
-      ctx: validator_context.ValidatorContext instance which contains the
-           name_pattern information.
     Returns:
       dict of created/updated component information if available.
     """
@@ -247,17 +241,15 @@ class HWIDDBsPatternTest(unittest.TestCase):
       HWIDDBsPatternTest.VerifyNewCreatedDatabasePattern(new_db)
     else:
       HWIDDBsPatternTest.VerifyParsedDatabasePattern(old_db, new_db)
-    return HWIDDBsPatternTest.ValidateComponentChange(old_db, new_db, ctx)
+    return HWIDDBsPatternTest.ValidateComponentChange(old_db, new_db)
 
   @staticmethod
-  def ValidateComponentChange(old_db, db, ctx):
+  def ValidateComponentChange(old_db, db):
     """Check if modified (created) component names are valid.
 
     Args:
       old_db: db before the change.
       new_db: db after the change.
-      ctx: validator_context.ValidatorContext instance which contains the
-           name_pattern information.
     Returns:
       dict of created/updated component information {category:
       [ComponentAvlInfo, ...]} if available.
@@ -274,27 +266,21 @@ class HWIDDBsPatternTest(unittest.TestCase):
 
       return name_idx
 
-    def CollectNewComponents(bucket, comp_name, trimmed_name, status):
-      sp = trimmed_name.split('_')
-      if len(sp) != 3:
-        logging.error('Invalid component name %r', trimmed_name)
-      else:
-        bucket[sp[0]].append(
-            ComponentAvlInfo(comp_name, int(sp[1]), int(sp[2]), status))
-
-    adapter = name_pattern_adapter.NamePatternAdapter(ctx.filesystem_adapter)
+    adapter = name_pattern_adapter.NamePatternAdapter()
     rename_component = {}
     bucket = collections.defaultdict(list)
     for comp_cls in db.GetActiveComponentClasses():
-      name_pattern = adapter.GetNamePatterns(comp_cls)
+      name_pattern = adapter.GetNamePattern(comp_cls)
       if name_pattern:
         modified_names = FindModifiedComponentsWithIdx(old_db, db, comp_cls)
         for tag, (idx, comp) in modified_names.items():
-          if not name_pattern.Matches(tag):
+          ret = name_pattern.Matches(tag)
+          if not ret:
             raise common.HWIDException(
-                '%r does not match any available %s pattern' % (tag, comp_cls))
+                '%r does not match %s pattern' % (tag, comp_cls))
           sp = tag.split('#', 1)
-          CollectNewComponents(bucket, tag, sp[0], comp.status)
+          cid, qid = ret
+          bucket[comp_cls].append(ComponentAvlInfo(tag, cid, qid, comp.status))
           if len(sp) == 2:
             expected_component_name = '%s#%d' % (sp[0], idx)
             if tag != expected_component_name:

@@ -6,11 +6,10 @@
 
 import os.path
 import unittest
+from unittest import mock
 
 from cros.factory.hwid.v3 import common
-from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.hwid.v3 import validator
-from cros.factory.hwid.v3 import validator_context
 from cros.factory.hwid.v3.database import Database
 
 
@@ -32,12 +31,12 @@ DB_COMP_AFTER_BAD_PATH = os.path.join(
 
 class ValidatorTest(unittest.TestCase):
   def testGoodDramField(self):
-    db = Database.LoadFile(DB_DRAM_TAG_GOOD_PATH)
+    db = Database.LoadFile(DB_DRAM_TAG_GOOD_PATH, verify_checksum=False)
     # pylint: disable=protected-access
     validator._ValidateDramTag(db)
 
   def testBadDramField1(self):
-    db = Database.LoadFile(DB_DRAM_TAG_BAD_1_PATH)
+    db = Database.LoadFile(DB_DRAM_TAG_BAD_1_PATH, verify_checksum=False)
     with self.assertRaises(validator.ValidationError) as error:
       # pylint: disable=protected-access
       validator._ValidateDramTag(db)
@@ -46,7 +45,7 @@ class ValidatorTest(unittest.TestCase):
                                "match size property 1024M"))
 
   def testGoodDramField2(self):
-    db = Database.LoadFile(DB_DRAM_TAG_BAD_2_PATH)
+    db = Database.LoadFile(DB_DRAM_TAG_BAD_2_PATH, verify_checksum=False)
     with self.assertRaises(validator.ValidationError) as error:
       # pylint: disable=protected-access
       validator._ValidateDramTag(db)
@@ -54,27 +53,29 @@ class ValidatorTest(unittest.TestCase):
         str(error.exception),
         'Invalid DRAM: dram_type_not_mention_size')
 
-  def testGoodCompNameChange(self):
-    prev_db = Database.LoadFile(DB_COMP_BEFORE_PATH)
-    db = Database.LoadFile(DB_COMP_AFTER_GOOD_PATH)
-    ctx = validator_context.ValidatorContext(
-        filesystem_adapter=filesystem_adapter.LocalFileSystemAdapter(
-            _TEST_DATA_PATH))
-    ret = validator.ValidateChange(prev_db, db, ctx)
+  @mock.patch(('cros.factory.hwid.v3.name_pattern_adapter'
+               '.GetSupportedCategories'), return_value=set(['display_panel']))
+  def testGoodCompNameChange(self, unused_func):
+    prev_db = Database.LoadFile(DB_COMP_BEFORE_PATH, verify_checksum=False)
+    db = Database.LoadFile(DB_COMP_AFTER_GOOD_PATH, verify_checksum=False)
+    ret = validator.ValidateChange(prev_db, db)
     self.assertEqual(
-        {'cpu': [('cpu_9_10', 9, 10, common.COMPONENT_STATUS.supported)]}, ret)
+        {
+            'display_panel': [
+                ('display_panel_9_10', 9, 10, common.COMPONENT_STATUS.supported)
+            ]
+        }, ret)
 
-  def testBadCompNameChange(self):
-    prev_db = Database.LoadFile(DB_COMP_BEFORE_PATH)
-    db = Database.LoadFile(DB_COMP_AFTER_BAD_PATH)
-    ctx = validator_context.ValidatorContext(
-        filesystem_adapter=filesystem_adapter.LocalFileSystemAdapter(
-            _TEST_DATA_PATH))
+  @mock.patch(('cros.factory.hwid.v3.name_pattern_adapter'
+               '.GetSupportedCategories'), return_value=set(['display_panel']))
+  def testBadCompNameChange(self, unused_func):
+    prev_db = Database.LoadFile(DB_COMP_BEFORE_PATH, verify_checksum=False)
+    db = Database.LoadFile(DB_COMP_AFTER_BAD_PATH, verify_checksum=False)
     with self.assertRaises(validator.ValidationError) as error:
-      validator.ValidateChange(prev_db, db, ctx)
+      validator.ValidateChange(prev_db, db)
     self.assertEqual(
         str(error.exception),
-        "'cpu_z' does not match any available test_component pattern")
+        "'display_panel_z' does not match display_panel pattern")
 
 
 if __name__ == '__main__':

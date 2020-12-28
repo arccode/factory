@@ -26,14 +26,14 @@ class ValidationError(ValueError):
   """Indicates that validation of the HWID config failed."""
 
 
-def ValidateChange(prev_db, db, ctx):
+def ValidateChange(prev_db, db):
   """Verify that the change is valid.
 
   Returns:
     changed/added component information (ciq, qid, status) if available.
   """
   try:
-    return verify_db_pattern.HWIDDBsPatternTest.ValidateChange(prev_db, db, ctx)
+    return verify_db_pattern.HWIDDBsPatternTest.ValidateChange(prev_db, db)
   except common.HWIDException as e:
     raise ValidationError(str(e))
 
