@@ -116,11 +116,6 @@ class GenericVideoFunction(cached_probe_function.GlobPathCachedProbeFunction):
           result.update(
               {'name': ' '.join(device_id.replace(chr(0), ' ').split())})
 
-    # TODO(akahuang): Check if these fields are needed.
-    # Also check video max packet size
-    path = os.path.join(dev_path, 'ep_82', 'wMaxPacketSize')
-    if os.path.isfile(path):
-      result['wMaxPacketSize'] = file_utils.ReadFile(path).strip()
     # For SOC videos
     path = os.path.join(dev_path, 'control', 'name')
     if os.path.isfile(path):
