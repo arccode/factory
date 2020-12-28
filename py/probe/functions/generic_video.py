@@ -89,24 +89,14 @@ class GenericVideoFunction(cached_probe_function.GlobPathCachedProbeFunction):
 
     result = {}
 
-    results = (
-        function.InterpretFunction({'pci': dev_path})() or
-        function.InterpretFunction({'usb': os.path.join(dev_path, '..')})())
+    results = function.InterpretFunction(
+        {'usb': os.path.join(dev_path, '..')})()
     assert len(results) <= 1
     if len(results) == 1:
       result.update(results[0])
     else:
-      name_path = os.path.join(dir_path, 'name')
-      if os.path.exists(name_path):
-        device_id = file_utils.ReadFile(name_path)
-        if device_id:
-          result.update(
-              {'name': ' '.join(device_id.replace(chr(0), ' ').split())})
+      return None
 
-    # For SOC videos
-    path = os.path.join(dev_path, 'control', 'name')
-    if os.path.isfile(path):
-      result['name'] = file_utils.ReadFile(path).strip()
     # Get video4linux2 (v4l2) result.
     video_idx = re.search(r'video(\d+)$', dir_path).group(1)
     v4l2_data = _GetV4L2Data(int(video_idx))
