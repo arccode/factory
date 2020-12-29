@@ -7,6 +7,7 @@
 import argparse
 from collections import namedtuple
 import contextlib
+import fnmatch
 from glob import glob
 from itertools import chain
 import logging
@@ -23,6 +24,21 @@ from cros.factory.utils import sys_utils
 # Assume that ChromeOS has only one device, and always has a smaller index.
 # That is, it should always be `sda`, `nvme0n1`... not `sdb`, `nvme0n2`...
 ROOT_DEV_NAME_CANDIDATE = ['sda', 'nvme0n1', 'mmcblk0']
+
+DRAM_CALIBRATION_LOG_FILES = [
+    # Plain text logs for devices with huge output in memory training, for
+    # example Kukui.
+    'DRAMK_LOG',
+    # On ARM devices that training data is unlikely to change and used by both
+    # recovery and normal boot, for example Trogdor.
+    'RO_DDR_TRAINING',
+    # On ARM devices that may retrain due to aging, for example Kukui.
+    'RW_DDR_TRAINING',
+    # On most X86 devices, for recovery boot.
+    'RECOVERY_MRC_CACHE',
+    # On most x86 devices, for normal boot.
+    'RW_MRC_CACHE',
+]
 
 # Root directory to use when root partition is USB
 USB_ROOT_OUTPUT_DIR = '/mnt/stateful_partition/factory_bug'
@@ -310,24 +326,56 @@ def AppendLogToABT(abt_file, log_file):
     f.write(b'---------- END ----------\n')
 
 
+def CreateABTFile(files, exclude_patterns):
+  """Create abt.txt to provide easier log access.
+
+  We utilize the ABT browser extension to provide easier log access on browser,
+  which needs an embedded `abt.txt` in the factory bug archive.
+  We don't want to put all the contents into abt.txt since this will generate
+  an archive which size is twice than the original one.
+
+  By default, all directories are ignored from abt.txt. Extra include files and
+  exclude patterns are listed below.
+
+  Args:
+    files: The current file list of `SaveLogs`.
+    exclude_patterns: The current exclude patterns of `SaveLogs`.
+
+  Returns:
+    abt_name: Name of abt file.
+  """
+  abt_files = (
+      files + GlobAll(
+          # These files are listed because we only included their parent
+          # directories which will be ignored in abt.txt.
+          'sys/fs/pstore/console-ramoops-0',
+          'var/factory/log/*.log',
+          'var/log/messages',
+          'var/log/power_manager/powerd.LATEST',
+      ))
+  abt_exclude_patterns = (
+      exclude_patterns +
+      [f for f in DRAM_CALIBRATION_LOG_FILES if f != 'DRAMK_LOG'])
+
+  abt_name = 'abt.txt'
+  file_utils.TouchFile(abt_name)
+  for file in abt_files:
+    if not os.path.isfile(file):
+      continue
+    if any(fnmatch.fnmatch(file, pattern) for pattern in abt_exclude_patterns):
+      continue
+    AppendLogToABT(abt_name, file)
+
+  return abt_name
+
+
 def GenerateDRAMCalibrationLog():
-  dram_logs = [
-      'DRAMK_LOG',          # Plain text logs for devices with huge output in
-                            # memory training, for example Kukui.
-      'RO_DDR_TRAINING',    # On ARM devices that training data is unlikely to
-                            # change and used by both recovery and normal boot,
-                            # for example Trogdor.
-      'RW_DDR_TRAINING',    # On ARM devices that may retrain due to aging, for
-                            # example Kukui.
-      'RECOVERY_MRC_CACHE', # On most X86 devices, for recovery boot.
-      'RW_MRC_CACHE',       # On most x86 devices, for normal boot.
-  ]
   with file_utils.UnopenedTemporaryFile() as bios_bin:
     Spawn(['flashrom', '-p', 'host', '-r', bios_bin], check_call=True,
           ignore_stdout=True, ignore_stderr=True)
     # This command generates files under current directory.
-    Spawn(['dump_fmap', '-x', bios_bin] + dram_logs, check_call=True,
-          ignore_stdout=True, ignore_stderr=True)
+    Spawn(['dump_fmap', '-x', bios_bin] + DRAM_CALIBRATION_LOG_FILES,
+          check_call=True, ignore_stdout=True, ignore_stderr=True)
 
   # Special case of trimming DRAMK_LOG. DRAMK_LOG is a readable file with some
   # noise appended, like this: TEXT + 0x00 + (0xff)*N
@@ -338,7 +386,7 @@ def GenerateDRAMCalibrationLog():
       f.write(data.strip(b'\xff').strip(b'\x00'))
       f.truncate()
 
-  return [log for log in dram_logs if os.path.isfile(log)]
+  return [log for log in DRAM_CALIBRATION_LOG_FILES if os.path.isfile(log)]
 
 
 def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
@@ -392,12 +440,6 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
     os.symlink('/sys', os.path.join(tmp, 'sys'))
     os.chdir(tmp)
 
-    # Create abt.txt to support Android Bug Tool (ABT), which lives in tmp dir
-    # but only gets included in bug report when 'abt' is set to True.
-    abt_name = 'abt.txt'
-    abt_file = os.path.join(tmp, abt_name)
-    file_utils.TouchFile(abt_file)
-
     Run = RunCommandAndSaveOutputToFile
     files = [
         Run('crossystem', filename='crossystem', include_stderr=True),
@@ -420,6 +462,8 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
           Run(['hwid', 'probe'], filename='probe_result.json',
               check_call=False),
       ]
+    if dram:
+      files += GenerateDRAMCalibrationLog()
 
     files += GlobAll(
         'etc/lsb-release',
@@ -432,43 +476,15 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
         'var/spool/crash',
     )
 
-    if abt:
-      # Except those debug info that are explicitly created e.g. cros_system,
-      # dmesg etc., the following files are also valuable.
-      files_for_abt = GlobAll(
-          'sys/fs/pstore/console-ramoops-0',
-          'var/factory/log/*.log',
-          'var/log/messages',
-          'var/log/power_manager/powerd.LATEST',
-      )
-
-      for path in files + files_for_abt:
-        path = os.path.join(tmp, path)
-        if os.path.isfile(path):
-          # Considering a file is informational for preliminary diagnosis if
-          # it's explicitly included in `files`. Directories and its underlying
-          # files are ignored.
-          # If you know other informational files in some directories,
-          # enumerate them in `files_for_abt`.
-          AppendLogToABT(abt_file, path)
-
-      # Finally, include abt.txt in the archive.
-      files += [abt_name]
-
-    # Generate DRAM logs after adding files into abt.txt, since some of them
-    # are unreadable and we don't want them to be included.
-    if dram:
-      files += GenerateDRAMCalibrationLog()
-      # Manually add trimmed DRAMK_LOG into abt file
-      if 'DRAMK_LOG' in files and abt:
-        AppendLogToABT(abt_file, os.path.join(tmp, 'DRAMK_LOG'))
-
     # Patterns for those files which are excluded from factory_bug.
     exclude_patterns = [
         'var/log/journal/*',
     ]
     if not net:
       exclude_patterns += ['var/log/net.log']
+
+    if abt:
+      files += [CreateABTFile(files, exclude_patterns)]
 
     file_utils.TryMakeDirs(os.path.dirname(output_file))
     logging.info('Saving %s to %s...', files, output_file)
