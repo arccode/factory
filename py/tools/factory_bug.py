@@ -240,7 +240,11 @@ def MountRemovable(read_only=False):
 
 
 def HasEC():
-  """Return whether the platform has EC chip."""
+  """SuperIO-based platform has no EC chip, check its existence first.
+
+  Returns:
+    True if the platform has EC chip.
+  """
   try:
     has_ec = Spawn(['ectool', 'version'], read_stdout=True,
                    ignore_stderr=True).returncode == 0
@@ -346,15 +350,8 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
     abt_file = os.path.join(tmp, abt_name)
     file_utils.TouchFile(abt_file)
 
-    # SuperIO-based platform has no EC chip, check its existence first.
-    has_ec = HasEC()
-
     with open(os.path.join(tmp, 'crossystem'), 'w') as f:
       Spawn('crossystem', stdout=f, stderr=f, check_call=True)
-      if has_ec:
-        print('\nectool version:', file=f)
-        f.flush()
-        Spawn(['ectool', 'version'], stdout=f, check_call=True)
       files += ['crossystem']
 
     with open(os.path.join(tmp, 'dmesg'), 'w') as f:
@@ -369,7 +366,10 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
       Spawn('audio_diagnostics', stdout=f, stderr=f, call=True)
       files += ['audio_diagnostics']
 
-    if has_ec:
+    if HasEC():
+      with open(os.path.join(tmp, 'ec_version'), 'w') as f:
+        Spawn(['ectool', 'version'], stdout=f, check_call=True)
+      files += ['ec_version']
       with open(os.path.join(tmp, 'ec_console'), 'w') as f:
         Spawn(['ectool', 'console'],
               stdout=f, stderr=f, call=True)
