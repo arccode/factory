@@ -44,21 +44,6 @@ class CameraError(Exception):
   """Camera device exception class."""
 
 
-# TODO(menghuan): remove this dead code?
-def EncodeCVImage(img, file_ext):
-  """Encodes OpenCV image to common image format.
-
-  Args:
-    img: OpenCV image.
-    file_ext: Image filename extension. Ex: '.bmp', '.jpg', etc.
-
-  Returns:
-    Encoded image data.
-  """
-  unused_retval, data = cv.imencode(file_ext, img)
-  return data
-
-
 def ReadImageFile(filename):
   """Reads an image file.
 
