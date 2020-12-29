@@ -16,7 +16,7 @@ class GenericVideoFunction(cached_probe_function.GlobPathCachedProbeFunction):
 
   GLOB_PATH = '/sys/class/video4linux/video*'
 
-  _probed_dev_paths = set()
+  _probed_dev_paths = {}
 
   @classmethod
   def ProbeDevice(cls, dir_path):
@@ -24,24 +24,34 @@ class GenericVideoFunction(cached_probe_function.GlobPathCachedProbeFunction):
 
     dev_path = os.path.abspath(os.path.realpath(os.path.join(dir_path,
                                                              'device')))
-    if dev_path in cls._probed_dev_paths:
-      return None
-    cls._probed_dev_paths.add(dev_path)
+    if dev_path not in cls._probed_dev_paths:
+      # We don't know if this is an USB device or not, let's check.
+      results = function.InterpretFunction(
+          {'usb': os.path.join(dev_path, '..')})()
+      assert len(results) <= 1
 
-    result = {}
+      if len(results) == 0:
+        # This is not an USB component, therefore, not a USB webcam.
+        # We might need to deal with this case when we have discrete GPU in the
+        # future.
+        cls._probed_dev_paths[dev_path] = (None, None)
+      else:
+        cls._probed_dev_paths[dev_path] = (results[0], [])
 
-    results = function.InterpretFunction(
-        {'usb': os.path.join(dev_path, '..')})()
-    assert len(results) <= 1
-    if len(results) == 1:
-      result.update(results[0])
-    else:
+    result, comp_types = cls._probed_dev_paths[dev_path]
+    if result is None:
+      # This is not an USB component, skip.
       return None
 
     # Get video4linux2 (v4l2) result.
     video_idx = re.search(r'video(\d+)$', dir_path).group(1)
-    v4l2_data = v4l2_utils.GetV4L2Data(int(video_idx))
-    if v4l2_data:
-      result.update(v4l2_data)
-
-    return result
+    comp_type = v4l2_utils.GuessComponentType(int(video_idx))
+    if comp_type is not None and comp_type not in comp_types:
+      assert len(comp_types) == 0, (f'A component cannot be both {comp_types} '
+                                    'at the same time.')
+      comp_types.append(comp_type)
+      result['type'] = comp_type
+      return result
+    # Either comp_type is None, or we already returned probe result with this
+    # type before, don't return anything in this round.
+    return None
