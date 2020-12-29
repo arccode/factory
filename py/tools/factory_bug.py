@@ -239,6 +239,17 @@ def MountRemovable(read_only=False):
   raise RuntimeError(f'Unable to mount any of {partitions}')
 
 
+def GlobAll(*args):
+  """`glob` all arguments. For prettier formatting.
+
+  Args:
+    Paths for `glob`.
+  Returns:
+    List of all globed paths.
+  """
+  return list(chain.from_iterable(glob(x) for x in args))
+
+
 def RunCommandAndSaveOutputToFile(command, filename, check_call=True,
                                   include_stderr=False):
   """Run command and save its output to file.
@@ -300,7 +311,7 @@ def AppendLogToABT(abt_file, log_file):
     f.write(b'---------- END ----------\n')
 
 
-def GenerateDRAMCalibrationLog(tmp_dir):
+def GenerateDRAMCalibrationLog():
   dram_logs = [
       'DRAMK_LOG',          # Plain text logs for devices with huge output in
                             # memory training, for example Kukui.
@@ -313,23 +324,22 @@ def GenerateDRAMCalibrationLog(tmp_dir):
       'RW_MRC_CACHE',       # On most x86 devices, for normal boot.
   ]
   with file_utils.UnopenedTemporaryFile() as bios_bin:
-    Spawn(['flashrom', '-p', 'host', '-r', bios_bin],
-          check_call=True, ignore_stdout=True, ignore_stderr=True)
-    Spawn(['dump_fmap', '-x', bios_bin] + dram_logs,
-          check_call=True, ignore_stdout=True, ignore_stderr=True, cwd=tmp_dir)
+    Spawn(['flashrom', '-p', 'host', '-r', bios_bin], check_call=True,
+          ignore_stdout=True, ignore_stderr=True)
+    # This command generates files under current directory.
+    Spawn(['dump_fmap', '-x', bios_bin] + dram_logs, check_call=True,
+          ignore_stdout=True, ignore_stderr=True)
 
   # Special case of trimming DRAMK_LOG. DRAMK_LOG is a readable file with some
   # noise appended, like this: TEXT + 0x00 + (0xff)*N
-  dramk_file = os.path.join(tmp_dir, 'DRAMK_LOG')
-  if os.path.isfile(dramk_file):
-    with open(dramk_file, 'rb+') as f:
+  if os.path.isfile('DRAMK_LOG'):
+    with open('DRAMK_LOG', 'rb+') as f:
       data = f.read()
       f.seek(0)
       f.write(data.strip(b'\xff').strip(b'\x00'))
       f.truncate()
 
-  return [log for log in dram_logs
-          if os.path.isfile(os.path.join(tmp_dir, log))]
+  return [log for log in dram_logs if os.path.isfile(log)]
 
 
 def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
@@ -373,6 +383,15 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
     return output_file
 
   with file_utils.TempDirectory(prefix='factory_bug.') as tmp:
+    # Link these paths so their path will remain the same in the zip archive.
+    os.symlink(var, os.path.join(tmp, 'var'))
+    file_utils.TryMakeDirs(os.path.join(tmp, 'usr'))
+    os.symlink(usr_local, os.path.join(tmp, 'usr', 'local'))
+    os.symlink(etc, os.path.join(tmp, 'etc'))
+    # These are hardcoded paths because they are virtual filesystems. The data
+    # we want is always in /dev and /sys, never on the real devices.
+    os.symlink('/sys', os.path.join(tmp, 'sys'))
+    os.chdir(tmp)
 
     # Create abt.txt to support Android Bug Tool (ABT), which lives in tmp dir
     # but only gets included in bug report when 'abt' is set to True.
@@ -389,8 +408,7 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
         Run('audio_diagnostics', filename='audio_diagnostics', check_call=False,
             include_stderr=True),
         # Cannot zip an unseekable file, need to manually copy it instead.
-        Run(['cat', '/sys/firmware/log'], filename='bios_log',
-            check_call=False),
+        Run(['cat', 'sys/firmware/log'], filename='bios_log', check_call=False),
     ]
     if HasEC():
       files += [
@@ -404,31 +422,26 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
               check_call=False),
       ]
 
-    files += sum([
-        glob(x) for x in [
-            os.path.join(var, 'log'),
-            os.path.join(var, 'factory'),
-            os.path.join(var, 'spool', 'crash'),
-            os.path.join(usr_local, 'factory', 'TOOLKIT_VERSION'),
-            os.path.join(usr_local, 'factory', 'hwid'),
-            os.path.join(etc, 'lsb-release'),
-            os.path.join(usr_local, 'etc', 'lsb-*'),
-            # These are hardcoded paths because they are virtual
-            # filesystems; the data we want is always in /dev and
-            # /sys, never on the SSD.
-            '/sys/fs/pstore',
-        ]], [])
+    files += GlobAll(
+        'etc/lsb-release',
+        'sys/fs/pstore',
+        'usr/local/etc/lsb-*',
+        'usr/local/factory/TOOLKIT_VERSION',
+        'usr/local/factory/hwid',
+        'var/factory',
+        'var/log',
+        'var/spool/crash',
+    )
 
     if abt:
       # Except those debug info that are explicitly created e.g. cros_system,
       # dmesg etc., the following files are also valuable.
-      files_for_abt = sum([
-          glob(x) for x in [
-              os.path.join(var, 'factory', 'log', '*.log'),
-              os.path.join(var, 'log', 'messages'),
-              os.path.join(var, 'log', 'power_manager', 'powerd.LATEST'),
-              os.path.join('/sys/fs/pstore', 'console-ramoops-0'),
-          ]], [])
+      files_for_abt = GlobAll(
+          'sys/fs/pstore/console-ramoops-0',
+          'var/factory/log/*.log',
+          'var/log/messages',
+          'var/log/power_manager/powerd.LATEST',
+      )
 
       for path in files + files_for_abt:
         path = os.path.join(tmp, path)
@@ -446,7 +459,7 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
     # Generate DRAM logs after adding files into abt.txt, since some of them
     # are unreadable and we don't want them to be included.
     if dram:
-      files += GenerateDRAMCalibrationLog(tmp)
+      files += GenerateDRAMCalibrationLog()
       # Manually add trimmed DRAMK_LOG into abt file
       if 'DRAMK_LOG' in files and abt:
         AppendLogToABT(abt_file, os.path.join(tmp, 'DRAMK_LOG'))
@@ -458,11 +471,11 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
     exclude_files = list(
         chain.from_iterable(('--exclude', x) for x in [
             os.path.join(env_paths.DATA_STATE_DIR, chrome_data_dir_name),
-            os.path.join(var, 'log', 'journal/*'),
+            'var/log/journal/*',
             'Extensions',
         ]))
     if not net:
-      exclude_files += ['--exclude', os.path.join(var, 'log', 'net.log')]
+      exclude_files += ['--exclude', 'var/log/net.log']
 
     file_utils.TryMakeDirs(os.path.dirname(output_file))
     logging.info('Saving %s to %s...', files, output_file)
