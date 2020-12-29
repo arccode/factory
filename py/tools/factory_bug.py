@@ -14,9 +14,8 @@ import os
 import stat
 import sys
 
-from cros.factory.test.env import paths as env_paths
 from cros.factory.utils import file_utils
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import CalledProcessError, Spawn
 from cros.factory.utils import sys_utils
 
 
@@ -464,35 +463,30 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
       if 'DRAMK_LOG' in files and abt:
         AppendLogToABT(abt_file, os.path.join(tmp, 'DRAMK_LOG'))
 
-    # Name of Chrome data directory within the state directory.
-    chrome_data_dir_name = 'chrome-data-dir'
-
-    # Exclude various items from bug reports.
-    exclude_files = list(
-        chain.from_iterable(('--exclude', x) for x in [
-            os.path.join(env_paths.DATA_STATE_DIR, chrome_data_dir_name),
-            'var/log/journal/*',
-            'Extensions',
-        ]))
+    # Patterns for those files which are excluded from factory_bug.
+    exclude_patterns = [
+        'var/log/journal/*',
+    ]
     if not net:
-      exclude_files += ['--exclude', 'var/log/net.log']
+      exclude_patterns += ['var/log/net.log']
 
     file_utils.TryMakeDirs(os.path.dirname(output_file))
     logging.info('Saving %s to %s...', files, output_file)
-    compress_method = ['zip', output_file]
-    process = Spawn(compress_method + exclude_files + ['-r'] + files,
-                    cwd=tmp, call=True,
-                    ignore_stdout=True,
-                    read_stderr=True)
-    # 0 = successful termination
-    # 1 = non-fatal errors like "some files differ"
-    if process.returncode not in [0, 1]:
-      logging.error('zip stderr:\n%s', process.stderr_data)
-      raise IOError('zip process failed with returncode %d' %
-                    process.returncode)
+    try:
+      zip_command = (['zip', '-r', output_file] + files + ['--exclude'] +
+                     exclude_patterns)
+      Spawn(zip_command, cwd=tmp, check_call=True, read_stdout=True,
+            read_stderr=True)
+    except CalledProcessError as e:
+      # 1 = non-fatal errors like "some files differ"
+      if e.returncode != 1:
+        logging.error(
+            'Command "zip" exited with return code: %d\n'
+            'Stdout: %s\n Stderr: %s\n', e.returncode, e.stdout, e.stderr)
+        raise
 
-    logging.info('Wrote %s (%d bytes)', output_file,
-                 os.path.getsize(output_file))
+    logging.warning('Wrote %s (%d bytes)', output_file,
+                    os.path.getsize(output_file))
 
   return output_file
 
