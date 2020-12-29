@@ -239,6 +239,37 @@ def MountRemovable(read_only=False):
   raise RuntimeError(f'Unable to mount any of {partitions}')
 
 
+def RunCommandAndSaveOutputToFile(command, filename, check_call=True,
+                                  include_stderr=False):
+  """Run command and save its output to file.
+
+  Args:
+    command: Command pass to `Spawn()`.
+    filename: Filename to write output.
+    check_call: If true, check if the command return non-zero.
+    include_stderr: To include stderr in output file or not.
+  Returns:
+    filename
+  """
+  with open(filename, 'w') as f:
+    options = {
+        'stdout': f,
+    }
+    if check_call:
+      options['check_call'] = True
+    else:
+      options['call'] = True
+    if include_stderr:
+      options['stderr'] = f
+    else:
+      options['ignore_stderr'] = True
+    logging.info('Generating %s', filename)
+    logging.debug('Output: %s, Check Call: %s, Inlcude Stderr: %s, Command: %s',
+                  filename, check_call, include_stderr, command)
+    Spawn(command, **options)
+  return filename
+
+
 def HasEC():
   """SuperIO-based platform has no EC chip, check its existence first.
 
@@ -322,7 +353,6 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
     The name of the zip archive joined with `output_dir`.
   """
   output_dir = os.path.realpath(output_dir)
-  files = []
 
   filename = 'factory_bug.'
   if archive_id:
@@ -350,40 +380,29 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
     abt_file = os.path.join(tmp, abt_name)
     file_utils.TouchFile(abt_file)
 
-    with open(os.path.join(tmp, 'crossystem'), 'w') as f:
-      Spawn('crossystem', stdout=f, stderr=f, check_call=True)
-      files += ['crossystem']
-
-    with open(os.path.join(tmp, 'dmesg'), 'w') as f:
-      Spawn('dmesg', stdout=f, check_call=True)
-      files += ['dmesg']
-
-    with open(os.path.join(tmp, 'mosys_eventlog'), 'w') as f:
-      Spawn(['mosys', 'eventlog', 'list'], stdout=f, stderr=f, call=True)
-      files += ['mosys_eventlog']
-
-    with open(os.path.join(tmp, 'audio_diagnostics'), 'w') as f:
-      Spawn('audio_diagnostics', stdout=f, stderr=f, call=True)
-      files += ['audio_diagnostics']
-
+    Run = RunCommandAndSaveOutputToFile
+    files = [
+        Run('crossystem', filename='crossystem', include_stderr=True),
+        Run('dmesg', filename='dmesg'),
+        Run(['mosys', 'eventlog', 'list'], filename='mosys_eventlog',
+            check_call=False, include_stderr=True),
+        Run('audio_diagnostics', filename='audio_diagnostics', check_call=False,
+            include_stderr=True),
+        # Cannot zip an unseekable file, need to manually copy it instead.
+        Run(['cat', '/sys/firmware/log'], filename='bios_log',
+            check_call=False),
+    ]
     if HasEC():
-      with open(os.path.join(tmp, 'ec_version'), 'w') as f:
-        Spawn(['ectool', 'version'], stdout=f, check_call=True)
-      files += ['ec_version']
-      with open(os.path.join(tmp, 'ec_console'), 'w') as f:
-        Spawn(['ectool', 'console'],
-              stdout=f, stderr=f, call=True)
-      files += ['ec_console']
-
-    # Cannot zip an unseekable file, need to manually copy it instead.
-    with open(os.path.join(tmp, 'bios_log'), 'w') as f:
-      Spawn(['cat', '/sys/firmware/log'], stdout=f, call=True)
-      files += ['bios_log']
-
+      files += [
+          Run(['ectool', 'version'], filename='ec_version'),
+          Run(['ectool', 'console'], filename='ec_console', check_call=False,
+              include_stderr=True),
+      ]
     if probe:
-      with open(os.path.join(tmp, 'probe_result.json'), 'w') as f:
-        Spawn(['hwid', 'probe'], stdout=f, ignore_stderr=True, call=True)
-      files += ['probe_result.json']
+      files += [
+          Run(['hwid', 'probe'], filename='probe_result.json',
+              check_call=False),
+      ]
 
     files += sum([
         glob(x) for x in [
