@@ -217,7 +217,7 @@ class GoofyRPC:
 
   def IsUSBDriveAvailable(self):
     try:
-      with factory_bug.MountUSB(read_only=True):
+      with factory_bug.MountRemovable(read_only=True):
         return True
     except (IOError, OSError):
       return False
@@ -234,7 +234,7 @@ class GoofyRPC:
         temporary: Whether the USB drive was temporarily mounted
     """
     try:
-      with factory_bug.MountUSB() as mount:
+      with factory_bug.MountRemovable() as mount:
         output_file = factory_bug.SaveLogs(mount.mount_point,
                                            archive_id=archive_id,
                                            probe=probe)

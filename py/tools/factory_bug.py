@@ -11,7 +11,6 @@ from glob import glob
 from itertools import chain
 import logging
 import os
-import re
 import shutil
 import stat
 import sys
@@ -47,7 +46,7 @@ EXAMPLES = """Examples:
 
     # Save logs to a USB drive (using the first one already mounted, or the
     # first mountable on any USB device if none is mounted yet)
-    factory_bug --usb
+    factory_bug --save-to-removable
 
   When booting from an USB drive:
 
@@ -190,81 +189,56 @@ def MountInputDevice(dev):
 
 
 @contextlib.contextmanager
-def MountUSB(read_only=False):
-  """Mounts (or re-uses) a USB drive, returning the path.
+def MountRemovable(read_only=False):
+  """Mounts (or re-uses) a removable device.
 
-  Acts as a context manager.  If we mount a partition, we will
-  unmount it when exiting the context manager.
+  Scan all the devices under /sys/block/, use the first removable device. Check
+  if there is any mounted partition. Yield that partition or try to mount a
+  partition of the device.
 
-  First attempts to find a mounted USB drive; if one is found,
-  its path is returned (and it will never be unmounted).
+  Args:
+    read_only: If we mount device we mount it read only. Used by goofy_rpc.py
 
-  Next attempts to mount partitions 1-9 on any USB drive.
-  If this succeeds, the path is returned, and it will be unmounted
-  when exiting the context manager.
-
-  Returns:
-    A MountUSBInfo object.
+  Yields:
+    MountUSBInfo: This is used by goofy_rpc.py
 
   Raises:
-    IOError if no mounted or mountable partition is found.
+    RuntimeError if no removable device is available or cannot mount any
+    partition of a removable device.
   """
-  usb_devices = set(os.path.basename(x)
-                    for x in glob('/sys/class/block/sd?')
-                    if '/usb' in os.readlink(x))
-  if not usb_devices:
-    raise IOError('No USB devices available')
+  devices = [os.path.basename(x) for x in glob('/sys/block/*')]
+  removables = [x for x in devices if IsDeviceRemovable(x)]
+  if not removables:
+    raise RuntimeError('No removable device is available.')
 
-  # See if any are already mounted
-  mount_output = Spawn(['mount'], read_stdout=True,
-                       check_call=True, log=True).stdout_data
-  matches = [x for x in re.findall(r'^(/dev/(sd[a-z])\d*) on (\S+)',
-                                   mount_output, re.MULTILINE)
-             if x[1] in usb_devices]
-  if matches:
-    dev, _, path = matches[0]
-    # Already mounted: yield it and we're done
-    logging.info('Using mounted USB drive %s on %s', dev, path)
-    yield MountUSBInfo(dev=dev, mount_point=path, temporary=False)
+  if len(removables) > 1:
+    logging.warning('More than one removable devices are found: %s', removables)
+  dev = removables[0]
 
-    # Just to be on the safe side, sync once the caller says they're
-    # done with it.
-    Spawn(['sync'], call=True)
-    return
+  mount_point_map = GetDeviceMountPointMapping(dev)
+  for part, mount_point in mount_point_map.items():
+    if mount_point:
+      logging.info('Using mounted device %s on %s', part, mount_point)
+      yield MountUSBInfo(dev=dev, mount_point=mount_point, temporary=False)
+      # The device is synced once to make sure the data is written to the device
+      # since we cannot guarantee that this device will be unmount correctly.
+      Spawn(['sync'], call=True)
+      return
 
-  # Try to mount it (and unmount it later).  We'll try the whole
-  # drive first, then each individual partition
-  tried = []
-  for usb_device in usb_devices:
-    for suffix in [''] + [str(x) for x in range(1, 10)]:
-      mount_dir = tempfile.mkdtemp(
-          prefix='usb_mount.%s%s.' % (usb_device, suffix))
-      dev = '/dev/%s%s' % (usb_device, suffix)
-      tried.append(dev)
-      try:
-        if Spawn(['mount'] +
-                 (['-o', 'ro'] if read_only else []) +
-                 [dev, mount_dir],
-                 ignore_stdout=True, ignore_stderr=True,
-                 call=True).returncode == 0:
-          # Success
-          logging.info('Mounted %s on %s', dev, mount_dir)
-          yield MountUSBInfo(dev=dev, mount_point=mount_dir, temporary=True)
-          return
-      finally:
-        # Always try to unmount, even if we think the mount
-        # failed.
-        if Spawn(['umount', '-l', mount_dir],
-                 ignore_stdout=True, ignore_stderr=True,
-                 call=True).returncode == 0:
-          logging.info('Unmounted %s', dev)
-        try:
-          os.rmdir(mount_dir)
-        except OSError:
-          logging.exception('Unable to remove %s', mount_dir)
+  # Try to mount the whole device first, then try to mount each partition.
+  partitions = sorted(x for x in mount_point_map)
+  for part in partitions:
+    try:
+      mounter = sys_utils.MountPartition(f'/dev/{part}', rw=not read_only)
+    except Exception:
+      logging.debug('Mount %s failed.', part)
+      continue
+    with mounter as mount_point:
+      logging.warning('Mount success. Mounted `%s` at `%s`', part, mount_point)
+      yield MountUSBInfo(dev=dev, mount_point=mount_point, temporary=True)
+      return
 
-  # Oh well
-  raise IOError('Unable to mount any of %s' % tried)
+  raise RuntimeError(f'Unable to mount any of {partitions}')
 
 
 def HasEC():
@@ -513,7 +487,7 @@ def ParseArgument():
             f'`/tmp`, but defaults to `{USB_ROOT_OUTPUT_DIR}` when booted '
             'from USB.'))
   parser.add_argument(
-      '--usb', action='store_true',
+      '--save-to-removable', '-s', action='store_true',
       help=('Save logs to a USB stick. (Using any mounted USB drive partition '
             'if available, otherwise attempting to temporarily mount one)'))
   parser.add_argument(
@@ -566,12 +540,13 @@ def InputDevice(root_is_removable, input_device):
 
 
 @contextlib.contextmanager
-def OutputDevice(root_is_removable, save_to_usb, output_dir, parser):
+def OutputDevice(root_is_removable, save_to_removable, output_dir, parser):
   """Get output path."""
-  if save_to_usb:
+  if save_to_removable:
     if root_is_removable:
-      parser.error('--usb only applies when root device is not removable.')
-    with MountUSB() as mount:
+      parser.error(
+          '--save-to-removable only applies when root device is not removable.')
+    with MountRemovable() as mount:
       yield mount.mount_point
     return
 
@@ -588,8 +563,8 @@ def main():
   root_is_removable = IsDeviceRemovable(GetRootDevice())
 
   input_device = InputDevice(root_is_removable, args.input_device)
-  output_device = OutputDevice(root_is_removable, args.usb, args.output_dir,
-                               parser)
+  output_device = OutputDevice(root_is_removable, args.save_to_removable,
+                               args.output_dir, parser)
   with input_device as input_paths, output_device as output_path:
     SaveLogs(output_path, args.id, **options, **input_paths)
 
