@@ -11,10 +11,8 @@ from glob import glob
 from itertools import chain
 import logging
 import os
-import shutil
 import stat
 import sys
-import tempfile
 
 from cros.factory.test.env import paths as env_paths
 from cros.factory.utils import file_utils
@@ -340,18 +338,17 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
              os.path.join(d, 'dummy-factory-bug')], check_call=True)
     return output_file
 
-  tmp = tempfile.mkdtemp(prefix='factory_bug.')
+  with file_utils.TempDirectory(prefix='factory_bug.') as tmp:
 
-  # Create abt.txt to support Android Bug Tool (ABT), which lives in tmp dir
-  # but only gets included in bug report when 'abt' is set to True.
-  abt_name = 'abt.txt'
-  abt_file = os.path.join(tmp, abt_name)
-  file_utils.TouchFile(abt_file)
+    # Create abt.txt to support Android Bug Tool (ABT), which lives in tmp dir
+    # but only gets included in bug report when 'abt' is set to True.
+    abt_name = 'abt.txt'
+    abt_file = os.path.join(tmp, abt_name)
+    file_utils.TouchFile(abt_file)
 
-  # SuperIO-based platform has no EC chip, check its existence first.
-  has_ec = HasEC()
+    # SuperIO-based platform has no EC chip, check its existence first.
+    has_ec = HasEC()
 
-  try:
     with open(os.path.join(tmp, 'crossystem'), 'w') as f:
       Spawn('crossystem', stdout=f, stderr=f, check_call=True)
       if has_ec:
@@ -464,8 +461,6 @@ def SaveLogs(output_dir, archive_id=None, net=False, probe=False, dram=False,
 
     logging.info('Wrote %s (%d bytes)', output_file,
                  os.path.getsize(output_file))
-  finally:
-    shutil.rmtree(tmp, ignore_errors=True)
 
   return output_file
 
