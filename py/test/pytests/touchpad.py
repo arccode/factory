@@ -56,6 +56,7 @@ from cros.factory.test import test_ui
 from cros.factory.test.utils import evdev_utils
 from cros.factory.test.utils import touch_monitor
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.utils import process_utils
 
 
 class TouchpadMonitor(touch_monitor.MultiTouchMonitor):
@@ -175,6 +176,8 @@ class TouchpadTest(test_case.TestCase):
     self.quadrant_count = [None, 0, 0, 0, 0]
     self.single_click_count = 0
     self.double_click_count = 0
+    # Disable lid function since lid open|close will trigger button up event.
+    process_utils.CheckOutput(['ectool', 'forcelidopen', '1'])
 
   def tearDown(self):
     """Clean-up stuff.
@@ -185,6 +188,8 @@ class TouchpadTest(test_case.TestCase):
     if self.dispatcher is not None:
       self.dispatcher.close()
     self.touchpad_device.ungrab()
+    # Enable lid function.
+    process_utils.CheckOutput(['ectool', 'forcelidopen', '0'])
 
   def GetSpec(self):
     """Gets device name, btn_right."""
