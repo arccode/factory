@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-11-25 13:51+CST\n"
+"PO-Revision-Date: 2020-12-31 13:02+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -1932,6 +1932,11 @@ msgstr ""
 msgid "Disconnect external display: {display}"
 msgstr "Tháo màn hình ngoài: {display}"
 
+#: ../py/test/pytests/external_display.py
+#: ../py/test/pytests/removable_storage.py
+msgid "Wrong USB side, please flip over {media}."
+msgstr "Định hướng USB sai, vui lòng đảo ngược hướng của {media} ..."
+
 #: ../py/test/pytests/fan_speed.py
 msgid "{fan_spin_direction}: {observed_rpm} -> {target_rpm} RPM."
 msgstr "{fan_spin_direction}: {observed_rpm} -> {target_rpm} RPM."
@@ -2394,10 +2399,6 @@ msgid ""
 msgstr ""
 "Chèn {media} bộ nhớ cho các bài kiểm tra đọc và viết... {extra}<br>ưu ý: Dữ "
 "liệu được chèn vào thiết bị sẽ bị xóa!!"
-
-#: ../py/test/pytests/removable_storage.py
-msgid "Wrong USB side, please flip over {media}."
-msgstr "Định hướng USB sai, vui lòng đảo ngược hướng của {media} ..."
 
 #: ../py/test/pytests/removable_storage.py
 msgid "Remove {media} drive..."

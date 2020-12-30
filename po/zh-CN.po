@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-11-25 13:51+CST\n"
+"PO-Revision-Date: 2020-12-31 13:02+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -1890,6 +1890,11 @@ msgstr "请接上外接显示屏: {display} 并等待其成为主要显示屏。
 msgid "Disconnect external display: {display}"
 msgstr "移除外接显示屏: {display}"
 
+#: ../py/test/pytests/external_display.py
+#: ../py/test/pytests/removable_storage.py
+msgid "Wrong USB side, please flip over {media}."
+msgstr "USB 方向错误，请将 {media} 反转方向..."
+
 #: ../py/test/pytests/fan_speed.py
 msgid "{fan_spin_direction}: {observed_rpm} -> {target_rpm} RPM."
 msgstr "{fan_spin_direction}: {observed_rpm} -> {target_rpm} RPM."
@@ -2342,10 +2347,6 @@ msgid ""
 msgstr ""
 "插入 {media} 存储以进行读写测试... {extra}<br>注意: 插入装置上的资料将会被清"
 "除!"
-
-#: ../py/test/pytests/removable_storage.py
-msgid "Wrong USB side, please flip over {media}."
-msgstr "USB 方向错误，请将 {media} 反转方向..."
 
 #: ../py/test/pytests/removable_storage.py
 msgid "Remove {media} drive..."

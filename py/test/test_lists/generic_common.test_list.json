@@ -332,10 +332,13 @@
       "args": {
         "main_display": "eDP-1",
         "display_info": [
-          "External Dispaly",
-          "HDMI",
-          null,
-          0
+          {
+            "display_label": "External Display",
+            "display_id": "HDMI",
+            "usbpd_spec": {
+              "port": 0
+            }
+          }
         ]
       }
     },

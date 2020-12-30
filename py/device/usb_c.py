@@ -6,6 +6,69 @@ import logging
 import re
 
 from cros.factory.device import device_types
+from cros.factory.utils import schema
+
+
+USB_PD_SPEC_SCHEMA_V1 = schema.JSONSchemaDict('USB PD specification schema v1',
+                                              {'type': 'integer'})
+
+USB_PD_SPEC_SCHEMA_V2 = schema.JSONSchemaDict('USB PD specification schema v2',
+                                              {
+                                                  'type': 'array',
+                                                  'items': {
+                                                      'type': 'integer'
+                                                  },
+                                                  'minItems': 2,
+                                                  'maxItems': 2
+                                              })
+
+USB_PD_SPEC_SCHEMA_V3 = schema.JSONSchemaDict(
+    'USB PD specification schema v3', {
+        'type': 'object',
+        'properties': {
+            'port': {
+                'type': 'integer'
+            },
+            'polarity': {
+                'type': 'integer'
+            },
+            'connected': {
+                'type': 'boolean'
+            }
+        },
+        'additionalProperties': False,
+        'required': ['port']
+    })
+
+USB_PD_SPEC_SCHEMA = schema.JSONSchemaDict(
+    'USB PD specification schema', {
+        'anyOf': [
+            USB_PD_SPEC_SCHEMA_V1.schema,
+            USB_PD_SPEC_SCHEMA_V2.schema,
+            USB_PD_SPEC_SCHEMA_V3.schema,
+        ]
+    })
+
+
+def MigrateUSBPDSpec(spec):
+  """Migrate spec from old schema to newest schema.
+
+  Args:
+    spec: An object satisfies USB_PD_SPEC_SCHEMA.
+
+  Returns:
+    An object satisfies USB_PD_SPEC_SCHEMA_V3.
+  """
+  if isinstance(spec, int):
+    return {
+        'port': spec
+    }
+  if isinstance(spec, (list, tuple)):
+    return {
+        'port': spec[0],
+        'polarity': spec[1]
+    }
+  return spec
 
 
 class USBTypeC(device_types.DeviceComponent):
@@ -134,6 +197,24 @@ class USBTypeC(device_types.DeviceComponent):
               status['vconn'] = match.group('vconn')
         return status
     raise self.Error('Unable to parse USB PD status from: %s' % response)
+
+  def VerifyPDStatus(self, spec):
+    """Verify PD status with spec.
+
+    Args:
+      spec: An object satisfies USB_PD_SPEC_SCHEMA_V3.
+
+    Returns:
+      (True, {}) if the specification is satisfied. Otherwise, (False,
+      mismatch_fields).
+    """
+    pd_status = self.GetPDStatus(spec['port'])
+    mismatch_fields = {}
+    if 'connected' in spec and pd_status['connected'] != spec['connected']:
+      mismatch_fields['connected'] = pd_status['connected']
+    if 'polarity' in spec and pd_status['polarity'] != f"CC{spec['polarity']}":
+      mismatch_fields['polarity'] = pd_status['polarity']
+    return not mismatch_fields, mismatch_fields
 
   def GetPDPowerStatus(self):
     """Get USB PD Power Status

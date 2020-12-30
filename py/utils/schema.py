@@ -356,6 +356,16 @@ class JSONSchemaDict(BaseType):
         raise SchemaException('Fail to validate %r with JSON schema %r: %r' %
                               (data, self.schema, e))
 
+  def CreateOptional(self):
+    """Creates a new schema that accepts null and itself."""
+    return JSONSchemaDict(f'{self.label} or null',
+                          {'anyOf': [
+                              {
+                                  'type': 'null'
+                              },
+                              self.schema,
+                          ]})
+
 
 class List(BaseType):
   """List schema class.

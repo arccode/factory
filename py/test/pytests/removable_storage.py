@@ -109,6 +109,7 @@ import subprocess
 import threading
 
 from cros.factory.device import device_utils
+from cros.factory.device import usb_c
 from cros.factory.test.event_log import Log
 from cros.factory.test import session
 from cros.factory.test.fixture import bft_fixture
@@ -195,7 +196,7 @@ class RemovableStorageTest(test_case.TestCase):
       Arg('bft_media_device', str,
           'Device name of BFT used to insert/remove the media.', default=None),
       Arg('usbpd_port_polarity', list, 'Two integers [port, polarity]',
-          default=None),
+          default=None, schema=usb_c.USB_PD_SPEC_SCHEMA.CreateOptional()),
       Arg('fail_check_polarity', bool,
           ('If set to True or skip_insert_remove is True, would fail the test '
            'directly when polarity is wrong. '
@@ -714,9 +715,9 @@ class RemovableStorageTest(test_case.TestCase):
     """Verifies the USB PD CC line polarity on the port."""
     if not self.args.usbpd_port_polarity:
       return True
-    port, polarity = self.args.usbpd_port_polarity
-    port_status = self._dut.usb_c.GetPDStatus(port)
-    return port_status['polarity'] == 'CC%d' % polarity
+    usbpd_spec = usb_c.MigrateUSBPDSpec(self.args.usbpd_port_polarity)
+    usbpd_verified, unused_mismatch = self._dut.usb_c.VerifyPDStatus(usbpd_spec)
+    return usbpd_verified
 
   def FixtureCommand(self, mode):
     """Command the fixture.
