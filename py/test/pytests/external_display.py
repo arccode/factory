@@ -491,6 +491,8 @@ class ExtDisplayTest(test_case.TestCase):
     else:
       usbpd_spec = args.usbpd_spec.copy()
       usbpd_spec['connected'] = connect
+      if 'DP' not in usbpd_spec or usbpd_spec['DP']:
+        usbpd_spec['DP'] = connect
     while True:
       # Check USBPD status before display info
       usbpd_verified = True
@@ -502,6 +504,12 @@ class ExtDisplayTest(test_case.TestCase):
           self.ui.SetInstruction(
               _('Wrong USB side, please flip over {media}.',
                 media=args.display_label))
+        else:
+          mismatch_mux = set(usb_c.MUX_INFO_VALUES) & set(mismatch)
+          messages = ','.join(
+              '%s=%s' % (key, mismatch[key]) for key in mismatch_mux)
+          self.ui.SetInstruction(
+              _('Wrong MUX information: {messages}.', messages=messages))
 
       if usbpd_verified:
         display_connected = False

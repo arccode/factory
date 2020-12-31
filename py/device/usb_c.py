@@ -34,6 +34,9 @@ USB_PD_SPEC_SCHEMA_V3 = schema.JSONSchemaDict(
             },
             'connected': {
                 'type': 'boolean'
+            },
+            'DP': {
+                'type': 'boolean'
             }
         },
         'additionalProperties': False,
@@ -48,6 +51,12 @@ USB_PD_SPEC_SCHEMA = schema.JSONSchemaDict(
             USB_PD_SPEC_SCHEMA_V3.schema,
         ]
     })
+
+MUX_INFO_BOOLEAN_VALUES = [
+    'USB', 'DP', 'HPD_IRQ', 'HPD_LVL', 'SAFE', 'TBT', 'USB4'
+]
+MUX_INFO_STRING_VALUES = ['POLARITY']
+MUX_INFO_VALUES = MUX_INFO_BOOLEAN_VALUES + MUX_INFO_STRING_VALUES
 
 
 def MigrateUSBPDSpec(spec):
@@ -198,6 +207,31 @@ class USBTypeC(device_types.DeviceComponent):
         return status
     raise self.Error('Unable to parse USB PD status from: %s' % response)
 
+  def GetPDMuxInfo(self, port):
+    """Gets the USB PD Mux information.
+
+    Args:
+      port: The USB port number.
+    Returns:
+      A dict that contains fields which 'ectool usbpdmuxinfo' outputs.
+    """
+    response = self._device.CheckOutput(['ectool'] + self.ECTOOL_PD_ARGS +
+                                        ['usbpdmuxinfo'])
+    re_port = re.compile(r'^Port (\d+): ')
+    re_key_value = re.compile(r'\b(\w+)=(\w+)\b')
+
+    def MatchToPair(match):
+      key, value = match.group(1), match.group(2)
+      return (key, value == '1' if key in MUX_INFO_BOOLEAN_VALUES else value)
+
+    for line in response.splitlines():
+      match = re_port.match(line)
+      if not match:
+        raise self.Error('Unable to parse USB PD Mux from: %s' % response)
+      if int(match.group(1)) == port:
+        return dict(map(MatchToPair, re_key_value.finditer(line)))
+    raise self.Error('Unable to find port %d from: %s' % (port, response))
+
   def VerifyPDStatus(self, spec):
     """Verify PD status with spec.
 
@@ -209,11 +243,14 @@ class USBTypeC(device_types.DeviceComponent):
       mismatch_fields).
     """
     pd_status = self.GetPDStatus(spec['port'])
+    pd_mux_info = self.GetPDMuxInfo(spec['port'])
     mismatch_fields = {}
     if 'connected' in spec and pd_status['connected'] != spec['connected']:
       mismatch_fields['connected'] = pd_status['connected']
     if 'polarity' in spec and pd_status['polarity'] != f"CC{spec['polarity']}":
       mismatch_fields['polarity'] = pd_status['polarity']
+    if 'DP' in spec and pd_mux_info.get('DP') != spec['DP']:
+      mismatch_fields['DP'] = pd_mux_info.get('DP')
     return not mismatch_fields, mismatch_fields
 
   def GetPDPowerStatus(self):

@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2020-12-31 13:02+CST\n"
+"PO-Revision-Date: 2021-01-06 19:38+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -1894,6 +1894,10 @@ msgstr "移除外接显示屏: {display}"
 #: ../py/test/pytests/removable_storage.py
 msgid "Wrong USB side, please flip over {media}."
 msgstr "USB 方向错误，请将 {media} 反转方向..."
+
+#: ../py/test/pytests/external_display.py
+msgid "Wrong MUX information: {messages}."
+msgstr "MUX 资讯错误：{messages}。"
 
 #: ../py/test/pytests/fan_speed.py
 msgid "{fan_spin_direction}: {observed_rpm} -> {target_rpm} RPM."
