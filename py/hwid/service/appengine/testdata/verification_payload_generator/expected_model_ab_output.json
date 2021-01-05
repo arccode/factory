@@ -229,6 +229,188 @@
       }
     }
   },
+  "runtime_probe/model_c/probe_config.json": {
+    "battery": {
+      "generic": {
+        "eval": {"generic_battery": {}},
+        "expect": {
+          "manufacturer": [false, "str"],
+          "model_name": [false, "str"],
+          "technology": [false, "str"]
+        }
+      }
+    },
+    "camera": {
+      "model_c_video_comp_0": {
+        "eval": {
+          "usb_camera": {}
+        },
+        "expect": {
+          "usb_bcd_device": [true, "hex", "!eq 0x0001"],
+          "usb_product_id": [true, "hex", "!eq 0xAABB"],
+          "usb_vendor_id": [true, "hex", "!eq 0xCCDD"]
+        }
+      },
+      "generic": {
+        "eval": {"usb_camera": {}},
+        "expect": {
+          "bus_type": [false, "str"],
+          "usb_vendor_id": [false, "hex"],
+          "usb_product_id": [false, "hex"],
+          "usb_bcd_device": [false, "hex"],
+          "usb_removable": [true, "str", "!re ^(FIXED|UNKNOWN)$"]
+        }
+      }
+    },
+    "display_panel": {
+      "generic": {
+        "eval": {"edid": {}},
+        "expect": {
+          "height": [false, "int"],
+          "product_id": [false, "hex"],
+          "vendor": [false, "str"],
+          "width": [false, "int"]
+        }
+      }
+    },
+    "dram": {
+      "generic": {
+        "eval": {"memory": {}},
+        "expect": {
+          "part": [false, "str"],
+          "size": [false, "int"],
+          "slot": [false, "int"]
+        }
+      }
+    },
+    "network": {
+      "generic": {
+        "eval": {"generic_network": {}},
+        "expect": {
+          "bus_type": [false, "str"],
+          "pci_device_id": [false, "hex"],
+          "pci_revision": [false, "hex"],
+          "pci_vendor_id": [false, "hex"],
+          "pci_subsystem": [false, "hex"],
+          "type": [false, "str"],
+          "usb_bcd_device": [false, "hex"],
+          "usb_product_id": [false, "hex"],
+          "usb_vendor_id": [false, "hex"]
+        }
+      }
+    },
+    "storage": {
+      "generic": {
+        "eval": {"generic_storage": {}},
+        "expect": {
+          "sectors": [false, "int"],
+          "type": [false, "str"],
+          "mmc_hwrev": [false, "hex"],
+          "mmc_manfid": [false, "hex"],
+          "mmc_name": [false, "str"],
+          "mmc_oemid": [false, "hex"],
+          "mmc_prv": [false, "hex"],
+          "mmc_serial": [false, "hex"],
+          "ata_model": [false, "str"],
+          "ata_vendor": [false, "str"],
+          "pci_class": [false, "hex"],
+          "pci_device": [false, "hex"],
+          "pci_vendor": [false, "hex"]
+        }
+      }
+    }
+  },
+  "runtime_probe/model_d/probe_config.json": {
+    "battery": {
+      "generic": {
+        "eval": {"generic_battery": {}},
+        "expect": {
+          "manufacturer": [false, "str"],
+          "model_name": [false, "str"],
+          "technology": [false, "str"]
+        }
+      }
+    },
+    "camera": {
+      "model_d_camera_comp_0": {
+        "eval": {
+          "usb_camera": {}
+        },
+        "expect": {
+          "usb_bcd_device": [true, "hex", "!eq 0x0001"],
+          "usb_product_id": [true, "hex", "!eq 0xAABB"],
+          "usb_vendor_id": [true, "hex", "!eq 0xCCDD"]
+        }
+      },
+      "generic": {
+        "eval": {"usb_camera": {}},
+        "expect": {
+          "bus_type": [false, "str"],
+          "usb_vendor_id": [false, "hex"],
+          "usb_product_id": [false, "hex"],
+          "usb_bcd_device": [false, "hex"],
+          "usb_removable": [true, "str", "!re ^(FIXED|UNKNOWN)$"]
+        }
+      }
+    },
+    "display_panel": {
+      "generic": {
+        "eval": {"edid": {}},
+        "expect": {
+          "height": [false, "int"],
+          "product_id": [false, "hex"],
+          "vendor": [false, "str"],
+          "width": [false, "int"]
+        }
+      }
+    },
+    "dram": {
+      "generic": {
+        "eval": {"memory": {}},
+        "expect": {
+          "part": [false, "str"],
+          "size": [false, "int"],
+          "slot": [false, "int"]
+        }
+      }
+    },
+    "network": {
+      "generic": {
+        "eval": {"generic_network": {}},
+        "expect": {
+          "bus_type": [false, "str"],
+          "pci_device_id": [false, "hex"],
+          "pci_revision": [false, "hex"],
+          "pci_vendor_id": [false, "hex"],
+          "pci_subsystem": [false, "hex"],
+          "type": [false, "str"],
+          "usb_bcd_device": [false, "hex"],
+          "usb_product_id": [false, "hex"],
+          "usb_vendor_id": [false, "hex"]
+        }
+      }
+    },
+    "storage": {
+      "generic": {
+        "eval": {"generic_storage": {}},
+        "expect": {
+          "sectors": [false, "int"],
+          "type": [false, "str"],
+          "mmc_hwrev": [false, "hex"],
+          "mmc_manfid": [false, "hex"],
+          "mmc_name": [false, "str"],
+          "mmc_oemid": [false, "hex"],
+          "mmc_prv": [false, "hex"],
+          "mmc_serial": [false, "hex"],
+          "ata_model": [false, "str"],
+          "ata_vendor": [false, "str"],
+          "pci_class": [false, "hex"],
+          "pci_device": [false, "hex"],
+          "pci_vendor": [false, "hex"]
+        }
+      }
+    }
+  },
   "hw_verification_spec.prototxt": {
     "componentInfos": [
       {

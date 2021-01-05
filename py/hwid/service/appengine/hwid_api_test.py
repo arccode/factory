@@ -169,13 +169,58 @@ class HwidApiTest(unittest.TestCase):
                                                 componentClass='foo'),
             ]), msg)
 
+  def testGetDutLabelsCheckIsVPRelated(self):
+    bom = hwid_manager.Bom()
+    bom.AddAllComponents(
+        {
+            'battery': 'battery_small',
+            'camera': 'camera_0',
+            'cpu': ['cpu_0', 'cpu_1'],
+        }, comp_db=database.Database.LoadFile(GOLDEN_HWIDV3_FILE,
+                                              verify_checksum=False))
+    bom.board = 'foo'
+    bom.phase = 'bar'
+    configless = None
+    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
+
+    req = hwid_api_messages_pb2.DutLabelsRequest(hwid=TEST_HWID)
+    msg = self.service.GetDutLabels(req)
+
+    self.assertEqual(
+        hwid_api_messages_pb2.DutLabelsResponse(
+            status=hwid_api_messages_pb2.Status.SUCCESS,
+            labels=[
+                # Only components with 'is_vp_related=True' will be reported as
+                # hwid_component.
+                hwid_api_messages_pb2.DutLabel(name='hwid_component',
+                                               value='battery/battery_small'),
+                hwid_api_messages_pb2.DutLabel(name='hwid_component',
+                                               value='camera/camera_0'),
+                hwid_api_messages_pb2.DutLabel(name='phase', value='bar'),
+                hwid_api_messages_pb2.DutLabel(name='sku',
+                                               value='foo_cpu_0_cpu_1_0B'),
+            ],
+            possible_labels=[
+                'hwid_component',
+                'phase',
+                'sku',
+                'stylus',
+                'touchpad',
+                'touchscreen',
+                'variant',
+            ]),
+        msg)
+
   def testGetBomComponentsWithVerboseFlag(self):
     bom = hwid_manager.Bom()
-    bom.AddAllComponents({
-        'battery': 'battery_small',
-        'cpu': ['cpu_0', 'cpu_1']
-    }, comp_db=database.Database.LoadFile(GOLDEN_HWIDV3_FILE,
-                                          verify_checksum=False), verbose=True)
+    bom.AddAllComponents(
+        {
+            'battery': 'battery_small',
+            'cpu': ['cpu_0', 'cpu_1'],
+            'camera': 'camera_0',
+        }, comp_db=database.Database.LoadFile(
+            GOLDEN_HWIDV3_FILE, verify_checksum=False), verbose=True)
     configless = None
     self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
     self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
@@ -194,6 +239,14 @@ class HwidApiTest(unittest.TestCase):
                                                     value='model1'),
                         hwid_api_messages_pb2.Field(name='technology',
                                                     value='Battery Li-ion')
+                    ]),
+                hwid_api_messages_pb2.Component(
+                    name='camera_0', componentClass='camera', fields=[
+                        hwid_api_messages_pb2.Field(name='idProduct',
+                                                    value='abcd'),
+                        hwid_api_messages_pb2.Field(name='idVendor',
+                                                    value='4567'),
+                        hwid_api_messages_pb2.Field(name='name', value='Camera')
                     ]),
                 hwid_api_messages_pb2.Component(
                     name='cpu_0', componentClass='cpu', fields=[

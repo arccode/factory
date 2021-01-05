@@ -303,7 +303,11 @@ def GetAllProbeStatementGenerators():
                                input_device_fields),
   ]
 
+  # This is the old name for video_codec + camera.
   all_probe_statement_generators['video'] = [
+      _ProbeStatementGenerator('camera', 'usb_camera', usb_fields),
+  ]
+  all_probe_statement_generators['camera'] = [
       _ProbeStatementGenerator('camera', 'usb_camera', usb_fields),
   ]
 

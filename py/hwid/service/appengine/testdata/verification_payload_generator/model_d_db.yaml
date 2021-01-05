@@ -1,0 +1,41 @@
+checksum: DUMMY
+
+board: MODEL_D
+
+encoding_patterns: {0: default}
+
+image_id: {0: EVT}
+
+pattern:
+  - image_ids: [0]
+    encoding_scheme: base8192
+    fields:
+    - camera: 1
+
+encoded_fields:
+  camera:
+    0: {camera: camera_comp_0}
+    1: {camera: camera_comp_1}
+
+components:
+  camera:
+    items:
+      camera_comp_0:
+        # Sample output of a USB webcam.
+        values:
+          bcdDevice: '0001'
+          bus_type: usb
+          idProduct: aabb
+          idVendor: ccdd
+          manufacturer: ChromeOS
+          product: USB2.0 HD UVC WebCam
+          type: webcam
+      camera_comp_1:
+        # Sample output of a MIPI camera. For now, it won't be converted to
+        # runtime_probe probe statement.
+        values:
+          name: mipi_camera_1
+          vendor: vendor_1
+          type: webcam
+
+rules: []

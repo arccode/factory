@@ -328,22 +328,29 @@ class EdidProbeStatementGeneratorTest(unittest.TestCase):
 
 class GenerateVerificationPayloadTest(unittest.TestCase):
   def testSucc(self):
-    dbs = [(database.Database.LoadFile(os.path.join(TESTDATA_DIR, name),
-                                       verify_checksum=False), [])
-           for name in ('model_a_db.yaml', 'model_b_db.yaml')]
+    dbs = [(database.Database.LoadFile(
+        os.path.join(TESTDATA_DIR, name), verify_checksum=False), [])
+           for name in ('model_a_db.yaml', 'model_b_db.yaml', 'model_c_db.yaml',
+                        'model_d_db.yaml')]
     expected_outputs = json_utils.LoadFile(
         os.path.join(TESTDATA_DIR, 'expected_model_ab_output.json'))
 
     files = _vp_generator.GenerateVerificationPayload(
         dbs).generated_file_contents
 
-    self.assertEqual(len(files), 3)
+    self.assertEqual(len(files), 5)
     self.assertEqual(
         json_utils.LoadStr(files['runtime_probe/model_a/probe_config.json']),
         expected_outputs['runtime_probe/model_a/probe_config.json'])
     self.assertEqual(
         json_utils.LoadStr(files['runtime_probe/model_b/probe_config.json']),
         expected_outputs['runtime_probe/model_b/probe_config.json'])
+    self.assertEqual(
+        json_utils.LoadStr(files['runtime_probe/model_c/probe_config.json']),
+        expected_outputs['runtime_probe/model_c/probe_config.json'])
+    self.assertEqual(
+        json_utils.LoadStr(files['runtime_probe/model_d/probe_config.json']),
+        expected_outputs['runtime_probe/model_d/probe_config.json'])
     hw_verificaiontion_spec = hardware_verifier_pb2.HwVerificationSpec()
     text_format.Parse(files['hw_verification_spec.prototxt'],
                       hw_verificaiontion_spec)
