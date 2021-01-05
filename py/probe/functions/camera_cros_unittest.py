@@ -20,8 +20,15 @@ class CameraCrosTest(unittest.TestCase):
   def testNormal(self, unused_mock_check_output):
     func = camera_cros.CameraCrosFunction()
     results = func()
-    expected = [{'name': 'xy12345 1-1111', 'vendor': '11'},
-                {'name': 'ab67890 2-2222', 'vendor': '22'}]
+    expected = [{
+        'name': 'xy12345 1-1111',
+        'vendor': '11',
+        'type': 'webcam'
+    }, {
+        'name': 'ab67890 2-2222',
+        'vendor': '22',
+        'type': 'webcam'
+    }]
     self.assertCountEqual(results, expected)
 
   @mock.patch('cros.factory.utils.process_utils.CheckOutput',

@@ -82,6 +82,11 @@ class CameraCrosFunction(cached_probe_function.CachedProbeFunction):
     ret = []
     for result in results:
       module, unused_sep, vendor = result.rpartition('|')
-      ret.append({'name': module.strip(), 'vendor': vendor.strip()})
+      # Add field ('type': 'webcam') to align with generic_video probe function.
+      ret.append({
+          'name': module.strip(),
+          'vendor': vendor.strip(),
+          'type': 'webcam'
+      })
 
     return ret

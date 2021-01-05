@@ -23,34 +23,47 @@ class _TransformerTestBase(unittest.TestCase):
                                       verify_checksum=False)
     self.test_data = [
         # Simplest case.
-        ('001', BOM(0, 0, dict(cpu=['cpu_0'], audio=[], video=[], battery=[])),
-         None, None),
+        ('001', BOM(0, 0, dict(cpu=['cpu_0'], audio=[], camera=[],
+                               battery=[])), None, None),
 
         # battery_field is 0.
-        ('0001', BOM(0, 2, dict(cpu=['cpu_0'], audio=[], video=[],
-                                battery=['battery_0'])), None, None),
+        ('0001',
+         BOM(0, 2,
+             dict(cpu=['cpu_0'], audio=[], camera=[],
+                  battery=['battery_0'])), None, None),
 
         # battery_field is 2.
-        ('00000000101', BOM(0, 3, dict(cpu=['cpu_0'], audio=[], video=[],
-                                       battery=['battery_2'] * 2)), None, None),
+        ('00000000101',
+         BOM(
+             0, 3,
+             dict(cpu=['cpu_0'], audio=[], camera=[],
+                  battery=['battery_2'] * 2)), None, None),
 
-        # audio_and_video_field is 2
-        ('1001', BOM(0, 2, dict(cpu=['cpu_0'], audio=['audio_1', 'audio_0'],
-                                video=[], battery=['battery_0'])), None, None),
+        # audio_and_camera_field is 2
+        ('1001',
+         BOM(
+             0, 2,
+             dict(cpu=['cpu_0'], audio=['audio_1', 'audio_0'], camera=[],
+                  battery=['battery_0'])), None, None),
 
-        # audio_and_video_field is 4
-        ('00000100001', BOM(0, 3, dict(cpu=['cpu_0'], audio=['audio_0'],
-                                       video=['video_0'],
-                                       battery=['battery_0'])), None, None),
+        # audio_and_camera_field is 4
+        ('00000100001',
+         BOM(
+             0, 3,
+             dict(cpu=['cpu_0'], audio=['audio_0'], camera=['camera_0'],
+                  battery=['battery_0'])), None, None),
 
-        # audio_and_video_field is 7, battery_field is 2
-        ('00000111101', BOM(0, 3, dict(cpu=['cpu_0'],
-                                       audio=['audio_0'],
-                                       video=['video_0', 'video_1'],
-                                       battery=['battery_2'] * 2)), None, None),
+        # audio_and_camera_field is 7, battery_field is 2
+        ('00000111101',
+         BOM(
+             0, 3,
+             dict(cpu=['cpu_0'], audio=['audio_0'],
+                  camera=['camera_0',
+                          'camera_1'], battery=['battery_2'] * 2)), None, None),
         # with configless fields
-        ('001', BOM(0, 0, dict(cpu=['cpu_0'], audio=[], video=[], battery=[])),
-         'BRAND', '0-8-74-80')]
+        ('001', BOM(0, 0, dict(cpu=['cpu_0'], audio=[], camera=[],
+                               battery=[])), 'BRAND', '0-8-74-80')
+    ]
 
 
 class BOMToIdentityTest(_TransformerTestBase):

@@ -16,23 +16,23 @@ pattern:
   - image_ids: [0, 1]
     encoding_scheme: base32
     fields:  # This pattern doesn't contain `battery_field` and allowcates only
-             # only 2 bits for `audio_and_video_field`.
+             # only 2 bits for `audio_and_camera_field`.
     - cpu_field: 0
-    - audio_and_video_field: 2
+    - audio_and_camera_field: 2
 
   - image_ids: [2]
     encoding_scheme: base8192
-    fields:  # This pattern only allowcates 2 bits for `audio_and_video_field`
+    fields:  # This pattern only allowcates 2 bits for `audio_and_camera_field`
              # and 1 bit for `battery_field`.
     - cpu_field: 0
-    - audio_and_video_field: 2
+    - audio_and_camera_field: 2
     - battery_field: 1
 
   - image_ids: [3]
     encoding_scheme: base8192
     fields:
     - cpu_field: 5
-    - audio_and_video_field: 3
+    - audio_and_camera_field: 3
     - battery_field: 2
 
 
@@ -45,31 +45,31 @@ encoded_fields:
     1: {battery: []}
     2: {battery: [battery_2, battery_2]}
 
-  audio_and_video_field:
+  audio_and_camera_field:
     0:
       audio: []
-      video: []
+      camera: []
     1:
       audio: [audio_0]
-      video: []
+      camera: []
     2:
       audio: [audio_0, audio_1]
-      video: []
+      camera: []
     3:
       audio: []
-      video: [video_0]
+      camera: [camera_0]
     4:
       audio: [audio_0]
-      video: [video_0]
+      camera: [camera_0]
     5:
       audio: [audio_0, audio_1]
-      video: [video_0]
+      camera: [camera_0]
     6:
       audio: []
-      video: [video_0, video_1]
+      camera: [camera_0, camera_1]
     7:
       audio: [audio_0]
-      video: [video_0, video_1]
+      camera: [camera_0, camera_1]
 
 components:
   cpu:
@@ -81,10 +81,10 @@ components:
       audio_0: {values: {unused_value: audio_0}}
       audio_1: {values: {unused_value: audio_1}}
 
-  video:
+  camera:
     items:
-      video_0: {values: {unused_value: video_0}}
-      video_1: {values: {unused_value: video_1}}
+      camera_0: {values: {unused_value: camera_0}}
+      camera_1: {values: {unused_value: camera_1}}
 
   battery:
     items:

@@ -234,7 +234,7 @@
       ]
     }
   },
-  "video": {
+  "camera": {
     "generic": {
       "eval": {
         "concat": {
@@ -247,17 +247,19 @@
       "keys": [
         "bcdDevice",
         "bus_type",
-        "device",
         "idProduct",
         "idVendor",
-        "iden",
         "manufacturer",
-        "name",
         "product",
-        "revision_id",
-        "type",
-        "vendor"
-      ]
+
+        "name",
+        "vendor",
+
+        "type"
+      ],
+      "expect": {
+        "type": "webcam"
+      }
     }
   },
   "wireless": {

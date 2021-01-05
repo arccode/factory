@@ -165,60 +165,21 @@ components:
           name: WCOM50C1:00 2D1F:486C Pen
           product: 486c
           vendor: 2d1f
-  video:
+  camera:
     items:
-      video_f8278f5c:
-        status: unsupported
+      mipi_camera_123:
         values:
-          bus_type: pci
-          device: '0x1919'
-          device_path: /sys/class/video4linux/video0
-          revision_id: '0x01'
-          vendor: '0x8086'
-      video_1db3a754:
-        status: unsupported
-        values:
-          bus_type: pci
-          device: '0x9d32'
-          device_path: /sys/class/video4linux/video6
-          revision_id: '0x01'
-          vendor: '0x8086'
-      video_c5023888:
-        status: unsupported
-        values:
-          bus_type: pci
-          device: '0x9d32'
-          device_path: /sys/class/video4linux/video0
-          revision_id: '0x01'
-          vendor: '0x8086'
-      video_180eec7d:
-        status: unsupported
-        values:
-          bus_type: pci
-          device: '0x1919'
-          device_path: /sys/class/video4linux/video4
-          revision_id: '0x01'
-          vendor: '0x8086'
-      imx355_9_001a:
-        values:
-          name: imx355 9-001a
+          name: mipi camera 123
           vendor: ''
-      imx319_8_0010:
+      usb_camera_1234_5678:
         values:
-          name: imx319 8-0010
-          vendor: ''
-      video_pci_1919:
-        values:
-          bus_type: pci
-          device: '0x1919'
-          revision_id: '0x01'
-          vendor: '0x8086'
-      video_pci_9d32:
-        values:
-          bus_type: pci
-          device: '0x9d32'
-          revision_id: '0x01'
-          vendor: '0x8086'
+          bus_type: usb
+          idVendor: 'aabb'
+          idProduct: 'ccdd'
+          manufacturer: Google ChromeOS
+          bcdDevice: '0001'
+          product: Google ChromeOS Webcam
+          type: webcam
   audio_codec:
     items:
       ehdaudio0D2:
