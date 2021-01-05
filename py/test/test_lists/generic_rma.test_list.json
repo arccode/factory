@@ -5,9 +5,11 @@
   ],
   "label": "Generic RMA",
   "constants": {
+    "grt": {
+      "rma_mode": true
+    },
     "phase": "PVT",
-    "rma_factory_server": "none",
-    "rma_mode": true
+    "rma_factory_server": "none"
   },
   "definitions": {
     "RMAFFT": {

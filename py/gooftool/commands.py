@@ -181,6 +181,10 @@ _rma_mode_cmd_arg = CmdArg(
     '--rma_mode', action='store_true',
     help='Enable RMA mode, do not check for deprecated components.')
 
+_replacement_mlb_mode_cmd_arg = CmdArg(
+    '--replacement_mlb_mode', action='store_true',
+    help='Enable replacement MLB mode, only do cr50 finalize.')
+
 _cros_core_cmd_arg = CmdArg(
     '--cros_core', action='store_true',
     help='Finalize for ChromeOS Core devices (may add or remove few test '
@@ -502,13 +506,12 @@ def Cr50SetSnBitsAndBoardId(options):
   Cr50WriteFlashInfo(options)
 
 
-@Command('cr50_write_flash_info',
-         _rma_mode_cmd_arg,
-         _enable_zero_touch_cmd_arg)
+@Command('cr50_write_flash_info', _rma_mode_cmd_arg,
+         _replacement_mlb_mode_cmd_arg, _enable_zero_touch_cmd_arg)
 def Cr50WriteFlashInfo(options):
   """Set the serial number bits, board id and flags on the Cr50 chip."""
   GetGooftool(options).Cr50WriteFlashInfo(
-      options.enable_zero_touch, options.rma_mode)
+      options.enable_zero_touch, options.rma_mode, options.replacement_mlb_mode)
   event_log.Log('cr50_write_flash_info')
 
 
@@ -524,20 +527,21 @@ def Cr50DisableFactoryMode(options):
   return GetGooftool(options).Cr50DisableFactoryMode()
 
 
-@Command('cr50_finalize',
-         _no_write_protect_cmd_arg,
-         _rma_mode_cmd_arg,
-         _enable_zero_touch_cmd_arg)
+@Command('cr50_finalize', _no_write_protect_cmd_arg, _rma_mode_cmd_arg,
+         _replacement_mlb_mode_cmd_arg, _enable_zero_touch_cmd_arg)
 def Cr50Finalize(options):
   """Finalize steps for cr50."""
   if options.no_write_protect:
     logging.warning('SWWP is not enabled. Skip setting RO hash.')
   elif options.rma_mode:
     logging.warning('RMA mode. Skip setting RO hash.')
+  elif options.replacement_mlb_mode:
+    logging.warning('Replacement MLB mode. Skip setting RO hash.')
   else:
     Cr50SetROHash(options)
   Cr50WriteFlashInfo(options)
-  Cr50DisableFactoryMode(options)
+  if not options.replacement_mlb_mode:
+    Cr50DisableFactoryMode(options)
 
 
 @Command('enable_release_partition',
@@ -853,6 +857,7 @@ def UploadReport(options):
     _hwid_vpd_data_file_cmd_arg,
     _no_write_protect_cmd_arg,
     _rma_mode_cmd_arg,
+    _replacement_mlb_mode_cmd_arg,
     _cros_core_cmd_arg,
     _has_ec_pubkey_cmd_arg,
     _ec_pubkey_path_cmd_arg,
@@ -885,6 +890,14 @@ def Finalize(options):
   - Uploads system logs & reports
   - Wipes the testing kernel, rootfs, and stateful partition
   """
+  if options.replacement_mlb_mode:
+    # Replacement MLB mode only do cr50 finalize.
+    Cr50Finalize(options)
+    LogSourceHashes(options)
+    LogSystemDetails(options)
+    UploadReport(options)
+    return
+
   if not options.rma_mode:
     # Write VPD values related to RLZ ping into VPD.
     GetGooftool(options).WriteVPDForRLZPing(options.embargo_offset)

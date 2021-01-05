@@ -1040,9 +1040,10 @@ class Gooftool:
         logging.error('Board ID has already been set on Cr50!')
       elif result.status == 3:
         error_msg = 'Board ID and/or flag has been set DIFFERENTLY on Cr50!'
-        if arg_phase == 'pvt':
+        if arg_phase == 'dev':
+          logging.error(error_msg)
+        else:
           raise Error(error_msg)
-        logging.error(error_msg)
       else:  # General errors.
         raise Error('Failed to set board ID and flag on Cr50. '
                     '(args=%s)' % arg_phase)
@@ -1050,7 +1051,8 @@ class Gooftool:
       logging.exception('Failed to set Cr50 Board ID.')
       raise
 
-  def Cr50WriteFlashInfo(self, enable_zero_touch=False, rma_mode=False):
+  def Cr50WriteFlashInfo(self, enable_zero_touch=False, rma_mode=False,
+                         replacement_mlb_mode=False):
     """Write device info into cr50 flash."""
     cros_config = cros_config_module.CrosConfig(self._util.shell)
     is_whitelabel, whitelabel_tag = cros_config.GetWhiteLabelTag()
@@ -1073,9 +1075,12 @@ class Gooftool:
         raise Error('whitelabel_tag reported by cros_config and VPD does not '
                     'match.  Have you reboot the device after updating VPD '
                     'fields?')
-    if not rma_mode and enable_zero_touch:
+    if not rma_mode and not replacement_mlb_mode and enable_zero_touch:
       self.Cr50SetSnBits()
-    self.Cr50SetBoardId(is_whitelabel)
+    if is_whitelabel and replacement_mlb_mode:
+      self.Cr50WriteWhitelabelFlags()
+    else:
+      self.Cr50SetBoardId(is_whitelabel)
 
   def Cr50WriteWhitelabelFlags(self):
     cros_config = cros_config_module.CrosConfig(self._util.shell)

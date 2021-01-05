@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-01-12 13:07+CST\n"
+"PO-Revision-Date: 2021-01-14 17:11+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -3519,6 +3519,22 @@ msgstr "GRT (Google 必要测试项目)"
 msgid "Generic Chromebook"
 msgstr "一般 Chromebook 测试"
 
+#: ../py/test/test_lists/generic_replacement_mlb.test_list.json
+msgid "Replacement MLB End"
+msgstr "更换主板结束"
+
+#: ../py/test/test_lists/generic_replacement_mlb.test_list.json
+msgid "Replacement MLB GRT (Google Required Tests)"
+msgstr "更换主板 GRT (Google 必要测试项目)"
+
+#: ../py/test/test_lists/generic_replacement_mlb.test_list.json
+msgid "Replacement MLB SMT"
+msgstr "更换主板 SMT"
+
+#: ../py/test/test_lists/generic_replacement_mlb.test_list.json
+msgid "Generic Replacement MLB SMT"
+msgstr "一般更换主板 SMT"
+
 #: ../py/test/test_lists/generic_rf_station.test_list.json
 msgid "Generic RF Station"
 msgstr "一般射频測試站"
@@ -3529,7 +3545,7 @@ msgstr "最终功能测试"
 
 #: ../py/test/test_lists/generic_rma.test_list.json
 msgid "Generic RMA"
-msgstr "一般退货授权 (RMA) 测试"
+msgstr "一般退货授权 (RMA)"
 
 #: ../py/test/test_lists/generic_rrt.test_list.json
 #: ../py/test/test_lists/generic_run_in.test_list.json

@@ -1,0 +1,50 @@
+{
+  "inherit": [
+    "disable_factory_server.test_list",
+    "generic_grt.test_list"
+  ],
+  "label": "Generic Replacement MLB SMT",
+  "constants": {
+    "grt": {
+      "replacement_mlb_mode": true
+    },
+    "phase": "PVT",
+    "replacement_mlb_factory_server": "none"
+  },
+  "definitions": {
+    "ReplacementMLBEnd": {
+      "inherit": "TestGroup",
+      "label": "Replacement MLB End",
+      "__comment": "Wrap-up steps before shipping, e.g. shutdown",
+      "subtests": [
+        "Placeholder"
+      ]
+    },
+    "ReplacementMLBGRT": {
+      "inherit": "TestGroup",
+      "label": "Replacement MLB GRT (Google Required Tests)",
+      "subtests": [
+        "RebootStep",
+        "ReplacementMLBGRTFinalize"
+      ]
+    },
+    "ReplacementMLBGRTFinalize": {
+      "inherit": "GRTFinalize",
+      "args": {
+        "upload_method": "eval! constants.replacement_mlb_factory_server"
+      }
+    },
+    "ReplacementMLBSMT": {
+      "inherit": "TestGroup",
+      "label": "Replacement MLB SMT",
+      "subtests": [
+        "Placeholder"
+      ]
+    }
+  },
+  "tests": [
+    "ReplacementMLBSMT",
+    "ReplacementMLBGRT",
+    "ReplacementMLBEnd"
+  ]
+}
