@@ -243,6 +243,10 @@ class Ghost:
     self._reset = threading.Event()
     self._tls_mode = tls_mode
 
+    # The information of track_connection is lost after ghost restart.
+    self._track_connection = None
+    self._track_connection_timeout_secs = 900
+
     # RPC
     self._requests = {}
     self._queue = queue.Queue()
@@ -1102,6 +1106,9 @@ class Ghost:
         # We only send dut data when it's agent mode.
         if self._mode == Ghost.AGENT:
           self.SendData()
+          if self._track_connection is not None:
+            self.TrackConnection(self._track_connection,
+                                 self._track_connection_timeout_secs)
         sock.settimeout(None)
         self.Listen()
 
@@ -1193,6 +1200,8 @@ class Ghost:
     logging.info('TrackConnection, enabled = %s, timeout_secs = %d', enabled,
                  timeout_secs)
 
+    self._track_connection = enabled
+    self._track_connection_timeout_secs = timeout_secs
     self.SendRequest('track_connection', {
         'enabled': enabled,
         'timeout_secs': timeout_secs
