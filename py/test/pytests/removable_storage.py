@@ -146,14 +146,16 @@ _RE_DD_EXECUTION_TIME = re.compile(
 
 _Event = type_utils.Enum(['WAIT_INSERT', 'WAIT_REMOVE'])
 
+_MediaType = type_utils.Enum(['SD', 'USB', 'NVME'])
+
 
 class RemovableStorageTest(test_case.TestCase):
   """The removable storage factory test."""
   ARGS = [
-      Arg('media', str,
+      Arg('media', _MediaType,
           ('Media type. '
            'This is used for several logging messages, and to decide the icons'
-           'shown on UI. Valid values are "SD" or "USB".')),
+           'shown on UI.')),
       Arg('sysfs_path', str,
           ('The expected sysfs path that udev events should come from, '
            'ex: /sys/devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2'),
@@ -282,8 +284,8 @@ class RemovableStorageTest(test_case.TestCase):
     if self.perform_read_write_test:
       for event in self.WaitInsert():
         yield event
-      if (self.args.create_partition or
-          (self.args.media == 'SD' and self.args.create_partition is None)):
+      if (self.args.create_partition or (self.args.media == _MediaType.SD and
+                                         self.args.create_partition is None)):
         self.CreatePartition()
       if self._device_speed is not None:
         logging.info('device speed: %d Mbps', self._device_speed)
@@ -304,7 +306,7 @@ class RemovableStorageTest(test_case.TestCase):
     if self.args.perform_locktest:
       for event in self.WaitLockedInsert():
         yield event
-      if self.args.media == 'SD':
+      if self.args.media == _MediaType.SD:
         self.VerifyPartition()
       self.TestLock()
       for event in self.WaitLockedRemove():
@@ -345,7 +347,7 @@ class RemovableStorageTest(test_case.TestCase):
     if self._target_device is None:
       self._target_device = device.device_node
       self._device_size = self.GetDeviceSize(self._target_device)
-      if self.args.media == 'USB':
+      if self.args.media == _MediaType.USB:
         self._device_speed = self.GetUsbSpeed(device)
 
   def GetAttrs(self, device, key_set):
@@ -421,7 +423,10 @@ class RemovableStorageTest(test_case.TestCase):
     Returns:
       Device node, ex: 'sdb'. Return None if no node matched.
     """
-    block_dirs = self._dut.Glob('/sys/block/sd*')
+    if self.args.media == _MediaType.NVME:
+      block_dirs = self._dut.Glob('/sys/block/nvme*')
+    else:
+      block_dirs = self._dut.Glob('/sys/block/sd*')
     for block_dir in block_dirs:
       if re.match(sys_path, self._dut.path.realpath(block_dir)) is not None:
         return self._dut.path.basename(block_dir)
@@ -671,7 +676,7 @@ class RemovableStorageTest(test_case.TestCase):
 
     This is to check if all the pins on the card reader module are intact.
     """
-    if self.args.media != 'SD':
+    if self.args.media != _MediaType.SD:
       return
     dev_path = self._target_device
     # Set partition size to 128 MB or (dev_size / 2) MB
