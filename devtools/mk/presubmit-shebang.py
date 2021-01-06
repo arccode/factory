@@ -31,6 +31,8 @@ def main():
 
   redundant_files = []
   unknown_shebangs = {}
+  unicode_decode_error_executable_files = []
+
   def check(filepath):
     if (os.path.relpath(filepath) in exclusion_set or
         not os.path.isfile(filepath) or os.path.islink(filepath)):
@@ -38,14 +40,19 @@ def main():
     executable = (os.stat(filepath).st_mode & stat.S_IXUSR) != 0
     if not executable and not args.all:
       return
-    with open(filepath) as f:
-      if f.read(2) != '#!':
-        return
-      line = f.readline().rstrip('\n')
-      if not executable:
-        redundant_files.append(filepath)
-      elif line not in allow_list_set:
-        unknown_shebangs.setdefault(line, []).append(filepath)
+    try:
+      with open(filepath) as f:
+        if f.read(2) != '#!':
+          return
+        line = f.readline().rstrip('\n')
+    except UnicodeDecodeError:
+      if executable:
+        unicode_decode_error_executable_files.append(filepath)
+      return
+    if not executable:
+      redundant_files.append(filepath)
+    elif line not in allow_list_set:
+      unknown_shebangs.setdefault(line, []).append(filepath)
 
   for arg in args.files:
     if not os.path.isdir(arg):
@@ -65,7 +72,14 @@ def main():
     for filepath in filepaths:
       print('     %s' % filepath)
     print()
-  if redundant_files or unknown_shebangs:
+  if unicode_decode_error_executable_files:
+    print('%4d files with UnicodeDecodeError:' %
+          len(unicode_decode_error_executable_files))
+    for filepath in unicode_decode_error_executable_files:
+      print('     %s' % filepath)
+    print()
+  if (redundant_files or unknown_shebangs or
+      unicode_decode_error_executable_files):
     sys.exit('Failed.')
 
 
