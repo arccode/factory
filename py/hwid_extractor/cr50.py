@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 import codecs
+import enum
 import logging
 import re
 import time
@@ -25,6 +26,13 @@ CR50_COMMAND_RETRY_INTERVAL = 1
 # interval between retries.
 CR50_RMA_AUTH_MAX_RETRY = 3
 CR50_RMA_AUTH_RETRY_INTERVAL = 1
+# Timeout of testlab enable / disable physical presence check.
+CR50_TESTLAB_PP_TIMEOUT = 10
+
+
+class TestlabState(enum.Enum):
+  ENABLED = 'enabled'
+  DISABLED = 'disabled'
 
 
 class Cr50Console:
@@ -107,6 +115,42 @@ class Cr50Console:
       logging.debug('Cr50 command: "%s":\n%s', cmd, output)
     return output
 
+  def ChangeTestlabState(self, state):
+    """Set testlab state to `state`.
+
+    Changing the testlab state requires physical presence check (PP).
+
+    Args:
+      state: The TestlabState to be changed to.
+    Returns:
+      True if the state changed successfully. False if PP timeout.
+    Raises:
+      RuntimeError if PP tokens cannot be found in the outputs.
+    """
+    with serial.Serial(self._cr50_uart_pty,
+                       timeout=SERIAL_CONSOLE_TIMEOUT) as ser:
+      logging.debug('Serial init.')
+      self._Cr50CommandInner(ser, f'ccd testlab {state.value}')
+      end_time = time.time() + CR50_TESTLAB_PP_TIMEOUT
+      line = ''
+      while time.time() < end_time:
+        line += ser.read_until(b'\n', CR50_CONSOLE_BUFFER_SIZE_BYTES).decode()
+        if not line.endswith('\n'):
+          continue
+
+        logging.debug(line)
+        if 'Press the physical button now!' in line:
+          end_time = time.time() + CR50_TESTLAB_PP_TIMEOUT
+        elif 'Physical presence check timeout' in line:
+          return False
+        elif f'CCD test lab mode {state.value}' in line:
+          return True
+        line = ''
+
+    raise RuntimeError(
+        'Cannot get Physical presence check status. Testlab may not be '
+        'supported. Or permission was denied.')
+
 
 class Cr50:
   """A high level interface of Cr50.
@@ -173,6 +217,39 @@ class Cr50:
     # Remove all whitespace
     return ''.join(challenge.split())
 
+  def GetTestlabState(self):
+    """Get the state of testlab.
+
+    Example output:
+      CCD test lab mode enabled
+      CCD test lab mode disabled
+
+    Returns:
+      TestlabState, or None if the state can not be determined.
+    """
+    output = self._cr50_console.Command('ccd testlab')
+    state = output.split('mode')[-1].strip().lower()
+    logging.info('Testlab: %s', state)
+    try:
+      return TestlabState(state)
+    except ValueError:
+      return None
+
+  def ForceOpen(self):
+    """Force CCD to be opened.
+
+    To simplify the process, if the testlab is enabled, call this function to
+    force ccd to be non-restricted. This only works when testlab is enabled.
+
+    Returns:
+      True if ccd is opened.
+    """
+    self._cr50_console.Command('ccd testlab open')
+    self._cr50_console.Command('ccd reset factory')
+    # Wait for Cr50 resetting.
+    time.sleep(1)
+    return self.IsRestricted()
+
   def IsRestricted(self):
     """The restricted status of the device.
 
@@ -232,3 +309,33 @@ class Cr50:
     # Wait for Cr50 resetting.
     time.sleep(1)
     return self.IsRestricted()
+
+  def _SetTestlabState(self, state):
+    current_state = self.GetTestlabState()
+    if current_state is None:
+      raise RuntimeError('Testlab may not be supported on this devices.')
+    if current_state == state:
+      return True
+    # Testlab needs ccd to be in open state.
+    self._cr50_console.Command('ccd open')
+    return self._cr50_console.ChangeTestlabState(state)
+
+  def EnableTestlab(self):
+    """Enable testlab.
+
+    Assume that the device is not restricted.
+
+    Returns:
+      True if testlab is enabled.
+    """
+    return self._SetTestlabState(TestlabState.ENABLED)
+
+  def DisableTestlab(self):
+    """Disable testlab.
+
+    Assume that the device is not restricted.
+
+    Returns:
+      True if testlab is disabled.
+    """
+    return self._SetTestlabState(TestlabState.DISABLED)
