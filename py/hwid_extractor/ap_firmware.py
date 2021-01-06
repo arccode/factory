@@ -100,7 +100,7 @@ def _GetHWID(firmware_binary_file):
   logging.debug('futility output:\n%s', output)
   output.split(':')
   m = HWID_RE.match(output.strip())
-  return m and m.groups(1)
+  return m and m.group(1)
 
 
 def _GetSerialNumber(firmware_binary_file):
@@ -111,7 +111,7 @@ def _GetSerialNumber(firmware_binary_file):
   for line in output.splitlines():
     m = SERIAL_NUMBER_RE.match(line.strip())
     if m:
-      return m.groups(1)
+      return m.group(1)
   return None
 
 
