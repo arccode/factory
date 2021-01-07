@@ -174,23 +174,23 @@ command in chroot.
 
 ### Boot from RMA shim (clamshells / convertibles)
 
-1. Press `ESC + F3(REFRESH) + POWER` to enter recovery mode.
+1. Enter recovery mode.
 1. Press `CTRL + D` to turn on developer switch.
 1. Press `ENTER` to confirm.
-1. Press `ESC + F3(REFRESH) + POWER` to enter recovery mode again (no need to
-   wait for wiping).
+1. Enter recovery mode again (no need to wait for wiping).
 1. Insert and boot from USB stick with `rma_image.bin`.
 
 ### Boot from RMA shim (tablets / detachables)
 
-1. Press `POWER + VOL_UP + VOL_DOWN` for at least 10 seconds, and release them
-   to enter recovery mode.
+1. Enter recovery mode.
 1. Press `VOL_UP + VOL_DOWN` to show recovery menu.
 1. Press `VOL_UP` or `VOL_DOWN` to move the cursor to "Confirm Disabling OS
    Verification", and press `POWER` to select it.
-1. Press `POWER + VOL_UP + VOL_DOWN` for at least 10 seconds, and release them
-   to enter recovery mode again (no need to wait for wiping).
+1. Enter recovery mode again (no need to wait for wiping).
 1. Insert and boot from USB stick with `rma_image.bin`.
+
+See [here](https://google.com/chromeos/recovery) for instructions to enter
+recovery mode.
 
 ### RMA shim menu
 
