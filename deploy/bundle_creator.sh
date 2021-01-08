@@ -6,8 +6,9 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 FACTORY_DIR="$(readlink -f "${SCRIPT_DIR}/..")"
 FACTORY_PRIVATE_DIR="${FACTORY_DIR}/../factory-private"
+LOCAL_BUILD_BUNDLE="${FACTORY_DIR}/build/bundle"
 TOOLKIT_NAME="install_factory_toolkit.run"
-LOCAL_BUILD_TOOLKIT="${FACTORY_DIR}/build/bundle/toolkit/${TOOLKIT_NAME}"
+LOCAL_BUILD_TOOLKIT="${LOCAL_BUILD_BUNDLE}/toolkit/${TOOLKIT_NAME}"
 SOURCE_DIR="${FACTORY_DIR}/py/bundle_creator/"
 
 . "${FACTORY_DIR}/devtools/mk/common.sh" || exit 1
@@ -47,8 +48,10 @@ build_docker() {
       "${temp_dir}/docker"
   if [ -f "${LOCAL_BUILD_TOOLKIT}" ]; then
     cp "${LOCAL_BUILD_TOOLKIT}" "${temp_dir}/docker"
+    cp -rf "${LOCAL_BUILD_BUNDLE}/setup" "${temp_dir}/docker"
   else
     cp -f "/bin/false" "${temp_dir}/docker/${TOOLKIT_NAME}"
+    mkdir -p "${temp_dir}/docker/setup"
   fi
   # Fill in env vars in docker/config.py
   env GCLOUD_PROJECT="${GCLOUD_PROJECT}" \

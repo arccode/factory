@@ -58,6 +58,8 @@ def CreateBundle(req):
     manifest = {
         'board': req.board,
         'project': req.project,
+        # TODO(cyueh) Add 'designs' to CreateBundleRpcRequest and update UI.
+        'designs': 'boxster_designs',
         'bundle_name': bundle_name,
         'toolkit': req.toolkit_version,
         'test_image': req.test_image_version,
