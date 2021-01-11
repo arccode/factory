@@ -844,6 +844,9 @@ class FinalizeBundle:
   def PrepareProjectConfig(self):
     config_dir = os.path.join(self.bundle_dir, 'project_config')
     if not os.path.exists(config_dir):
+      logging.warning('There is no %r in the bundle.', config_dir)
+      if self.designs == BOXSTER_DESIGNS:
+        self.designs = None
       return
 
     extracted_dir = os.path.join(config_dir, 'extracted')
@@ -859,7 +862,9 @@ class FinalizeBundle:
     config_path = os.path.join(extracted_dir, config)
 
     if not os.path.exists(config_path):
-      logging.warning('There is no project config in the bundle.')
+      logging.warning('There is no %r in the project_config.', config)
+      if self.designs == BOXSTER_DESIGNS:
+        self.designs = None
       return
 
     if self.designs == BOXSTER_DESIGNS:
