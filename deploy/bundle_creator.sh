@@ -6,6 +6,8 @@
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 FACTORY_DIR="$(readlink -f "${SCRIPT_DIR}/..")"
 FACTORY_PRIVATE_DIR="${FACTORY_DIR}/../factory-private"
+TOOLKIT_NAME="install_factory_toolkit.run"
+LOCAL_BUILD_TOOLKIT="${FACTORY_DIR}/build/bundle/toolkit/${TOOLKIT_NAME}"
 SOURCE_DIR="${FACTORY_DIR}/py/bundle_creator/"
 
 . "${FACTORY_DIR}/devtools/mk/common.sh" || exit 1
@@ -43,6 +45,11 @@ build_docker() {
       "${temp_dir}"
   cp "${FACTORY_PRIVATE_DIR}/config/bundle_creator/service_account.json" \
       "${temp_dir}/docker"
+  if [ -f "${LOCAL_BUILD_TOOLKIT}" ]; then
+    cp "${LOCAL_BUILD_TOOLKIT}" "${temp_dir}/docker"
+  else
+    cp -f "/bin/false" "${temp_dir}/docker/${TOOLKIT_NAME}"
+  fi
   # Fill in env vars in docker/config.py
   env GCLOUD_PROJECT="${GCLOUD_PROJECT}" \
     BUNDLE_BUCKET="${BUNDLE_BUCKET}" \

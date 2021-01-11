@@ -44,10 +44,12 @@ ARG BOARD="grunt"
 ARG VERSION="13371.0.0"
 ARG TOOLKIT="${GS_BASE}/${BOARD}/${VERSION}/*-factory-*.zip"
 COPY docker/service_account.json /
+COPY docker/install_factory_toolkit.run /tmp
 RUN gcloud auth activate-service-account --key-file=/service_account.json && \
     gsutil cp "${TOOLKIT}" /tmp/factory.zip && \
     unzip -o /tmp/factory.zip toolkit/install_factory_toolkit.run -d /tmp && \
-    /tmp/toolkit/install_factory_toolkit.run -- --non-cros --yes
+    (/tmp/install_factory_toolkit.run -- --non-cros --yes || \
+     /tmp/toolkit/install_factory_toolkit.run -- --non-cros --yes)
 
 ENV PYTHONPATH=/usr/local/factory/py_pkg
 ENV GOOGLE_APPLICATION_CREDENTIALS=/service_account.json
