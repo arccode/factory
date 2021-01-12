@@ -151,10 +151,23 @@ create_vm() {
     echo "The specific instance template was created."
   }
 
+  local zone
+  zone="us-central1-a"
+  local filter
+  filter="zone:${zone} name:${INSTANCE_GROUP_NAME}"
+  {
+    gcloud compute instance-groups managed list --project "${GCLOUD_PROJECT}" \
+      --filter="${filter}" | grep "${INSTANCE_GROUP_NAME}"
+  } && {
+    gcloud compute instance-groups managed delete "${INSTANCE_GROUP_NAME}" \
+      --project "${GCLOUD_PROJECT}" \
+      --zone "${zone}" \
+      --quiet
+  }
   gcloud compute instance-groups managed create "${INSTANCE_GROUP_NAME}" \
     --project "${GCLOUD_PROJECT}" \
     --template "${INSTANCE_TEMPLATE_NAME}" \
-    --zone us-central1-a \
+    --zone "${zone}" \
     --size 1
 }
 
