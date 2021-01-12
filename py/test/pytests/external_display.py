@@ -40,7 +40,7 @@ is specified. The test loops through all items in ``display_info`` and:
 1. Plug an external monitor to the port specified in dargs.
 2. (Optional) If ``usbpd_spec`` is specified, verify usbpd status automatically.
 3. Main display will automatically switch to the external one.
-4. Press the number shown on the display to verify display works.
+4. Press the number or HW buttons shown on the display to verify display works.
 5. (Optional) If ``audio_info`` is specified, the speaker will play a random
    number, and operator has to press the number to verify audio functionality.
 6. Unplug the external monitor to finish the test.
@@ -100,6 +100,19 @@ To manual checking external display at USB Port 0 CC1, add this in test list::
       ]
     }
   }
+
+For tablet or Chromebox, use HW buttons instead of keyboard numbers::
+
+  {
+    "args": {
+      "hw_buttons": [
+        ["KEY_VOLUMEDOWN", "Volume Down"],
+        ["KEY_VOLUMEUP", "Volume Up"],
+        ["KEY_POWER", "Power Button"]
+      ],
+      "device_filter": "cros_ec_buttons"
+    }
+  }
 """
 
 import collections
@@ -112,10 +125,12 @@ from cros.factory.device import usb_c
 from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.i18n import _
 from cros.factory.test.pytests import audio
+from cros.factory.test.utils import button_utils
 from cros.factory.test import state
 from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import schema
+from cros.factory.utils import sync_utils
 
 
 # Interval (seconds) of probing connection state.
@@ -233,7 +248,16 @@ class ExtDisplayTest(test_case.TestCase):
           ('Path of drm sysfs entry. When given this arg, the pytest will '
            'directly get connection status from sysfs path rather than calling '
            'drm_utils. This is needed when the port is running under MST and '
-           'thus the display id is dynamic generated.'), default=None)
+           'thus the display id is dynamic generated.'), default=None),
+      Arg('timeout_secs', int,
+          'Timeout in seconds when we ask operator to press the HW button.',
+          default=30),
+      Arg('hw_buttons', list,
+          ('A list of [button_key_name, button_name] represents a HW button to '
+           'use. You can refer to HWButton test if you need the params.'),
+          default=None),
+      Arg('device_filter', (int, str),
+          'Event ID or name for evdev. None for auto probe.', default=None),
   ]
 
   def setUp(self):
@@ -241,6 +265,13 @@ class ExtDisplayTest(test_case.TestCase):
     self._fixture = None
     if self.args.bft_fixture:
       self._fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
+
+    self.buttons = []
+    if self.args.hw_buttons:
+      for btn in self.args.hw_buttons:
+        self.buttons.append((button_utils.Button(
+            self._dut, btn[0], self.args.device_filter), btn[1]))
+      random.shuffle(self.buttons)
 
     self.assertLessEqual(
         [self.args.start_output_only, self.args.connect_only,
@@ -340,11 +371,25 @@ class ExtDisplayTest(test_case.TestCase):
         self.SetMainDisplay(original)
 
   def CheckVideoManual(self, args):
+    if self.buttons:
+      self.CheckByHWButtons(args)
+    else:
+      self.CheckByKeyboardButtons(args)
+
+  def CheckByHWButtons(self, args):
+    pass_button = self.buttons[0]
+    self.ui.SetState([
+        _('Do you see video on {display}?', display=args.display_label),
+        _('Press {key} to pass the test.', key=_(pass_button[1]))
+    ])
+
+    sync_utils.WaitFor(pass_button[0].IsPressed, self.args.timeout_secs)
+
+  def CheckByKeyboardButtons(self, args):
     pass_digit = random.randrange(10)
     self.ui.SetState([
         _('Do you see video on {display}?', display=args.display_label),
-        _('Press {key} to pass the test.',
-          key=('<span id="pass_key">%s</span>' % pass_digit))
+        _('Press {key} to pass the test.', key=pass_digit)
     ])
 
     key = int(self.ui.WaitKeysOnce([str(i) for i in range(10)]))

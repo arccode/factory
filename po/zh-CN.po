@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-01-07 16:38+CST\n"
+"PO-Revision-Date: 2021-01-12 13:07+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -1876,7 +1876,7 @@ msgstr "外接显示屏 {display} 是否有画面?"
 
 #: ../py/test/pytests/external_display.py
 msgid "Press {key} to pass the test."
-msgstr "通过请按 {key} 键"
+msgstr "通过请按 <span id=pass_key>{key}</span> 键"
 
 #: ../py/test/pytests/external_display.py
 msgid "Fixture is checking if video is displayed on {display}?"
