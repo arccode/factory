@@ -18,15 +18,15 @@ import {RootState} from '@app/types';
 import {DispatchProps} from '@common/types';
 
 import {
-  disableMroute,
+  disableMcast,
   disableTftp,
-  enableMroute,
+  enableMcast,
   enableTftp,
   fetchConfig,
 } from '../actions';
 import {
   isConfigUpdating,
-  isMrouteEnabled,
+  isMcastEnabled,
   isTftpEnabled,
 } from '../selectors';
 
@@ -40,12 +40,12 @@ class ConfigApp extends React.Component<ConfigAppProps> {
 
   render() {
     const {
-      isMrouteEnabled,
+      isMcastEnabled,
       isTftpEnabled,
       isConfigUpdating,
-      disableMroute,
+      disableMcast,
       disableTftp,
-      enableMroute,
+      enableMcast,
       enableTftp,
       logout,
     } = this.props;
@@ -69,12 +69,12 @@ class ConfigApp extends React.Component<ConfigAppProps> {
             control={
               <Switch
                 color="primary"
-                checked={isMrouteEnabled}
-                onChange={isMrouteEnabled ? disableMroute : enableMroute}
+                checked={isMcastEnabled}
+                onChange={isMcastEnabled ? disableMcast : enableMcast}
                 disabled={isConfigUpdating}
               />
             }
-            label="Multicast Routing"
+            label="Multicast netboot"
           />
         </CardContent>
         <CardActions>
@@ -89,14 +89,14 @@ class ConfigApp extends React.Component<ConfigAppProps> {
 
 const mapStateToProps = (state: RootState) => ({
   isTftpEnabled: isTftpEnabled(state),
-  isMrouteEnabled: isMrouteEnabled(state),
+  isMcastEnabled: isMcastEnabled(state),
   isConfigUpdating: isConfigUpdating(state),
 });
 
 const mapDispatchToProps = {
-  disableMroute,
+  disableMcast,
   disableTftp,
-  enableMroute,
+  enableMcast,
   enableTftp,
   fetchConfig,
   logout: auth.actions.logout,

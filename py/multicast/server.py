@@ -33,6 +33,10 @@ def SpawnUFTP(file_name, multicast_addr, status_file_path):
 
 
 def Main():
+  # Not implemented.
+  time.sleep(1e9)
+
+  # Keep old implementations here for future review.
   parser = argparse.ArgumentParser()
   parser.add_argument(
       '-p', '--payload-file', help='path to Umpire multicast payload file',

@@ -62,7 +62,12 @@ SHARED_TMP_DIR = '/tmp/shared'
 SHARED_TMP_STORAGE = django.core.files.storage.FileSystemStorage(
     location=SHARED_TMP_DIR)
 
-MROUTE_CONTAINER_NAME = 'dome_mroute'
+MCAST_CONTAINER_NAME = 'dome_mcast'
+MCAST_LOG_DIR_IN_CONTAINER = '/var/log/multicast'
+MCAST_SHARED_DIR = os.getenv('HOST_MCAST_DIR',
+                             os.path.join(DOCKER_SHARED_DIR, 'multicast'))
+MCAST_SERVER_FILEPATH = '/usr/local/factory/py/multicast/server.py'
+
 TFTP_DOCKER_DIR = os.getenv(
     'HOST_TFTP_DIR', os.path.join(DOCKER_SHARED_DIR, 'tftp'))
 TFTP_BASE_DIR_IN_TFTP_CONTAINER = '/var/tftp'
@@ -184,7 +189,7 @@ class DomeConfig(django.db.models.Model):
 
   id = django.db.models.IntegerField(
       default=0, primary_key=True, serialize=False)
-  mroute_enabled = django.db.models.BooleanField(default=False)
+  mcast_enabled = django.db.models.BooleanField(default=False)
   tftp_enabled = django.db.models.BooleanField(default=False)
 
   def CreateTFTPContainer(self):
@@ -225,37 +230,39 @@ class DomeConfig(django.db.models.Model):
     self.save()
     return self
 
-  def CreateMrouteContainer(self):
-    if DoesContainerExist(MROUTE_CONTAINER_NAME):
-      logger.info('Mroute container already exists')
+  def CreateMcastContainer(self):
+    if DoesContainerExist(MCAST_CONTAINER_NAME):
+      logger.info('Multicast container already exists')
       return self
 
     try:
       cmd = [
-          'docker', 'run', '--detach',
-          '--restart', 'unless-stopped',
-          '--name', MROUTE_CONTAINER_NAME,
-          '--net', 'host',
-          FACTORY_SERVER_IMAGE_NAME,
-          'mrouted', '-d'
+          'docker', 'run', '--detach', '--restart', 'unless-stopped', '--name',
+          MCAST_CONTAINER_NAME, '--net', 'host', '--volume',
+          '%s:%s' % (UMPIRE_DOCKER_DIR, UMPIRE_BASE_DIR_IN_UMPIRE_CONTAINER),
+          '--volume',
+          '%s:%s' % (MCAST_SHARED_DIR, MCAST_LOG_DIR_IN_CONTAINER), '--volume',
+          '/var/run/docker.sock:/var/run/docker.sock',
+          FACTORY_SERVER_IMAGE_NAME, MCAST_SERVER_FILEPATH, '-l',
+          MCAST_LOG_DIR_IN_CONTAINER
       ]
       logger.info('Running command %r', cmd)
       subprocess.check_call(cmd)
     except Exception:
-      logger.error('Failed to create mroute container')
+      logger.error('Failed to create multicast container')
       logger.exception(traceback.format_exc())
-      self.DeleteMrouteContainer()
+      self.DeleteMcastContainer()
       raise
 
-    self.mroute_enabled = True
+    self.mcast_enabled = True
     self.save()
 
     return self
 
-  def DeleteMrouteContainer(self):
-    logger.info('Deleting Mroute container')
-    subprocess.call(['docker', 'rm', '-f', MROUTE_CONTAINER_NAME])
-    self.mroute_enabled = False
+  def DeleteMcastContainer(self):
+    logger.info('Deleting multicast container')
+    subprocess.call(['docker', 'rm', '-f', MCAST_CONTAINER_NAME])
+    self.mcast_enabled = False
     self.save()
     return self
 
@@ -269,13 +276,13 @@ class DomeConfig(django.db.models.Model):
       else:
         self.DeleteTFTPContainer()
 
-    self.mroute_enabled = DoesContainerExist(MROUTE_CONTAINER_NAME)
-    if ('mroute_enabled' in kwargs and
-        self.mroute_enabled != kwargs['mroute_enabled']):
-      if kwargs['mroute_enabled']:
-        self.CreateMrouteContainer()
+    self.mcast_enabled = DoesContainerExist(MCAST_CONTAINER_NAME)
+    if ('mcast_enabled' in kwargs and
+        self.mcast_enabled != kwargs['mcast_enabled']):
+      if kwargs['mcast_enabled']:
+        self.CreateMcastContainer()
       else:
-        self.DeleteMrouteContainer()
+        self.DeleteMcastContainer()
 
 
     # update attributes assigned in kwargs

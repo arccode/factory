@@ -43,6 +43,6 @@ export const enableTftp = () => updateConfig({tftpEnabled: true});
 
 export const disableTftp = () => updateConfig({tftpEnabled: false});
 
-export const enableMroute = () => updateConfig({mrouteEnabled: true});
+export const enableMcast = () => updateConfig({mcastEnabled: true});
 
-export const disableMroute = () => updateConfig({mrouteEnabled: false});
+export const disableMcast = () => updateConfig({mcastEnabled: false});

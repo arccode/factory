@@ -3,6 +3,6 @@
 // found in the LICENSE file.
 
 export interface Config {
-  mrouteEnabled: boolean;
+  mcastEnabled: boolean;
   tftpEnabled: boolean;
 }
