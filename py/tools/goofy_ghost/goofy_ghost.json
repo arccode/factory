@@ -17,7 +17,8 @@
     },
     "lights": [{
       "id": "ac_present",
-      "label": "AC_PRESENT",
+      "label_on": "AC PRESENT",
+      "label_off": "AC MISSING !",
       "light": "light-toggle-off",
       "poll": {
         "cmd": "(ectool battery | grep -qw AC_PRESENT) && echo LIGHT[ac_present]=\\'light-toggle-on\\' || echo LIGHT[ac_present]=\\'light-toggle-off\\'",

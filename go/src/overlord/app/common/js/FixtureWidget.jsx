@@ -27,7 +27,7 @@ var LOG_BUF_SIZE = 8192;
 var FIXTURE_WINDOW_MARGIN = 10;
 
 var LIGHT_CSS_MAP = {
-  'light-toggle-off': 'label-danger',
+  'light-toggle-off': 'label-default',
   'light-toggle-on': 'label-success'
 };
 
@@ -347,17 +347,25 @@ var Display = React.createClass({
 });
 
 var Lights = React.createClass({
-  updateLightStatus: function (id, status_class) {
+  updateLightStatus: function (id, light) {
     var node = $(this.refs[id]);
+    var status_class = LIGHT_CSS_MAP[light];
+
     node.removeClass(this.refs[id].props.prevLight);
     node.addClass(status_class);
     this.refs[id].props.prevLight = status_class;
+
+    if (light == "light-toggle-off") {
+      this.refs[id].textContent = this.refs[id].props.label_off;
+    } else {
+      this.refs[id].textContent = this.refs[id].props.label_on;
+    }
   },
   extractLightMessages: function (msg) {
     var patt = /LIGHT\[(.*?)\]\s*=\s*'(.*?)'\n?/g;
     var found;
     while (found = patt.exec(msg)) {
-      this.updateLightStatus(found[1], LIGHT_CSS_MAP[found[2]]);
+      this.updateLightStatus(found[1], found[2]);
     }
     return msg.replace(patt, "");
   },
@@ -377,10 +385,20 @@ var Lights = React.createClass({
             }.bind(this);
           }
           var light_css = LIGHT_CSS_MAP[light.light];
+          var default_label = light.label_on;
+          var label_on = light.label_on;
+          var label_off = light.label_on;
+          if (typeof(light.label_off) != "undefined") {
+            label_off = light.label_off;
+          }
+          if (light.light == "light-toggle-off") {
+            default_label = label_off;
+          }
           return (
             <span key={light.id} className={"label " + extra_css + " " +
-              light_css} prevLight={light_css} ref={light.id} {...extra}>
-              {light.label}
+              light_css} prevLight={light_css} label_on={label_on}
+              label_off={label_off} ref={light.id} {...extra}>
+              {default_label}
             </span>
           );
         }.bind(this))

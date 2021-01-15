@@ -18,13 +18,14 @@
     },
     "lights": [{
       "id": "toggle",
-      "label": "TOGGLE",
+      "label_on": "TOGGLE",
       "light": "light-toggle-off",
       "command": "echo $(echo -n LIGHT[toggle]=\\'light-toggle-; [ -f /tmp/t ] && (echo -n off; rm /tmp/t) || (echo -n on; touch /tmp/t); echo \\')",
       "init_cmd": "echo $(echo -n LIGHT[toggle]=\\'light-toggle-; [ -f /tmp/t ] && echo -n on || echo -n off; echo \\')"
     }, {
       "id": "ac_present",
-      "label": "AC_PRESENT",
+      "label_on": "AC PRESENT",
+      "label_off": "AC MISSING !",
       "light": "light-toggle-off",
       "poll": {
         "cmd": "(ectool battery | grep -qw AC_PRESENT) && echo LIGHT[ac_present]=\\'light-toggle-on\\' || echo LIGHT[ac_present]=\\'light-toggle-off\\'",

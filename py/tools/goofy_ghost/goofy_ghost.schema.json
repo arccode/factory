@@ -187,7 +187,10 @@
               "id": {
                 "type": "string"
               },
-              "label": {
+              "label_on": {
+                "type": "string"
+              },
+              "label_off": {
                 "type": "string"
               },
               "light": {
@@ -204,7 +207,7 @@
                 "$ref": "#/definitions/update_ui_status_poll"
               }
             },
-            "required": ["id", "label", "light"],
+            "required": ["id", "label_on", "light"],
             "additionalProperties": false
           }
         },

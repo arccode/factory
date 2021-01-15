@@ -135,7 +135,8 @@ the same example with all comment removed and multiline string joined.
       "id": "toggle",
 
       // The label shown on the light.
-      "label": "TOGGLE",
+      "label_on": "shown when light is on",
+      "label_off": "shown when light is off, this is optional.",
 
       // The initial state of the light.
       "light": "light-toggle-off",
