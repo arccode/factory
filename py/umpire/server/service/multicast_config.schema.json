@@ -3,6 +3,10 @@
     "description": "Multicast group",
     "type": "string"
   },
+  "server_ip": {
+    "description": "The server ip (or the network interface name)",
+    "type": "string"
+  },
   "required_components": {
     "description": "Required components for multicasting",
     "type": "object",

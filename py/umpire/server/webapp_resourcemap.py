@@ -40,7 +40,8 @@ def GetResourceMap(env):
             'shop_floor_handler: /umpire',
             'payloads: %s' % bundle['payloads']]
 
-  if 'multicast' in env.config:
+  # Only add multicast resource when the multicast service is active.
+  if env.config['services'].get('multicast', {}).get('active', False):
     result.append('multicast: %s' % env.config['multicast'])
 
   return ''.join('%s\n' % s for s in result)
