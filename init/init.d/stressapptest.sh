@@ -6,9 +6,12 @@
 # If stressapptest64 exists, we want to use 64-bit version of stressapptest for
 # memory testing. Otherwise it may hit issues if the memory size is larger than
 # 4G.
-# Issues: http://b/169216148, http://b/175255825
+# Issues: http://b/169216148, http://b/175255825, http://b/177492006
 
+factory_stressapptest="/usr/local/factory/bin/factory_stressapptest"
 stressapptest_bin="$(which stressapptest)"
+
 if [ -x "${stressapptest_bin}64" ]; then
-  mount --bind "${stressapptest_bin}64" "${stressapptest_bin}"
+  stressapptest_bin="${stressapptest_bin}64"
 fi
+ln -sf "${stressapptest_bin}" "${factory_stressapptest}"

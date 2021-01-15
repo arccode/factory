@@ -145,11 +145,11 @@ class StressManager:
       cmd.append('taskset')
       cmd.extend(taskset_args)
     cmd.extend([
-        'stressapptest', '--max_errors',
+        'factory_stressapptest', '--max_errors',
         str(max_errors), '-m',
         str(num_threads), '-M',
         str(mem_usage), '-s',
-        str(duration_secs if duration_secs is not None else 10 ** 8)
+        str(duration_secs if duration_secs is not None else 10**8)
     ])
     with tempfile.TemporaryFile('w+') as output:
       if disk_thread:
@@ -165,7 +165,7 @@ class StressManager:
 
       if duration_secs is None:
         self.stop.wait()
-        self._dut.toybox.pkill('stressapptest')
+        self._dut.toybox.pkill('factory_stressapptest', full=True)
       process.wait()
       output.seek(0)
       self.output = output.read()

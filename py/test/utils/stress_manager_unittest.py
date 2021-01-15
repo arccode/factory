@@ -218,10 +218,10 @@ class StressManagerUnittest(unittest.TestCase):
       self.manager._CallStressAppTest(duration_secs, num_threads, mem_usage,
                                       disk_thread, disk_thread_dir, max_errors,
                                       None)
-      self.dut.Popen.assert_called_with(
-          ['stressapptest', '--max_errors', '1000', '-m', '1', '-M', '32',
-           '-s', '10'],
-          stdout=output)
+      self.dut.Popen.assert_called_with([
+          'factory_stressapptest', '--max_errors', '1000', '-m', '1', '-M',
+          '32', '-s', '10'
+      ], stdout=output)
       self.fake_process.wait.assert_called_with()
 
   def testCallStressAppTestWithDiskThread(self):
@@ -245,10 +245,10 @@ class StressManagerUnittest(unittest.TestCase):
                                       None)
 
       self.dut.CheckCall.assert_called_with(['mkdir', '-p', data_root])
-      self.dut.Popen.assert_called_with(
-          ['stressapptest', '--max_errors', '1000', '-m', '1', '-M', '32',
-           '-s', '10', '-f', mock.ANY, '-f', mock.ANY],
-          stdout=output)
+      self.dut.Popen.assert_called_with([
+          'factory_stressapptest', '--max_errors', '1000', '-m', '1', '-M',
+          '32', '-s', '10', '-f', mock.ANY, '-f', mock.ANY
+      ], stdout=output)
       self.fake_process.wait.assert_called_with()
 
   def testCallStressAppTestWithDiskThreadWithDiskThreadDir(self):
@@ -273,10 +273,10 @@ class StressManagerUnittest(unittest.TestCase):
 
       self.dut.CheckCall.assert_called_with(['mkdir', '-p', disk_thread_dir])
 
-      self.dut.Popen.assert_called_with(
-          ['stressapptest', '--max_errors', '1234', '-m', '1', '-M', '32',
-           '-s', '10', '-f', mock.ANY, '-f', mock.ANY],
-          stdout=output)
+      self.dut.Popen.assert_called_with([
+          'factory_stressapptest', '--max_errors', '1234', '-m', '1', '-M',
+          '32', '-s', '10', '-f', mock.ANY, '-f', mock.ANY
+      ], stdout=output)
       self.fake_process.wait.assert_called_with()
 
   def testCallStressAppTestRunForever(self):
@@ -294,12 +294,13 @@ class StressManagerUnittest(unittest.TestCase):
       self.manager._CallStressAppTest(duration_secs, num_threads, mem_usage,
                                       disk_thread, disk_thread_dir, max_errors,
                                       None)
-      self.dut.Popen.assert_called_with(
-          ['stressapptest', '--max_errors', '1001', '-m', '1', '-M', '32',
-           '-s', mock.ANY],
-          stdout=output)
+      self.dut.Popen.assert_called_with([
+          'factory_stressapptest', '--max_errors', '1001', '-m', '1', '-M',
+          '32', '-s', mock.ANY
+      ], stdout=output)
       self.manager.stop.wait.assert_called_with()
-      self.dut.toybox.pkill.assert_called_with('stressapptest')
+      self.dut.toybox.pkill.assert_called_with('factory_stressapptest',
+                                               full=True)
       self.fake_process.wait.assert_called_with()
 
 

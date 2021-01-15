@@ -10,7 +10,7 @@ task_{%id%} () {
   fi
   local output="$(mktemp)"
 
-  stressapptest -m {%cpu_count%} -M {%mem_usage%} \
+  factory_stressapptest -m {%cpu_count%} -M {%mem_usage%} \
       -s {%seconds%} {%disk_thread%} | tee "${output}"
   local return_value="$?"
 
