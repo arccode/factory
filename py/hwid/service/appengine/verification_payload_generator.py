@@ -96,10 +96,10 @@ def _GetAllGenericProbeStatementInfoRecords():
 class _FieldRecord:
 
   def __init__(self, hwid_field_name, probe_statement_field_name,
-               value_converter, is_optional=False):
+               value_converters, is_optional=False):
     self.hwid_field_name = hwid_field_name
     self.probe_statement_field_name = probe_statement_field_name
-    self.value_converter = value_converter
+    self.value_converters = type_utils.MakeList(value_converters)
     self.is_optional = is_optional
 
 
@@ -145,12 +145,17 @@ class _ProbeStatementGenerator:
     # Convert the format of each fields for the probe statement, raises the
     # error if it fails.
     for fc, val in values_to_be_converted:
-      try:
-        expected_fields[fc.probe_statement_field_name] = fc.value_converter(val)
-      except Exception as e:
+      err = None
+      for value_converter in fc.value_converters:
+        try:
+          expected_fields[fc.probe_statement_field_name] = value_converter(val)
+          break
+        except Exception as e:
+          err = e
+      if not fc.probe_statement_field_name in expected_fields:
         raise ProbeStatementConversionError(
             'unable to convert the value of field %r : %r' %
-            (fc.hwid_field_name, e))
+            (fc.hwid_field_name, err))
 
     try:
       return self._probe_statement_generator.GenerateProbeStatement(
