@@ -175,6 +175,10 @@
   padding: 0px !important;
 }
 
+.log-hide {
+  display: none;
+}
+
 .log::-webkit-scrollbar {
   display: none;
 }

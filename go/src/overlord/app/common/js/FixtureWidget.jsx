@@ -608,10 +608,34 @@ var MainLog = React.createClass({
   },
   componentDidMount: function () {
     this.odiv = this.refs["log-" + this.props.id];
+    this.ctrl_btn = this.refs["ctrl-btn" + this.props.id];
+  },
+  onCommandClicked: function() {
+    var mainlog = $(this.odiv);
+    var ctrl_btn = $(this.ctrl_btn);
+
+    if (mainlog.hasClass("log-hide")) {
+      mainlog.removeClass("log-hide");
+      ctrl_btn.addClass("active");
+      ctrl_btn.text("Hide Mainlog");
+    } else {
+      mainlog.addClass("log-hide");
+      ctrl_btn.removeClass("active");
+      ctrl_btn.text("Show Mainlog");
+    }
   },
   render: function () {
     return (
-      <div className="log log-main well well-sm" ref={"log-" + this.props.id}>
+      <div className="controls-block well well-sm">
+        <div className="command-btn btn btn-xs btn-primary"
+          onClick={this.onCommandClicked} ref={"ctrl-btn" + this.props.id}
+          data-toggle="tooltip"
+          title="Use Mainlog to debug 'update_ui_status' with ghost">
+          Show Mainlog
+        </div>
+        <div className={"log log-hide well well-sm"}
+          ref={"log-" + this.props.id}>
+        </div>
       </div>
     );
   }
