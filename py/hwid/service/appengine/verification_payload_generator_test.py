@@ -252,14 +252,18 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
         'name1',
         {'name': 'foo', 'product': '1122', 'vendor': '5566'})
     self.assertEqual(
-        ps,
-        {
+        ps, {
             'stylus': {
                 'name1': {
-                    'eval': {'input_device': {}},
-                    'expect': {'name': [True, 'str', '!eq foo'],
-                               'product': [True, 'hex', '!eq 0x1122'],
-                               'vendor': [True, 'hex', '!eq 0x5566']}
+                    'eval': {
+                        'input_device': {}
+                    },
+                    'expect': {
+                        'name': [True, 'str', '!eq foo'],
+                        'product': [True, 'hex', '!eq 0x1122'],
+                        'vendor': [True, 'hex', '!eq 0x5566'],
+                        'fw_version': [False, 'str']
+                    }
                 }
             }
         })
@@ -271,14 +275,18 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
         'name1',
         {'name': 'foo', 'product': '1122', 'vendor': '5566'})
     self.assertEqual(
-        ps,
-        {
+        ps, {
             'touchpad': {
                 'name1': {
-                    'eval': {'input_device': {}},
-                    'expect': {'name': [True, 'str', '!eq foo'],
-                               'product': [True, 'hex', '!eq 0x1122'],
-                               'vendor': [True, 'hex', '!eq 0x5566']}
+                    'eval': {
+                        'input_device': {}
+                    },
+                    'expect': {
+                        'name': [True, 'str', '!eq foo'],
+                        'product': [True, 'hex', '!eq 0x1122'],
+                        'vendor': [True, 'hex', '!eq 0x5566'],
+                        'fw_version': [False, 'str']
+                    }
                 }
             }
         })
@@ -287,17 +295,25 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['touchscreen'][0]
 
     ps = ps_gen.TryGenerate(
-        'name1',
-        {'name': 'foo', 'product': '1122', 'vendor': '5566'})
+        'name1', {
+            'name': 'foo',
+            'product': '0x11223344',
+            'vendor': '5566',
+            'fw_version': '1.1'
+        })
     self.assertEqual(
-        ps,
-        {
+        ps, {
             'touchscreen': {
                 'name1': {
-                    'eval': {'input_device': {}},
-                    'expect': {'name': [True, 'str', '!eq foo'],
-                               'product': [True, 'hex', '!eq 0x1122'],
-                               'vendor': [True, 'hex', '!eq 0x5566']}
+                    'eval': {
+                        'input_device': {}
+                    },
+                    'expect': {
+                        'name': [True, 'str', '!eq foo'],
+                        'product': [True, 'hex', '!eq 0x11223344'],
+                        'vendor': [True, 'hex', '!eq 0x5566'],
+                        'fw_version': [True, 'str', '!eq 1.1']
+                    }
                 }
             }
         })

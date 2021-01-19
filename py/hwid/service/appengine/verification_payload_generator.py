@@ -293,9 +293,15 @@ def GetAllProbeStatementGenerators():
   input_device_fields = [
       same_name_field_converter('name', HWIDValueToStr),
       same_name_field_converter(
-          'product', GetHWIDHexStrToHexStrConverter(4, has_prefix=False)),
+          'product',
+          [
+              GetHWIDHexStrToHexStrConverter(4, has_prefix=False),
+              # raydium_ts
+              GetHWIDHexStrToHexStrConverter(8, has_prefix=True),
+          ]),
       same_name_field_converter(
           'vendor', GetHWIDHexStrToHexStrConverter(4, has_prefix=False)),
+      same_name_field_converter('fw_version', HWIDValueToStr, is_optional=True),
   ]
   all_probe_statement_generators['stylus'] = [
       _ProbeStatementGenerator('stylus', 'input_device', input_device_fields),
