@@ -95,28 +95,15 @@
                 },
                 "filename": {
                   "type": "string"
-                }
-              },
-              "required": ["name", "type", "filename"],
-              "additionalProperties": false
-            }, {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "type": {
-                  "type": "string",
-                  "enum": ["download"]
-                },
-                "command": {
-                  "type": "string"
                 },
                 "filename_cmd": {
                   "type": "string"
                 }
               },
-              "required": ["name", "type", "filename_cmd"],
+              "required": ["name", "type"],
+              "not": {
+                "required": ["filename", "filename_cmd"]
+              },
               "additionalProperties": false
             }, {
               "type": "object",
