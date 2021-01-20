@@ -21,7 +21,7 @@ class NamePattern:
   def Matches(self, tag):
     ret = self.pattern.match(tag)
     if ret:
-      return int(ret.group(1)), int(ret.group(2))
+      return int(ret.group(1)), int(ret.group(2) or 0)
     return None
 
 
@@ -30,5 +30,5 @@ class NamePatternAdapter:
   def GetNamePattern(self, comp_cls):
     if comp_cls not in GetSupportedCategories():
       return None
-    return NamePattern(
-        r'{comp_cls}_(\d+)_(\d+)(?:#.*)?$'.format(comp_cls=re.escape(comp_cls)))
+    return NamePattern(r'{comp_cls}_(\d+)(?:_(\d+))?(?:#.*)?$'.format(
+        comp_cls=re.escape(comp_cls)))

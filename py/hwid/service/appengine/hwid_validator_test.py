@@ -120,9 +120,10 @@ class HwidValidatorTest(unittest.TestCase):
     self.assertEqual(model, GOLDEN_MODEL_NAME)
     self.assertEqual(
         {
-            'cpu': [
-                ('cpu_1234_5678', 1234, 5678, common.COMPONENT_STATUS.supported)
-            ]
+            'cpu': [('cpu_1234_5678', 1234, 5678,
+                     common.COMPONENT_STATUS.supported),
+                    ('cpu_12345678', 12345678, 0,
+                     common.COMPONENT_STATUS.unqualified)]
         }, ret)
 
   @mock.patch(('cros.factory.hwid.v3.name_pattern_adapter'
