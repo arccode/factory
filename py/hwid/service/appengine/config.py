@@ -58,12 +58,12 @@ class _Config:
         hwid_filesystem.
   """
 
-  def __init__(self):
+  def __init__(self, config_path=_PATH_TO_APP_CONFIGURATIONS_FILE):
     super(_Config, self).__init__()
     self.cloud_project = os.environ.get('GOOGLE_CLOUD_PROJECT')
     self.gae_env = os.environ.get('GAE_ENV')
     try:
-      confs = yaml.load(file_utils.ReadFile(_PATH_TO_APP_CONFIGURATIONS_FILE))
+      confs = yaml.load(file_utils.ReadFile(config_path))
       conf = confs[self.cloud_project]
     except (KeyError, OSError, IOError):
       conf = _DEFAULT_CONFIGURATION

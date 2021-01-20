@@ -1,0 +1,18 @@
+"prod-project-name":
+  env: "prod"
+  bucket: "prod-bucket"
+  ge_bucket: "prod-ge-bucket"
+  dryrun_upload: True
+  project_region: "prod-project-region"
+  queue_name: "prod-queue-name"
+  hwid_repo_branch: null  # Use the branch HEAD tracks.
+
+"staging-project-name":
+  env: "staging"
+  bucket: "staging-bucket"
+  ge_bucket: "staging-ge-bucket"
+  dryrun_upload: True
+  project_region: "staging-project-region"
+  queue_name: "staging-queue-name"
+  hwid_repo_branch: null  # Use the branch HEAD tracks.
+

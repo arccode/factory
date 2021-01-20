@@ -11,6 +11,10 @@ from cros.factory.hwid.service.appengine import hwid_manager
 from cros.factory.hwid.v3 import filesystem_adapter
 
 
+_TEST_CONFIG_PATH = os.path.join(
+    os.path.dirname(__file__), 'testdata', 'test_config.yaml')
+
+
 class ConfigTest(unittest.TestCase):
   """Test for AppEngine config file."""
   # pylint: disable=protected-access
@@ -19,13 +23,13 @@ class ConfigTest(unittest.TestCase):
     # Have to patch os.enviorn before importing config module
     os.environ['GOOGLE_CLOUD_PROJECT'] = 'unknown project id'
     from cros.factory.hwid.service.appengine import config
-    self.assertEqual('dev', config._Config().env)
+    self.assertEqual('dev', config._Config(_TEST_CONFIG_PATH).env)
 
   def testConfigSwitchingProd(self):
     # Have to patch os.enviorn before importing config module
-    os.environ['GOOGLE_CLOUD_PROJECT'] = 'chromeos-hwid'
+    os.environ['GOOGLE_CLOUD_PROJECT'] = 'prod-project-name'
     from cros.factory.hwid.service.appengine import config
-    self.assertEqual('prod', config._Config().env)
+    self.assertEqual('prod', config._Config(_TEST_CONFIG_PATH).env)
 
   def testFileSystemType(self):
     from cros.factory.hwid.service.appengine import config
