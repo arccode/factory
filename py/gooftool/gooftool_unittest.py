@@ -277,19 +277,56 @@ class GooftoolTest(unittest.TestCase):
 
   def testVerifyManagementEngineLocked(self):
     data_no_me = {'RO_SECTION': b''}
-    data_me_locked = {'SI_ME': b'\xff' * 1024}
-    data_me_unlocked = {'SI_ME': b'\x55' * 1024}
+    data_me_read_locked = {
+        'SI_ME': b'\xff' * 1024
+    }
+    data_me_read_unlocked = {
+        'SI_ME': b'\x55' * 1024
+    }
 
+    consumer_sku_flag = 0x20
+    lite_sku_flag = 0x50
+    unknown_sku_flag = 0xff
+
+    def MockCBMEM(sku_flag, mode, table):
+      output = ('ME: HFSTS3                  : 0x%08x\n'
+                'ME: Manufacturing Mode      : %s\n'
+                'ME: FW Partition Table      : %s\n') % (sku_flag, mode, table)
+      self._gooftool._util.shell.return_value = Obj(success=True, stdout=output)
+
+    # No ME firmware
     self._gooftool._crosfw.LoadMainFirmware.return_value = MockMainFirmware(
         MockFirmwareImage(data_no_me))
     self._gooftool.VerifyManagementEngineLocked()
 
+    # ME read locked firmware
     self._gooftool._crosfw.LoadMainFirmware.return_value = MockMainFirmware(
-        MockFirmwareImage(data_me_locked))
+        MockFirmwareImage(data_me_read_locked))
+    MockCBMEM(consumer_sku_flag, 'NO', 'OK')
     self._gooftool.VerifyManagementEngineLocked()
 
+    # ME read unlocked firmware
     self._gooftool._crosfw.LoadMainFirmware.return_value = MockMainFirmware(
-        MockFirmwareImage(data_me_unlocked))
+        MockFirmwareImage(data_me_read_unlocked))
+
+    # Raise if it is Consumer SKU.
+    MockCBMEM(consumer_sku_flag, 'NO', 'OK')
+    self.assertRaises(Error, self._gooftool.VerifyManagementEngineLocked)
+
+    # Raise if it is unknown SKU.
+    MockCBMEM(unknown_sku_flag, 'NO', 'OK')
+    self.assertRaises(Error, self._gooftool.VerifyManagementEngineLocked)
+
+    # Pass if it is Lite SKU.
+    MockCBMEM(lite_sku_flag, 'NO', 'OK')
+    self._gooftool.VerifyManagementEngineLocked()
+
+    # Raise if Manufacturing Mode is not NO.
+    MockCBMEM(lite_sku_flag, 'YES', 'OK')
+    self.assertRaises(Error, self._gooftool.VerifyManagementEngineLocked)
+
+    # Raise if FW Partition Table is not OK.
+    MockCBMEM(lite_sku_flag, 'NO', 'BAD')
     self.assertRaises(Error, self._gooftool.VerifyManagementEngineLocked)
 
   def testClearGBBFlags(self):

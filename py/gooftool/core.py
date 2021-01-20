@@ -333,10 +333,48 @@ class Gooftool:
     if not mainfw.has_section('SI_ME'):
       logging.info('System does not have Management Engine.')
       return
-    # If ME is locked, it should contain only 0xFFs.
-    data = mainfw.get_section('SI_ME').strip(b'\xff')
-    if data:
-      raise Error('ME (ManagementEngine) firmware may be not locked.')
+
+    cbmem_result = self._util.shell('cbmem -1')
+    if not cbmem_result.success:
+      raise Error('cbmem fails.')
+    match = re.search(r'^ME:\s+HFSTS3\s+:\s+(.*)$', cbmem_result.stdout,
+                      re.MULTILINE)
+    if not match:
+      raise Error('HFSTS3 is not found')
+    # Readable check
+    flag_str = match.group(1)
+    try:
+      flag = int(flag_str, 0)
+    except:
+      raise Error('HFSTS3 is %r and can not convert to an integer' % flag_str)
+    if (flag & 0xF0) == 0x20:
+      # For Consumer SKU, if ME is locked, it should contain only 0xFFs.
+      data = mainfw.get_section('SI_ME').strip(b'\xff')
+      if data:
+        raise Error('ME (ManagementEngine) firmware may be not locked.')
+    elif (flag & 0xF0) == 0x50:
+      # For Lite SKU, if ME is locked, it is still readable.
+      pass
+    else:
+      raise Error('HFSTS3 indicates that this is an unknown SKU')
+    # Manufacturing Mode check
+    rules = {
+        'Manufacturing Mode': (r'^ME:\s+Manufacturing Mode\s+:\s+(.*)$', 'NO'),
+        'FW Partition Table': (r'^ME:\s+FW Partition Table\s+:\s+(.*)$', 'OK'),
+    }
+    errors = []
+    for key, rule in rules.items():
+      pattern, expected_value = rule
+      match = re.search(pattern, cbmem_result.stdout, re.MULTILINE)
+      if match:
+        value = match.group(1)
+        if value != expected_value:
+          errors.append(
+              '%r is %r and we expect %r' % (key, value, expected_value))
+      else:
+        errors.append('%r is not found' % key)
+    if errors:
+      raise Error('\n'.join(errors))
     # TODO(hungte) In future we may add more checks using ifdtool. See
     # crosbug.com/p/30283 for more information.
     logging.info('Management Engine is locked.')
