@@ -21,6 +21,7 @@ from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool import core
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import vpd
+from cros.factory.test.rules import phase
 from cros.factory.utils.type_utils import Error
 from cros.factory.utils.type_utils import Obj
 
@@ -469,7 +470,10 @@ class GooftoolTest(unittest.TestCase):
     self.assertRaisesRegex(ValueError, 'gbind_attribute is invalid:',
                            self._gooftool.VerifyVPD)
 
-  def testVerifyVPD_InvalidTestingRegistrationCode(self):
+  @mock.patch('cros.factory.test.rules.phase.GetPhase')
+  def testVerifyVPD_InvalidTestingRegistrationCodePVT_DOGFOOD(
+      self, get_phase_mock):
+    get_phase_mock.return_value = phase.PVT_DOGFOOD
     rw_vpd_value = self._SIMPLE_VALID_RW_VPD_DATA.copy()
     rw_vpd_value['gbind_attribute'] = (
         '=CjAKIP______TESTING_______-rhGkyZUn_'
@@ -478,6 +482,16 @@ class GooftoolTest(unittest.TestCase):
 
     self.assertRaisesRegex(ValueError, 'gbind_attribute is invalid: ',
                            self._gooftool.VerifyVPD)
+
+  @mock.patch('cros.factory.test.rules.phase.GetPhase')
+  def testVerifyVPD_InvalidTestingRegistrationCodeDVT(self, get_phase_mock):
+    get_phase_mock.return_value = phase.DVT
+    rw_vpd_value = self._SIMPLE_VALID_RW_VPD_DATA.copy()
+    rw_vpd_value['gbind_attribute'] = (
+        '=CjAKIP______TESTING_______-rhGkyZUn_'
+        'zbTOX_9OQI_3EAAaCmNocm9tZWJvb2sQouDUgwQ=')
+    self._SetupVPDMocks(ro=self._SIMPLE_VALID_RO_VPD_DATA, rw=rw_vpd_value)
+    self._gooftool.VerifyVPD()
 
   def testVerifyVPD_UnexpectedValues(self):
     ro_vpd_value = self._SIMPLE_VALID_RO_VPD_DATA.copy()
