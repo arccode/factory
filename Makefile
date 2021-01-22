@@ -68,6 +68,8 @@ TOOLKIT_FILENAME ?= install_factory_toolkit.run
 TOOLKIT_TEMP_DIR = $(TEMP_DIR)/toolkit
 TOOLKIT_OUTPUT_DIR = $(BUILD_DIR)
 
+PROJECT_TEMP_DIR = $(TEMP_DIR)/project
+
 DOC_TEMP_DIR = $(TEMP_DIR)/docsrc
 DOC_ARCHIVE_PATH = $(BUILD_DIR)/doc.zip
 DOC_OUTPUT_DIR = $(BUILD_DIR)/doc
@@ -130,7 +132,7 @@ PRESUBMIT_TARGETS := \
   .phony default clean closure proto overlord ovl-bin par doc resource toolkit \
   bundle presubmit presubmit-chroot $(PRESUBMIT_TARGETS) \
   lint smartlint smart_lint test testall overlay publish-docs po \
-  test-list-check ebuild-test
+  test-list-check ebuild-test project-toolkits
 
 # This must be the first rule.
 default: closure
@@ -263,7 +265,7 @@ resource: closure po
 func-apply-board-resources = @\
 	$(foreach file,$(wildcard \
 	  $(BOARD_RESOURCES_DIR)/$(1)-*.tar $(RESOURCE_DIR)/$(1)-*.tar),\
-	  $(info - Found board resource file $(file))${\n} \
+	  $(info - Found board resource file $(file) extract to $(2))${\n} \
 	  tar -xf $(file) -C $(2)${\n})
 
 # Make and test a PAR file. The PAR will be tested by importing state and run as
@@ -293,10 +295,11 @@ par: resource
 	$(call func-make-par,$(PAR_OUTPUT_DIR)/factory-mini.par,--mini,\
 	  $(PAR_TEMP_DIR))
 
-# Builds factory toolkit from resources.
-toolkit: $(WEBGL_AQUARIUM_DIR) resource par
-	rm -rf $(TOOLKIT_TEMP_DIR) $(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME)
-	mkdir -p $(TOOLKIT_TEMP_DIR)$(TARGET_DIR) $(TOOLKIT_OUTPUT_DIR)
+# Prepare the resources to TOOLKIT_TEMP_DIR for toolkits.
+# Usage: $(call func-prepare-toolkit)
+define func-prepare-toolkit
+	rm -rf $(TOOLKIT_TEMP_DIR)
+	mkdir -p $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)
 	tar -xf $(RESOURCE_PATH) -C $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)
 	cp -r $(WEBGL_AQUARIUM_DIR)/* \
 	  $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/py/test/pytests/webgl_aquarium_static
@@ -315,12 +318,55 @@ toolkit: $(WEBGL_AQUARIUM_DIR) resource par
 	    >$(TOOLKIT_TEMP_DIR)/REPO_STATUS))
 	# Install factory test enabled flag.
 	touch $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/enabled
-	chmod -R go=rX $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)
-	$(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/bin/factory_env \
-	  $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/py/toolkit/installer.py \
-	    --pack-into $(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME) \
-	    $(if $(QUIET),--quiet) \
-	    --version "$(BOARD) Factory Toolkit $(TOOLKIT_VERSION)"
+endef
+
+# Pack the toolkit to a executable installation script.
+# Usage: $(call func-pack-toolkit,target_dir,filename,version)
+#   target_dir: The path of the prepared resources.
+#   filename: The output path of the new factory toolkit.
+#   version: String to write into TOOLKIT_VERSION.
+define func-pack-toolkit
+	chmod -R go=rX $(1)
+	$(1)/bin/factory_env $(1)/py/toolkit/installer.py --pack-into $(2) \
+	  $(if $(QUIET),--quiet) --version $(3)
+endef
+
+# Builds factory toolkit from resources.
+toolkit: $(WEBGL_AQUARIUM_DIR) resource par
+	rm -rf $(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME)
+	mkdir -p $(TOOLKIT_OUTPUT_DIR)
+	$(call func-prepare-toolkit)
+	$(call func-apply-board-resources,unibuild,$(TOOLKIT_TEMP_DIR)$(TARGET_DIR))
+	$(call func-pack-toolkit,\
+	  $(TOOLKIT_TEMP_DIR)$(TARGET_DIR),\
+	  $(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME),\
+	  "$(BOARD) Factory Toolkit $(TOOLKIT_VERSION)")
+
+# Build a project toolkit. func-prepare-toolkit must be called in advance.
+# Usage: $(call func-build-project-toolkit,project)
+#   project: The project name. Must be one of the names of the project
+#     repository directories.
+define func-build-project-toolkit
+	rm -rf $(PROJECT_TEMP_DIR)/$(1)
+	mkdir -p $(PROJECT_TEMP_DIR)/$(1)
+	cp -r $(TOOLKIT_TEMP_DIR)/* $(PROJECT_TEMP_DIR)/$(1)
+	$(call func-apply-board-resources,project-$(BOARD)-$(1),\
+	  $(PROJECT_TEMP_DIR)/$(1)$(TARGET_DIR))
+	$(call func-pack-toolkit,\
+	  $(PROJECT_TEMP_DIR)/$(1)$(TARGET_DIR),\
+	  $(TOOLKIT_OUTPUT_DIR)/$(1)_$(TOOLKIT_FILENAME),\
+	  "$(BOARD) $(1) Factory Toolkit $(TOOLKIT_VERSION)")
+endef
+
+# Builds factory project toolkits from resources.
+project-toolkits: $(WEBGL_AQUARIUM_DIR) resource par
+	$(if $(BOARD),,$(error "You must specify a board to build project-toolkits."))
+	rm -rf $(TOOLKIT_OUTPUT_DIR)/*_$(TOOLKIT_FILENAME)
+	mkdir -p $(TOOLKIT_OUTPUT_DIR)
+	$(call func-prepare-toolkit)
+	$(foreach file,\
+	  $(wildcard $(BOARD_RESOURCES_DIR)/project-$(BOARD)-*-overlay.tar),\
+	  $(call func-build-project-toolkit,$(word 3,$(subst -, ,$(file))))${\n})
 
 # Creates build/doc and build/doc.zip, containing the factory SDK docs.
 doc:
