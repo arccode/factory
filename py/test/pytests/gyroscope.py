@@ -41,6 +41,7 @@ To run a test on base gyroscope::
 """
 
 import collections
+import logging
 
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
@@ -102,18 +103,20 @@ class Gyroscope(test_case.TestCase):
             secs=self.args.setup_time_secs - i))
       self.Sleep(1)
 
+    logging.info('Wait for device stop.')
     self.ui.SetInstruction(_('Please do not move the device.'))
     self._WaitForDeviceStop()
 
+    logging.info('Wait for device rotate.')
     self.ui.SetInstruction(_('Please rotate the device.'))
     self._WaitForDeviceRotate()
 
-  def _UpdateState(self, max_values):
-    html = []
-    for k, v in max_values.items():
-      state = ('test-status-passed'
-               if v > self.args.rotation_threshold else 'test-status-failed')
-      html.append('<div class="%s">%s=%s</div>' % (state, test_ui.Escape(k), v))
+  def _UpdateState(self, data, is_passed, rule_text):
+    html = ['<div>%s</div>' % rule_text]
+    for k, v in data.items():
+      state = ('test-status-passed' if is_passed[k] else 'test-status-failed')
+      html.append(
+          '<div class="%s">%s=%.10f</div>' % (state, test_ui.Escape(k), v))
     self.ui.SetState(''.join(html))
 
   def _WaitForDeviceStop(self):
@@ -121,7 +124,13 @@ class Gyroscope(test_case.TestCase):
 
     def CheckSensorState():
       data = self.gyroscope.GetData()
-      return max(abs(v) for v in data.values()) < self.args.stop_threshold
+      logging.info('sensor value: %r', data)
+      is_passed = {
+          k: abs(v) < self.args.stop_threshold
+          for k, v in data.items()
+      }
+      self._UpdateState(data, is_passed, '< %.10f' % self.args.stop_threshold)
+      return all(is_passed.values())
 
     sync_utils.WaitFor(CheckSensorState, self.args.timeout_secs)
 
@@ -131,9 +140,15 @@ class Gyroscope(test_case.TestCase):
     max_values = collections.defaultdict(float)
     def CheckSensorMaxValues():
       data = self.gyroscope.GetData()
+      logging.info('sensor value: %r', data)
       for sensor_name, value in data.items():
         max_values[sensor_name] = max(max_values[sensor_name], abs(value))
-      self._UpdateState(max_values)
-      return min(max_values.values()) > self.args.rotation_threshold
+      is_passed = {
+          k: v > self.args.rotation_threshold
+          for k, v in max_values.items()
+      }
+      self._UpdateState(max_values, is_passed,
+                        '> %.10f' % self.args.rotation_threshold)
+      return all(is_passed.values())
 
     sync_utils.WaitFor(CheckSensorMaxValues, self.args.timeout_secs)
