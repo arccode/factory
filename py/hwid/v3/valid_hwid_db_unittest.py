@@ -103,7 +103,7 @@ def _CheckProject(args):
 
 class ValidHWIDDBsTest(unittest.TestCase):
   """Unit test for HWID database."""
-  V3_HWID_DATABASE_PATH_REGEXP = re.compile('v3/[A-Z]+$')
+  V3_HWID_DATABASE_PATH_REGEXP = re.compile('v3/[A-Z0-9]+$')
 
   def runTest(self):
     hwid_dir = hwid_utils.GetHWIDRepoPath()
