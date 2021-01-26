@@ -51,8 +51,8 @@
     }, {
       "name": "Download factory_bug",
       "type": "download",
-      "command": "rm -f /tmp/factory_bug.overlord.zip && factory_bug -i overlord",
-      "filename": "/tmp/factory_bug.overlord.zip"
+      "command": "rm -f /tmp/factory_bug.* && factory_bug -i overlord-$(factory device-data -g serials.serial_number)",
+      "filename_cmd": "echo '/tmp/factory_bug.overlord-'$(factory device-data -g serials.serial_number)'.zip'"
     }],
     "logs": ["/var/log/factory.log"]
   }
