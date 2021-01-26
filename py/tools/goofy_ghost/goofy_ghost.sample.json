@@ -4,7 +4,13 @@
     "group": "Project X",
     "update_ui_command": "update_ui_status",
     "display": {
-      "template": "<b>Report</b><ul><li>Version: {{:version}}</li><li>Battery %: {{:battery_percent}}</li></ul>",
+      "template": [
+        "<b>Device Info</b>",
+        "<ul>",
+          "<li>Version: {{:version}}</li>",
+          "<li>Battery %: {{:battery_percent}}</li>",
+        "</ul>"
+      ],
       "data": [{
         "id": "version",
         "init_cmd": "echo DATA[version]=\\'$(cat /etc/lsb-release | sed -n 's/^CHROMEOS_RELEASE_VERSION=//p')\\'"

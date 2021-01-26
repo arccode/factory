@@ -102,9 +102,15 @@ var LIGHT_CSS_MAP = {
 //       ],
 //       // A display section
 //       "display": {
-//         // A jsrender template
-//         "template": "<b>Report</b><ul><li>Version: {{:version}}</li>"
-//                     "<li>Status: {{:status}}</li></ul>",
+//        // A jsrender template for the content of the display secion.
+//        // We use array of strings here for better reading.
+//        "template": [
+//          "<b>Device Info</b>",
+//          "<ul>",
+//            "<li>Version: {{:version}}</li>",
+//            "<li>Battery %: {{:battery_percent}}</li>",
+//          "</ul>"
+//        ],
 //         "data": [
 //           {
 //             // id: the name of data binding in the template
@@ -333,7 +339,12 @@ var Display = React.createClass({
   },
   componentWillMount: function() {
     var display = this.props.client.properties.ui.display;
-    this.template = $.templates(display.template);
+    var template = display.template;
+
+    if (typeof(template) != "string") {
+      template = template.join('');
+    }
+    this.template = $.templates(template);
   },
   render: function () {
     var client = this.props.client;

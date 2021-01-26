@@ -96,10 +96,15 @@ the same example with all comment removed and multiline string joined.
 
     // Settings of the display section.
     "display": {
-      // A jsrender template for the content of the display secion.
-      "template":
-        "<b>Report</b><ul><li>Version: {{:version}}</li> \
-         <li>Battery %: {{:battery_percent}}</li></ul>",
+      // A jsrender template for the content of the display section.
+      // We use array of strings here for better reading.
+      "template": [
+        "<b>Device Info</b>",
+        "<ul>",
+          "<li>Version: {{:version}}</li>",
+          "<li>Battery %: {{:battery_percent}}</li>",
+        "</ul>"
+      ],
 
       // Variables that are used in the template. The value of the variable is
       // initialized to "", and controlled by the output of update_ui_command.
