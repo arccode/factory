@@ -6,13 +6,53 @@
       "template": [
         "<b>Device Info</b>",
         "<ul>",
-          "<li>Version: {{:version}}</li>",
+          "<li>Test image version: {{:version}}</li>",
+          "<li>Toolkit version: {{:toolkit_version}}</li>",
+          "<li>Serial number: {{:serial}}</li>",
+          "<li>MLB serial number: {{:mlb_serial}}</li>",
+          "<li>EC RO version: {{:ec_ro_version}}</li>",
+          "<li>EC RW version: {{:ec_rw_version}}</li>",
+          "<li>EC firmware copy: {{:ec_fw_copy}}</li>",
+          "<li>AP RO firmware ID: {{:ap_ro_version}}</li>",
+          "<li>AP active version: {{:ap_active_version}}</li>",
+          "<li>HWID: {{:hwid}}</li>",
+          "<li>GBB flags: {{:gbb_flags}}</li>",
           "<li>Battery %: {{:battery_percent}}</li>",
         "</ul>"
       ],
       "data": [{
         "id": "version",
         "init_cmd": "echo DATA[version]=\\'$(cat /etc/lsb-release | sed -n 's/^CHROMEOS_RELEASE_VERSION=//p')\\'"
+      }, {
+        "id": "toolkit_version",
+        "init_cmd": "echo DATA[toolkit_version]=\\'$(cat /usr/local/factory/TOOLKIT_VERSION | head -1)\\'"
+      }, {
+        "id": "serial",
+        "init_cmd": "echo DATA[serial]=\\'$(factory device-data -g serials.serial_number)\\'"
+      }, {
+        "id": "mlb_serial",
+        "init_cmd": "echo DATA[mlb_serial]=\\'$(factory device-data -g serials.mlb_serial_number)\\'"
+      }, {
+        "id": "ec_ro_version",
+        "init_cmd": "echo DATA[ec_ro_version]=\\'$(ectool version | sed -n 's/^RO version: *//p')\\'"
+      }, {
+        "id": "ec_rw_version",
+        "init_cmd": "echo DATA[ec_rw_version]=\\'$(ectool version | sed -n 's/^RW version: *//p')\\'"
+      }, {
+        "id": "ec_fw_copy",
+        "init_cmd": "echo DATA[ec_fw_copy]=\\'$(ectool version | sed -n 's/^Firmware copy: *//p')\\'"
+      }, {
+        "id": "ap_ro_version",
+        "init_cmd": "echo DATA[ap_ro_version]=\\'$(crossystem ro_fwid)\\'"
+      }, {
+        "id": "ap_active_version",
+        "init_cmd": "echo DATA[ap_active_version]=\\'$(crossystem fwid)\\'"
+      }, {
+        "id": "hwid",
+        "init_cmd": "echo DATA[hwid]=\\'$(crossystem hwid)\\'"
+      }, {
+        "id": "gbb_flags",
+        "init_cmd": "echo DATA[gbb_flags]=\\'$(/usr/share/vboot/bin/get_gbb_flags.sh 2>&1 | sed -n 's/^Chrome OS GBB set flags: *//p')\\'"
       }, {
         "id": "battery_percent",
         "poll": {
