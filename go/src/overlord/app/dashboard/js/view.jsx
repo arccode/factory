@@ -225,7 +225,7 @@ var FilterInput = React.createClass({
 
 var ClientTable = React.createClass({
   render: function () {
-    var headers = ["mid", "status", "pytest", "model", "manage"];
+    var headers = ["model", "mid", "status", "pytest", "manage"];
     return (
       <table className="client-table">
         <thead>
