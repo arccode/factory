@@ -94,6 +94,9 @@
       "command": "rm -f /tmp/factory_bug.* && factory_bug -i overlord-$(factory device-data -g serials.serial_number)",
       "filename_cmd": "echo '/tmp/factory_bug.overlord-'$(factory device-data -g serials.serial_number)'.zip'"
     }],
-    "logs": ["/var/log/factory.log"]
+    "logs": [
+      "/var/log/factory.log",
+      "/var/log/messages"
+    ]
   }
 }
