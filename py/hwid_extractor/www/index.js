@@ -602,8 +602,19 @@ const GetConfigAndRender = async () => {
 };
 
 /**
+ * @param {!Event} event
+ */
+const handleMessage = async (event) => {
+  console.log(event);
+  if (event.origin !== challengeOrigin) return;
+  setStateAndRender({input_authcode: event.data});
+  await handleUnlock();
+};
+
+/**
  * Onload
  */
 window.onload = async () => {
+  window.addEventListener('message', handleMessage, false);
   await GetConfigAndRender();
 };
