@@ -57,6 +57,16 @@ let Config;
 let State;
 
 
+const allDevicesJsonUrl =
+    ('https://storage.cloud.google.com/chromeos-build-release-console/' +
+     'all_devices.json');
+const configUpdateTimeout = 3000;
+const defaultConfig /** Config */ = {
+  extractAfterUnlocked: false,
+  lockAfterExtracted: false,
+  hartURL: '',
+  board: '',
+};
 const state /** State */ = {};
 
 
@@ -181,6 +191,95 @@ const renderText = (ele, text, type = 'span') => {
 };
 
 /**
+ * @param {!Node} ele
+ * @param {string} text
+ * @param {string} href
+ * @param {string} target
+ */
+const renderLink = (ele, text, href, target) => {
+  const a = ele.appendChild(document.createElement('a'));
+  a.href = href;
+  a.innerText = text;
+  a.target = target;
+  a.style = 'display: block; margin: 5px; padding: 5px;';
+};
+
+/**
+ * @param {!Node} ele
+ * @param {string} id
+ * @param {string} label
+ * @param {Function=} onchange
+ */
+const renderInput = (ele, id, label, onchange = (() => {})) => {
+  const div = ele.appendChild(document.createElement('div'));
+  div.style = 'margin: 5px; padding: 5px;';
+  const labelTag = div.appendChild(document.createElement('label'));
+  labelTag.innerText = label + ': ';
+  labelTag.htmlFor = id;
+  const input = div.appendChild(document.createElement('input'));
+  input.id = id;
+  const state_key = 'input_' + id;
+  input.type = 'text';
+  input.value = state[state_key] || '';
+  input.onchange = e => {
+    state[state_key] = e.target.value;
+    onchange();
+  };
+};
+
+/**
+ * @param {!Node} ele
+ * @param {string} id
+ * @param {string} label
+ * @param {!Array<string>} keys
+ * @param {!Array<string>} values
+ * @param {Function=} onchange
+ */
+const renderSelect = (ele, id, label, keys, values, onchange = (() => {})) => {
+  const div = ele.appendChild(document.createElement('div'));
+  div.style = 'margin: 5px; padding: 5px;';
+  const labelTag = div.appendChild(document.createElement('label'));
+  labelTag.innerText = label + ': ';
+  labelTag.htmlFor = id;
+  const select = div.appendChild(document.createElement('select'));
+  for (let i = 0; i < keys.length; i++) {
+    const option = select.appendChild(document.createElement('option'));
+    option.innerText = keys[i];
+    option.value = values[i];
+  }
+  select.id = id;
+  const state_key = 'input_' + id;
+  select.value = state[state_key] || '';
+  select.onchange = e => {
+    state[state_key] = e.target.value;
+    onchange();
+  };
+};
+
+/**
+ * @param {!Node} ele
+ * @param {string} id
+ * @param {string} label
+ * @param {Function=} onchange
+ */
+const renderCheckBox = (ele, id, label, onchange = (() => {})) => {
+  const div = ele.appendChild(document.createElement('div'));
+  div.style = 'margin: 5px; padding: 5px;';
+  const input = div.appendChild(document.createElement('input'));
+  input.id = id;
+  const labelTag = div.appendChild(document.createElement('label'));
+  labelTag.innerText = label;
+  labelTag.htmlFor = id;
+  const state_key = 'input_' + id;
+  input.type = 'checkbox';
+  input.checked = state[state_key] || false;
+  input.onchange = e => {
+    state[state_key] = e.target.checked;
+    onchange();
+  };
+};
+
+/**
  * @param {Event=} event
  */
 const handleScan = async (event) => {
@@ -227,6 +326,90 @@ const renderScan = (ele) => {
   });
 };
 
+let configUpdateTimerId = 0;
+/**
+ * handleUpdateConfig
+ *
+ * If the config has been changed, it will be sent to the server. If the content
+ * change again in `configUpdateTimeout`, the last update is canceled and a new
+ * one is started.
+ */
+const handleUpdateConfig = async () => {
+  const config = {};
+  for (let key in defaultConfig) {
+    config[key] = state[`input_config_${key}`];
+  }
+  clearTimeout(configUpdateTimerId);
+  configUpdateTimerId = setTimeout(async () => {
+    await fetchAPI('/update-config', config);
+  }, configUpdateTimeout);
+};
+
+/**
+ * @param {!Node} ele
+ */
+const renderUpdateConfig = (ele) => {
+  renderText(ele, 'General', 'h4');
+  renderCheckBox(
+      ele, 'config_extractAfterUnlocked', 'Extract After Unlocked',
+      handleUpdateConfig);
+  renderCheckBox(
+      ele, 'config_lockAfterExtracted', 'Lock After Extracted',
+      handleUpdateConfig);
+  const keys = ['Auto Detect'].concat(state.supportedBoards);
+  const values = [''].concat(state.supportedBoards);
+  renderSelect(
+      ele, 'config_board', 'Board to be extracted', keys, values,
+      handleUpdateConfig);
+  renderText(ele, 'Warning: Choose wrong board may damage the hardware!', 'b');
+  renderInput(ele, 'config_hartURL', 'Hart URL', handleUpdateConfig);
+};
+
+/**
+ * @param {!EventTarget} event
+ */
+const handleUpdateRLZ = async (event) => {
+  let allDevicesJSON = {};
+  try {
+    const files = event.target.files;
+    if (files.length === 0) return;
+    const file = files[0];
+    const text = await file.text();
+    allDevicesJSON = /** @type{Object} */ (JSON.parse(text));
+  } catch (err) {
+    console.error(err);
+    setStateAndRender({message: `Failed to parse all_devices.json: ${err}`});
+    return;
+  }
+  setStateAndRender({isLoading: true, message: 'Updating RLZ data...'});
+  const data = /** @type{ActionResult} */ (
+      await fetchAPI('/update-rlz', allDevicesJSON));
+  if (!data) return;
+  if (data.success) {
+    setStateAndRender({message: 'RLZ mapping data update successfully.'});
+  } else {
+    setStateAndRender({message: 'Failed to update RLZ mapping data.'});
+  }
+};
+
+/**
+ * @param {!Node} ele
+ */
+const renderUpdateRLZ = (ele) => {
+  renderText(ele, 'RLZ Mapping data', 'h4');
+  renderText(
+      ele,
+      'Download "all_devices.json" and upload it to HWID Extractor to update ' +
+          'the RLZ mapping data.',
+      'p');
+  renderLink(ele, 'all_devices.json', allDevicesJsonUrl, 'all_devices.json');
+  const input = ele.appendChild(document.createElement('input'));
+  input.type = 'file';
+  input.style = 'margin: 5px; padding: 5px;';
+  input.onchange = handleUpdateRLZ;
+  input.disabled = state.isLoading;
+};
+
 /**
  * @param {!Node} ele
  */
@@ -242,6 +425,9 @@ const render = (ele) => {
     renderTable(ele, state.errorData);
   }
   renderScan(ele);
+  renderText(ele, 'Configuration', 'h3');
+  renderUpdateConfig(ele);
+  renderUpdateRLZ(ele);
 };
 
 /**
@@ -249,11 +435,23 @@ const render = (ele) => {
  */
 const GetConfigAndRender = async () => {
   const newState = {};
-  let resp = await fetch('/supported_boards.json');
+  let resp;
+  resp = await fetch('/supported_boards.json');
   if (resp.ok) {
     const data = /** @type{SupportedBoardsData} */ (await resp.json());
     newState.supportedBoards = data.supportedBoards;
   }
+
+  // Set ?v= to prevent browser cache.
+  resp = await fetch(`/config.json?v=${Math.random()}`);
+  let config = defaultConfig;
+  if (resp.ok) {
+    config = /** @type{Config} */ (await resp.json());
+  }
+  for (let key in defaultConfig) {
+    newState[`input_config_${key}`] = config[key];
+  }
+
   setStateAndRender(newState);
 };
 
