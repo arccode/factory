@@ -57,6 +57,8 @@ let Config;
 let State;
 
 
+const challengeOrigin = 'https://chromeos.google.com';
+const challengeURL = `${challengeOrigin}/partner/console/cr50reset`;
 const allDevicesJsonUrl =
     ('https://storage.cloud.google.com/chromeos-build-release-console/' +
      'all_devices.json');
@@ -280,15 +282,18 @@ const renderCheckBox = (ele, id, label, onchange = (() => {})) => {
 };
 
 /**
- * @param {Event=} event
+ * @param {boolean} isTriggeredByUser
  */
-const handleScan = async (event) => {
+const handleScan = async (isTriggeredByUser) => {
   setStateAndRender({isLoading: true, message: 'Scanning...'});
   const scanData = /** @type{ScanData} */ (await fetchAPI('/scan'));
   if (!scanData) return;
   let message = undefined;
   if (scanData.isRestricted && !scanData.challenge) {
     message = 'Cannot generate rma challenge!!! Try again.';
+  } else if (isTriggeredByUser && scanData.isRestricted) {
+    // Open RSU page automatically if the scanning is triggered by user.
+    window.open(`${challengeURL}?challenge=${scanData.challenge}`, 'challenge');
   }
   setStateAndRender({
     scanData,
@@ -296,6 +301,9 @@ const handleScan = async (event) => {
     message,
     input_authcode: undefined,
   });
+  if (state.input_config_extractAfterUnlocked && !state.scanData.isRestricted) {
+    await handleExtract();
+  }
 };
 
 /**
@@ -303,7 +311,9 @@ const handleScan = async (event) => {
  */
 const renderScan = (ele) => {
   renderText(ele, 'Scan the device', 'h4');
-  renderButton(ele, 'Scan', handleScan);
+  renderButton(ele, 'Scan', () => {
+    handleScan(true);
+  });
   if (!state.scanData) return;
   const {
     cr50SerialName,
@@ -324,6 +334,129 @@ const renderScan = (ele) => {
     'Testlab State':
         getBooleanText(isTestlabEnabled, 'Enabled', 'green', 'Disabled', 'red'),
   });
+};
+
+/**
+ * handleUnlock
+ */
+const handleUnlock = async () => {
+  setStateAndRender({isLoading: true, message: 'Unlocking...'});
+  const authcode = state.input_authcode;
+  const data = /** @type{ActionResult} */ (await fetchAPI(
+      '/unlock', {cr50SerialName: state.scanData.cr50SerialName, authcode}));
+  if (!data) return;
+  if (data.success) {
+    /* Re-scan the device */
+    await handleScan(false);
+  } else {
+    setStateAndRender({message: 'Unlock failed.'});
+  }
+};
+
+/**
+ * @param {!Node} ele
+ */
+const renderUnlock = (ele) => {
+  renderText(ele, 'Unlock the device', 'h4');
+  renderLink(
+      ele, 'Get RSU Authcode',
+      `${challengeURL}?challenge=${state.scanData.challenge}`, 'challenge');
+  renderInput(ele, 'authcode', 'Authcode');
+  renderButton(ele, 'Unlock', handleUnlock);
+};
+
+/**
+ * handleExtract
+ */
+const handleExtract = async () => {
+  setStateAndRender({isLoading: true, message: 'Extracting...'});
+  let board = state.input_config_board;
+  if (!board) {
+    board = state.scanData.referenceBoard;
+  }
+  if (state.supportedBoards.indexOf(board) == -1) {
+    setStateAndRender(
+        {message: `Board "${board}" is not supported by HWID Extractor.`});
+    return;
+  }
+  const extractData = /** @type{ExtractData} */ (await fetchAPI(
+      '/extract', {cr50SerialName: state.scanData.cr50SerialName, board}));
+  if (!extractData) return;
+  setStateAndRender({extractData});
+  const {sn, hwid} = extractData;
+  if (state.input_config_hartURL && sn && hwid) {
+    window.open(state.input_config_hartURL + `?sn=${sn}&hwid=${hwid}`, 'hart');
+  }
+  if (state.input_config_lockAfterExtracted) {
+    await handleLock();
+  }
+};
+
+/**
+ * @param {!Node} ele
+ */
+const renderExtract = (ele) => {
+  renderText(ele, 'Extract HWID and Serial No.', 'h4');
+  renderButton(ele, 'Extract', handleExtract);
+  renderTable(ele, state.extractData);
+};
+
+/**
+ * handleLock
+ */
+const handleLock = async () => {
+  setStateAndRender({isLoading: true, message: 'Locking...'});
+  const data = /** @type{ActionResult} */ (
+      await fetchAPI('/lock', {cr50SerialName: state.scanData.cr50SerialName}));
+  if (!data) return;
+  if (data.success) {
+    /* Re-scan the device */
+    await handleScan(false);
+  } else {
+    setStateAndRender({message: 'Lock failed.'});
+  }
+};
+
+/**
+ * @param {!Node} ele
+ */
+const renderLock = (ele) => {
+  renderText(ele, 'Lock the device', 'h4');
+  renderButton(ele, 'Lock', handleLock);
+};
+
+/**
+ * @param {string} action
+ * @return {!Function}
+ */
+const handleTestlab = (action) => async () => {
+  setStateAndRender({
+    isLoading: true,
+    message: `Testlab ${action}... (Keep tapping the power button.)`
+  });
+  const data = /** @type{ActionResult} */ (await fetchAPI(
+      `/testlab-${action}`, {cr50SerialName: state.scanData.cr50SerialName}));
+  if (!data) return;
+  if (data.success) {
+    /* Re-scan the device */
+    await handleScan(false);
+  } else {
+    setStateAndRender({message: `Failed to ${action} testlab.`});
+  }
+};
+
+/**
+ * @param {!Node} ele
+ * @param {string} action
+ */
+const renderTestlab = (ele, action) => {
+  renderText(ele, `Testlab ${action}`, 'h4');
+  renderText(
+      ele,
+      `To ${action} testlab, click the button bellow, and then keep tapping ` +
+          'the power button until the process finished.',
+      'p');
+  renderButton(ele, `Testlab ${action}`, handleTestlab(action));
 };
 
 let configUpdateTimerId = 0;
@@ -425,6 +558,19 @@ const render = (ele) => {
     renderTable(ele, state.errorData);
   }
   renderScan(ele);
+  if (state.scanData) {
+    if (state.scanData.isRestricted) {
+      renderUnlock(ele);
+    } else {
+      renderExtract(ele);
+      if (state.scanData.isTestlabEnabled) {
+        renderTestlab(ele, 'disable');
+      } else {
+        renderLock(ele);
+        renderTestlab(ele, 'enable');
+      }
+    }
+  }
   renderText(ele, 'Configuration', 'h3');
   renderUpdateConfig(ele);
   renderUpdateRLZ(ele);
