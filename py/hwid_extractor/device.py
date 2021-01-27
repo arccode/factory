@@ -83,7 +83,6 @@ def Scan():
     else:
       is_restricted = dut_cr50.IsRestricted()
     return {
-        'supportedBoards': ap_firmware.GetSupportedBoards(),
         'cr50SerialName': cr50_serial_name,
         'rlz': rlz_code,
         'referenceBoard': RLZ_DATA.Get(rlz_code),

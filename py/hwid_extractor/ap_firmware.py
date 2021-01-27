@@ -5,6 +5,7 @@
 import contextlib
 import glob
 import importlib
+import json
 import logging
 import os
 import re
@@ -21,12 +22,15 @@ FUTILITY_BIN = '/usr/bin/futility'
 VPD_BIN = '/usr/sbin/vpd'
 
 CONFIG_FILE_PATTERN = os.path.join(
-    os.path.dirname(ap_firmware_config.__file__), '*.py')
+    os.path.dirname(ap_firmware_config.__file__), '[!_]*.py')
 # This dict maps board names to the configuration object of each board.
 BOARD = {}
 
 HWID_RE = re.compile(r'^hardware_id: ([A-Z0-9- ]+)$')
 SERIAL_NUMBER_RE = re.compile(r'^"serial_number"="([A-Za-z0-9]+)"$')
+
+SUPPORTED_BOARDS_JSON = os.path.join(
+    os.path.dirname(__file__), 'www', 'supported_boards.json')
 
 
 def _InitializeBoardConfigurations():
@@ -34,13 +38,16 @@ def _InitializeBoardConfigurations():
 
   All configurations of supported boards are under chromite
   `chromite.lib.firmware.ap_firmware_config`.
+
+  The supported boards are dumped to supported-boards.json for the web UI.
   """
   for f in glob.glob(CONFIG_FILE_PATTERN):
     board = os.path.splitext(os.path.basename(f))[0]
-    if board.startswith('_'):
-      continue
     BOARD[board] = importlib.import_module(
         f'chromite.lib.firmware.ap_firmware_config.{board}')
+
+  with open(SUPPORTED_BOARDS_JSON, 'w') as f:
+    json.dump({'supportedBoards': sorted(BOARD)}, f)
 
 
 _InitializeBoardConfigurations()
@@ -56,15 +63,6 @@ def _HandleDutControl(dut_on, dut_off, dut_control):
     yield
   finally:
     dut_control.run_all(dut_off)
-
-
-def GetSupportedBoards():
-  """Returns the names of all supported boards.
-
-  Returns:
-    List of supported boards, in alphabetical order.
-  """
-  return sorted(BOARD)
 
 
 def _GetProgrammerFromFlashromCmd(flashrom_cmd):
