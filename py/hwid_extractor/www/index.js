@@ -83,6 +83,47 @@ const setStateAndRender = (newState) => {
 };
 
 /**
+ * @param {string} path
+ * @param {Object=} data
+ * @return {Object}
+ */
+const fetchAPI = async (path, data = {}) => {
+  try {
+    const resp = await fetch(path, /** @type{!RequestInit} */ ({
+                               method: 'POST',
+                               headers: {'Content-Type': 'application/json'},
+                               body: JSON.stringify(data)
+                             }));
+    const resData = await resp.json();
+    if (resp.status === 200) return resData;
+    setStateAndRender({errorData: resData});
+    return null;
+  } catch (error) {
+    setStateAndRender({errorData: {error: error.toString()}});
+    return null;
+  }
+};
+
+/**
+ * @param {boolean|undefined} value
+ * @param {string} trueText
+ * @param {string} trueColor
+ * @param {string} falseText
+ * @param {string} falseColor
+ * @return {Node}
+ */
+const getBooleanText = (value, trueText, trueColor, falseText, falseColor) => {
+  const ele = document.createElement('span');
+  if (value === undefined) {
+    ele.innerText = 'undefined';
+  } else {
+    ele.innerText = value ? trueText : falseText;
+    ele.style.color = value ? trueColor : falseColor;
+  }
+  return ele;
+};
+
+/**
  * @param {!Node} ele
  * @param {!Object<string,(string|!Node)>} data
  */
@@ -110,6 +151,22 @@ const renderTable = (ele, data) => {
 /**
  * @param {!Node} ele
  * @param {string} text
+ * @param {!Function} onclick
+ */
+const renderButton = (ele, text, onclick) => {
+  const btn = ele.appendChild(document.createElement('button'));
+  if (state.isLoading) {
+    text += ' (Loading...)';
+  }
+  btn.innerText = text;
+  btn.onclick = onclick;
+  btn.disabled = state.isLoading;
+  btn.style = 'margin: 5px; padding: 5px';
+};
+
+/**
+ * @param {!Node} ele
+ * @param {string} text
  * @param {string=} type
  */
 const renderText = (ele, text, type = 'span') => {
@@ -121,6 +178,53 @@ const renderText = (ele, text, type = 'span') => {
   } else {
     span.style = 'margin: 5px; padding: 5px;';
   }
+};
+
+/**
+ * @param {Event=} event
+ */
+const handleScan = async (event) => {
+  setStateAndRender({isLoading: true, message: 'Scanning...'});
+  const scanData = /** @type{ScanData} */ (await fetchAPI('/scan'));
+  if (!scanData) return;
+  let message = undefined;
+  if (scanData.isRestricted && !scanData.challenge) {
+    message = 'Cannot generate rma challenge!!! Try again.';
+  }
+  setStateAndRender({
+    scanData,
+    extractData: undefined,
+    message,
+    input_authcode: undefined,
+  });
+};
+
+/**
+ * @param {!Node} ele
+ */
+const renderScan = (ele) => {
+  renderText(ele, 'Scan the device', 'h4');
+  renderButton(ele, 'Scan', handleScan);
+  if (!state.scanData) return;
+  const {
+    cr50SerialName,
+    rlz,
+    referenceBoard,
+    isRestricted,
+    isTestlabEnabled,
+  } = state.scanData;
+  renderTable(ele, {
+    'Cr50 Serial Name': cr50SerialName,
+    'RLZ Code': rlz,
+    'Reference Board': getBooleanText(
+        state.supportedBoards.indexOf(referenceBoard) != -1,
+        `${referenceBoard} (Supported)`, 'green',
+        `${referenceBoard} (Not Supported)`, 'red'),
+    'CCD State':
+        getBooleanText(isRestricted, 'Locked', 'red', 'Opened', 'green'),
+    'Testlab State':
+        getBooleanText(isTestlabEnabled, 'Enabled', 'green', 'Disabled', 'red'),
+  });
 };
 
 /**
@@ -137,6 +241,7 @@ const render = (ele) => {
   if (state.errorData) {
     renderTable(ele, state.errorData);
   }
+  renderScan(ele);
 };
 
 /**
