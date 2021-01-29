@@ -9,8 +9,6 @@ GSUTIL_BUCKET="gs://chromeos-localmirror/distfiles"
 SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 UFTP_BINARY="uftp"
 UFTP_TARBALL="uftp-4.10.1.tar.gz"
-MROUTED_BINARY="mrouted"
-MROUTED_TARBALL="mrouted-3.9.8.tar.gz"
 
 docker build \
   --file "${DOCKERFILE}" \
@@ -27,10 +25,3 @@ tar -C "${SCRIPT_DIR}/build/" -czf "${SCRIPT_DIR}/build/${UFTP_TARBALL}" \
 gsutil cp "${SCRIPT_DIR}/build/${UFTP_TARBALL}" \
   "${GSUTIL_BUCKET}/${UFTP_TARBALL}"
 gsutil acl ch -u AllUsers:R "${GSUTIL_BUCKET}/${UFTP_TARBALL}"
-
-docker cp "${docker_id}:build/${MROUTED_BINARY}" "${SCRIPT_DIR}/build"
-tar -C "${SCRIPT_DIR}/build/" -czf "${SCRIPT_DIR}/build/${MROUTED_TARBALL}" \
-  "${MROUTED_BINARY}"
-gsutil cp "${SCRIPT_DIR}/build/${MROUTED_TARBALL}" \
-  "${GSUTIL_BUCKET}/${MROUTED_TARBALL}"
-gsutil acl ch -u AllUsers:R "${GSUTIL_BUCKET}/${MROUTED_TARBALL}"
