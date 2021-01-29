@@ -214,9 +214,9 @@ get_uncompressed_file() {
 # Send `station.message` event to instalog server.
 # Usage: instalog_message INSTALOG_URL UID MESSAGE
 instalog_message() {
-  local instalog_url="$1"
-  local uid="$2"
-  local message="$3"
+  local instalog_url="$1"; shift
+  local uid="$1"; shift
+  local message="$*"
 
   local testlog_json="$(cat <<END_TESTLOG_JSON
 {
@@ -247,57 +247,72 @@ mcast_client() {
   local addr="${url%:*}"
   local port="${url#*:}"
 
-  local temp_dir="$(mktemp -d)"
-  local pid_file_path="$(mktemp)"
-  local status_file_path="$(mktemp -u)"
   # UFTP uses the IP address in hexadecimal for uid by default, so we use it as
   # the uuid for instalog.
   local ip_addr="$(ip -o -4 addr list eth0 | awk '{print $4}' | cut -d '/' -f1)"
   local uid="$(echo -n "${ip_addr}" | sed "s/\./ /g" | xargs printf "%02X")"
-  mkfifo "${status_file_path}"
 
-  info "Summon uftpd."
-  "${UFTPD}" -M "${addr}" -p "${port}" -F "${status_file_path}" \
-    -P "${pid_file_path}" -D "${temp_dir}" -t -x "0"
+  local RETRY_MAX=5
+  local retries=0
+  while [ "${retries}" -lt "${RETRY_MAX}" ]; do
+    local temp_dir="$(mktemp -d)"
+    local pid_file_path="$(mktemp)"
+    local status_file_path="$(mktemp -u)"
+    mkfifo "${status_file_path}"
 
-  if [ -n "${instalog_url}" ]; then
-    instalog_message "${instalog_url}" "${uid}" \
-      "Client summoned. Waiting for announcement on ${url}."
-  fi
+    info "Summon uftpd."
+    "${UFTPD}" -M "${addr}" -p "${port}" -F "${status_file_path}" \
+      -P "${pid_file_path}" -D "${temp_dir}" -t -x "0"
 
-  while read -r line; do
-    local result="$(echo "$line" | cut -d ';' -f 1)"
-    local status="$(echo "$line" | cut -d ';' -f 7)"
-
-    if [ "${result}" = "CONNECT" ]; then
-      info "Received announcement from the server. Waiting for file transfer..."
-      if [ -n "${instalog_url}" ]; then
-        instalog_message "${instalog_url}" "${uid}" \
-          "Announcement received." \
-          "Waiting for confirmation and file transfer on ${url}."
-      fi
-      continue
+    if [ -n "${instalog_url}" ]; then
+      instalog_message "${instalog_url}" "${uid}" \
+        "Client summoned. Waiting for announcement on ${url}."
     fi
-    # Format: RESULT;timestamp;server_id;session_id;filename;size;status
-    if [ "${result}" = "RESULT" ] && [ "${status}" = "copied" ]; then
-      info "File transfer completed. Kill uftpd."
-      if [ -n "${instalog_url}" ]; then
-        instalog_message "${instalog_url}" "${uid}" \
-          "File transfer completed on ${url}."
-      fi
-      kill "$(cat "${pid_file_path}")"
 
-      local file_name="$(echo $line | cut -d ';' -f 5)"
-      if [ -z "${output}" ]; then
-        "${PV}" "${temp_dir}/${file_name}"
-      else
-        "${PV}" "${temp_dir}/${file_name}" > ${output}
-      fi
-      rm -rf "${temp_dir}"
+    while read -r line; do
+      local result="$(echo "$line" | cut -d ';' -f 1)"
+      local status="$(echo "$line" | cut -d ';' -f 7)"
 
-      return
+      if [ "${result}" = "CONNECT" ]; then
+        info "Received announcement from the server. " \
+          "Waiting for file transfer..."
+        if [ -n "${instalog_url}" ]; then
+          instalog_message "${instalog_url}" "${uid}" \
+            "Announcement received." \
+            "Waiting for confirmation and file transfer on ${url}."
+        fi
+        continue
+      fi
+      # Format: RESULT;timestamp;server_id;session_id;filename;size;status
+      if [ "${result}" = "RESULT" ] && [ "${status}" = "copied" ]; then
+        info "File transfer completed. Kill uftpd."
+        if [ -n "${instalog_url}" ]; then
+          instalog_message "${instalog_url}" "${uid}" \
+            "File transfer completed on ${url}."
+        fi
+        kill "$(cat "${pid_file_path}")"
+
+        local file_name="$(echo $line | cut -d ';' -f 5)"
+        if [ -z "${output}" ]; then
+          "${PV}" "${temp_dir}/${file_name}"
+        else
+          "${PV}" "${temp_dir}/${file_name}" > ${output}
+        fi
+        rm -rf "${temp_dir}" "${status_file_path}" "${pid_file_path}"
+
+        return
+      fi
+    done < "${status_file_path}"
+
+
+    retries=$(( retries + 1 ))
+    if [ "${retries}" -ne "${RETRY_MAX}" ]; then
+      info "uftpd exited unexpectedly. Clean up and restart another session."
+    else
+      die "Reached maximum (${RETRY_MAX}) retries for multicast download."
     fi
-  done < "${status_file_path}"
+    rm -rf "${temp_dir}" "${status_file_path}" "${pid_file_path}"
+  done
 }
 
 # Downloads from given URL. If output is not given, use STDOUT.
