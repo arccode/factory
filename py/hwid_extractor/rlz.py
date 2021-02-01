@@ -26,7 +26,9 @@ class RLZData:
     res = {}
     for device in all_device.get('devices', []):
       cr50_board_id = device.get('cr50_board_id')
-      if not cr50_board_id:
+      if not cr50_board_id or cr50_board_id == 'ZZCR':
+        # "ZZCR" is a generic brandcode that all devices use in early bring-up
+        # until the permanent brandcode is created.
         continue
       reference_board = device.get('reference_board')
       if not reference_board:
