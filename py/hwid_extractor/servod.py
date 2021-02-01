@@ -5,12 +5,47 @@
 import subprocess
 import time
 
-from chromite.lib.firmware.flash_ap import DutControl
-
 
 SERVOD_BIN = '/usr/bin/servod'
 SERVOD_INIT_SEC = 1
 SERVOD_KILL_TIMEOUT_SEC = 3
+
+
+class DutControl:
+  """Alernative implementation of DutControl in chromite/lib/firmware/flash_ap
+
+  `flash_ap.py` has too many dependencies which are not used by us.
+  Reimplementing this reduces the unused dependencies.
+  TODO(chungsheng): Refactor chromite/lib/firmware/flash_ap.py for better
+  reusability.
+  """
+
+  def __init__(self, port):
+    self._base_cmd = ['dut-control']
+    if port:
+      self._base_cmd.append('--port=%s' % port)
+
+  def get_value(self, arg):
+    """Get the value of |arg| from dut_control."""
+    return subprocess.check_output(self._base_cmd + ['--value_only', arg],
+                                   encoding='utf-8').strip()
+
+  def run(self, cmd_fragment):
+    """Run a dut_control command.
+
+    Args:
+      cmd_fragment (list[str]): The dut_control command to run.
+    """
+    subprocess.check_call(self._base_cmd + cmd_fragment)
+
+  def run_all(self, cmd_fragments):
+    """Run multiple dut_control commands in the order given.
+
+    Args:
+      cmd_fragments (list[list[str]]): The dut_control commands to run.
+    """
+    for cmd in cmd_fragments:
+      self.run(cmd)
 
 
 class Servod:
