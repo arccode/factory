@@ -20,6 +20,7 @@ from cros.factory.utils import file_utils
 FLASHROM_BIN = '/usr/sbin/flashrom'
 FUTILITY_BIN = '/usr/bin/futility'
 VPD_BIN = '/usr/sbin/vpd'
+CMD_TIMEOUT_SECOND = 20
 
 CONFIG_FILE_PATTERN = os.path.join(
     os.path.dirname(ap_firmware_config.__file__), '[!_]*.py')
@@ -94,7 +95,8 @@ def _GetFlashromInfo(board, servo_status):
 def _GetHWID(firmware_binary_file):
   """Get HWID from ap firmware binary."""
   futility_cmd = [FUTILITY_BIN, 'gbb', firmware_binary_file]
-  output = subprocess.check_output(futility_cmd, encoding='utf-8')
+  output = subprocess.check_output(futility_cmd, encoding='utf-8',
+                                   timeout=CMD_TIMEOUT_SECOND)
   logging.debug('futility output:\n%s', output)
   output.split(':')
   m = HWID_RE.match(output.strip())
@@ -104,7 +106,8 @@ def _GetHWID(firmware_binary_file):
 def _GetSerialNumber(firmware_binary_file):
   """Get serial number from ap firmware binary."""
   vpd_cmd = [VPD_BIN, '-l', '-f', firmware_binary_file]
-  output = subprocess.check_output(vpd_cmd, encoding='utf-8')
+  output = subprocess.check_output(vpd_cmd, encoding='utf-8',
+                                   timeout=CMD_TIMEOUT_SECOND)
   logging.debug('vpd output:\n%s', output)
   for line in output.splitlines():
     m = SERIAL_NUMBER_RE.match(line.strip())
@@ -136,7 +139,8 @@ def ExtractHWIDAndSerialNumber(board, dut_control):
         FLASHROM_BIN, '-i', 'FMAP', '-i', 'RO_VPD', '-i', 'GBB', '-p',
         programmer, '-r', tmp_file
     ]
-    output = subprocess.check_output(flashrom_cmd, encoding='utf-8')
+    output = subprocess.check_output(flashrom_cmd, encoding='utf-8',
+                                     timeout=CMD_TIMEOUT_SECOND)
     logging.debug('flashrom output:\n%s', output)
     hwid = _GetHWID(tmp_file)
     serial_number = _GetSerialNumber(tmp_file)
