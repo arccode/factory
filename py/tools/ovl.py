@@ -40,6 +40,7 @@ from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
 from ws4py.client import WebSocketBaseClient
 import yaml
 
+from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 
 
@@ -933,12 +934,22 @@ class OverlordCLIClient:
       Arg('-c', '--root-CA', dest='cert', default=None, type=str,
           help='Path to root CA certificate, only assign at the first time'),
       Arg('-i', '--no-check-hostname', dest='check_hostname', default=True,
-          action='store_false', help='Ignore SSL cert hostname check')
+          action='store_false', help='Ignore SSL cert hostname check'),
+      Arg('-b', '--certificate-dir', dest='certificate_dir', default=None,
+          type=str, help='Path to overlord certificate directory')
   ])
   def Connect(self, args):
     ssh_pid = None
     host = args.host
     orig_host = args.host
+
+    if args.certificate_dir:
+      args.cert = os.path.join(args.certificate_dir, 'rootCA.pem')
+
+      ovl_password_file = os.path.join(args.certificate_dir, 'ovl_password')
+      with open(ovl_password_file, 'r') as f:
+        args.passwd = f.read().strip()
+      args.user = 'ovl'
 
     if args.cert and os.path.exists(args.cert):
       os.makedirs(_CERT_DIR, exist_ok=True)
@@ -1358,7 +1369,7 @@ class OverlordCLIClient:
       raise RuntimeError('remote port not specified')
 
     if args.local is None:
-      args.local = args.remote
+      args.local = net_utils.FindUnusedPort()
     remote = int(args.remote)
     local = int(args.local)
 
@@ -1396,6 +1407,7 @@ class OverlordCLIClient:
         t.daemon = True
         t.start()
     else:
+      print('ovl_forward_port: http://localhost:%d' % local)
       self._server.AddForward(self._selected_mid, remote, local, pid)
 
 

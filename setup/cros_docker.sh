@@ -635,8 +635,11 @@ do_overlord_setup() {
   # readable, so it's easier to use (since the file is owned by root).
   sudo cp "${HOST_OVERLORD_DIR}/config/cert.pem" "${SCRIPT_DIR}/cert.pem"
   sudo cp "${HOST_OVERLORD_DIR}/config/rootCA.pem" "${SCRIPT_DIR}/rootCA.pem"
+  sudo cp "${HOST_OVERLORD_DIR}/config/ovl_password" \
+    "${SCRIPT_DIR}/ovl_password"
   sudo chmod 644 "${SCRIPT_DIR}/cert.pem"
   sudo chmod 644 "${SCRIPT_DIR}/rootCA.pem"
+  sudo chmod 644 "${SCRIPT_DIR}/ovl_password"
 
   echo
   echo "Setup done!"
@@ -681,6 +684,12 @@ do_overlord_run() {
     (echo "Removing stale container due to error ..."; \
      ${DOCKER} rm "${overlord_container_name}"; \
      die "Can't start overlord docker. Possibly wrong port binding?")
+
+  pkill -f ghost || true
+  # Run ghost to control host.
+  "${FACTORY_DIR}/bin/ghost" --mid host --fork \
+    --ovl-path "${FACTORY_DIR}/bin/ovl" \
+    --certificate-dir "${SCRIPT_DIR}"
 
   # The Overlord LAN discovery need to be run with --net host.
   ${DOCKER} run \

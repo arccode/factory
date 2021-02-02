@@ -179,7 +179,9 @@ var StatusTable = React.createClass({
           </tr>
         </thead>
         <tbody>
-          <td className="table-cell-common">{this.props.clients.length}</td>
+          <td className="table-cell-common">
+            {this.props.clients.filter(client => client.mid!="host").length}
+          </td>
           {
             headers.slice(1).map(function (name) {
               return (
@@ -244,6 +246,9 @@ var ClientTable = React.createClass({
         <tbody>
         {
           this.props.clients.map(function (client) {
+            if (client.mid == "host") {
+              return null;
+            }
             return (
               <ClientRow client={client} app={this.props.app} headers={headers}></ClientRow>
             );
@@ -374,6 +379,15 @@ var Windows = React.createClass({
 
 var FixtureGroup = React.createClass({
   render: function () {
+    var overlord_host = this.props.app.getRuntimeClient('host');
+    var ovl_path = "";
+    var certificate_dir = "";
+    if (typeof(overlord_host) != "undefined" &&
+        typeof(overlord_host.properties.ovl_path) != "undefined" &&
+        typeof(overlord_host.properties.certificate_dir) != "undefined") {
+      ovl_path = overlord_host.properties.ovl_path;
+      certificate_dir = overlord_host.properties.certificate_dir;
+    }
     return (
       <div className="fixture-group">
         {
@@ -383,6 +397,7 @@ var FixtureGroup = React.createClass({
                client={this.props.app.getRuntimeClient(fixture.mid)}
                progressBars={this.props.uploadProgress}
                app={this.props.app}
+               ovl_path={ovl_path} certificate_dir={certificate_dir}
                width='45%' />
             );
           }.bind(this))

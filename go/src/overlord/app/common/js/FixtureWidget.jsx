@@ -238,6 +238,10 @@ var FixtureWidget = React.createClass({
         if (msg.data instanceof Blob) {
           ReadBlobAsText(msg.data, function(text) {
             this.refs.mainlog.appendLog(text);
+            if (text.startsWith('ovl_forward_port: http://localhost:')) {
+              this.refs.display.addGoofyLink(
+                  text.replace('ovl_forward_port: http://localhost:', ''));
+            }
           }.bind(this));
         }
       }.bind(this)
@@ -337,21 +341,72 @@ var Display = React.createClass({
     }
     return data;
   },
+  addGoofyLink: function(port) {
+    var url = new URL(window.location.href);
+
+    url.protocol = "http";
+    url.port = port;
+    this.port = port;
+    this.refs["goofy-link-" + this.props.client.mid].href = url.toString();
+  },
+  ovlConnect: function() {
+    var cmd = this.props.fixture.props.ovl_path;
+    cmd += ' connect 127.0.0.1 9000';
+    cmd += ' -b ' + this.props.fixture.props.certificate_dir;
+    this.props.fixture.executeRemoteCmd("host", cmd);
+  },
+  setPortForward: function() {
+    if (this.props.fixture.props.ovl_path != "") {
+      this.ovlConnect();
+      var cmd = this.props.fixture.props.ovl_path;
+      cmd += " -s " + this.props.client.mid + " forward 4012";
+      this.props.fixture.executeRemoteCmd("host", cmd);
+    }
+  },
+  unsetPortForward: function() {
+    if (this.props.fixture.props.ovl_path != "" && this.port != -1) {
+      var cmd = this.props.fixture.props.ovl_path;
+      cmd += " forward --remove " + this.port;
+      this.props.fixture.executeRemoteCmd("host", cmd);
+    }
+  },
   componentWillMount: function() {
     var display = this.props.client.properties.ui.display;
     var template = display.template;
 
+    this.port = -1;
+    this.setPortForward();
     if (typeof(template) != "string") {
       template = template.join('');
     }
     this.template = $.templates(template);
   },
+  componentWillUnmount: function () {
+    this.unsetPortForward();
+  },
+  getGoofyLinkSpan: function() {
+    var goofy_link_span = null;
+
+    if (this.props.fixture.props.ovl_path != "") {
+      goofy_link_span = (
+        <div>
+          <a target="_blank" rel="noopener noreferrer"
+            ref={"goofy-link-" + this.props.client.mid} href="">
+            <b>Goofy</b>
+          </a>
+        </div>
+      );
+    }
+
+    return goofy_link_span;
+  },
   render: function () {
-    var client = this.props.client;
     var displayHTML = this.template.render(this.state);
+    var goofy_link_span = this.getGoofyLinkSpan();
     return (
       <div className="status-block well well-sm">
         <div dangerouslySetInnerHTML={{__html: displayHTML}} />
+        {goofy_link_span}
       </div>
     );
   }

@@ -195,7 +195,8 @@ class Ghost:
 
   def __init__(self, overlord_addrs, tls_settings=None, mode=AGENT, mid=None,
                sid=None, prop_file=None, terminal_sid=None, tty_device=None,
-               command=None, file_op=None, port=None, tls_mode=None):
+               command=None, file_op=None, port=None, tls_mode=None,
+               ovl_path=None, certificate_dir=None):
     """Constructor.
 
     Args:
@@ -217,6 +218,8 @@ class Ghost:
       port: port number to forward.
       tls_mode: can be [True, False, None]. if not None, skip detection of
         TLS and assume whether server use TLS or not.
+      ovl_path: path to ovl tool.
+      certificate_dir: path to overlord certificate directory
     """
     assert mode in [Ghost.AGENT, Ghost.TERMINAL, Ghost.SHELL, Ghost.FILE,
                     Ghost.FORWARD]
@@ -242,6 +245,8 @@ class Ghost:
     self._register_status = DISCONNECTED
     self._reset = threading.Event()
     self._tls_mode = tls_mode
+    self._ovl_path = ovl_path
+    self._certificate_dir = certificate_dir
 
     # The information of track_connection is lost after ghost restart.
     self._track_connection = None
@@ -368,6 +373,10 @@ class Ghost:
       if self._prop_file:
         with open(self._prop_file, 'r') as f:
           self._properties = json.loads(f.read())
+      if self._ovl_path:
+        self._properties['ovl_path'] = self._ovl_path
+      if self._certificate_dir:
+        self._properties['certificate_dir'] = self._certificate_dir
     except Exception as e:
       logging.error('LoadProperties: %s', e)
 
@@ -1425,6 +1434,11 @@ def main():
       '--prop-file', metavar='PROP_FILE', dest='prop_file', type=str,
       default=None, help='file containing the JSON representation of client '
       'properties')
+  parser.add_argument('--ovl-path', metavar='OVL_PATH', dest='ovl_path',
+                      type=str, default=None, help='path to ovl tool')
+  parser.add_argument('--certificate-dir', metavar='CERTIFICATE_DIR',
+                      dest='certificate_dir', type=str, default=None,
+                      help='path to overlord certificate directory')
   parser.add_argument('--download', metavar='FILE', dest='download', type=str,
                       default=None, help='file to download')
   parser.add_argument('--reset', dest='reset', default=False,
@@ -1477,8 +1491,9 @@ def main():
   tls_settings = TLSSettings(args.tls_cert_file, not args.tls_no_verify)
   tls_mode = args.tls_mode
   tls_mode = {'y': True, 'n': False, 'detect': None}[tls_mode]
-  g = Ghost(addrs, tls_settings, Ghost.AGENT, args.mid,
-            prop_file=prop_file, tls_mode=tls_mode)
+  g = Ghost(addrs, tls_settings, Ghost.AGENT, args.mid, prop_file=prop_file,
+            tls_mode=tls_mode, ovl_path=args.ovl_path,
+            certificate_dir=args.certificate_dir)
   g.Start(args.lan_disc, args.rpc_server)
 
 

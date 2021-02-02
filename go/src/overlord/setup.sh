@@ -24,6 +24,11 @@ setup_login() {
 
   htpasswd -B -c "${htpasswd_path}" "${username}"
 
+  # Create a special account for ovl tool.
+  ovl_password=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 15)
+  echo "${ovl_password}" > "${CONFIG_DIR}/ovl_password"
+  htpasswd -b -B "${htpasswd_path}" "ovl" "${ovl_password}"
+
   echo "Login credentials for user ${username} is added."
 }
 
