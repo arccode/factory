@@ -20,8 +20,9 @@ mkdir "${SCRIPT_DIR}/build"
 docker_id=$(docker create ${CONTAINER_NAME})
 
 docker cp "${docker_id}:build/${UFTP_BINARY}" "${SCRIPT_DIR}/build"
-tar -C "${SCRIPT_DIR}/build/" -czf "${SCRIPT_DIR}/build/${UFTP_TARBALL}" \
-  "${UFTP_BINARY}"
+# Override modify time and compression command to make the hash stable.
+tar -C "${SCRIPT_DIR}/build/" -cf "${SCRIPT_DIR}/build/${UFTP_TARBALL}" \
+  --mtime "1970-01-01" -I "gzip --no-name" "${UFTP_BINARY}"
 gsutil cp "${SCRIPT_DIR}/build/${UFTP_TARBALL}" \
   "${GSUTIL_BUCKET}/${UFTP_TARBALL}"
 gsutil acl ch -u AllUsers:R "${GSUTIL_BUCKET}/${UFTP_TARBALL}"
