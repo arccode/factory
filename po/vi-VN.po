@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-01-14 17:11+CST\n"
+"PO-Revision-Date: 2021-02-04 18:21+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -2544,12 +2544,12 @@ msgid "Writing calibration data..."
 msgstr "Viết kết quả chỉnh sửa..."
 
 #: ../py/test/pytests/start.py
-msgid "Enter valid serial number:<br>"
-msgstr "Vui lòng nhập số sê-ri hợp lệ:<br>"
-
-#: ../py/test/pytests/start.py
 msgid "Hit SPACE to start testing..."
 msgstr "Nhấn nút trống để bắt đầu kiểm tra..."
+
+#: ../py/test/pytests/start.py
+msgid "Hit {name} to start testing..."
+msgstr "Nhấn vào {name} để bắt đầu thử nghiệm..."
 
 #: ../py/test/pytests/start.py
 msgid "Plug in external power to continue."
