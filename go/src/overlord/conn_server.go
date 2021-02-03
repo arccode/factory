@@ -45,6 +45,7 @@ type fileDownloadContext struct {
 type DutContext struct {
 	Status      string   // Pytest status
 	Pytest      string   // Pytest name
+	Serial      string   // Serial number
 	Model       string   // Dut model
 	Ip          []string // Dut IP
 	StatusScore int      // Status score, used by sort function
@@ -319,6 +320,7 @@ func (c *ConnServer) handleUpdateDutDataRequest(req *Request) error {
 	type RequestArgs struct {
 		Status string   `json:"status"`
 		Pytest string   `json:"pytest"`
+		Serial string   `json:"serial"`
 		Model  string   `json:"model"`
 		Ip     []string `json:"ip"`
 	}
@@ -331,10 +333,11 @@ func (c *ConnServer) handleUpdateDutDataRequest(req *Request) error {
 	log.Printf("Update dut data from mid: %s", c.Mid)
 	log.Printf("Status: %s", args.Status)
 	log.Printf("Pytest: %s", args.Pytest)
+	log.Printf("Serial: %s", args.Serial)
 	log.Printf("Model: %s", args.Model)
 	log.Println(args.Ip)
 
-	c.Dut = DutContext{args.Status, args.Pytest, args.Model, args.Ip, 0}
+	c.Dut = DutContext{args.Status, args.Pytest, args.Serial, args.Model, args.Ip, 0}
 	c.UpdateDUTStatus(args.Status)
 	c.lastPing = time.Now()
 

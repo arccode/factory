@@ -77,8 +77,8 @@ html, body, #main {
   padding: 10px 0px 10px 10px;
 }
 
-.table-mid-col {
-  width: 30%;
+.table-serial-col {
+  width: 25%;
 }
 
 .table-status-col {
@@ -86,7 +86,7 @@ html, body, #main {
 }
 
 .table-pytest-col {
-  width: 30%;
+  width: 35%;
 }
 
 .table-model-col {

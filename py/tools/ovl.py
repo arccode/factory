@@ -1078,7 +1078,9 @@ class OverlordCLIClient:
     def FormatPrint(length, string):
       print('%*s' % (length + 2, string), end='|')
 
-    columns = ['mid', 'status', 'pytest', 'model', 'ip', 'track_connection']
+    columns = [
+        'mid', 'serial', 'status', 'pytest', 'model', 'ip', 'track_connection'
+    ]
     columns_max_len = {column: len(column)
                        for column in columns}
 

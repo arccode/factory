@@ -36,6 +36,7 @@ import jsonrpclib
 from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
 
 from cros.factory.gooftool import cros_config as cros_config_module
+from cros.factory.test import device_data
 from cros.factory.test import state
 from cros.factory.test.state import TestState
 from cros.factory.test.test_lists import manager
@@ -1180,6 +1181,11 @@ class Ghost:
         'ip': ip_addrs
     }
 
+  def CollectSerial(self):
+    return {
+        'serial': device_data.GetSerialNumber()
+    }
+
   def CollectData(self):
     """Collect dut data.
 
@@ -1188,11 +1194,13 @@ class Ghost:
     2. pytest: Current pytest
     3. model: Model name
     4. ip: IP
+    5. serial: Serial number
     """
     data = {}
     data.update(self.CollectPytestAndStatus())
     data.update(self.CollectModelName())
     data.update(self.CollectIP())
+    data.update(self.CollectSerial())
 
     return data
 

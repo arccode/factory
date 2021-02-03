@@ -239,6 +239,7 @@ func (ovl *Overlord) GetUIData(conn *ConnServer) (string, error) {
 		"status":       conn.Dut.Status,
 		"status_score": conn.Dut.StatusScore,
 		"pytest":       conn.Dut.Pytest,
+		"serial":       conn.Dut.Serial,
 		"model":        conn.Dut.Model,
 	})
 
@@ -557,6 +558,7 @@ func (ovl *Overlord) RegisterHTTPHandlers() {
 				"mid":              agent.Mid,
 				"sid":              agent.Sid,
 				"model":            agent.Dut.Model,
+				"serial":           agent.Dut.Serial,
 				"status":           agent.Dut.Status,
 				"status_score":     agent.Dut.StatusScore,
 				"pytest":           agent.Dut.Pytest,

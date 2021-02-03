@@ -51,7 +51,7 @@ var BaseApp = {
       return true;
     }
 
-    test_result = this.state.displayPattern.test(client.mid) ||
+    test_result = this.state.displayPattern.test(client.serial) ||
         this.state.displayPattern.test(client.status) ||
         this.state.displayPattern.test(client.pytest) ||
         this.state.displayPattern.test(client.model);
