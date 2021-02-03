@@ -608,11 +608,13 @@ do_overlord_setup() {
 
   local overlord_cert_dir="${FACTORY_PRIVATE_DIR}/overlord/certificate/"
   local ssl_setting=""
-  if [ -f "${overlord_cert_dir}/cert.pem" ] && \
+  if [ -f "${overlord_cert_dir}/rootCA.pem" ] && \
+     [ -f "${overlord_cert_dir}/cert.pem" ] && \
      [ -f "${overlord_cert_dir}/key.pem" ]; then
     echo "Found default certificate, skip ssl setting."
     ssl_setting="skip_ssl_setting"
 
+    sudo cp "${overlord_cert_dir}/rootCA.pem" "${HOST_OVERLORD_DIR}/config/"
     sudo cp "${overlord_cert_dir}/cert.pem" "${HOST_OVERLORD_DIR}/config/"
     sudo cp "${overlord_cert_dir}/key.pem" "${HOST_OVERLORD_DIR}/config/"
   fi
@@ -628,14 +630,6 @@ do_overlord_setup() {
     (echo "Setup failed... removing Overlord settings."; \
      sudo rm -rf "${HOST_OVERLORD_DIR}"; \
      die "Overlord setup failed.")
-
-  if [ "${ssl_setting}" = "skip_ssl_setting" ]; then
-    echo
-    echo "Setup done!"
-    echo "You can find the root CA at ${overlord_cert_dir}/rootCA.pem"
-    show_instructions_to_import_rootCA
-    return
-  fi
 
   # Copy the certificate to script directory, and set its permission to all
   # readable, so it's easier to use (since the file is owned by root).
