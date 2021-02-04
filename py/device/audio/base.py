@@ -337,32 +337,36 @@ class BaseAudioControl(device_types.DeviceComponent):
 
   def RecordWavFile(self, path, card, device, duration, channels, rate):
     """Record audio to a .wav file.
+
     It's a blocking Call. User can get their record result after this function
     returns.
-    We use 16 bits little-endian as default sample format.
+    The sample format is signed 16 bits little-endian.
 
     Args:
       path: The record result file.
       card: The index of audio card.
       device: The index of the device.
       duration: (seconds) Record duration.
-      channels: number of channels
-      rate: Sampling rate
+      channels: number of channels, auto detected if it is 0.
+      rate: Sampling rate.
     """
     raise NotImplementedError
 
   def RecordRawFile(self, path, card, device, duration, channels, rate):
     """Record audio to a raw format.
+
     Just like RecordWavFile but we remove wav header for the raw format.
     User can overwrite it with their fast implementation.
+
+    The sample format is signed 16 bits little-endian.
 
     Args:
       path: The record result file.
       card: The index of audio card.
       device: The index of the device.
       duration: (seconds) Record duration.
-      channels: number of channels
-      rate: Sampling rate
+      channels: number of channels.
+      rate: Sampling rate.
     """
     with self._device.temp.TempFile() as wav_path:
       self.RecordWavFile(wav_path, card, device, duration, channels, rate)

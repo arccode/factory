@@ -9,7 +9,8 @@ import re
 
 from cros.factory.device.audio import base
 from cros.factory.device.audio import config_manager
-from cros.factory.utils.type_utils import Enum
+from cros.factory.utils import file_utils
+from cros.factory.utils import type_utils
 
 # Configuration file is put under overlay directory and it can be customized
 # for each board.
@@ -98,7 +99,7 @@ class AlsaAudioControl(base.BaseAudioControl):
   file will override the behavior.
   """
   # Just list all supported options. But we only use wav and raw types.
-  RecordType = Enum(['voc', 'wav', 'raw', 'au'])
+  RecordType = type_utils.Enum(['voc', 'wav', 'raw', 'au'])
 
   def __init__(self, dut, config_name=None, ucm_card_map=None,
                ucm_device_map=None, ucm_verb=None):
@@ -138,9 +139,72 @@ class AlsaAudioControl(base.BaseAudioControl):
     if pid:
       self._device.Call(['kill', pid])
 
-  def _GetRecordArgs(self, file_type, path, card, device, duration, channels,
-                     rate):
-    """Gets the command args for arecord to record audio
+  def _GetSupportedRecordArgs(self, card, device, orig_channel, orig_rate):
+    """Get the supported arguments for `arecord`.
+
+    Use `alsa_conformance_test` to get supported arguments. For each argument,
+    the original value is checked. It is returned if it is supported. Otherwise,
+    the last element of the supported value is used.
+
+    If the original value is used we may be able to avoid unnecessary
+    conversion. If not, we should try to use the highest value as possible.
+
+    For the format, currently, only S16_LE and S32_LE are supported.
+
+    Args:
+      card: The index of audio card.
+      device: The index of the device.
+      orig_channel: The original number of channels.
+      orig_rate: The original sampling rate.
+
+    Returns:
+      (channel, data_format, rate) the supported arguments.
+
+    Raises:
+      RuntimeError if no supported arguments.
+    """
+    # Some formats may not be supported by sox. Only list the formats we used.
+    SOX_SUPPORTED_FORMATS = ['S16_LE', 'S32_LE']
+
+    output = self._device.CheckOutput([
+        'alsa_conformance_test', '--dev_info_only', '-C', f'hw:{card},{device}'
+    ])
+
+    def GetElementFromList(arr, ele):
+      """Try to return `ele` or return the last element of list."""
+      if not arr:
+        return None
+      if ele in arr:
+        return ele
+      return arr[-1]
+
+    channel = None
+    data_format = None
+    rate = None
+    for line in output.splitlines():
+      tokens = [x.strip() for x in line.split(':')]
+      if tokens[0] == 'available channels':
+        #  The values of channels are increased.
+        channel = int(GetElementFromList(tokens[1].split(' '), orig_channel))
+      if tokens[0] == 'available formats':
+        alsa_formats = tokens[1].split(' ')
+        for try_format in SOX_SUPPORTED_FORMATS:
+          if try_format in alsa_formats:
+            data_format = try_format
+            break
+      if tokens[0] == 'available rates':
+        #  The values of rates are increased.
+        rate = int(GetElementFromList(tokens[1].split(' '), orig_rate))
+    if channel is None or data_format is None or rate is None:
+      raise RuntimeError("Device doesn't support recording.")
+    return channel, data_format, rate
+
+  def _RecordFile(self, file_type, out_file, card, device, duration, channels,
+                  rate):
+    """Record and save data to file.
+
+    The output is always encoding in signed 16 bits little-endian. The recorded
+    data is convert to the required format after recording.
 
     Args:
       file_type: RecordType Enum value.
@@ -154,23 +218,58 @@ class AlsaAudioControl(base.BaseAudioControl):
     Returns:
       An array of the arecord command used by self._device.Call.
     """
-    file_type = {
-        self.RecordType.voc: 'voc',
-        self.RecordType.wav: 'wav',
-        self.RecordType.raw: 'raw',
-        self.RecordType.au: 'au',
-    }[file_type]
-    return ['arecord', '-D', 'hw:%s,%s' % (card, device), '-t', file_type,
-            '-d', str(duration), '-r', str(rate), '-c', str(channels),
-            '-f', 'S16_LE', path]
+    raw_channel, raw_format, raw_rate = self._GetSupportedRecordArgs(
+        card, device, channels, rate)
+    with file_utils.UnopenedTemporaryFile() as temp_file:
+      self._device.CheckCall([
+          'arecord',
+          f'-Dhw:{card},{device}',
+          '-twav',
+          f'-d{duration}',
+          f'-r{raw_rate}',
+          f'-c{raw_channel}',
+          f'-f{raw_format}',
+          temp_file,
+      ])
+
+      if channels <= raw_channel:
+        # The first `channels` channels is reserve. Other channels are dropped.
+        remix = [str(x + 1) for x in range(channels)]
+        logging.warning(
+            'Raw data has %d channels. The channels after channel %d are '
+            'dropped.', raw_channel, channels)
+      else:
+        # The i-th channel match the `((i * raw_channel) / channels)` channels.
+        remix = [str(x * raw_channel // channels + 1) for x in range(channels)]
+        logging.warning(
+            'Raw data has %d channels. The channels are copied to match %d '
+            'channels.', raw_channel, channels)
+      if raw_format != 'S16_LE':
+        logging.warning('Format "%s" is converted to "S16_LE".', raw_format)
+      if raw_rate != rate:
+        logging.warning('Rate "%d" is converted to "%d".', raw_rate, rate)
+
+      # Convert the data into 16 bits little-endian.
+      self._device.CheckCall([
+          'sox',
+          '-twav',
+          temp_file,
+          f'-t{file_type}',
+          f'-r{rate}',
+          f'-c{channels}',
+          '-b16',
+          '-esigned',
+          '-L',
+          out_file,
+          'remix',
+      ] + remix)
 
   def RecordWavFile(self, path, card, device, duration, channels, rate):
     """See BaseAudioControl.RecordWavFile"""
-
-    self._device.Call(self._GetRecordArgs(
-        self.RecordType.wav, path, card, device, duration, channels, rate))
+    self._RecordFile(self.RecordType.wav, path, card, device, duration,
+                     channels, rate)
 
   def RecordRawFile(self, path, card, device, duration, channels, rate):
     """See BaseAudioControl.RecordRawFile"""
-    self._device.Call(self._GetRecordArgs(
-        self.RecordType.raw, path, card, device, duration, channels, rate))
+    self._RecordFile(self.RecordType.raw, path, card, device, duration,
+                     channels, rate)
