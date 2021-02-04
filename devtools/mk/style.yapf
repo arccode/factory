@@ -145,12 +145,12 @@ force_multiline_dict=True
 # The regex for an i18n comment. The presence of this comment stops
 # reformatting of that line, because the comments are required to be
 # next to the string they translate.
-i18n_comment=#\..*
+i18n_comment=
 
 # The i18n function call names. The presence of this function stops
 # reformattting on that line, because the string it has cannot be moved
 # away from the i18n comment.
-i18n_function_call=N_, _
+i18n_function_call=
 
 # Indent blank lines.
 indent_blank_lines=False
