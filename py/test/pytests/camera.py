@@ -21,6 +21,8 @@ by argument ``mode``):
 
 * ``'manual_led'``: Light or blink camera LED.
 
+* ``'brightness'``: Check the maximum brightness of frames.
+
 ``e2e_mode`` can be set to use Chrome Media API instead of device API.
 
 Test Procedure
@@ -49,6 +51,10 @@ The test procedure differs for each different modes:
 
 * ``'manual_led'``: The LED light of camera would either be constant on or
   blinking, and operator need to press the correct key to pass the test.
+
+``'brightness'``: No user interaction is required, the test pass after
+  ``num_frames_to_pass`` frames are captured. Only the frames which the maximum
+  brightness is between `brightness_range` are counted.
 
 Except ``'timeout'`` mode, the test would fail after ``timeout_secs`` seconds.
 
@@ -114,6 +120,19 @@ don't show the image::
       "show_image": false
     }
   }
+
+To check the camera capturing black frames (the maximum brightness less than
+10)::
+
+  {
+    "pytest_name": "camera",
+    "args": {
+      "num_frames_to_pass": 5,
+      "mode": "brightness",
+      "timeout_secs": 3,
+      "brightness_range": [null, 10]
+    }
+  }
 """
 
 
@@ -129,10 +148,12 @@ import uuid
 from cros.factory.device import device_utils
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
+from cros.factory.test import session
 from cros.factory.test import test_case
 from cros.factory.test.utils import barcode
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
+from cros.factory.utils import schema
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
@@ -146,9 +167,36 @@ _JPEG_QUALITY = 70
 _HAAR_CASCADE_PATH = (
     '/usr/local/share/opencv4/haarcascades/haarcascade_frontalface_default.xml')
 
+TestModes = type_utils.Enum([
+    'qr', 'face', 'timeout', 'frame_count', 'manual', 'manual_led', 'brightness'
+])
 
-TestModes = type_utils.Enum(['qr', 'face', 'timeout', 'frame_count', 'manual',
-                             'manual_led'])
+_TEST_MODE_INST = {
+    TestModes.manual:
+        _('Press ENTER to pass or ESC to fail.'),
+    TestModes.timeout:
+        _('Running the camera until timeout.'),
+    TestModes.frame_count:
+        _('Running the camera until expected number of frames captured.'),
+    TestModes.qr:
+        _('Scanning QR code...'),
+    TestModes.face:
+        _('Detecting faces...'),
+    TestModes.brightness:
+        _('Checking brightness...')
+}
+
+_RANGE_SCHEMA = schema.JSONSchemaDict(
+    'threshold schema object',
+    {
+        'type': 'array',
+        'items': {
+            'type': ['number', 'null']
+        },
+        'minItems': 2,
+        'maxItems': 2
+    },
+)
 
 
 class CameraTest(test_case.TestCase):
@@ -166,6 +214,10 @@ class CameraTest(test_case.TestCase):
           'QR code scanning in times per second.', default=5),
       Arg('QR_string', str, 'Encoded string in QR code.',
           default='Hello ChromeOS!'),
+      Arg(
+          'brightness_range', list, '**[min, max]**, check if the maximum '
+          'brightness is between [min, max] (inclusive). None means no limit.',
+          default=[None, None], schema=_RANGE_SCHEMA),
       Arg('capture_fps', numbers.Real,
           'Camera capture rate in frames per second.', default=30),
       Arg('timeout_secs', int, 'Timeout value for the test.', default=20),
@@ -335,6 +387,13 @@ class CameraTest(test_case.TestCase):
 
     return scanned_text == self.args.QR_string
 
+  def BrightnessCheck(self, cv_image):
+    value = cv.cvtColor(cv_image, cv.COLOR_BGR2GRAY).max()
+    threshold = self.args.brightness_range
+    session.console.info(f'Maximum brightness: {value}')
+    return ((threshold[0] is None or threshold[0] <= value) and
+            (threshold[1] is None or value <= threshold[1]))
+
   def ShowImage(self, cv_image):
     if self.e2e_mode:
       # In e2e mode, the image is directly shown by frontend in a video
@@ -363,26 +422,21 @@ class CameraTest(test_case.TestCase):
       # The websocket is closed because test has passed/failed.
       return
 
-  def CaptureTest(self, mode):
-    frame_count = 0
-    detected_frame_count = 0
-    tick = 1.0 / float(self.args.capture_fps)
-    tock = time.time()
-    process_interval = 1.0 / float(self.args.process_rate)
+  def CaptureTestFrame(self, mode, cv_image):
+    if mode == TestModes.frame_count:
+      return True
+    if mode == TestModes.qr:
+      return self.ScanQRCode(cv_image)
+    if mode == TestModes.face:
+      return self.DetectFaces(cv_image)
+    if mode == TestModes.brightness:
+      return self.BrightnessCheck(cv_image)
 
-    instructions = {
-        TestModes.manual:
-            _('Press ENTER to pass or ESC to fail.'),
-        TestModes.timeout:
-            _('Running the camera until timeout.'),
-        TestModes.frame_count:
-            _('Running the camera until expected number of frames captured.'),
-        TestModes.qr:
-            _('Scanning QR code...'),
-        TestModes.face:
-            _('Detecting faces...')
-    }
-    self.ShowInstruction(instructions[mode])
+    # For all other test, like TestModes.manually, return False.
+    return False
+
+  def CaptureTest(self, mode):
+    self.ShowInstruction(_TEST_MODE_INST[mode])
     if mode == TestModes.manual:
       self.ui.BindStandardKeys()
 
@@ -391,28 +445,29 @@ class CameraTest(test_case.TestCase):
 
     self.EnableDevice()
     try:
+      frame_count = 0
+      frame_interval = 1.0 / float(self.args.capture_fps)
+      last_process_time = time.time()
+      if mode == TestModes.frame_count:
+        process_interval = 0
+      else:
+        process_interval = 1.0 / float(self.args.process_rate)
+
       while True:
         start_time = time.time()
         cv_image = self.ReadSingleFrame()
-        if mode == TestModes.frame_count:
-          frame_count += 1
+
+        if time.time() - last_process_time > process_interval:
+          last_process_time = time.time()
+          if self.CaptureTestFrame(mode, cv_image):
+            frame_count += 1
           if frame_count >= self.args.num_frames_to_pass:
-            return
-        elif (mode in [TestModes.qr, TestModes.face] and
-              time.time() - tock > process_interval):
-          # Doing face recognition based on process_rate due to performance
-          # consideration.
-          tock = time.time()
-          if ((mode == TestModes.qr and self.ScanQRCode(cv_image)) or
-              (mode == TestModes.face and self.DetectFaces(cv_image))):
-            detected_frame_count += 1
-          if detected_frame_count >= self.args.num_frames_to_pass:
             return
 
         if self.args.show_image:
           self.ShowImage(cv_image)
 
-        self.Sleep(tick - (time.time() - start_time))
+        self.Sleep(frame_interval - (time.time() - start_time))
     finally:
       self.DisableDevice()
 

@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-02-04 18:21+CST\n"
+"PO-Revision-Date: 2021-02-05 17:18+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -1585,16 +1585,6 @@ msgid ""
 msgstr "你听到几声哔声？<br>请按下数字代表你听到几声哔声<br>按下 'r' 重播"
 
 #: ../py/test/pytests/camera.py
-msgid ""
-"Press 0 if LED is constantly lit, 1 if LED is flickering,\n"
-"or ESC to fail."
-msgstr "LED 一直亮着请按 0，闪烁请按 1，没亮请按 ESC"
-
-#: ../py/test/pytests/camera.py
-msgid "Scanned QR code: \"{text}\""
-msgstr "已侦测 QR 码: \"{text}\""
-
-#: ../py/test/pytests/camera.py
 msgid "Press ENTER to pass or ESC to fail."
 msgstr "摄像头运作正常请按 ENTER，不正常请按 ESC"
 
@@ -1613,6 +1603,20 @@ msgstr "侦测 QR 码中..."
 #: ../py/test/pytests/camera.py
 msgid "Detecting faces..."
 msgstr "侦测人脸中..."
+
+#: ../py/test/pytests/camera.py
+msgid "Checking brightness..."
+msgstr "正在确认亮度……"
+
+#: ../py/test/pytests/camera.py
+msgid ""
+"Press 0 if LED is constantly lit, 1 if LED is flickering,\n"
+"or ESC to fail."
+msgstr "LED 一直亮着请按 0，闪烁请按 1，没亮请按 ESC"
+
+#: ../py/test/pytests/camera.py
+msgid "Scanned QR code: \"{text}\""
+msgstr "已侦测 QR 码: \"{text}\""
 
 #: ../py/test/pytests/cellular_switch_firmware.py
 msgid "Switching firmware to {target!r}"

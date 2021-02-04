@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-02-04 18:21+CST\n"
+"PO-Revision-Date: 2021-02-05 17:18+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -1615,17 +1615,6 @@ msgstr ""
 "nghe thấy một vài <br>tiếng  bíp và bấm 'r' để phát lại"
 
 #: ../py/test/pytests/camera.py
-msgid ""
-"Press 0 if LED is constantly lit, 1 if LED is flickering,\n"
-"or ESC to fail."
-msgstr ""
-"LED đã được thắp sáng, nhấn 0, nhấp nháy bấm 1, nhấn ESC trước khi bình minh"
-
-#: ../py/test/pytests/camera.py
-msgid "Scanned QR code: \"{text}\""
-msgstr "Đã phát hiện mã QR:  \"{text}\""
-
-#: ../py/test/pytests/camera.py
 msgid "Press ENTER to pass or ESC to fail."
 msgstr ""
 "Nếu máy ảnh hoạt động bình thường, vui lòng nhấn ENTER.Nếu không bình "
@@ -1646,6 +1635,21 @@ msgstr "Phát hiện mã QR ..."
 #: ../py/test/pytests/camera.py
 msgid "Detecting faces..."
 msgstr "Phát hiện khuôn mặt ..."
+
+#: ../py/test/pytests/camera.py
+msgid "Checking brightness..."
+msgstr "Kiểm tra độ sáng ... "
+
+#: ../py/test/pytests/camera.py
+msgid ""
+"Press 0 if LED is constantly lit, 1 if LED is flickering,\n"
+"or ESC to fail."
+msgstr ""
+"LED đã được thắp sáng, nhấn 0, nhấp nháy bấm 1, nhấn ESC trước khi bình minh"
+
+#: ../py/test/pytests/camera.py
+msgid "Scanned QR code: \"{text}\""
+msgstr "Đã phát hiện mã QR:  \"{text}\""
 
 #: ../py/test/pytests/cellular_switch_firmware.py
 msgid "Switching firmware to {target!r}"
