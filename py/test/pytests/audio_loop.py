@@ -221,6 +221,8 @@ _DEFAULT_NOISE_TEST_DURATION = 1
 _DEFAULT_SOX_RMS_THRESHOLD = (0.08, None)
 # Default Amplitude thresholds when checking recorded file.
 _DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
+# Default Max Delta thresholds when checking recorded file.
+_DEFAULT_SOX_MAX_DELTA_THRESHOLD = (None, None)
 # Default duration in seconds to trim in the beginning of recorded file.
 _DEFAULT_TRIM_SECONDS = 0.5
 # Default minimum frequency.
@@ -270,27 +272,47 @@ _ARG_OUTPUT_DEVICE_SCHEMA = JSONSchemaDict('output_dev schema object', {
     'maxItems': 2
 })
 
-_ARG_TESTS_TO_CONDUCT_SCHEMA = JSONSchemaDict('tests_to_conduct schema', {
+_ARG_RANGE_THRESHOLD_SCHEMA_DICT = {
     'type': 'array',
     'items': {
-        'type': 'object',
-        'oneOf': [
-            {
+        'type': ['number', 'null']
+    },
+    'minItems': 2,
+    'maxItems': 2
+}
+
+_ARG_TESTS_TO_CONDUCT_SCHEMA = JSONSchemaDict(
+    'tests_to_conduct schema', {
+        'type': 'array',
+        'items': {
+            'type':
+                'object',
+            'oneOf': [{
                 'properties': {
                     'type': {
                         'type': 'string',
                         'enum': ['audiofun']
                     },
-                    'iteration': {'type': 'integer'},
-                    'threshold': {'type': 'number'},
-                    'input_channels': {'type': 'array'},
-                    'output_channels': {'type': 'array'},
+                    'iteration': {
+                        'type': 'integer'
+                    },
+                    'threshold': {
+                        'type': 'number'
+                    },
+                    'input_channels': {
+                        'type': 'array'
+                    },
+                    'output_channels': {
+                        'type': 'array'
+                    },
                     'volume_gain': {
                         'type': 'number',
                         'minimum': 0,
                         'maximum': 100
                     },
-                    'capture_rate': {'type': 'number'},
+                    'capture_rate': {
+                        'type': 'number'
+                    },
                     'sample_format': {
                         'type': 'string',
                         'enum': ['u8', 's16', 's24', 's32']
@@ -299,63 +321,55 @@ _ARG_TESTS_TO_CONDUCT_SCHEMA = JSONSchemaDict('tests_to_conduct schema', {
                         'type': 'string',
                         'enum': ['u8', 's16', 's24', 's32']
                     },
-                    'min_frequency': {'type': 'number'},
-                    'max_frequency': {'type': 'number'}
+                    'min_frequency': {
+                        'type': 'number'
+                    },
+                    'max_frequency': {
+                        'type': 'number'
+                    }
                 },
                 'additionalProperties': False,
                 'required': ['type']
-            },
-            {
+            }, {
                 'properties': {
                     'type': {
                         'type': 'string',
                         'enum': ['sinewav']
                     },
-                    'duration': {'type': 'number',},
-                    'input_channels': {'type': 'array'},
-                    'freq_threshold': {'type': 'number'},
-                    'rms_threshold': {
-                        'type': 'array',
-                        'items': {'type': ['number', 'null']},
-                        'minItems': 2,
-                        'maxItems': 2
+                    'duration': {
+                        'type': 'number',
                     },
-                    'amplitude_threshold': {
-                        'type': 'array',
-                        'items': {'type': ['number', 'null']},
-                        'minItems': 2,
-                        'maxItems': 2
-                    }
+                    'input_channels': {
+                        'type': 'array'
+                    },
+                    'freq_threshold': {
+                        'type': 'number'
+                    },
+                    'rms_threshold': _ARG_RANGE_THRESHOLD_SCHEMA_DICT,
+                    'amplitude_threshold': _ARG_RANGE_THRESHOLD_SCHEMA_DICT,
+                    'max_delta_threshold': _ARG_RANGE_THRESHOLD_SCHEMA_DICT
                 },
                 'additionalProperties': False,
                 'required': ['type']
-            },
-            {
+            }, {
                 'properties': {
                     'type': {
                         'type': 'string',
                         'enum': ['noise']
                     },
-                    'duration': {'type': 'number'},
-                    'rms_threshold': {
-                        'type': 'array',
-                        'items': {'type': ['number', 'null']},
-                        'minItems': 2,
-                        'maxItems': 2
+                    'duration': {
+                        'type': 'number'
                     },
-                    'amplitude_threshold': {
-                        'type': 'array',
-                        'items': {'type': ['number', 'null']},
-                        'minItems': 2,
-                        'maxItems': 2
-                    }
+                    'rms_threshold': _ARG_RANGE_THRESHOLD_SCHEMA_DICT,
+                    'amplitude_threshold': _ARG_RANGE_THRESHOLD_SCHEMA_DICT,
+                    'max_delta_threshold': _ARG_RANGE_THRESHOLD_SCHEMA_DICT
                 },
                 'additionalProperties': False,
                 'required': ['type']
-            }
-        ]
-    }
-})
+            }]
+        }
+    })
+
 
 class AudioLoopTest(test_case.TestCase):
   """Audio Loop test to test two kind of situations.
@@ -364,27 +378,26 @@ class AudioLoopTest(test_case.TestCase):
   """
   ARGS = [
       Arg('audio_conf', str, 'Audio config file path', default=None),
-      Arg('initial_actions', list,
+      Arg(
+          'initial_actions', list,
           'List of [card, actions]. If actions is None, the Initialize method '
-          'will be invoked.',
-          default=None),
-      Arg('input_dev', list,
-          'Input ALSA device. [card_name, sub_device]. '
+          'will be invoked.', default=None),
+      Arg(
+          'input_dev', list, 'Input ALSA device. [card_name, sub_device]. '
           'For example: ["audio_card", "0"]. The sub_device could be a string '
           'of an integer or one of %r. If this argument is a string of an '
           'integer then it represents the PCM Id. Otherwise the test will find '
-          'the PCM Id from UCM config using this argument as the keyword.'
-          % list(base.InputDevices), default=['0', '0'],
+          'the PCM Id from UCM config using this argument as the keyword.' %
+          list(base.InputDevices), default=['0', '0'],
           schema=_ARG_INPUT_DEVICE_SCHEMA),
-      Arg('num_input_channels', int,
-          'Number of input channels.', default=2),
-      Arg('output_dev', list,
-          'Output ALSA device. [card_name, sub_device]. '
+      Arg('num_input_channels', int, 'Number of input channels.', default=2),
+      Arg(
+          'output_dev', list, 'Output ALSA device. [card_name, sub_device]. '
           'For example: ["audio_card", "0"]. The sub_device could be a string '
           'of an integer or one of %r. If this argument is a string of an '
           'integer then it represents the PCM Id. Otherwise the test will find '
-          'the PCM Id from UCM config using this argument as the keyword.'
-          % list(base.OutputDevices), default=['0', '0'],
+          'the PCM Id from UCM config using this argument as the keyword.' %
+          list(base.OutputDevices), default=['0', '0'],
           schema=_ARG_OUTPUT_DEVICE_SCHEMA),
       Arg('output_volume', (int, list),
           'An int of output volume or a list of output volume candidates',
@@ -399,16 +412,16 @@ class AudioLoopTest(test_case.TestCase):
           default=False),
       Arg('mic_source', base.InputDevices, 'Microphone source',
           default=base.InputDevices.Extmic),
-      Arg('test_title', str,
-          'Title on the test screen.'
+      Arg(
+          'test_title', str, 'Title on the test screen.'
           'It can be used to tell operators the test info'
           'For example: "LRGM Mic", "LRMG Mic"', default=''),
       Arg('mic_jack_type', str, 'Microphone jack Type: nocheck, lrgm, lrmg',
           default='nocheck'),
       Arg('audiofuntest_run_delay', (int, float),
-          'Delay between consecutive calls to audiofuntest',
-          default=None),
-      Arg('tests_to_conduct', list,
+          'Delay between consecutive calls to audiofuntest', default=None),
+      Arg(
+          'tests_to_conduct', list,
           'A list of dicts. A dict should contain at least one key named\n'
           '**type** indicating the test type, which can be **audiofun**,\n'
           '**sinewav**, or **noise**.\n'
@@ -443,6 +456,10 @@ class AudioLoopTest(test_case.TestCase):
           '        amplitude <= maximum measured amplitude <= max*,\n'
           '        otherwise, fail the test.  Both of **min** and **max** can\n'
           '        be set to None, which means no limit.\n'
+          '  - **max_delta_threshold**: **[min, max]** and it will\n'
+          '        make sure the inequality is true: *min <= maximum measured\n'
+          '        delta <= max*, otherwise, fail the test.  Both of **min** \n'
+          '        and **max** can be set to None, which means no limit.\n'
           '\n'
           'If type is **noise**, the dict can optionally contain:\n'
           '  - **duration**: The test duration, in seconds.\n'
@@ -455,11 +472,16 @@ class AudioLoopTest(test_case.TestCase):
           '        make sure the inequality is true: *min <= minimum measured\n'
           '        amplitude <= maximum measured amplitude <= max*,\n'
           '        otherwise, fail the test.  Both of **min** and **max** can\n'
-          '        be set to None, which means no limit.',
+          '        be set to None, which means no limit.'
+          '  - **max_delta_threshold**: **[min, max]** and it will\n'
+          '        make sure the inequality is true: *min <= maximum measured\n'
+          '        delta <= max*, otherwise, fail the test.  Both of **min** \n'
+          '        and **max** can be set to None, which means no limit.\n',
           schema=_ARG_TESTS_TO_CONDUCT_SCHEMA),
       Arg('keep_raw_logs', bool,
           'Whether to attach the audio by Testlog when the test fail.',
-          default=True)]
+          default=True)
+  ]
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
@@ -869,10 +891,9 @@ class AudioLoopTest(test_case.TestCase):
     duration = self._current_test_args.get(
         'duration', _DEFAULT_NOISE_TEST_DURATION)
     noise_file_path = '/tmp/noise-%s.wav' % time.time()
-    # Do not trim because we want to check all possible noises and artifacts.
-    self.RecordFile(duration, noise_file_path, None)
+    self.RecordFile(duration, noise_file_path)
 
-    # Since we have actually only 1 channel, we can just give channel=0 here.
+    # Check only the first channel.
     sox_output = audio_utils.SoxStatOutput(noise_file_path, 0)
     self.CheckRecordedAudio(sox_output)
 
@@ -930,6 +951,21 @@ class AudioLoopTest(test_case.TestCase):
       self.AppendErrorMessage(
           'Audio maximum amplitude %f too high. Maximum pass is %f.' % (
               max_value, amplitude_threshold[1]))
+
+    max_delta_value = audio_utils.GetAudioMaximumDelta(sox_output)
+    session.console.info('Got audio max delta value: %f.', max_delta_value)
+    max_delta_threshold = self._current_test_args.get(
+        'max_delta_threshold', _DEFAULT_SOX_RMS_THRESHOLD)
+    if (max_delta_threshold[0] is not None and
+        max_delta_threshold[0] > max_delta_value):
+      self.AppendErrorMessage(
+          'Audio max delta value %f too low. Minimum pass is %f.' %
+          (max_delta_value, max_delta_threshold[0]))
+    if (max_delta_threshold[1] is not None and
+        max_delta_threshold[1] < max_delta_value):
+      self.AppendErrorMessage(
+          'Audio max delta value %f too high. Minimum pass is %f.' %
+          (max_delta_value, max_delta_threshold[1]))
 
     if self._current_test_args['type'] == 'sinewav':
       freq = audio_utils.GetRoughFreq(sox_output)

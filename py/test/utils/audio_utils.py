@@ -185,6 +185,21 @@ def GetAudioMaximumAmplitude(sox_output):
   return None
 
 
+def GetAudioMaximumDelta(sox_output):
+  """Gets the audio maximum amplitude from sox stat output
+
+  Args:
+    sox_output: Output of sox stat command.
+
+  Returns:
+    The maximum amplitude parsed from sox stat output.
+  """
+  m = re.search(r'^Maximum\s+delta:\s+(.+)$', sox_output, re.MULTILINE)
+  if m is not None:
+    return float(m.group(1))
+  return None
+
+
 def GetAudioRms(sox_output):
   """Gets the audio RMS value from sox stat output
 
