@@ -226,11 +226,12 @@ class FingerprintTest(unittest.TestCase):
   def CheckerboardTest(self, inverted=False):
     full_name = 'Inv. checkerboard' if inverted else 'Checkerboard'
     short_name = 'icb' if inverted else 'cb'
+    # wait for the end of capture (or timeout after 500 ms)
+    # This needs to start before the start of capturing to avoid race.
+    self.FpmcuTryWaitEvent(self.EC_MKBP_EVENT_FINGERPRINT, '500')
     # trigger the checkerboard test pattern and capture it
     self._fpmcu.FpmcuCommand('fpmode', 'capture',
                              'pattern1' if inverted else 'pattern0')
-    # wait for the end of capture (or timeout after 500 ms)
-    self.FpmcuTryWaitEvent(self.EC_MKBP_EVENT_FINGERPRINT, '500')
     # retrieve the resulting image as a PNM
     pnm = self.FpmcuGetFpframe()
 
@@ -332,11 +333,12 @@ class FingerprintTest(unittest.TestCase):
     return self.CalculateMedianAndDevPerColumns(matrix)
 
   def ResetPixelTest(self):
+    # wait for the end of capture (or timeout after 500 ms)
+    # This needs to start before the start of capturing to avoid race.
+    self.FpmcuTryWaitEvent(self.EC_MKBP_EVENT_FINGERPRINT, '500')
     # reset the sensor and leave it in reset state then capture the single
     # frame.
     self._fpmcu.FpmcuCommand('fpmode', 'capture', 'test_reset')
-    # wait for the end of capture (or timeout after 500 ms)
-    self.FpmcuTryWaitEvent(self.EC_MKBP_EVENT_FINGERPRINT, '500')
     # retrieve the resulting image as a PNM
     pnm = self.FpmcuGetFpframe()
 
