@@ -6,7 +6,7 @@ import subprocess
 import time
 
 
-SERVOD_BIN = '/usr/bin/servod'
+SERVOD_BIN = 'servod'
 SERVOD_INIT_SEC = 1
 SERVOD_KILL_TIMEOUT_SEC = 3
 
