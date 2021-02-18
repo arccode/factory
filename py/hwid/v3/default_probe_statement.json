@@ -250,12 +250,12 @@
         "idProduct",
         "idVendor",
         "manufacturer",
-        "product",
-
+        "module_id",
         "name",
-        "vendor",
-
-        "type"
+        "product",
+        "sensor_id",
+        "type",
+        "vendor"
       ],
       "expect": {
         "type": "webcam"

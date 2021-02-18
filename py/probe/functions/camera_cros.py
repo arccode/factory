@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import json
 import subprocess
 
 from cros.factory.probe import function
@@ -24,34 +25,25 @@ class CameraCrosFunction(cached_probe_function.CachedProbeFunction):
 
     cros-camera-tool modules list
 
-  and then parses and transforms the output of that command into the probed
-  results.
+  which outputs the list of camera probe results in JSON format.
 
-  Examples
-  --------
-  Let's assume that the output of the command ``cros-command-tool modules list``
-  is ::
-
-                Name | Vendor ID
-      xy11223 7-0008 | 5c
-      uv44556 30-023 | 5c
-
-  And we have the probe statement::
+  For example, if we have the probe statement::
 
     {
       "eval": "camera_cros"
     }
 
-  The the probed results will be ::
+  The probed results will look like ::
 
     [
       {
-        "name": "xy11223 7-0008",
-        "vendor": "5c"
+        "name": "uv44556 30-023",
+        "module_id": "AB0001",     # Identifier data read from the camera
+        "sensor_id": "CD0002"      # module's EERPOM.
       },
       {
-        "name": "uv44556 30-023",
-        "vendor": "5c"
+        "name": "xy11223 7-0008",
+        "vendor": "5c"             # Legacy information queried from V4L2.
       }
     ]
   """
@@ -69,24 +61,13 @@ class CameraCrosFunction(cached_probe_function.CachedProbeFunction):
     except subprocess.CalledProcessError:
       return function.NOTHING
 
-    # TODO(yhong): Add a flag for `cros-camera-tool` to dump the output
-    #     in a program friendly format.
-
-    # The format of the output is:
-    #      Name | Vendor ID
-    #   module1 | 123
-    #   module2 | 456
-
-    results = output.strip().splitlines()[1:]
+    results = json.loads(output)
 
     ret = []
     for result in results:
-      module, unused_sep, vendor = result.rpartition('|')
       # Add field ('type': 'webcam') to align with generic_video probe function.
-      ret.append({
-          'name': module.strip(),
-          'vendor': vendor.strip(),
-          'type': 'webcam'
-      })
+      ret.append(
+          dict({k: v.strip()
+                for k, v in result.items()}, type='webcam'))
 
     return ret
