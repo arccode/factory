@@ -214,9 +214,6 @@ class AlsaAudioControl(base.BaseAudioControl):
       duration: (seconds) Record duration.
       channels: number of channels
       rate: Sampling rate
-
-    Returns:
-      An array of the arecord command used by self._device.Call.
     """
     raw_channel, raw_format, raw_rate = self._GetSupportedRecordArgs(
         card, device, channels, rate)
