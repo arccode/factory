@@ -955,7 +955,7 @@ class AudioLoopTest(test_case.TestCase):
     max_delta_value = audio_utils.GetAudioMaximumDelta(sox_output)
     session.console.info('Got audio max delta value: %f.', max_delta_value)
     max_delta_threshold = self._current_test_args.get(
-        'max_delta_threshold', _DEFAULT_SOX_RMS_THRESHOLD)
+        'max_delta_threshold', _DEFAULT_SOX_MAX_DELTA_THRESHOLD)
     if (max_delta_threshold[0] is not None and
         max_delta_threshold[0] > max_delta_value):
       self.AppendErrorMessage(
