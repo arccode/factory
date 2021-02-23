@@ -66,7 +66,7 @@ message Bundle {
   optional string test_image_version = 8;
   optional string release_image_version = 9;
   optional string firmware_source = 10;
-  optional double created_timestamp_s = 11;
+  optional double created_timestamp_sec = 11;
 }
 
 message GetBundleHistoryRpcResponse {
