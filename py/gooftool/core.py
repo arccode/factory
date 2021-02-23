@@ -1061,19 +1061,21 @@ class Gooftool:
                       'Cr50 on this device.')
       return
 
-    if is_whitelabel:
-      # For whitelabel devices, the phase argument is always 'whitelabel'.
-      arg_phase = 'whitelabel'
-    elif phase.GetPhase() >= phase.PVT_DOGFOOD:
+    if phase.GetPhase() >= phase.PVT_DOGFOOD:
       arg_phase = 'pvt'
     else:
       arg_phase = 'dev'
 
+    if is_whitelabel:
+      cmd = [script_path, f'whitelabel_{arg_phase}']
+    else:
+      cmd = [script_path, arg_phase]
+
     try:
-      result = self._util.shell([script_path, arg_phase])
+      result = self._util.shell(cmd)
       if result.status == 0:
-        logging.info('Successfully set board ID on Cr50 with phase %s.',
-                     arg_phase)
+        logging.info('Successfully set board ID on Cr50 with `%s`.',
+                     ' '.join(cmd))
       elif result.status == 2:
         logging.error('Board ID has already been set on Cr50!')
       elif result.status == 3:
@@ -1084,7 +1086,7 @@ class Gooftool:
           raise Error(error_msg)
       else:  # General errors.
         raise Error('Failed to set board ID and flag on Cr50. '
-                    '(args=%s)' % arg_phase)
+                    '(cmd=`%s`)' % ' '.join(cmd))
     except Exception:
       logging.exception('Failed to set Cr50 Board ID.')
       raise
@@ -1132,8 +1134,14 @@ class Gooftool:
                       'Cr50 on this device.')
       return
 
+    if phase.GetPhase() >= phase.PVT_DOGFOOD:
+      arg_phase = 'pvt'
+    else:
+      arg_phase = 'dev'
+
+    cmd = [script_path, f'whitelabel_{arg_phase}_flags']
     try:
-      result = self._util.shell([script_path, 'whitelabel_flags'])
+      result = self._util.shell(cmd)
       if result.status == 0:
         logging.info('Successfully set whitelabel flags.')
       elif result.status == 2:

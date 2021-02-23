@@ -19,7 +19,8 @@ Dependency
 ----------
 - DUT link must be ready.
 - Command `cros_config` on DUT.
-- Script `cr50-set-board-id.sh` needs to support `whitelabel_flags` argument.
+- Script `cr50-set-board-id.sh` needs to support
+  `cr50-set-board-id.sh whitelabel_<pvt|dev>_flags`
 
 Examples
 --------
