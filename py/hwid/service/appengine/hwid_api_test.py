@@ -699,6 +699,22 @@ class HwidApiTest(unittest.TestCase):
                 'variant',
             ]), msg)
 
+  def testGetPossibleDutLabels(self):
+    req = hwid_api_messages_pb2.DutLabelsRequest(hwid='')
+    msg = self.service.GetDutLabels(req)
+
+    self.assertEqual(
+        hwid_api_messages_pb2.DutLabelsResponse(
+            status=hwid_api_messages_pb2.Status.SUCCESS, possible_labels=[
+                'hwid_component',
+                'phase',
+                'sku',
+                'stylus',
+                'touchpad',
+                'touchscreen',
+                'variant',
+            ]), msg)
+
   @mock.patch.object(hwid_util, 'GetSkuFromBom')
   def testGetDutLabelsWithConfigless(self, mock_get_sku_from_bom):
     self.patch_goldeneye_memcache_adapter.Get.return_value = [

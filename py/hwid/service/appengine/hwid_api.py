@@ -361,6 +361,11 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
         'variant',
     ]
 
+    if not hwid:  # Return possible labels.
+      return hwid_api_messages_pb2.DutLabelsResponse(
+          possible_labels=possible_labels,
+          status=hwid_api_messages_pb2.Status.SUCCESS)
+
     status, error = _FastFailKnownBadHwid(hwid)
     if status != hwid_api_messages_pb2.Status.SUCCESS:
       return hwid_api_messages_pb2.DutLabelsResponse(
