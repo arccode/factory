@@ -185,31 +185,31 @@ print_usage() {
 Easy Bundle Creation Service Deployment Script
 
 commands:
-  $0 build-docker [prod|staging]
+  $0 build-docker [prod|staging|dev|dev2]
       Build the image from the \`Dockerfile\` located at
       \`factory/py/bundle_creator/docker/Dockerfile\`.
 
-  $0 deploy [prod|staging]
+  $0 deploy [prod|staging|dev|dev2]
       Do \`deploy-appengine\`, \`deploy-appengine-legacy\` and \`deploy-vm\`
       commands.
 
-  $0 deploy-docker [prod|staging]
+  $0 deploy-docker [prod|staging|dev|dev2]
       Push the docker image built from the command \`build-docker\` to the
       Container Registry.
 
-  $0 deploy-appengine [prod|staging]
+  $0 deploy-appengine [prod|staging|dev|dev2]
       Deploy the code and configuration under
       \`factory/py/bundle_creator/app_engine\` to App Engine.
 
-  $0 deploy-appengine-legacy [prod|staging]
+  $0 deploy-appengine-legacy [prod|staging|dev|dev2]
       Deploy the code and configuration under
       \`factory/py/bundle_creator/app_engine_legacy\` to App Engine.
 
-  $0 create-vm [prod|staging]
+  $0 create-vm [prod|staging|dev|dev2]
       Create a compute engine instance which use the docker image deployed by
       the command \`deploy-docker\`.
 
-  $0 deploy-vm [prod|staging]
+  $0 deploy-vm [prod|staging|dev|dev2]
       Do \`build-docker\`, \`deploy-docker\` and \`create-vm\` commands.
 __EOF__
 }
