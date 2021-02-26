@@ -8,7 +8,7 @@ flask==1.1.1
 googleapis_common_protos==1.52.0
 
 # License: Apache License 2.0
-google-auth==1.19.1
+google-auth==1.27.0
 
 # License: Apache License 2.0
 google-cloud-logging==1.15.0
