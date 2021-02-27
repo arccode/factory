@@ -334,6 +334,11 @@ def _UnmountStatefulPartition(root, state_dev, test_umount):
       mount_point_list.append(fields[2])
     if fields[0] == 'nsfs':
       namespace_list.append(fields[2])
+    # Mount type of mount namespace is 'proc' for some kernel versions. Make
+    # sure to unmount mount namespaces to successfully unmount stateful
+    # partition.
+    if fields[0] == 'proc' and fields[2].find('/run/namespaces/mnt_') != -1:
+      namespace_list.append(fields[2])
 
   logging.debug('stateful partitions mounted on: %s', mount_point_list)
   logging.debug('namespace mounted on: %s', namespace_list)
