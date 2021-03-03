@@ -90,7 +90,7 @@ export const exportLog = (projectName: string,
     const pileKey = `${logType}-${startDate}-${endDate}-${Math.random()}`;
     const dates = (startDate === endDate) ?
         startDate : `${startDate} ~ ${endDate}`;
-    const title = (logType === 'echo_code') ? logType : `${logType} ${dates}`;
+    const title = (logType === 'csv') ? logType : `${logType} ${dates}`;
     dispatch(addLogPile(pileKey, title, projectName));
     try {
       dispatch(setCompressState(pileKey, 'PROCESSING'));

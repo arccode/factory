@@ -39,7 +39,7 @@ const units = ['MB', 'GB'];
 const logTypes = [
   {name: 'log', value: 'log'},
   {name: 'report', value: 'report'},
-  {name: 'echo code', value: 'echo_code'},
+  {name: 'csv (echo code inside)', value: 'csv'},
 ];
 
 interface LogFormOwnProps {
@@ -98,7 +98,7 @@ class LogForm extends React.Component<
               tab_types={logTypes}
             />
           </CardContent>
-          {(logType === 'echo_code') ||
+          {(logType === 'csv') ||
             <CardContent>
               <List>
                 <ListSubheader>Maximum Archive Size</ListSubheader>

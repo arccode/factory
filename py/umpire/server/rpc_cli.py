@@ -37,11 +37,11 @@ class CLICommand(umpire_rpc.UmpireRPC):
   @umpire_rpc.RPCCall
   def ExportLog(self, dst_dir, log_type, split_size, start_date, end_date):
     """Compress and export a specific log, such as factory log, DUT report,
-    or ECHO codes.
+    or csv files.
 
     Args:
       dst_dir: the destination directory to export the specific log.
-      log_type: download type of the log, e.g. log, report, echo_code.
+      log_type: download type of the log, e.g. log, report, csv.
       split_size: maximum size of the archives.
                   (format: {'size': xxx, 'unit': 'MB'/'GB'})
       start_date: start date (format: yyyymmdd)

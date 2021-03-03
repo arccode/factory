@@ -9,7 +9,6 @@ See LogExporter comments for usage.
 
 import datetime
 import os
-import shutil
 
 from cros.factory.umpire import common
 from cros.factory.utils import process_utils
@@ -78,11 +77,11 @@ class LogExporter:
   def ExportLog(
       self, dst_dir, log_type, split_size, start_date_str, end_date_str):
     """Compress and export a specific log, such as factory log, DUT report,
-    or ECHO codes.
+    or csv files.
 
     Args:
       dst_dir: the destination directory to export the specific log.
-      log_type: download type of the log, e.g. log, report, echo_code.
+      log_type: download type of the log, e.g. log, report, csv.
       split_size: maximum size of the archives.
                   (format: {'size': xxx, 'unit': 'MB'/'GB'})
       start_date: start date (format: yyyymmdd)
@@ -95,29 +94,32 @@ class LogExporter:
       }
     """
     umpire_data_dir = self._env.umpire_data_dir
-    sub_dir = {'echo_code': 'csv',
-               'report': 'report',
-               'log': 'aux_log'}[log_type]
+    sub_dir = {
+        'csv': 'csv',
+        'report': 'report',
+        'log': 'aux_log'
+    }[log_type]
     split_bytes = self.GetBytes(split_size['size'], split_size['unit'])
     messages = []
 
     try:
-      if log_type == 'echo_code':
-        src_file = 'registration_code_log.csv'
-        src_path = os.path.join(umpire_data_dir,
-                                sub_dir,
-                                src_file)
-        if os.path.isfile(src_path):
-          shutil.copy(src_path, dst_dir)
+      if log_type == 'csv':
+        compressed_file_name = 'csv.tar.bz2'
+        dst_path = os.path.join(dst_dir, compressed_file_name)
+        self.CompressFilesFromListToPath(umpire_data_dir, dst_path, [sub_dir])
+
+        if os.path.isfile(dst_path):
           return {
               'messages': messages,
-              'log_paths': [src_file],
+              'log_paths': [compressed_file_name],
           }
-        messages.append("echo code doesn't exist")
+
+        messages.append('%s does not exist' % compressed_file_name)
         return {
             'messages': messages,
             'log_paths': [],
         }
+
       if log_type in ('report', 'log'):
         start_date = datetime.datetime.strptime(start_date_str, '%Y%m%d').date()
         end_date = datetime.datetime.strptime(end_date_str, '%Y%m%d').date()
