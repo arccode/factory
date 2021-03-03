@@ -344,6 +344,117 @@ def Spawn(args, **kwargs):
   return process
 
 
+class CommandPipe:
+  """Interface for commands piping.
+
+  Attributes:
+    stdout_data, stderr_data: The data read from the last pipe command.
+
+  Args:
+    encoding: If set, all the data read from commands are decoded by it.
+    check: If true, raise CalledProcessError if any of commands return non-zero.
+    read_timeout: The timeout of each read. This function would block at most
+        read_timeout seconds after the process is ended.
+
+  Examples:
+    out = CommandPipe().Pipe(['cmdA', 'arg']).Pipe('CmdB').stdout_data
+    out, err = CommandPipe().Pipe(['cmdC']).Pipe('CmdD').Communicate()
+  """
+
+  def __init__(self, encoding='utf-8', check=True, read_timeout=0.1):
+    self._encoding = encoding
+    self._check = check
+    self._read_timeout = read_timeout
+    self._processes = []
+    self._is_done = False
+    self._stdout_data = None
+    self._stderr_data = None
+
+  @property
+  def stdout_data(self):
+    stdout, unused_stderr = self.Communicate()
+    return stdout
+
+  @property
+  def stderr_data(self):
+    unused_stdout, stderr = self.Communicate()
+    return stderr
+
+  def Pipe(self, args, shell=False, sudo=False, env=None):
+    """Add a command to the commands pipe.
+
+    Args:
+      args: The command to pass to Popen.
+      shell, sudo, env: See Spawn().
+
+    Returns:
+      self
+    """
+    if self._is_done:
+      raise ValueError(
+          'CommandPipe has been fulfilled. Pipe command cannot be added.')
+
+    last_stdout = self._processes[-1].stdout if self._processes else None
+    process = Spawn(args, stdin=last_stdout, stdout=PIPE, stderr=PIPE,
+                    shell=shell, sudo=sudo, env=env)
+    if last_stdout:
+      last_stdout.close()
+    self._processes.append(process)
+    return self
+
+  def _GetDecodedStr(self, string):
+    return string.decode(self._encoding) if self._encoding else string
+
+  def _Communicate(self):
+    if not self._processes:
+      raise ValueError('CommandPipe has no command to run.')
+
+    # `bufs` contains stderr of all the processes, and the stdout of the last
+    # process. The last two are the stderr and stdout of the last process.
+    out_pipes = ([p.stderr for p in self._processes] +
+                 [self._processes[-1].stdout])
+    bufs = [b''] * len(out_pipes)
+    try:
+      while not self._is_done:
+        rlist, unused_wlist, unused_xlist = select.select(
+            out_pipes, [], [], self._read_timeout)
+        for i, pipe in enumerate(out_pipes):
+          if pipe not in rlist:
+            continue
+          bufs[i] += os.read(pipe.fileno(), 4096)
+
+        self._is_done = all(p.poll() is not None for p in self._processes)
+
+      self._stdout_data = self._GetDecodedStr(bufs[-1])
+      self._stderr_data = self._GetDecodedStr(bufs[-2])
+
+      if self._check:
+        for i, p in enumerate(self._processes):
+          if p.returncode != 0:
+            stdout = (
+                self._GetDecodedStr(bufs[-1])
+                if p is self._processes[-1] else None)
+            stderr = self._GetDecodedStr(bufs[i])
+            raise CalledProcessError(p.returncode, p.args, stdout, stderr)
+    finally:
+      for pipe in out_pipes:
+        pipe.close()
+
+  def Communicate(self):
+    """Get the output of the commands pipe.
+
+    Returns:
+      stdout, stderr: The stdout and stderr of the last command.
+
+    Raises:
+      ValueError: No command to be run.
+      CalledProcessError: If check is set, and any of the commands failed.
+    """
+    if not self._is_done:
+      self._Communicate()
+    return self._stdout_data, self._stderr_data
+
+
 def TerminateOrKillProcess(process, wait_seconds=1, sudo=False):
   """Terminates a process and waits for it.
 

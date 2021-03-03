@@ -16,7 +16,9 @@ from unittest import mock
 
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils.process_utils import CalledProcessError
 from cros.factory.utils.process_utils import CheckOutput
+from cros.factory.utils.process_utils import CommandPipe
 from cros.factory.utils.process_utils import PIPE
 from cros.factory.utils.process_utils import PipeStdoutLines
 from cros.factory.utils.process_utils import Spawn
@@ -179,6 +181,84 @@ class SpawnOutputTest(unittest.TestCase):
     self.assertRaises(subprocess.CalledProcessError,
                       lambda: SpawnOutput(_CMD_FOO_FAILED, shell=True,
                                           check_output=True))
+
+
+class CommandPipeTest(unittest.TestCase):
+
+  def setUp(self):
+    self._bin = file_utils.CreateTemporaryFile()
+    with open(self._bin, 'wb') as f:
+      f.write(b'\x00\x01\x02\x03')
+
+  def tearDown(self):
+    os.unlink(self._bin)
+
+  def testCommandPipe(self):
+    p = CommandPipe().Pipe(['echo', '-n',
+                            '1234']).Pipe(['cat', '-']).Pipe(['cat', '-'])
+    self.assertEqual(('1234', ''), p.Communicate())
+    self.assertEqual('1234', p.stdout_data)
+
+    p = CommandPipe().Pipe('echo -n 1234 >&2', shell=True)
+    self.assertEqual(('', '1234'), p.Communicate())
+    self.assertEqual('1234', p.stderr_data)
+
+    p = CommandPipe(encoding=None).Pipe(['cat', self._bin]).Pipe(
+        ['cat', '-']).Pipe(['cat', '-'])
+    self.assertEqual((b'\x00\x01\x02\x03', b''), p.Communicate())
+    self.assertEqual(b'\x00\x01\x02\x03', p.stdout_data)
+
+    # Check CommandPipe auto fulfill
+    self.assertEqual('1234\n', CommandPipe().Pipe(['echo', '1234']).stdout_data)
+    self.assertEqual(
+        '1234\n',
+        CommandPipe().Pipe('echo 1234 >&2', shell=True).stderr_data)
+
+    # Check if this doesn't raise.
+    CommandPipe(check=False).Pipe(['echo', '1234']).Pipe(['false']).Pipe(
+        ['cat', '-']).Communicate()
+
+    with self.assertRaises(CalledProcessError):
+      CommandPipe().Pipe(['echo', '1234']).Pipe(['false']).Pipe(
+          ['cat', '-']).Communicate()
+
+    with self.assertRaises(CalledProcessError):
+      CommandPipe().Pipe(['echo', '1234']).Pipe(['cat', '-']).Pipe(
+          ['false']).Communicate()
+
+    with self.assertRaises(CalledProcessError):
+      CommandPipe().Pipe(['false']).Pipe(['echo', '1234']).Pipe(
+          ['cat', '-']).Communicate()
+
+    with self.assertRaises(CalledProcessError) as cm:
+      p = CommandPipe()
+      p.Pipe('echo -n 1234; echo -n 5678 >&2; false;', shell=True)
+      p.Pipe(['cat', '-']).Pipe(['cat', '-'])
+      p.Communicate()
+    self.assertEqual(cm.exception.stdout, None)  # The stdout is piped to `cat`.
+    self.assertEqual(cm.exception.stderr, '5678')
+
+    with self.assertRaises(CalledProcessError) as cm:
+      p = CommandPipe().Pipe('echo -n 1234; echo -n 5678 >&2; false;',
+                             shell=True)
+      p.Communicate()
+    self.assertEqual(cm.exception.stdout, '1234')
+    self.assertEqual(cm.exception.stderr, '5678')
+
+    p = CommandPipe().Pipe('echo $MY_ENV', shell=True, env={'MY_ENV': '1234'})
+    self.assertEqual(('1234\n', ''), p.Communicate())
+
+    # dd will fail due to SIGPIPE error.
+    p = CommandPipe(check=False).Pipe(['dd', 'if=/dev/zero']).Pipe(
+        ['xxd', '-p']).Pipe(['head', '-n2'])
+    self.assertEqual((('0' * 60 + '\n') * 2, ''), p.Communicate())
+
+    with self.assertRaises(ValueError):
+      CommandPipe().Communicate()
+    with self.assertRaises(ValueError):
+      p = CommandPipe().Pipe(['echo', '1234'])
+      p.Communicate()
+      p.Pipe(['echo', '5678'])  # Pipe after Communicate
 
 
 class TerminateOrKillProcessTest(unittest.TestCase):
