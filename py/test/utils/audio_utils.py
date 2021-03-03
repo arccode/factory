@@ -4,10 +4,9 @@
 
 """This is audio utility module to setup amixer related options."""
 
-import os
 import re
-import tempfile
 
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 from cros.factory.external import dbus
@@ -89,8 +88,8 @@ def GetGenerateSineWavArgs(path, channel, freq=1000, duration_secs=10,
   return cmdargs
 
 
-def TrimAudioFile(in_path, out_path, start, end,
-                  num_channel, sox_format=_DEFAULT_SOX_FORMAT):
+def TrimAudioFile(in_path, out_path, start, end, num_channels,
+                  sox_format=_DEFAULT_SOX_FORMAT):
   """Trims an audio file using sox command.
 
   Args:
@@ -99,60 +98,38 @@ def TrimAudioFile(in_path, out_path, start, end,
     start: The starting time in seconds of specified range.
     end: The ending time in seconds of specified range.
          Sets to None for the end of audio file.
-    num_channel: The number of channels in input file.
+    num_channels: The number of channels in input file.
     sox_format: Format to generate sox command.
   """
   cmd = '%s -c %s %s %s -c %s %s %s trim %s' % (
-      SOX_PATH, str(num_channel), sox_format, in_path,
-      str(num_channel), sox_format, out_path, str(start))
+      SOX_PATH, str(num_channels), sox_format, in_path, str(num_channels),
+      sox_format, out_path, str(start))
   if end is not None:
     cmd += str(end)
 
   process_utils.Spawn(cmd.split(' '), log=True, check_call=True)
 
 
-# Functions to compose customized sox command, execute it and process the
-# output of sox command.
-def SoxMixerOutput(in_file, channel, sox_format=_DEFAULT_SOX_FORMAT):
-  """Gets sox mixer command to reduce channel.
+def SoxStatOutput(in_file, num_channels, channel,
+                  sox_format=_DEFAULT_SOX_FORMAT):
+  """Get sox stat from one of the channels.
 
   Args:
     in_file: Input file name.
-    channel: The selected channel to take effect.
-    sox_format: A dict format to generate sox command.
-
-  Returns:
-    The output of sox mixer command
-  """
-  # The selected channel from input.(1 for the first channel).
-  remix_channel = channel + 1
-
-  command = (
-      '%s -c 2 %s %s -c 1 %s - remix %s' %
-      (SOX_PATH, sox_format, in_file, sox_format, str(remix_channel)))
-  return process_utils.Spawn(
-      command.split(' '), log=True, encoding=None, read_stdout=True).stdout_data
-
-
-def SoxStatOutput(in_file, channel, sox_format=_DEFAULT_SOX_FORMAT):
-  """Executes sox stat command.
-
-  Args:
-    in_file: Input file name.
-    channel: The selected channel.
+    num_channels: Number of channels of the in_file.
+    channel: The index of the channel to get the stat. 0-based.
     sox_format: Format to generate sox command.
 
   Returns:
-    The output of sox stat command
+    The output of sox stat command.
   """
-  sox_output = SoxMixerOutput(in_file, channel, sox_format)
-  with tempfile.NamedTemporaryFile('wb', delete=False) as temp_file:
-    temp_file.write(sox_output)
-  stat_cmd = '%s -c 1 %s %s -n stat' % (SOX_PATH, sox_format, temp_file.name)
-  output = process_utils.Spawn(
-      stat_cmd.split(' '), read_stderr=True).stderr_data
-  os.unlink(temp_file.name)
-  return output
+  # Remix and output to stdout. Note that the channel index is 1-based.
+  remix_cmd = (f'{SOX_PATH} -c{num_channels} {sox_format} {in_file}'
+               f' -c1 {sox_format} - remix {channel + 1}')
+  stat_cmd = f'{SOX_PATH} -c1 {sox_format} - -n stat'
+  p = process_utils.CommandPipe()
+  p.Pipe(remix_cmd.split(' ')).Pipe(stat_cmd.split(' ')).Communicate()
+  return p.stderr_data
 
 
 def GetAudioMinimumAmplitude(sox_output):
@@ -244,16 +221,15 @@ def NoiseReduceFile(in_file, noise_file, out_file,
     out_file: The file contains the noise reduced sound.
     sox_format: The  sox format to generate sox command.
   """
-  f = tempfile.NamedTemporaryFile(delete=False)
-  f.close()
-  prof_cmd = '%s -c 2 %s %s -n noiseprof %s' % (SOX_PATH,
-                                                sox_format, noise_file, f.name)
-  process_utils.Spawn(prof_cmd.split(' '), check_call=True)
+  with file_utils.UnopenedTemporaryFile() as temp_file:
+    prof_cmd = '%s -c 2 %s %s -n noiseprof %s' % (SOX_PATH, sox_format,
+                                                  noise_file, temp_file)
+    process_utils.Spawn(prof_cmd.split(' '), check_call=True)
 
-  reduce_cmd = ('%s -c 2 %s %s -c 2 %s %s noisered %s' %
-                (SOX_PATH, sox_format, in_file, sox_format, out_file, f.name))
-  process_utils.Spawn(reduce_cmd.split(' '), check_call=True)
-  os.unlink(f.name)
+    reduce_cmd = (
+        '%s -c 2 %s %s -c 2 %s %s noisered %s' %
+        (SOX_PATH, sox_format, in_file, sox_format, out_file, temp_file))
+    process_utils.Spawn(reduce_cmd.split(' '), check_call=True)
 
 
 def GetCardIndexByName(card_name):

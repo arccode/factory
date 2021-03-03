@@ -873,7 +873,7 @@ class AudioLoopTest(test_case.TestCase):
       self.RecordFile(duration, record_file_path)
       self._dut.audio.StopPlaybackWavFile()
 
-      sox_output = audio_utils.SoxStatOutput(record_file_path,
+      sox_output = audio_utils.SoxStatOutput(record_file_path, 2,
                                              input_channels[channel])
       self.CheckRecordedAudio(sox_output)
 
@@ -894,7 +894,7 @@ class AudioLoopTest(test_case.TestCase):
     self.RecordFile(duration, noise_file_path)
 
     # Check only the first channel.
-    sox_output = audio_utils.SoxStatOutput(noise_file_path, 0)
+    sox_output = audio_utils.SoxStatOutput(noise_file_path, 2, 0)
     self.CheckRecordedAudio(sox_output)
 
     self._audio_file_path.append(noise_file_path)
@@ -919,7 +919,7 @@ class AudioLoopTest(test_case.TestCase):
 
     if trim:
       audio_utils.TrimAudioFile(in_path=record_path, out_path=file_path,
-                                start=trim, end=None, num_channel=2)
+                                start=trim, end=None, num_channels=2)
       os.unlink(record_path)
 
   def CheckRecordedAudio(self, sox_output):
