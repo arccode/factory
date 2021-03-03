@@ -1128,12 +1128,14 @@ do_get_changes() {
         "To publish you have to build without local modification."
   fi
 
-  local githash="$(get_git_hash)"
-  # Check if the head is already on remotes/cros/master.
-  local upstream="$(run_in_factory \
-    git merge-base remotes/m/master "${githash}")"
+  local githash
+  githash="$(get_git_hash)"
+
+  # Check if the head is already on remotes/cros/main.
+  local upstream
+  upstream="$(run_in_factory git merge-base remotes/cros/main "${githash}")"
   if [ "${githash}" != "${upstream}" ]; then
-    die "Your latest commit was not merged to upstream (remotes/m/master)." \
+    die "Your latest commit was not merged to upstream (remotes/cros/main)." \
         "To publish you have to build without local commits."
   fi
 
