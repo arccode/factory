@@ -111,15 +111,6 @@ _ARG_SENSOR_HWID_SCHEMA = schema.JSONSchemaDict(
 class FingerprintTest(unittest.TestCase):
   """Tests the fingerprint sensor."""
   ARGS = [
-      Arg('sensor_hwid', (int, list),
-          'The list of rules of accepted finger sensor Hardware IDs. A rule in '
-          'sensor_hwid should be an integer or a list of two integers. If the '
-          'rule is an integer then it is an exact match. Otherwise the ID '
-          'masked by the second integer must match the first integer. If the '
-          'list is empty, the test do not check ID. Otherwise, The test fail '
-          'if all of the rules are not matched. This value could also be an'
-          'integer for backward compability, and it is an exact match.',
-          default=None, schema=_ARG_SENSOR_HWID_SCHEMA),
       Arg('max_dead_pixels', int,
           'The maximum number of dead pixels on the fingerprint sensor.',
           default=10),
@@ -374,19 +365,6 @@ class FingerprintTest(unittest.TestCase):
     self.assertTrue(ro_ver is not None and rw_ver is not None,
                     'Unable to retrieve FPMCU version')
     logging.info("FPMCU version RO %s RW %s", ro_ver, rw_ver)
-
-    # Retrieve the sensor identifier
-    model = self._fpmcu.GetSensorId()
-    expected_hwid = type_utils.MakeList(self.args.sensor_hwid or [])
-    testlog.UpdateParam(
-        name='sensor_hwid', description='Sensor Hardware ID register')
-    testlog.LogParam('sensor_hwid', model)
-    def match(rule):
-      if isinstance(rule, int):
-        return model == rule
-      return (model & rule[1]) == rule[0]
-    if expected_hwid and not any(match(rule) for rule in expected_hwid):
-      raise type_utils.TestFailure('Invalid sensor HWID: %r' % model)
 
     # checkerboard test patterns
     self.CheckerboardTest(inverted=False)

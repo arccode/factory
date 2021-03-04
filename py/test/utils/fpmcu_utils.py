@@ -21,6 +21,8 @@ class FpmcuDevice:
   RW_VERSION_RE = re.compile(r'^RW version:\s*(\S+)\s*$', re.MULTILINE)
   FPINFO_MODEL_RE = re.compile(
       r'^Fingerprint sensor:\s+vendor.+model\s+(\S+)\s+version', re.MULTILINE)
+  FPINFO_VENDOR_RE = re.compile(
+      r'^Fingerprint sensor:\s+vendor\s+(\S+)\s+product', re.MULTILINE)
   FPINFO_ERRORS_RE = re.compile(r'^Error flags:\s*(\S*)$', re.MULTILINE)
 
   def __init__(self, dut):
@@ -62,18 +64,20 @@ class FpmcuDevice:
       match_rw = match_rw.group(1)
     return match_ro, match_rw
 
-  def GetSensorId(self):
-    """Retrieve the sensor identifier
+  def GetFpSensorInfo(self):
+    """Retrieve the fingerprint sensor identifiers
 
     Returns:
-      An integer representing the sensor ID.
+      An tuple (vendor_id, sensor_id) of two strings
+      representing vendor ID and sensor ID.
     """
     info = self.FpmcuCommand('fpinfo')
+    match_vendor = self.FPINFO_VENDOR_RE.search(info)
     match_model = self.FPINFO_MODEL_RE.search(info)
-    if match_model is None:
+
+    if match_vendor is None or match_model is None:
       raise FpmcuError('Unable to retrieve Sensor info (%s)' % info)
     logging.info('ectool fpinfo:\n%s\n', info)
-    model = int(match_model.group(1), 16)
 
     # Check error flags
     match_errors = self.FPINFO_ERRORS_RE.search(info)
@@ -84,4 +88,4 @@ class FpmcuDevice:
     if flags != '':
       raise FpmcuError('Sensor failure: %s' % flags)
 
-    return model
+    return (match_vendor.group(1), match_model.group(1))
