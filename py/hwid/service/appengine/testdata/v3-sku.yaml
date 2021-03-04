@@ -1,0 +1,415 @@
+checksum: DUMMY
+
+board: testboardname
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: EVT
+  1: DVT
+  2: MP
+
+pattern:
+  - image_ids: [0, 1]
+    encoding_scheme: base32
+    fields:
+    - firmware: 5             # 5 bits
+
+    - audio_codec: 1
+    - battery: 2
+    - bluetooth: 0
+    - camera: 0
+    - cellular: 1
+    - chipset: 0
+    - cpu: 1                  # 10 bits
+
+    - display_panel: 0
+    - dram: 1
+    - keyboard: 1
+    - cpu: 1
+    - storage: 2              # 15 bits
+
+    - cpu: 1                  # 16 bits
+
+  - image_ids: [2]
+    encoding_scheme: base8192
+    fields:
+    - firmware: 5             # 5 bits
+
+    - audio_codec: 1
+    - battery: 2
+    - bluetooth: 0
+    - camera: 0
+    - cellular: 1
+    - chipset: 0
+    - cpu: 1                  # 10 bits
+
+    - display_panel: 0
+    - dram: 1
+    - keyboard: 1
+    - cpu: 1
+    - storage: 2              # 15 bits
+
+    - cpu: 1                  # 16 bits
+
+encoded_fields:
+  audio_codec:
+    0:
+      audio_codec: [codec_0, hdmi_0]
+    1:
+      audio_codec: [codec_1, hdmi_1]
+  battery:
+    0:
+      battery: battery_small
+    1:
+      battery: battery_medium
+    2:
+      battery: battery_large
+    3:
+      battery: battery_huge
+  bluetooth:
+    0:
+      bluetooth: bluetooth_0
+  camera:
+    0:
+      camera: camera_0
+  cellular:
+    0:
+      cellular: NULL
+    1:
+      cellular: cellular_0
+  chipset:
+    0:
+      chipset: chipset_0
+  cpu:
+    0:
+      cpu: longstringwithcpu
+    1:
+      cpu: cpu_1
+  display_panel:
+    0:
+      display_panel: display_panel_0
+  dram:
+    0:
+      dram: hynix_2gb_dimm0
+    1:
+      dram: hynix_0gb_dimm1
+  ec_flash_chip:
+    0:
+      ec_flash_chip: ec_flash_chip_0
+  embedded_controller:
+    0:
+      embedded_controller: embedded_controller_0
+  flash_chip:
+    0:
+      flash_chip: flash_chip_0
+  keyboard:
+    0:
+      keyboard: keyboard_us
+    1:
+      keyboard: keyboard_gb
+  storage:
+    0:
+      storage: storage_0
+    1:
+      storage: storage_1
+    2:
+      storage: storage_2
+  firmware:
+    0:
+      hash_gbb: hash_gbb_0
+      key_recovery: key_recovery_0
+      key_root: key_root_0
+      ro_ec_firmware: ro_ec_firmware_0
+      ro_main_firmware: ro_main_firmware_0
+    1:
+      hash_gbb: hash_gbb_0
+      key_recovery: key_recovery_0
+      key_root: key_root_0
+      ro_ec_firmware: ro_ec_firmware_0
+      ro_main_firmware: ro_main_firmware_1
+    2:
+      hash_gbb: hash_gbb_0
+      key_recovery: key_recovery_0
+      key_root: key_root_0
+      ro_ec_firmware: ro_ec_firmware_1
+      ro_main_firmware: ro_main_firmware_0
+
+components:
+  audio_codec:
+    items:
+      codec_0:
+        values: { compact_str: Codec 0 }
+
+      codec_1:
+        values: { compact_str: Codec 1 }
+
+      hdmi_0:
+        values: { compact_str: HDMI 0 }
+
+      hdmi_1:
+        values: { compact_str: HDMI 1 }
+
+  battery:
+    items:
+      battery_small:
+        values:
+          manufacturer: manufacturer1
+          model_name: model1
+          technology: Battery Li-ion
+
+      battery_medium:
+        values:
+          manufacturer: manufacturer2
+          model_name: model2
+          technology: Battery Li-ion
+
+      battery_large:
+        values:
+          manufacturer: manufacturer3
+          model_name: model3
+          technology: Battery Li-ion
+
+      battery_huge:
+        values:
+          manufacturer: manufacturer4
+          model_name: model4
+          technology: Battery Li-ion
+
+  bluetooth:
+    items:
+      bluetooth_0:
+        values:
+          idVendor: '0123'
+          idProduct: abcd
+          bcd: '0001'
+
+  camera:
+    items:
+      camera_0:
+        values:
+          idVendor: '4567'
+          idProduct: abcd
+          name: Camera
+
+  cellular:
+    items:
+      cellular_0:
+        values:
+          idVendor: 89ab
+          idProduct: abcd
+          name: Cellular Card
+
+  chipset:
+    items:
+      chipset_0:
+        values: { compact_str: 'cdef:abcd' }
+
+  cpu:
+    items:
+      longstringwithcpu:
+        values:
+          name: CPU @ 1.80GHz
+          cores: '4'
+      cpu_1:
+        values:
+          name: CPU @ 2.00GHz
+          cores: '4'
+
+  display_panel:
+    probeable: False
+    items:
+      display_panel_0:
+        values: NULL
+
+  dram:
+    items:
+      hynix_2gb_dimm0:
+        values:
+          size: '2048'
+
+      hynix_0gb_dimm1:
+        values:
+          size: '2048'
+
+  ec_flash_chip:
+    items:
+      ec_flash_chip_0:
+        values: { compact_str: EC Flash Chip }
+
+  embedded_controller:
+    items:
+      embedded_controller_0:
+        values: { compact_str: Embedded Controller }
+
+  flash_chip:
+    items:
+      flash_chip_0:
+        values: { compact_str: Flash Chip }
+
+  keyboard:
+    probeable: False
+    items:
+      keyboard_gb:
+        values: NULL
+
+      keyboard_us:
+        values: NULL
+
+  storage:
+    items:
+      storage_0:
+        values:
+          model: model0
+          sectors: '0'
+          vendor: vendor0
+          serial: !re '^#123\d+$'
+
+      storage_1:
+        values:
+          model: model1
+          sectors: '100'
+          vendor: vendor1
+          serial: !re '^#123\d+$'
+
+      storage_2:
+        values:
+          model: model2
+          sectors: '200'
+          vendor: vendor2
+        information:
+          comp_group: storage_0
+
+  hash_gbb:
+    items:
+      hash_gbb_0:
+        values: { compact_str: gv2#hash_gbb_0 }
+
+  key_recovery:
+    items:
+      key_recovery_0:
+        values: { compact_str : kv3#key_recovery_0 }
+
+  key_root:
+    items:
+      key_root_0:
+        values: { compact_str: kv3#key_root_0 }
+
+  ro_ec_firmware:
+    items:
+      ro_ec_firmware_0:
+        values: { compact_str: ev2#ro_ec_firmware_0 }
+      ro_ec_firmware_1:
+        status: unsupported
+        values: { compact_str: ev2#ro_ec_firmware_1 }
+
+  ro_main_firmware:
+    items:
+      ro_main_firmware_0:
+        values: { compact_str: mv2#ro_main_firmware_0 }
+      ro_main_firmware_1:
+        status: deprecated
+        values: { compact_str: mv2#ro_main_firmware_1 }
+
+rules:
+- name: device_info.component.has_cellular
+  when: GetDeviceInfo('component.has_cellular')
+  evaluate: SetComponent('cellular', 'cellular_0')
+  otherwise: SetComponent('cellular', None)
+
+- name: device_info.component.keyboard
+  evaluate: >
+      SetComponent(
+          'keyboard', LookupMap(GetDeviceInfo('keyboard'), {
+              'us': 'keyboard_us',
+              'gb': 'keyboard_gb'
+          }))
+
+- name: device_info.component.dram
+  evaluate: >
+      SetComponent(
+          'dram', LookupMap(GetDeviceInfo('component.dram'), {
+              'foo': 'dram_0',
+              'bar': 'dram_1'
+          }))
+
+- name: device_info.component.audio_codec
+  evaluate: >
+      SetComponent(
+          'audio_codec', LookupMap(GetDeviceInfo('component.audio_codec'), {
+              'set_0': ['codec_0', 'hdmi_0'],
+              'set_1': ['codec_1', 'hdmi_1']
+          }))
+
+- name: verify.vpd.ro
+  evaluate:
+  - Assert(ValidVPDValue('ro', 'initial_locale'))
+  - Assert(ValidVPDValue('ro', 'initial_timezone'))
+  - Assert(ValidVPDValue('ro', 'keyboard_layout'))
+  - Assert(ValidVPDValue('ro', 'serial_number'))
+
+- name: verify.vpd.rw
+  evaluate:
+  - CheckRegistrationCode(GetVPDValue('rw', 'gbind_attribute'))
+  - CheckRegistrationCode(GetVPDValue('rw', 'ubind_attribute'))
+
+- name: verify.test.rule_1
+  when: ComponentEq('audio_codec', 'Codec 1') and
+        ComponentEq('audio_codec', 'HDMI 1')
+  evaluate:
+  - Assert(ComponentEq('battery', 'battery_huge'))
+  - Assert(ComponentEq('hash_gbb', 'hash_gbb_0'))
+  - Assert(ComponentEq('key_recovery', 'key_recovery_0'))
+  - Assert(ComponentEq('key_root', 'key_root_0'))
+  - Assert(ComponentEq('ro_ec_firmware', 'ro_ec_firmware_0'))
+  - Assert(ComponentEq('ro_main_firmware', 'ro_main_firmware_0'))
+
+- name: verify.test.rule_2
+  when: ComponentEq('dram', 'dram_0')
+  evaluate:
+  - Assert(ComponentEq('battery', 'battery_huge'))
+  - Assert(ComponentEq('hash_gbb', 'hash_gbb_0'))
+  - Assert(ComponentEq('key_recovery', 'key_recovery_0'))
+  - Assert(ComponentEq('key_root', 'key_root_0'))
+  - Assert(ComponentEq('ro_ec_firmware', 'ro_ec_firmware_0'))
+  - Assert(ComponentEq('ro_main_firmware', 'ro_main_firmware_0'))
+  - Assert(ComponentIn('cpu', ['cpu_1', 'cpu_2']))
+
+- name: verify.test.rule_3
+  when: ComponentEq('dram', 'dram_0') and ComponentEq('cellular', 'cellular_0')
+  evaluate:
+  - Assert(ComponentEq('battery', 'huge_battery'))
+  - Assert(ComponentIn('cpu', ['cpu_1', 'cpu_2']))
+
+- name: verify.test.rule_4
+  when: not ComponentEq('cpu', None)
+  evaluate:
+  - Assert(ComponentEq('storage', ['SSD', '16G']))
+  - Assert((not ComponentEq('battery', 'battery_small')) or
+           (ComponentIn('cpu', ['cpu_1', 'cpu_2', 'cpu_3'])))
+
+- name: verify.test.rule_5
+  when: not ComponentEq('cpu', None)
+  evaluate: Assert(ComponentEq('storage', 'SSD') or
+                   ComponentEq('storage', '16G'))
+
+- name: verify.test.rule_6
+  evaluate: Assert(ComponentEq('storage', 'SSD') or
+                   ComponentEq('storage', '16G'))
+
+- name: verify.sku.us
+  evaluate: >
+      ComponentEq('audio_codec', ['hdmi_1', 'codec_1']) and
+      ComponentEq('cpu', 'cpu_5') and
+      ComponentEq('battery', 'battery_huge') and
+      ComponentEq('keyboard', 'US') and
+      ComponentEq('storage', ['SSD', '16G'])
+
+- name: verify.sku.gb
+  evaluate: >
+      ComponentEq('audio_codec', ['hdmi_1', 'codec_1']) and
+      ComponentEq('cpu', 'cpu_4') and
+      ComponentEq('battery', 'battery_medium') and
+      ComponentEq('keyboard', 'GB') and
+      ComponentEq('storage', ['HDD', '500G'])

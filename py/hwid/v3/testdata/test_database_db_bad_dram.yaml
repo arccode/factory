@@ -46,7 +46,6 @@ components:
       dram_type_256mb_and_real_is_512mb:
         values:
           part: whatever
-          size: '1024'
           slot: '0'
 
 rules:

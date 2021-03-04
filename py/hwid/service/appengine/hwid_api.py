@@ -174,7 +174,8 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     if status != hwid_api_messages_pb2.Status.SUCCESS:
       return hwid_api_messages_pb2.SkuResponse(error=error, status=status)
 
-    bom, configless, status, error = _GetBomAndConfigless(request.hwid)
+    bom, configless, status, error = _GetBomAndConfigless(
+        request.hwid, verbose=True)
     if status != hwid_api_messages_pb2.Status.SUCCESS:
       return hwid_api_messages_pb2.SkuResponse(error=error, status=status)
 

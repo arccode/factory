@@ -5,7 +5,6 @@
 """Validator for HWID DB."""
 
 from cros.factory.hwid.v3 import common
-from cros.factory.hwid.v3 import bom
 from cros.factory.hwid.v3 import verify_db_pattern
 
 
@@ -39,20 +38,12 @@ def ValidateChange(prev_db, db):
 
 
 @_RegisterValidateIntegrityFunc
-def _ValidateDramTag(db):
+def _ValidateDram(db):
   for dram_tag, dram_info in db.GetComponents('dram').items():
     if dram_tag in _BLOCKLIST_DRAM_TAG:
       continue
-    try:
-      ram_size = bom.RamSize(ram_size_str=dram_tag)
-    except ValueError as ex:
-      raise ValidationError(str(ex))
-
-    if dram_info.values:
-      info_size = int(dram_info.values['size'])
-      if ram_size.byte_count != info_size << 20:  # defaults to MB
-        raise ValidationError(
-            '%r does not match size property %dM' % (dram_tag, info_size))
+    if not dram_info.values or 'size' not in dram_info.values:
+      raise ValidationError(f'{dram_tag!r} does not contain size property')
 
 
 def ValidateIntegrity(db):
