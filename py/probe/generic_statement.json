@@ -72,6 +72,11 @@
       "eval": "generic_network_device:ethernet"
     }
   },
+  "fingerprint": {
+    "generic": {
+      "eval": "generic_fingerprint"
+    }
+  },
   "flash_chip": {
     "generic": {
       "eval": "flash_chip:main"
