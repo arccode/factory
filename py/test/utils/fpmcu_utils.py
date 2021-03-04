@@ -19,6 +19,7 @@ class FpmcuDevice:
   # Regular expression for parsing ectool output.
   RO_VERSION_RE = re.compile(r'^RO version:\s*(\S+)\s*$', re.MULTILINE)
   RW_VERSION_RE = re.compile(r'^RW version:\s*(\S+)\s*$', re.MULTILINE)
+  CHIPINFO_NAME_RE = re.compile(r'name:\s*(\S+)\s*$', re.MULTILINE)
   FPINFO_MODEL_RE = re.compile(
       r'^Fingerprint sensor:\s+vendor.+model\s+(\S+)\s+version', re.MULTILINE)
   FPINFO_VENDOR_RE = re.compile(
@@ -48,6 +49,21 @@ class FpmcuDevice:
       raise FpmcuError('cmd: %r, returncode: %d, stdout: %r, stderr: %r' % (
           cmdline, process.returncode, stdout, stderr.strip()))
     return stdout
+
+  def GetFpmcuName(self):
+    """Get fingerprint MCU name
+
+    Returns:
+      A string for FPMCU part number.
+    """
+    fpmcu_chipinfo = self.FpmcuCommand("chipinfo")
+    match_name = self.CHIPINFO_NAME_RE.search(fpmcu_chipinfo)
+
+    if match_name is None:
+      raise FpmcuError(
+          'Unable to retrieve FPMCU chipinfo (%s)' % fpmcu_chipinfo)
+
+    return match_name.group(1)
 
   def GetFpmcuFirmwareVersion(self):
     """Get fingerprint MCU firmware version
