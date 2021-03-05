@@ -213,7 +213,7 @@ class LinuxBoard(device_types.DeviceBoard):
     return self.ReadSpecialFile(path, count=count, skip=skip)
 
   @type_utils.Overrides
-  def ReadSpecialFile(self, path, count=None, skip=None):
+  def ReadSpecialFile(self, path, count=None, skip=None, encoding='utf-8'):
     """Returns contents of special file on target device.
 
     Reads special files (device node, disk block, or sys driver files) on device
@@ -223,12 +223,14 @@ class LinuxBoard(device_types.DeviceBoard):
       path: A string for file path on target device.
       count: Number of bytes to read. None to read whole file.
       skip: Number of bytes to skip before reading. None to read from beginning.
+      encoding: The encoding of the file content.
 
     Returns:
-      A string as file contents.
+      A string or bytes as file contents.
     """
     if self.link.IsLocal():
-      return super(LinuxBoard, self).ReadSpecialFile(path, count, skip)
+      return super(LinuxBoard, self).ReadSpecialFile(path, count, skip,
+                                                     encoding)
 
     args = ['dd', 'bs=1', 'if=%s' % path]
     if count is not None:

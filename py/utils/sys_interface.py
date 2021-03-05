@@ -47,7 +47,7 @@ class SystemInterface:
         return f.read()
     return self.ReadSpecialFile(path, count=count, skip=skip)
 
-  def ReadSpecialFile(self, path, count=None, skip=None):
+  def ReadSpecialFile(self, path, count=None, skip=None, encoding='utf-8'):
     """Returns contents of special file on target device.
 
     Reads special files (device node, disk block, or sys driver files) on device
@@ -57,9 +57,10 @@ class SystemInterface:
       path: A string for file path on target device.
       count: Number of bytes to read. None to read whole file.
       skip: Number of bytes to skip before reading. None to read from beginning.
+      encoding: The encoding of the file content.
 
     Returns:
-      A string as file contents.
+      A string or bytes as file contents.
     """
     with open(path, 'rb') as f:
       if skip:
@@ -68,7 +69,7 @@ class SystemInterface:
         except IOError:
           f.read(skip)
       x = f.read() if count is None else f.read(count)
-      return x.decode('utf-8')
+      return x.decode(encoding) if encoding else x
 
   def WriteFile(self, path, content):
     """Writes some content into file on target device.
