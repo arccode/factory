@@ -3,23 +3,29 @@
 # found in the LICENSE file.
 
 DESTDIR ?=
-CHROMITE_LIB_PATH ?= ../../../../../chromite/lib
-BIN_DIR := /usr/bin
-LIB_DIR := /usr/local/hwid_extractor
+FACTORY_SRC_PATH ?= ..
+CHROMITE_SRC_PATH ?= ../../../../../chromite/lib
+BIN_DIR ?= /usr/bin
+LIB_DIR ?= /usr/local
+DEST_LIB_PATH := $(DESTDIR)$(LIB_DIR)/hwid_extractor
+DEST_BIN_PATH := $(DESTDIR)$(BIN_DIR)
+BIN_TO_LIB_REL_PATH = \
+	$(shell realpath --relative-to $(DEST_BIN_PATH) $(DEST_LIB_PATH))
+
 
 CLI_SOURCES := \
-		factory_env.py \
-		hwid_extractor.py
+	factory_env.py \
+	hwid_extractor.py
 
 UTILS_SOURCES := \
-		__init__.py \
-		file_utils.py \
-		platform_utils.py \
-		process_utils.py \
-		type_utils.py
+	__init__.py \
+	file_utils.py \
+	platform_utils.py \
+	process_utils.py \
+	type_utils.py
 
 JS_SOURCES := \
-		www/index.js
+	www/index.js
 
 HWID_EXTRACTOR_SOURCES := \
 	www/index.html \
@@ -32,14 +38,14 @@ SOURCES := \
 	$(addprefix utils/,$(UTILS_SOURCES))
 
 CHROMITE_AP_CONFIG := \
-	$(wildcard $(CHROMITE_LIB_PATH)/firmware/ap_firmware_config/*.py)
+	$(wildcard $(CHROMITE_SRC_PATH)/firmware/ap_firmware_config/*.py)
 CHROMITE_SOURCES := \
 	__init__.py \
 	buildbot_annotations.py \
 	cros_logging.py \
 	firmware/__init__.py \
 	firmware/servo_lib.py \
-	$(CHROMITE_AP_CONFIG:$(CHROMITE_LIB_PATH)/%=%)
+	$(CHROMITE_AP_CONFIG:$(CHROMITE_SRC_PATH)/%=%)
 
 INSTALL_TARGET := $(addprefix install_,$(SOURCES))
 CHROMITE_INSTALL_TARGET := $(addprefix install_,$(CHROMITE_SOURCES))
@@ -57,29 +63,29 @@ check_js:
 	  $(JS_SOURCES)
 
 $(INSTALL_TARGET):
-	mkdir -p $(DESTDIR)$(LIB_DIR)/py/$(dir $(@:install_%=%))
-	cp -P ../$(@:install_%=%) $(DESTDIR)$(LIB_DIR)/py/$(@:install_%=%)
+	mkdir -p $(DEST_LIB_PATH)/py/$(dir $(@:install_%=%))
+	cp -P $(FACTORY_SRC_PATH)/$(@:install_%=%) \
+		$(DEST_LIB_PATH)/py/$(@:install_%=%)
 
 $(CHROMITE_INSTALL_TARGET):
-	mkdir -p \
-		$(DESTDIR)$(LIB_DIR)/py_pkg/chromite/lib/$(dir $(@:install_%=%))
-	cp -P $(CHROMITE_LIB_PATH)/$(@:install_%=%) \
-		$(DESTDIR)$(LIB_DIR)/py_pkg/chromite/lib/$(@:install_%=%)
+	mkdir -p $(DEST_LIB_PATH)/py_pkg/chromite/lib/$(dir $(@:install_%=%))
+	cp -P $(CHROMITE_SRC_PATH)/$(@:install_%=%) \
+		$(DEST_LIB_PATH)/py_pkg/chromite/lib/$(@:install_%=%)
 
 install: $(INSTALL_TARGET) $(CHROMITE_INSTALL_TARGET)
 	# Setup py_pkg/cros
-	mkdir -p $(DESTDIR)$(LIB_DIR)/py_pkg/cros
-	touch $(DESTDIR)$(LIB_DIR)/py_pkg/cros/__init__.py
+	mkdir -p $(DEST_LIB_PATH)/py_pkg/cros
+	touch $(DEST_LIB_PATH)/py_pkg/cros/__init__.py
 
 	# Setup py_pkg/cros/factory
-	ln -sf ../../py $(DESTDIR)$(LIB_DIR)/py_pkg/cros/factory
-	mkdir -p $(DESTDIR)$(BIN_DIR)
+	ln -sf ../../py $(DEST_LIB_PATH)/py_pkg/cros/factory
+	mkdir -p $(DEST_BIN_PATH)
 
 	# Setup hwid_extractor execuable
-	ln -sf ../..$(LIB_DIR)/py/cli/factory_env.py \
-			$(DESTDIR)$(BIN_DIR)/hwid_extractor
+	ln -sf $(BIN_TO_LIB_REL_PATH)/py/cli/factory_env.py \
+		$(DEST_BIN_PATH)/hwid_extractor
 
 	# Setup py_pkg/chromite/lib
-	mkdir -p $(DESTDIR)$(LIB_DIR)/py_pkg/chromite/lib
-	touch $(DESTDIR)$(LIB_DIR)/py_pkg/chromite/__init__.py
-	touch $(DESTDIR)$(LIB_DIR)/py_pkg/chromite/lib/__init__.py
+	mkdir -p $(DEST_LIB_PATH)/py_pkg/chromite/lib
+	touch $(DEST_LIB_PATH)/py_pkg/chromite/__init__.py
+	touch $(DEST_LIB_PATH)/py_pkg/chromite/lib/__init__.py
