@@ -25,7 +25,8 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import process_utils
 
 _SIM_PRESENT_RE = re.compile(r'IMSI: (\d{14,15})', re.IGNORECASE | re.MULTILINE)
-_SIM_NOT_PRESENT_RE = re.compile(r'SIM: /$', re.IGNORECASE | re.MULTILINE)
+_SIM_NOT_PRESENT_RE = re.compile(r'SIM: /$|No modems were found$',
+                                 re.IGNORECASE | re.MULTILINE)
 
 _INSERT_CHECK_PERIOD_SECS = 1
 _INSERT_CHECK_MAX_WAIT = 60
@@ -75,7 +76,10 @@ class ProbeSIMCardTest(test_case.TestCase):
 
   def GetModemStatus(self):
     """Gets modem status."""
-    return process_utils.SpawnOutput(['modem', 'status'], log=True)
+    status = process_utils.SpawnOutput(['modem', 'status'], log=True)
+    if not status:
+      status += process_utils.SpawnOutput(['mmcli', '-L'], log=True)
+    return status
 
   def CheckSIMCardState(self, sim_re, fail_string):
     self.ui.SetState(_('Checking SIM card is present or not...'))
