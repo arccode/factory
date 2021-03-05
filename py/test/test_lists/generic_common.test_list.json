@@ -833,6 +833,9 @@
     "ThermalSensors": {
       "pytest_name": "thermal_sensors"
     },
+    "ThermalSlope": {
+      "pytest_name": "thermal_slope"
+    },
     "Touchpad": {
       "pytest_name": "touchpad"
     },

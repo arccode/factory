@@ -408,8 +408,9 @@ class Thermal(device_types.DeviceComponent):
         'power': Average power use in Watt, optional.
     """
     del sensor_id  # Not required for default implementation.
-    pkg_energy_status = self._device.ReadFile(
-        '/dev/cpu/0/msr', count=8, skip=self.MSR_PKG_ENERGY_STATUS)
+    pkg_energy_status = self._device.ReadSpecialFile(
+        '/dev/cpu/0/msr', count=8, skip=self.MSR_PKG_ENERGY_STATUS,
+        encoding=None)
     pkg_energy_j = (struct.unpack('<Q', pkg_energy_status)[0] *
                     self.ENERGY_UNIT_FACTOR)
 

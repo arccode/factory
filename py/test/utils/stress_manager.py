@@ -10,6 +10,7 @@ import threading
 
 
 DEFAULT_MAX_ERRORS = 1000
+STRESSAPPTEST_PATH = 'factory_stressapptest'
 
 
 class StressManagerError(Exception):
@@ -145,7 +146,7 @@ class StressManager:
       cmd.append('taskset')
       cmd.extend(taskset_args)
     cmd.extend([
-        'factory_stressapptest', '--max_errors',
+        STRESSAPPTEST_PATH, '--max_errors',
         str(max_errors), '-m',
         str(num_threads), '-M',
         str(mem_usage), '-s',
@@ -165,7 +166,7 @@ class StressManager:
 
       if duration_secs is None:
         self.stop.wait()
-        self._dut.toybox.pkill('factory_stressapptest', full=True)
+        self._dut.toybox.pkill(STRESSAPPTEST_PATH, full=True)
       process.wait()
       output.seek(0)
       self.output = output.read()
