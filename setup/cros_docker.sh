@@ -1201,7 +1201,7 @@ Published as ${DOCKER_IMAGE_FILENAME}.
 Major changes:
 $(cat "${changes_file}")
 
-BUG=chromium:679609
+BUG=b:182096756
 TEST=None"
   run_in_factory git show HEAD
   echo "Uploading to gerrit..."
