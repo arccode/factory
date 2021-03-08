@@ -169,7 +169,6 @@ for your sound card. Otherwise the test will use audio.json instead of ucm::
 import logging
 import os
 import re
-import tempfile
 import time
 
 from cros.factory.device.audio import base
@@ -180,6 +179,7 @@ from cros.factory.test.utils import audio_utils
 from cros.factory.testlog import testlog
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils.schema import JSONSchemaDict
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 # Default setting
@@ -211,6 +211,8 @@ _DEFAULT_AUDIOFUN_TEST_SAMPLE_FORMAT = 's16'
 _DEFAULT_AUDIOFUN_TEST_PLAYER_FORMAT = 's16'
 # Default channels of the input_dev to be tested.
 _DEFAULT_TEST_INPUT_CHANNELS = [0, 1]
+# Default channels of the output_dev to be tested.
+_DEFAULT_TEST_OUTPUT_CHANNELS = [0, 1]
 # Default duration to do the sinewav test, in seconds.
 _DEFAULT_SINEWAV_TEST_DURATION = 2
 # Default frequency tolerance, in Hz.
@@ -272,6 +274,13 @@ _ARG_OUTPUT_DEVICE_SCHEMA = JSONSchemaDict('output_dev schema object', {
     'maxItems': 2
 })
 
+_ARG_CHANNELS_SCHEMA_DICT = {
+    'type': 'array',
+    'items': {
+        'type': ['number']
+    }
+}
+
 _ARG_RANGE_THRESHOLD_SCHEMA_DICT = {
     'type': 'array',
     'items': {
@@ -299,12 +308,8 @@ _ARG_TESTS_TO_CONDUCT_SCHEMA = JSONSchemaDict(
                     'threshold': {
                         'type': 'number'
                     },
-                    'input_channels': {
-                        'type': 'array'
-                    },
-                    'output_channels': {
-                        'type': 'array'
-                    },
+                    'input_channels': _ARG_CHANNELS_SCHEMA_DICT,
+                    'output_channels': _ARG_CHANNELS_SCHEMA_DICT,
                     'volume_gain': {
                         'type': 'number',
                         'minimum': 0,
@@ -339,9 +344,8 @@ _ARG_TESTS_TO_CONDUCT_SCHEMA = JSONSchemaDict(
                     'duration': {
                         'type': 'number',
                     },
-                    'input_channels': {
-                        'type': 'array'
-                    },
+                    'input_channels': _ARG_CHANNELS_SCHEMA_DICT,
+                    'output_channels': _ARG_CHANNELS_SCHEMA_DICT,
                     'freq_threshold': {
                         'type': 'number'
                     },
@@ -360,6 +364,7 @@ _ARG_TESTS_TO_CONDUCT_SCHEMA = JSONSchemaDict(
                     'duration': {
                         'type': 'number'
                     },
+                    'input_channels': _ARG_CHANNELS_SCHEMA_DICT,
                     'rms_threshold': _ARG_RANGE_THRESHOLD_SCHEMA_DICT,
                     'amplitude_threshold': _ARG_RANGE_THRESHOLD_SCHEMA_DICT,
                     'max_delta_threshold': _ARG_RANGE_THRESHOLD_SCHEMA_DICT
@@ -492,8 +497,6 @@ class AudioLoopTest(test_case.TestCase):
     if not isinstance(self._output_volumes, list):
       self._output_volumes = [self._output_volumes]
     self._output_volume_index = 0
-
-    self._freq = _DEFAULT_FREQ_HZ
 
     # The test results under each output volume candidate.
     # If any one of tests to conduct fails, test fails under that output
@@ -829,98 +832,92 @@ class AudioLoopTest(test_case.TestCase):
       if self.args.audiofuntest_run_delay is not None:
         self.Sleep(self.args.audiofuntest_run_delay)
 
-  def TestLoopbackChannel(self, num_channels):
-    """Tests loopback on all channels.
-
-    Args:
-      num_channels: Number of channels to test
+  def GenerateSinewav(self, dut_file_path, channel):
+    """Generate sine .wav file locally and push it to the DUT.
     """
-    # TODO(phoenixshen): Support quad channels here.
-    # This test assumes number of input channels == number of output channels,
-    # and ID of valid channels should be the same,
-    # Need to redesign the args to provide more flexbility.
+    with file_utils.UnopenedTemporaryFile(suffix='.wav') as file_path:
+      cmd = audio_utils.GetGenerateSineWavArgs(
+          file_path, channel, _DEFAULT_FREQ_HZ, _DEFAULT_SINEWAV_DURATION)
+      process_utils.Spawn(cmd.split(' '), log=True, check_call=True)
+      self._dut.link.Push(file_path, dut_file_path)
+
+  def SinewavTest(self):
+    """Play sinewav, record it and check if it meets the requirements.
+    """
+    self.ui.CallJSFunction('testInProgress', None)
+
     duration = self._current_test_args.get('duration',
                                            _DEFAULT_SINEWAV_TEST_DURATION)
     input_channels = self._current_test_args.get('input_channels',
                                                  self._in_channel_map)
-    if len(input_channels) != num_channels:
-      raise ValueError('len(input_channels) %d != num_channels %d' %
-                       (len(input_channels), num_channels))
+    output_channels = self._current_test_args.get(
+        'output_channels', _DEFAULT_TEST_OUTPUT_CHANNELS)
 
-    for channel in range(num_channels):
-      # file path in host
-      record_file_path = '/tmp/record-%d-%d-%s.raw' % (
-          self._output_volumes[self._output_volume_index],
-          channel, time.time())
-      sine_wav_path = '/tmp/%d_%d.wav' % (self._freq, channel)
-      dut_sine_wav_path = self._dut.path.join(self._dut_temp_dir,
-                                              'sine_%d.wav' % channel)
-      session.console.info('DUT sine wav path %s', dut_sine_wav_path)
-
-      # Generate sine .wav file locally and push it to the DUT.
-      # It's hard to estimate the overhead in audio record thing of different
-      # platform, To make sure we can record the whole sine tone in the record
-      # duration, we will playback a long period sine tone, and stop the
-      # playback process after we finish recording.
-      cmd = audio_utils.GetGenerateSineWavArgs(sine_wav_path, channel,
-                                               self._freq,
-                                               _DEFAULT_SINEWAV_DURATION)
-      process_utils.Spawn(cmd.split(' '), log=True, check_call=True)
-      self._dut.link.Push(sine_wav_path, dut_sine_wav_path)
-
-      self._dut.audio.PlaybackWavFile(dut_sine_wav_path, self._out_card,
-                                      self._out_device, blocking=False)
-      self.RecordFile(duration, record_file_path)
-      self._dut.audio.StopPlaybackWavFile()
-
-      sox_output = audio_utils.SoxStatOutput(record_file_path, 2,
-                                             input_channels[channel])
-      self.CheckRecordedAudio(sox_output)
-
-      self._audio_file_path.append(record_file_path)
-
-  def SinewavTest(self):
-    self.ui.CallJSFunction('testInProgress', None)
-
-    # Playback sine tone and check the recorded audio frequency.
-    self.TestLoopbackChannel(audio_utils.DEFAULT_NUM_CHANNELS)
+    for output_channel in output_channels:
+      volume = self._output_volumes[self._output_volume_index]
+      record_file_path = (
+          f'/tmp/record-{volume}-{output_channel}-{time.time()}.raw')
+      with self._dut.temp.TempFile() as dut_sine_wav_path:
+        session.console.info('DUT sine wav path %s', dut_sine_wav_path)
+        # It's hard to estimate the overhead in audio record thing of different
+        # platform, To make sure we can record the whole sine tone in the record
+        # duration, we will playback a long period sine tone, and stop the
+        # playback process after we finish recording.
+        self.GenerateSinewav(dut_sine_wav_path, output_channel)
+        self._dut.audio.PlaybackWavFile(dut_sine_wav_path, self._out_card,
+                                        self._out_device, blocking=False)
+        self.RecordAndCheck(duration, input_channels, record_file_path)
+        self._dut.audio.StopPlaybackWavFile()
 
   def NoiseTest(self):
+    """Record noise and check if it meets the requirements.
+    """
     self.ui.CallJSFunction('testInProgress', None)
-    # Record the noise file.
-    duration = self._current_test_args.get(
-        'duration', _DEFAULT_NOISE_TEST_DURATION)
+    duration = self._current_test_args.get('duration',
+                                           _DEFAULT_NOISE_TEST_DURATION)
+    input_channels = self._current_test_args.get('input_channels',
+                                                 self._in_channel_map)
     noise_file_path = '/tmp/noise-%s.wav' % time.time()
-    self.RecordFile(duration, noise_file_path)
+    self.RecordAndCheck(duration, input_channels, noise_file_path)
 
-    # Check only the first channel.
-    sox_output = audio_utils.SoxStatOutput(noise_file_path, 2, 0)
-    self.CheckRecordedAudio(sox_output)
+  def RecordAndCheck(self, duration, input_channels, file_path):
+    """Record a file and check if the stats meet the requirements.
 
-    self._audio_file_path.append(noise_file_path)
+    Args:
+      duration: Recording duration, in seconds.
+      input_channels: The input channels to be checked.
+      file_path: The file_path for the recorded file.
+    """
+    # Number of channel we need is the maximum channel id in `input_channel`.
+    # Add 1 for 0-based channel id.
+    num_channels = max(input_channels) + 1
+    self.RecordFile(duration, num_channels, file_path)
+    for channel in input_channels:
+      session.console.info(f'Checking channel {channel} of {file_path}')
+      self.CheckRecordedAudio(
+          audio_utils.SoxStatOutput(file_path, num_channels, channel))
+    self._audio_file_path.append(file_path)
 
-  def RecordFile(self, duration, file_path, trim=_DEFAULT_TRIM_SECONDS):
+  def RecordFile(self, duration, num_channels, file_path):
     """Records file for *duration* seconds.
 
     The caller is responsible for removing the file at last.
 
     Args:
       duration: Recording duration, in seconds.
-      file_path: The file path to recorded file in host.
-      trim: If not None, the number of seconds in the beginning to trim.
+      num_channels: The number of the channels for recording.
+      file_path: The file_path for the recorded file.
     """
     session.console.info('RecordFile : %s.', file_path)
-    record_path = (tempfile.NamedTemporaryFile(delete=False).name if trim
-                   else file_path)
-    with self._dut.temp.TempFile() as dut_record_path:
+    with file_utils.UnopenedTemporaryFile() as record_path, \
+         self._dut.temp.TempFile() as dut_record_path:
       self._dut.audio.RecordRawFile(dut_record_path, self._in_card,
-                                    self._in_device, duration, 2, 48000)
+                                    self._in_device, duration, num_channels,
+                                    48000)
       self._dut.link.Pull(dut_record_path, record_path)
-
-    if trim:
       audio_utils.TrimAudioFile(in_path=record_path, out_path=file_path,
-                                start=trim, end=None, num_channels=2)
-      os.unlink(record_path)
+                                start=_DEFAULT_TRIM_SECONDS, end=None,
+                                num_channels=num_channels)
 
   def CheckRecordedAudio(self, sox_output):
     rms_value = audio_utils.GetAudioRms(sox_output)
@@ -971,9 +968,9 @@ class AudioLoopTest(test_case.TestCase):
       freq = audio_utils.GetRoughFreq(sox_output)
       freq_threshold = self._current_test_args.get(
           'freq_threshold', _DEFAULT_SINEWAV_FREQ_THRESHOLD)
-      session.console.info('Expected frequency %r +- %d',
-                           self._freq, freq_threshold)
-      if freq is None or (abs(freq - self._freq) > freq_threshold):
+      session.console.info('Expected frequency %r +- %d', _DEFAULT_FREQ_HZ,
+                           freq_threshold)
+      if freq is None or (abs(freq - _DEFAULT_FREQ_HZ) > freq_threshold):
         self.AppendErrorMessage('Test Fail at frequency %r' % freq)
       else:
         session.console.info('Got frequency %d', freq)
