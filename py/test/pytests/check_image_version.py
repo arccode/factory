@@ -89,6 +89,7 @@ server using cros_payload::
 from distutils import version
 import logging
 import os
+import re
 
 from cros.factory.device import device_utils
 from cros.factory.test.i18n import _
@@ -225,6 +226,15 @@ class CheckImageVersionTest(test_case.TestCase):
                       version.StrictVersion)
     logging.info('Using version format: %r', version_format.__name__)
     logging.info('current version: %r, expected: %r', ver, expected)
+    re_branched_image_version = re.compile(r'^R\d+-(\d+\.\d+\.\d+)$')
+    ver_match = re_branched_image_version.match(ver)
+    if ver_match:
+      ver = ver_match.group(1)
+    expected_match = re_branched_image_version.match(expected)
+    if expected_match:
+      expected = expected_match.group(1)
+    if self.args.reimage and bool(ver_match) ^ bool(expected_match):
+      logging.info('Attempt to re-image between different branch')
     # TODO(hungte) In future we may want 'exact' match more than min_version.
     return version_format(ver) >= version_format(expected)
 
