@@ -2,25 +2,37 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-from cros.factory.probe.functions import sysfs
-from cros.factory.probe.lib import cached_probe_function
+import re
+
+from cros.factory.probe.lib import probe_function
+from cros.factory.utils import process_utils
 
 
-class GenericBatteryFunction(
-    cached_probe_function.GlobPathCachedProbeFunction):
+ECTOOL_BATTERY_INFO_RE = re.compile(
+    r'Battery (\d+ )?info:\n'
+    r'  OEM name:               (?P<manufacturer>.*)\n'
+    r'  Model number:           (?P<model_name>.*)\n'
+    r'  Chemistry   :           (?P<technology>.*)\n'
+    r'  Serial number:          \w+\n'
+    r'  Design capacity:        (?P<charge_full_design>\d+) mAh\n')
 
-  GLOB_PATH = '/sys/class/power_supply/*'
-  ARGS = []
 
-  def GetCategoryFromArgs(self):
-    return None
+class GenericBatteryFunction(probe_function.ProbeFunction):
+  """Use `ectool battery` to probe battery information."""
 
-  @classmethod
-  def ProbeDevice(cls, dir_path):
-    result = sysfs.ReadSysfs(
-        dir_path, ['manufacturer', 'model_name', 'technology', 'type'],
-        optional_keys=['charge_full_design', 'energy_full_design'])
-    if result is not None and result.pop('type') == 'Battery' and (
-        'charge_full_design' in result or 'energy_full_design' in result):
-      return result
+  def Probe(self):
+    try:
+      output = process_utils.CheckOutput(['ectool', 'battery'])
+    except process_utils.CalledProcessError:
+      return None
+
+    match = re.match(ECTOOL_BATTERY_INFO_RE, output)
+    if match:
+      return {
+          'manufacturer': match.group('manufacturer'),
+          'model_name': match.group('model_name'),
+          'technology': match.group('technology'),
+          'charge_full_design': int(match.group('charge_full_design')) * 1000
+      }
+
     return None
