@@ -372,7 +372,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
       return hwid_api_messages_pb2.DutLabelsResponse(
           error=error, possible_labels=possible_labels, status=status)
 
-    bom, configless, status, error = _GetBomAndConfigless(hwid)
+    bom, configless, status, error = _GetBomAndConfigless(hwid, verbose=True)
 
     if status != hwid_api_messages_pb2.Status.SUCCESS:
       return hwid_api_messages_pb2.DutLabelsResponse(
