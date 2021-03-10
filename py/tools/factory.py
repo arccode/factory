@@ -541,7 +541,8 @@ def main():
           'Miscellaneous factory commands for use on DUTs (devices under '
           'test). Use "factory help COMMAND" for more info on a '
           'subcommand.'))
-  subparsers = parser.add_subparsers(title='subcommands')
+  subparsers = parser.add_subparsers(title='subcommands', dest='subcommand')
+  subparsers.required = True
 
   for _, v in sorted(globals().items()):
     if v != Subcommand and inspect.isclass(v) and issubclass(v, Subcommand):

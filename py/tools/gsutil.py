@@ -314,7 +314,8 @@ class _DownloadCommand:
 
 def main():
   parser = argparse.ArgumentParser()
-  subparsers = parser.add_subparsers(title='sub commands', dest='subparser')
+  subparsers = parser.add_subparsers(title='subcommands', dest='subcommand')
+  subparsers.required = True
   _DownloadCommand.Register(subparsers)
 
   args = parser.parse_args()

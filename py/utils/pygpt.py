@@ -961,7 +961,9 @@ class GPTCommands:
 
   def DefineArgs(self, parser):
     """Defines all available commands to an argparser subparsers instance."""
-    subparsers = parser.add_subparsers(help='Sub-command help.', dest='command')
+    subparsers = parser.add_subparsers(title='subcommands',
+                                       help='Sub-command help.', dest='command')
+    subparsers.required = True
     for name, instance in sorted(self.commands.items()):
       parser = subparsers.add_parser(
           name, description=instance.__doc__,

@@ -214,7 +214,8 @@ def ParseOptions():
                           help='Write the output to a file.')
 
   # Add the argument parser of registered sub-commands.
-  subparsers = arg_parser.add_subparsers()
+  subparsers = arg_parser.add_subparsers(title='subcommands', dest='subcommand')
+  subparsers.required = True
   for sub_cmd in _sub_cmd_list:
     sub_cmd.AddArgumentToParser(subparsers)
 
