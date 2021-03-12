@@ -148,6 +148,7 @@ import uuid
 from cros.factory.device import device_utils
 from cros.factory.test import i18n
 from cros.factory.test.i18n import _
+from cros.factory.test.rules import phase
 from cros.factory.test import session
 from cros.factory.test import test_case
 from cros.factory.test.utils import barcode
@@ -202,7 +203,7 @@ _RANGE_SCHEMA = schema.JSONSchemaDict(
 class CameraTest(test_case.TestCase):
   """Main class for camera test."""
   ARGS = [
-      Arg('mode', TestModes, 'The test mode to test camera.', default='manual'),
+      Arg('mode', TestModes, 'The test mode to test camera.', default='qr'),
       Arg(
           'num_frames_to_pass', int,
           'The number of frames with faces in mode "face", '
@@ -519,6 +520,10 @@ class CameraTest(test_case.TestCase):
 
   def runTest(self):
     self.ui.StartCountdownTimer(self.args.timeout_secs, self._Timeout)
+
+    if self.mode == TestModes.manual:
+      self.assertFalse(phase.GetPhase() > phase.DVT,
+                       msg='"manual" mode cannot be used after DVT')
 
     if self.mode == TestModes.manual_led:
       self.LEDTest()

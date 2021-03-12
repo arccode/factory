@@ -360,7 +360,7 @@
       }
     },
     "FrontCamera": {
-      "inherit": "CameraManual",
+      "inherit": "Camera",
       "run_if": "not constants.has_device_data or device.component.has_front_camera",
       "args": {
         "camera_facing": "front"
@@ -568,7 +568,7 @@
       "pytest_name": "read_device_data_from_vpd"
     },
     "RearCamera": {
-      "inherit": "CameraManual",
+      "inherit": "Camera",
       "run_if": "not constants.has_device_data or device.component.has_rear_camera",
       "args": {
         "camera_facing": "rear"
