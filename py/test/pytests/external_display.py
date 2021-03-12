@@ -118,6 +118,7 @@ For tablet or Chromebox, use HW buttons instead of keyboard numbers::
 import collections
 import logging
 import os
+import queue
 import random
 
 from cros.factory.device import device_utils
@@ -249,9 +250,10 @@ class ExtDisplayTest(test_case.TestCase):
            'directly get connection status from sysfs path rather than calling '
            'drm_utils. This is needed when the port is running under MST and '
            'thus the display id is dynamic generated.'), default=None),
-      Arg('timeout_secs', int,
-          'Timeout in seconds when we ask operator to press the HW button.',
-          default=30),
+      Arg(
+          'timeout_secs', int,
+          'Timeout in seconds when we ask operator to complete the challenge. '
+          'None means no timeout.', default=30),
       Arg('hw_buttons', list,
           ('A list of [button_key_name, button_name] represents a HW button to '
            'use. You can refer to HWButton test if you need the params.'),
@@ -360,42 +362,48 @@ class ExtDisplayTest(test_case.TestCase):
         self.CheckVideoFixture(args)
       else:
         self.CheckVideoManual(args)
-
-      # Check the current main display to ensure that the main display is not
-      # changed during the test.
-      current = self.GetMainDisplay()
-      if current != target:
-        self.FailTask('Main display has changed during the test.')
     finally:
       if target != original:
         self.SetMainDisplay(original)
 
   def CheckVideoManual(self, args):
     if self.buttons:
-      self.CheckByHWButtons(args)
+      # Already randomly shuffled while parsing the hw_buttons arguments.
+      pass_button = self.buttons[0]
+
+      pass_input = _(pass_button[1])
+      # TODO(treapking): Fail the test if wrong HW button is pressed.
+      pass_event = lambda: (
+          pass_button[0].IsPressed() or not self._IsDisplayConnected(args))
     else:
-      self.CheckByKeyboardButtons(args)
+      key_pressed = queue.Queue()
+      keys = [str(i) for i in range(10)]
+      for key in keys:
+        self.ui.BindKey(
+            key, (lambda k: lambda unused_event: key_pressed.put(k))(key))
 
-  def CheckByHWButtons(self, args):
-    pass_button = self.buttons[0]
+      pass_input = str(random.randrange(10))
+      pass_event = lambda: (not key_pressed.empty() or not self.
+                            _IsDisplayConnected(args))
+
     self.ui.SetState([
         _('Do you see video on {display}?', display=args.display_label),
-        _('Press {key} to pass the test.', key=_(pass_button[1]))
+        _('Press {key} to pass the test.', key=pass_input)
     ])
 
-    sync_utils.WaitFor(pass_button[0].IsPressed, self.args.timeout_secs)
+    sync_utils.WaitFor(pass_event, self.args.timeout_secs)
 
-  def CheckByKeyboardButtons(self, args):
-    pass_digit = random.randrange(10)
-    self.ui.SetState([
-        _('Do you see video on {display}?', display=args.display_label),
-        _('Press {key} to pass the test.', key=pass_digit)
-    ])
+    if not self._IsDisplayConnected(args):
+      self.FailTask('Display disconnected during the test')
 
-    key = int(self.ui.WaitKeysOnce([str(i) for i in range(10)]))
-    if key != pass_digit:
-      self.FailTask('Wrong key pressed. pressed: %d, correct: %d' %
-                    (key, pass_digit))
+    if not self.buttons:
+      for key in keys:
+        self.ui.UnbindKey(key)
+
+      key = key_pressed.get()
+      if key != pass_input:
+        self.FailTask(
+            'Wrong key pressed. pressed: %s, correct: %s' % (key, pass_input))
 
   def CheckVideoFixture(self, args):
     """Use fixture to check display.
@@ -486,23 +494,6 @@ class ExtDisplayTest(test_case.TestCase):
     err = state.GetInstance().DeviceSetDisplayProperties(display_id,
                                                          {'isPrimary': True})
     self.assertIsNone(err, 'Failed to set the main display: %s' % err)
-
-  def GetMainDisplay(self):
-    """Gets the current main display.
-
-    Returns:
-      The display id of the current main display.
-    """
-    display_info = state.GetInstance().DeviceGetDisplayInfo()
-
-    primary = []
-    for info in display_info:
-      if info['isPrimary']:
-        primary.append(info)
-
-    self.assertEqual(len(primary), 1, "invalid number of primary displays")
-
-    return primary[0]['id']
 
   def SetupAudio(self, args):
     for card, action in args.init_actions:
