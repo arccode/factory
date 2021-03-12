@@ -341,8 +341,6 @@ func (c *ConnServer) handleUpdateDutDataRequest(req *Request) error {
 	c.UpdateDUTStatus(args.Status)
 	c.lastPing = time.Now()
 
-	c.ovl.Update(c)
-
 	res := NewResponse(req.Rid, Success, nil)
 	return c.SendResponse(res)
 }

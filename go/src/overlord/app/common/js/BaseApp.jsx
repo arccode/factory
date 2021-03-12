@@ -140,19 +140,21 @@ var BaseApp = {
       this.removeClientFromList(state.clients, data);
     });
   },
-  updateClient: function (client) {
-    if (!this.isClientInList(this.state.clients, client)) {
-      return;
-    }
-
-    this.fetchProperties(client.mid, function (properties) {
-      client.properties = properties;
-
-      this.setState(function (state, unused_props) {
-        this.removeClientFromList(state.clients, client);
-        this.addClientToList(state.clients, client);
-      });
-    }.bind(this));
+  updateClients: function (clients) {
+    this.setState(function (state, unused_props) {
+      for (var i = 0; i < state.clients.length; i++) {
+        var index = clients.findIndex(function (el) {
+          return el.mid == state.clients[i].mid;
+        });
+        if (index !== -1) {
+          // Inherit properties first.
+          clients[index].properties = state.clients[i].properties;
+          // Then update info into state.
+          state.clients[i] = clients[index];
+        }
+      }
+      state.clients.sort(this.clientCmp);
+    });
   },
   // Add a hook to @this.addClient, when a client is going to be added to
   // @this.state.clients, handlers will be invoke to determine whether we

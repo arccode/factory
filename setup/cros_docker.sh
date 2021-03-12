@@ -680,7 +680,8 @@ do_overlord_run() {
     --workdir "${DOCKER_OVERLORD_DIR}" \
     "${DOCKER_IMAGE_NAME}" \
     "./overlordd" -tls "config/cert.pem,config/key.pem" \
-    -htpasswd-path "config/overlord.htpasswd" -no-lan-disc || \
+    -htpasswd-path "config/overlord.htpasswd" -no-lan-disc \
+    -update-interval-second 15 || \
     (echo "Removing stale container due to error ..."; \
      ${DOCKER} rm "${overlord_container_name}"; \
      die "Can't start overlord docker. Possibly wrong port binding?")

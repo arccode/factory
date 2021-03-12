@@ -265,12 +265,6 @@ func (ovl *Overlord) Unregister(conn *ConnServer) {
 
 			conn.UpdateDisconnected = time.AfterFunc(sleepDuration, func() {
 				conn.UpdateDUTStatus(dutStatusDisconnected)
-				msg, err := ovl.GetUIData(conn)
-				if err == nil {
-					ovl.ioserver.BroadcastTo("monitor", "agent disconnected", msg)
-				} else {
-					log.Printf("Failed to UpdateDisconnected. Mid: %s", conn.Mid)
-				}
 			})
 
 			return
@@ -318,15 +312,43 @@ func (ovl *Overlord) Unregister(conn *ConnServer) {
 	log.Printf("%s %s unregistered\n", ModeStr(conn.Mode), id)
 }
 
+// Update all clients' data
+func (ovl *Overlord) UpdateAgentsData(updateIntervalSecond int) {
+	log.Printf("Will broadcast data to UI every %d seconds\n", updateIntervalSecond)
+	for {
+		time.Sleep(time.Duration(updateIntervalSecond) * time.Second)
+		ovl.Update()
+	}
+}
+
 // Update client's data.
-func (ovl *Overlord) Update(conn *ConnServer) {
-	msg, err := ovl.GetUIData(conn)
+func (ovl *Overlord) Update() {
+	var data = make([]map[string]interface{}, 0)
+	ovl.agentsMu.Lock()
+	for _, agent := range ovl.agents {
+		if agent.Mid == "host" {
+			continue
+		}
+
+		data = append(data, map[string]interface{}{
+			"mid":          agent.Mid,
+			"sid":          agent.Sid,
+			"model":        agent.Dut.Model,
+			"serial":       agent.Dut.Serial,
+			"status":       agent.Dut.Status,
+			"status_score": agent.Dut.StatusScore,
+			"pytest":       agent.Dut.Pytest,
+		})
+	}
+	ovl.agentsMu.Unlock()
+
+	result, err := json.Marshal(data)
 	if err != nil {
-		log.Printf("Failed to update UI data. Mid: %s\n", conn.Mid)
+		log.Printf("Failed to update UI data: %s\n", err)
 		return
 	}
 
-	ovl.ioserver.BroadcastTo("monitor", "agent update", msg)
+	ovl.ioserver.BroadcastTo("monitor", "agent update", string(result))
 }
 
 // AddWebsocketContext adds an websocket context to the overlord state.
@@ -1137,13 +1159,15 @@ func (ovl *Overlord) StartUDPBroadcast(port int) {
 }
 
 // Serv is the main routine for starting all the overlord sub-server.
-func (ovl *Overlord) Serv() {
+func (ovl *Overlord) Serv(updateIntervalSecond int) {
 	ovl.RegisterHTTPHandlers()
 	go ovl.ServSocket(OverlordPort)
 	go ovl.ServHTTP(OverlordHTTPPort)
 	if ovl.lanDisc {
 		go ovl.StartUDPBroadcast(OverlordLDPort)
 	}
+
+	go ovl.UpdateAgentsData(updateIntervalSecond)
 
 	ticker := time.NewTicker(time.Duration(60 * time.Second))
 
@@ -1158,8 +1182,9 @@ func (ovl *Overlord) Serv() {
 
 // StartOverlord starts the overlord server.
 func StartOverlord(lanDiscInterface string, lanDisc bool, auth bool,
-	certsString string, linkTLS bool, htpasswdPath string) {
+	certsString string, linkTLS bool, htpasswdPath string,
+	updateIntervalSecond int) {
 	ovl := NewOverlord(lanDiscInterface, lanDisc, auth, certsString, linkTLS,
 		htpasswdPath)
-	ovl.Serv()
+	ovl.Serv(updateIntervalSecond)
 }

@@ -22,6 +22,8 @@ var noLinkTLS = flag.Bool("no-link-tls", false,
 	"disable TLS between ghost and overlord. Only valid when TLS is enabled.")
 var htpasswdPath = flag.String("htpasswd-path", "app/overlord.htpasswd",
 	"the path to the .htpasswd file.")
+var updateIntervalSecond = flag.Int("update-interval-second", 15,
+	"the interval that server updates info to UI.")
 
 func usage() {
 	fmt.Fprintf(os.Stderr, "Usage: overlordd [OPTIONS]\n")
@@ -34,5 +36,5 @@ func main() {
 	flag.Parse()
 
 	overlord.StartOverlord(*lanDiscInterface, !*noLanDisc, !*noAuth,
-		*tlsCerts, !*noLinkTLS, *htpasswdPath)
+		*tlsCerts, !*noLinkTLS, *htpasswdPath, *updateIntervalSecond)
 }

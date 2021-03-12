@@ -97,13 +97,8 @@ var App = React.createClass({
     }.bind(this));
 
     socket.on("agent update", function (msg) {
-      var client = JSON.parse(msg);
-      this.updateClient(client);
-    }.bind(this));
-
-    socket.on("agent disconnected", function (msg) {
-      var client = JSON.parse(msg);
-      this.updateClient(client);
+      var clients = JSON.parse(msg);
+      this.updateClients(clients);
     }.bind(this));
 
     // Initiate a file download
