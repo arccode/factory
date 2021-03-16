@@ -462,29 +462,24 @@ def TerminateOrKillProcess(process, wait_seconds=1, sudo=False):
   in wait_seconds, then sends a SIGKILL.
   """
   pid = process.pid
-  logging.info('Stopping process %d', pid)
-  if sudo:
-    Spawn(['kill', str(pid)], sudo=True, check_call=True, log=True)
-    return
+  logging.debug('Stopping process %d.', pid)
 
-  process.terminate()
+  try:
+    if not sudo:
+      process.terminate()
+    elif process.poll() is None:
+      Spawn(['kill', str(pid)], sudo=True, check_call=True, log=True)
 
-  reaped = threading.Event()
+    process.wait(wait_seconds)
+  except Exception:
+    logging.debug('Cannot terminate, sending SIGKILL to process %d.', pid)
+    if not sudo:
+      process.kill()
+    elif process.poll() is None:
+      Spawn(['kill', '-SIGKILL', str(pid)], sudo=True, check_call=True,
+            log=True)
 
-  def WaitAndKill():
-    reaped.wait(wait_seconds)
-    if not reaped.is_set():
-      try:
-        logging.info('Sending SIGKILL to process %d', pid)
-        process.kill()
-      except Exception:
-        pass
-  thread = threading.Thread(target=WaitAndKill)
-  thread.start()
-  process.wait()
-  reaped.set()
-  thread.join()
-  logging.info('Process %d stopped', pid)
+  logging.debug('Process %d stopped.', pid)
 
 
 def KillProcessTree(process, caption):

@@ -263,41 +263,50 @@ class CommandPipeTest(unittest.TestCase):
 
 class TerminateOrKillProcessTest(unittest.TestCase):
 
-  @mock.patch('logging.info')
-  def testTerminateProcess(self, logging_info_mock):
-    process = Spawn(['sleep', '10'])
-    logging_info_calls = [
-        mock.call('Stopping process %d', process.pid),
-        mock.call('Process %d stopped', process.pid)]
+  def DoTest(self, logging_debug_mock, is_sudo, is_trap):
+    if is_trap:
+      process = Spawn('trap true SIGTERM SIGKILL; sleep 10', shell=True,
+                      sudo=is_sudo)
+      # Allow the process some time to execute and setup signal trap.
+      time.sleep(1)
+    else:
+      process = Spawn(['sleep', '10'], sudo=is_sudo)
 
-    TerminateOrKillProcess(process, 2)
+    def AssertTerminate(need_kill):
+      expected = [
+          mock.call('Stopping process %d.', process.pid),
+          mock.call('Cannot terminate, sending SIGKILL to process %d.',
+                    process.pid),
+          mock.call('Process %d stopped.', process.pid),
+      ]
+      if not need_kill:
+        expected.pop(-2)
 
-    self.assertEqual(logging_info_mock.call_args_list, logging_info_calls)
+      self.assertEqual(logging_debug_mock.call_args_list, expected)
+      logging_debug_mock.reset_mock()
 
-  @mock.patch('logging.info')
-  def testKillProcess(self, logging_info_mock):
-    process = Spawn('trap true SIGTERM SIGKILL; sleep 10', shell=True)
-    # Allow the process some time to execute and setup signal trap.
-    time.sleep(1)
-    logging_info_calls = [
-        mock.call('Stopping process %d', process.pid),
-        mock.call('Sending SIGKILL to process %d', process.pid),
-        mock.call('Process %d stopped', process.pid)]
+    TerminateOrKillProcess(process, 1, sudo=is_sudo)
+    AssertTerminate(need_kill=is_trap)
 
-    TerminateOrKillProcess(process, 2)
+    # Make sure it won't raise exceptions for a process which has completed.
+    TerminateOrKillProcess(process, 1, sudo=is_sudo)
+    AssertTerminate(need_kill=False)
 
-    self.assertEqual(logging_info_mock.call_args_list, logging_info_calls)
+  @mock.patch('logging.debug')
+  def testTerminateProcess(self, logging_debug_mock):
+    self.DoTest(logging_debug_mock, is_sudo=False, is_trap=False)
 
-  @mock.patch('logging.info')
-  def testTerminateSudoProcess(self, logging_info_mock):
-    process = Spawn(['sleep', '10'], sudo=True)
-    logging_info_calls = [
-        mock.call('Stopping process %d', process.pid),
-        mock.call('Running command: "kill %d"' % process.pid)]
+  @mock.patch('logging.debug')
+  def testKillProcess(self, logging_debug_mock):
+    self.DoTest(logging_debug_mock, is_sudo=False, is_trap=True)
 
-    TerminateOrKillProcess(process, sudo=True)
+  @mock.patch('logging.debug')
+  def testTerminateSudoProcess(self, logging_debug_mock):
+    self.DoTest(logging_debug_mock, is_sudo=True, is_trap=False)
 
-    self.assertEqual(logging_info_mock.call_args_list, logging_info_calls)
+  @mock.patch('logging.debug')
+  def testKillSudoProcess(self, logging_debug_mock):
+    self.DoTest(logging_debug_mock, is_sudo=True, is_trap=True)
 
 
 class TestRedirectStdout(unittest.TestCase):
