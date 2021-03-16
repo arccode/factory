@@ -148,6 +148,12 @@ class SpawnTest(unittest.TestCase):
                     read_stdout=True, ignore_stderr=True)
     self.assertEqual('foo\n', process.stdout_data)
 
+  def testTimeout(self):
+    with self.assertRaises(process_utils.TimeoutExpired):
+      Spawn(['sleep', '10'], check_call=True, timeout=1)
+    with self.assertRaises(process_utils.TimeoutExpired):
+      Spawn(['sleep', '10'], timeout=1)
+
 
 _CMD_FOO_SUCCESS = 'echo foo; exit 0'
 _CMD_FOO_FAILED = 'echo foo; exit 1'

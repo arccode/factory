@@ -22,14 +22,16 @@ class CalledProcessError(subprocess.CalledProcessError):
   """A CalledProcessError with a workaround repr."""
 
   def __repr__(self):
-    msg = 'CalledProcessError(returncode=%d, cmd=%r, output=%r)'
-    return msg % (self.returncode, self.cmd, self.output)
+    msg = 'CalledProcessError(returncode=%d, cmd=%r, stdout=%r, stderr=%r)'
+    return msg % (self.returncode, self.cmd, self.stdout, self.stderr)
+
 
 try:
   PIPE = subprocess.PIPE
   STDOUT = subprocess.STDOUT
   DEVNULL = subprocess.DEVNULL
   Popen = subprocess.Popen
+  TimeoutExpired = subprocess.TimeoutExpired
 except Exception:
   # Hack for HWID Service on AppEngine. The subprocess module on AppEngine
   # doesn't contain these attributes. HWID Service will not use all of these
@@ -38,6 +40,7 @@ except Exception:
   STDOUT = None
   DEVNULL = None
   Popen = object
+  TimeoutExpired = None
 
 
 def GetLines(data, strip=False):
@@ -222,9 +225,14 @@ def Spawn(args, **kwargs):
     env: Same as subprocess.Popen, set-up environment parameters if needed.
     encoding: Same as subprocess.Popen, we will use `utf-8` as default to make
       it output str type.
+    timeout: Set a timeout for process. Implies call=True.
 
-  Returns/Raises:
-    Same as Popen.
+  Returns:
+    A _ExtendedPopen object.
+  Raises:
+    ValueError: If receive wrong arguments.
+    CalledProcessError: If check is True and return code is non-zero.
+    TimeoutExpired: If timeout expired.
   """
   kwargs.setdefault('close_fds', True)
   kwargs.setdefault('encoding', 'utf-8')
@@ -255,6 +263,7 @@ def Spawn(args, **kwargs):
   ignore_stderr = kwargs.pop('ignore_stderr', False)
   log_stderr_on_error = kwargs.pop('log_stderr_on_error', False)
   sudo = kwargs.pop('sudo', False)
+  timeout = kwargs.pop('timeout', None)
 
   if sudo and getpass.getuser() != 'root':
     if kwargs.pop('shell', False):
@@ -290,6 +299,8 @@ def Spawn(args, **kwargs):
     call = True
     assert kwargs.get('stderr') in [None, PIPE]
     kwargs['stderr'] = PIPE
+  if timeout:
+    call = True
 
   if call and (not read_stdout) and kwargs.get('stdout') == PIPE:
     raise ValueError('Cannot use call=True argument with stdout=PIPE, '
@@ -301,15 +312,19 @@ def Spawn(args, **kwargs):
   process = _ExtendedPopen(args, **kwargs)
 
   if call:
-    if read_stdout or read_stderr:
-      stdout, stderr = process.communicate()
-      if read_stdout:
-        process.stdout_data = stdout
-      if read_stderr:
-        process.stderr_data = stderr
-    else:
-      # No need to communicate; just wait
-      process.wait()
+    try:
+      if read_stdout or read_stderr:
+        stdout, stderr = process.communicate(timeout=timeout)
+        if read_stdout:
+          process.stdout_data = stdout
+        if read_stderr:
+          process.stderr_data = stderr
+      else:
+        # No need to communicate; just wait
+        process.wait(timeout=timeout)
+    except TimeoutExpired:
+      TerminateOrKillProcess(process)
+      raise
 
     if callable(check_call):
       failed = not check_call(process.returncode)
@@ -324,7 +339,8 @@ def Spawn(args, **kwargs):
         logger.error(message)
 
       if check_call:
-        raise CalledProcessError(process.returncode, args)
+        raise CalledProcessError(process.returncode, args, process.stdout_data,
+                                 process.stderr_data)
 
   return process
 
