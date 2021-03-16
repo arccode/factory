@@ -39,8 +39,6 @@ class SpawnTest(unittest.TestCase):
     self.handler = handlers.MemoryHandler(capacity=0, target=Target())
     logging.getLogger().addHandler(self.handler)
 
-    process_utils.dev_null = None
-
   def tearDown(self):
     logging.getLogger().removeHandler(self.handler)
 
@@ -141,24 +139,14 @@ class SpawnTest(unittest.TestCase):
         self.log_entries)
 
   def testIgnoreStdout(self):
-    self.assertFalse(process_utils.dev_null)
     process = Spawn('echo ignored; echo foo >& 2', shell=True,
                     ignore_stdout=True, read_stderr=True)
-    self.assertTrue(process_utils.dev_null)
     self.assertEqual('foo\n', process.stderr_data)
 
   def testIgnoreStderr(self):
-    self.assertFalse(process_utils.dev_null)
     process = Spawn('echo foo; echo ignored >& 2', shell=True,
                     read_stdout=True, ignore_stderr=True)
-    self.assertTrue(process_utils.dev_null)
     self.assertEqual('foo\n', process.stdout_data)
-
-  def testOpenDevNull(self):
-    self.assertFalse(process_utils.dev_null)
-    dev_null = process_utils.OpenDevNull()
-    self.assertEqual(os.devnull, dev_null.name)
-    self.assertEqual(dev_null, process_utils.OpenDevNull())
 
 
 _CMD_FOO_SUCCESS = 'echo foo; exit 0'

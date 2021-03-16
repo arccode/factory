@@ -7,8 +7,7 @@ import threading
 
 from . import sync_utils
 from . import type_utils
-from .process_utils import CheckOutput
-from .process_utils import OpenDevNull
+from . import process_utils
 
 
 START_TEXT = 'start/running'
@@ -32,7 +31,7 @@ def SetServiceStatus(service, status=None, dut=None):
       Status.START: 'start',
       Status.STOP: 'stop'}[status]
 
-  check_output = dut.CheckOutput if dut else CheckOutput
+  check_output = dut.CheckOutput if dut else process_utils.CheckOutput
   cmd = [upstart_command, service]
 
   logging.info('SetServiceStatus: cmd=%r, function=%r', cmd, check_output)
@@ -83,9 +82,9 @@ def CheckServiceExists(service, dut=None):
     A boolean flag tells if the given service name exists or not.
   """
   try:
-    check_output = dut.CheckOutput if dut else CheckOutput
+    check_output = dut.CheckOutput if dut else process_utils.CheckOutput
     cmd = ['status', service]
-    check_output(cmd, stderr=OpenDevNull())
+    check_output(cmd, stderr=process_utils.DEVNULL)
   except Exception:
     return False
   return True

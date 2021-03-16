@@ -27,17 +27,17 @@ class CalledProcessError(subprocess.CalledProcessError):
 
 try:
   PIPE = subprocess.PIPE
+  STDOUT = subprocess.STDOUT
+  DEVNULL = subprocess.DEVNULL
   Popen = subprocess.Popen
 except Exception:
   # Hack for HWID Service on AppEngine. The subprocess module on AppEngine
   # doesn't contain these attributes. HWID Service will not use all of these
   # attributes. This makes AppEngine won't complain we are using process_utils.
   PIPE = None
+  STDOUT = None
+  DEVNULL = None
   Popen = object
-
-
-# File descriptor for /dev/null.
-dev_null = None
 
 
 def GetLines(data, strip=False):
@@ -50,21 +50,6 @@ def GetLines(data, strip=False):
   if strip:
     ret = [x.strip() for x in ret]
   return ret
-
-
-def OpenDevNull():
-  """Opens and returns a readable/writable file pointing to /dev/null.
-
-  The file object may be reused.
-  """
-  global dev_null  # pylint: disable=global-statement
-  if not dev_null:
-    # There is a possible race condition here, but it is extremely
-    # unlikely and won't hurt anyway (we'll just have multiple files
-    # pointing at /dev/null).
-    dev_null = open(os.devnull, 'r+')
-
-  return dev_null
 
 
 def IsProcessAlive(pid, ppid=None):
@@ -279,16 +264,16 @@ def Spawn(args, **kwargs):
 
   if ignore_stdin:
     assert not kwargs.get('stdin')
-    kwargs['stdin'] = OpenDevNull()
+    kwargs['stdin'] = DEVNULL
   if ignore_stdout:
     assert not read_stdout
     assert not kwargs.get('stdout')
-    kwargs['stdout'] = OpenDevNull()
+    kwargs['stdout'] = DEVNULL
   if ignore_stderr:
     assert not read_stderr
     assert not log_stderr_on_error
     assert not kwargs.get('stderr')
-    kwargs['stderr'] = OpenDevNull()
+    kwargs['stderr'] = DEVNULL
 
   if check_output:
     check_call = check_call or True

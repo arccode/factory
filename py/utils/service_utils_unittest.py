@@ -47,7 +47,7 @@ class ServiceManagerTest(unittest.TestCase):
         None)
     set_status_mock.assert_called_once_with('raise_exception', None, self.dut)
 
-  @mock.patch('cros.factory.utils.service_utils.CheckOutput')
+  @mock.patch('cros.factory.utils.process_utils.CheckOutput')
   @mock.patch('cros.factory.utils.service_utils.ParseServiceStatus')
   def testSetServiceStatusWithoutDUT(self, parse_status_mock,
                                      check_output_mock):

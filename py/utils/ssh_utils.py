@@ -144,10 +144,11 @@ class SSHTunnelToDUT:
                   self._host_port)
     if self._ssh_process:
       self.Close()
-    self._ssh_process = SpawnSSHToDUT(
-        [self._remote, '-N', '-f', '-L', '%s:%s:%s:%s' %
-         (self._bind_address, self._bind_port, self._host, self._host_port)],
-        stderr=process_utils.OpenDevNull(), check_call=True)
+    self._ssh_process = SpawnSSHToDUT([
+        self._remote, '-N', '-f', '-L',
+        '%s:%s:%s:%s' %
+        (self._bind_address, self._bind_port, self._host, self._host_port)
+    ], stderr=process_utils.DEVNULL, check_call=True)
 
   def Close(self):
     logging.debug('Closing SSH tunnel to %s', self._remote)
