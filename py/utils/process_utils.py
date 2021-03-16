@@ -604,14 +604,8 @@ def RedirectStandardStreams(stdin=None, stdout=None, stderr=None):
     sys.__dict__[k] = v
 
 
-# TODO(pihsun): Implement another version of this function using reader thread
-# for platform that doesn't have select on pipes. (For example, Windows.)
 def PipeStdoutLines(process, callback, read_timeout=0.1):
   """Read a process stdout and call callback for each line of stdout.
-
-  This blocks until the process ends, and ignore all stdout after that. It's
-  guaranteed that process.wait() is called before return, so the
-  process.returncode is set after this function.
 
   Args:
     process: The process created by Spawn.
@@ -623,8 +617,8 @@ def PipeStdoutLines(process, callback, read_timeout=0.1):
   buf = ['']
 
   def _TryReadOutputLines(timeout):
-    rlist, unused_wlist, unused_xlist = select.select([process.stdout],
-                                                      [], [], timeout)
+    rlist, unused_wlist, unused_xlist = select.select([process.stdout], [], [],
+                                                      timeout)
     if process.stdout not in rlist:
       return False
 
@@ -644,8 +638,11 @@ def PipeStdoutLines(process, callback, read_timeout=0.1):
   while process.poll() is None:
     _TryReadOutputLines(read_timeout)
 
-  # Consume all buffered output just before the process end.
+  # Consume all buffered output after the process end.
   while _TryReadOutputLines(0):
     pass
 
-  process.wait()
+  if process.stdout:
+    process.stdout.close()
+  if process.stderr:
+    process.stderr.close()
