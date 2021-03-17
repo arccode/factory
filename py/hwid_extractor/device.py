@@ -55,9 +55,9 @@ def _GetCr50FromServod(*args, **kargs):
     A Cr50 interface.
   """
   with servod.Servod(*args, **kargs) as dut_control:
-    cr50_pty = dut_control.get_value('cr50_uart_pty')
+    cr50_pty = dut_control.GetValue('cr50_uart_pty')
     # Disable the timestamp to make output of the console cleaner.
-    dut_control.run(['cr50_uart_timestamp:off'])
+    dut_control.Run(['cr50_uart_timestamp:off'])
     yield cr50.Cr50(cr50_pty)
 
 

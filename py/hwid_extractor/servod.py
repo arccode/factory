@@ -5,47 +5,45 @@
 import subprocess
 import time
 
+from cros.factory.utils import process_utils
+
 
 SERVOD_BIN = 'servod'
+DUT_CONTROL_TIMEOUT = 2
 SERVOD_INIT_SEC = 1
 SERVOD_KILL_TIMEOUT_SEC = 3
 
 
-class DutControl:
-  """Alernative implementation of DutControl in chromite/lib/firmware/flash_ap
-
-  `flash_ap.py` has too many dependencies which are not used by us.
-  Reimplementing this reduces the unused dependencies.
-  TODO(chungsheng): Refactor chromite/lib/firmware/flash_ap.py for better
-  reusability.
-  """
+class _DutControl:
+  """An interface for dut-control."""
 
   def __init__(self, port):
-    self._base_cmd = ['dut-control']
-    if port:
-      self._base_cmd.append('--port=%s' % port)
+    self._base_cmd = ['dut-control', f'--port={port}']
 
-  def get_value(self, arg):
+  def _Execute(self, args):
+    return process_utils.CheckOutput(self._base_cmd + args, read_stderr=True,
+                                     timeout=DUT_CONTROL_TIMEOUT)
+
+  def GetValue(self, arg):
     """Get the value of |arg| from dut_control."""
-    return subprocess.check_output(self._base_cmd + ['--value_only', arg],
-                                   encoding='utf-8').strip()
+    return self._Execute(['--value_only', arg]).strip()
 
-  def run(self, cmd_fragment):
+  def Run(self, cmd_fragment):
     """Run a dut_control command.
 
     Args:
       cmd_fragment (list[str]): The dut_control command to run.
     """
-    subprocess.check_call(self._base_cmd + cmd_fragment)
+    self._Execute(cmd_fragment)
 
-  def run_all(self, cmd_fragments):
+  def RunAll(self, cmd_fragments):
     """Run multiple dut_control commands in the order given.
 
     Args:
       cmd_fragments (list[list[str]]): The dut_control commands to run.
     """
     for cmd in cmd_fragments:
-      self.run(cmd)
+      self.Run(cmd)
 
 
 class Servod:
@@ -86,7 +84,7 @@ class Servod:
     # Wait for servod to be ready for communicating with dut-control.
     time.sleep(SERVOD_INIT_SEC)
     self._CheckServodAlive()
-    return DutControl(self._port)
+    return _DutControl(self._port)
 
   def __exit__(self, *args, **kargs):
     """Stop servod. Force stop it if it doesn't stop after timeout."""

@@ -60,12 +60,12 @@ _InitializeBoardConfigurations()
 def _HandleDutControl(dut_on, dut_off, dut_control):
   """Execute dut_on before and dut_off after the context with dut_control."""
   try:
-    dut_control.run_all(dut_on)
+    dut_control.RunAll(dut_on)
     # Need to wait for SPI chip power to stabilize (for some designs)
     time.sleep(1)
     yield
   finally:
-    dut_control.run_all(dut_off)
+    dut_control.RunAll(dut_off)
 
 
 def _GetProgrammerFromFlashromCmd(flashrom_cmd):
@@ -119,7 +119,7 @@ def _GetSerialNumber(firmware_binary_file):
 
 
 def _CheckServoTypeIsCCD(dut_control):
-  servo_type = dut_control.get_value('servo_type')
+  servo_type = dut_control.GetValue('servo_type')
   if servo_type != SERVO_TYPE_CCD:
     raise RuntimeError(f'Servo type is not ccd, got: {servo_type}')
 
@@ -139,7 +139,7 @@ class _ServoStatus:
   is_v4 = False
 
   def __init__(self, dut_control):
-    self.serial = dut_control.get_value('serialname')
+    self.serial = dut_control.GetValue('serialname')
 
 
 def ExtractHWIDAndSerialNumber(board, dut_control):
