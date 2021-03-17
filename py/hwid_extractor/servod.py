@@ -2,25 +2,28 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import subprocess
+import contextlib
 import time
 
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
 SERVOD_BIN = 'servod'
 DUT_CONTROL_TIMEOUT = 2
-SERVOD_INIT_SEC = 1
+SERVOD_INIT_TIMEOUT_SEC = 10
 SERVOD_KILL_TIMEOUT_SEC = 3
 
 
 class _DutControl:
   """An interface for dut-control."""
 
-  def __init__(self, port):
+  def __init__(self, port, check_servod_callback):
     self._base_cmd = ['dut-control', f'--port={port}']
+    self._check_servod_callback = check_servod_callback
 
   def _Execute(self, args):
+    self._check_servod_callback()
     return process_utils.CheckOutput(self._base_cmd + args, read_stderr=True,
                                      timeout=DUT_CONTROL_TIMEOUT)
 
@@ -59,39 +62,66 @@ class Servod:
 
   def __init__(self, port=9999, board=None, serial_name=None):
     self._port = port
-    self._board = board
-    self._serial_name = serial_name
-    self._servod = None
+    self._servod_cmd = [SERVOD_BIN, '-p', str(port)]
+    if board:
+      self._servod_cmd += ['-b', board]
+    if serial_name:
+      self._servod_cmd += ['-s', serial_name]
 
-  def _CheckServodAlive(self):
-    if self._servod.poll() is not None:
-      raise RuntimeError('Servod unexpectedly stopped.')
+    self._exit_stack = contextlib.ExitStack()
+
+  @staticmethod
+  def _CheckServodHasInitialized(dut_control):
+    """Wait until servod has initialized.
+
+    If servod has stopped, RuntimeError should be raised.  If servod is
+    initializing, dut_control should fail and CalledProcessError should be
+    raised.
+    """
+    last_error = None
+    start = time.time()
+    while time.time() - start < SERVOD_INIT_TIMEOUT_SEC:
+      try:
+        dut_control.GetValue('servo_type')
+        return
+      except process_utils.CalledProcessError as e:
+        last_error = e
+      except process_utils.TimeoutExpired as e:
+        last_error = e
+    raise RuntimeError(
+        f'Cannot initialize servod in {SERVOD_INIT_TIMEOUT_SEC} seconds',
+        last_error)
+
+  def _GetDutControl(self):
+    stdout_file = self._exit_stack.enter_context(
+        file_utils.UnopenedTemporaryFile())
+    stderr_file = self._exit_stack.enter_context(
+        file_utils.UnopenedTemporaryFile())
+
+    with open(stdout_file, 'w') as stdout, open(stderr_file, 'w') as stderr:
+      servod_process = process_utils.Spawn(self._servod_cmd, stdout=stdout,
+                                           stderr=stderr)
+    self._exit_stack.callback(process_utils.TerminateOrKillProcess,
+                              servod_process, SERVOD_KILL_TIMEOUT_SEC)
+
+    def CheckServodAlive():
+      if servod_process.poll() is None:
+        return
+      raise RuntimeError('Servod unexpectedly stopped.',
+                         file_utils.ReadFile(stdout_file),
+                         file_utils.ReadFile(stderr_file))
+
+    return _DutControl(self._port, CheckServodAlive)
 
   def __enter__(self):
-    """Start servod and wait for it being ready.
-
-    Returns:
-      A DutControl interface object to execute dut-control commands.
-    """
-    servod_cmd = [SERVOD_BIN, '-p', str(self._port)]
-    if self._board:
-      servod_cmd += ['-b', self._board]
-    if self._serial_name:
-      servod_cmd += ['-s', self._serial_name]
-
-    self._servod = subprocess.Popen(servod_cmd, stdout=subprocess.DEVNULL,
-                                    stderr=subprocess.DEVNULL)
-    # Wait for servod to be ready for communicating with dut-control.
-    time.sleep(SERVOD_INIT_SEC)
-    self._CheckServodAlive()
-    return _DutControl(self._port)
+    self._exit_stack.__enter__()
+    try:
+      dut_control = self._GetDutControl()
+      self._CheckServodHasInitialized(dut_control)
+      return dut_control
+    except Exception:
+      self._exit_stack.close()
+      raise
 
   def __exit__(self, *args, **kargs):
-    """Stop servod. Force stop it if it doesn't stop after timeout."""
-    if self._servod.poll() is not None:
-      return
-    self._servod.terminate()
-    try:
-      self._servod.wait(SERVOD_KILL_TIMEOUT_SEC)
-    except subprocess.TimeoutExpired:
-      self._servod.kill()
+    self._exit_stack.__exit__(*args, **kargs)
