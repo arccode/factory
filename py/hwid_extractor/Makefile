@@ -44,7 +44,6 @@ CHROMITE_SOURCES := \
 	buildbot_annotations.py \
 	cros_logging.py \
 	firmware/__init__.py \
-	firmware/servo_lib.py \
 	$(CHROMITE_AP_CONFIG:$(CHROMITE_SRC_PATH)/%=%)
 
 INSTALL_TARGET := $(addprefix install_,$(SOURCES))
@@ -89,3 +88,7 @@ install: $(INSTALL_TARGET) $(CHROMITE_INSTALL_TARGET)
 	mkdir -p $(DEST_LIB_PATH)/py_pkg/chromite/lib
 	touch $(DEST_LIB_PATH)/py_pkg/chromite/__init__.py
 	touch $(DEST_LIB_PATH)/py_pkg/chromite/lib/__init__.py
+
+	# TODO(chungsheng): b/180554195, remove this workaround after splitting
+	# chromite.
+	touch $(DEST_LIB_PATH)/py_pkg/chromite/lib/firmware/servo_lib.py

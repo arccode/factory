@@ -12,7 +12,7 @@ import re
 import subprocess
 import time
 
-from chromite.lib.firmware import ap_firmware_config, servo_lib
+from chromite.lib.firmware import ap_firmware_config
 
 from cros.factory.utils import file_utils
 
@@ -21,6 +21,8 @@ FLASHROM_BIN = '/usr/sbin/flashrom'
 FUTILITY_BIN = '/usr/bin/futility'
 VPD_BIN = '/usr/sbin/vpd'
 CMD_TIMEOUT_SECOND = 20
+
+SERVO_TYPE_CCD = 'ccd_cr50'
 
 CONFIG_FILE_PATTERN = os.path.join(
     os.path.dirname(ap_firmware_config.__file__), '[!_]*.py')
@@ -116,6 +118,30 @@ def _GetSerialNumber(firmware_binary_file):
   return None
 
 
+def _CheckServoTypeIsCCD(dut_control):
+  servo_type = dut_control.get_value('servo_type')
+  if servo_type != SERVO_TYPE_CCD:
+    raise RuntimeError(f'Servo type is not ccd, got: {servo_type}')
+
+
+class _ServoStatus:
+  """Mock object for ap_firmware_config.
+
+  We only support ccd.
+
+  TODO(chungsheng): b/180554195, remove this workaround after splitting
+  chromite.
+  """
+  is_ccd = True
+  is_c2d2 = False
+  is_micro = False
+  is_v2 = False
+  is_v4 = False
+
+  def __init__(self, dut_control):
+    self.serial = dut_control.get_value('serialname')
+
+
 def ExtractHWIDAndSerialNumber(board, dut_control):
   """Extract HWID and serial no. from DUT.
 
@@ -130,7 +156,8 @@ def ExtractHWIDAndSerialNumber(board, dut_control):
   Returns:
     hwid, serial_number. The value may be None.
   """
-  servo_status = servo_lib.get(dut_control)
+  _CheckServoTypeIsCCD(dut_control)
+  servo_status = _ServoStatus(dut_control)
   dut_on, dut_off, programmer = _GetFlashromInfo(board, servo_status)
 
   with file_utils.UnopenedTemporaryFile() as tmp_file, _HandleDutControl(
