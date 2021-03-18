@@ -18,7 +18,8 @@ html, body, #main {
 
 .client-box {
   height: 85%;
-  overflow: hidden;
+  overflow: auto;
+  overflow-wrap: anywhere;
 }
 
 .filter-input {
