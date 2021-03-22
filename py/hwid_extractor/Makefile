@@ -25,7 +25,8 @@ UTILS_SOURCES := \
 	type_utils.py
 
 JS_SOURCES := \
-	www/index.js
+	www/index.js \
+	www/extension.js
 
 HWID_EXTRACTOR_SOURCES := \
 	www/index.html \

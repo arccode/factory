@@ -4,8 +4,10 @@
 
 const hwidExtractorOrigin = 'http://localhost:8000';
 
-const callback =
-    async () => {
+/**
+ * callback for MutationObserver
+ */
+const callback = async () => {
   const jsAuthCodeDiv = document.getElementsByClassName('js-auth-code')[0];
   if (!jsAuthCodeDiv) return;
   const child = jsAuthCodeDiv.children[0];
@@ -17,7 +19,7 @@ const callback =
 
   window.opener.postMessage(code, hwidExtractorOrigin);
   window.close();
-}
+};
 
 const observer = new MutationObserver(callback);
 
