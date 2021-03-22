@@ -65,9 +65,6 @@ class FactoryBundleService(protorpc_utils.ProtoRPCServiceBase):
       bundle.created_timestamp_sec = float(
           blob.metadata.get('Time-Created',
                             datetime.datetime.timestamp(blob.time_created)))
-      # TODO(b/144397795): the unit of uploaded_timestamp_ms is microsecond, not
-      #                    millisecond.
-      bundle.uploaded_timestamp_ms = int(bundle.created_timestamp_sec * (10**6))
       bundle.creator = blob.metadata.get('Bundle-Creator', '-')
       bundle.toolkit_version = blob.metadata.get('Tookit-Version', '-')
       bundle.test_image_version = blob.metadata.get('Test-Image-Version', '-')
@@ -84,7 +81,7 @@ class FactoryBundleService(protorpc_utils.ProtoRPCServiceBase):
                                     {}).get(project.name, [])
         for bundle in bundle_list:
           response.bundles.append(bundle)
-    response.bundles.sort(key=lambda b: b.uploaded_timestamp_ms, reverse=True)
+    response.bundles.sort(key=lambda b: b.created_timestamp_sec, reverse=True)
     return response
 
   @allowlist

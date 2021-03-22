@@ -60,13 +60,14 @@ message Bundle {
   optional string project = 2;
   optional string filename = 3;
   optional string path = 4;
-  optional int64 uploaded_timestamp_ms = 5;
   optional string creator = 6;
   optional string toolkit_version = 7;
   optional string test_image_version = 8;
   optional string release_image_version = 9;
   optional string firmware_source = 10;
   optional double created_timestamp_sec = 11;
+
+  reserved 5;
 }
 
 message GetBundleHistoryRpcResponse {
