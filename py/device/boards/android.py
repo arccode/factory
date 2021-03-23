@@ -6,14 +6,8 @@
 
 import pipes
 
-from cros.factory.device.audio import utils as audio_utils
 from cros.factory.device.boards import linux
 from cros.factory.device import device_types
-from cros.factory.device import memory
-from cros.factory.device import path
-from cros.factory.device import storage
-from cros.factory.device import temp
-from cros.factory.device import vpd
 
 # pylint: disable=abstract-method
 class AndroidBoard(linux.LinuxBoard):
@@ -42,25 +36,31 @@ class AndroidBoard(linux.LinuxBoard):
 
   @device_types.DeviceProperty
   def audio(self):
+    from cros.factory.device.audio import utils as audio_utils
     return audio_utils.CreateAudioControl(
         self, controller=audio_utils.CONTROLLERS.TINYALSA)
 
   @device_types.DeviceProperty
   def memory(self):
+    from cros.factory.device import memory
     return memory.AndroidMemory(self)
 
   @device_types.DeviceProperty
   def temp(self):
+    from cros.factory.device import temp
     return temp.AndroidTemporaryFiles(self)
 
   @device_types.DeviceProperty
   def _RemotePath(self):
+    from cros.factory.device import path
     return path.AndroidPath(self)
 
   @device_types.DeviceProperty
   def storage(self):
+    from cros.factory.device import storage
     return storage.AndroidStorage(self)
 
   @device_types.DeviceProperty
   def vpd(self):
+    from cros.factory.device import vpd
     return vpd.AndroidVitalProductData(self)

@@ -9,33 +9,7 @@
 import logging
 import posixpath  # Assume most linux devices will be running POSIX os.
 
-from cros.factory.device import accelerometer
-from cros.factory.device import ambient_light_sensor
-from cros.factory.device.audio import utils as audio_utils
-from cros.factory.device import camera
 from cros.factory.device import device_types
-from cros.factory.device import ec
-from cros.factory.device import gyroscope
-from cros.factory.device import hwmon
-from cros.factory.device import i2c
-from cros.factory.device import info
-from cros.factory.device import init
-from cros.factory.device import led
-from cros.factory.device import magnetometer
-from cros.factory.device import memory
-from cros.factory.device import partitions
-from cros.factory.device import path as path_module
-from cros.factory.device import power
-from cros.factory.device import status
-from cros.factory.device import storage
-from cros.factory.device import temp
-from cros.factory.device import thermal
-from cros.factory.device import touch
-from cros.factory.device import toybox
-from cros.factory.device import udev
-from cros.factory.device import usb_c
-from cros.factory.device import vsync_sensor
-from cros.factory.device import wifi
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
@@ -49,16 +23,19 @@ class LinuxBoard(device_types.DeviceBoard):
 
   @DeviceProperty
   def accelerometer(self):
+    from cros.factory.device import accelerometer
     return accelerometer.Accelerometer(self)
 
   @DeviceProperty
   def ambient_light_sensor(self):
+    from cros.factory.device import ambient_light_sensor
     return ambient_light_sensor.AmbientLightSensor(self)
 
   @DeviceProperty
   def audio(self):
     # Override this property in sub-classed boards to specify different audio
     # config path if required.
+    from cros.factory.device.audio import utils as audio_utils
     return audio_utils.CreateAudioControl(self)
 
   @DeviceProperty
@@ -67,6 +44,7 @@ class LinuxBoard(device_types.DeviceBoard):
 
   @DeviceProperty
   def camera(self):
+    from cros.factory.device import camera
     return camera.Camera(self)
 
   @DeviceProperty
@@ -75,6 +53,7 @@ class LinuxBoard(device_types.DeviceBoard):
 
   @DeviceProperty
   def ec(self):
+    from cros.factory.device import ec
     return ec.EmbeddedController(self)
 
   @DeviceProperty
@@ -83,39 +62,48 @@ class LinuxBoard(device_types.DeviceBoard):
 
   @DeviceProperty
   def gyroscope(self):
+    from cros.factory.device import gyroscope
     return gyroscope.Gyroscope(self)
 
   @DeviceProperty
   def hwmon(self):
+    from cros.factory.device import hwmon
     return hwmon.HardwareMonitor(self)
 
   @DeviceProperty
   def i2c(self):
+    from cros.factory.device import i2c
     return i2c.I2CBus(self)
 
   @DeviceProperty
   def info(self):
+    from cros.factory.device import info
     return info.SystemInfo(self)
 
   @DeviceProperty
   def init(self):
+    from cros.factory.device import init
     return init.FactoryInit(self)
 
   @DeviceProperty
   def led(self):
+    from cros.factory.device import led
     return led.LED(self)
 
   @DeviceProperty
   def magnetometer(self):
+    from cros.factory.device import magnetometer
     return magnetometer.Magnetometer(self)
 
   @DeviceProperty
   def memory(self):
+    from cros.factory.device import memory
     return memory.LinuxMemory(self)
 
   @DeviceProperty
   def partitions(self):
     """Returns the partition names of system boot disk."""
+    from cros.factory.device import partitions
     return partitions.Partitions(self)
 
   @DeviceProperty
@@ -138,43 +126,53 @@ class LinuxBoard(device_types.DeviceBoard):
     self.path will return this object if DUT is not local. Override this to
     change the implementation of remote DUT.
     """
+    from cros.factory.device import path as path_module
     return path_module.Path(self)
 
   @DeviceProperty
   def power(self):
+    from cros.factory.device import power
     return power.LinuxPower(self)
 
   @DeviceProperty
   def status(self):
     """Returns live system status (dynamic data like CPU loading)."""
+    from cros.factory.device import status
     return status.SystemStatus(self)
 
   @DeviceProperty
   def storage(self):
+    from cros.factory.device import storage
     return storage.Storage(self)
 
   @DeviceProperty
   def temp(self):
+    from cros.factory.device import temp
     return temp.TemporaryFiles(self)
 
   @DeviceProperty
   def thermal(self):
+    from cros.factory.device import thermal
     return thermal.Thermal(self)
 
   @DeviceProperty
   def touch(self):
+    from cros.factory.device import touch
     return touch.Touch(self)
 
   @DeviceProperty
   def toybox(self):
+    from cros.factory.device import toybox
     return toybox.Toybox(self)
 
   @DeviceProperty
   def udev(self):
+    from cros.factory.device import udev
     return udev.LocalUdevMonitor(self)
 
   @DeviceProperty
   def usb_c(self):
+    from cros.factory.device import usb_c
     return usb_c.USBTypeC(self)
 
   @DeviceProperty
@@ -183,10 +181,12 @@ class LinuxBoard(device_types.DeviceBoard):
 
   @DeviceProperty
   def vsync_sensor(self):
+    from cros.factory.device import vsync_sensor
     return vsync_sensor.VSyncSensor(self)
 
   @DeviceProperty
   def wifi(self):
+    from cros.factory.device import wifi
     return wifi.WiFi(self)
 
   @type_utils.Overrides
