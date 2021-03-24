@@ -48,6 +48,10 @@ HWIDV3_CONTENT_SCHEMA_ERROR_CHANGE = file_utils.ReadFile(
 def _MockGetAVLName(unused_category, comp_name):
   return comp_name
 
+
+def _MockGetPrimaryIdentifier(unused_model, unused_category, comp_name):
+  return comp_name
+
 # pylint: disable=protected-access
 class HwidApiTest(unittest.TestCase):
 
@@ -154,6 +158,8 @@ class HwidApiTest(unittest.TestCase):
     configless = None
     self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
     self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
+    self.patch_hwid_manager.GetPrimaryIdentifier.side_effect = (
+        _MockGetPrimaryIdentifier)
 
     req = hwid_api_messages_pb2.BomRequest(hwid=TEST_HWID)
     msg = self.service.GetBom(req)
@@ -183,6 +189,8 @@ class HwidApiTest(unittest.TestCase):
     configless = None
     self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
     self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
+    self.patch_hwid_manager.GetPrimaryIdentifier.side_effect = (
+        _MockGetPrimaryIdentifier)
 
     req = hwid_api_messages_pb2.DutLabelsRequest(hwid=TEST_HWID)
     msg = self.service.GetDutLabels(req)
@@ -224,6 +232,8 @@ class HwidApiTest(unittest.TestCase):
     configless = None
     self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
     self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
+    self.patch_hwid_manager.GetPrimaryIdentifier.side_effect = (
+        _MockGetPrimaryIdentifier)
 
     req = hwid_api_messages_pb2.BomRequest(hwid=TEST_HWID, verbose=True)
     msg = self.service.GetBom(req)
@@ -670,6 +680,8 @@ class HwidApiTest(unittest.TestCase):
 
     self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
     self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
+    self.patch_hwid_manager.GetPrimaryIdentifier.side_effect = (
+        _MockGetPrimaryIdentifier)
 
     req = hwid_api_messages_pb2.DutLabelsRequest(hwid=TEST_HWID)
     msg = self.service.GetDutLabels(req)

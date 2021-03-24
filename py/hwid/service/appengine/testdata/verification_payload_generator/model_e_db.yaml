@@ -1,0 +1,108 @@
+checksum: DUMMY
+
+board: MODEL_E
+
+encoding_patterns: {0: default}
+
+image_id: {0: EVT}
+
+pattern:
+  - image_ids: [0]
+    encoding_scheme: base8192
+    fields:
+    - dram: 2
+    - storage: 2
+
+encoded_fields:
+  dram:
+    0: {dram: dram0}
+    1: {dram: dram1}
+    2: {dram: dram2}
+    3: {dram: dram3}
+  storage:
+    0: {storage: storage0}
+    1: {storage: storage1}
+    2: {storage: storage2}
+    3: {storage: storage3}
+
+components:
+  dram:
+    items:
+      dram0:  # duplicate with dram2 and the status is not preferred.
+        status: unqualified
+        values:
+          part: part-number
+          size: '4096'
+          slot: '0'
+          timing: DDR4-2667
+      dram1:
+        status: unsupported
+        values:
+          part: part-number
+          size: '4096'
+          slot: '1'
+          timing: DDR4-2667
+      dram2:
+        status: supported
+        values:
+          part: part-number
+          size: '4096'
+          slot: '0'
+          timing: DDR4-2400
+      dram3:  # same status as dram2, but the name is lexicographically larger.
+        status: supported
+        values:
+          part: part-number
+          size: '4096'
+          slot: '0'
+          timing: DDR4-3456
+  storage:
+    items:
+      # Same as storage1 without emmc5_fw_ver, but the supported one is
+      # preferred
+      storage0:
+        status: unsupported
+        values:
+          emmc5_fw_ver: 0 (987654321)
+          hwrev: '0x0'
+          manfid: '0x000001'
+          name: STORAG
+          oemid: '0x0001'
+          prv: '0x1'
+          sectors: '104857600'
+          type: MMC
+      storage1:
+        status: supported
+        values:
+          emmc5_fw_ver: 1 (987654321)
+          hwrev: '0x0'
+          manfid: '0x000001'
+          name: STORAG
+          oemid: '0x0001'
+          prv: '0x1'
+          sectors: '104857600'
+          type: MMC
+      storage2:  # Prefer storage1 since it's supported.
+        status: unqualified
+        values:
+          emmc5_fw_ver: 2 (987654321)
+          hwrev: '0x0'
+          manfid: '0x000001'
+          name: STORAG
+          oemid: '0x0001'
+          prv: '0x1'
+          sectors: '104857600'
+          type: MMC
+      storage3:  # totally different one.
+        status: unqualified
+        values:
+          emmc5_fw_ver: 2 (987654321)
+          hwrev: '0x0'
+          manfid: '0x000002'
+          name: STORAG
+          oemid: '0x0001'
+          prv: '0x1'
+          sectors: '104857600'
+          type: MMC
+
+rules: []

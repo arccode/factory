@@ -5,6 +5,7 @@
 
 """Tests for HwidValidator."""
 
+import collections
 import os
 import unittest
 from unittest import mock
@@ -149,7 +150,7 @@ class HwidValidatorTest(unittest.TestCase):
   def CreateBadVPGResult(cls):
     ret = hwid_validator.vpg_module.VerificationPayloadGenerationResult(
         generated_file_contents={}, error_msgs=['err1', 'err2'],
-        payload_hash='')
+        payload_hash='', primary_identifiers=collections.defaultdict(dict))
     return ret
 
 

@@ -343,10 +343,14 @@ class VerificationPayloadGenerationResult(typing.NamedTuple):
         files that should be committed into the bsp package.
     error_msgs: A list of errors encountered during the generation.
     payload_hash: Hash of the payload.
+    primary_identifiers: An instance of collections.defaultdict(dict) mapping
+        `model` to {(category, component name): target component name} which
+        groups components with same probe statement.
   """
   generated_file_contents: dict
   error_msgs: list
   payload_hash: str
+  primary_identifiers: typing.DefaultDict[str, typing.Dict]
 
 
 ComponentVerificationPayloadPiece = collections.namedtuple(
@@ -447,20 +451,79 @@ def GenerateVerificationPayload(dbs):
   Returns:
     Instance of `VerificationPayloadGenerationResult`.
   """
+
+  def _ComponentSortKey(comp_vp_piece):
+    qual_status_preference = {
+        hardware_verifier_pb2.QUALIFIED: 0,
+        hardware_verifier_pb2.UNQUALIFIED: 1,
+        hardware_verifier_pb2.REJECTED: 2,
+    }
+    return (qual_status_preference.get(
+        comp_vp_piece.component_info.qualification_status,
+        3), comp_vp_piece.probe_statement.component_name)
+
+  def _StripModelPrefix(comp_name, model):
+    """Strip the known model prefix in comp name."""
+
+    model = model.lower()
+    if not comp_name.startswith(model + '_'):
+      raise ValueError(r'Component name {comp_name!r} does not start with'
+                       r'"{model}_".')
+    return comp_name.partition('_')[2]
+
+  def _CollectPrimaryIdentifiers(grouped_comp_vp_piece_per_model,
+                                 grouped_primary_comp_name_per_model):
+    """Collect the mappings from grouped comp_vp_pieces.
+
+    This function extracts the required fields (model, category, component name,
+    and targeted component name) for deduplicating probe
+    statements from ComponentVerificationPayloadPiece which contains unnecessary
+    information.
+    """
+
+    primary_identifiers = collections.defaultdict(dict)
+    for model, grouped_comp_vp_piece in grouped_comp_vp_piece_per_model.items():
+      grouped_primary_comp_name = grouped_primary_comp_name_per_model[model]
+      for hash_value, comp_vp_piece_list in grouped_comp_vp_piece.items():
+        if len(comp_vp_piece_list) <= 1:
+          continue
+        primary_component_name = grouped_primary_comp_name[hash_value]
+        for comp_vp_piece in comp_vp_piece_list:
+          probe_statement = comp_vp_piece.probe_statement
+          if probe_statement.component_name == primary_component_name:
+            continue
+          primary_identifiers[model][
+              probe_statement.category_name,
+              _StripModelPrefix(probe_statement
+                                .component_name, model)] = _StripModelPrefix(
+                                    primary_component_name, model)
+    return primary_identifiers
+
   error_msgs = []
   generated_file_contents = {}
 
+  grouped_comp_vp_piece_per_model = {}
+  grouped_primary_comp_name_per_model = {}
   hw_verification_spec = hardware_verifier_pb2.HwVerificationSpec()
   for db, waived_categories in dbs:
     model_prefix = db.project.lower()
     probe_config = probe_config_types.ProbeConfigPayload()
     all_pieces = GetAllComponentVerificationPayloadPieces(db, waived_categories)
+    grouped_comp_vp_piece = collections.defaultdict(list)
+    grouped_primary_comp_name = {}
     for comp_vp_piece in all_pieces.values():
       if comp_vp_piece.is_duplicate:
         continue
       if comp_vp_piece.error_msg:
         error_msgs.append(comp_vp_piece.error_msg)
         continue
+      grouped_comp_vp_piece[
+          comp_vp_piece.probe_statement.statement_hash].append(comp_vp_piece)
+
+    for hash_val, comp_vp_piece_list in grouped_comp_vp_piece.items():
+      comp_vp_piece = min(comp_vp_piece_list, key=_ComponentSortKey)
+      grouped_primary_comp_name[
+          hash_val] = comp_vp_piece.probe_statement.component_name
       probe_config.AddComponentProbeStatement(comp_vp_piece.probe_statement)
       hw_verification_spec.component_infos.append(comp_vp_piece.component_info)
 
@@ -470,6 +533,11 @@ def GenerateVerificationPayload(dbs):
 
     probe_config_pathname = 'runtime_probe/%s/probe_config.json' % model_prefix
     generated_file_contents[probe_config_pathname] = probe_config.DumpToString()
+    grouped_comp_vp_piece_per_model[db.project] = grouped_comp_vp_piece
+    grouped_primary_comp_name_per_model[db.project] = grouped_primary_comp_name
+
+  primary_identifiers = _CollectPrimaryIdentifiers(
+      grouped_comp_vp_piece_per_model, grouped_primary_comp_name_per_model)
 
   hw_verification_spec.component_infos.sort(
       key=lambda ci: (ci.component_category, ci.component_uuid))
@@ -486,8 +554,8 @@ def GenerateVerificationPayload(dbs):
   payload_json = json_utils.DumpStr(generated_file_contents, sort_keys=True)
   payload_hash = hashlib.sha1(payload_json.encode('utf-8')).hexdigest()
 
-  return VerificationPayloadGenerationResult(generated_file_contents,
-                                             error_msgs, payload_hash)
+  return VerificationPayloadGenerationResult(
+      generated_file_contents, error_msgs, payload_hash, primary_identifiers)
 
 
 def main():
@@ -533,12 +601,18 @@ def main():
     model_name, unused_sep, category_name = waived_category.partition('.')
     for db_obj, waived_list in dbs:
       if db_obj.project.lower() == model_name.lower():
-        logging.info('Will ignore the componente category %r for %r.',
+        logging.info('Will ignore the component category %r for %r.',
                      category_name, db_obj.project)
         waived_list.append(category_name)
 
   logging.info('Generate the verification payload data.')
   result = GenerateVerificationPayload(dbs)
+  for model, mapping in result.primary_identifiers.items():
+    logs = [f'Found duplicate probe statements for model {model}:']
+    for (category, comp_name), primary_comp_name in mapping.items():
+      logs.append(f'  {category}/{comp_name} will be mapped to '
+                  f'{category}/{primary_comp_name}.')
+    logging.info('\n'.join(logs))
 
   if result.error_msgs:
     for error_msg in result.error_msgs:

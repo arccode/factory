@@ -14,6 +14,7 @@ import hardware_verifier_pb2
 from cros.factory.hwid.service.appengine import verification_payload_generator
 from cros.factory.hwid.v3 import database
 from cros.factory.hwid.v3 import rule as hwid_rule
+from cros.factory.probe.runtime_probe import probe_config_types
 from cros.factory.utils import json_utils
 
 
@@ -27,6 +28,7 @@ TESTDATA_DIR = os.path.join(
 
 
 class GenericBatteryProbeStatementGeneratorTest(unittest.TestCase):
+
   def testTryGenerate(self):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['battery'][0]
 
@@ -38,17 +40,17 @@ class GenericBatteryProbeStatementGeneratorTest(unittest.TestCase):
          'other_value': 'z'})
     self.assertEqual(
         ps,
-        {
-            'battery': {
-                'name1': {
-                    'eval': {'generic_battery': {}},
-                    'expect': {'manufacturer': [True, 'str', '!eq foo'],
-                               'model_name': [True, 'str', '!re bar'],
-                               'technology': [True, 'str',
-                                              '!eq cutting-edge-tech']}
+        probe_config_types.ComponentProbeStatement(
+            'battery', 'name1', {
+                'eval': {
+                    'generic_battery': {}
+                },
+                'expect': {
+                    'manufacturer': [True, 'str', '!eq foo'],
+                    'model_name': [True, 'str', '!re bar'],
+                    'technology': [True, 'str', '!eq cutting-edge-tech']
                 }
-            }
-        })
+            }))
 
     # Should report not supported if some fields are missing.
     self.assertRaises(MissingComponentValueError, ps_gen.TryGenerate,
@@ -68,24 +70,22 @@ class GenericStorageMMCProbeStatementGeneratorTest(unittest.TestCase):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['storage'][0]
     ps = ps_gen.TryGenerate('name1', comp_values)
     self.assertEqual(
-        ps, {
-            'storage': {
-                'name1': {
-                    'eval': {
-                        'generic_storage': {}
-                    },
-                    'expect': {
-                        'sectors': [True, 'int', '!eq 112233'],
-                        'mmc_hwrev': [False, 'hex'],
-                        'mmc_name': [True, 'str', '!eq ABCxyz'],
-                        'mmc_manfid': [True, 'hex', '!eq 0x22'],
-                        'mmc_oemid': [True, 'hex', '!eq 0x4455'],
-                        'mmc_prv': [True, 'hex', '!eq 0x0A'],
-                        'mmc_serial': [True, 'hex', '!eq 0x1234ABCD']
-                    }
+        ps,
+        probe_config_types.ComponentProbeStatement(
+            'storage', 'name1', {
+                'eval': {
+                    'generic_storage': {}
+                },
+                'expect': {
+                    'sectors': [True, 'int', '!eq 112233'],
+                    'mmc_hwrev': [False, 'hex'],
+                    'mmc_name': [True, 'str', '!eq ABCxyz'],
+                    'mmc_manfid': [True, 'hex', '!eq 0x22'],
+                    'mmc_oemid': [True, 'hex', '!eq 0x4455'],
+                    'mmc_prv': [True, 'hex', '!eq 0x0A'],
+                    'mmc_serial': [True, 'hex', '!eq 0x1234ABCD']
                 }
-            }
-        })
+            }))
 
     # Should report not supported if some fields are missing.
     invalid_comp_values = dict(comp_values)
@@ -123,17 +123,18 @@ class GenericStorageNVMeProbeStatementGeneratorTest(unittest.TestCase):
          'vendor': '0x5678'})
     self.assertEqual(
         ps,
-        {
-            'storage': {
-                'name1': {
-                    'eval': {'generic_storage': {}},
-                    'expect': {'sectors': [True, 'int', '!eq 112233'],
-                               'pci_class': [True, 'hex', '!eq 0x123456'],
-                               'pci_vendor': [True, 'hex', '!eq 0x5678'],
-                               'pci_device': [True, 'hex', '!eq 0x1234']}
+        probe_config_types.ComponentProbeStatement(
+            'storage', 'name1', {
+                'eval': {
+                    'generic_storage': {}
+                },
+                'expect': {
+                    'sectors': [True, 'int', '!eq 112233'],
+                    'pci_class': [True, 'hex', '!eq 0x123456'],
+                    'pci_vendor': [True, 'hex', '!eq 0x5678'],
+                    'pci_device': [True, 'hex', '!eq 0x1234']
                 }
-            }
-        })
+            }))
 
     # Should report not supported if some fields are missing.
     self.assertRaises(MissingComponentValueError, ps_gen.TryGenerate, 'name1',
@@ -153,16 +154,17 @@ class NetworkProbeStatementGeneratorTest(unittest.TestCase):
         {'idVendor': '1122', 'idProduct': '5566'})
     self.assertEqual(
         ps,
-        {
-            'network': {
-                'name1': {
-                    'eval': {'wireless_network': {}},
-                    'expect': {'usb_vendor_id': [True, 'hex', '!eq 0x1122'],
-                               'usb_product_id': [True, 'hex', '!eq 0x5566'],
-                               'usb_bcd_device': [False, 'hex']}
+        probe_config_types.ComponentProbeStatement(
+            'network', 'name1', {
+                'eval': {
+                    'wireless_network': {}
+                },
+                'expect': {
+                    'usb_vendor_id': [True, 'hex', '!eq 0x1122'],
+                    'usb_product_id': [True, 'hex', '!eq 0x5566'],
+                    'usb_bcd_device': [False, 'hex']
                 }
-            }
-        })
+            }))
 
   def testPCI(self):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['wireless'][0]
@@ -171,21 +173,19 @@ class NetworkProbeStatementGeneratorTest(unittest.TestCase):
         'device': '0x5678'
     })
     self.assertEqual(
-        ps, {
-            'network': {
-                'name1': {
-                    'eval': {
-                        'wireless_network': {}
-                    },
-                    'expect': {
-                        'pci_device_id': [True, 'hex', '!eq 0x5678'],
-                        'pci_revision': [False, 'hex'],
-                        'pci_subsystem': [False, 'hex'],
-                        'pci_vendor_id': [True, 'hex', '!eq 0x1234']
-                    }
+        ps,
+        probe_config_types.ComponentProbeStatement(
+            'network', 'name1', {
+                'eval': {
+                    'wireless_network': {}
+                },
+                'expect': {
+                    'pci_device_id': [True, 'hex', '!eq 0x5678'],
+                    'pci_revision': [False, 'hex'],
+                    'pci_subsystem': [False, 'hex'],
+                    'pci_vendor_id': [True, 'hex', '!eq 0x1234']
                 }
-            }
-        })
+            }))
 
     ps = ps_gen.TryGenerate('name1', {
         'vendor': '0x1234',
@@ -193,21 +193,19 @@ class NetworkProbeStatementGeneratorTest(unittest.TestCase):
         'subsystem_device': '0x0123'
     })
     self.assertEqual(
-        ps, {
-            'network': {
-                'name1': {
-                    'eval': {
-                        'wireless_network': {}
-                    },
-                    'expect': {
-                        'pci_device_id': [True, 'hex', '!eq 0x5678'],
-                        'pci_revision': [False, 'hex'],
-                        'pci_subsystem': [True, 'hex', '!eq 0x0123'],
-                        'pci_vendor_id': [True, 'hex', '!eq 0x1234']
-                    }
+        ps,
+        probe_config_types.ComponentProbeStatement(
+            'network', 'name1', {
+                'eval': {
+                    'wireless_network': {}
+                },
+                'expect': {
+                    'pci_device_id': [True, 'hex', '!eq 0x5678'],
+                    'pci_revision': [False, 'hex'],
+                    'pci_subsystem': [True, 'hex', '!eq 0x0123'],
+                    'pci_vendor_id': [True, 'hex', '!eq 0x1234']
                 }
-            }
-        })
+            }))
 
 
 class MemoryProbeStatementGeneratorTest(unittest.TestCase):
@@ -218,30 +216,32 @@ class MemoryProbeStatementGeneratorTest(unittest.TestCase):
         'name1', {'part': 'ABC123DEF-A1_0', 'size': '4096', 'slot': '0'})
     self.assertEqual(
         ps,
-        {
-            'dram': {
-                'name1': {
-                    'eval': {'memory': {}},
-                    'expect': {'part': [True, 'str', '!eq ABC123DEF-A1_0'],
-                               'size': [True, 'int', '!eq 4096'],
-                               'slot': [True, 'int', '!eq 0']}
+        probe_config_types.ComponentProbeStatement(
+            'dram', 'name1', {
+                'eval': {
+                    'memory': {}
+                },
+                'expect': {
+                    'part': [True, 'str', '!eq ABC123DEF-A1_0'],
+                    'size': [True, 'int', '!eq 4096'],
+                    'slot': [True, 'int', '!eq 0']
                 }
-            }
-        })
+            }))
 
     ps = ps_gen.TryGenerate('name2', {'part': 'ABC123DEF-A1', 'size': '4096'})
     self.assertEqual(
         ps,
-        {
-            'dram': {
-                'name2': {
-                    'eval': {'memory': {}},
-                    'expect': {'part': [True, 'str', '!eq ABC123DEF-A1'],
-                               'size': [True, 'int', '!eq 4096'],
-                               'slot': [False, 'int']}
+        probe_config_types.ComponentProbeStatement(
+            'dram', 'name2', {
+                'eval': {
+                    'memory': {}
+                },
+                'expect': {
+                    'part': [True, 'str', '!eq ABC123DEF-A1'],
+                    'size': [True, 'int', '!eq 4096'],
+                    'slot': [False, 'int']
                 }
-            }
-        })
+            }))
 
 
 class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
@@ -252,21 +252,19 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
         'name1',
         {'name': 'foo', 'product': '1122', 'vendor': '5566'})
     self.assertEqual(
-        ps, {
-            'stylus': {
-                'name1': {
-                    'eval': {
-                        'input_device': {}
-                    },
-                    'expect': {
-                        'name': [True, 'str', '!eq foo'],
-                        'product': [True, 'hex', '!eq 0x1122'],
-                        'vendor': [True, 'hex', '!eq 0x5566'],
-                        'fw_version': [False, 'str']
-                    }
+        ps,
+        probe_config_types.ComponentProbeStatement(
+            'stylus', 'name1', {
+                'eval': {
+                    'input_device': {}
+                },
+                'expect': {
+                    'name': [True, 'str', '!eq foo'],
+                    'product': [True, 'hex', '!eq 0x1122'],
+                    'vendor': [True, 'hex', '!eq 0x5566'],
+                    'fw_version': [False, 'str']
                 }
-            }
-        })
+            }))
 
   def testTouchpadTryGenerate(self):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['touchpad'][0]
@@ -275,21 +273,19 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
         'name1',
         {'name': 'foo', 'product': '1122', 'vendor': '5566'})
     self.assertEqual(
-        ps, {
-            'touchpad': {
-                'name1': {
-                    'eval': {
-                        'input_device': {}
-                    },
-                    'expect': {
-                        'name': [True, 'str', '!eq foo'],
-                        'product': [True, 'hex', '!eq 0x1122'],
-                        'vendor': [True, 'hex', '!eq 0x5566'],
-                        'fw_version': [False, 'str']
-                    }
+        ps,
+        probe_config_types.ComponentProbeStatement(
+            'touchpad', 'name1', {
+                'eval': {
+                    'input_device': {}
+                },
+                'expect': {
+                    'name': [True, 'str', '!eq foo'],
+                    'product': [True, 'hex', '!eq 0x1122'],
+                    'vendor': [True, 'hex', '!eq 0x5566'],
+                    'fw_version': [False, 'str']
                 }
-            }
-        })
+            }))
 
   def testTouchscreenTryGenerate(self):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['touchscreen'][0]
@@ -302,21 +298,19 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
             'fw_version': '1.1'
         })
     self.assertEqual(
-        ps, {
-            'touchscreen': {
-                'name1': {
-                    'eval': {
-                        'input_device': {}
-                    },
-                    'expect': {
-                        'name': [True, 'str', '!eq foo'],
-                        'product': [True, 'hex', '!eq 0x11223344'],
-                        'vendor': [True, 'hex', '!eq 0x5566'],
-                        'fw_version': [True, 'str', '!eq 1.1']
-                    }
+        ps,
+        probe_config_types.ComponentProbeStatement(
+            'touchscreen', 'name1', {
+                'eval': {
+                    'input_device': {}
+                },
+                'expect': {
+                    'name': [True, 'str', '!eq foo'],
+                    'product': [True, 'hex', '!eq 0x11223344'],
+                    'vendor': [True, 'hex', '!eq 0x5566'],
+                    'fw_version': [True, 'str', '!eq 1.1']
                 }
-            }
-        })
+            }))
 
 
 class EdidProbeStatementGeneratorTest(unittest.TestCase):
@@ -329,17 +323,18 @@ class EdidProbeStatementGeneratorTest(unittest.TestCase):
          'width': '1920'})
     self.assertEqual(
         ps,
-        {
-            'display_panel': {
-                'name1': {
-                    'eval': {'edid': {}},
-                    'expect': {'height': [True, 'int', '!eq 1080'],
-                               'product_id': [True, 'hex', '!eq 0x1A2B'],
-                               'vendor': [True, 'str', '!eq FOO'],
-                               'width': [True, 'int', '!eq 1920']}
+        probe_config_types.ComponentProbeStatement(
+            'display_panel', 'name1', {
+                'eval': {
+                    'edid': {}
+                },
+                'expect': {
+                    'height': [True, 'int', '!eq 1080'],
+                    'product_id': [True, 'hex', '!eq 0x1A2B'],
+                    'vendor': [True, 'str', '!eq FOO'],
+                    'width': [True, 'int', '!eq 1920']
                 }
-            }
-        })
+            }))
 
 
 class GenerateVerificationPayloadTest(unittest.TestCase):
@@ -347,14 +342,15 @@ class GenerateVerificationPayloadTest(unittest.TestCase):
     dbs = [(database.Database.LoadFile(
         os.path.join(TESTDATA_DIR, name), verify_checksum=False), [])
            for name in ('model_a_db.yaml', 'model_b_db.yaml', 'model_c_db.yaml',
-                        'model_d_db.yaml')]
+                        'model_d_db.yaml', 'model_e_db.yaml')]
     expected_outputs = json_utils.LoadFile(
         os.path.join(TESTDATA_DIR, 'expected_model_ab_output.json'))
 
     files = _vp_generator.GenerateVerificationPayload(
         dbs).generated_file_contents
 
-    self.assertEqual(len(files), 5)
+    # files should include hw_verification_spec.prototxt.
+    self.assertEqual(len(files), len(dbs) + 1)
     self.assertEqual(
         json_utils.LoadStr(files['runtime_probe/model_a/probe_config.json']),
         expected_outputs['runtime_probe/model_a/probe_config.json'])
@@ -367,14 +363,17 @@ class GenerateVerificationPayloadTest(unittest.TestCase):
     self.assertEqual(
         json_utils.LoadStr(files['runtime_probe/model_d/probe_config.json']),
         expected_outputs['runtime_probe/model_d/probe_config.json'])
+    self.assertEqual(
+        json_utils.LoadStr(files['runtime_probe/model_e/probe_config.json']),
+        expected_outputs['runtime_probe/model_e/probe_config.json'])
     hw_verificaiontion_spec = hardware_verifier_pb2.HwVerificationSpec()
     text_format.Parse(files['hw_verification_spec.prototxt'],
                       hw_verificaiontion_spec)
-    self.assertCountEqual(
-        json_format.MessageToDict(hw_verificaiontion_spec,
-                                  including_default_value_fields=True,
-                                  use_integers_for_enums=True),
-        expected_outputs['hw_verification_spec.prototxt'])
+    self.assertEqual(
+        json_utils.DumpStr(
+            json_format.MessageToDict(hw_verificaiontion_spec), sort_keys=True),
+        json_utils.DumpStr(expected_outputs['hw_verification_spec.prototxt'],
+                           sort_keys=True))
 
   def testHasUnsupportedComps(self):
     # The database bad_model_db.yaml contains an unknown storage, which is not
@@ -396,18 +395,21 @@ class GenerateProbeStatementWithInformation(unittest.TestCase):
          'vendor': '0x5678'}, {'comp_group': 'name2'})
     self.assertEqual(
         ps,
-        {
-            'storage': {
-                'name1': {
-                    'eval': {'generic_storage': {}},
-                    'expect': {'sectors': [True, 'int', '!eq 112233'],
-                               'pci_class': [True, 'hex', '!eq 0x123456'],
-                               'pci_vendor': [True, 'hex', '!eq 0x5678'],
-                               'pci_device': [True, 'hex', '!eq 0x1234']},
-                    'information': {'comp_group': 'name2'},
-                }
-            }
-        })
+        probe_config_types.ComponentProbeStatement(
+            'storage', 'name1', {
+                'eval': {
+                    'generic_storage': {}
+                },
+                'expect': {
+                    'sectors': [True, 'int', '!eq 112233'],
+                    'pci_class': [True, 'hex', '!eq 0x123456'],
+                    'pci_vendor': [True, 'hex', '!eq 0x5678'],
+                    'pci_device': [True, 'hex', '!eq 0x1234']
+                },
+                'information': {
+                    'comp_group': 'name2'
+                },
+            }))
 
 
 class USBCameraProbeStatementGeneratorTest(unittest.TestCase):
@@ -419,16 +421,17 @@ class USBCameraProbeStatementGeneratorTest(unittest.TestCase):
          'bus_type': 'usb'})
     self.assertEqual(
         ps,
-        {
-            'camera': {
-                'name1': {
-                    'eval': {'usb_camera': {}},
-                    'expect': {'usb_vendor_id': [True, 'hex', '!eq 0x1234'],
-                               'usb_product_id': [True, 'hex', '!eq 0x5678'],
-                               'usb_bcd_device': [True, 'hex', '!eq 0x90AB']},
+        probe_config_types.ComponentProbeStatement(
+            'camera', 'name1', {
+                'eval': {
+                    'usb_camera': {}
                 },
-            },
-        })
+                'expect': {
+                    'usb_vendor_id': [True, 'hex', '!eq 0x1234'],
+                    'usb_product_id': [True, 'hex', '!eq 0x5678'],
+                    'usb_bcd_device': [True, 'hex', '!eq 0x90AB']
+                }
+            }))
 
     # Should report not supported if some fields are missing.
     self.assertRaises(MissingComponentValueError, ps_gen.TryGenerate, 'name1',

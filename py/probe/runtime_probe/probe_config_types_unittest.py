@@ -52,19 +52,16 @@ class ConcreteProbeStatementDefinitionTestBase(unittest.TestCase):
 class ProbeStatementDefinitionTest(ConcreteProbeStatementDefinitionTestBase):
   def _GenerateExpectResult(self, comp_name, func_name, expect_field,
                             func_arg=None, information=None):
-    ret = {
-        'category_x': {
-            comp_name: {
-                'eval': {
-                    func_name: func_arg or {}
-                },
-                'expect': expect_field
-            }
-        }
+    statement = {
+        'eval': {
+            func_name: func_arg or {}
+        },
+        'expect': expect_field
     }
     if information is not None:
-      ret['category_x'][comp_name]['information'] = information
-    return ret
+      statement['information'] = information
+    return probe_config_types.ComponentProbeStatement('category_x', comp_name,
+                                                      statement)
 
   def testGenerateProbeStatementNoField(self):
     result = self.probe_statement_definition.GenerateProbeStatement(
@@ -156,7 +153,6 @@ class ProbeStatementDefinitionTest(ConcreteProbeStatementDefinitionTestBase):
           'comp_1', 'func_1', {'hex_field_three_digits': 'B3FF'})
 
   def testGenerateProbeStatementExtraInformation(self):
-    self.maxDiff = None
     result = self.probe_statement_definition.GenerateProbeStatement(
         'comp_1', 'func_1', {
             'str_field': 'sss',
@@ -195,7 +191,12 @@ class ProbeConfigPayloadTest(ConcreteProbeStatementDefinitionTestBase):
     with self.assertRaises(ValueError):  # component name confliction
       p.AddComponentProbeStatement(
           self.probe_statement_definition.GenerateProbeStatement(
-              'comp_2', 'func_1', {'int_field': 2}))
+              'comp_2', 'func_1', {'int_field': 4}))
+
+    with self.assertRaises(ValueError):  # probe statement confliction.
+      p.AddComponentProbeStatement(
+          self.probe_statement_definition.GenerateProbeStatement(
+              'comp_4', 'func_1', {'int_field': 2}))
 
     result = p.DumpToString()
     self.assertEqual(
@@ -216,6 +217,195 @@ class ProbeConfigPayloadTest(ConcreteProbeStatementDefinitionTestBase):
                 },
             }
         })
+
+
+class ComponentProbeStatementTest(unittest.TestCase):
+
+  def testIdenticalStatements(self):
+    cps1 = probe_config_types.ComponentProbeStatement('category1', 'comp1', {
+        'eval': {
+            'func_1': {}
+        },
+        'expect': {
+            'int_field': [True, 'int', '!eq 1']
+        }
+    })
+    cps2 = probe_config_types.ComponentProbeStatement('category1', 'comp1', {
+        'eval': {
+            'func_1': {}
+        },
+        'expect': {
+            'int_field': [True, 'int', '!eq 1']
+        }
+    })
+    self.assertEqual(cps1.statement_hash, cps2.statement_hash)
+    self.assertEqual(cps1, cps2)
+
+  def testHashCompNamesDiffer(self):
+    cps1 = probe_config_types.ComponentProbeStatement('category1', 'comp1', {
+        'eval': {
+            'func_1': {}
+        },
+        'expect': {
+            'int_field': [True, 'int', '!eq 1']
+        }
+    })
+    cps2 = probe_config_types.ComponentProbeStatement('category1', 'comp2', {
+        'eval': {
+            'func_1': {}
+        },
+        'expect': {
+            'int_field': [True, 'int', '!eq 1']
+        }
+    })
+    self.assertEqual(cps1.statement_hash, cps2.statement_hash)
+    self.assertNotEqual(cps1, cps2)
+
+  def testHashCategoryNamesDiffer(self):
+    cps1 = probe_config_types.ComponentProbeStatement('category1', 'comp1', {
+        'eval': {
+            'func_1': {}
+        },
+        'expect': {
+            'int_field': [True, 'int', '!eq 1']
+        }
+    })
+    cps2 = probe_config_types.ComponentProbeStatement('category2', 'comp1', {
+        'eval': {
+            'func_1': {}
+        },
+        'expect': {
+            'int_field': [True, 'int', '!eq 1']
+        }
+    })
+    self.assertNotEqual(cps1.statement_hash, cps2.statement_hash)
+    self.assertNotEqual(cps1, cps2)
+
+  def testHashFunctionNamesDiffer(self):
+    cps1 = probe_config_types.ComponentProbeStatement('category1', 'comp1', {
+        'eval': {
+            'func_1': {}
+        },
+        'expect': {
+            'int_field': [True, 'int', '!eq 1']
+        }
+    })
+    cps2 = probe_config_types.ComponentProbeStatement('category1', 'comp1', {
+        'eval': {
+            'func_2': {}
+        },
+        'expect': {
+            'int_field': [True, 'int', '!eq 1']
+        }
+    })
+    self.assertNotEqual(cps1.statement_hash, cps2.statement_hash)
+    self.assertNotEqual(cps1, cps2)
+
+  def testFromDictSucceed(self):
+    self.assertEqual(
+        probe_config_types.ComponentProbeStatement('category1', 'comp1', {
+            'eval': {
+                'func_1': {}
+            },
+            'expect': {
+                'int_field': [True, 'int', '!eq 1']
+            }
+        }),
+        probe_config_types.ComponentProbeStatement.FromDict({
+            'category1': {
+                'comp1': {
+                    'eval': {
+                        'func_1': {}
+                    },
+                    'expect': {
+                        'int_field': [True, 'int', '!eq 1']
+                    }
+                }
+            }
+        }))
+
+  def testFromDictValueHashMultipleCategories(self):
+    self.assertRaises(
+        ValueError, probe_config_types.ComponentProbeStatement.FromDict, {
+            'category1': {
+                'comp_name1': {
+                    'eval': {
+                        'func_1': {}
+                    },
+                    'expect': {
+                        'int_field': [True, 'int', '!eq 1']
+                    }
+                }
+            },
+            'category2': {
+                'comp_name1': {
+                    'eval': {
+                        'func_1': {}
+                    },
+                    'expect': {
+                        'int_field': [True, 'int', '!eq 1']
+                    }
+                }
+            },
+        })
+
+  def testFromDictCategoryNotString(self):
+    self.assertRaises(
+        ValueError, probe_config_types.ComponentProbeStatement.FromDict, {
+            123: {
+                'comp_name1': {
+                    'eval': {
+                        'func_1': {}
+                    },
+                    'expect': {
+                        'int_field': [True, 'int', '!eq 1']
+                    }
+                }
+            }
+        })
+
+  def testFromDictMultipleComponents(self):
+    self.assertRaises(
+        ValueError, probe_config_types.ComponentProbeStatement.FromDict, {
+            'category1': {
+                'comp_name1': {
+                    'eval': {
+                        'func_1': {}
+                    },
+                    'expect': {
+                        'int_field': [True, 'int', '!eq 1']
+                    }
+                },
+                'comp_name2': {
+                    'eval': {
+                        'func_1': {}
+                    },
+                    'expect': {
+                        'int_field': [True, 'int', '!eq 1']
+                    }
+                }
+            }
+        })
+
+  def testFromDictComponentNameNotString(self):
+    self.assertRaises(
+        ValueError, probe_config_types.ComponentProbeStatement.FromDict, {
+            'category1': {
+                3.1415926: {
+                    'eval': {
+                        'func_1': {}
+                    },
+                    'expect': {
+                        'int_field': [True, 'int', '!eq 1']
+                    }
+                }
+            }
+        })
+
+  def testFromDictMiscErrors(self):
+    self.assertRaises(ValueError,
+                      probe_config_types.ComponentProbeStatement.FromDict,
+                      {'category1': 100})
 
 
 if __name__ == '__main__':

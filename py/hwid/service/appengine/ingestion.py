@@ -397,6 +397,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
         payload_hash_mapping[board] = result.payload_hash
         self._TryCreateCL(force_push, service_account_name, board, new_files,
                           hwid_main_commit)
+      self.hwid_manager.UpdatePrimaryIdentifiers(result.primary_identifiers)
 
     return hwid_main_commit, payload_hash_mapping
 

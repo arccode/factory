@@ -48,6 +48,69 @@ class ProbeFunctionDefinition:
     self.output_fields = output_fields
 
 
+class ComponentProbeStatement:
+  """Component probe statement with hash.
+
+  In order to deduplicate probe statements, this class hashes fields without
+  component name.  Therefore we can take some preference to choose one of
+  components as the primary identifier among ComponentProbeStatement instances
+  with same hash value.
+
+  Attributes:
+    category_name: A string of the HWID category.
+    component_name: A string of the component name.
+    statement: A nested dict generated from
+        ProbeStatementDefinition.GenerateProbeStatement.
+  """
+
+  def __init__(self, category_name, component_name, statement):
+    self._category_name = category_name
+    self._component_name = component_name
+    self._statement = statement
+    self._statement_hash = hash(
+        json_utils.DumpStr((category_name, statement), sort_keys=True))
+
+  @property
+  def category_name(self):
+    return self._category_name
+
+  @property
+  def component_name(self):
+    return self._component_name
+
+  @property
+  def statement(self):
+    return self._statement
+
+  @property
+  def statement_hash(self):
+    return self._statement_hash
+
+  def __eq__(self, other):
+    return isinstance(other, ComponentProbeStatement) and (
+        self.statement_hash == other.statement_hash and
+        self.component_name == other.component_name)
+
+  @classmethod
+  def FromDict(cls, d):
+    try:
+      if len(d) != 1:
+        raise ValueError(f'Only one category is allowed: {d!r}')
+      category, probe_statement = next(iter(d.items()))
+      if not isinstance(category, str):
+        raise ValueError(f'Category is not a string: {category!r}')
+      if len(probe_statement) != 1:
+        raise ValueError(f'Only one component is allowed: {probe_statement!r}')
+      component_name, statement = next(iter(probe_statement.items()))
+      if not isinstance(component_name, str):
+        raise ValueError(f'Component name is not a string: {component_name!r}')
+      return cls(category, component_name, statement)
+    except ValueError:
+      raise
+    except Exception as e:
+      raise ValueError(f'Unexpected format for dict {d!r}') from e
+
+
 class ProbeStatementDefinition:
   """Probe statement generator of a specific component category.
 
@@ -84,7 +147,8 @@ class ProbeStatementDefinition:
           function.
 
     Returns:
-      An object represents the generated probe statement.
+      A ComponentProbeStatement instance represents the generated probe
+      statement.
     """
     statement = {
         'eval': {
@@ -97,7 +161,8 @@ class ProbeStatementDefinition:
     }
     if information is not None:
       statement['information'] = information
-    return {self.category_name: {component_name: statement}}
+    return ComponentProbeStatement(self.category_name, component_name,
+                                   statement)
 
 
 class ProbeConfigPayload:
@@ -108,6 +173,7 @@ class ProbeConfigPayload:
   """
   def __init__(self):
     self._data = {}
+    self._probe_statement_hash_values = set()
 
   def AddComponentProbeStatement(self, probe_statement):
     """Add a probe statement into this payload.
@@ -118,13 +184,20 @@ class ProbeConfigPayload:
     Raises:
       `ValueError` if a confliction is found.
     """
-    for comp_category, category_probe_statement in probe_statement.items():
-      dest = self._data.setdefault(comp_category, {})
-      for comp_name, comp_probe_statement in category_probe_statement.items():
-        if comp_name in dest:
-          raise ValueError(
-              'duplicated component: %s.%s' % (comp_category, comp_name))
-        dest[comp_name] = copy.deepcopy(comp_probe_statement)
+
+    dest = self._data.setdefault(probe_statement.category_name, {})
+    if probe_statement.component_name in dest:
+      raise ValueError(
+          'duplicated component: %s.%s' %
+          (probe_statement.category_name, probe_statement.component_name))
+    if probe_statement.statement_hash in self._probe_statement_hash_values:
+      raise ValueError(
+          'duplicated probe statement: %s.%s: %s' %
+          (probe_statement.category_name, probe_statement.component_name,
+           probe_statement.statement))
+    self._probe_statement_hash_values.add(probe_statement.statement_hash)
+    dest[probe_statement.component_name] = copy.deepcopy(
+        probe_statement.statement)
 
   def DumpToString(self):
     return json_utils.DumpStr(self._data, pretty=True)

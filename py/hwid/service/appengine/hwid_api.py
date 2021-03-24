@@ -423,7 +423,9 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     # runtime probe
     for component in bom.GetComponents():
       if component.name and component.is_vp_related:
-        name = _hwid_manager.GetAVLName(component.cls, component.name)
+        name = _hwid_manager.GetPrimaryIdentifier(bom.board, component.cls,
+                                                  component.name)
+        name = _hwid_manager.GetAVLName(component.cls, name)
         if component.information is not None:
           name = component.information.get('comp_group', name)
         response.labels.add(name="hwid_component",

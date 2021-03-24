@@ -132,7 +132,8 @@ class ProbeFunc:
   def ParseProbeParams(
       self, probe_params: typing.List[stubby_pb2.ProbeParameter],
       allow_missing_params: bool, comp_name_for_probe_statement=None
-  ) -> typing.Tuple[ProbeInfoParsedResult, typing.Any]:
+  ) -> typing.Tuple[ProbeInfoParsedResult, typing
+                    .Optional[probe_config_types.ComponentProbeStatement]]:
     """Walk through the given probe parameters.
 
     The method first validate each probe parameter.  Then if specified,
@@ -461,7 +462,8 @@ class ProbeToolManager:
     for probe_data_source in probe_data_sources:
       if probe_data_source.probe_info is None:
         try:
-          ps = json_utils.LoadStr(probe_data_source.probe_statement)
+          ps = probe_config_types.ComponentProbeStatement.FromDict(
+              json_utils.LoadStr(probe_data_source.probe_statement))
           pi_parsed_result = ProbeInfoParsedResult(
               result_type=ProbeInfoParsedResult.PASSED)
         except Exception as e:
@@ -493,7 +495,8 @@ class ProbeToolManager:
       metadata.probe_statement_metadatas.add(
           component_name=probe_data_source.component_name,
           fingerprint=probe_data_source.fingerprint)
-      pc_payload.AddComponentProbeStatement(probe_statements[i])
+      if probe_statements[i]:
+        pc_payload.AddComponentProbeStatement(probe_statements[i])
 
     metadata.probe_config_file_path = 'probe_config.json'
     builder.AddRegularFile(metadata.probe_config_file_path,

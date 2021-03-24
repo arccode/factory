@@ -96,6 +96,22 @@ class AVLNameMapping(ndb.Model):
   name = ndb.StringProperty()
 
 
+class PrimaryIdentifier(ndb.Model):  # pylint: disable=no-init
+  """Primary identifier for component groups.
+
+  Multiple components could have the same probe values after removing fields
+  which are not identifiable like `timing` in dram or `emmc5_fw_ver` in storage.
+  This table records those components and chooses one by status (in the order of
+  [QUALIFIEID, UNQUALIFIED, REJECT]) then lexicographically smallest name as the
+  primary identifier for both GetDutLabels and verification_payload_generator to
+  match components by HWID-decoded and probed values.
+  """
+  model = ndb.StringProperty(indexed=True)
+  category = ndb.StringProperty(indexed=True)
+  comp_name = ndb.StringProperty(indexed=True)
+  primary_comp_name = ndb.StringProperty()
+
+
 class Component(
     collections.namedtuple(
         'Component',
@@ -790,6 +806,38 @@ class HwidManager:
           category, comp_name)
       return comp_name
     return entry.name
+
+  def UpdatePrimaryIdentifiers(self, mapping_per_model):
+    """Update primary identifiers to datastore.
+
+    This method is for updating the mappings to datastore which will be looked
+    up in GetDutLabels API.  To provide consistency, it will clear existing
+    mappings per model first.
+
+    Args:
+      mapping_per_model: An instance of collections.defaultdict(dict) mapping
+          `model` to {(category, component name): target component name}
+          mappings.
+    """
+
+    with self._ndb_client.context(global_cache=self._global_cache):
+      for model, mapping in mapping_per_model.items():
+        q = PrimaryIdentifier.query(PrimaryIdentifier.model == model)
+        for entry in list(q):
+          entry.key.delete()
+        for (category, comp_name), primary_comp_name in mapping.items():
+          PrimaryIdentifier(model=model, category=category, comp_name=comp_name,
+                            primary_comp_name=primary_comp_name).put()
+
+  def GetPrimaryIdentifier(self, model, category, comp_name):
+    """Look up existing DUT label mappings from Datastore."""
+
+    with self._ndb_client.context(global_cache=self._global_cache):
+      q = PrimaryIdentifier.query(PrimaryIdentifier.model == model,
+                                  PrimaryIdentifier.category == category,
+                                  PrimaryIdentifier.comp_name == comp_name)
+      mapping = q.get()
+      return mapping.primary_comp_name if mapping else comp_name
 
 
 class _HwidData:
