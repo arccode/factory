@@ -243,6 +243,7 @@ class OutputBigQuery(plugin_base.OutputPlugin):
       job_id = '%s%d' % (_JOB_NAME_PREFIX, time.time() * 1e6)
       self.info('Uploading %d rows into BigQuery (%s) ...', row_count, job_id)
       try:
+        job = None
         with open(json_path, 'rb') as f:
           job_config = bigquery.LoadJobConfig()
           job_config.source_format = _JSON_MIMETYPE
@@ -261,7 +262,10 @@ class OutputBigQuery(plugin_base.OutputPlugin):
 
       except Exception:
         event_stream.Abort()
-        self.exception('Insert failed')
+        if job and hasattr(job, 'errors'):
+          self.exception('Insert failed with errors: %s', job.errors)
+        else:
+          self.exception('Insert failed')
         self.info('Abort %d events (%d rows)', event_count, row_count)
         return False
       else:
