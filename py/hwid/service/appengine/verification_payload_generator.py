@@ -73,8 +73,16 @@ def _GetAllGenericProbeStatementInfoRecords():
           'mmc_prv', 'mmc_serial', 'pci_vendor', 'pci_device', 'pci_class',
           'ata_vendor', 'ata_model'
       ]),
-      GenericProbeStatementInfoRecord('network', 'generic_network', [
-          'type', 'bus_type', 'pci_vendor_id', 'pci_device_id', 'pci_revision',
+      GenericProbeStatementInfoRecord('cellular', 'cellular_network', [
+          'bus_type', 'pci_vendor_id', 'pci_device_id', 'pci_revision',
+          'pci_subsystem', 'usb_vendor_id', 'usb_product_id', 'usb_bcd_device'
+      ]),
+      GenericProbeStatementInfoRecord('ethernet', 'ethernet_network', [
+          'bus_type', 'pci_vendor_id', 'pci_device_id', 'pci_revision',
+          'pci_subsystem', 'usb_vendor_id', 'usb_product_id', 'usb_bcd_device'
+      ]),
+      GenericProbeStatementInfoRecord('wireless', 'wireless_network', [
+          'bus_type', 'pci_vendor_id', 'pci_device_id', 'pci_revision',
           'pci_subsystem', 'usb_vendor_id', 'usb_product_id', 'usb_bcd_device'
       ]),
       GenericProbeStatementInfoRecord('dram', 'memory',
@@ -264,20 +272,20 @@ def GetAllProbeStatementGenerators():
                    GetHWIDHexStrToHexStrConverter(4, has_prefix=False),
                    is_optional=True),
   ]
-  all_probe_statement_generators['wireless'] = [
-      _ProbeStatementGenerator('network', 'wireless_network',
-                               network_pci_fields),
-      _ProbeStatementGenerator('network', 'wireless_network', usb_fields),
-  ]
   all_probe_statement_generators['cellular'] = [
-      _ProbeStatementGenerator('network', 'cellular_network',
+      _ProbeStatementGenerator('cellular', 'cellular_network',
                                network_pci_fields),
-      _ProbeStatementGenerator('network', 'cellular_network', usb_fields),
+      _ProbeStatementGenerator('cellular', 'cellular_network', usb_fields),
   ]
   all_probe_statement_generators['ethernet'] = [
-      _ProbeStatementGenerator('network', 'ethernet_network',
+      _ProbeStatementGenerator('ethernet', 'ethernet_network',
                                network_pci_fields),
-      _ProbeStatementGenerator('network', 'ethernet_network', usb_fields),
+      _ProbeStatementGenerator('ethernet', 'ethernet_network', usb_fields),
+  ]
+  all_probe_statement_generators['wireless'] = [
+      _ProbeStatementGenerator('wireless', 'wireless_network',
+                               network_pci_fields),
+      _ProbeStatementGenerator('wireless', 'wireless_network', usb_fields),
   ]
 
   dram_fields = [

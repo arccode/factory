@@ -155,7 +155,7 @@ class NetworkProbeStatementGeneratorTest(unittest.TestCase):
     self.assertEqual(
         ps,
         probe_config_types.ComponentProbeStatement(
-            'network', 'name1', {
+            'wireless', 'name1', {
                 'eval': {
                     'wireless_network': {}
                 },
@@ -175,7 +175,7 @@ class NetworkProbeStatementGeneratorTest(unittest.TestCase):
     self.assertEqual(
         ps,
         probe_config_types.ComponentProbeStatement(
-            'network', 'name1', {
+            'wireless', 'name1', {
                 'eval': {
                     'wireless_network': {}
                 },
@@ -195,7 +195,7 @@ class NetworkProbeStatementGeneratorTest(unittest.TestCase):
     self.assertEqual(
         ps,
         probe_config_types.ComponentProbeStatement(
-            'network', 'name1', {
+            'wireless', 'name1', {
                 'eval': {
                     'wireless_network': {}
                 },
