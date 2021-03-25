@@ -172,6 +172,12 @@ class DRMKeysProvisioningServer:
       if 'name_comment' not in gpg_gen_key_args_dict:
         gpg_gen_key_args_dict['name_comment'] = 'DRM Keys Provisioning Server'
       key_input_data = self.gpg.gen_key_input(**gpg_gen_key_args_dict)
+      if 'passphrase' in gpg_gen_key_args_dict:
+        raise RuntimeError('Passphrase for the server key is not supported.')
+      # TODO(treapking): Use no_protection keyword after we upgrade python-gnupg
+      # to 0.4.7, or support passphrase for the server key.
+      key_input_data = key_input_data.replace('%commit\n',
+                                              '%no-protection\n%commit\n')
       server_key_fingerprint = self.gpg.gen_key(key_input_data).fingerprint
 
     # Create and set up the schema of the database.
@@ -289,7 +295,7 @@ class DRMKeysProvisioningServer:
 
       if requester_key_file_path:
         requester_key_fingerprint, same_requester_key = self._ImportGPGKey(
-            uploader_key_file_path)
+            requester_key_file_path)
         sql_set_clause_list.append('requester_key_fingerprint = ?')
         sql_parameters.append(requester_key_fingerprint)
 
@@ -332,7 +338,7 @@ class DRMKeysProvisioningServer:
   def ListProjects(self):
     """Lists all projects."""
     self.db_cursor.execute('SELECT * FROM projects ORDER BY name ASC')
-    return self.db_cursor.fetchall()
+    return [dict(row) for row in self.db_cursor.fetchall()]
 
   def Upload(self, encrypted_serialized_drm_keys):
     """Uploads a list of DRM keys to the server. This is an atomic operation. It
@@ -346,7 +352,7 @@ class DRMKeysProvisioningServer:
       InvalidUploaderException if the signature of the uploader can not be
       verified.
     """
-    decrypted_obj = self.gpg.decrypt(encrypted_serialized_drm_keys)
+    decrypted_obj = self.gpg.decrypt(encrypted_serialized_drm_keys.data)
     project = self._FetchProjectByUploaderKeyFingerprint(
         decrypted_obj.fingerprint)
     serialized_drm_keys = decrypted_obj.data
@@ -406,7 +412,7 @@ class DRMKeysProvisioningServer:
       InvalidRequesterException if the signature of the requester can not be
       verified.
     """
-    verified = self.gpg.verify(requester_signature)
+    verified = self.gpg.verify(requester_signature.data)
     if not verified:
       raise InvalidRequesterException(
           'Invalid requester, check your signing key')
@@ -430,7 +436,7 @@ class DRMKeysProvisioningServer:
       InvalidRequesterException if the signature of the requester can not be
       verified. RuntimeError if no available keys left in the database.
     """
-    decrypted_obj = self.gpg.decrypt(encrypted_device_serial_number)
+    decrypted_obj = self.gpg.decrypt(encrypted_device_serial_number.data)
     project = self._FetchProjectByRequesterKeyFingerprint(
         decrypted_obj.fingerprint)
     device_serial_number = decrypted_obj.data
@@ -665,7 +671,7 @@ def _ParseArguments():
 
   parser_init = subparsers.add_parser('init', help='initializes the database')
   parser_init.add_argument(
-      '-g', '--gpg_gen_key_args', action='append', nargs=2, default={},
+      '-g', '--gpg_gen_key_args', action='append', nargs=2, default=[],
       help='arguments to use when generating GPG key for server')
   parser_init.add_argument(
       '-s', '--server_key_file_path', default=None,

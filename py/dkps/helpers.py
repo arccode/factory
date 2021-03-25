@@ -49,6 +49,7 @@ class BaseHelper:
                client_key_file_path, passphrase_file_path):
     # Create GnuPG object.
     self.temp_dir = tempfile.mkdtemp()  # should be removed in __del__
+    os.mkdir(os.path.join(self.temp_dir, 'gnupg'))
     self.gpg = gnupg.GPG(gnupghome=os.path.join(self.temp_dir, 'gnupg'))
 
     # Get server and client keys' fingerprints.
@@ -129,12 +130,12 @@ class RequesterHelper(BaseHelper):
 
     encrypted_drm_key = self.dkps.Request(encrypted_obj.data)
 
-    decrypted_obj = self.gpg.decrypt(encrypted_drm_key,
+    decrypted_obj = self.gpg.decrypt(encrypted_drm_key.data,
                                      passphrase=self.passphrase)
     if decrypted_obj.fingerprint != self.server_key_fingerprint:
       raise ValueError('Failed to verify the server signature')
 
-    return decrypted_obj.data
+    return decrypted_obj.data.decode('utf-8')
 
   def MockRequest(self, device_serial_number):
     """A mock Request() function for testing purpose.

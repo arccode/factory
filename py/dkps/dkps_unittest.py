@@ -47,6 +47,9 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
     self.server_gnupg_homedir = os.path.join(self.temp_dir, 'gnupg', 'server')
     uploader_gnupg_homedir = os.path.join(self.temp_dir, 'gnupg', 'uploader')
     requester_gnupg_homedir = os.path.join(self.temp_dir, 'gnupg', 'requester')
+    os.makedirs(self.server_gnupg_homedir)
+    os.makedirs(uploader_gnupg_homedir)
+    os.makedirs(requester_gnupg_homedir)
 
     self.dkps = dkps.DRMKeysProvisioningServer(self.database_file_path,
                                                self.server_gnupg_homedir)
@@ -92,8 +95,9 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
     self.uploader_private_key_file_path = os.path.join(self.temp_dir,
                                                        'uploader')
     with open(self.uploader_private_key_file_path, 'w') as f:
-      f.write(self.uploader_gpg.export_keys(
-          self.uploader_key_fingerprint, True))
+      f.write(
+          self.uploader_gpg.export_keys(self.uploader_key_fingerprint, True,
+                                        passphrase=self.passphrase))
 
     # Import requester key.
     with open(os.path.join(SCRIPT_DIR, 'testdata', 'requester.key')) as f:
@@ -107,8 +111,9 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
     self.requester_private_key_file_path = os.path.join(self.temp_dir,
                                                         'requester')
     with open(self.requester_private_key_file_path, 'w') as f:
-      f.write(self.requester_gpg.export_keys(
-          self.requester_key_fingerprint, True))
+      f.write(
+          self.requester_gpg.export_keys(self.requester_key_fingerprint, True,
+                                         passphrase=self.passphrase))
 
     self.server_process = None
     self.port = net_utils.FindUnusedTCPPort()
@@ -195,15 +200,14 @@ class DRMKeysProvisioningServerTest(unittest.TestCase):
 
   def _CallHelper(self, client_key_file_path, command, extra_args=None):
     extra_args = extra_args if extra_args else []
-    return subprocess.check_output(
-        ['python3', os.path.join(SCRIPT_DIR, 'helpers.py'),
-         '--server_ip', 'localhost',
-         '--server_port', str(self.port),
-         '--client_key_file_path', client_key_file_path,
-         '--server_key_file_path', self.server_key_file_path,
-         '--passphrase_file_path', self.passphrase_file_path,
-         command] + extra_args,
-        stderr=FNULL)
+    return subprocess.check_output([
+        'python3',
+        os.path.join(SCRIPT_DIR,
+                     'helpers.py'), '--server_ip', 'localhost', '--server_port',
+        str(self.port), '--client_key_file_path', client_key_file_path,
+        '--server_key_file_path', self.server_key_file_path,
+        '--passphrase_file_path', self.passphrase_file_path, command
+    ] + extra_args, stderr=FNULL, encoding='utf-8')
 
 
 if __name__ == '__main__':
