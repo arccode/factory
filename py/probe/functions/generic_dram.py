@@ -22,12 +22,9 @@ class GenericDRAMFunction(cached_probe_function.CachedProbeFunction):
     sys_utils.LoadKernelModule('i2c_dev', error_on_fail=False)
     part_data = process_utils.CheckOutput(
         'mosys -k memory spd print id', shell=True, log=True)
-    timing_data = process_utils.CheckOutput(
-        'mosys -k memory spd print timings', shell=True, log=True)
     size_data = process_utils.CheckOutput(
         'mosys -k memory spd print geometry', shell=True, log=True)
     parts = dict(re.findall('dimm="([^"]*)".*part_number="([^"]*)"', part_data))
-    timings = dict(re.findall('dimm="([^"]*)".*speeds="([^"]*)"', timing_data))
     sizes = dict(re.findall('dimm="([^"]*)".*size_mb="([^"]*)"', size_data))
 
     results = []
@@ -35,10 +32,9 @@ class GenericDRAMFunction(cached_probe_function.CachedProbeFunction):
       slot = dimm.strip()
       part = parts[dimm].strip()
       size = sizes[dimm].strip()
-      timing = timings[dimm].replace(' ', '')
       results.append({
           'slot': slot,
           'part': part,
-          'size': size,
-          'timing': timing})
+          'size': size
+      })
     return results
