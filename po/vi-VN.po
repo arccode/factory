@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-03-30 13:52+CST\n"
+"PO-Revision-Date: 2021-03-30 14:20+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -2726,6 +2726,7 @@ msgid "Trying to reach server..."
 msgstr "Cố gắng liên lạc với máy chủ của nhà máy"
 
 #: ../py/test/pytests/sync_factory_server.py
+#: ../py/test/pytests/thunderbolt_loopback.py
 msgid "Trying to check server protocol..."
 msgstr "Kiểm tra máy chủ của nhà máy ..."
 

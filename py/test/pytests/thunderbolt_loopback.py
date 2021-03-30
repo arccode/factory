@@ -12,11 +12,15 @@ Test Procedure
 1. Operator inserts the loopback card.
 2. The tool sends payloads to the loopback card.
 3. The tool receives payloads from the loopback card and checks correctness.
-4. Operator removes the loopback card.
+4. The tool collects lane margining data and uploads it to server.
+5. Operator removes the loopback card.
 
 Dependency
 ----------
 - Loopback card driver.
+- tdtl tool if we want to test lane margining.
+- Write serial number to device data before the test for data collecting.
+- The DUT must be able to connect factory server when running the test.
 
 Examples
 --------
@@ -26,22 +30,30 @@ The minimal working example::
     "pytest_name": "thunderbolt_loopback"
   }
 
-Test specific controller with 60 seconds timeout::
+Test specific controller and test lane margining with 60 seconds timeout::
 
   {
     "pytest_name": "thunderbolt_loopback"
     "args": {
       "timeout_secs": 60,
-      "controller_port": "0-1.*"
+      "controller_port": "0-1.*",
+      "lane_margining": true
     }
   }
 """
 
 import logging
+import os
 import re
+import subprocess
+import time
 
 from cros.factory.device import device_utils
+from cros.factory.test import device_data
+from cros.factory.test.env import paths
 from cros.factory.test.i18n import _
+from cros.factory.testlog import testlog
+from cros.factory.test import server_proxy
 from cros.factory.test import session
 from cros.factory.test import test_case
 from cros.factory.utils.arg_utils import Arg
@@ -51,6 +63,9 @@ from cros.factory.utils import type_utils
 
 _LOOPBACK_TEST_PATH = '/sys/kernel/debug/thunderbolt'
 _CONTROLLER_PORTS = ('0-1.*', '0-3.*', '1-1.*', '1-3.*')
+_RE_ADP = re.compile(r'^.*\d+-(\d+)\.\d+$')
+_RE_MARGIN_LOOPBACK = re.compile(
+    r'(RT\d+ L\d+ )(BOTTOM|LEFT),(TOP|RIGHT) = (\d+),(\d+)')
 _DMA_TEST = 'dma_test'
 _TEST_MODULE = 'thunderbolt_dma_test'
 LINK_WIDTH_TYPE = type_utils.Enum(['Single', 'Dual'])
@@ -65,10 +80,31 @@ ENCODE_LINK_SPEED = {
 }
 _RE_STATUS = re.compile(r'^result: (.+)\n(?:.|\n)*$')
 _CARD_STATE = type_utils.Enum(['Absent', 'Multiple', 'Wrong'])
+_TDTL_PATH = os.path.join(paths.FACTORY_DIR, 'tdtl-master')
 
 
 class ThunderboltLoopbackTest(test_case.TestCase):
   """Thunderbolt loopback card factory test."""
+  LOG_GROUP_NAME = 'usb4_lane_margining_log'
+  LOG_KEYS = [
+      'ADP',
+      'RT1 L0 BOTTOM',
+      'RT1 L0 TOP',
+      'RT1 L0 LEFT',
+      'RT1 L0 RIGHT',
+      'RT1 L1 BOTTOM',
+      'RT1 L1 TOP',
+      'RT1 L1 LEFT',
+      'RT1 L1 RIGHT',
+      'RT2 L0 BOTTOM',
+      'RT2 L0 TOP',
+      'RT2 L0 LEFT',
+      'RT2 L0 RIGHT',
+      'RT2 L1 BOTTOM',
+      'RT2 L1 TOP',
+      'RT2 L1 LEFT',
+      'RT2 L1 RIGHT',
+  ]
   ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.', default=None),
       Arg('expected_link_speed', LINK_SPEED_TYPE, 'Link speed.',
@@ -83,6 +119,9 @@ class ThunderboltLoopbackTest(test_case.TestCase):
       Arg('controller_port', str, 'The name of the controller port to test.',
           default=None),
       Arg('load_module', bool, 'Load test module.', default=True),
+      Arg('lane_margining', bool, 'Collet lane margining data.', default=False),
+      Arg('lane_margining_timeout_secs', (int, float),
+          'Timeout for colleting lane margining data.', default=10),
   ]
 
   def setUp(self):
@@ -90,6 +129,14 @@ class ThunderboltLoopbackTest(test_case.TestCase):
     self._dut = device_utils.CreateDUTInterface()
     self._remove_module = False
     self._card_state = None
+    self.server = None
+    self._group_checker = None
+    if self.args.lane_margining:
+      self.server = server_proxy.GetServerProxy(timeout=5)
+      # Group checker and details for Testlog.
+      self._group_checker = testlog.GroupParam(self.LOG_GROUP_NAME,
+                                               self.LOG_KEYS)
+      testlog.UpdateParam('ADP', param_type=testlog.PARAM_TYPE.argument)
 
   def tearDown(self):
     if self._remove_module:
@@ -151,7 +198,62 @@ class ThunderboltLoopbackTest(test_case.TestCase):
     logging.info('echo %s > %s', content, filename)
     self._dut.WriteFile(filename, content)
 
+  def _TestLaneMargining(self, device_path, log_result):
+    match = _RE_ADP.match(device_path)
+    if not match:
+      raise Exception('device_path is not in expected format.')
+    ADP = match.group(1)
+    session.console.info('The ADP is at %r.', ADP)
+    log_result.update({'ADP': int(ADP)})
+    # self._dut.CheckOutput do not support env and timeout
+    # process_utils.Spawn do not support timeout
+    result = subprocess.run(['cli.py', 'margin_loopback', '-a', ADP], env={
+        'ADP': ADP,
+        'LC_ALL': 'en_US.utf-8'
+    }, cwd=_TDTL_PATH, timeout=self.args.lane_margining_timeout_secs,
+                            encoding='utf-8', stdout=subprocess.PIPE,
+                            check=True)
+    # The output of `cli.py margin_loopback` looks like below.
+    #
+    # RT1 L0 BOTTOM,TOP = 56,54
+    # RT2 L0 BOTTOM,TOP = 56,62
+    # RT1 L0 LEFT,RIGHT = 20,17
+    # RT2 L0 LEFT,RIGHT = 22,24
+    # RT1 L1 BOTTOM,TOP = 62,70
+    # RT2 L1 BOTTOM,TOP = 60,68
+    # RT1 L1 LEFT,RIGHT = 21,22
+    # RT2 L1 LEFT,RIGHT = 17,16
+    for line in result.stdout.splitlines():
+      match = _RE_MARGIN_LOOPBACK.match(line)
+      if not match:
+        continue
+      for index in range(2, 4):
+        log_result.update(
+            {match.group(1) + match.group(index): int(match.group(index + 2))})
+
+  def _UploadLaneMargining(self, log_result):
+    timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
+    csv_entries = [device_data.GetSerialNumber(), timestamp]
+    csv_entries.extend(log_result[key] for key in self.LOG_KEYS)
+    self.server.UploadCSVEntry(self.LOG_GROUP_NAME, csv_entries)
+    with self._group_checker:
+      for key, value in log_result.items():
+        testlog.LogParam(key, value)
+
   def runTest(self):
+    if self.args.lane_margining:
+      self.ui.SetState(_('Trying to check server protocol...'))
+      try:
+        self.server.Ping()
+      except server_proxy.Fault:
+        messages = 'Server fault %s' % server_proxy.GetServerURL()
+        logging.exception(messages)
+        self.FailTask(messages)
+      except Exception:
+        messages = 'Unable to sync with server %s' % server_proxy.GetServerURL()
+        logging.exception(messages)
+        self.FailTask(messages)
+
     if self.args.load_module:
       # Fail the test if the module doesn't exist.
       self._dut.CheckCall(['modinfo', _TEST_MODULE])
@@ -161,7 +263,10 @@ class ThunderboltLoopbackTest(test_case.TestCase):
       self._remove_module = not loaded
 
     if self.args.timeout_secs:
-      self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
+      stop_dma_test_timer = self.ui.StartFailingCountdownTimer(
+          self.args.timeout_secs)
+    else:
+      stop_dma_test_timer = None
     # Wait for the loopback card.
     self.ui.SetState(_('Insert the loopback card.'))
     device_path = sync_utils.WaitFor(self._FindLoopbackPath,
@@ -184,6 +289,8 @@ class ThunderboltLoopbackTest(test_case.TestCase):
         str(self.args.packets_to_receive))
     # Run the test.
     self._LogAndWriteFile(self._dut.path.join(device_test_path, 'test'), '1')
+    if stop_dma_test_timer:
+      stop_dma_test_timer.set()
     # Check the result.
     status_path = self._dut.path.join(device_test_path, 'status')
     logging.info('cat %s', status_path)
@@ -192,10 +299,35 @@ class ThunderboltLoopbackTest(test_case.TestCase):
     match = _RE_STATUS.match(output)
     if not match:
       self.FailTask('Output format of status is changed.')
+    errors = []
     result = match.group(1)
     if result == 'success':
-      self.PassTask()
+      pass
     elif result in ('fail', 'failed', 'not run'):
-      self.FailTask(result)
+      errors.append('result: %s' % result)
     else:
-      self.FailTask('Unknown result: %r' % result)
+      errors.append('Unknown result: %r' % result)
+    if self.args.lane_margining:
+      # Log 0 when failed.
+      # Log -1 when timeout.
+      log_result = dict.fromkeys(self.LOG_KEYS, None)
+      try:
+        stop_lane_margining_timer = self.ui.StartCountdownTimer(
+            self.args.lane_margining_timeout_secs)
+        self._TestLaneMargining(device_path, log_result)
+        stop_lane_margining_timer.set()
+      except subprocess.TimeoutExpired:
+        logging.exception('_TestLaneMargining timeout')
+        errors.append('_TestLaneMargining timeout')
+        for key, value in log_result.items():
+          if value is None:
+            log_result[key] = -1
+      except Exception:
+        logging.exception('_TestLaneMargining failed')
+        errors.append('_TestLaneMargining failed')
+        for key, value in log_result.items():
+          if value is None:
+            log_result[key] = 0
+      self._UploadLaneMargining(log_result)
+    if errors:
+      self.FailTask('\n'.join(errors))
