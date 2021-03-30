@@ -54,9 +54,14 @@ _CONTROLLER_PORTS = ('0-1.*', '0-3.*', '1-1.*', '1-3.*')
 _DMA_TEST = 'dma_test'
 _TEST_MODULE = 'thunderbolt_dma_test'
 LINK_WIDTH_TYPE = type_utils.Enum(['Single', 'Dual'])
+LINK_SPEED_TYPE = type_utils.Enum(['Slow', 'Fast'])
 ENCODE_LINK_WIDTH = {
     LINK_WIDTH_TYPE.Single: '1',
     LINK_WIDTH_TYPE.Dual: '2'
+}
+ENCODE_LINK_SPEED = {
+    LINK_SPEED_TYPE.Slow: '10',
+    LINK_SPEED_TYPE.Fast: '20'
 }
 _RE_STATUS = re.compile(r'^result: (.+)\n(?:.|\n)*$')
 _CARD_STATE = type_utils.Enum(['Absent', 'Multiple', 'Wrong'])
@@ -66,7 +71,8 @@ class ThunderboltLoopbackTest(test_case.TestCase):
   """Thunderbolt loopback card factory test."""
   ARGS = [
       Arg('timeout_secs', int, 'Timeout value for the test.', default=None),
-      Arg('expected_link_speed', int, 'Link speed.', default=20),
+      Arg('expected_link_speed', LINK_SPEED_TYPE, 'Link speed.',
+          default=LINK_SPEED_TYPE.Fast),
       Arg('expected_link_width', LINK_WIDTH_TYPE, 'Link width.',
           default=LINK_WIDTH_TYPE.Dual),
       Arg('packets_to_send', int, 'Amount of packets to be sent.',
@@ -164,7 +170,7 @@ class ThunderboltLoopbackTest(test_case.TestCase):
     # Configure the test
     self._LogAndWriteFile(
         self._dut.path.join(device_test_path, 'speed'),
-        str(self.args.expected_link_speed))
+        ENCODE_LINK_SPEED[self.args.expected_link_speed])
     self._LogAndWriteFile(
         self._dut.path.join(device_test_path, 'lanes'),
         ENCODE_LINK_WIDTH[self.args.expected_link_width])
