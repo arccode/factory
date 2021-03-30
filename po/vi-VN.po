@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-02-05 17:18+CST\n"
+"PO-Revision-Date: 2021-03-30 13:52+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -493,6 +493,10 @@ msgstr "Cảm biến nhiệt độ"
 #: ../build/pytests_label_generated.json
 msgid "Thermal Slope"
 msgstr "Tốc độ tăng và giảm nhiệt độ"
+
+#: ../build/pytests_label_generated.json
+msgid "Thunderbolt Loopback"
+msgstr ""
 
 #: ../build/pytests_label_generated.json
 msgid "Touch Device FW Update"
@@ -1207,6 +1211,7 @@ msgstr ""
 "đang được kiểm tra."
 
 #: ../py/test/pytests/accelerometers.py
+#: ../py/test/pytests/thunderbolt_loopback.py
 msgid "Test is in progress, please do not move the device."
 msgstr ""
 "Không di chuyển đối tượng đang được kiểm tra trong khi đang thực hiện quy "
@@ -2824,6 +2829,18 @@ msgid ""
 msgstr ""
 "Lắp máy tính bảng sao cho nó vuông góc với màn hình nền và bắt đầu xoay để "
 "căn chỉnh hình ảnh."
+
+#: ../py/test/pytests/thunderbolt_loopback.py
+msgid "Do not insert more than one loopback card."
+msgstr ""
+
+#: ../py/test/pytests/thunderbolt_loopback.py
+msgid "The loopback card is inserted into the wrong port."
+msgstr ""
+
+#: ../py/test/pytests/thunderbolt_loopback.py
+msgid "Insert the loopback card."
+msgstr ""
 
 #: ../py/test/pytests/touch_uniformity.py
 msgid "PASS"

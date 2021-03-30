@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-02-05 17:18+CST\n"
+"PO-Revision-Date: 2021-03-30 13:52+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -493,6 +493,10 @@ msgstr "温度感应器"
 #: ../build/pytests_label_generated.json
 msgid "Thermal Slope"
 msgstr "温度升降速率"
+
+#: ../build/pytests_label_generated.json
+msgid "Thunderbolt Loopback"
+msgstr "TBT 回送卡"
 
 #: ../build/pytests_label_generated.json
 msgid "Touch Device FW Update"
@@ -1198,6 +1202,7 @@ msgid ""
 msgstr "测试程序即将于 {secs} 秒后开始，请勿移动待测物。"
 
 #: ../py/test/pytests/accelerometers.py
+#: ../py/test/pytests/thunderbolt_loopback.py
 msgid "Test is in progress, please do not move the device."
 msgstr "测试程序进行中，请勿移动待测物。"
 
@@ -2764,6 +2769,18 @@ msgid ""
 "Rotate the tablet to correctly align the picture, holding it at an upright "
 "90-degree angle."
 msgstr "竖立平板电脑使其垂直于桌面，并开始旋转到对齐图片。"
+
+#: ../py/test/pytests/thunderbolt_loopback.py
+msgid "Do not insert more than one loopback card."
+msgstr "请勿插入超过一个回送卡。"
+
+#: ../py/test/pytests/thunderbolt_loopback.py
+msgid "The loopback card is inserted into the wrong port."
+msgstr "回送卡插入到错误的端口。"
+
+#: ../py/test/pytests/thunderbolt_loopback.py
+msgid "Insert the loopback card."
+msgstr "插入回送卡以进行读写测试。"
 
 #: ../py/test/pytests/touch_uniformity.py
 msgid "PASS"

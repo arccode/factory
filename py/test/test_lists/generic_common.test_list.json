@@ -37,6 +37,7 @@
       "left": {
         "usb2_sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/usb1/?-?",
         "usb3_sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/usb2/?-?",
+        "tbt_controller_port": "0-1.*",
         "usbpd_id": -1,
         "display_info": [
           "DisplayPort",
@@ -46,6 +47,7 @@
       "right": {
         "usb2_sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/usb1/?-?",
         "usb3_sysfs_path": "/sys/devices/pci0000:00/0000:00:xx.y/usb2/?-?",
+        "tbt_controller_port": "0-3.*",
         "usbpd_id": -1,
         "display_info": [
           "DisplayPort",
@@ -746,6 +748,9 @@
         "report_stage": "eval! locals.station"
       }
     },
+    "TBTLoopback": {
+      "pytest_name": "thunderbolt_loopback"
+    },
     "TPMVerifyEK": {
       "pytest_name": "tpm_verify_ek"
     },
@@ -941,6 +946,13 @@
           "label": "USB2 Performance",
           "args": {
             "sysfs_path": "eval! locals.usb.usb2_sysfs_path"
+          }
+        },
+        {
+          "inherit": "TBTLoopback",
+          "run_if": "locals.usb.tbt_controller_port != ''",
+          "args": {
+            "controller_port": "eval! locals.usb.tbt_controller_port"
           }
         },
         "USBTypeCManualChargeItems",
