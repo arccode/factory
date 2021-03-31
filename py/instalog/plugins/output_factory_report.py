@@ -23,6 +23,7 @@ import re
 import shutil
 import tarfile
 import time
+import traceback
 import zipfile
 
 import yaml
@@ -33,6 +34,7 @@ from cros.factory.instalog.utils.arg_utils import Arg
 from cros.factory.instalog.utils import file_utils
 from cros.factory.instalog.utils import gcs_utils
 from cros.factory.instalog.utils import time_utils
+from cros.factory.instalog.utils import type_utils
 
 
 _PROCESSES_NUMBER = 20
@@ -109,7 +111,7 @@ class OutputFactoryReport(plugin_base.OutputPlugin):
     gcs_path = event.get('objectId', None)
 
     if not gcs_path:
-      SetProcessEventStatus(100, archive_process_event, self.logger.name,
+      SetProcessEventStatus(ERROR_CODE.EventNoObjectId, archive_process_event,
                             event.Serialize())
       self.EmitAndCommit([archive_process_event], event_stream)
       return True
@@ -167,11 +169,13 @@ class OutputFactoryReport(plugin_base.OutputPlugin):
           total_reports += 1
       else:
         # We only support tar file and zip file.
-        SetProcessEventStatus(200, archive_process_event, self.logger.name)
+        SetProcessEventStatus(ERROR_CODE.ArchiveInvalidFormat,
+                              archive_process_event)
         self.EmitAndCommit(report_events, event_stream)
         return True
     except Exception as e:
-      SetProcessEventStatus(299, archive_process_event, self.logger.name, e)
+      SetProcessEventStatus(ERROR_CODE.ArchiveUnknownError,
+                            archive_process_event, e)
       self.exception('Exception encountered when decompressing archive file')
       self.EmitAndCommit(report_events, event_stream)
       return True
@@ -223,7 +227,7 @@ class OutputFactoryReport(plugin_base.OutputPlugin):
         try:
           report_event, process_event = async_result.get()
         except Exception as e:
-          SetProcessEventStatus(399, process_event, self.logger.name, e)
+          SetProcessEventStatus(ERROR_CODE.ReportUnknownError, process_event, e)
           self.exception('Exception encountered when processing factory report')
         if report_event:
           report_events.append(report_event)
@@ -231,7 +235,7 @@ class OutputFactoryReport(plugin_base.OutputPlugin):
         process_event['duration'] = (
             process_event['endTime'] - process_event['startTime'])
         report_events.append(process_event)
-        if succeed % 100 == 0:
+        if succeed % 1000 == 0:
           self.info('Parsed %d/%d reports', succeed, total_reports)
 
       self.info('Parsed %d/%d reports', succeed, total_reports)
@@ -250,7 +254,7 @@ def DecompressAndParse(report_path, report_event, process_event, tmp_dir,
   """Decompress factory report and parse it."""
   with file_utils.TempDirectory(dir=tmp_dir) as report_dir:
     if not tarfile.is_tarfile(report_path):
-      SetProcessEventStatus(300, process_event, logger_name)
+      SetProcessEventStatus(ERROR_CODE.ReportInvalidFormat, process_event)
       process_event['endTime'] = time.time()
       return None, process_event
     report_tar = tarfile.open(report_path, 'r:xz')
@@ -267,14 +271,14 @@ def DecompressAndParse(report_path, report_event, process_event, tmp_dir,
       if eventlog_report_event:
         report_event = eventlog_report_event
     else:
-      SetProcessEventStatus(400, process_event, logger_name)
+      SetProcessEventStatus(ERROR_CODE.EventlogFileNotFound, process_event)
     if os.path.exists(testlog_path):
       testlog_report_event, process_event = ParseTestlogEvents(
           testlog_path, copy.deepcopy(report_event), process_event, logger_name)
       if testlog_report_event:
         report_event = testlog_report_event
     else:
-      SetProcessEventStatus(500, process_event, logger_name)
+      SetProcessEventStatus(ERROR_CODE.TestlogFileNotFound, process_event)
     process_event['endTime'] = time.time()
     return report_event, process_event
 
@@ -284,10 +288,11 @@ def ParseEventlogEvents(path, report_event, process_event, logger_name):
   logger = logging.getLogger(logger_name)
 
   try:
+    # TODO(chuntsen): Parse eventlog events one by one.
     for event in yaml.safe_load_all(open(path, 'r')):
       if event:
         if not isinstance(event, dict):
-          # TODO(chuntsen): Add a process event.
+          SetProcessEventStatus(ERROR_CODE.EventlogBrokenEvent, process_event)
           continue
 
         def GetField(field, dct, key, is_string=True):
@@ -295,13 +300,13 @@ def ParseEventlogEvents(path, report_event, process_event, logger_name):
             if not is_string or isinstance(dct[key], str):
               report_event[field] = dct[key]
             else:
-              SetProcessEventStatus(401, process_event, logger_name)
+              SetProcessEventStatus(ERROR_CODE.EventlogWrongType, process_event)
               report_event[field] = str(dct[key])
 
         serial_numbers = event.get('serial_numbers', {})
         for sn_key, sn_value in serial_numbers.items():
           if not isinstance(sn_value, str):
-            SetProcessEventStatus(401, process_event, logger_name)
+            SetProcessEventStatus(ERROR_CODE.EventlogWrongType, process_event)
             sn_value = str(sn_value)
           report_event['serialNumbers'][sn_key] = sn_value
 
@@ -366,7 +371,7 @@ def ParseEventlogEvents(path, report_event, process_event, logger_name):
               list(testlist_station_set))
     return report_event, process_event
   except Exception as e:
-    SetProcessEventStatus(499, process_event, logger_name, e)
+    SetProcessEventStatus(ERROR_CODE.EventlogUnknownError, process_event, e)
     logger.exception('Failed to parse eventlog events')
     return None, process_event
 
@@ -378,16 +383,15 @@ def ParseTestlogEvents(path, report_event, process_event, logger_name):
   try:
     with open(path, 'r') as f:
       for line in f:
-        # Remove null characters because of file sync issue.
-        # See http://b/163472674 .
         if '\0' in line:
-          SetProcessEventStatus(501, process_event, logger_name)
+          SetProcessEventStatus(ERROR_CODE.TestlogNullCharactersExist,
+                                process_event)
         event = datatypes.Event.Deserialize(line.strip('\0'))
 
         if 'serialNumbers' in event:
           for sn_key, sn_value in event['serialNumbers'].items():
             if not isinstance(sn_value, str):
-              SetProcessEventStatus(502, process_event, logger_name)
+              SetProcessEventStatus(ERROR_CODE.TestlogWrongType, process_event)
               sn_value = str(sn_value)
             report_event['serialNumbers'][sn_key] = sn_value
         if 'time' in event:
@@ -403,15 +407,50 @@ def ParseTestlogEvents(path, report_event, process_event, logger_name):
             report_event['phase'] = data[0]['textValue']
     return report_event, process_event
   except Exception as e:
-    SetProcessEventStatus(599, process_event, logger_name, e)
+    SetProcessEventStatus(ERROR_CODE.TestlogUnknownError, process_event, e)
     logger.exception('Failed to parse testlog events')
     return None, process_event
 
 
-# pylint: disable=unused-argument
-def SetProcessEventStatus(code, process_event, logger_name, message=None):
-  """Set status and message to process_event."""
-  # TODO(chuntsen): Finish this error code system.
+ERROR_CODE = type_utils.Obj(
+    EventNoObjectId=100,
+    ArchiveInvalidFormat=200,
+    ArchiveUnknownError=299,
+    ReportInvalidFormat=300,
+    ReportUnknownError=399,
+    EventlogFileNotFound=400,
+    EventlogWrongType=401,
+    EventlogBrokenEvent=402,
+    EventlogUnknownError=499,
+    TestlogFileNotFound=500,
+    TestlogNullCharactersExist=501,
+    TestlogWrongType=502,
+    TestlogUnknownError=599,
+)
+
+
+def SetProcessEventStatus(code, process_event, message=None):
+  """Set status and message to process_event.
+
+  See ERROR_CODE and http://b/184819627 (Googlers only) for details.
+  Error Code type:
+    1xx Event Error:
+    2xx Archive Error:
+    3xx Report Error:
+    4xx Eventlog Error:
+    5xx Testlog Error:
+    6xx Other Error:
+  """
+  if code not in process_event['status']:
+    process_event['status'].append(code)
+  if isinstance(message, str):
+    process_event['message'].append(message)
+  elif isinstance(message, bytes):
+    process_event['message'].append(message.decode('utf-8'))
+  elif message:
+    process_event['message'].append(str(message))
+    if isinstance(message, Exception):
+      process_event['message'].append(traceback.format_exc())
 
 
 if __name__ == '__main__':
