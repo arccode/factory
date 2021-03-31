@@ -314,6 +314,7 @@ toolkit: $(WEBGL_AQUARIUM_DIR) resource par
 	$(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/bin/factory_env \
 	  $(TOOLKIT_TEMP_DIR)$(TARGET_DIR)/py/toolkit/installer.py \
 	    --pack-into $(TOOLKIT_OUTPUT_DIR)/$(TOOLKIT_FILENAME) \
+	    $(if $(QUIET),--quiet) \
 	    --version "$(BOARD) Factory Toolkit $(TOOLKIT_VERSION)"
 
 # Creates build/doc and build/doc.zip, containing the factory SDK docs.

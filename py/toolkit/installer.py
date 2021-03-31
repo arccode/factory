@@ -329,7 +329,7 @@ def PrintBuildInfo(src_root):
   print(file_utils.ReadFile(info_file))
 
 
-def PackFactoryToolkit(src_root, output_path, initial_version):
+def PackFactoryToolkit(src_root, output_path, initial_version, quiet=False):
   """Packs the files containing this script into a factory toolkit."""
   if initial_version is None:
     complete_version = '%s  repacked by %s@%s at %s\n' % (
@@ -358,13 +358,13 @@ def PackFactoryToolkit(src_root, output_path, initial_version):
            # executable.
            'env', 'PYTHONPATH=' + PYTHONPATH,
            'python3', '-m', INSTALLER_MODULE, '--in-exe']
-    Spawn(cmd, check_call=True, log=True)
+    Spawn(cmd, check_call=True, log=True, read_stdout=quiet, read_stderr=quiet)
   with file_utils.TempDirectory() as tmp_dir:
     version_path = os.path.join(tmp_dir, VERSION_PATH)
     os.makedirs(os.path.dirname(version_path))
     file_utils.WriteFile(version_path, complete_version)
     Spawn([cmd[0], '--lsm', version_path, '--append', tmp_dir, output_path],
-          check_call=True, log=True)
+          check_call=True, log=True, read_stdout=quiet, read_stderr=quiet)
   print('\n'
         '  Factory toolkit generated at %s.\n'
         '\n'
@@ -455,6 +455,8 @@ def main():
   parser.add_argument('--active-test-list', dest='active_test_list',
                       default=None,
                       help='Set the id of active test list for Goofy.')
+  parser.add_argument('--quiet', action='store_true',
+                      help='Do not output makeself.sh log when success.')
 
   args = parser.parse_args()
 
@@ -469,7 +471,7 @@ def main():
   # --pack-into may be called directly so this must be done before changing
   # working directory to OLDPWD.
   if args.pack_into and args.repack is None:
-    PackFactoryToolkit(src_root, args.pack_into, args.version)
+    PackFactoryToolkit(src_root, args.pack_into, args.version, args.quiet)
     return
 
   if not in_archive:
@@ -488,8 +490,10 @@ def main():
       parser.error('Must specify --pack-into when using --repack.')
     env = dict(os.environ,
                PYTHONPATH=os.path.join(args.repack, PYTHONPATH))
-    Spawn(['python3', '-m', INSTALLER_MODULE, '--pack-into', args.pack_into],
-          check_call=True, log=True, env=env)
+    cmd = ['python3', '-m', INSTALLER_MODULE, '--pack-into', args.pack_into]
+    if args.quiet:
+      cmd.append('--quiet')
+    Spawn(cmd, check_call=True, log=True, env=env)
     return
 
   if args.build_info:
