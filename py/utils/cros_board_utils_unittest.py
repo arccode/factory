@@ -36,7 +36,7 @@ class BuildBoardTest(unittest.TestCase):
 
   def testBoardArch(self):
     self.assertEqual('arm', BuildBoard('beaglebone').arch)
-    self.assertEqual('arm', BuildBoard('nyan').arch)
+    self.assertEqual('arm', BuildBoard('kukui').arch)
     self.assertEqual('arm', BuildBoard('mickey').arch)
     self.assertEqual('amd64', BuildBoard('rambi').arch)
     self.assertEqual('amd64', BuildBoard('hatch').arch)
