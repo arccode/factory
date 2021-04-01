@@ -89,6 +89,7 @@ into test list::
 import ast
 import os
 import re
+import time
 
 from cros.factory.test.l10n import regions
 from cros.factory.test import session
@@ -132,35 +133,44 @@ class KeyboardTest(test_case.TestCase):
   - strict_sequential_press: the test failed immediately if a key is skipped.
   """
   ARGS = [
-      Arg('allow_multi_keys', bool, 'Allow multiple keys pressed '
+      Arg(
+          'allow_multi_keys', bool, 'Allow multiple keys pressed '
           'simultaneously. (Less strictly checking '
           'with shorter cycle time)', default=False),
-      Arg('layout', str,
-          'Use specified layout other than derived from VPD. '
-          'If None, the layout from the VPD is used.',
-          default=None),
+      Arg(
+          'multi_keys_delay', (int, float), 'When ``allow_multi_keys`` is '
+          '``False``, do not fail the test if the delay between the '
+          'consecutivepresses is more than ``multi_keys_delay`` seconds.',
+          default=0),
+      Arg(
+          'layout', str, 'Use specified layout other than derived from VPD. '
+          'If None, the layout from the VPD is used.', default=None),
       Arg('timeout_secs', int, 'Timeout for the test.', default=30),
-      Arg('sequential_press', bool, 'Indicate whether keycodes need to be '
+      Arg(
+          'sequential_press', bool, 'Indicate whether keycodes need to be '
           'pressed sequentially or not.', default=False),
-      Arg('strict_sequential_press', bool, 'Indicate whether keycodes need to '
-          'be pressed strictly sequentially or not.',
-          default=False),
+      Arg(
+          'strict_sequential_press', bool, 'Indicate whether keycodes need to '
+          'be pressed strictly sequentially or not.', default=False),
       Arg('board', str,
           'If presents, in filename, the board name is appended after layout.',
           default=''),
-      Arg('device_filter', (int, str),
+      Arg(
+          'device_filter', (int, str),
           'If present, the input event ID or a substring of the input device '
-          'name specifying which keyboard to test.',
-          default=None),
+          'name specifying which keyboard to test.', default=None),
       Arg('skip_power_key', bool, 'Skip power button testing', default=False),
       Arg('skip_keycodes', list, 'Keycodes to skip', default=[]),
-      Arg('replacement_keymap', dict, 'Dictionary mapping key codes to '
+      Arg(
+          'replacement_keymap', dict, 'Dictionary mapping key codes to '
           'replacement keycodes. The keycodes must be a string of an integer'
           'since json does not support format like 0x10.', default={},
           schema=_REPLACEMENT_KEYMAP_SCHEMA),
-      Arg('detect_long_press', bool, 'Detect long press event. Usually for '
+      Arg(
+          'detect_long_press', bool, 'Detect long press event. Usually for '
           'detecting bluetooth keyboard disconnection.', default=False),
-      Arg('repeat_times', dict, 'A dict object {key_code: times} to specify '
+      Arg(
+          'repeat_times', dict, 'A dict object {key_code: times} to specify '
           'number of presses required for keys specified in key code, e.g. '
           '``{"28": 3, "57": 5}``, then ENTER (28) shall be pressed 3 times '
           'while SPACE (57) shall be pressed 5 times. If you want all keys to '
@@ -176,6 +186,11 @@ class KeyboardTest(test_case.TestCase):
     self.assertTrue(not (self.args.allow_multi_keys and
                          self.args.strict_sequential_press),
                     'Strict sequential press requires one key at a time.')
+    self.assertTrue(self.args.multi_keys_delay >= 0,
+                    'multi_keys_delay should be a positive number.')
+    if self.args.allow_multi_keys and self.args.multi_keys_delay > 0:
+      session.console.warning('multi_keys_delay is not effective when '
+                              'allow_multi_keys is set to True.')
 
     # Get the keyboard input device.
     try:
@@ -226,6 +241,7 @@ class KeyboardTest(test_case.TestCase):
 
     self.down_keys = set()
     self.ignored_down_keys = set()
+    self.last_press_time = 0
 
     self.number_to_press = {}
     repeat_times = self.args.repeat_times or {}
@@ -301,23 +317,32 @@ class KeyboardTest(test_case.TestCase):
     if keycode not in self.all_keys:
       return
 
-    if not self.args.allow_multi_keys and self.down_keys:
+    if (not self.args.allow_multi_keys and self.down_keys and
+        time.time() - self.last_press_time < self.args.multi_keys_delay):
       self.FailTask(
           'Got key down event on keycode %d but there are other key pressed: %d'
           % (keycode, next(iter(self.down_keys))))
 
-    self.down_keys.add(keycode)
+    if keycode in self.down_keys:
+      self.FailTask('Got 2 key down events on keycode %d but didn\'t get key up'
+                    'event.')
+
+    self.last_press_time = time.time()
 
     if self.key_order_list and keycode in self.key_order_list:
-      first_untested_key = next(key for key in self.key_order_list
-                                if self.number_to_press[key] > 0)
+      first_untested_key = next(
+          key for key in self.key_order_list
+          if self.number_to_press[key] > 0 and key not in self.down_keys)
       if keycode != first_untested_key:
         if self.args.strict_sequential_press:
           self.FailTask('Expect keycode %d but get %d' % (first_untested_key,
                                                           keycode))
         else:
+          self.down_keys.add(keycode)
           self.ignored_down_keys.add(keycode)
           return
+
+    self.down_keys.add(keycode)
 
     if self.number_to_press[keycode] > 0:
       self.MarkKeyState(keycode, 'down')
