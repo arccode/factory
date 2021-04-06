@@ -61,6 +61,8 @@ local_deployment_define_flags() {
 }
 
 local_deployment_prepare() {
+  load_config "staging"  # Leverage the staging config for GCP_PROJECT ID.
+
   if [ "${FLAGS_clean}" == "${FLAGS_TRUE}" ]; then
     if [[ -f "${LOCAL_DEPLOYMENT_VENV_PYTHON_PATH}" ]]; then
       info "Drop the existing venv."

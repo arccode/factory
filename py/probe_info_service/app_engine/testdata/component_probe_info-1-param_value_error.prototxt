@@ -5,23 +5,11 @@ component_identity: {
 probe_info: {
   probe_function_name: "storage.mmc_storage"
   probe_parameters: {
-    name: "manfid"
+    name: "mmc_manfid"
     string_value: "0?"  # '?' is not a valid character for a hex string.
   }
   probe_parameters: {
-    name: "oemid"
-    string_value: "1234"
-  }
-  probe_parameters: {
-    name: "name"
+    name: "mmc_name"
     string_value: "This is an unexpected long string."
-  }
-  probe_parameters: {
-    name: "prv"
-    string_value: "01"
-  }
-  probe_parameters: {
-    name: "sectors"
-    int_value: 123
   }
 }

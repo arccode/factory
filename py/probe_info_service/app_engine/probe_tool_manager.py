@@ -244,18 +244,18 @@ def _GetAllProbeFuncs() -> typing.List[ProbeFunc]:
   return [
       ProbeFunc(
           'battery', 'generic_battery', {
-              'manufacturer': _ParamValueConverter('string',
-                                                   _StringToRegexpOrString),
-              'model_name': _ParamValueConverter('string',
-                                                 _StringToRegexpOrString),
+              'manufacturer':
+                  _ParamValueConverter('string', _StringToRegexpOrString),
+              'model_name':
+                  _ParamValueConverter('string', _StringToRegexpOrString),
           }),
-      ProbeFunc(
-          'storage', 'mmc_storage',
-          {n: None for n in ['manfid', 'oemid', 'name', 'prv', 'sectors']}),
-      ProbeFunc(
-          'storage', 'nvme_storage',
-          {n: None
-           for n in ['pci_vendor', 'pci_device', 'pci_class', 'sectors']}),
+      ProbeFunc('storage', 'mmc_storage',
+                {n: None
+                 for n in ['mmc_manfid', 'mmc_name']}),
+      ProbeFunc('storage', 'nvme_storage', {
+          n: None
+          for n in ['pci_vendor', 'pci_device', 'pci_class', 'sectors']
+      }),
   ]
 
 

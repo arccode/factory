@@ -55,7 +55,7 @@ class ProbeToolManagerTest(unittest.TestCase):
   def test_ValidateProbeInfo_ProbeParameterBadType(self):
     probe_info, unused_comp_name = _LoadProbeInfoAndCompName('1-valid')
     for probe_param in probe_info.probe_parameters:
-      if probe_param.name == 'manfid':
+      if probe_param.name == 'mmc_manfid':
         probe_param.string_value = ''
         probe_param.int_value = 123
 
@@ -65,7 +65,7 @@ class ProbeToolManagerTest(unittest.TestCase):
   def test_ValidateProbeInfo_DuplicatedParam(self):
     # Duplicated probe parameters is a kind of compatible error for now.
     probe_info, unused_comp_name = _LoadProbeInfoAndCompName('1-valid')
-    probe_info.probe_parameters.add(name='manfid', string_value='03')
+    probe_info.probe_parameters.add(name='mmc_manfid', string_value='03')
 
     resp = self._probe_tool_manager.ValidateProbeInfo(probe_info, True)
     self.assertEqual(resp.result_type, resp.INCOMPATIBLE_ERROR)
@@ -75,7 +75,7 @@ class ProbeToolManagerTest(unittest.TestCase):
     # `allow_missing_parameters` is `True`.
     probe_info, unused_comp_name = _LoadProbeInfoAndCompName('1-valid')
     for probe_param in probe_info.probe_parameters:
-      if probe_param.name == 'manfid':
+      if probe_param.name == 'mmc_manfid':
         probe_info.probe_parameters.remove(probe_param)
         break
 
@@ -148,7 +148,7 @@ class ProbeToolManagerTest(unittest.TestCase):
   def test_GenerateProbeBundlePayload_IncompatibleError(self):
     probe_info, comp_name = _LoadProbeInfoAndCompName('1-valid')
     for probe_param in probe_info.probe_parameters:
-      if probe_param.name == 'manfid':
+      if probe_param.name == 'mmc_manfid':
         probe_info.probe_parameters.remove(probe_param)
         break
     resp = self._probe_tool_manager.GenerateProbeBundlePayload([

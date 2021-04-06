@@ -4,6 +4,6 @@ probe_parameter_errors: {
   hint: "format error, should be hex number between 00 and FF with leading zero perserved."
 }
 probe_parameter_errors {
-  index: 2
+  index: 1
   hint: "format error, expect a 6-byte ASCII string"
 }

@@ -1,4 +1,4 @@
-# corresponding fingerprint: 97b346e92ad636dad26f9a1dee5e94f88c01917f
+# corresponding fingerprint: 1d288df55b83826b7a146ff80ffff9691828c60f
 component_identity: {
   qual_id: 1
   readable_label: "PART_NO_1234"
@@ -6,23 +6,11 @@ component_identity: {
 probe_info: {
   probe_function_name: "storage.mmc_storage"
   probe_parameters: {
-    name: "manfid"
+    name: "mmc_manfid"
     string_value: "0A"
   }
   probe_parameters: {
-    name: "oemid"
-    string_value: "1234"
-  }
-  probe_parameters: {
-    name: "name"
+    name: "mmc_name"
     string_value: "ABCxyz"
-  }
-  probe_parameters: {
-    name: "prv"
-    string_value: "01"
-  }
-  probe_parameters: {
-    name: "sectors"
-    int_value: 123
   }
 }
