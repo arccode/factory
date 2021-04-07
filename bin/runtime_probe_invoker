@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Copyright 2021 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+main() {
+  local script_path="$(realpath "${BASH_SOURCE[0]}")"
+  local factory_bin="$(dirname "${script_path}")"
+  local runtime_probe_candidates=(
+    "${factory_bin}/custom_runtime_probe"
+    "${factory_bin}/factory_runtime_probe/factory_runtime_probe"
+    "/usr/bin/runtime_probe"
+  )
+  local runtime_probe_path
+  for runtime_probe_path in "${runtime_probe_candidates[@]}"; do
+    if [[ -x "${runtime_probe_path}" ]]; then
+      exec "${runtime_probe_path}" "$@"
+    fi
+  done
+  echo "No runtime_probe executable available." >&2
+  return 1
+}
+
+main "$@"
