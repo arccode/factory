@@ -147,17 +147,19 @@ class ThunderboltLoopbackTest(test_case.TestCase):
 
     return devices[0]
 
-  def _CheckModule(self, module_name):
-    return self._dut.Call(['modinfo', module_name], log=True)
-
   def _LogAndWriteFile(self, filename, content):
     logging.info('echo %s > %s', content, filename)
     self._dut.WriteFile(filename, content)
 
   def runTest(self):
-    if self.args.load_module and not self._CheckModule(_TEST_MODULE):
-      self._dut.CheckCall(['modprobe', _TEST_MODULE], log=True)
-      self._remove_module = True
+    if self.args.load_module:
+      # Fail the test if the module doesn't exist.
+      self._dut.CheckCall(['modinfo', _TEST_MODULE])
+      # If the module is loaded before the test then do not remove it.
+      loaded = self._dut.Call(['modprobe', '--first-time', _TEST_MODULE],
+                              log=True)
+      self._remove_module = not loaded
+
     if self.args.timeout_secs:
       self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
     # Wait for the loopback card.
