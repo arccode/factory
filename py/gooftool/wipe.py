@@ -306,23 +306,7 @@ def _StopAllUpstartJobs(exclude_list=None):
       process_utils.Spawn(stop_cmd, log=True, log_stderr_on_error=True)
 
 
-def _UnmountStatefulPartition(root, state_dev, test_umount):
-  logging.debug('Unmount stateful partition.')
-
-  # Expected stateful partition mount point.
-  state_dir = os.path.join(root, STATEFUL_PARTITION_PATH.strip(os.path.sep))
-
-  # If not in testing mode, touch a mark file so we can check if the stateful
-  # partition is wiped successfully.
-  if not test_umount:
-    file_utils.WriteFile(os.path.join(state_dir, WIPE_MARK_FILE), '')
-
-  # Backup extension cache (crx_cache) if available (will be restored after
-  # wiping by clobber-state).
-  crx_cache_path = os.path.join(state_dir, CRX_CACHE_PAYLOAD_NAME)
-  if os.path.exists(crx_cache_path):
-    shutil.copyfile(crx_cache_path, CRX_CACHE_TAR_PATH)
-
+def _CollectMountPointsToUmount(state_dev):
   # Find mount points on stateful partition.
   mount_output = process_utils.SpawnOutput(['mount'], log=True)
 
@@ -342,6 +326,28 @@ def _UnmountStatefulPartition(root, state_dev, test_umount):
 
   logging.debug('stateful partitions mounted on: %s', mount_point_list)
   logging.debug('namespace mounted on: %s', namespace_list)
+
+  return mount_point_list, namespace_list
+
+
+def _UnmountStatefulPartition(root, state_dev, test_umount):
+  logging.debug('Unmount stateful partition.')
+
+  # Expected stateful partition mount point.
+  state_dir = os.path.join(root, STATEFUL_PARTITION_PATH.strip(os.path.sep))
+
+  # If not in testing mode, touch a mark file so we can check if the stateful
+  # partition is wiped successfully.
+  if not test_umount:
+    file_utils.WriteFile(os.path.join(state_dir, WIPE_MARK_FILE), '')
+
+  # Backup extension cache (crx_cache) if available (will be restored after
+  # wiping by clobber-state).
+  crx_cache_path = os.path.join(state_dir, CRX_CACHE_PAYLOAD_NAME)
+  if os.path.exists(crx_cache_path):
+    shutil.copyfile(crx_cache_path, CRX_CACHE_TAR_PATH)
+
+  mount_point_list, namespace_list = _CollectMountPointsToUmount(state_dev)
 
   def _ListProcOpening(path_list):
     lsof_cmd = ['lsof', '-t'] + path_list
@@ -401,8 +407,18 @@ def _UnmountStatefulPartition(root, state_dev, test_umount):
     if critical:
       raise WipeError('Unmounting %s is critical. Stop.' % mount_point)
 
-  if os.path.exists(os.path.join(root, 'dev', 'mapper', 'encstateful')):
+  def _UnmountAll(critical):
+    # Remove all mounted namespace to release stateful partition.
+    for ns_mount_point in namespace_list:
+      _Unmount(ns_mount_point, critical)
 
+    # Doing what 'mount-encrypted umount' should do.
+    for mount_point in mount_point_list:
+      _Unmount(mount_point, critical)
+    _Unmount(os.path.join(root, 'var'), critical)
+
+  if os.path.exists(os.path.join(root, 'dev', 'mapper', 'encstateful')):
+    _UnmountAll(critical=False)
     # minijail will make encstateful busy, but usually we can't just kill them.
     # Need to list the processes and solve each-by-each.
     proc_list = _ListMinijail()
@@ -410,22 +426,20 @@ def _UnmountStatefulPartition(root, state_dev, test_umount):
         "processes still using minijail: %s" %
         process_utils.SpawnOutput(['pgrep', '-al', 'minijail']))
 
-    # Remove all mounted namespace to release stateful partition.
-    for ns_mount_point in namespace_list:
-      _Unmount(ns_mount_point, True)
-
-    # Doing what 'mount-encrypted umount' should do.
-    for mount_point in mount_point_list:
-      _Unmount(mount_point, False)
-    _Unmount(os.path.join(root, 'var'), True)
     process_utils.Spawn(['dmsetup', 'remove', 'encstateful',
                          '--noudevrules', '--noudevsync'], check_call=True)
     process_utils.Spawn(['losetup', '-D'], check_call=True)
 
-  # Try to unmount all known mount points.
-  for mount_point in mount_point_list:
-    _Unmount(mount_point, True)
+  _UnmountAll(critical=True)
   process_utils.Spawn(['sync'], call=True)
+
+  mount_point_list, namespace_list = _CollectMountPointsToUmount(state_dev)
+
+  if mount_point_list or namespace_list:
+    error_message = ('Mount points are not cleared. '
+                     f'mount_point_list: {mount_point_list} '
+                     f'namespace_list: {namespace_list}')
+    raise WipeError(error_message)
 
   # Check if the stateful partition is unmounted successfully.
   if _IsStateDevMounted(state_dev):
