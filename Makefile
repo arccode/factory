@@ -129,8 +129,8 @@ PRESUBMIT_TARGETS := \
 .PHONY: \
   .phony default clean closure proto overlord ovl-bin par doc resource toolkit \
   bundle presubmit presubmit-chroot $(PRESUBMIT_TARGETS) \
-  lint smartlint smart_lint test testall overlay check-regions-database \
-  publish-docs po test-list-check ebuild-test
+  lint smartlint smart_lint test testall overlay publish-docs po \
+  test-list-check ebuild-test
 
 # This must be the first rule.
 default: closure
@@ -182,17 +182,14 @@ ovl-bin:
 	  pip install jsonrpclib ws4py pyinstaller pyyaml; \
 	  pyinstaller --onefile $(CURDIR)/py/tools/ovl.py
 
-# Checks if a package is properly installed.
+# Checks if a package is properly installed. Append the package to
+# $(TEMP_DIR)/reinstall if we need to reinstall it.
 # Usage: $(call func-check-package,PACKAGE,TEST_RULE)
 func-check-package = @\
   if ! $(2); then \
-    $(MK_DIR)/die.sh "Need to run 'emerge-$(BOARD) $(1)' for rule '$(2)'." ; \
+    echo "Need to run 'emerge-$(BOARD) $(1)' for rule '$(2)'."; \
+    echo -n " $(1)" >> $(TEMP_DIR)/reinstall; \
   fi ${\n}
-
-check-regions-database: .phony
-	@$(info Checking region database...)
-	$(call func-check-package,chromeos-regions, \
-	  [ -e "$(CROS_REGIONS_DATABASE)" ] )
 
 # Checks if all resources (from ebuild packages) are ready.
 # The function check by comparing ebuild and package file timestamp, but 'git
@@ -228,9 +225,17 @@ $(if $(wildcard $(CURRENT_PACKAGE_FILES_DIR)), \
 endef
 
 # Prepare files from source folder into resource folder.
-resource: closure po check-regions-database
+resource: closure po
+	@rm -f $(TEMP_DIR)/reinstall
+	@$(info Checking region database...)
+	@$(call func-check-package,chromeos-regions, \
+	  [ -e "$(CROS_REGIONS_DATABASE)" ] )
 	@$(call func-add-package,BASEBOARD)
 	@$(call func-add-package,BOARD)
+	@if [ -e "$(TEMP_DIR)/reinstall" ] ; then \
+	  $(MK_DIR)/die.sh \
+	    "Need to run 'emerge-$(BOARD) `cat $(TEMP_DIR)/reinstall`'." ; \
+	fi
 	@$(info EXTRA_RESOURCE_ARGS: $(EXTRA_RESOURCE_ARGS))
 	@$(info Create resource $(if $(BOARD),for [$(BOARD)],without board).)
 	mkdir -p $(RESOURCE_DIR)
