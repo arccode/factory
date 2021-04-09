@@ -361,6 +361,9 @@ def VerifyVPD(options):
 
   Check if mandatory fields are set, and deprecated fields don't exist.
   """
+  ro_vpd = vpd.VPDTool().GetAllData(partition=vpd.VPD_READONLY_PARTITION_NAME)
+  rw_vpd = vpd.VPDTool().GetAllData(partition=vpd.VPD_READWRITE_PARTITION_NAME)
+  event_log.Log('vpd', ro=FilterDict(ro_vpd), rw=FilterDict(rw_vpd))
   return GetGooftool(options).VerifyVPD()
 
 
@@ -961,7 +964,6 @@ def VerifyHWID(options):
                                    infile=options.hwid_vpd_data_file)
 
   event_log.Log('probed_results', probed_results=FilterDict(probed_results))
-  event_log.Log('vpd', vpd=FilterDict(vpd_data))
 
   hwid_utils.VerifyHWID(database, encoded_string, probed_results,
                         device_info, vpd_data, options.rma_mode)
