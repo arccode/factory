@@ -14,8 +14,8 @@ The netboot imaging flow contains the following steps:
 
 1. Enter netboot mode with netboot or dev firmware.
 2. Download `vmlinuz` kernel from TFTP server in netboot mode.
-3. Download images (with [cros_payload](cros_payload)) from the factory server
-    in `vmlinuz` kernel.
+3. Download images (with [cros_payload](../sh/cros_payload.sh)) from the factory
+   server in `vmlinuz` kernel.
 
 Therefore, you need to setup the following components to do a netboot imaging:
 
