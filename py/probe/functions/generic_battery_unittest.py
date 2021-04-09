@@ -36,7 +36,7 @@ class GenericBatteryFunctionTest(unittest.TestCase):
             'manufacturer': '123-ABC',
             'model_name': 'XYZ-123',
             'technology': 'LION',
-            'charge_full_design': 6150000
+            'charge_full_design': '6150000'
         })
 
   @mock.patch('cros.factory.utils.process_utils.CheckOutput')
@@ -64,7 +64,7 @@ class GenericBatteryFunctionTest(unittest.TestCase):
             'manufacturer': '123-ABCD-EF',
             'model_name': 'XYZ-12345',
             'technology': 'LION',
-            'charge_full_design': 6150000
+            'charge_full_design': '6150000'
         })
 
   @mock.patch('cros.factory.utils.process_utils.CheckOutput',

@@ -29,10 +29,14 @@ class GenericBatteryFunction(probe_function.ProbeFunction):
     match = re.match(ECTOOL_BATTERY_INFO_RE, output)
     if match:
       return {
-          'manufacturer': match.group('manufacturer'),
-          'model_name': match.group('model_name'),
-          'technology': match.group('technology'),
-          'charge_full_design': int(match.group('charge_full_design')) * 1000
+          'manufacturer':
+              match.group('manufacturer'),
+          'model_name':
+              match.group('model_name'),
+          'technology':
+              match.group('technology'),
+          'charge_full_design':
+              str(int(match.group('charge_full_design')) * 1000)
       }
 
     return None
