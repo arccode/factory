@@ -145,7 +145,7 @@ message ComponentsResponse {
   Status status = 3;
 }
 
-message AvlEntry {
+message NameChangedComponent {
   enum SupportStatus {
     SUPPORT_STATUS_UNSPECIFIED = 0;
     SUPPORTED = 1;
@@ -159,10 +159,12 @@ message AvlEntry {
   int64 qid = 2;
   SupportStatus supportStatus = 3;
   string componentName = 4;
+  // True if this component name has AVL information.
+  bool hasCidQid = 5;
 }
 
-message AvlEntries {
-  repeated AvlEntry entries = 1;
+message NameChangedComponents {
+  repeated NameChangedComponent entries = 1;
 }
 
 // The response to a 'validate config' request.
@@ -179,7 +181,8 @@ message ValidateConfigAndUpdateChecksumResponse {
   // If an error occurred, this describes the error.
   string errorMessage = 2;
   Status status = 3;
-  map<string, AvlEntries> newComponentsPerCategory = 4;
+  // Name-changed components per category.
+  map<string, NameChangedComponents> nameChangedComponentsPerCategory = 4;
   // model name.
   string model = 5;
 }

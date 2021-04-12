@@ -48,7 +48,7 @@ components:
         values:
           cores: '5'
           model: 'def'
-      display_panel_invalid2:  # Don't fail for unchanged invalid component names
+      display_panel_still_invalid2:
         values:
           cores: '4'
           model: 'def'

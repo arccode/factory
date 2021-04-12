@@ -15,6 +15,7 @@ from cros.factory.hwid.service.appengine import hwid_validator
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.hwid.v3 import validator as v3_validator
+from cros.factory.hwid.v3 import verify_db_pattern
 from cros.factory.utils import file_utils
 
 TESTDATA_PATH = os.path.join(
@@ -32,8 +33,6 @@ SARIEN_DATA_GOOD = file_utils.ReadFile(
     os.path.join(TESTDATA_PATH, 'sarien-example.yaml'))
 GOLDEN_HWIDV3_DATA_AFTER_DRAM_BAD = file_utils.ReadFile(
     os.path.join(TESTDATA_PATH, 'v3-golden-after-dram-bad.yaml'))
-GOLDEN_HWIDV3_DATA_AFTER_INVALID_NAME_PATTERN = file_utils.ReadFile(
-    os.path.join(TESTDATA_PATH, 'v3-golden-after-comp-bad.yaml'))
 GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN = file_utils.ReadFile(
     os.path.join(TESTDATA_PATH, 'v3-golden-after-comp-good.yaml'))
 GOLDEN_HWIDV3_DATA_AFTER_INVALID_NAME_PATTERN_WITH_NOTE = file_utils.ReadFile(
@@ -53,7 +52,17 @@ class HwidValidatorTest(unittest.TestCase):
     model, ret = hwid_validator.HwidValidator().ValidateChange(
         GOLDEN_HWIDV3_DATA_AFTER_GOOD, GOLDEN_HWIDV3_DATA_BEFORE)
     self.assertEqual(model, GOLDEN_MODEL_NAME)
-    self.assertFalse(ret)
+    self.assertEqual(
+        {
+            'dram': [
+                verify_db_pattern.NameChangedComponentInfo(
+                    comp_name='dram_type_4g_0', cid=0, qid=0,
+                    status='supported', has_cid_qid=False),
+                verify_db_pattern.NameChangedComponentInfo(
+                    comp_name='dram_allow_no_size_info_in_name', cid=0, qid=0,
+                    status='supported', has_cid_qid=False)
+            ]
+        }, ret)
 
   def testValidateChange_withInvalidChange(self):
     with self.assertRaises(v3_validator.ValidationError):
@@ -83,7 +92,17 @@ class HwidValidatorTest(unittest.TestCase):
       model, ret = hwid_validator.HwidValidator().ValidateChange(
           GOLDEN_HWIDV3_DATA_AFTER_GOOD, GOLDEN_HWIDV3_DATA_BEFORE)
       self.assertEqual(model, GOLDEN_MODEL_NAME)
-      self.assertFalse(ret)
+      self.assertEqual(
+          ret, {
+              'dram': [
+                  verify_db_pattern.NameChangedComponentInfo(
+                      comp_name='dram_type_4g_0', cid=0, qid=0,
+                      status='supported', has_cid_qid=False),
+                  verify_db_pattern.NameChangedComponentInfo(
+                      comp_name='dram_allow_no_size_info_in_name', cid=0, qid=0,
+                      status='supported', has_cid_qid=False)
+              ]
+          })
 
   def testValidateDramChange(self):
     with self.assertRaises(v3_validator.ValidationError) as error:
@@ -93,34 +112,19 @@ class HwidValidatorTest(unittest.TestCase):
         str(error.exception),
         "'dram_type_not_mention_size' does not contain size property")
 
-  @mock.patch(('cros.factory.hwid.v3.name_pattern_adapter'
-               '.GetSupportedCategories'), return_value=set(['cpu']))
-  def testValidateComponentNameInvalid(self, unused_func):
-    del unused_func
-    with self.assertRaises(v3_validator.ValidationError):
-      hwid_validator.HwidValidator().ValidateChange(
-          GOLDEN_HWIDV3_DATA_AFTER_INVALID_NAME_PATTERN,
-          GOLDEN_HWIDV3_DATA_BEFORE)
-
-  @mock.patch(('cros.factory.hwid.v3.name_pattern_adapter'
-               '.GetSupportedCategories'), return_value=set(['cpu']))
-  def testValidateComponentNameValid(self, unused_func):
-    del unused_func
+  def testValidateComponentNameValid(self):
     model, ret = hwid_validator.HwidValidator().ValidateChange(
         GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN, GOLDEN_HWIDV3_DATA_BEFORE)
     self.assertEqual(model, GOLDEN_MODEL_NAME)
     self.assertEqual(
         {
             'cpu': [('cpu_1234_5678', 1234, 5678,
-                     common.COMPONENT_STATUS.supported),
+                     common.COMPONENT_STATUS.supported, True),
                     ('cpu_12345678', 12345678, 0,
-                     common.COMPONENT_STATUS.unqualified)]
+                     common.COMPONENT_STATUS.unqualified, True)]
         }, ret)
 
-  @mock.patch(('cros.factory.hwid.v3.name_pattern_adapter'
-               '.GetSupportedCategories'), return_value=set(['cpu']))
-  def testValidateComponentNameInvalidWithNote(self, unused_func):
-    del unused_func
+  def testValidateComponentNameInvalidWithNote(self):
     with self.assertRaises(v3_validator.ValidationError) as ex:
       hwid_validator.HwidValidator().ValidateChange(
           GOLDEN_HWIDV3_DATA_AFTER_INVALID_NAME_PATTERN_WITH_NOTE,
@@ -132,18 +136,17 @@ class HwidValidatorTest(unittest.TestCase):
          '- cpu_2_3#4 -> cpu_2_3#3\n'
          '- cpu_2_3#non-a-number -> cpu_2_3#4'))
 
-  @mock.patch(('cros.factory.hwid.v3.name_pattern_adapter'
-               '.GetSupportedCategories'), return_value=set(['cpu']))
-  def testValidateComponentNameValidWithNote(self, unused_func):
-    del unused_func
+  def testValidateComponentNameValidWithNote(self):
     model, ret = hwid_validator.HwidValidator().ValidateChange(
         GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN_WITH_NOTE,
         GOLDEN_HWIDV3_DATA_BEFORE)
     self.assertEqual(model, GOLDEN_MODEL_NAME)
     self.assertEqual(
         {
-            'cpu': [('cpu_2_3#3', 2, 3, common.COMPONENT_STATUS.supported),
-                    ('cpu_3_4#5', 3, 4, common.COMPONENT_STATUS.unsupported)]
+            'cpu': [
+                ('cpu_2_3#3', 2, 3, common.COMPONENT_STATUS.supported, True),
+                ('cpu_3_4#5', 3, 4, common.COMPONENT_STATUS.unsupported, True)
+            ]
         }, ret)
 
   @classmethod

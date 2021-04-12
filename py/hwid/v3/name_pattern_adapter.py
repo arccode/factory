@@ -5,15 +5,6 @@
 import re
 
 
-_SUPPORTED_CATEGORIES = set([
-    'wireless',
-])
-
-
-def GetSupportedCategories():
-  return _SUPPORTED_CATEGORIES
-
-
 class NamePattern:
   def __init__(self, regex):
     self.pattern = re.compile(regex)
@@ -28,7 +19,5 @@ class NamePattern:
 class NamePatternAdapter:
 
   def GetNamePattern(self, comp_cls):
-    if comp_cls not in GetSupportedCategories():
-      return None
     return NamePattern(r'{comp_cls}_(\d+)(?:_(\d+))?(?:#.*)?$'.format(
         comp_cls=re.escape(comp_cls)))

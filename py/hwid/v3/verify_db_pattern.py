@@ -35,12 +35,13 @@ from cros.factory.utils import process_utils
 from cros.factory.utils.schema import SchemaException
 
 
-class ComponentAvlInfo(typing.NamedTuple):
-  """A data structure to collect the new/updated component info"""
+class NameChangedComponentInfo(typing.NamedTuple):
+  """A data structure to collect the component info of added/updated names."""
   comp_name: str
   cid: int
   qid: int
   status: str
+  has_cid_qid: bool
 
 
 def _TestDatabase(targs):
@@ -234,7 +235,7 @@ class HWIDDBsPatternTest(unittest.TestCase):
       old_db: db before the change.
       new_db: db after the change.
     Returns:
-      dict of created/updated component information if available.
+      dict of created/updated component information.
     """
 
     if old_db is None:
@@ -252,7 +253,7 @@ class HWIDDBsPatternTest(unittest.TestCase):
       new_db: db after the change.
     Returns:
       dict of created/updated component information {category:
-      [ComponentAvlInfo, ...]} if available.
+      [NameChangedComponentInfo, ...]} if available.
     """
 
     def FindModifiedComponentsWithIdx(old_db, db, comp_cls):
@@ -271,20 +272,24 @@ class HWIDDBsPatternTest(unittest.TestCase):
     bucket = collections.defaultdict(list)
     for comp_cls in db.GetActiveComponentClasses():
       name_pattern = adapter.GetNamePattern(comp_cls)
-      if name_pattern:
-        modified_names = FindModifiedComponentsWithIdx(old_db, db, comp_cls)
-        for tag, (idx, comp) in modified_names.items():
-          ret = name_pattern.Matches(tag)
-          if not ret:
-            raise common.HWIDException(
-                '%r does not match %s pattern' % (tag, comp_cls))
-          sp = tag.split('#', 1)
+      modified_names = FindModifiedComponentsWithIdx(old_db, db, comp_cls)
+      for tag, (idx, comp) in modified_names.items():
+        name, sep, unused_seq = tag.partition('#')
+        if sep:
+          expected_component_name = f'{name}#{idx}'
+          if tag != expected_component_name:
+            rename_component[tag] = expected_component_name
+
+        ret = name_pattern.Matches(tag)
+        if ret:
           cid, qid = ret
-          bucket[comp_cls].append(ComponentAvlInfo(tag, cid, qid, comp.status))
-          if len(sp) == 2:
-            expected_component_name = '%s#%d' % (sp[0], idx)
-            if tag != expected_component_name:
-              rename_component[tag] = expected_component_name
+          has_cid_qid = True
+        else:
+          cid = qid = 0
+          has_cid_qid = False
+
+        bucket[comp_cls].append(
+            NameChangedComponentInfo(tag, cid, qid, comp.status, has_cid_qid))
 
     if rename_component:
       raise common.HWIDException(

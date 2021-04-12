@@ -330,18 +330,23 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
         status=hwid_api_messages_pb2.Status.SUCCESS,
         newHwidConfigContents=updated_contents, model=model)
 
-    status_desc = hwid_api_messages_pb2.AvlEntry.SupportStatus.DESCRIPTOR
+    status_desc = (
+        hwid_api_messages_pb2.NameChangedComponent.SupportStatus.DESCRIPTOR)
     for comp_cls, comps in new_components.items():
-      entries = resp.newComponentsPerCategory.get_or_create(comp_cls).entries
-      for avl_info in comps:
-        status_val = status_desc.values_by_name.get(avl_info.status.upper())
+      name_changed_ents = resp.nameChangedComponentsPerCategory.get_or_create(
+          comp_cls).entries
+      for name_changed_info in comps:
+        status_val = status_desc.values_by_name.get(
+            name_changed_info.status.upper())
         if status_val is None:
           return hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
               status=hwid_api_messages_pb2.Status.BAD_REQUEST,
-              errorMessage='Unknown status: \'%s\'' % avl_info.status)
-        entries.add(cid=avl_info.cid, qid=avl_info.qid,
-                    supportStatus=status_val.number,
-                    componentName=avl_info.comp_name)
+              errorMessage='Unknown status: \'%s\'' % name_changed_info.status)
+        name_changed_ents.add(cid=name_changed_info.cid,
+                              qid=name_changed_info.qid,
+                              supportStatus=status_val.number,
+                              componentName=name_changed_info.comp_name,
+                              hasCidQid=name_changed_info.has_cid_qid)
     return resp
 
   @protorpc_utils.ProtoRPCServiceMethod

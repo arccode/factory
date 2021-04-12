@@ -6,7 +6,6 @@
 
 import os.path
 import unittest
-from unittest import mock
 
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import validator
@@ -42,29 +41,17 @@ class ValidatorTest(unittest.TestCase):
         str(error.exception), ("'dram_type_256mb_and_real_is_512mb' does not "
                                "contain size property"))
 
-  @mock.patch(('cros.factory.hwid.v3.name_pattern_adapter'
-               '.GetSupportedCategories'), return_value=set(['display_panel']))
-  def testGoodCompNameChange(self, unused_func):
+  def testGoodCompNameChange(self):
     prev_db = Database.LoadFile(DB_COMP_BEFORE_PATH, verify_checksum=False)
     db = Database.LoadFile(DB_COMP_AFTER_GOOD_PATH, verify_checksum=False)
     ret = validator.ValidateChange(prev_db, db)
     self.assertEqual(
         {
-            'display_panel': [
-                ('display_panel_9_10', 9, 10, common.COMPONENT_STATUS.supported)
-            ]
+            'display_panel': [('display_panel_9_10', 9, 10,
+                               common.COMPONENT_STATUS.supported, True),
+                              ('display_panel_still_invalid2', 0, 0,
+                               common.COMPONENT_STATUS.supported, False)]
         }, ret)
-
-  @mock.patch(('cros.factory.hwid.v3.name_pattern_adapter'
-               '.GetSupportedCategories'), return_value=set(['display_panel']))
-  def testBadCompNameChange(self, unused_func):
-    prev_db = Database.LoadFile(DB_COMP_BEFORE_PATH, verify_checksum=False)
-    db = Database.LoadFile(DB_COMP_AFTER_BAD_PATH, verify_checksum=False)
-    with self.assertRaises(validator.ValidationError) as error:
-      validator.ValidateChange(prev_db, db)
-    self.assertEqual(
-        str(error.exception),
-        "'display_panel_z' does not match display_panel pattern")
 
 
 if __name__ == '__main__':

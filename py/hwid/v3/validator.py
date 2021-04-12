@@ -29,7 +29,7 @@ def ValidateChange(prev_db, db):
   """Verify that the change is valid.
 
   Returns:
-    changed/added component information (ciq, qid, status) if available.
+    changed/added component information (ciq, qid, status).
   """
   try:
     return verify_db_pattern.HWIDDBsPatternTest.ValidateChange(prev_db, db)
