@@ -138,6 +138,8 @@ class FactoryBundleService(protorpc_utils.ProtoRPCServiceBase):
       if 'end_time' in snapshot:
         user_request.end_time_sec = datetime.datetime.timestamp(
             snapshot.get('end_time'))
+      if 'error_message' in snapshot:
+        user_request.error_message = snapshot.get('error_message')
       response.user_requests.append(user_request)
 
     return response

@@ -102,6 +102,7 @@ message GetUserRequestsRpcResponse {
     optional double request_time_sec = 10;
     optional double start_time_sec = 11;
     optional double end_time_sec = 12;
+    optional string error_message = 13;
   }
 
   repeated UserRequest user_requests = 1;
