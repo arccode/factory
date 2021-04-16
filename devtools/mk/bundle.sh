@@ -74,9 +74,10 @@ main() {
   # Use lddtree if possible.
   if type lddtree >/dev/null 2>&1; then
     lddtree --root="${bin_root}" \
-      --bindir=/ --libdir=/libx64 --elf-subdir=libx64 \
-      --generate-wrappers --copy-to-tree="${bundle_dir}/setup" \
+      --bindir=/ --libdir=/ \
+      --generate-wrappers --copy-to-tree="${bundle_dir}/setup/libx64" \
       /usr/bin/cgpt /usr/bin/futility
+    ln -s -t "${bundle_dir}/setup" "libx64/cgpt" "libx64/futility"
   else
     cp -f "${bin_root}"/usr/bin/cgpt "${bin_root}"/usr/bin/futility \
       "${bundle_dir}/setup"
