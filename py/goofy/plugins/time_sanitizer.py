@@ -75,9 +75,20 @@ class TimeSanitizer(plugin.Plugin):
             break
 
       if not post_shutdown:
+        break
+
+      if self._stop_event.wait(self._sync_period_secs):
+        return
+
+    with self._lock:
+      # self._time_synced may be true if SyncTimeWithFactoryServer is called by
+      # RPC function call.
+      if not self._time_synced:
         self._time_sanitizer.RunOnce()
-        if net_utils.ExistPluggedEthernet():
-          self.SyncTimeWithFactoryServer()
+
+    while True:
+      if net_utils.ExistPluggedEthernet():
+        self.SyncTimeWithFactoryServer()
 
       if self._time_synced or self._stop_event.wait(self._sync_period_secs):
         return

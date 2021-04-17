@@ -489,8 +489,10 @@ class SyncFactoryServer(test_case.TestCase):
     for label, task in tasks:
       while True:
         try:
+          logging.info('Running task: %s.', label['en-US'])
           self.ui.SetState(_('Running task: {label}', label=label))
           task()
+          logging.info('Server task finished: %s.', label['en-US'])
           self.ui.SetState([
               '<span style="color: green">',
               _('Server Task Finished: {label}', label=label), '</span>'
@@ -504,6 +506,7 @@ class SyncFactoryServer(test_case.TestCase):
           message = debug_utils.FormatExceptionOnly()
           logger.Log(message, 'Unable to sync with server: %s')
 
+        logging.info('Waiting for retrying task: %s.', label['en-US'])
         msg = lambda time_left, label_: _(
             'Task <b>{label}</b> failed, retry in {time_left} seconds...',
             time_left=time_left,
