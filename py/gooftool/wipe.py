@@ -197,8 +197,16 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
         new_root,
         file_dir_list=[
             # Basic rootfs.
-            '/bin', '/etc', '/lib', '/lib64', '/root', '/sbin',
-            '/usr/sbin', '/usr/bin',
+            '/bin',
+            '/etc',
+            '/lib',
+            '/lib64',
+            '/root',
+            '/sbin',
+            '/usr/sbin',
+            '/usr/bin',
+            '/usr/lib',
+            '/usr/lib64',
             # Factory related scripts.
             factory_par,
             '/usr/local/factory/sh',
@@ -214,8 +222,10 @@ def WipeInTmpFs(is_fast=None, shopfloor_url=None, station_ip=None,
             '/root/.ssh',
             '/usr/share/chromeos-ssh-config',
             # /mnt/empty is required by openssh server.
-            '/mnt/empty'],
-        binary_list=binary_deps, etc_issue=etc_issue).PivotRoot(old_root):
+            '/mnt/empty',
+        ],
+        binary_list=binary_deps,
+        etc_issue=etc_issue).PivotRoot(old_root):
       logging.debug('ps -aux: %s', process_utils.SpawnOutput(['ps', '-aux']))
       logging.debug(
           'lsof: %s',
