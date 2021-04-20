@@ -16,7 +16,6 @@ from chromite.lib.firmware import ap_firmware_config
 
 from cros.factory.utils import file_utils
 
-
 FLASHROM_BIN = '/usr/sbin/flashrom'
 FUTILITY_BIN = '/usr/bin/futility'
 VPD_BIN = '/usr/sbin/vpd'
@@ -66,32 +65,6 @@ def _HandleDutControl(dut_on, dut_off, dut_control):
     yield
   finally:
     dut_control.RunAll(dut_off)
-
-
-def _GetProgrammerFromFlashromCmd(flashrom_cmd):
-  """Get the program argument of flashrom.
-
-  Args:
-    flashrom_cmd: The flashrom writing command which is returned by
-    configuration objects of the boards.
-  Returns:
-    The programmer argument of flashrom.
-  """
-  for i, arg in enumerate(flashrom_cmd):
-    if arg == '-p' and i + 1 < len(flashrom_cmd):
-      return flashrom_cmd[i + 1]
-  raise RuntimeError(
-      f'Cannot get programmer from flashrom_cmd: {flashrom_cmd!r}')
-
-
-def _GetFlashromInfo(board, servo_status):
-  """Returns the info for flashrom to reading ap firmware."""
-  if board not in BOARD:
-    raise ValueError(f'Board "{board}" is not supported.')
-  dut_on, dut_off, flashrom_cmd, unused_futility_cmd = (
-      BOARD[board].get_commands(servo_status))
-  programmer = _GetProgrammerFromFlashromCmd(flashrom_cmd)
-  return dut_on, dut_off, programmer
 
 
 def _GetHWID(firmware_binary_file):
@@ -158,13 +131,16 @@ def ExtractHWIDAndSerialNumber(board, dut_control):
   """
   _CheckServoTypeIsCCD(dut_control)
   servo_status = _ServoStatus(dut_control)
-  dut_on, dut_off, programmer = _GetFlashromInfo(board, servo_status)
+
+  if board not in BOARD:
+    raise ValueError(f'Board "{board}" is not supported.')
+  ap_config = BOARD[board].get_config(servo_status)
 
   with file_utils.UnopenedTemporaryFile() as tmp_file, _HandleDutControl(
-      dut_on, dut_off, dut_control):
+      ap_config.dut_control_on, ap_config.dut_control_off, dut_control):
     flashrom_cmd = [
         FLASHROM_BIN, '-i', 'FMAP', '-i', 'RO_VPD', '-i', 'GBB', '-p',
-        programmer, '-r', tmp_file
+        ap_config.programmer, '-r', tmp_file
     ]
     output = subprocess.check_output(flashrom_cmd, encoding='utf-8',
                                      timeout=CMD_TIMEOUT_SECOND)
