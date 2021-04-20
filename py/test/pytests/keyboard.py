@@ -109,6 +109,8 @@ _RE_EVTEST_EVENT = re.compile(
 
 _POWER_KEY_CODE = 116
 
+_NUMPAD = 'numpad'
+
 _INTEGER_STRING_SCHEMA = {
     'type': 'string',
     'pattern': r'^(0[Bb][01]+|0[Oo][0-7]+|0[Xx][0-9A-Fa-f]+|[1-9][0-9]*|0)$'
@@ -177,6 +179,8 @@ class KeyboardTest(test_case.TestCase):
           'be pressed twice, you can do: ``{"default": 2}``. '
           'You can find keycode mappings in /usr/include/linux/input.h',
           default=None),
+      Arg('has_numpad', bool, 'The keyboard has a number pad or not.',
+          default=False),
   ]
 
   def setUp(self):
@@ -207,6 +211,10 @@ class KeyboardTest(test_case.TestCase):
       self.layout += '_%s' % self.args.board
     self.bindings = self.ReadBindings(self.layout)
 
+    self.numpad_keys = None
+    if self.args.has_numpad:
+      self.numpad_keys = self.ReadKeyOrder(_NUMPAD)
+
     # Apply any replacement keymap
     if self.args.replacement_keymap:
       replacement_keymap = {
@@ -215,13 +223,22 @@ class KeyboardTest(test_case.TestCase):
       new_bind = {key: value for key, value in self.bindings.items()
                   if key not in replacement_keymap}
       for old_key, new_key in replacement_keymap.items():
-        new_bind[new_key] = self.bindings[old_key]
+        if old_key in self.bindings:
+          new_bind[new_key] = self.bindings[old_key]
       self.bindings = new_bind
+
+      if self.args.has_numpad:
+        self.numpad_keys = [
+            replacement_keymap.get(x, x) for x in self.numpad_keys
+        ]
 
     self.all_keys = set(self.bindings.keys())
 
-    self.frontend_proxy = self.ui.InitJSTestObject('KeyboardTest', self.layout,
-                                                   self.bindings)
+    if self.args.has_numpad:
+      self.all_keys.update(self.numpad_keys)
+
+    self.frontend_proxy = self.ui.InitJSTestObject(
+        'KeyboardTest', self.layout, self.bindings, self.numpad_keys)
 
     keycodes_to_skip = set(self.args.skip_keycodes)
     if self.args.skip_power_key:
@@ -232,9 +249,14 @@ class KeyboardTest(test_case.TestCase):
       self.key_order_list = [
           key for key in self.ReadKeyOrder(self.layout) if key in self.all_keys
       ]
+      if self.args.has_numpad:
+        self.key_order_list += self.numpad_keys
+      else:
+        self.ui.HideElement('instruction-sequential-numpad')
     else:
       self.key_order_list = None
       self.ui.HideElement('instruction-sequential')
+      self.ui.HideElement('instruction-sequential-numpad')
 
     if self.args.allow_multi_keys:
       self.ui.HideElement('instruction-single-key')

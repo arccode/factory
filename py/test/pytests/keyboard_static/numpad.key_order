@@ -1,0 +1,8 @@
+# This is the list of keycodes scanning from left to right of each row
+# on the number pad.
+[104, 109, 102, 107,
+ 111, 98, 55, 74,
+ 71, 72, 73, 78,
+ 75, 76, 77,
+ 79, 80, 81, 96,
+ 82, 83]

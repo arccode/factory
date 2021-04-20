@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-04-07 12:21+CST\n"
+"PO-Revision-Date: 2021-04-23 16:33+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -2028,6 +2028,10 @@ msgstr "目标键序："
 #: ../py/test/pytests/keyboard_static/keyboard.html
 msgid "Press keys sequentially from top-left to bottom-right."
 msgstr "请从左上到右下依序按按键"
+
+#: ../py/test/pytests/keyboard_static/keyboard.html
+msgid "Press main keyboards first before pressing the number pad keys."
+msgstr "先按主键盘，再按数字键盘上的键"
 
 #: ../py/test/pytests/keyboard_static/keyboard.html
 msgid "Press one key at a time."

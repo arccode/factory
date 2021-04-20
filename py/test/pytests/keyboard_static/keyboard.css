@@ -4,8 +4,15 @@
  * found in the LICENSE file.
  */
 
-#keyboard-test-image {
+#keyboard {
+  display: flex;
+  position: relative;
+  align-items: center;
+  vertical-align: middle;
   text-align: center;
+}
+
+#keyboard-test-image {
   position: relative;
 }
 
@@ -13,10 +20,41 @@
   position: absolute;
 }
 
-.keyboard-test-key {
+#numpad {
+  display: none;
+  grid-template-rows: 30px repeat(5, 60px);
+  grid-template-columns: repeat(4, 60px);
+  grid-gap: 5px;
+  padding-left: 20px;
+}
+
+.numpad-key {
+  border: 2px solid grey;
+  border-radius: 5px;
+}
+
+/*
+ * TODO(treapking): This approach will fail if the keycodes are overridden by
+ *                  `replacement_keymap` argument.
+ */
+/* 78: KEY_KPPLUS, 96: KEY_KPENTER*/
+.numpad-key[data-keycode="78"],
+.numpad-key[data-keycode="96"] {
+  grid-row: span 2;
+}
+
+/* 78: KEY_KP0*/
+.numpad-key[data-keycode="82"] {
+  grid-column: span 2;
+}
+
+.main-keyboard-key {
   z-index: 2;
-  opacity: 0.5;
   position: absolute;
+}
+
+.keyboard-test-key {
+  opacity: 0.5;
 }
 
 .keyboard-test-key:before {

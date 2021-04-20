@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-04-07 12:21+CST\n"
+"PO-Revision-Date: 2021-04-23 16:33+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -2077,6 +2077,10 @@ msgstr "Trình tự khóa đích:"
 #: ../py/test/pytests/keyboard_static/keyboard.html
 msgid "Press keys sequentially from top-left to bottom-right."
 msgstr "Nhấn nút từ trên trái sang phải dưới cùng"
+
+#: ../py/test/pytests/keyboard_static/keyboard.html
+msgid "Press main keyboards first before pressing the number pad keys."
+msgstr "Nhấn các bàn phím chính trước khi nhấn các phím trên bàn phím số"
 
 #: ../py/test/pytests/keyboard_static/keyboard.html
 msgid "Press one key at a time."
