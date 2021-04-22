@@ -140,6 +140,10 @@ class FactoryBundleService(protorpc_utils.ProtoRPCServiceBase):
             snapshot.get('end_time'))
       if 'error_message' in snapshot:
         user_request.error_message = snapshot.get('error_message')
+
       response.user_requests.append(user_request)
+      if len(response.user_requests) >= 10:
+        # Only response the latest 10 requests.
+        break
 
     return response
