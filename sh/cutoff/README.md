@@ -29,9 +29,19 @@ any dependency with other files outside this folder.
 
 Invocation
 ----------
+
+### Toolkit
+
 Scripts here will be installed to `/usr/local/factory/sh/cutoff`. Factory
-Toolkit will execute the scripts via Gooftool, and Reset shim
-(`build_image factory_install`) will invoke this by `factory_installer.sh`.
+Toolkit will execute the scripts via Gooftool.
+
+### Reset shim
+(Reset shim is built by `build_image factory_install`.)
+Scripts here will be installed to `/usr/share/cutoff`. The `cutoff.json` in
+private overlay will also be installed to this folder.  When reset shim boots
+up, if a toolkit is packed with the reset shim, the `cutoff.json` in the
+**toolkit** will override `/usr/share/cutoff/cutoff.json`.  See [Quick Setup
+Guide](#quick-setup-guide) for more details.
 
 Setting cut-off options
 -----------------------
