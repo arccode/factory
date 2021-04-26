@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-04-23 16:33+CST\n"
+"PO-Revision-Date: 2021-04-27 15:39+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -679,18 +679,6 @@ msgid ""
 msgstr ""
 "开工厂测试系统时发生错误.\n"
 "没办法继续测试."
-
-#: ../py/goofy/js/goofy.js
-msgid ""
-"Switch to\n"
-"{target_locale}"
-msgstr ""
-"切换至\n"
-"{target_locale}"
-
-#: ../py/goofy/js/goofy.js
-msgid "Language"
-msgstr "语言"
 
 #: ../py/goofy/js/goofy.js
 msgid "Iterations"

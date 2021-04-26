@@ -1248,28 +1248,12 @@ cros.factory.Goofy = class {
     if (locales.length === 2) {
       const [locale0, locale1] = locales;
       // There are only two locales, a simple toggle button is enough.
-      let label = cros.factory.i18n.stringFormat(
-          _('Switch to\n{target_locale}'), {target_locale: localeNames});
-
-      // We have to swap the two values, so we show the other locale's prompt
-      // when in one locale.
-      const value0 = label[locale0];
-      const value1 = label[locale1];
-      label[locale0] = value1;
-      label[locale1] = value0;
-
-      rootNode.appendChild(goog.dom.createDom(
-          'div', {class: 'goofy-locale-toggle'},
-          cros.factory.i18n.i18nLabelNode(label)));
       goog.events.listen(rootNode, goog.events.EventType.CLICK, () => {
         const locale = this.locale === locale0 ? locale1 : locale0;
         this.setLocale(locale);
       });
     } else if (locales.length > 2) {
       // Show a dropdown menu for locale selection.
-      rootNode.appendChild(goog.dom.createDom(
-          'div', {class: 'goofy-locale-dropdown'},
-          cros.factory.i18n.i18nLabelNode('Language')));
       goog.events.listen(
           rootNode,
           [goog.events.EventType.MOUSEDOWN, goog.events.EventType.CONTEXTMENU],

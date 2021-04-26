@@ -158,14 +158,6 @@ body {
   display: flex;
   align-items: center;
 }
-.goofy-locale-toggle {
-  text-align: center;
-  font-size: 0.6em;
-}
-.goofy-locale-dropdown {
-  text-align: left;
-  font-size: 0.8em;
-}
 #goofy-go, #goofy-terminal, #goofy-locale-selector {
   cursor: pointer;
   padding: 2px;
