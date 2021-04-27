@@ -58,6 +58,7 @@ class GenericBatteryProbeStatementGeneratorTest(unittest.TestCase):
 
 
 class GenericStorageMMCProbeStatementGeneratorTest(unittest.TestCase):
+
   def testTryGenerate(self):
     comp_values = {
         'sectors': '112233',
@@ -115,6 +116,7 @@ class GenericStorageMMCProbeStatementGeneratorTest(unittest.TestCase):
 
 
 class GenericStorageNVMeProbeStatementGeneratorTest(unittest.TestCase):
+
   def testTryGenerate(self):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['storage'][1]
     ps = ps_gen.TryGenerate(
@@ -147,6 +149,7 @@ class GenericStorageNVMeProbeStatementGeneratorTest(unittest.TestCase):
 
 
 class NetworkProbeStatementGeneratorTest(unittest.TestCase):
+
   def testUSB(self):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['wireless'][1]
     ps = ps_gen.TryGenerate(
@@ -209,6 +212,7 @@ class NetworkProbeStatementGeneratorTest(unittest.TestCase):
 
 
 class MemoryProbeStatementGeneratorTest(unittest.TestCase):
+
   def testTryGenerate(self):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['dram'][0]
 
@@ -245,6 +249,7 @@ class MemoryProbeStatementGeneratorTest(unittest.TestCase):
 
 
 class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
+
   def testStylusTryGenerate(self):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['stylus'][0]
 
@@ -287,7 +292,7 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
                 }
             }))
 
-  def testTouchscreenTryGenerate(self):
+  def testTouchscreenNormal(self):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['touchscreen'][0]
 
     ps = ps_gen.TryGenerate(
@@ -295,7 +300,6 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
             'name': 'foo',
             'product': '0x11223344',
             'vendor': '5566',
-            'fw_version': '1.1'
         })
     self.assertEqual(
         ps,
@@ -308,12 +312,73 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
                     'name': [True, 'str', '!eq foo'],
                     'product': [True, 'hex', '!eq 0x11223344'],
                     'vendor': [True, 'hex', '!eq 0x5566'],
+                    'fw_version': [False, 'str']
+                }
+            }))
+
+  def testTouchscreenAlternativeHwidField(self):
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['touchscreen'][0]
+
+    ps = ps_gen.TryGenerate('name1', {
+        'name': 'foo',
+        'hw_version': '1122',
+        'fw_version': '1.1'
+    })
+    self.assertEqual(
+        ps,
+        probe_config_types.ComponentProbeStatement(
+            'touchscreen', 'name1', {
+                'eval': {
+                    'input_device': {}
+                },
+                'expect': {
+                    'name': [True, 'str', '!eq foo'],
+                    'product': [True, 'hex', '!eq 0x1122'],
+                    'vendor': [False, 'hex'],
                     'fw_version': [True, 'str', '!eq 1.1']
                 }
             }))
 
+  def testTouchscreenComponentValueRepetition(self):
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['touchscreen'][0]
+
+    # Same values between `hw_version` and `product`.
+    ps = ps_gen.TryGenerate('name1', {
+        'name': 'foo',
+        'hw_version': '1122',
+        'product': '1122',
+        'fw_version': '1.1'
+    })
+    self.assertEqual(
+        ps,
+        probe_config_types.ComponentProbeStatement(
+            'touchscreen', 'name1', {
+                'eval': {
+                    'input_device': {}
+                },
+                'expect': {
+                    'name': [True, 'str', '!eq foo'],
+                    'product': [True, 'hex', '!eq 0x1122'],
+                    'vendor': [False, 'hex'],
+                    'fw_version': [True, 'str', '!eq 1.1']
+                }
+            }))
+
+  def testTouchscreenComponentValueInconsistent(self):
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['touchscreen'][0]
+
+    # Inconsistent values between `hw_version` and `product`.
+    self.assertRaises(ProbeStatementConversionError, ps_gen.TryGenerate,
+                      'name1', {
+                          'name': 'foo',
+                          'hw_version': '1122',
+                          'product': '3344',
+                          'fw_version': '1.1'
+                      })
+
 
 class EdidProbeStatementGeneratorTest(unittest.TestCase):
+
   def testTryGenerate(self):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['display_panel'][0]
 
@@ -338,6 +403,7 @@ class EdidProbeStatementGeneratorTest(unittest.TestCase):
 
 
 class GenerateVerificationPayloadTest(unittest.TestCase):
+
   def testSucc(self):
     dbs = [(database.Database.LoadFile(
         os.path.join(TESTDATA_DIR, name), verify_checksum=False), [])
@@ -387,6 +453,7 @@ class GenerateVerificationPayloadTest(unittest.TestCase):
 
 
 class GenerateProbeStatementWithInformation(unittest.TestCase):
+
   def testWithComponent(self):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['storage'][1]
     ps = ps_gen.TryGenerate(
@@ -413,6 +480,7 @@ class GenerateProbeStatementWithInformation(unittest.TestCase):
 
 
 class USBCameraProbeStatementGeneratorTest(unittest.TestCase):
+
   def testTryGenerate(self):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['video'][0]
     ps = ps_gen.TryGenerate(

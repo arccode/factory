@@ -319,7 +319,8 @@ def GetAllProbeStatementGenerators():
   # TODO(kevinptt): Support "device_type" argument in runtime_probe.
   input_device_fields = [
       same_name_field_converter('name', HWIDValueToStr),
-      same_name_field_converter(
+      _FieldRecord(
+          ['hw_version', 'product'],
           'product',
           [
               GetHWIDHexStrToHexStrConverter(4, has_prefix=False),
@@ -327,7 +328,8 @@ def GetAllProbeStatementGenerators():
               GetHWIDHexStrToHexStrConverter(8, has_prefix=True),
           ]),
       same_name_field_converter(
-          'vendor', GetHWIDHexStrToHexStrConverter(4, has_prefix=False)),
+          'vendor', GetHWIDHexStrToHexStrConverter(4, has_prefix=False),
+          is_optional=True),
       same_name_field_converter('fw_version', HWIDValueToStr, is_optional=True),
   ]
   all_probe_statement_generators['stylus'] = [

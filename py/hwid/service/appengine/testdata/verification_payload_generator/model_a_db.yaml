@@ -72,5 +72,35 @@ components:
         status: duplicate
         values:
           a_special_field: a_special_value
+  touchpad:
+    items:
+      touchpad_0:
+        values:
+          name: Touchpad 0
+          product: 12ab
+          vendor: 12ab
+      touchpad_1:
+        values:
+          name: Touchpad 1
+          product: '12ab'
+          vendor: 12ab
+  touchscreen:
+    items:
+      touchscreen_0:
+        values:
+          name: Touchscreen 0
+          product: 12ab
+          vendor: 12ab
+      touchscreen_1:
+        values:
+          name: Touchscreen 1
+          product: '12ab'
+          vendor: 12ab
+          fw_version: '1234'
+      touchscreen_2:
+        values:
+          name: Touchscreen 2
+          fw_version: '1234'
+          hw_version: 12ab
 
 rules: []

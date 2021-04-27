@@ -143,6 +143,55 @@
           "usb_removable": [true, "str", "!re ^(FIXED|UNKNOWN)$"]
         }
       }
+    },
+    "touchpad": {
+      "model_a_touchpad_0": {
+        "eval": {"input_device": {}},
+        "expect": {
+          "fw_version": [false, "str"],
+          "name": [true, "str", "!eq Touchpad 0"],
+          "product": [true, "hex", "!eq 0x12AB"],
+          "vendor": [true, "hex", "!eq 0x12AB"]
+        }
+      },
+      "model_a_touchpad_1": {
+        "eval": {"input_device": {}},
+        "expect": {
+          "fw_version": [false, "str"],
+          "name": [true, "str", "!eq Touchpad 1"],
+          "product": [true, "hex", "!eq 0x12AB"],
+          "vendor": [true, "hex", "!eq 0x12AB"]
+        }
+      }
+    },
+    "touchscreen": {
+      "model_a_touchscreen_0": {
+        "eval": {"input_device": {}},
+        "expect": {
+          "fw_version": [false, "str"],
+          "name": [true, "str", "!eq Touchscreen 0"],
+          "product": [true, "hex", "!eq 0x12AB"],
+          "vendor": [true, "hex", "!eq 0x12AB"]
+        }
+      },
+      "model_a_touchscreen_1": {
+        "eval": {"input_device": {}},
+        "expect": {
+          "fw_version": [true, "str", "!eq 1234"],
+          "name": [true, "str", "!eq Touchscreen 1"],
+          "product": [true, "hex", "!eq 0x12AB"],
+          "vendor": [true, "hex", "!eq 0x12AB"]
+        }
+      },
+      "model_a_touchscreen_2": {
+        "eval": {"input_device": {}},
+        "expect": {
+          "fw_version": [true, "str", "!eq 1234"],
+          "name": [true, "str", "!eq Touchscreen 2"],
+          "product": [true, "hex", "!eq 0x12AB"],
+          "vendor": [false, "hex"]
+        }
+      }
     }
   },
   "runtime_probe/model_b/probe_config.json": {
@@ -737,6 +786,31 @@
       {
         "componentCategory": "camera",
         "componentUuid": "model_d_camera_comp_0",
+        "qualificationStatus": "QUALIFIED"
+      },
+      {
+        "componentCategory": "touchpad",
+        "componentUuid": "model_a_touchpad_0",
+        "qualificationStatus": "QUALIFIED"
+      },
+      {
+        "componentCategory": "touchpad",
+        "componentUuid": "model_a_touchpad_1",
+        "qualificationStatus": "QUALIFIED"
+      },
+      {
+        "componentCategory": "touchscreen",
+        "componentUuid": "model_a_touchscreen_0",
+        "qualificationStatus": "QUALIFIED"
+      },
+      {
+        "componentCategory": "touchscreen",
+        "componentUuid": "model_a_touchscreen_1",
+        "qualificationStatus": "QUALIFIED"
+      },
+      {
+        "componentCategory": "touchscreen",
+        "componentUuid": "model_a_touchscreen_2",
         "qualificationStatus": "QUALIFIED"
       },
       {
