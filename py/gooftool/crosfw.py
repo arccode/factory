@@ -47,7 +47,7 @@ class Flashrom:
       TARGET_EC: '-p ec',
       TARGET_PD: '-p ec:type=pd',
   }
-  _WRITE_FLAGS = '--fast-verify'
+  _WRITE_FLAGS = '--noverify-all'
   _READ_FLAGS = ''
 
   def __init__(self, target=None):
