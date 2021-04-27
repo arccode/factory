@@ -103,9 +103,11 @@ def _GetAllGenericProbeStatementInfoRecords():
 
 class _FieldRecord:
 
-  def __init__(self, hwid_field_name, probe_statement_field_name,
+  def __init__(self, hwid_field_names, probe_statement_field_name,
                value_converters, is_optional=False):
-    self.hwid_field_name = hwid_field_name
+    if not isinstance(hwid_field_names, list):
+      hwid_field_names = [hwid_field_names]
+    self.hwid_field_names = hwid_field_names
     self.probe_statement_field_name = probe_statement_field_name
     self.value_converters = type_utils.MakeList(value_converters)
     self.is_optional = is_optional
@@ -138,32 +140,49 @@ class _ProbeStatementGenerator:
 
     # Extract the fields for probe statement from the component values.
     # If any of the required field is missing, raise the case.
-    values_to_be_converted = []
+    converters = collections.defaultdict(list)
+    optional_converters = []
     for fc in self._field_converters:
-      try:
-        val = comp_values[fc.hwid_field_name]
-      except KeyError:
+      found_hwid_field_names = [
+          name for name in fc.hwid_field_names if name in comp_values
+      ]
+      if not found_hwid_field_names:
         if fc.is_optional:
-          expected_fields[fc.probe_statement_field_name] = None
+          optional_converters.append(fc)
           continue
         raise MissingComponentValueError(
-            'missing component value field: %r' % fc.hwid_field_name)
-      values_to_be_converted.append((fc, val))
+            'missing component value field(s) for field %r : %r' %
+            (fc.probe_statement_field_name, fc.hwid_field_names))
+      if len(found_hwid_field_names) > 1:
+        found_hwid_vals = [comp_values[name] for name in found_hwid_field_names]
+        if found_hwid_vals.count(found_hwid_vals[0]) != len(found_hwid_vals):
+          raise ProbeStatementConversionError(
+              'found multiple valid component value fields for field %r : %r)' %
+              (fc.probe_statement_field_name, found_hwid_field_names))
+      converters[found_hwid_field_names[0]].append(fc)
 
-    # Convert the format of each fields for the probe statement, raises the
+    # Convert the format of each fields for the probe statement.  Raises the
     # error if it fails.
-    for fc, val in values_to_be_converted:
-      err = None
-      for value_converter in fc.value_converters:
-        try:
-          expected_fields[fc.probe_statement_field_name] = value_converter(val)
-          break
-        except Exception as e:
-          err = e
-      if not fc.probe_statement_field_name in expected_fields:
-        raise ProbeStatementConversionError(
-            'unable to convert the value of field %r : %r' %
-            (fc.hwid_field_name, err))
+    for hwid_field_name, fcs in converters.items():
+      for fc in fcs:
+        expected_field = None
+        for value_converter in fc.value_converters:
+          try:
+            expected_field = value_converter(comp_values[hwid_field_name])
+            break
+          except Exception as e:
+            err = e
+        if expected_field is None:
+          raise ProbeStatementConversionError(
+              'unable to convert the value of field %r to %r: %r' %
+              (hwid_field_name, fc.probe_statement_field_name, err))
+        if expected_fields.setdefault(fc.probe_statement_field_name,
+                                      expected_field) != expected_field:
+          raise ProbeStatementConversionError(
+              'found multiple valid component value fields for field %r' %
+              fc.probe_statement_field_name)
+    for fc in optional_converters:
+      expected_fields.setdefault(fc.probe_statement_field_name)
 
     try:
       return self._probe_statement_generator.GenerateProbeStatement(
