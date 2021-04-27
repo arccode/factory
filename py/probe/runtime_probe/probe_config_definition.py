@@ -13,8 +13,11 @@ from cros.factory.utils import type_utils
 @type_utils.CachedGetter
 def _GetAllProbeStatementDefinitions():
 
-  def _GetASCIIStringErrorMsg(length):
-    return 'format error, expect a %d-byte ASCII string' % length
+  def _GetASCIIStringErrorMsg(length1, length2=None):
+    if length2 is None:
+      return f'format error, expect a {length1}-byte ASCII string'
+    return (f'format error, expect a ASCII string of length {length1} to '
+            f'{length2}')
 
   probe_statement_definitions = {}
 
@@ -50,10 +53,11 @@ def _GetAllProbeStatementDefinitions():
   builder.AddHexOutputField(
       'mmc_oemid', 'OEM/Application ID (OID) in CID register.',
       probe_function_names=probe_function_names, num_value_digits=4)
-  builder.AddStrOutputField('mmc_name', 'Product name (PNM) in CID register.',
-                            probe_function_names=probe_function_names,
-                            value_pattern=re.compile('^[ -~]{6}$'),
-                            value_format_error_msg=_GetASCIIStringErrorMsg(6))
+  builder.AddStrOutputField(
+      'mmc_name', 'Product name (PNM) in CID register.',
+      probe_function_names=probe_function_names,
+      value_pattern=re.compile('^[ -~]{4,6}$'),
+      value_format_error_msg=_GetASCIIStringErrorMsg(4, 6))
   builder.AddHexOutputField(
       'mmc_prv', 'Product revision (PRV) in CID register.',
       probe_function_names=probe_function_names, num_value_digits=2)
