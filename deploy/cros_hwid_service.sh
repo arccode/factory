@@ -223,50 +223,6 @@ do_test() {
   done
 }
 
-generate_endpoints_config() {
-  local template="${APPENGINE_DIR}/openapi-appengine.yaml.template"
-  local filename="$1"
-  if [[ "${template}" -ef "${filename}" ]] ; then
-    die "\"${template}\" and \"${filename}\" are the same files."
-  fi
-  env ENDPOINTS_SERVICE_NAME="${GCP_PROJECT}${ENDPOINTS_SUFFIX}" \
-    DOLLAR='$' \
-    envsubst < "${template}" > "${filename}"
-}
-
-deploy_endpoints_config() {
-  check_credentials "${GCP_PROJECT}"
-  local filename="$1"
-  gcloud endpoints services deploy "${filename}"
-}
-
-do_endpoints() {
-  # Deploys or generates endpoint settings
-  local action="$1"
-  shift
-  shift  # env
-  case "${action}" in
-    generate)
-      [ $# -eq 1 ] || (usage && die "filename is not provided")
-      local filename="$1"
-      shift
-      generate_endpoints_config "${filename}"
-      echo "Created Endpoint openapi configs \"${filename}\"."
-    ;;
-    deploy)
-      [ $# -eq 0 ] || (usage && exit 1)
-      local tmpfile="$(mktemp --suffix=".yaml")"
-      add_temp "${tmpfile}"
-      generate_endpoints_config "${tmpfile}"
-      deploy_endpoints_config "${tmpfile}"
-    ;;
-    *)
-      usage
-      die "unsupported action \"${action}\""
-    ;;
-  esac
-}
-
 usage() {
   cat << __EOF__
 Chrome OS HWID Service Deployment Script
@@ -289,17 +245,6 @@ commands:
       Deploys HWID Service to the staging server with specific version
       "e2e-test" which would not be affected with versions under development
       but just for end-to-end testing purpose.
-
-  $0 endpoints generate [prod|staging] filename
-      Generates yaml file for Cloud Endpoints config.  This command substitutes
-      the endpoint service name in the config template file
-      openapi-appengine.yaml.template.
-
-  $0 endpoints deploy [prod|staging]
-      Just like the endpoints generate command, this command further deploys
-      the config to Cloud Endpoint.  Note that the command is only required
-      when API has been changed or corresponding security setting has been
-      updated.
 
   $0 build
       Builds docker image for AppEngine integration test.
@@ -328,16 +273,6 @@ main() {
       ;;
     test)
       do_test
-      ;;
-    endpoints)
-      shift
-      [ $# -ge 2 ] || (usage && exit 1);
-      local deployment_type="$2"
-      if ! load_config "${deployment_type}" ; then
-        usage
-        die "Unsupported deployment type: \"${deployment_type}\"."
-      fi
-      do_endpoints "$@"
       ;;
     *)
       usage
