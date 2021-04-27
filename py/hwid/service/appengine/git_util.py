@@ -11,7 +11,7 @@ import os
 import time
 import urllib.parse
 
-# pylint: disable=wrong-import-order, import-error
+# pylint: disable=wrong-import-order, import-error, no-name-in-module
 import certifi
 from dulwich.client import HttpGitClient
 from dulwich.objects import Blob
@@ -19,9 +19,11 @@ from dulwich.objects import Tree
 from dulwich import porcelain
 from dulwich.refs import strip_peeled_refs
 from dulwich.repo import MemoryRepo as _MemoryRepo
+import google.auth
+import google.auth.transport.requests
 import urllib3.exceptions
 from urllib3 import PoolManager
-# pylint: enable=wrong-import-order, import-error
+# pylint: enable=wrong-import-order, import-error, no-name-in-module
 
 from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.utils import json_utils
@@ -418,3 +420,18 @@ def AbandonCL(review_host, auth_cookie, change_id):
   if fp.status != http.client.OK:
     logging.error('HTTP Status: %d', fp.status)
     raise GitUtilException('Abandon failed for change id: %r' % (change_id,))
+
+
+def GetGerritCredentials():
+  credential, unused_project_id = google.auth.default(
+      scopes=['https://www.googleapis.com/auth/gerritcodereview'])
+  credential.refresh(google.auth.transport.requests.Request())
+  service_account_name = credential.service_account_email
+  token = credential.token
+  return service_account_name, token
+
+
+def GetGerritAuthCookie():
+  service_account_name, token = GetGerritCredentials()
+  return 'o=git-{service_account_name}={token}'.format(
+      service_account_name=service_account_name, token=token)

@@ -15,6 +15,7 @@ import re
 
 from google.cloud import ndb  # pylint: disable=no-name-in-module, import-error
 
+from cros.factory.hwid.service.appengine import hwid_repo
 from cros.factory.hwid.service.appengine import memcache_adapter
 from cros.factory.hwid.service.appengine import \
     verification_payload_generator as vpg_module
@@ -657,31 +658,33 @@ class HwidManager:
       ndb.delete_multi(keys_to_delete)
       logging.info('Extra categories are Removed')
 
-  def UpdateBoards(self, git_fs, board_metadata, delete_missing=True):
+  def UpdateBoards(self, live_hwid_repo, hwid_db_metadata_list,
+                   delete_missing=True):
     """Updates the set of supported boards to be exactly the list provided.
 
     Args:
-      git_fs: A GitFilesystemAdapter instance to provide filesystem_adapter
-          interface of chromeos-hwid repo.
-      board_metadata: A list of metadata dictionaries containing path, version
-          and board name.
+      live_hwid_repo: A HWIDRepo instance that provides access to chromeos-hwid
+          repo.
+      hwid_db_metadata_list: A list of HWIDDBMetadata containing path, version
+          and name.
       delete_missing: bool to indicate whether missing metadata should be
           deleted.
     Raises:
       MetadataError: If the metadata is malformed.
     """
-
-    _VerifyBoardMetadata(board_metadata)
+    hwid_db_metadata_of_name = {m.name: m
+                                for m in hwid_db_metadata_list}
 
     # Discard the names for the entries, indexing only by path.
     with self._ndb_client.context(global_cache=self._global_cache):
       # Note that the term `board` used in HWID Service is not related to the
-      # `board` in board_metadata from projects.yaml which means the reference
-      # board.  Therefore we will not use the `board` field in board_metadata.
+      # `board` in HWIDDBMetadata from projects.yaml which means the reference
+      # board.  Therefore we will not use the `board` field in
+      # hwid_db_metadata_list.
       q = HwidMetadata.query()
       existing_metadata = list(q)
       old_files = set(m.board for m in existing_metadata)
-      new_files = set(board_metadata)
+      new_files = set(hwid_db_metadata_of_name)
 
       files_to_delete = old_files - new_files
       files_to_create = new_files - old_files
@@ -692,18 +695,18 @@ class HwidManager:
             hwid_metadata.key.delete()
             self._fs_adapter.DeleteFile(self._LivePath(hwid_metadata.path))
         else:
-          new_data = board_metadata[hwid_metadata.board]
-          hwid_metadata.version = str(new_data['version'])
-          self._ActivateFile(git_fs, new_data['path'], hwid_metadata.path)
+          new_data = hwid_db_metadata_of_name[hwid_metadata.board]
+          hwid_metadata.version = str(new_data.version)
+          self._ActivateFile(live_hwid_repo, new_data.name, hwid_metadata.path)
           hwid_metadata.put()
 
     for board in files_to_create:
       path = board  # Use the board name as the file path.
-      new_data = board_metadata[board]
-      version = str(new_data['version'])
+      new_data = hwid_db_metadata_of_name[board]
+      version = str(new_data.version)
       with self._ndb_client.context(global_cache=self._global_cache):
         metadata = HwidMetadata(board=board, version=version, path=path)
-        self._ActivateFile(git_fs, new_data['path'], path)
+        self._ActivateFile(live_hwid_repo, board, path)
         metadata.put()
 
   def ReloadMemcacheCacheFromFiles(self, limit_models=None):
@@ -737,9 +740,13 @@ class HwidManager:
   def _LivePath(self, file_id):
     return 'live/%s' % file_id
 
-  def _ActivateFile(self, git_fs, stage_file_path, live_file_id):
-    board_data = git_fs.ReadFile(stage_file_path)
-    self._fs_adapter.WriteFile(self._LivePath(live_file_id), board_data)
+  def _ActivateFile(self, live_hwid_repo, hwid_db_name, live_file_id):
+    try:
+      board_data = live_hwid_repo.LoadHWIDDBByName(hwid_db_name)
+    except hwid_repo.HWIDRepoError as ex:
+      raise MetadataError from ex
+    self._fs_adapter.WriteFile(
+        self._LivePath(live_file_id), board_data.encode('utf-8'))
 
   def _ClearMemcache(self):
     """Clear all cache items via memcache_adapter.
@@ -1367,11 +1374,3 @@ class _HwidV3Data(_HwidData):
 def _NormalizeString(string):
   """Normalizes a string to account for things like case."""
   return string.strip().upper() if string else None
-
-
-def _VerifyBoardMetadata(board_metadata):
-  for metadata in board_metadata.values():
-    for field in ['board', 'path', 'version']:
-      if field not in metadata:
-        raise MetadataError(
-            'Board Metadata is missing required field %r.' % field)

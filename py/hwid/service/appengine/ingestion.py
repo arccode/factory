@@ -1,7 +1,6 @@
 # Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-
 """Handler for ingestion."""
 
 import collections
@@ -12,8 +11,6 @@ import os
 import os.path
 
 # pylint: disable=no-name-in-module, import-error, wrong-import-order
-import google.auth
-from google.auth.transport.requests import Request
 import urllib3
 import yaml
 # pylint: enable=no-name-in-module, import-error, wrong-import-order
@@ -22,6 +19,7 @@ from cros.factory.hwid.service.appengine import auth
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import git_util
 from cros.factory.hwid.service.appengine import hwid_manager
+from cros.factory.hwid.service.appengine import hwid_repo
 from cros.factory.hwid.service.appengine import memcache_adapter
 from cros.factory.hwid.service.appengine import \
     verification_payload_generator as vpg_module
@@ -32,8 +30,6 @@ from cros.factory.hwid.service.appengine.proto import ingestion_pb2
 from cros.factory.probe_info_service.app_engine import protorpc_utils
 
 
-INTERNAL_REPO_URL = 'https://chrome-internal-review.googlesource.com'
-CHROMEOS_HWID_PROJECT = 'chromeos/chromeos-hwid'
 GOLDENEYE_MEMCACHE_NAMESPACE = 'SourceGoldenEye'
 
 
@@ -44,29 +40,6 @@ class PayloadGenerationException(protorpc_utils.ProtoRPCException):
     super(PayloadGenerationException, self).__init__(
         status=http.HTTPStatus.INTERNAL_SERVER_ERROR,
         code=protorpc_utils.RPC_CODE_INTERNAL, detail=msg)
-
-
-def _GetCredentials():
-  credential, unused_project_id = google.auth.default(scopes=[
-      'https://www.googleapis.com/auth/gerritcodereview'])
-  credential.refresh(Request())
-  service_account_name = credential.service_account_email
-  token = credential.token
-  return service_account_name, token
-
-
-def _GetAuthCookie():
-  service_account_name, token = _GetCredentials()
-  return 'o=git-{service_account_name}={token}'.format(
-      service_account_name=service_account_name, token=token)
-
-
-def _GetHwidRepoFilesystemAdapter():
-  branch = CONFIG.hwid_repo_branch or git_util.GetCurrentBranch(
-      INTERNAL_REPO_URL, CHROMEOS_HWID_PROJECT, _GetAuthCookie())
-  repo_url = INTERNAL_REPO_URL + '/' + CHROMEOS_HWID_PROJECT
-  return git_util.GitFilesystemAdapter.FromGitUrl(repo_url, branch,
-                                                  _GetAuthCookie())
 
 
 class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
@@ -82,6 +55,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     self.hwid_manager = CONFIG.hwid_manager
     self.vpg_targets = CONFIG.vpg_targets
     self.dryrun_upload = CONFIG.dryrun_upload
+    self.hwid_repo_manager = CONFIG.hwid_repo_manager
 
   @protorpc_utils.ProtoRPCServiceMethod
   @auth.RpcCheck
@@ -99,27 +73,22 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     """
 
     del request  # unused
-    git_fs = _GetHwidRepoFilesystemAdapter()
+    live_hwid_repo = self.hwid_repo_manager.GetLiveHWIDRepo()
 
     folder = self.NAME_PATTERN_FOLDER
     existing_files = set(self.hwid_filesystem.ListFiles(folder))
-    for name in git_fs.ListFiles(folder):
-      path = '%s/%s' % (folder, name)
-      content = git_fs.ReadFile(path)
-      self.hwid_filesystem.WriteFile(path, content)
+    for name, content in live_hwid_repo.IterNamePatterns():
+      self.hwid_filesystem.WriteFile(f'{folder}/{name}',
+                                     content.encode('utf-8'))
       existing_files.discard(name)
     # remove files not existed on repo but still on cloud storage
     for name in existing_files:
-      path = '%s/%s' % (folder, name)
-      self.hwid_filesystem.DeleteFile(path)
+      self.hwid_filesystem.DeleteFile(f'{folder}/{name}')
 
     category_set = self.hwid_manager.ListExistingAVLCategories()
 
-    folder = self.AVL_NAME_MAPPING_FOLDER
-    for name in git_fs.ListFiles(folder):
-      path = '%s/%s' % (folder, name)
+    for name, content in live_hwid_repo.IterAVLNameMappings():
       category, unused_ext = os.path.splitext(name)
-      content = git_fs.ReadFile(path)
       mapping = yaml.load(content)
       self.hwid_manager.SyncAVLNameMapping(category, mapping)
       category_set.discard(category)
@@ -149,27 +118,26 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     do_limit = bool(limit_models)
     force_push = request.force_push
 
-    git_fs = _GetHwidRepoFilesystemAdapter()
+    live_hwid_repo = self.hwid_repo_manager.GetLiveHWIDRepo()
     # TODO(yllin): Reduce memory footprint.
     # Get projects.yaml
     try:
-      metadata_yaml = git_fs.ReadFile('projects.yaml')
-
-      # parse it
-      metadata = yaml.safe_load(metadata_yaml)
+      hwid_db_metadata_list = live_hwid_repo.ListHWIDDBMetadata()
 
       if do_limit:
         # only process required models
-        metadata = {k: v for (k, v) in metadata.items() if k in limit_models}
-      self.hwid_manager.UpdateBoards(git_fs, metadata,
+        hwid_db_metadata_list = [
+            x for x in hwid_db_metadata_list if x.name in limit_models
+        ]
+      self.hwid_manager.UpdateBoards(live_hwid_repo, hwid_db_metadata_list,
                                      delete_missing=not do_limit)
 
-    except filesystem_adapter.FileSystemAdapterException:
-      logging.error('Missing file during refresh.')
+    except hwid_repo.HWIDRepoError as ex:
+      logging.error('Got exception from HWID repo: %r.', ex)
       raise protorpc_utils.ProtoRPCException(
           status=http.HTTPStatus.INTERNAL_SERVER_ERROR,
           code=protorpc_utils.RPC_CODE_INTERNAL,
-          detail='Missing file during refresh.')
+          detail='Got exception from HWID repo.') from None
 
     self.hwid_manager.ReloadMemcacheCacheFromFiles(
         limit_models=list(limit_models))
@@ -251,8 +219,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
       latest commit id if it differs from cached commit id, None if not
     """
 
-    hwid_main_commit = git_util.GetCommitId(
-        INTERNAL_REPO_URL, CHROMEOS_HWID_PROJECT, auth_cookie=_GetAuthCookie())
+    hwid_main_commit = self.hwid_repo_manager.GetMainCommitID()
     latest_commit = self.hwid_manager.GetLatestHWIDMainCommit()
 
     if latest_commit == hwid_main_commit and not force_update:
@@ -314,14 +281,14 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     git_url = repo_host + repo_path
     project = setting['project']
     branch = setting['branch'] or git_util.GetCurrentBranch(
-        review_host, project, _GetAuthCookie())
+        review_host, project, git_util.GetGerritAuthCookie())
     prefix = setting['prefix']
     reviewers = self.hwid_manager.GetCLReviewers()
     ccs = self.hwid_manager.GetCLCCs()
     new_git_files = []
     for filepath, filecontent in new_files.items():
-      new_git_files.append((os.path.join(prefix, filepath),
-                            git_util.NORMAL_FILE_MODE, filecontent))
+      new_git_files.append((os.path.join(
+          prefix, filepath), git_util.NORMAL_FILE_MODE, filecontent))
 
     commit_msg = ('verification payload: update payload from hwid\n'
                   '\n'
@@ -339,20 +306,17 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
                             '{commit_msg}\n'
                             'update file paths:\n'
                             '{file_paths}\n').format(
-                                project=project,
-                                git_url=git_url,
-                                branch=branch,
-                                reviewers=reviewers,
-                                ccs=ccs,
+                                project=project, git_url=git_url, branch=branch,
+                                reviewers=reviewers, ccs=ccs,
                                 commit_msg=commit_msg,
                                 file_paths='\n'.join(file_paths))
       logging.debug(dryrun_upload_info)
     else:
-      auth_cookie = _GetAuthCookie()
+      auth_cookie = git_util.GetGerritAuthCookie()
       try:
-        change_id = git_util.CreateCL(
-            git_url, auth_cookie, branch, new_git_files,
-            author, author, commit_msg, reviewers, ccs)
+        change_id = git_util.CreateCL(git_url, auth_cookie, branch,
+                                      new_git_files, author, author, commit_msg,
+                                      reviewers, ccs)
         if CONFIG.env != 'prod':  # Abandon the test CL to prevent confusion
           try:
             git_util.AbandonCL(review_host, auth_cookie, change_id)
@@ -380,7 +344,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     """
 
     payload_hash_mapping = {}
-    service_account_name, unused_token = _GetCredentials()
+    service_account_name, unused_token = git_util.GetGerritCredentials()
     hwid_main_commit = self._GetMainCommitIfChanged(force_update)
     if hwid_main_commit is None and not force_update:
       return None, payload_hash_mapping

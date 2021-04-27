@@ -11,6 +11,7 @@ import yaml
 # pylint: disable=import-error
 from cros.factory.hwid.service.appengine import cloudstorage_adapter
 from cros.factory.hwid.service.appengine import hwid_manager
+from cros.factory.hwid.service.appengine import hwid_repo
 from cros.factory.utils import file_utils
 from cros.factory.utils import type_utils
 
@@ -56,6 +57,8 @@ class _Config:
         CloudStorage.
     hwid_manager: A HwidManager object. HwidManager manipulates HWIDs in
         hwid_filesystem.
+    hwid_repo_manager: A HWIDRepoManager object, which provides functionalities
+        to manipulate the HWID repository.
   """
 
   def __init__(self, config_path=_PATH_TO_APP_CONFIGURATIONS_FILE):
@@ -85,6 +88,7 @@ class _Config:
     # Setting this config empty means the branch HEAD tracks.
     self.hwid_repo_branch = conf['hwid_repo_branch']
     self.client_allowlist = conf.get('client_allowlist', [])
+    self.hwid_repo_manager = hwid_repo.HWIDRepoManager(self.hwid_repo_branch)
 
 
 CONFIG = type_utils.LazyObject(_Config)

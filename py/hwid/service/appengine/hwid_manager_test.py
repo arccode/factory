@@ -2,7 +2,6 @@
 # Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-
 """Tests for HwidManager and related classes."""
 
 import os
@@ -13,6 +12,7 @@ import google.cloud.exceptions  # pylint: disable=no-name-in-module, import-erro
 
 from cros.factory.hwid.service.appengine import cloudstorage_adapter
 from cros.factory.hwid.service.appengine import hwid_manager
+from cros.factory.hwid.service.appengine import hwid_repo
 from cros.factory.hwid.v3 import rule
 from cros.factory.utils import file_utils
 
@@ -225,10 +225,8 @@ class HwidManagerTest(unittest.TestCase):
     """Test that a valid board returns a result."""
     manager = self._GetManager()
     hwids = {'BAKER', 'BAXTER', 'BLANCA', 'BRIDGE'}
-    self.assertEqual(hwids,
-                     set(
-                         manager.GetHwids('CHROMEBOOK', None, None, None,
-                                          None)))
+    self.assertEqual(
+        hwids, set(manager.GetHwids('CHROMEBOOK', None, None, None, None)))
 
   def testGetComponentClassesNonExistentBoard(self):
     """Test that a non-existent board raises a BoardNotFoundError."""
@@ -335,8 +333,8 @@ class HwidManagerTest(unittest.TestCase):
     """Test the board updater adds a board."""
     mock_storage = mock.Mock()
     mock_storage.ReadFile.return_value = b'junk data'
-    git_fs = mock.Mock()
-    git_fs.ReadFile.return_value = b'junk data'
+    mock_hwid_repo = mock.create_autospec(hwid_repo.HWIDRepo, instance=True)
+    mock_hwid_repo.LoadHWIDDBByName.return_value = 'junk data'
 
     manager = self._GetManager(adapter=mock_storage, load_datastore=False)
 
@@ -345,19 +343,10 @@ class HwidManagerTest(unittest.TestCase):
       hwid_manager.HwidMetadata(board='update', path='update_file',
                                 version='2').put()
 
-    manager.UpdateBoards(
-        git_fs, {
-            'update': {
-                'board': 'update_file - updated',
-                'version': 2,
-                'path': 'path1',
-            },
-            'new': {
-                'board': 'new file - unused',
-                'version': 2,
-                'path': 'path2',
-            },
-        })
+    manager.UpdateBoards(mock_hwid_repo, [
+        hwid_repo.HWIDDBMetadata('update', 'update_file - updated', 2, 'path1'),
+        hwid_repo.HWIDDBMetadata('new', 'new file - unused', 2, 'path2'),
+    ])
 
     with manager._ndb_client.context():
       self.assertIsNone(
@@ -366,17 +355,18 @@ class HwidManagerTest(unittest.TestCase):
       self.assertIsNotNone(
           hwid_manager.HwidMetadata.query(
               hwid_manager.HwidMetadata.path == 'update_file').get())
-      self.assertIsNotNone(hwid_manager.HwidMetadata.query(
-          hwid_manager.HwidMetadata.path == 'new').get())
+      self.assertIsNotNone(
+          hwid_manager.HwidMetadata.query(
+              hwid_manager.HwidMetadata.path == 'new').get())
       mock_storage.DeleteFile.assert_called_once_with('live/old_file')
       mock_storage.WriteFile.assert_has_calls([
           mock.call('live/update_file', mock.ANY),
           mock.call('live/new', mock.ANY)
       ], any_order=True)
       self.assertEqual(mock_storage.WriteFile.call_count, 2)
-      git_fs.ReadFile.assert_has_calls(
-          [mock.call('path1'), mock.call('path2')], any_order=True)
-      self.assertEqual(git_fs.ReadFile.call_count, 2)
+      mock_hwid_repo.LoadHWIDDBByName.assert_has_calls(
+          [mock.call('update'), mock.call('new')], any_order=True)
+      self.assertEqual(mock_hwid_repo.LoadHWIDDBByName.call_count, 2)
 
   def testUpdateBoardsWithManyBoards(self):
     """Tests that the updating logic can handle many boards.
@@ -386,20 +376,19 @@ class HwidManagerTest(unittest.TestCase):
     """
     mock_storage = mock.Mock()
     mock_storage.ReadFile.return_value = b'junk data'
-    git_fs = mock.Mock()
-    git_fs.ReadFile.return_value = b'junk data'
+    mock_hwid_repo = mock.create_autospec(hwid_repo.HWIDRepo, instance=True)
+    mock_hwid_repo.LoadHWIDDBByName.return_value = 'junk data'
     BOARD_COUNT = 40
     MORE_BOARD_COUNT = 50
 
     manager = self._GetManager(adapter=mock_storage, load_datastore=False)
     with manager._ndb_client.context():
       for i in range(BOARD_COUNT):
-        hwid_manager.HwidMetadata(
-            board='old_file' + str(i), path='old' + str(i), version='2').put()
+        hwid_manager.HwidMetadata(board='old_file' + str(i),
+                                  path='old' + str(i), version='2').put()
 
-        hwid_manager.HwidMetadata(
-            board='update_file' + str(i), path='update' + str(i),
-            version='2').put()
+        hwid_manager.HwidMetadata(board='update_file' + str(i),
+                                  path='update' + str(i), version='2').put()
 
       deletefile_calls = [
           mock.call('live/old' + str(i)) for i in range(BOARD_COUNT)
@@ -414,20 +403,18 @@ class HwidManagerTest(unittest.TestCase):
           for i in range(BOARD_COUNT, MORE_BOARD_COUNT)
       ]
 
-      board_data = {}
-      for i in range(MORE_BOARD_COUNT):
-        board_data['update_file' + str(i)] = {
-            'board': 'update_' + str(i),
-            'version': 2,
-            'path': 'v2'
-        }
+      board_data = [
+          hwid_repo.HWIDDBMetadata(f'update_file{i}', f'update_board_{i}', 2,
+                                   'v2') for i in range(MORE_BOARD_COUNT)
+      ]
 
-    manager.UpdateBoards(git_fs, board_data)
+    manager.UpdateBoards(mock_hwid_repo, board_data)
 
     with manager._ndb_client.context():
       for i in range(BOARD_COUNT):
-        self.assertIsNone(hwid_manager.HwidMetadata.query(
-            hwid_manager.HwidMetadata.path == 'old' + str(i)).get())
+        self.assertIsNone(
+            hwid_manager.HwidMetadata.query(
+                hwid_manager.HwidMetadata.path == 'old' + str(i)).get())
         self.assertIsNotNone(hwid_manager.HwidMetadata.query().filter(
             hwid_manager.HwidMetadata.path == 'update' + str(i)).get())
         self.assertIsNone(hwid_manager.HwidMetadata.query().filter(
@@ -440,17 +427,20 @@ class HwidManagerTest(unittest.TestCase):
       self.assertEqual(BOARD_COUNT, mock_storage.DeleteFile.call_count)
       mock_storage.WriteFile.assert_has_calls(writefile_calls, any_order=True)
       self.assertEqual(MORE_BOARD_COUNT, mock_storage.WriteFile.call_count)
-      git_fs.ReadFile.assert_has_calls(
-          [mock.call('v2') for unused_c in range(MORE_BOARD_COUNT)])
-      self.assertEqual(MORE_BOARD_COUNT, git_fs.ReadFile.call_count)
+      mock_hwid_repo.LoadHWIDDBByName.assert_has_calls(
+          [mock.call(f'update_file{i}') for i in range(MORE_BOARD_COUNT)],
+          any_order=True)
+      self.assertEqual(MORE_BOARD_COUNT,
+                       mock_hwid_repo.LoadHWIDDBByName.call_count)
 
   def testUpdateBoardsWithBadData(self):
     manager = self._GetManager(load_blobstore=False, load_datastore=False)
-    git_fs = mock.Mock()
-    git_fs.ReadFile.side_effect = KeyError('Not found')
+    mock_hwid_repo = mock.create_autospec(hwid_repo.HWIDRepo, instance=True)
+    mock_hwid_repo.LoadHWIDDBByName.side_effect = hwid_repo.HWIDRepoError
 
-    self.assertRaises(hwid_manager.MetadataError, manager.UpdateBoards, git_fs,
-                      {'test': {}})
+    self.assertRaises(hwid_manager.MetadataError, manager.UpdateBoards,
+                      mock_hwid_repo,
+                      [hwid_repo.HWIDDBMetadata('test', 'test', 3, 'test')])
 
   def testGetAVLName(self):
     manager = self._GetManager(load_blobstore=False)
@@ -512,10 +502,8 @@ class HwidDataTest(unittest.TestCase):
     _mock.assert_called_once_with(mock.ANY)
 
   def testSeedWithBadFile(self):
-    self.assertRaises(
-        hwid_manager.MetadataError,
-        self.data._Seed,
-        hwid_file='non/existent/file')
+    self.assertRaises(hwid_manager.MetadataError, self.data._Seed,
+                      hwid_file='non/existent/file')
 
   def testSeedWithString(self):
     with mock.patch.object(self.data, '_SeedFromRawYaml') as _mock:
@@ -581,11 +569,8 @@ class HwidV2DataTest(unittest.TestCase):
   def testInvalidSeedData(self):
     """Tests that loading invalid data throws an error."""
 
-    self.assertRaises(
-        hwid_manager.MetadataError,
-        hwid_manager._HwidV2Data,
-        'CHROMEBOOK',
-        raw_hwid_yaml='{}')
+    self.assertRaises(hwid_manager.MetadataError, hwid_manager._HwidV2Data,
+                      'CHROMEBOOK', raw_hwid_yaml='{}')
 
   def testGetBom(self):
     """Tests fetching a BOM."""
@@ -640,33 +625,42 @@ class HwidV2DataTest(unittest.TestCase):
         'with_components': {'winbond_w25q32dw'}
     }), ({'BAKER', 'BLANCA'}, {
         'without_components': {'winbond_w25q32dw'}
-    }), ({'BRIDGE'}, {
-        'with_classes': {'cellular'},
-        'with_components': {'winbond_w25q32dw'}
-    }), ({'BAKER'}, {
-        'without_classes': {'cellular'},
-        'without_components': {'winbond_w25q32dw'}
-    }), ({'BLANCA'}, {
-        'with_classes': {'cellular'},
-        'without_components': {'winbond_w25q32dw'}
-    }), ({'BAXTER'}, {
-        'without_classes': {'cellular'},
-        'with_components': {'winbond_w25q32dw'}
-    }), (set(), {
-        'with_classes': {'FAKE_CLASS'}
-    }), ({'BAKER', 'BAXTER', 'BLANCA', 'BRIDGE'}, {
-        'without_classes': {'FAKE_CLASS'}
-    }), (set(), {
-        'with_components': {'FAKE_COMPONENT'}
-    }), ({'BAKER', 'BAXTER', 'BLANCA', 'BRIDGE'}, {
-        'without_components': {'FAKE_COMPONENT'}
-    }), ({'BAKER', 'BAXTER'}, {
-        'with_components': {'exynos_snow0'}
-    }), ({'BAKER', 'BLANCA'}, {
-        'with_components': {'exynos_snow1'}
-    }), ({'BAKER'}, {
-        'with_components': {'exynos_snow0', 'exynos_snow1'}
-    })]
+    }),
+                  ({'BRIDGE'}, {
+                      'with_classes': {'cellular'},
+                      'with_components': {'winbond_w25q32dw'}
+                  }),
+                  ({'BAKER'}, {
+                      'without_classes': {'cellular'},
+                      'without_components': {'winbond_w25q32dw'}
+                  }),
+                  ({'BLANCA'}, {
+                      'with_classes': {'cellular'},
+                      'without_components': {'winbond_w25q32dw'}
+                  }),
+                  ({'BAXTER'}, {
+                      'without_classes': {'cellular'},
+                      'with_components': {'winbond_w25q32dw'}
+                  }), (set(), {
+                      'with_classes': {'FAKE_CLASS'}
+                  }),
+                  ({'BAKER', 'BAXTER', 'BLANCA', 'BRIDGE'}, {
+                      'without_classes': {'FAKE_CLASS'}
+                  }), (set(), {
+                      'with_components': {'FAKE_COMPONENT'}
+                  }),
+                  ({'BAKER', 'BAXTER', 'BLANCA', 'BRIDGE'}, {
+                      'without_components': {'FAKE_COMPONENT'}
+                  }),
+                  ({'BAKER', 'BAXTER'}, {
+                      'with_components': {'exynos_snow0'}
+                  }),
+                  ({'BAKER', 'BLANCA'}, {
+                      'with_components': {'exynos_snow1'}
+                  }),
+                  ({'BAKER'}, {
+                      'with_components': {'exynos_snow0', 'exynos_snow1'}
+                  })]
 
     for hwids, filters in test_cases:
       self.assertEqual(hwids, self.data.GetHwids('CHROMEBOOK', **filters))
@@ -703,17 +697,20 @@ class HwidV2DataTest(unittest.TestCase):
                       self.data.GetComponentClasses, 'NOTCHROMEBOOK HWID')
 
     # Test with_classes filter
-    components = {'flash_chip': {'gigadevice_gd25lq32', 'winbond_w25q32dw'}}
-    self.assertEqual(components,
-                     self.data.GetComponents(
-                         'CHROMEBOOK', with_classes={'flash_chip'}))
+    components = {
+        'flash_chip': {'gigadevice_gd25lq32', 'winbond_w25q32dw'}
+    }
+    self.assertEqual(
+        components,
+        self.data.GetComponents('CHROMEBOOK', with_classes={'flash_chip'}))
     components = {
         'flash_chip': {'gigadevice_gd25lq32', 'winbond_w25q32dw'},
         'keyboard': {'kbd_us', 'kbd_gb'}
     }
-    self.assertEqual(components,
-                     self.data.GetComponents(
-                         'CHROMEBOOK', with_classes={'flash_chip', 'keyboard'}))
+    self.assertEqual(
+        components,
+        self.data.GetComponents('CHROMEBOOK',
+                                with_classes={'flash_chip', 'keyboard'}))
 
     # Test classes with multiple components
     components = {
@@ -721,9 +718,9 @@ class HwidV2DataTest(unittest.TestCase):
             'exynos_snow0', 'exynos_snow1', 'exynos_snow2', 'exynos_snow3'
         }
     }
-    self.assertEqual(components,
-                     self.data.GetComponents(
-                         'CHROMEBOOK', with_classes={'usb_hosts'}))
+    self.assertEqual(
+        components,
+        self.data.GetComponents('CHROMEBOOK', with_classes={'usb_hosts'}))
 
 
 class HwidV3DataTest(unittest.TestCase):
@@ -870,7 +867,10 @@ class BomTest(unittest.TestCase):
     self._AssertHasComponent('baz', 'qux')
 
   def testAddAllComponents(self):
-    self.bom.AddAllComponents({'foo': 'bar', 'baz': ['qux', 'rox']})
+    self.bom.AddAllComponents({
+        'foo': 'bar',
+        'baz': ['qux', 'rox']
+    })
 
     self._AssertHasComponent('foo', 'bar')
     self._AssertHasComponent('baz', 'qux')
@@ -929,41 +929,6 @@ class NormalizationTest(unittest.TestCase):
     self.assertEqual('ALPHA', hwid_manager._NormalizeString('ALPHA'))
     self.assertEqual('ALPHA', hwid_manager._NormalizeString('  alpha  '))
     self.assertEqual('BETA', hwid_manager._NormalizeString('beta'))
-
-
-class VerifyBoardMetadataTest(unittest.TestCase):
-  """Tests the _VerifyBoardMetadata function."""
-
-  def testVerifyBoardMetadata(self):
-    hwid_manager._VerifyBoardMetadata({})
-    hwid_manager._VerifyBoardMetadata({
-        'test': {
-            'path': 'file',
-            'version': 3,
-            'board': 'CHROMEBOOK'
-        }
-    })
-    self.assertRaises(hwid_manager.MetadataError,
-                      hwid_manager._VerifyBoardMetadata, {
-                          'test': {
-                              'version': 3,
-                              'board': 'CHROMEBOOK'
-                          }
-                      })
-    self.assertRaises(hwid_manager.MetadataError,
-                      hwid_manager._VerifyBoardMetadata, {
-                          'test': {
-                              'path': 'file',
-                              'board': 'CHROMEBOOK'
-                          }
-                      })
-    self.assertRaises(hwid_manager.MetadataError,
-                      hwid_manager._VerifyBoardMetadata, {
-                          'test': {
-                              'path': 'file',
-                              'version': 3
-                          }
-                      })
 
 
 if __name__ == '__main__':
