@@ -1,7 +1,6 @@
 # Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-
 """HWID Api definition.  Defines all the exposed API methods.
 
 This file is also the place that all the binding is done for various components.
@@ -33,7 +32,6 @@ from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
 # pylint: enable=import-error, no-name-in-module
 from cros.factory.probe_info_service.app_engine import protorpc_utils
 from cros.factory.utils import schema
-
 
 KNOWN_BAD_HWIDS = ['DUMMY_HWID', 'dummy_hwid']
 KNOWN_BAD_SUBSTR = [
@@ -76,6 +74,7 @@ def _GetBomAndConfigless(hwid, verbose=False):
 
 
 def _HandleGzipRequests(method):
+
   @functools.wraps(method)
   def _MethodWrapper(*args, **kwargs):
     if flask.request.content_encoding == 'gzip':
@@ -88,15 +87,15 @@ def _HandleGzipRequests(method):
 def _MapException(ex, cls):
   if isinstance(ex.__context__, schema.SchemaException):
     return cls(
-        errorMessage=str(ex), status=hwid_api_messages_pb2.Status.SCHEMA_ERROR)
+        error_message=str(ex), status=hwid_api_messages_pb2.Status.SCHEMA_ERROR)
   if isinstance(ex.__context__, yaml.error.YAMLError):
     return cls(
-        errorMessage=str(ex), status=hwid_api_messages_pb2.Status.YAML_ERROR)
+        error_message=str(ex), status=hwid_api_messages_pb2.Status.YAML_ERROR)
   if isinstance(ex.__context__, yaml.error.YAMLError):
     return cls(
-        errorMessage=str(ex), status=hwid_api_messages_pb2.Status.YAML_ERROR)
+        error_message=str(ex), status=hwid_api_messages_pb2.Status.YAML_ERROR)
   return cls(
-      errorMessage=str(ex), status=hwid_api_messages_pb2.Status.BAD_REQUEST)
+      error_message=str(ex), status=hwid_api_messages_pb2.Status.BAD_REQUEST)
 
 
 class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
@@ -154,13 +153,13 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
           fields.append(field)
 
       fields.sort(key=lambda field: field.name)
-      response.components.add(componentClass=component.cls, name=name,
+      response.components.add(component_class=component.cls, name=name,
                               fields=fields)
 
-    response.components.sort(key=operator.attrgetter('componentClass', 'name'))
+    response.components.sort(key=operator.attrgetter('component_class', 'name'))
 
     for label in bom.GetLabels():
-      response.labels.add(componentClass=label.cls, name=label.name,
+      response.labels.add(component_class=label.cls, name=label.name,
                           value=label.value)
     response.labels.sort(key=operator.attrgetter('name', 'value'))
 
@@ -187,7 +186,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
 
     return hwid_api_messages_pb2.SkuResponse(
         status=hwid_api_messages_pb2.Status.SUCCESS, board=sku['board'],
-        cpu=sku['cpu'], memoryInBytes=sku['total_bytes'],
+        cpu=sku['cpu'], memory_in_bytes=sku['total_bytes'],
         memory=sku['memory_str'], sku=sku['sku'])
 
   @protorpc_utils.ProtoRPCServiceMethod
@@ -197,10 +196,10 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
 
     board = request.board
 
-    with_classes = set(filter(None, request.withClasses))
-    without_classes = set(filter(None, request.withoutClasses))
-    with_components = set(filter(None, request.withComponents))
-    without_components = set(filter(None, request.withoutComponents))
+    with_classes = set(filter(None, request.with_classes))
+    without_classes = set(filter(None, request.without_classes))
+    with_components = set(filter(None, request.with_components))
+    without_components = set(filter(None, request.without_components))
 
     if (with_classes and without_classes and
         with_classes.intersection(without_classes)):
@@ -246,7 +245,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     logging.debug('Found component classes: %r', classes)
 
     return hwid_api_messages_pb2.ComponentClassesResponse(
-        status=hwid_api_messages_pb2.Status.SUCCESS, componentClasses=classes)
+        status=hwid_api_messages_pb2.Status.SUCCESS, component_classes=classes)
 
   @protorpc_utils.ProtoRPCServiceMethod
   @auth.RpcCheck
@@ -254,7 +253,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     """Return a filtered list of components for the given board."""
 
     board = request.board
-    with_classes = set(filter(None, request.withClasses))
+    with_classes = set(filter(None, request.with_classes))
 
     try:
       components = _hwid_manager.GetComponents(board, with_classes)
@@ -270,7 +269,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     for cls, comps in components.items():
       for comp in comps:
         components_list.append(
-            hwid_api_messages_pb2.Component(componentClass=cls, name=comp))
+            hwid_api_messages_pb2.Component(component_class=cls, name=comp))
 
     return hwid_api_messages_pb2.ComponentsResponse(
         status=hwid_api_messages_pb2.Status.SUCCESS, components=components_list)
@@ -287,10 +286,10 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
       A ValidateConfigAndUpdateResponse containing an error message if an error
       occurred.
     """
-    hwidConfigContents = request.hwidConfigContents
+    hwid_config_contents = request.hwid_config_contents
 
     try:
-      _hwid_validator.Validate(hwidConfigContents)
+      _hwid_validator.Validate(hwid_config_contents)
     except v3_validator.ValidationError as e:
       logging.exception('Validation failed')
       return _MapException(e, hwid_api_messages_pb2.ValidateConfigResponse)
@@ -312,14 +311,14 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
       responded if the component name follows the naming rule.
     """
 
-    hwidConfigContents = request.hwidConfigContents
-    prevHwidConfigContents = request.prevHwidConfigContents
+    hwid_config_contents = request.hwid_config_contents
+    prev_hwid_config_contents = request.prev_hwid_config_contents
 
-    updated_contents = update_checksum.ReplaceChecksum(hwidConfigContents)
+    updated_contents = update_checksum.ReplaceChecksum(hwid_config_contents)
 
     try:
       model, new_components = _hwid_validator.ValidateChange(
-          updated_contents, prevHwidConfigContents)
+          updated_contents, prev_hwid_config_contents)
 
     except v3_validator.ValidationError as e:
       logging.exception('Validation failed')
@@ -328,25 +327,26 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
 
     resp = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
         status=hwid_api_messages_pb2.Status.SUCCESS,
-        newHwidConfigContents=updated_contents, model=model)
+        new_hwid_config_contents=updated_contents, model=model)
 
     status_desc = (
         hwid_api_messages_pb2.NameChangedComponent.SupportStatus.DESCRIPTOR)
     for comp_cls, comps in new_components.items():
-      name_changed_ents = resp.nameChangedComponentsPerCategory.get_or_create(
-          comp_cls).entries
+      name_changed_ents = (
+          resp.name_changed_components_per_category.get_or_create(
+              comp_cls).entries)
       for name_changed_info in comps:
         status_val = status_desc.values_by_name.get(
             name_changed_info.status.upper())
         if status_val is None:
           return hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
               status=hwid_api_messages_pb2.Status.BAD_REQUEST,
-              errorMessage='Unknown status: \'%s\'' % name_changed_info.status)
+              error_message='Unknown status: \'%s\'' % name_changed_info.status)
         name_changed_ents.add(cid=name_changed_info.cid,
                               qid=name_changed_info.qid,
-                              supportStatus=status_val.number,
-                              componentName=name_changed_info.comp_name,
-                              hasCidQid=name_changed_info.has_cid_qid)
+                              support_status=status_val.number,
+                              component_name=name_changed_info.comp_name,
+                              has_cid_qid=name_changed_info.has_cid_qid)
     return resp
 
   @protorpc_utils.ProtoRPCServiceMethod

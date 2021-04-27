@@ -2,7 +2,6 @@
 # Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-
 """Tests for cros.hwid.service.appengine.hwid_api"""
 
 import os.path
@@ -22,12 +21,9 @@ from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
 # pylint: enable=import-error, no-name-in-module
 from cros.factory.utils import file_utils
 
-
 TEST_MODEL = 'FOO'
 TEST_HWID = 'Foo'
-TEST_HWID_CONTENT = ('prefix\n'
-                     'checksum: 1234\n'
-                     'suffix\n')
+TEST_HWID_CONTENT = 'prefix\nchecksum: 1234\nsuffix\n'
 EXPECTED_REPLACE_RESULT = update_checksum.ReplaceChecksum(TEST_HWID_CONTENT)
 GOLDEN_HWIDV3_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'testdata', 'v3-golden.yaml')
@@ -51,6 +47,7 @@ def _MockGetAVLName(unused_category, comp_name):
 
 def _MockGetPrimaryIdentifier(unused_model, unused_category, comp_name):
   return comp_name
+
 
 # pylint: disable=protected-access
 class HwidApiTest(unittest.TestCase):
@@ -168,11 +165,11 @@ class HwidApiTest(unittest.TestCase):
         hwid_api_messages_pb2.BomResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS, components=[
                 hwid_api_messages_pb2.Component(name='qux',
-                                                componentClass='baz'),
+                                                component_class='baz'),
                 hwid_api_messages_pb2.Component(name='rox',
-                                                componentClass='baz'),
+                                                component_class='baz'),
                 hwid_api_messages_pb2.Component(name='bar',
-                                                componentClass='foo'),
+                                                component_class='foo'),
             ]), msg)
 
   def testGetDutLabelsCheckIsVPRelated(self):
@@ -242,7 +239,7 @@ class HwidApiTest(unittest.TestCase):
         hwid_api_messages_pb2.BomResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS, components=[
                 hwid_api_messages_pb2.Component(
-                    name='battery_small', componentClass='battery', fields=[
+                    name='battery_small', component_class='battery', fields=[
                         hwid_api_messages_pb2.Field(name='manufacturer',
                                                     value='manufacturer1'),
                         hwid_api_messages_pb2.Field(name='model_name',
@@ -251,7 +248,7 @@ class HwidApiTest(unittest.TestCase):
                                                     value='Battery Li-ion')
                     ]),
                 hwid_api_messages_pb2.Component(
-                    name='camera_0', componentClass='camera', fields=[
+                    name='camera_0', component_class='camera', fields=[
                         hwid_api_messages_pb2.Field(name='idProduct',
                                                     value='abcd'),
                         hwid_api_messages_pb2.Field(name='idVendor',
@@ -259,13 +256,13 @@ class HwidApiTest(unittest.TestCase):
                         hwid_api_messages_pb2.Field(name='name', value='Camera')
                     ]),
                 hwid_api_messages_pb2.Component(
-                    name='cpu_0', componentClass='cpu', fields=[
+                    name='cpu_0', component_class='cpu', fields=[
                         hwid_api_messages_pb2.Field(name='cores', value='4'),
                         hwid_api_messages_pb2.Field(name='name',
                                                     value='CPU @ 1.80GHz')
                     ]),
                 hwid_api_messages_pb2.Component(
-                    name='cpu_1', componentClass='cpu', fields=[
+                    name='cpu_1', component_class='cpu', fields=[
                         hwid_api_messages_pb2.Field(name='cores', value='4'),
                         hwid_api_messages_pb2.Field(name='name',
                                                     value='CPU @ 2.00GHz')
@@ -292,10 +289,10 @@ class HwidApiTest(unittest.TestCase):
     self.assertEqual(
         hwid_api_messages_pb2.BomResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS, labels=[
-                hwid_api_messages_pb2.Label(componentClass='foo', name='bar'),
-                hwid_api_messages_pb2.Label(componentClass='baz', name='qux',
+                hwid_api_messages_pb2.Label(component_class='foo', name='bar'),
+                hwid_api_messages_pb2.Label(component_class='baz', name='qux',
                                             value='1'),
-                hwid_api_messages_pb2.Label(componentClass='baz', name='rox',
+                hwid_api_messages_pb2.Label(component_class='baz', name='rox',
                                             value='2'),
             ]), msg)
 
@@ -334,8 +331,8 @@ class HwidApiTest(unittest.TestCase):
             error='Invalid input: %s' % TEST_HWID), msg)
 
     req = hwid_api_messages_pb2.HwidsRequest(board=TEST_HWID,
-                                             withClasses=['foo', 'bar'],
-                                             withoutClasses=['bar', 'baz'])
+                                             with_classes=['foo', 'bar'],
+                                             without_classes=['bar', 'baz'])
     msg = self.service.GetHwids(req)
 
     self.assertEqual(
@@ -345,8 +342,8 @@ class HwidApiTest(unittest.TestCase):
             'without'), msg)
 
     req = hwid_api_messages_pb2.HwidsRequest(board=TEST_HWID,
-                                             withComponents=['foo', 'bar'],
-                                             withoutComponents=['bar', 'baz'])
+                                             with_components=['foo', 'bar'],
+                                             without_components=['bar', 'baz'])
     msg = self.service.GetHwids(req)
 
     self.assertEqual(
@@ -365,7 +362,7 @@ class HwidApiTest(unittest.TestCase):
     self.assertEqual(
         hwid_api_messages_pb2.ComponentClassesResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS,
-            componentClasses=['alfa', 'bravo', 'charlie']), msg)
+            component_classes=['alfa', 'bravo', 'charlie']), msg)
 
   def testGetComponentClassesEmpty(self):
     classes = list()
@@ -399,13 +396,13 @@ class HwidApiTest(unittest.TestCase):
     self.assertEqual(
         hwid_api_messages_pb2.ComponentsResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS, components=[
-                hwid_api_messages_pb2.Component(componentClass='uno',
+                hwid_api_messages_pb2.Component(component_class='uno',
                                                 name='alfa'),
-                hwid_api_messages_pb2.Component(componentClass='dos',
+                hwid_api_messages_pb2.Component(component_class='dos',
                                                 name='bravo'),
-                hwid_api_messages_pb2.Component(componentClass='tres',
+                hwid_api_messages_pb2.Component(component_class='tres',
                                                 name='charlie'),
-                hwid_api_messages_pb2.Component(componentClass='tres',
+                hwid_api_messages_pb2.Component(component_class='tres',
                                                 name='delta'),
             ]), msg)
 
@@ -437,7 +434,8 @@ class HwidApiTest(unittest.TestCase):
   def testValidateConfig(self, patch_hwid_validator):
     patch_hwid_validator.Validate = mock.Mock()
 
-    req = hwid_api_messages_pb2.ValidateConfigRequest(hwidConfigContents='test')
+    req = hwid_api_messages_pb2.ValidateConfigRequest(
+        hwid_config_contents='test')
     msg = self.service.ValidateConfig(req)
 
     self.assertEqual(
@@ -449,26 +447,27 @@ class HwidApiTest(unittest.TestCase):
     patch_hwid_validator.Validate = mock.Mock(
         side_effect=v3_validator.ValidationError('msg'))
 
-    req = hwid_api_messages_pb2.ValidateConfigRequest(hwidConfigContents='test')
+    req = hwid_api_messages_pb2.ValidateConfigRequest(
+        hwid_config_contents='test')
     msg = self.service.ValidateConfig(req)
 
     self.assertEqual(
         hwid_api_messages_pb2.ValidateConfigResponse(
             status=hwid_api_messages_pb2.Status.BAD_REQUEST,
-            errorMessage='msg'), msg)
+            error_message='msg'), msg)
 
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
   def testValidateConfigAndUpdateChecksum(self, patch_hwid_validator):
     patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {})
 
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
-        hwidConfigContents=TEST_HWID_CONTENT)
+        hwid_config_contents=TEST_HWID_CONTENT)
     msg = self.service.ValidateConfigAndUpdateChecksum(req)
 
     self.assertEqual(
         hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS,
-            newHwidConfigContents=EXPECTED_REPLACE_RESULT, model=TEST_MODEL),
+            new_hwid_config_contents=EXPECTED_REPLACE_RESULT, model=TEST_MODEL),
         msg)
 
   @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
@@ -488,7 +487,7 @@ class HwidApiTest(unittest.TestCase):
     })
 
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
-        hwidConfigContents=TEST_HWID_CONTENT)
+        hwid_config_contents=TEST_HWID_CONTENT)
     msg = self.service.ValidateConfigAndUpdateChecksum(req)
 
     supported = hwid_api_messages_pb2.NameChangedComponent.SUPPORTED
@@ -497,20 +496,22 @@ class HwidApiTest(unittest.TestCase):
     self.assertEqual(
         hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS,
-            newHwidConfigContents=EXPECTED_REPLACE_RESULT,
-            nameChangedComponentsPerCategory={
+            new_hwid_config_contents=EXPECTED_REPLACE_RESULT,
+            name_changed_components_per_category={
                 'wireless':
                     hwid_api_messages_pb2.NameChangedComponents(entries=[
                         hwid_api_messages_pb2.NameChangedComponent(
-                            cid=1234, qid=5678, supportStatus=supported,
-                            componentName='wireless_1234_5678', hasCidQid=True),
+                            cid=1234, qid=5678, support_status=supported,
+                            component_name='wireless_1234_5678',
+                            has_cid_qid=True),
                         hwid_api_messages_pb2.NameChangedComponent(
-                            cid=1111, qid=2222, supportStatus=unqualified,
-                            componentName='wireless_1111_2222', hasCidQid=True),
+                            cid=1111, qid=2222, support_status=unqualified,
+                            component_name='wireless_1111_2222',
+                            has_cid_qid=True),
                         hwid_api_messages_pb2.NameChangedComponent(
-                            cid=0, qid=0, supportStatus=supported,
-                            componentName='wireless_hello_world',
-                            hasCidQid=False)
+                            cid=0, qid=0, support_status=supported,
+                            component_name='wireless_hello_world',
+                            has_cid_qid=False)
                     ])
             }, model=TEST_MODEL), msg)
 
@@ -520,23 +521,23 @@ class HwidApiTest(unittest.TestCase):
         side_effect=v3_validator.ValidationError('msg'))
 
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
-        hwidConfigContents=TEST_HWID_CONTENT)
+        hwid_config_contents=TEST_HWID_CONTENT)
     msg = self.service.ValidateConfigAndUpdateChecksum(req)
 
     self.assertEqual(
         hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
             status=hwid_api_messages_pb2.Status.BAD_REQUEST,
-            errorMessage='msg'), msg)
+            error_message='msg'), msg)
 
   def testValidateConfigAndUpdateChecksumSyntaxError(self):
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
-        hwidConfigContents=HWIDV3_CONTENT_SYNTAX_ERROR_CHANGE,
-        prevHwidConfigContents=GOLDEN_HWIDV3_CONTENT)
+        hwid_config_contents=HWIDV3_CONTENT_SYNTAX_ERROR_CHANGE,
+        prev_hwid_config_contents=GOLDEN_HWIDV3_CONTENT)
     msg = self.service.ValidateConfigAndUpdateChecksum(req)
 
     self.assertEqual(
         hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
-            status=hwid_api_messages_pb2.Status.YAML_ERROR, errorMessage=(
+            status=hwid_api_messages_pb2.Status.YAML_ERROR, error_message=(
                 'while parsing a block mapping\n'
                 '  in "<unicode string>", line 73, column 3:\n'
                 '      audio_codec:\n'
@@ -548,13 +549,13 @@ class HwidApiTest(unittest.TestCase):
 
   def testValidateConfigAndUpdateChecksumSchemaError(self):
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
-        hwidConfigContents=HWIDV3_CONTENT_SCHEMA_ERROR_CHANGE,
-        prevHwidConfigContents=GOLDEN_HWIDV3_CONTENT)
+        hwid_config_contents=HWIDV3_CONTENT_SCHEMA_ERROR_CHANGE,
+        prev_hwid_config_contents=GOLDEN_HWIDV3_CONTENT)
     msg = self.service.ValidateConfigAndUpdateChecksum(req)
 
     self.assertEqual(
         hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
-            status=hwid_api_messages_pb2.Status.SCHEMA_ERROR, errorMessage=(
+            status=hwid_api_messages_pb2.Status.SCHEMA_ERROR, error_message=(
                 '''OrderedDict([('model', OrderedDict([('model0', 'object')])'''
                 '''), ('vendor', 'vendor0'), ('serial', Value('^#123\\\\d+$','''
                 ''' is_re=True))]) does not match any type in [Dict('probed k'''
@@ -578,13 +579,13 @@ class HwidApiTest(unittest.TestCase):
         ]
     })
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
-        hwidConfigContents=TEST_HWID_CONTENT)
+        hwid_config_contents=TEST_HWID_CONTENT)
     msg = self.service.ValidateConfigAndUpdateChecksum(req)
 
     self.assertEqual(
         hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
             status=hwid_api_messages_pb2.Status.BAD_REQUEST,
-            errorMessage='Unknown status: \'new_status\''), msg)
+            error_message='Unknown status: \'new_status\''), msg)
 
   @mock.patch.object(hwid_util, 'GetTotalRamFromHwidData')
   def testGetSku(self, mock_get_total_ram):
@@ -604,7 +605,7 @@ class HwidApiTest(unittest.TestCase):
     self.assertEqual(
         hwid_api_messages_pb2.SkuResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS, board='foo',
-            cpu='bar1_bar2', memory='1Mb', memoryInBytes=100000000,
+            cpu='bar1_bar2', memory='1Mb', memory_in_bytes=100000000,
             sku='foo_bar1_bar2_1Mb'), msg)
 
   @mock.patch.object(hwid_util, 'GetTotalRamFromHwidData')
@@ -627,7 +628,7 @@ class HwidApiTest(unittest.TestCase):
     self.assertEqual(
         hwid_api_messages_pb2.SkuResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS, board='foo',
-            cpu='bar1_bar2', memory='4GB', memoryInBytes=4294967296,
+            cpu='bar1_bar2', memory='4GB', memory_in_bytes=4294967296,
             sku='foo_bar1_bar2_4GB'), msg)
 
   @mock.patch.object(hwid_util, 'GetTotalRamFromHwidData')
@@ -664,7 +665,7 @@ class HwidApiTest(unittest.TestCase):
     self.assertEqual(
         hwid_api_messages_pb2.SkuResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS, board='foo',
-            memoryInBytes=2000000, memory='2Mb', sku='foo_None_2Mb'), msg)
+            memory_in_bytes=2000000, memory='2Mb', sku='foo_None_2Mb'), msg)
 
   @mock.patch.object(hwid_util, 'GetSkuFromBom')
   def testGetDutLabels(self, mock_get_sku_from_bom):
