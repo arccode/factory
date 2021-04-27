@@ -127,9 +127,11 @@ class AudioBasicTest(test_case.TestCase):
         with file_utils.UnopenedTemporaryFile(suffix='.wav') as wav_path:
           # Get channel channel_idx from full_wav_path to a stereo wav_path
           # Since most devices support 2 channels.
+          remix_option = ['0'] * self.args.output_channels
+          remix_option[channel_idx - 1] = str(channel_idx)
           process_utils.Spawn(
-              ['sox', full_wav_path, wav_path, 'remix', str(channel_idx),
-               str(channel_idx)], log=True, check_call=True)
+              ['sox', full_wav_path, wav_path, 'remix'] + remix_option,
+              log=True, check_call=True)
           with self._dut.temp.TempFile() as dut_path:
             self._dut.link.Push(wav_path, dut_path)
             self.ui.SetState(
