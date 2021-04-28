@@ -68,11 +68,18 @@ class ChromeOSCamera(camera.Camera):
       camera_id = re.findall(
           r'^camera(\d+)\.module\d+\.usb_vid_pid=%s$' % vid_pid,
           camera_config, re.IGNORECASE | re.MULTILINE)
-      if len(set(camera_id)) > 1:
+      if len(camera_id) > 1:
         raise CameraError(
-            'Multiple cameras have the same usb_vid_pid (%s)' % vid_pid)
+            'Multiple cameras have the same usb_vid_pid (%s)'
+            ' There are duplicated usb_vid_pid in the'
+            ' camera_characteristics.conf file. Please submit'
+            ' a CL to fix this. See sample CL at https://crrev.com/c/419375' %
+            vid_pid)
       if not camera_id:
-        raise CameraError('No camera has the usb_vid_pid (%s)' % vid_pid)
+        raise CameraError(
+            'No camera has the usb_vid_pid (%s)'
+            ' Please submit a CL to update the camera_characteristics.conf'
+            ' file. See sample CL at https://crrev.com/c/419375' % vid_pid)
       camera_id = int(camera_id[0])
       index_to_camera_id[index] = camera_id
 
