@@ -69,6 +69,7 @@ class HwidMetadata(ndb.Model):  # pylint: disable=no-init
   board = ndb.StringProperty()
   path = ndb.StringProperty()
   version = ndb.StringProperty()
+  project = ndb.StringProperty()
 
 
 class CLNotification(ndb.Model):  # pylint: disable=no-init
@@ -607,7 +608,8 @@ class HwidManager:
         metadata.board = board
         metadata.version = str(version)
       else:
-        metadata = HwidMetadata(board=board, version=str(version), path=path)
+        metadata = HwidMetadata(board=board, version=str(version), path=path,
+                                project=board)
 
       metadata.put()
 
@@ -697,6 +699,7 @@ class HwidManager:
         else:
           new_data = hwid_db_metadata_of_name[hwid_metadata.board]
           hwid_metadata.version = str(new_data.version)
+          hwid_metadata.project = new_data.name
           self._ActivateFile(live_hwid_repo, new_data.name, hwid_metadata.path)
           hwid_metadata.put()
 
@@ -705,7 +708,8 @@ class HwidManager:
       new_data = hwid_db_metadata_of_name[board]
       version = str(new_data.version)
       with self._ndb_client.context(global_cache=self._global_cache):
-        metadata = HwidMetadata(board=board, version=version, path=path)
+        metadata = HwidMetadata(board=board, version=version, path=path,
+                                project=board)
         self._ActivateFile(live_hwid_repo, board, path)
         metadata.put()
 

@@ -54,8 +54,8 @@ class HwidManagerTest(unittest.TestCase):
   def _LoadTestDataStore(self, manager):
     """Loads up the datastore with metadata about one board."""
     with manager._ndb_client.context():
-      hwid_manager.HwidMetadata(board='CHROMEBOOK', path='v2',
-                                version='2').put()
+      hwid_manager.HwidMetadata(board='CHROMEBOOK', path='v2', version='2',
+                                project='CHROMEBOOK').put()
       hwid_manager.AVLNameMapping(category='category1', component_id=1234,
                                   name='comp_name1').put()
       hwid_manager.AVLNameMapping(category='category1', component_id=5678,
@@ -339,9 +339,10 @@ class HwidManagerTest(unittest.TestCase):
     manager = self._GetManager(adapter=mock_storage, load_datastore=False)
 
     with manager._ndb_client.context():
-      hwid_manager.HwidMetadata(board='old', path='old_file', version='2').put()
-      hwid_manager.HwidMetadata(board='update', path='update_file',
-                                version='2').put()
+      hwid_manager.HwidMetadata(board='old', path='old_file', version='2',
+                                project='old').put()
+      hwid_manager.HwidMetadata(board='update', path='update_file', version='2',
+                                project='update').put()
 
     manager.UpdateBoards(mock_hwid_repo, [
         hwid_repo.HWIDDBMetadata('update', 'update_file - updated', 2, 'path1'),
@@ -385,10 +386,12 @@ class HwidManagerTest(unittest.TestCase):
     with manager._ndb_client.context():
       for i in range(BOARD_COUNT):
         hwid_manager.HwidMetadata(board='old_file' + str(i),
-                                  path='old' + str(i), version='2').put()
+                                  path='old' + str(i), version='2',
+                                  project='old_file').put()
 
         hwid_manager.HwidMetadata(board='update_file' + str(i),
-                                  path='update' + str(i), version='2').put()
+                                  path='update' + str(i), version='2',
+                                  project='update_file').put()
 
       deletefile_calls = [
           mock.call('live/old' + str(i)) for i in range(BOARD_COUNT)
