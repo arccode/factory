@@ -92,4 +92,5 @@ install: $(INSTALL_TARGET) $(CHROMITE_INSTALL_TARGET)
 
 	# TODO(chungsheng): b/180554195, remove this workaround after splitting
 	# chromite.
-	touch $(DEST_LIB_PATH)/py_pkg/chromite/lib/firmware/servo_lib.py
+	cp -P $(FACTORY_SRC_PATH)/hwid_extractor/servo_lib.py \
+		$(DEST_LIB_PATH)/py_pkg/chromite/lib/firmware/servo_lib.py
