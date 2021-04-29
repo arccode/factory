@@ -54,7 +54,7 @@ There should be exactly one file in this folder, with arbitrary file name.
 * This file will be imported by factory server as release image.
 * `factory_installer` will deploy release image into DUTs.
 
-You can get release images from CPFE (select image type `RECOVERY_IMAGE`).
+You can get release images from [CPFE] (select image type `RECOVERY_IMAGE`).
 
 ### test_image/
 
@@ -63,7 +63,7 @@ There should be exactly one file in this folder, with arbitrary file name.
 * This file will be imported by factory server as test image.
 * `factory_installer` will deploy test image into DUTs.
 
-You can get test images from CPFE (select image type `TEST_IMAGE_ARCHIVE`).
+You can get test images from [CPFE] (select image type `TEST_IMAGE_ARCHIVE`).
 
 ### toolkit/
 
@@ -73,7 +73,7 @@ There should be exactly one file in this folder, with arbitrary file name.
 * `factory_installer` will deploy factory toolkit into DUTs.
 * Goofy will try to update factory toolkit when running pytest `sync_shopfloor`.
 
-You can get factory toolkit installers from CPFE (select image type
+You can get factory toolkit installers from [CPFE] (select image type
 `FACTORY_IMAGE_ARCHIVE`)
 
 ### hwid/
@@ -84,7 +84,8 @@ There should be exactly one file in this folder, with arbitrary file name.
 * `factory_installer` will deploy HWID bundle into DUTs.
 * Goofy will try to update HWID bundle when running some specific pytests.
 
-You can get HWID bundles from CPFE (select image type `FACTORY_IMAGE_ARCHIVE`).
+You can get HWID bundles from [Chrome OS Device Lifecycle Manager][DLM] (select
+your device -> `Files` -> `Add a filter` -> `HWID_BUNDLE`).
 
 ### firmware/
 
@@ -402,3 +403,6 @@ Finally, run `finalize_bundle`:
     /path/to/factory/bin/finalize_bundle .
 
 After minutes, you will get a complete factory bundle. Cheers!
+
+[CPFE]: https://www.google.com/chromeos/partner/fe/
+[DLM]: https://chromeos.google.com/partner/dlm/device/list
