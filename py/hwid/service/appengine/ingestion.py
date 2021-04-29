@@ -4,7 +4,6 @@
 """Handler for ingestion."""
 
 import collections
-import http
 import json
 import logging
 import os
@@ -38,8 +37,7 @@ class PayloadGenerationException(protorpc_utils.ProtoRPCException):
 
   def __init__(self, msg):
     super(PayloadGenerationException, self).__init__(
-        status=http.HTTPStatus.INTERNAL_SERVER_ERROR,
-        code=protorpc_utils.RPC_CODE_INTERNAL, detail=msg)
+        protorpc_utils.RPCCanonicalErrorCode.INTERNAL, detail=msg)
 
 
 class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
@@ -135,8 +133,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     except hwid_repo.HWIDRepoError as ex:
       logging.error('Got exception from HWID repo: %r.', ex)
       raise protorpc_utils.ProtoRPCException(
-          status=http.HTTPStatus.INTERNAL_SERVER_ERROR,
-          code=protorpc_utils.RPC_CODE_INTERNAL,
+          protorpc_utils.RPCCanonicalErrorCode.INTERNAL,
           detail='Got exception from HWID repo.') from None
 
     self.hwid_manager.ReloadMemcacheCacheFromFiles(
@@ -188,8 +185,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     except filesystem_adapter.FileSystemAdapterException:
       logging.exception('Missing all_devices.json file during refresh.')
       raise protorpc_utils.ProtoRPCException(
-          status=http.HTTPStatus.INTERNAL_SERVER_ERROR,
-          code=protorpc_utils.RPC_CODE_INTERNAL,
+          protorpc_utils.RPCCanonicalErrorCode.INTERNAL,
           detail='Missing all_devices.json file during refresh.')
 
     return ingestion_pb2.IngestDevicesVariantsResponse()

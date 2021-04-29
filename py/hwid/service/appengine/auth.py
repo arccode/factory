@@ -60,7 +60,6 @@ def RpcCheck(func):
       return func(*args, **kwargs)
 
     raise protorpc_utils.ProtoRPCException(
-        status=http.HTTPStatus.FORBIDDEN,
-        code=protorpc_utils.RPC_CODE_PERMISSION_DENIED)
+        protorpc_utils.RPCCanonicalErrorCode.PERMISSION_DENIED)
 
   return _MethodWrapper

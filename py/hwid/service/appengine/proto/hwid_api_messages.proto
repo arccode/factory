@@ -10,6 +10,7 @@ enum Status {
   SCHEMA_ERROR = 5;
   YAML_ERROR = 6;
   SERVER_ERROR = 7;
+  VALIDATION_EXPIRED = 8;
 }
 
 // A component of a BOM.
@@ -236,6 +237,16 @@ message DutLabelsResponse {
   Status status = 4;
 }
 
+message GetHwidDbEditableSectionRequest {
+  // The board as a string.
+  string board = 1;
+}
+
+message GetHwidDbEditableSectionResponse {
+  // The editable section of the queried HWID DB.
+  string hwid_db_editable_section = 1;
+}
+
 service HwidService {
   rpc GetProjects(ProjectsRequest) returns (ProjectsResponse);
 
@@ -256,4 +267,7 @@ service HwidService {
       returns (ValidateConfigAndUpdateChecksumResponse);
 
   rpc GetDutLabels(DutLabelsRequest) returns (DutLabelsResponse);
+
+  rpc GetHwidDbEditableSection(GetHwidDbEditableSectionRequest)
+      returns (GetHwidDbEditableSectionResponse);
 }

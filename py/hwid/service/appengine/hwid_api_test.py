@@ -5,12 +5,14 @@
 """Tests for cros.hwid.service.appengine.hwid_api"""
 
 import os.path
+import textwrap
 import unittest
 from unittest import mock
 
 from cros.chromeoshwid import update_checksum
 from cros.factory.hwid.service.appengine import hwid_api
 from cros.factory.hwid.service.appengine import hwid_manager
+from cros.factory.hwid.service.appengine import hwid_repo
 from cros.factory.hwid.service.appengine import hwid_util
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import database
@@ -19,7 +21,9 @@ from cros.factory.hwid.v3 import verify_db_pattern
 # pylint: disable=import-error, no-name-in-module
 from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
 # pylint: enable=import-error, no-name-in-module
+from cros.factory.probe_info_service.app_engine import protorpc_utils
 from cros.factory.utils import file_utils
+
 
 TEST_MODEL = 'FOO'
 TEST_HWID = 'Foo'
@@ -60,6 +64,10 @@ class HwidApiTest(unittest.TestCase):
 
     patcher = mock.patch('__main__.hwid_api._goldeneye_memcache_adapter')
     self.patch_goldeneye_memcache_adapter = patcher.start()
+    self.addCleanup(patcher.stop)
+
+    patcher = mock.patch('__main__.hwid_api._hwid_repo_manager')
+    self.patch_hwid_repo_manager = patcher.start()
     self.addCleanup(patcher.stop)
 
     self.service = hwid_api.ProtoRPCService()
@@ -743,7 +751,11 @@ class HwidApiTest(unittest.TestCase):
     bom = hwid_manager.Bom()
     bom.project = 'foo'
     bom.phase = 'bar'
-    configless = {'feature_list': {'has_touchscreen': 1}}
+    configless = {
+        'feature_list': {
+            'has_touchscreen': 1
+        }
+    }
     self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
 
     mock_get_sku_from_bom.return_value = {
@@ -782,6 +794,60 @@ class HwidApiTest(unittest.TestCase):
                 'touchscreen',
                 'variant',
             ]), msg)
+
+  def testGetHwidDbEditableSectionBoardDoesntExist(self):
+    live_hwid_repo = self.patch_hwid_repo_manager.GetLiveHWIDRepo.return_value
+    live_hwid_repo.GetHWIDDBMetadataByName.side_effect = ValueError
+
+    req = hwid_api_messages_pb2.GetHwidDbEditableSectionRequest(
+        board='test_board')
+
+    with self.assertRaises(protorpc_utils.ProtoRPCException) as ex:
+      self.service.GetHwidDbEditableSection(req)
+
+    self.assertEqual(ex.exception.code,
+                     protorpc_utils.RPCCanonicalErrorCode.NOT_FOUND)
+
+  def testGetHwidDbEditableSectionNotV3(self):
+    live_hwid_repo = self.patch_hwid_repo_manager.GetLiveHWIDRepo.return_value
+    live_hwid_repo.GetHWIDDBMetadataByName.return_value = (
+        hwid_repo.HWIDDBMetadata('test_board', 'test_board', 2,
+                                 'v2/test_board'))
+
+    req = hwid_api_messages_pb2.GetHwidDbEditableSectionRequest(
+        board='test_board')
+
+    with self.assertRaises(protorpc_utils.ProtoRPCException) as ex:
+      self.service.GetHwidDbEditableSection(req)
+
+    self.assertEqual(ex.exception.code,
+                     protorpc_utils.RPCCanonicalErrorCode.FAILED_PRECONDITION)
+
+  def testGetHwidDbEditableSectionSuccess(self):
+    live_hwid_repo = self.patch_hwid_repo_manager.GetLiveHWIDRepo.return_value
+    live_hwid_repo.GetHWIDDBMetadataByName.return_value = (
+        hwid_repo.HWIDDBMetadata('test_board', 'test_board', 3,
+                                 'v3/test_board'))
+    live_hwid_repo.LoadHWIDDBByName.return_value = textwrap.dedent("""\
+        # some prefix
+        checksum: "string"
+
+        image_id:
+          line0
+
+          line1
+          line2\r
+        line3
+
+        """)
+
+    req = hwid_api_messages_pb2.GetHwidDbEditableSectionRequest(
+        board='test_board')
+    resp = self.service.GetHwidDbEditableSection(req)
+
+    self.assertEqual(
+        resp.hwid_db_editable_section,
+        '\n'.join(['image_id:', '  line0', '', '  line1', '  line2', 'line3']))
 
   def CheckForLabelValue(self, response, label_to_check_for,
                          value_to_check_for=None):

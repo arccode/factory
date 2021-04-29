@@ -82,6 +82,13 @@ class HWIDRepo:
     """Returns a list of metadata of HWID DBs recorded in the HWID repo."""
     return list(self._hwid_db_metadata_of_name.values())
 
+  def GetHWIDDBMetadataByName(self, name):
+    """Returns the metadata of the specific HWID DB in the HWID repo."""
+    try:
+      return self._hwid_db_metadata_of_name[name]
+    except KeyError:
+      raise ValueError(f'invalid HWID DB name: {name}') from None
+
   def LoadHWIDDBByName(self, name):
     """Reads out the specific HWID DB content.
 

@@ -2,27 +2,32 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import enum
+import http
 import logging
 import uuid
 
 # pylint: disable=wrong-import-order
 import flask
 from google.protobuf import symbol_database
+
 # pylint: enable=wrong-import-order
 
 
-# Referenced from google.rpc.code
-RPC_CODE_PERMISSION_DENIED = 7
-RPC_CODE_INTERNAL = 13
+# Referenced from https://grpc.github.io/grpc/core/md_doc_statuscodes.html
+class RPCCanonicalErrorCode(enum.Enum):
+  PERMISSION_DENIED = (7, http.HTTPStatus.FORBIDDEN)
+  INTERNAL = (13, http.HTTPStatus.INTERNAL_SERVER_ERROR)
+  NOT_FOUND = (5, http.HTTPStatus.NOT_FOUND)
+  FAILED_PRECONDITION = (9, http.HTTPStatus.BAD_REQUEST)
 
 
 class ProtoRPCException(Exception):
   """RPC exceptions with addition information to set error status/code in stubby
   requests."""
 
-  def __init__(self, status, code, detail=None):
+  def __init__(self, code, detail=None):
     super(ProtoRPCException, self).__init__()
-    self.status = status
     self.code = code
     self.detail = detail
 
@@ -34,6 +39,7 @@ class _ProtoRPCServiceBaseMeta(type):
   service descriptor object into a friendly data structure for information
   looking up in runtime.
   """
+
   # pylint: disable=return-in-init
   def __init__(cls, name, bases, attrs, **kwargs):
     service_descriptor = attrs.get('SERVICE_DESCRIPTOR')
@@ -65,6 +71,7 @@ class ProtoRPCServiceBase(metaclass=_ProtoRPCServiceBaseMeta):
 
 class _ProtoRPCServiceMethodSpec:
   """Placeholder for spec of a ProtoRPC method."""
+
   def __init__(self, request_type, response_type):
     self.request_type = request_type
     self.response_type = response_type
@@ -76,6 +83,7 @@ def ProtoRPCServiceMethod(method):
   It wraps the target method with type-checking assertions as well as attaching
   additional a spec information placeholder.
   """
+
   def wrapper(self, request):
     assert isinstance(request, wrapper.rpc_method_spec.request_type)
     logging.info("Request:\n%s", request)
@@ -109,22 +117,23 @@ class _ProtoRPCServiceFlaskAppViewFunc:
       response_msg = method(request_msg)
       response_raw_body = response_msg.SerializeToString()
     except ProtoRPCException as ex:
-      resp = flask.Response(status=ex.status)
-      resp.headers['RPC-Canonical-Code'] = ex.code
+      rpc_code, http_code = ex.code.value
+      resp = flask.Response(status=http_code)
+      resp.headers['RPC-Canonical-Code'] = rpc_code
       if ex.detail:
         resp.headers['RPC-Error-Detail'] = ex.detail
       return resp
     except Exception:
       logging.exception('Caught exception from RPC method %r.', method_name)
-      return flask.Response(status=500)
+      return flask.Response(status=http.HTTPStatus.INTERNAL_SERVER_ERROR)
 
     response = flask.Response(response=response_raw_body)
     response.headers['Content-type'] = 'application/octet-stream'
     return response
 
 
-def RegisterProtoRPCServiceToFlaskApp(
-    app_inst, path, service_inst, service_name=None):
+def RegisterProtoRPCServiceToFlaskApp(app_inst, path, service_inst,
+                                      service_name=None):
   """Register the given ProtoRPC service to the given flask app.
 
   Args:
@@ -138,6 +147,6 @@ def RegisterProtoRPCServiceToFlaskApp(
   service_name = service_name or service_inst.SERVICE_DESCRIPTOR.name
   endpoint_name = '__protorpc_service_view_func_' + str(uuid.uuid1())
   view_func = _ProtoRPCServiceFlaskAppViewFunc(service_inst)
-  app_inst.add_url_rule(
-      '%s/%s.<method_name>' % (path, service_name), endpoint=endpoint_name,
-      view_func=view_func, methods=['POST'])
+  app_inst.add_url_rule('%s/%s.<method_name>' % (path, service_name),
+                        endpoint=endpoint_name, view_func=view_func,
+                        methods=['POST'])

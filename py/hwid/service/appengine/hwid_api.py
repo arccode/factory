@@ -21,6 +21,7 @@ import yaml
 from cros.chromeoshwid import update_checksum
 from cros.factory.hwid.service.appengine import auth
 from cros.factory.hwid.service.appengine.config import CONFIG
+from cros.factory.hwid.service.appengine import hwid_repo
 from cros.factory.hwid.service.appengine import hwid_util
 from cros.factory.hwid.service.appengine import hwid_validator
 from cros.factory.hwid.service.appengine import ingestion
@@ -33,6 +34,7 @@ from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
 from cros.factory.probe_info_service.app_engine import protorpc_utils
 from cros.factory.utils import schema
 
+
 KNOWN_BAD_HWIDS = ['DUMMY_HWID', 'dummy_hwid']
 KNOWN_BAD_SUBSTR = [
     '.*TEST.*', '.*CHEETS.*', '^SAMS .*', '.* DEV$', '.*DOGFOOD.*'
@@ -42,6 +44,7 @@ _hwid_manager = CONFIG.hwid_manager
 _hwid_validator = hwid_validator.HwidValidator()
 _goldeneye_memcache_adapter = memcache_adapter.MemcacheAdapter(
     namespace=ingestion.GOLDENEYE_MEMCACHE_NAMESPACE)
+_hwid_repo_manager = CONFIG.hwid_repo_manager
 
 
 def _FastFailKnownBadHwid(hwid):
@@ -449,3 +452,39 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     response.labels.sort(key=operator.attrgetter('name', 'value'))
     response.possible_labels[:] = possible_labels
     return response
+
+  @protorpc_utils.ProtoRPCServiceMethod
+  @auth.RpcCheck
+  def GetHwidDbEditableSection(self, request):
+    live_hwid_repo = _hwid_repo_manager.GetLiveHWIDRepo()
+    try:
+      hwid_db_metadata = live_hwid_repo.GetHWIDDBMetadataByName(request.board)
+    except ValueError:
+      raise protorpc_utils.ProtoRPCException(
+          protorpc_utils.RPCCanonicalErrorCode.NOT_FOUND,
+          detail='Project is not available.') from None
+    if hwid_db_metadata.version != 3:
+      raise protorpc_utils.ProtoRPCException(
+          protorpc_utils.RPCCanonicalErrorCode.FAILED_PRECONDITION,
+          detail='Project must be HWID version 3.')
+    try:
+      hwid_db_contents = live_hwid_repo.LoadHWIDDBByName(request.board)
+    except hwid_repo.HWIDRepoError:
+      raise protorpc_utils.ProtoRPCException(
+          protorpc_utils.RPCCanonicalErrorCode.INTERNAL,
+          detail='Project is not available.') from None
+    lines = hwid_db_contents.splitlines()
+    split_idx_list = [
+        i for i, l in enumerate(lines) if l.rstrip() == 'image_id:'
+    ]
+    if len(split_idx_list) != 1:
+      raise protorpc_utils.ProtoRPCException(
+          protorpc_utils.RPCCanonicalErrorCode.INTERNAL,
+          detail='The project has an invalid HWID DB.')
+    response = hwid_api_messages_pb2.GetHwidDbEditableSectionResponse(
+        hwid_db_editable_section=self
+        ._NormalizeAndJoinHWIDDBEditableSectionLines(lines[split_idx_list[0]:]))
+    return response
+
+  def _NormalizeAndJoinHWIDDBEditableSectionLines(self, lines):
+    return '\n'.join(l.rstrip() for l in lines).rstrip()
