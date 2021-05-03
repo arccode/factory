@@ -9,6 +9,8 @@ import textwrap
 import unittest
 from unittest import mock
 
+import yaml
+
 from cros.chromeoshwid import update_checksum
 from cros.factory.hwid.service.appengine import hwid_api
 from cros.factory.hwid.service.appengine import hwid_manager
@@ -23,6 +25,7 @@ from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
 # pylint: enable=import-error, no-name-in-module
 from cros.factory.probe_info_service.app_engine import protorpc_utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import schema
 
 
 TEST_MODEL = 'FOO'
@@ -43,6 +46,9 @@ HWIDV3_CONTENT_SCHEMA_ERROR_CHANGE = file_utils.ReadFile(
     os.path.join(
         os.path.dirname(os.path.abspath(__file__)), 'testdata',
         'v3-schema-error-change.yaml'))
+
+TEST_PREV_HWID_DB_CONTENT = 'prefix\nchecksum: 1234\nimage_id:\nsuffix_v0\n'
+TEST_HWID_DB_EDITABLE_SECTION_CONTENT = 'image_id:\nsuffix_v1\n'
 
 
 def _MockGetAVLName(unused_category, comp_name):
@@ -68,6 +74,10 @@ class HwidApiTest(unittest.TestCase):
 
     patcher = mock.patch('__main__.hwid_api._hwid_repo_manager')
     self.patch_hwid_repo_manager = patcher.start()
+    self.addCleanup(patcher.stop)
+
+    patcher = mock.patch('__main__.hwid_api._hwid_validator')
+    self.patch_hwid_validator = patcher.start()
     self.addCleanup(patcher.stop)
 
     self.service = hwid_api.ProtoRPCService()
@@ -438,10 +448,7 @@ class HwidApiTest(unittest.TestCase):
             error='Invalid input: %s' % TEST_HWID,
         ), msg)
 
-  @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
-  def testValidateConfig(self, patch_hwid_validator):
-    patch_hwid_validator.Validate = mock.Mock()
-
+  def testValidateConfig(self):
     req = hwid_api_messages_pb2.ValidateConfigRequest(
         hwid_config_contents='test')
     msg = self.service.ValidateConfig(req)
@@ -450,10 +457,9 @@ class HwidApiTest(unittest.TestCase):
         hwid_api_messages_pb2.ValidateConfigResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS), msg)
 
-  @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
-  def testValidateConfigErrors(self, patch_hwid_validator):
-    patch_hwid_validator.Validate = mock.Mock(
-        side_effect=v3_validator.ValidationError('msg'))
+  def testValidateConfigErrors(self):
+    self.patch_hwid_validator.Validate.side_effect = (
+        v3_validator.ValidationError('msg'))
 
     req = hwid_api_messages_pb2.ValidateConfigRequest(
         hwid_config_contents='test')
@@ -464,9 +470,8 @@ class HwidApiTest(unittest.TestCase):
             status=hwid_api_messages_pb2.Status.BAD_REQUEST,
             error_message='msg'), msg)
 
-  @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
-  def testValidateConfigAndUpdateChecksum(self, patch_hwid_validator):
-    patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {})
+  def testValidateConfigAndUpdateChecksum(self):
+    self.patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {})
 
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
         hwid_config_contents=TEST_HWID_CONTENT)
@@ -478,9 +483,8 @@ class HwidApiTest(unittest.TestCase):
             new_hwid_config_contents=EXPECTED_REPLACE_RESULT, model=TEST_MODEL),
         msg)
 
-  @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
-  def testValidateConfigAndUpdateUpdatedComponents(self, patch_hwid_validator):
-    patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {
+  def testValidateConfigAndUpdateUpdatedComponents(self):
+    self.patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {
         'wireless': [
             verify_db_pattern.NameChangedComponentInfo(
                 'wireless_1234_5678', 1234, 5678,
@@ -523,10 +527,9 @@ class HwidApiTest(unittest.TestCase):
                     ])
             }, model=TEST_MODEL), msg)
 
-  @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
-  def testValidateConfigAndUpdateChecksumErrors(self, patch_hwid_validator):
-    patch_hwid_validator.ValidateChange = mock.Mock(
-        side_effect=v3_validator.ValidationError('msg'))
+  def testValidateConfigAndUpdateChecksumErrors(self):
+    self.patch_hwid_validator.ValidateChange.side_effect = (
+        v3_validator.ValidationError('msg'))
 
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
         hwid_config_contents=TEST_HWID_CONTENT)
@@ -538,6 +541,10 @@ class HwidApiTest(unittest.TestCase):
             error_message='msg'), msg)
 
   def testValidateConfigAndUpdateChecksumSyntaxError(self):
+    yaml_error = yaml.error.YAMLError('msg')
+    validation_error = v3_validator.ValidationError(str(yaml_error))
+    validation_error.__cause__ = yaml_error
+    self.patch_hwid_validator.ValidateChange.side_effect = validation_error
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
         hwid_config_contents=HWIDV3_CONTENT_SYNTAX_ERROR_CHANGE,
         prev_hwid_config_contents=GOLDEN_HWIDV3_CONTENT)
@@ -545,17 +552,15 @@ class HwidApiTest(unittest.TestCase):
 
     self.assertEqual(
         hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
-            status=hwid_api_messages_pb2.Status.YAML_ERROR, error_message=(
-                'while parsing a block mapping\n'
-                '  in "<unicode string>", line 73, column 3:\n'
-                '      audio_codec:\n'
-                '      ^\n'
-                'expected <block end>, but found \'<block mapping start>\'\n'
-                '  in "<unicode string>", line 103, column 7:\n'
-                '          cpu: cpu_0\n'
-                '          ^')), msg)
+            status=hwid_api_messages_pb2.Status.YAML_ERROR,
+            error_message='msg'), msg)
 
   def testValidateConfigAndUpdateChecksumSchemaError(self):
+    schema_error = schema.SchemaException('msg')
+    validation_error = v3_validator.ValidationError(str(schema_error))
+    validation_error.__cause__ = schema_error
+    self.patch_hwid_validator.ValidateChange.side_effect = validation_error
+
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
         hwid_config_contents=HWIDV3_CONTENT_SCHEMA_ERROR_CHANGE,
         prev_hwid_config_contents=GOLDEN_HWIDV3_CONTENT)
@@ -563,21 +568,11 @@ class HwidApiTest(unittest.TestCase):
 
     self.assertEqual(
         hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
-            status=hwid_api_messages_pb2.Status.SCHEMA_ERROR, error_message=(
-                '''OrderedDict([('model', OrderedDict([('model0', 'object')])'''
-                '''), ('vendor', 'vendor0'), ('serial', Value('^#123\\\\d+$','''
-                ''' is_re=True))]) does not match any type in [Dict('probed k'''
-                '''ey-value pairs', key_type=Scalar('probed key', <class 'st'''
-                '''r'>), value_type=AnyOf([Scalar('probed value', <class 'st'''
-                '''r'>), Scalar('probed value', <class 'bytes'>), Scalar('pr'''
-                '''obed value regex', <class 'cros.factory.hwid.v3.rule.Valu'''
-                '''e'>)]), size=[1, inf]), Scalar('none', <class 'NoneType'>)'''
-                ''']''')), msg)
+            status=hwid_api_messages_pb2.Status.SCHEMA_ERROR,
+            error_message='msg'), msg)
 
-  @mock.patch('cros.factory.hwid.service.appengine.hwid_api._hwid_validator')
-  def testValidateConfigAndUpdateChecksumUnknwonStatus(self,
-                                                       patch_hwid_validator):
-    patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {
+  def testValidateConfigAndUpdateChecksumUnknwonStatus(self):
+    self.patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {
         'wireless': [
             verify_db_pattern.NameChangedComponentInfo(
                 'wireless_1234_5678', 1234, 5678,
@@ -795,12 +790,12 @@ class HwidApiTest(unittest.TestCase):
                 'variant',
             ]), msg)
 
-  def testGetHwidDbEditableSectionBoardDoesntExist(self):
+  def testGetHwidDbEditableSectionProjectDoesntExist(self):
     live_hwid_repo = self.patch_hwid_repo_manager.GetLiveHWIDRepo.return_value
     live_hwid_repo.GetHWIDDBMetadataByName.side_effect = ValueError
 
     req = hwid_api_messages_pb2.GetHwidDbEditableSectionRequest(
-        board='test_board')
+        project='test_project')
 
     with self.assertRaises(protorpc_utils.ProtoRPCException) as ex:
       self.service.GetHwidDbEditableSection(req)
@@ -811,11 +806,11 @@ class HwidApiTest(unittest.TestCase):
   def testGetHwidDbEditableSectionNotV3(self):
     live_hwid_repo = self.patch_hwid_repo_manager.GetLiveHWIDRepo.return_value
     live_hwid_repo.GetHWIDDBMetadataByName.return_value = (
-        hwid_repo.HWIDDBMetadata('test_board', 'test_board', 2,
-                                 'v2/test_board'))
+        hwid_repo.HWIDDBMetadata('test_project', 'test_project', 2,
+                                 'v2/test_project'))
 
     req = hwid_api_messages_pb2.GetHwidDbEditableSectionRequest(
-        board='test_board')
+        project='test_project')
 
     with self.assertRaises(protorpc_utils.ProtoRPCException) as ex:
       self.service.GetHwidDbEditableSection(req)
@@ -826,8 +821,8 @@ class HwidApiTest(unittest.TestCase):
   def testGetHwidDbEditableSectionSuccess(self):
     live_hwid_repo = self.patch_hwid_repo_manager.GetLiveHWIDRepo.return_value
     live_hwid_repo.GetHWIDDBMetadataByName.return_value = (
-        hwid_repo.HWIDDBMetadata('test_board', 'test_board', 3,
-                                 'v3/test_board'))
+        hwid_repo.HWIDDBMetadata('test_project', 'test_project', 3,
+                                 'v3/test_project'))
     live_hwid_repo.LoadHWIDDBByName.return_value = textwrap.dedent("""\
         # some prefix
         checksum: "string"
@@ -842,12 +837,145 @@ class HwidApiTest(unittest.TestCase):
         """)
 
     req = hwid_api_messages_pb2.GetHwidDbEditableSectionRequest(
-        board='test_board')
+        project='test_project')
     resp = self.service.GetHwidDbEditableSection(req)
 
     self.assertEqual(
         resp.hwid_db_editable_section,
         '\n'.join(['image_id:', '  line0', '', '  line1', '  line2', 'line3']))
+
+  def testValidateHwidDbEditableSectionChangeSchemaError(self):
+    live_hwid_repo = self.patch_hwid_repo_manager.GetLiveHWIDRepo.return_value
+    live_hwid_repo.GetHWIDDBMetadataByName.return_value = (
+        hwid_repo.HWIDDBMetadata('test_project', 'test_project', 3,
+                                 'v3/test_project'))
+    live_hwid_repo.LoadHWIDDBByName.return_value = TEST_PREV_HWID_DB_CONTENT
+    schema_error = schema.SchemaException('msg')
+    validation_error = v3_validator.ValidationError(str(schema_error))
+    validation_error.__cause__ = schema_error
+    self.patch_hwid_validator.ValidateChange.side_effect = validation_error
+
+    req = hwid_api_messages_pb2.ValidateHwidDbEditableSectionChangeRequest(
+        project='test_project',
+        new_hwid_db_editable_section=TEST_HWID_DB_EDITABLE_SECTION_CONTENT)
+    resp = self.service.ValidateHwidDbEditableSectionChange(req)
+
+    self.assertEqual(
+        resp.validation_result,
+        hwid_api_messages_pb2.HwidDbEditableSectionChangeValidationResult(
+            result_code=resp.validation_result.SCHEMA_ERROR,
+            error_message='msg'))
+
+  def testValidateHwidDbEditableSectionChangePassed(self):
+    self.patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {})
+    live_hwid_repo = self.patch_hwid_repo_manager.GetLiveHWIDRepo.return_value
+    live_hwid_repo.GetHWIDDBMetadataByName.return_value = (
+        hwid_repo.HWIDDBMetadata('test_project', 'test_project', 3,
+                                 'v3/test_project'))
+    live_hwid_repo.LoadHWIDDBByName.return_value = TEST_PREV_HWID_DB_CONTENT
+
+    req = hwid_api_messages_pb2.ValidateHwidDbEditableSectionChangeRequest(
+        project='test_project',
+        new_hwid_db_editable_section=TEST_HWID_DB_EDITABLE_SECTION_CONTENT)
+    resp = self.service.ValidateHwidDbEditableSectionChange(req)
+
+    self.assertTrue(resp.validation_token)
+    self.assertEqual(
+        resp.validation_result,
+        hwid_api_messages_pb2.HwidDbEditableSectionChangeValidationResult(
+            result_code=resp.validation_result.PASSED))
+
+  def testValidateHwidDbEditableSectionChangeReturnUpdatedComponents(self):
+    self.patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {
+        'wireless': [
+            verify_db_pattern.NameChangedComponentInfo(
+                'wireless_1234_5678', 1234, 5678,
+                common.COMPONENT_STATUS.supported, True),
+            verify_db_pattern.NameChangedComponentInfo(
+                'wireless_1111_2222', 1111, 2222,
+                common.COMPONENT_STATUS.unqualified, True),
+            verify_db_pattern.NameChangedComponentInfo(
+                'wireless_hello_world', 0, 0, common.COMPONENT_STATUS.supported,
+                False)
+        ]
+    })
+    live_hwid_repo = self.patch_hwid_repo_manager.GetLiveHWIDRepo.return_value
+    live_hwid_repo.GetHWIDDBMetadataByName.return_value = (
+        hwid_repo.HWIDDBMetadata('test_project', 'test_project', 3,
+                                 'v3/test_project'))
+    live_hwid_repo.LoadHWIDDBByName.return_value = TEST_PREV_HWID_DB_CONTENT
+
+    req = hwid_api_messages_pb2.ValidateHwidDbEditableSectionChangeRequest(
+        project='test_project',
+        new_hwid_db_editable_section=TEST_HWID_DB_EDITABLE_SECTION_CONTENT)
+    resp = self.service.ValidateHwidDbEditableSectionChange(req)
+
+    supported = hwid_api_messages_pb2.NameChangedComponent.SUPPORTED
+    unqualified = hwid_api_messages_pb2.NameChangedComponent.UNQUALIFIED
+
+    ValidationResultMsg = (
+        hwid_api_messages_pb2.HwidDbEditableSectionChangeValidationResult)
+    self.assertEqual(
+        ValidationResultMsg(
+            result_code=ValidationResultMsg.PASSED,
+            name_changed_components_per_category={
+                'wireless':
+                    hwid_api_messages_pb2.NameChangedComponents(entries=[
+                        hwid_api_messages_pb2.NameChangedComponent(
+                            cid=1234, qid=5678, support_status=supported,
+                            component_name='wireless_1234_5678',
+                            has_cid_qid=True),
+                        hwid_api_messages_pb2.NameChangedComponent(
+                            cid=1111, qid=2222, support_status=unqualified,
+                            component_name='wireless_1111_2222',
+                            has_cid_qid=True),
+                        hwid_api_messages_pb2.NameChangedComponent(
+                            cid=0, qid=0, support_status=supported,
+                            component_name='wireless_hello_world',
+                            has_cid_qid=False)
+                    ])
+            }), resp.validation_result)
+
+  def testValidateHwidDbEditableSectionChangeUnknownStatus(self):
+    self.patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {
+        'wireless': [
+            verify_db_pattern.NameChangedComponentInfo(
+                'wireless_1234_5678', 1234, 5678,
+                common.COMPONENT_STATUS.supported, True),
+            verify_db_pattern.NameChangedComponentInfo(
+                'wireless_1111_2222', 1111, 2222, 'new_status', True)
+        ]
+    })
+    live_hwid_repo = self.patch_hwid_repo_manager.GetLiveHWIDRepo.return_value
+    live_hwid_repo.GetHWIDDBMetadataByName.return_value = (
+        hwid_repo.HWIDDBMetadata('test_project', 'test_project', 3,
+                                 'v3/test_project'))
+    live_hwid_repo.LoadHWIDDBByName.return_value = TEST_PREV_HWID_DB_CONTENT
+
+    req = hwid_api_messages_pb2.ValidateHwidDbEditableSectionChangeRequest(
+        project='test_project',
+        new_hwid_db_editable_section=TEST_HWID_DB_EDITABLE_SECTION_CONTENT)
+    resp = self.service.ValidateHwidDbEditableSectionChange(req)
+
+    self.assertEqual(resp.validation_result.result_code,
+                     resp.validation_result.CONTENTS_ERROR)
+
+  def testCreateHwidDbEditableSectionChangeClValidationExpired(self):
+    self.patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {})
+    live_hwid_repo = self.patch_hwid_repo_manager.GetLiveHWIDRepo.return_value
+    live_hwid_repo.GetHWIDDBMetadataByName.return_value = (
+        hwid_repo.HWIDDBMetadata('test_project', 'test_project', 3,
+                                 'v3/test_project'))
+    live_hwid_repo.LoadHWIDDBByName.return_value = TEST_PREV_HWID_DB_CONTENT
+
+    req = hwid_api_messages_pb2.CreateHwidDbEditableSectionChangeClRequest(
+        project='test_project',
+        new_hwid_db_editable_section=TEST_HWID_DB_EDITABLE_SECTION_CONTENT,
+        validation_token='this_is_an_invalid_verification_id')
+    with self.assertRaises(protorpc_utils.ProtoRPCException) as ex:
+      self.service.CreateHwidDbEditableSectionChangeCl(req)
+    self.assertEqual(ex.exception.code,
+                     protorpc_utils.RPCCanonicalErrorCode.ABORTED)
 
   def CheckForLabelValue(self, response, label_to_check_for,
                          value_to_check_for=None):

@@ -238,13 +238,59 @@ message DutLabelsResponse {
 }
 
 message GetHwidDbEditableSectionRequest {
-  // The board as a string.
-  string board = 1;
+  // The project as a string.
+  string project = 1;
 }
 
 message GetHwidDbEditableSectionResponse {
   // The editable section of the queried HWID DB.
   string hwid_db_editable_section = 1;
+}
+
+message HwidDbEditableSectionChangeValidationResult {
+  enum ResultCode {
+    RESULT_CODE_UNSPECIFIED = 0;  // Reserved.
+
+    PASSED = 1;
+    SCHEMA_ERROR = 2;
+    CONTENTS_ERROR = 3;
+  }
+  ResultCode result_code = 1;
+  string error_message = 2;
+
+  // Name-changed components per category.
+  map<string, NameChangedComponents> name_changed_components_per_category = 3;
+}
+
+message ValidateHwidDbEditableSectionChangeRequest {
+  // The project as a string.
+  string project = 1;
+  // The HWID DB contents to validate.
+  string new_hwid_db_editable_section = 2;
+}
+
+message ValidateHwidDbEditableSectionChangeResponse {
+  // An unique identifier to this round of validation.  This ID is required
+  // to be attached on other RPCs that needs to be invoke after validation.
+  string validation_token = 1;
+
+  // The result of the validation.
+  HwidDbEditableSectionChangeValidationResult validation_result = 2;
+}
+
+message CreateHwidDbEditableSectionChangeClRequest {
+  // The project as a string.
+  string project = 1;
+  // The HWID DB contents to validate.
+  string new_hwid_db_editable_section = 2;
+  // The ID from ValidateHwidDbEditableSectionChange to
+  // justify that the contents have been validated.
+  string validation_token = 3;
+}
+
+message CreateHwidDbEditableSectionChangeClResponse {
+  // The CL number to the created HWID change request.
+  int32 cl_number = 1;
 }
 
 service HwidService {
@@ -270,4 +316,23 @@ service HwidService {
 
   rpc GetHwidDbEditableSection(GetHwidDbEditableSectionRequest)
       returns (GetHwidDbEditableSectionResponse);
+
+  // Validates a change of HWID DB.
+  //
+  // This RPC compares the given updated HWID DB contents with the
+  // current one and validates the difference.  In addition, if the
+  // change is valid, this RPC also responds details of the change
+  // like what HWID components are introduced, etc.
+  rpc ValidateHwidDbEditableSectionChange(
+      ValidateHwidDbEditableSectionChangeRequest)
+          returns (ValidateHwidDbEditableSectionChangeResponse);
+
+  // Create a CL to change the HWID DB contents.
+  //
+  // The canonical error `ABORTED` will be raised if the given validation
+  // result ID is expired.  This usually happens if the upstream HWID DB
+  // has changed since the last validation.
+  rpc CreateHwidDbEditableSectionChangeCl(
+      CreateHwidDbEditableSectionChangeClRequest)
+          returns (CreateHwidDbEditableSectionChangeClResponse);
 }

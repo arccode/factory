@@ -34,7 +34,7 @@ def ValidateChange(prev_db, db):
   try:
     return verify_db_pattern.HWIDDBsPatternTest.ValidateChange(prev_db, db)
   except common.HWIDException as e:
-    raise ValidationError(str(e))
+    raise ValidationError(str(e)) from e
 
 
 @_RegisterValidateIntegrityFunc

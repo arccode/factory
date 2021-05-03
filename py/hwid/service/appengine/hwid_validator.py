@@ -35,7 +35,7 @@ class HwidValidator:
       db = database.Database.LoadData(
           hwid_config_contents, expected_checksum=expected_checksum)
     except (HWIDException, schema.SchemaException, yaml.error.YAMLError) as e:
-      raise v3_validator.ValidationError(str(e))
+      raise v3_validator.ValidationError(str(e)) from e
     v3_validator.ValidateIntegrity(db)
 
   def ValidateChange(self, hwid_config_contents, prev_hwid_config_contents):
@@ -61,7 +61,7 @@ class HwidValidator:
     except (HWIDException, schema.SchemaException, yaml.error.YAMLError) as e:
       logging.exception('Previous version not valid: %r', e)
       raise v3_validator.ValidationError(
-          'Previous version of HWID config is not valid.')
+          'Previous version of HWID config is not valid.') from e
 
     expected_checksum = database.Database.ChecksumForText(hwid_config_contents)
 
@@ -70,7 +70,7 @@ class HwidValidator:
       db = database.Database.LoadData(
           hwid_config_contents, expected_checksum=expected_checksum)
     except (HWIDException, schema.SchemaException, yaml.error.YAMLError) as e:
-      raise v3_validator.ValidationError(str(e))
+      raise v3_validator.ValidationError(str(e)) from e
 
     new_components = v3_validator.ValidateChange(prev_db, db)
     v3_validator.ValidateIntegrity(db)

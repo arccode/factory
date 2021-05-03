@@ -8,9 +8,11 @@ This file is also the place that all the binding is done for various components.
 
 import functools
 import gzip
+import hashlib
 import logging
 import operator
 import re
+from typing import List, NamedTuple, Tuple
 
 # pylint: disable=no-name-in-module, import-error, wrong-import-order
 import flask
@@ -88,17 +90,43 @@ def _HandleGzipRequests(method):
 
 
 def _MapException(ex, cls):
-  if isinstance(ex.__context__, schema.SchemaException):
+  if isinstance(ex.__cause__, schema.SchemaException):
     return cls(
         error_message=str(ex), status=hwid_api_messages_pb2.Status.SCHEMA_ERROR)
-  if isinstance(ex.__context__, yaml.error.YAMLError):
-    return cls(
-        error_message=str(ex), status=hwid_api_messages_pb2.Status.YAML_ERROR)
-  if isinstance(ex.__context__, yaml.error.YAMLError):
+  if isinstance(ex.__cause__, yaml.error.YAMLError):
     return cls(
         error_message=str(ex), status=hwid_api_messages_pb2.Status.YAML_ERROR)
   return cls(
       error_message=str(ex), status=hwid_api_messages_pb2.Status.BAD_REQUEST)
+
+
+class _HWIDStatusConversionError(Exception):
+  """Indicate a failure to convert HWID component status to
+  `hwid_api_messages_pb2.SupportStatus`."""
+
+
+def _ConvertToNameChangedComponent(name_changed_comp_info):
+  """Converts an instance of `NameChangedComponentInfo` to
+  hwid_api_messages_pb2.NameChangedComponent message."""
+  support_status_descriptor = (
+      hwid_api_messages_pb2.NameChangedComponent.SupportStatus.DESCRIPTOR)
+  status_val = support_status_descriptor.values_by_name.get(
+      name_changed_comp_info.status.upper())
+  if status_val is None:
+    raise _HWIDStatusConversionError(
+        "Unknown status: '%s'" % name_changed_comp_info.status)
+  return hwid_api_messages_pb2.NameChangedComponent(
+      cid=name_changed_comp_info.cid, qid=name_changed_comp_info.qid,
+      support_status=status_val.number,
+      component_name=name_changed_comp_info.comp_name,
+      has_cid_qid=name_changed_comp_info.has_cid_qid)
+
+
+class _HWIDDBChangeInfo(NamedTuple):
+  """A record class to hold a single change of HWID DB."""
+  fingerprint: str
+  curr_hwid_db_contents: str
+  new_hwid_db_contents: str
 
 
 class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
@@ -320,7 +348,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     updated_contents = update_checksum.ReplaceChecksum(hwid_config_contents)
 
     try:
-      model, new_components = _hwid_validator.ValidateChange(
+      model, new_hwid_comps = _hwid_validator.ValidateChange(
           updated_contents, prev_hwid_config_contents)
 
     except v3_validator.ValidationError as e:
@@ -332,24 +360,15 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
         status=hwid_api_messages_pb2.Status.SUCCESS,
         new_hwid_config_contents=updated_contents, model=model)
 
-    status_desc = (
-        hwid_api_messages_pb2.NameChangedComponent.SupportStatus.DESCRIPTOR)
-    for comp_cls, comps in new_components.items():
-      name_changed_ents = (
-          resp.name_changed_components_per_category.get_or_create(
-              comp_cls).entries)
-      for name_changed_info in comps:
-        status_val = status_desc.values_by_name.get(
-            name_changed_info.status.upper())
-        if status_val is None:
-          return hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
-              status=hwid_api_messages_pb2.Status.BAD_REQUEST,
-              error_message='Unknown status: \'%s\'' % name_changed_info.status)
-        name_changed_ents.add(cid=name_changed_info.cid,
-                              qid=name_changed_info.qid,
-                              support_status=status_val.number,
-                              component_name=name_changed_info.comp_name,
-                              has_cid_qid=name_changed_info.has_cid_qid)
+    for comp_cls, comps in new_hwid_comps.items():
+      entries = resp.name_changed_components_per_category.get_or_create(
+          comp_cls).entries
+      try:
+        entries.extend(_ConvertToNameChangedComponent(c) for c in comps)
+      except _HWIDStatusConversionError as ex:
+        return hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
+            status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+            error_message=str(ex))
     return resp
 
   @protorpc_utils.ProtoRPCServiceMethod
@@ -457,34 +476,113 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
   @auth.RpcCheck
   def GetHwidDbEditableSection(self, request):
     live_hwid_repo = _hwid_repo_manager.GetLiveHWIDRepo()
-    try:
-      hwid_db_metadata = live_hwid_repo.GetHWIDDBMetadataByName(request.board)
-    except ValueError:
-      raise protorpc_utils.ProtoRPCException(
-          protorpc_utils.RPCCanonicalErrorCode.NOT_FOUND,
-          detail='Project is not available.') from None
-    if hwid_db_metadata.version != 3:
-      raise protorpc_utils.ProtoRPCException(
-          protorpc_utils.RPCCanonicalErrorCode.FAILED_PRECONDITION,
-          detail='Project must be HWID version 3.')
-    try:
-      hwid_db_contents = live_hwid_repo.LoadHWIDDBByName(request.board)
-    except hwid_repo.HWIDRepoError:
-      raise protorpc_utils.ProtoRPCException(
-          protorpc_utils.RPCCanonicalErrorCode.INTERNAL,
-          detail='Project is not available.') from None
-    lines = hwid_db_contents.splitlines()
-    split_idx_list = [
-        i for i, l in enumerate(lines) if l.rstrip() == 'image_id:'
-    ]
-    if len(split_idx_list) != 1:
-      raise protorpc_utils.ProtoRPCException(
-          protorpc_utils.RPCCanonicalErrorCode.INTERNAL,
-          detail='The project has an invalid HWID DB.')
+    hwid_db_contents = _LoadHWIDDBV3Contents(live_hwid_repo, request.project)
+    unused_header, hwid_db_editable_section_lines = _SplitHWIDDBV3Sections(
+        hwid_db_contents)
     response = hwid_api_messages_pb2.GetHwidDbEditableSectionResponse(
-        hwid_db_editable_section=self
-        ._NormalizeAndJoinHWIDDBEditableSectionLines(lines[split_idx_list[0]:]))
+        hwid_db_editable_section=_NormalizeAndJoinHWIDDBEditableSectionLines(
+            hwid_db_editable_section_lines))
     return response
 
-  def _NormalizeAndJoinHWIDDBEditableSectionLines(self, lines):
-    return '\n'.join(l.rstrip() for l in lines).rstrip()
+  @protorpc_utils.ProtoRPCServiceMethod
+  @auth.RpcCheck
+  def ValidateHwidDbEditableSectionChange(self, request):
+    live_hwid_repo = _hwid_repo_manager.GetLiveHWIDRepo()
+    change_info = _GetHWIDDBChangeInfo(live_hwid_repo, request.project,
+                                       request.new_hwid_db_editable_section)
+    response = (
+        hwid_api_messages_pb2.ValidateHwidDbEditableSectionChangeResponse(
+            validation_token=change_info.fingerprint))
+    try:
+      unused_model, new_hwid_comps = _hwid_validator.ValidateChange(
+          change_info.new_hwid_db_contents, change_info.curr_hwid_db_contents)
+    except v3_validator.ValidationError as ex:
+      logging.exception('Validation failed')
+      if isinstance(ex.__cause__,
+                    (schema.SchemaException, yaml.error.YAMLError)):
+        response.validation_result.result_code = (
+            response.validation_result.SCHEMA_ERROR)
+      else:
+        response.validation_result.result_code = (
+            response.validation_result.CONTENTS_ERROR)
+      response.validation_result.error_message = str(ex)
+      return response
+    try:
+      name_changed_comps = {
+          comp_cls: [_ConvertToNameChangedComponent(c) for c in comps]
+          for comp_cls, comps in new_hwid_comps.items()
+      }
+    except _HWIDStatusConversionError as ex:
+      response.validation_result.result_code = (
+          response.validation_result.CONTENTS_ERROR)
+      response.validation_result.error_message = str(ex)
+      return response
+    response.validation_result.result_code = response.validation_result.PASSED
+    field = response.validation_result.name_changed_components_per_category
+    for comp_cls, name_changed_comps in name_changed_comps.items():
+      field.get_or_create(comp_cls).entries.extend(name_changed_comps)
+    return response
+
+  @protorpc_utils.ProtoRPCServiceMethod
+  @auth.RpcCheck
+  def CreateHwidDbEditableSectionChangeCl(self, request):
+    live_hwid_repo = _hwid_repo_manager.GetLiveHWIDRepo()
+    change_info = _GetHWIDDBChangeInfo(live_hwid_repo, request.project,
+                                       request.new_hwid_db_editable_section)
+    if change_info.fingerprint != request.validation_token:
+      raise protorpc_utils.ProtoRPCException(
+          protorpc_utils.RPCCanonicalErrorCode.ABORTED,
+          detail='The validation token is expired.')
+
+    # TODO(yhong): Implement this RPC method.
+    raise protorpc_utils.ProtoRPCException(
+        protorpc_utils.RPCCanonicalErrorCode.UNIMPLEMENTED)
+
+
+def _GetHWIDDBChangeInfo(live_hwid_repo, project, new_hwid_db_editable_section):
+  new_hwid_db_editable_section = _NormalizeAndJoinHWIDDBEditableSectionLines(
+      new_hwid_db_editable_section.splitlines())
+  curr_hwid_db_contents = _LoadHWIDDBV3Contents(live_hwid_repo, project)
+  curr_header, unused_curr_editable_section_lines = _SplitHWIDDBV3Sections(
+      curr_hwid_db_contents)
+  new_hwid_config_contents = update_checksum.ReplaceChecksum(
+      curr_header + new_hwid_db_editable_section)
+  checksum = ''
+  for contents in (curr_hwid_db_contents, new_hwid_config_contents):
+    checksum = hashlib.sha1((checksum + contents).encode('utf-8')).hexdigest()
+  return _HWIDDBChangeInfo(checksum, curr_hwid_db_contents,
+                           new_hwid_config_contents)
+
+
+def _LoadHWIDDBV3Contents(live_hwid_repo, project):
+  try:
+    hwid_db_metadata = live_hwid_repo.GetHWIDDBMetadataByName(project)
+  except ValueError:
+    raise protorpc_utils.ProtoRPCException(
+        protorpc_utils.RPCCanonicalErrorCode.NOT_FOUND,
+        detail='Project is not available.') from None
+  if hwid_db_metadata.version != 3:
+    raise protorpc_utils.ProtoRPCException(
+        protorpc_utils.RPCCanonicalErrorCode.FAILED_PRECONDITION,
+        detail='Project must be HWID version 3.')
+  try:
+    return live_hwid_repo.LoadHWIDDBByName(project)
+  except hwid_repo.HWIDRepoError:
+    raise protorpc_utils.ProtoRPCException(
+        protorpc_utils.RPCCanonicalErrorCode.INTERNAL,
+        detail='Project is not available.') from None
+
+
+def _SplitHWIDDBV3Sections(hwid_db_contents) -> Tuple[str, List[str]]:
+  """Split the given HWID DB contents into the header and lines of DB body."""
+  lines = hwid_db_contents.splitlines()
+  split_idx_list = [i for i, l in enumerate(lines) if l.rstrip() == 'image_id:']
+  if len(split_idx_list) != 1:
+    raise protorpc_utils.ProtoRPCException(
+        protorpc_utils.RPCCanonicalErrorCode.INTERNAL,
+        detail='The project has an invalid HWID DB.')
+  return '\n'.join(lines[:split_idx_list[0]]), lines[split_idx_list[0]:]
+
+
+def _NormalizeAndJoinHWIDDBEditableSectionLines(lines):
+  return '\n'.join(l.rstrip() for l in lines).rstrip()

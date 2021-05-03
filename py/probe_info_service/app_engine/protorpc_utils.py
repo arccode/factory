@@ -20,6 +20,8 @@ class RPCCanonicalErrorCode(enum.Enum):
   INTERNAL = (13, http.HTTPStatus.INTERNAL_SERVER_ERROR)
   NOT_FOUND = (5, http.HTTPStatus.NOT_FOUND)
   FAILED_PRECONDITION = (9, http.HTTPStatus.BAD_REQUEST)
+  ABORTED = (10, http.HTTPStatus.CONFLICT)
+  UNIMPLEMENTED = (12, http.HTTPStatus.NOT_IMPLEMENTED)
 
 
 class ProtoRPCException(Exception):
