@@ -33,7 +33,14 @@ Name             Description
                  True.
 ``display_name`` The label or name to be displayed on UI.
 ``value_check``  To validate the input value. Can be a regular expression,
-                 sequence of string or boolean values, or None for any string.
+                 list of strings, list of integers, boolean values, or
+                 None.
+                 When ``value_check`` is a list of strings / integers / bool, an
+                 "option label" can be added to each option.  So ``value_check``
+                 becomes a list of tuples: ``[ (string, string) ]`` or ``[ (int,
+                 string) ]`` or ``[ (bool, string) ]``.  The first element of
+                 tuple is the value, and the second element is a string to be
+                 displayed.
 ================ ==============================================================
 
 If you want to manually configure without default values, the sequence can be
@@ -214,9 +221,6 @@ class DataEntry:
 
     if isinstance(value_check, str):
       self.re_checker = re.compile(value_check)
-    elif isinstance(value_check, list):
-      self.value_check = value_check
-      self.codes = [str(v) for v in value_check]
     elif value_check is None:
       self.value_check = value_check
     else:
@@ -230,18 +234,55 @@ class DataEntry:
         ordered_values = [v for v in _KNOWN_REGIONS if v in all_regions]
         other_values = sorted(set(all_regions) - set(ordered_values))
         value_check = ordered_values + other_values
-        self.value_check = value_check
 
-      assert set(self.value_check).issubset(set(all_regions))
+      if not isinstance(value_check, list):
+        raise ValueError(f'`value_check` for {key} must be a list of strings')
+      if not set(value_check).issubset(set(all_regions)):
+        raise ValueError(f'`value_check` for {key} must be '
+                         'a subset of known regions')
+      self.value_check = value_check
       self.codes = value_check
       self.options = [
           '%d - %s; %s' % (i + 1, v, regions.REGIONS[v].description)
           for i, v in enumerate(self.codes)]
-    elif isinstance(self.value_check, list):
-      self.codes = [str(v) for v in self.value_check]
-      self.options = [
-          '%d - %s' % (i + 1, v) if isinstance(v, str) else str(v)
-          for i, v in enumerate(self.value_check)]
+      return
+
+    # When value_check is a list, UI will render a list of options.
+    if isinstance(value_check, list):
+      value_check = self._NormalizeListValueCheck(value_check)
+      self.value_check = []
+      self.codes = []
+      self.options = []
+
+      for v, option in value_check:
+        self.value_check.append(v)
+        self.codes.append(str(v))
+        self.options.append(option)
+
+  @staticmethod
+  def _NormalizeListValueCheck(value_check):
+    """Normalize `value_check` to list of (value, option) tuples."""
+    assert isinstance(value_check, list)
+
+    for i, e in enumerate(value_check):
+      if isinstance(e, (str, int, bool)):
+        value_check[i] = (e, f'{i + 1} - {e}')
+        continue
+      if isinstance(e, list):
+        if len(e) == 0:
+          raise ValueError(
+              'Each element of `value_check` must not be an empty list')
+        if len(e) == 1:
+          e = e[0]
+          value_check[i] = (e, f'{i + 1} - {e}')
+        elif len(e) == 2:
+          value_check[i] = (e[0], f'{i + 1} - {e[1]}')
+        else:
+          logging.warning('Each element of value_check is either a single '
+                          'value or a two value tuple. Extra values will be '
+                          'truncated.')
+          value_check[i] = (e[0], f'{i + 1} - {e[1]}')
+    return value_check
 
   def GetInputList(self):
     """Returns the list of allowed input, or None for raw input."""
