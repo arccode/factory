@@ -47,12 +47,12 @@ class HwidUtilTest(unittest.TestCase):
             'dram': EXAMPLE_MEMORY_STR,
             'cpu': 'longstringwithcpu'
         }, comp_db=self._comp_db, verbose=True)
-    bom.board = 'testboardname'
+    bom.project = 'testprojectname'
 
     sku = hwid_util.GetSkuFromBom(bom)
 
-    self.assertEqual('testboardname_longstringwithcpu_4GB', sku['sku'])
-    self.assertEqual('testboardname', sku['board'])
+    self.assertEqual('testprojectname_longstringwithcpu_4GB', sku['sku'])
+    self.assertEqual('testprojectname', sku['project'])
     self.assertEqual('longstringwithcpu', sku['cpu'])
     self.assertEqual('4GB', sku['memory_str'])
     self.assertEqual(4294967296, sku['total_bytes'])
@@ -64,13 +64,13 @@ class HwidUtilTest(unittest.TestCase):
             'dram': EXAMPLE_MEMORY_STR,
             'cpu': 'longstringwithcpu'
         }, comp_db=self._comp_db, verbose=True)
-    bom.board = 'testboardname'
+    bom.project = 'testprojectname'
 
     configless = {'memory' : 8}
     sku = hwid_util.GetSkuFromBom(bom, configless)
 
-    self.assertEqual('testboardname_longstringwithcpu_8GB', sku['sku'])
-    self.assertEqual('testboardname', sku['board'])
+    self.assertEqual('testprojectname_longstringwithcpu_8GB', sku['sku'])
+    self.assertEqual('testprojectname', sku['project'])
     self.assertEqual('longstringwithcpu', sku['cpu'])
     self.assertEqual('8GB', sku['memory_str'])
     self.assertEqual(8589934592, sku['total_bytes'])

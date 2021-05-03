@@ -46,12 +46,12 @@ def GetSkuFromBom(bom, configless=None):
   else:
     memory_str, total_bytes = GetTotalRamFromHwidData(components['dram'])
 
-  board = bom.board.lower()
-  sku = '%s_%s_%s' % (board, cpu, memory_str)
+  project = bom.project.lower()
+  sku = '%s_%s_%s' % (project, cpu, memory_str)
 
   return {
       'sku': sku,
-      'board': board,
+      'project': project,
       'cpu': cpu,
       'memory_str': memory_str,
       'total_bytes': total_bytes

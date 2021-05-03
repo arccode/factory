@@ -65,20 +65,20 @@ class HwidApiTest(unittest.TestCase):
     self.service = hwid_api.ProtoRPCService()
 
   def testGetBoards(self):
-    boards = {'ALPHA', 'BRAVO', 'CHARLIE'}
-    self.patch_hwid_manager.GetBoards.return_value = boards
+    projects = {'ALPHA', 'BRAVO', 'CHARLIE'}
+    self.patch_hwid_manager.GetProjects.return_value = projects
 
     req = hwid_api_messages_pb2.BoardsRequest()
     msg = self.service.GetBoards(req)
 
     self.assertEqual(
         hwid_api_messages_pb2.BoardsResponse(
-            status=hwid_api_messages_pb2.Status.SUCCESS, boards=sorted(boards)),
-        msg)
+            status=hwid_api_messages_pb2.Status.SUCCESS,
+            boards=sorted(projects)), msg)
 
   def testGetBoardsEmpty(self):
-    boards = set()
-    self.patch_hwid_manager.GetBoards.return_value = boards
+    projects = set()
+    self.patch_hwid_manager.GetProjects.return_value = projects
 
     req = hwid_api_messages_pb2.BoardsRequest()
     msg = self.service.GetBoards(req)
@@ -110,8 +110,8 @@ class HwidApiTest(unittest.TestCase):
     self.assertEqual(
         hwid_api_messages_pb2.BomResponse(
             status=hwid_api_messages_pb2.Status.KNOWN_BAD_HWID,
-            error='No metadata present for the requested board: %s' % bad_hwid),
-        msg)
+            error='No metadata present for the requested project: %s' %
+            bad_hwid), msg)
 
   def testGetBomValueError(self):
     self.patch_hwid_manager.GetBomAndConfigless = mock.Mock(
@@ -181,7 +181,7 @@ class HwidApiTest(unittest.TestCase):
             'cpu': ['cpu_0', 'cpu_1'],
         }, comp_db=database.Database.LoadFile(GOLDEN_HWIDV3_FILE,
                                               verify_checksum=False))
-    bom.board = 'foo'
+    bom.project = 'foo'
     bom.phase = 'bar'
     configless = None
     self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
@@ -595,7 +595,7 @@ class HwidApiTest(unittest.TestCase):
         'cpu': ['bar1', 'bar2'],
         'dram': ['foo']
     })
-    bom.board = 'foo'
+    bom.project = 'foo'
     configless = None
     self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
 
@@ -616,7 +616,7 @@ class HwidApiTest(unittest.TestCase):
         'cpu': ['bar1', 'bar2'],
         'dram': ['foo']
     })
-    bom.board = 'foo'
+    bom.project = 'foo'
     configless = {
         'memory': 4
     }
@@ -654,7 +654,7 @@ class HwidApiTest(unittest.TestCase):
     mock_get_total_ram.return_value = ('2Mb', 2000000)
     bom = hwid_manager.Bom()
     bom.AddAllComponents({'dram': ['some_memory_chip', 'other_memory_chip']})
-    bom.board = 'foo'
+    bom.project = 'foo'
     configless = None
 
     self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
@@ -674,13 +674,13 @@ class HwidApiTest(unittest.TestCase):
     ]
     bom = hwid_manager.Bom()
     bom.AddComponent('touchscreen', name='testscreen', is_vp_related=True)
-    bom.board = 'foo'
+    bom.project = 'foo'
     bom.phase = 'bar'
     configless = None
 
     mock_get_sku_from_bom.return_value = {
         'sku': 'TestSku',
-        'board': None,
+        'project': None,
         'cpu': None,
         'memory_str': None,
         'total_bytes': None
@@ -741,14 +741,14 @@ class HwidApiTest(unittest.TestCase):
         ('r1.*', 'b1', []), ('^Fo.*', 'found_device', [])
     ]
     bom = hwid_manager.Bom()
-    bom.board = 'foo'
+    bom.project = 'foo'
     bom.phase = 'bar'
     configless = {'feature_list': {'has_touchscreen': 1}}
     self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
 
     mock_get_sku_from_bom.return_value = {
         'sku': 'TestSku',
-        'board': None,
+        'project': None,
         'cpu': None,
         'memory_str': None,
         'total_bytes': None

@@ -113,7 +113,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     minutes which should be more than enough headroom for the next few years.
     """
 
-    # Limit boards for ingestion (e2e test only).
+    # Limit projects for ingestion (e2e test only).
     limit_models = set(request.limit_models)
     do_limit = bool(limit_models)
     force_push = request.force_push
@@ -129,8 +129,8 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
         hwid_db_metadata_list = [
             x for x in hwid_db_metadata_list if x.name in limit_models
         ]
-      self.hwid_manager.UpdateBoards(live_hwid_repo, hwid_db_metadata_list,
-                                     delete_missing=not do_limit)
+      self.hwid_manager.UpdateProjects(live_hwid_repo, hwid_db_metadata_list,
+                                       delete_missing=not do_limit)
 
     except hwid_repo.HWIDRepoError as ex:
       logging.error('Got exception from HWID repo: %r.', ex)
@@ -153,7 +153,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
   @protorpc_utils.ProtoRPCServiceMethod
   @auth.RpcCheck
   def IngestDevicesVariants(self, request):
-    """Retrieve the file, parse and save the board to HWID regexp mapping."""
+    """Retrieve the file, parse and save the project to HWID regexp mapping."""
     del request  # unused
 
     try:
@@ -166,16 +166,17 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
       regexp_to_device = []
 
       for device in parsed_json['devices']:
-        regexp_to_board = []
+        regexp_to_project = []
         for board in device.get('boards', []):
-          regexp_to_board.append(
+          regexp_to_project.append(
               (board['hwid_match'], board['public_codename']))
           logging.info('Board: %s',
                        (board['hwid_match'], board['public_codename']))
 
         if device['hwid_match']:  # only allow non-empty patterns
-          regexp_to_device.append((device['hwid_match'],
-                                   device['public_codename'], regexp_to_board))
+          regexp_to_device.append(
+              (device['hwid_match'], device['public_codename'],
+               regexp_to_project))
 
           logging.info('Device: %s',
                        (device['hwid_match'], device['public_codename']))
@@ -202,7 +203,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
 
     db_lists = collections.defaultdict(list)
     for model_name, model_info in self.vpg_targets.items():
-      hwid_data = self.hwid_manager.GetBoardDataFromCache(model_name)
+      hwid_data = self.hwid_manager.GetProjectDataFromCache(model_name)
       if hwid_data is not None:
         db_lists[model_info.board].append(
             (hwid_data.database, model_info.waived_comp_categories))

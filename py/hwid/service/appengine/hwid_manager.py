@@ -26,12 +26,12 @@ from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import type_utils
 
 
-class BoardNotFoundError(KeyError):
-  """Indicates that the specified board was not found."""
+class ProjectNotFoundError(KeyError):
+  """Indicates that the specified project was not found."""
 
 
-class TooManyBoardsFound(Exception):
-  """There is more than one entry for a particular board in datastore."""
+class TooManyProjectsFound(Exception):
+  """There is more than one entry for a particular project in datastore."""
 
 
 class HwidNotFoundError(KeyError):
@@ -45,12 +45,12 @@ class InvalidHwidError(ValueError):
   """Indicates a HWID is malformed."""
 
 
-class BoardMismatchError(ValueError):
-  """Indicates that a HWID does does not match the expected board."""
+class ProjectMismatchError(ValueError):
+  """Indicates that a HWID does does not match the expected project."""
 
   def __init__(self, expected, actual):
-    super(BoardMismatchError, self).__init__('HWID %r does not match board %r.',
-                                             (actual, expected))
+    super(ProjectMismatchError, self).__init__(
+        'HWID %r does not match project %r.', (actual, expected))
 
 
 class MetadataError(ValueError):
@@ -58,10 +58,10 @@ class MetadataError(ValueError):
 
 
 class HwidMetadata(ndb.Model):  # pylint: disable=no-init
-  """Metadata about HWID boards and information.
+  """Metadata about HWID projects and information.
 
-  This tracks the information about HWID file for a given board.  It is unique
-  per path, as each file is assumed to apply to only one board (the same file
+  This tracks the information about HWID file for a given project.  It is unique
+  per path, as each file is assumed to apply to only one project (the same file
   can be uploaded multiple times, but will be uploaded as separate files).  The
   path thus acts as the unique key.
   """
@@ -154,7 +154,7 @@ class Bom:
     self._components = {}
     self._labels = {}
     self.phase = ''
-    self.board = None
+    self.project = None
 
   def HasComponent(self, component):
     """Tests whether the bom has a component."""
@@ -356,23 +356,23 @@ class HwidManager:
             None
     }
 
-  def GetBoards(self, versions=None):
-    """Get a list of supported boards.
+  def GetProjects(self, versions=None):
+    """Get a list of supported projects.
 
     Args:
       versions: List of BOM file versions to include.
 
     Returns:
-      A list of boards.
+      A list of projects.
     """
-    logging.debug('Getting boards for versions: {0}'.format(versions)
-                  if versions else 'Getting boards')
+    logging.debug('Getting projects for versions: {0}'
+                  .format(versions) if versions else 'Getting projects')
     with self._ndb_client.context(global_cache=self._global_cache):
       if versions:
-        return set(metadata.board
+        return set(metadata.project
                    for metadata in HwidMetadata.query()
                    if metadata.version in versions)
-      return set(metadata.board for metadata in HwidMetadata.query())
+      return set(metadata.project for metadata in HwidMetadata.query())
 
   def GetBomAndConfigless(self, hwid_string, verbose=False):
     """Get the BOM and configless for a given HWID.
@@ -390,29 +390,25 @@ class HwidManager:
       InvalidHwidError: If the HWID is invalid.
     """
     logging.debug('Getting BOM for %r.', hwid_string)
-    board_and_brand, unusedi, unusedj = hwid_string.partition(' ')
-    board, unusedi, unusedj = board_and_brand.partition('-')
+    project_and_brand, unusedi, unusedj = hwid_string.partition(' ')
+    project, unusedi, unusedj = project_and_brand.partition('-')
     del unusedi  # unused
     del unusedj  # unused
 
-    model_info = self._vpg_targets.get(board)
+    model_info = self._vpg_targets.get(project)
     waived_comp_categories = model_info and model_info.waived_comp_categories
 
-    hwid_data = self._LoadHwidData(board)
+    hwid_data = self._LoadHwidData(project)
 
     return hwid_data.GetBomAndConfigless(hwid_string, verbose,
                                          waived_comp_categories)
 
-  def GetHwids(self,
-               board,
-               with_classes=None,
-               without_classes=None,
-               with_components=None,
-               without_components=None):
-    """Get a filtered list of HWIDs for the given board.
+  def GetHwids(self, project, with_classes=None, without_classes=None,
+               with_components=None, without_components=None):
+    """Get a filtered list of HWIDs for the given project.
 
     Args:
-      board: The board that you want the HWIDs of.
+      project: The project that you want the HWIDs of.
       with_classes: Filter for component classes that the HWIDs include.
       without_classes: Filter for component classes that the HWIDs don't
         include.
@@ -423,49 +419,49 @@ class HwidManager:
       A list of HWIDs.
 
     Raises:
-      InvalidHwidError: If the board is invalid.
+      InvalidHwidError: If the project is invalid.
     """
-    logging.debug('Getting filtered list of HWIDs for %r.', board)
-    hwid_data = self._LoadHwidData(board)
+    logging.debug('Getting filtered list of HWIDs for %r.', project)
+    hwid_data = self._LoadHwidData(project)
 
     return list(
-        hwid_data.GetHwids(board, with_classes, without_classes,
+        hwid_data.GetHwids(project, with_classes, without_classes,
                            with_components, without_components))
 
-  def GetComponentClasses(self, board):
-    """Get a list of all component classes for the given board.
+  def GetComponentClasses(self, project):
+    """Get a list of all component classes for the given project.
 
     Args:
-      board: The board that you want the component classes of.
+      project: The project that you want the component classes of.
 
     Returns:
       A list of component classes.
 
     Raises:
-      InvalidHwidError: If the board is invalid.
+      InvalidHwidError: If the project is invalid.
     """
-    logging.debug('Getting list of component classes for %r.', board)
-    hwid_data = self._LoadHwidData(board)
+    logging.debug('Getting list of component classes for %r.', project)
+    hwid_data = self._LoadHwidData(project)
 
-    return list(hwid_data.GetComponentClasses(board))
+    return list(hwid_data.GetComponentClasses(project))
 
-  def GetComponents(self, board, with_classes=None):
-    """Get a filtered dict of components for the given board.
+  def GetComponents(self, project, with_classes=None):
+    """Get a filtered dict of components for the given project.
 
     Args:
-      board: The board that you want the components of.
+      project: The project that you want the components of.
       with_classes: Filter for component classes that the dict include.
 
     Returns:
       A dict of components.
 
     Raises:
-      InvalidHwidError: If the board is invalid.
+      InvalidHwidError: If the project is invalid.
     """
-    logging.debug('Getting list of components for %r.', board)
-    hwid_data = self._LoadHwidData(board)
+    logging.debug('Getting list of components for %r.', project)
+    hwid_data = self._LoadHwidData(project)
 
-    return hwid_data.GetComponents(board, with_classes)
+    return hwid_data.GetComponents(project, with_classes)
 
   def GetCLReviewers(self):
     with self._ndb_client.context(global_cache=self._global_cache):
@@ -510,44 +506,45 @@ class HwidManager:
       latest_hash.payload_hash = payload_hash
       latest_hash.put()
 
-  def _LoadHwidData(self, board):
-    """Retrieves the HWID data for a given board, caching as necessary.
+  def _LoadHwidData(self, project):
+    """Retrieves the HWID data for a given project, caching as necessary.
 
     Args:
-      board: The board to get data for.
+      project: The project to get data for.
 
     Returns:
-      A HwidData object for the board.
+      A HwidData object for the project.
 
     Raises:
-      BoardNotFoundError: If no metadata is found for the given board.
-      TooManyBoardsFound: If we have more than one metadata entry for the given
-        board.
+      ProjectNotFoundError: If no metadata is found for the given project.
+      TooManyProjectsFound: If we have more than one metadata entry for the
+        given project.
     """
 
-    logging.debug('Loading data for %r.', board)
+    logging.debug('Loading data for %r.', project)
 
-    board = _NormalizeString(board)
+    project = _NormalizeString(project)
 
-    hwid_data = self.GetBoardDataFromCache(board)
+    hwid_data = self.GetProjectDataFromCache(project)
 
     if hwid_data:
-      logging.debug('Found cached data for %r.', board)
+      logging.debug('Found cached data for %r.', project)
       return hwid_data
 
     with self._ndb_client.context(global_cache=self._global_cache):
-      q = HwidMetadata.query(HwidMetadata.board == board)
+      q = HwidMetadata.query(HwidMetadata.project == project)
 
       if q.count() == 0:
-        raise BoardNotFoundError(
-            'No metadata present for the requested board: %r' % board)
+        raise ProjectNotFoundError(
+            'No metadata present for the requested project: %r' % project)
 
       if q.count() != 1:
-        raise TooManyBoardsFound('Too many boards present for : %r' % board)
+        raise TooManyProjectsFound(
+            'Too many projects present for : %r' % project)
 
       hwid_data = self._LoadHwidFile(q.get())
 
-    self.SaveBoardDataToCache(board, hwid_data)
+    self.SaveProjectDataToCache(project, hwid_data)
 
     return hwid_data
 
@@ -570,46 +567,46 @@ class HwidManager:
       raw_hwid_yaml = self._fs_adapter.ReadFile(self._LivePath(metadata.path))
     except Exception as e:
       logging.exception('Missing HWID file: %r', metadata.path)
-      raise MetadataError('HWID file missing for the requested board: %r' % e)
+      raise MetadataError('HWID file missing for the requested project: %r' % e)
 
     if metadata.version == "2":
       logging.debug("Processing as version 2 file.")
-      hwid_data = _HwidV2Data(metadata.board, raw_hwid_yaml=raw_hwid_yaml)
+      hwid_data = _HwidV2Data(metadata.project, raw_hwid_yaml=raw_hwid_yaml)
     elif metadata.version == "3":
       logging.debug("Processing as version 3 file.")
-      hwid_data = _HwidV3Data(metadata.board, raw_hwid_yaml=raw_hwid_yaml)
+      hwid_data = _HwidV3Data(metadata.project, raw_hwid_yaml=raw_hwid_yaml)
     else:
-      raise MetadataError('Board %r has invalid version %r.' %
-                          (metadata.board, metadata.version))
+      raise MetadataError('Project %r has invalid version %r.' %
+                          (metadata.project, metadata.version))
 
     return hwid_data
 
-  def RegisterBoard(self, board, version, path):
-    """Registers a board with the system.
+  def RegisterProject(self, board, project, version, path):
+    """Registers a project with the system.
 
     This method only registers the metadata.  The hwid data is not loaded until
     requested.
 
     Args:
-      board: The board name
+      project: The project name
       version: version, e.g. '2'
       path: Path to the file within the filesystem adapter.
     """
-    logging.info('Registering board %r at version %r with file %r.', board,
+    logging.info('Registering project %r at version %r with file %r.', project,
                  version, path)
 
-    board = _NormalizeString(board)
+    project = _NormalizeString(project)
 
     with self._ndb_client.context(global_cache=self._global_cache):
       q = HwidMetadata.query(HwidMetadata.path == path)
       metadata = q.get()
 
       if metadata:
-        metadata.board = board
+        metadata.project = project
         metadata.version = str(version)
       else:
         metadata = HwidMetadata(board=board, version=str(version), path=path,
-                                project=board)
+                                project=project)
 
       metadata.put()
 
@@ -660,9 +657,9 @@ class HwidManager:
       ndb.delete_multi(keys_to_delete)
       logging.info('Extra categories are Removed')
 
-  def UpdateBoards(self, live_hwid_repo, hwid_db_metadata_list,
-                   delete_missing=True):
-    """Updates the set of supported boards to be exactly the list provided.
+  def UpdateProjects(self, live_hwid_repo, hwid_db_metadata_list,
+                     delete_missing=True):
+    """Updates the set of supported projects to be exactly the list provided.
 
     Args:
       live_hwid_repo: A HWIDRepo instance that provides access to chromeos-hwid
@@ -679,42 +676,39 @@ class HwidManager:
 
     # Discard the names for the entries, indexing only by path.
     with self._ndb_client.context(global_cache=self._global_cache):
-      # Note that the term `board` used in HWID Service is not related to the
-      # `board` in HWIDDBMetadata from projects.yaml which means the reference
-      # board.  Therefore we will not use the `board` field in
-      # hwid_db_metadata_list.
       q = HwidMetadata.query()
       existing_metadata = list(q)
-      old_files = set(m.board for m in existing_metadata)
+      old_files = set(m.project for m in existing_metadata)
       new_files = set(hwid_db_metadata_of_name)
 
       files_to_delete = old_files - new_files
       files_to_create = new_files - old_files
 
       for hwid_metadata in existing_metadata:
-        if hwid_metadata.board in files_to_delete:
+        if hwid_metadata.project in files_to_delete:
           if delete_missing:
             hwid_metadata.key.delete()
             self._fs_adapter.DeleteFile(self._LivePath(hwid_metadata.path))
         else:
-          new_data = hwid_db_metadata_of_name[hwid_metadata.board]
+          new_data = hwid_db_metadata_of_name[hwid_metadata.project]
           hwid_metadata.version = str(new_data.version)
-          hwid_metadata.project = new_data.name
+          hwid_metadata.board = new_data.board_name
           self._ActivateFile(live_hwid_repo, new_data.name, hwid_metadata.path)
           hwid_metadata.put()
 
-    for board in files_to_create:
-      path = board  # Use the board name as the file path.
-      new_data = hwid_db_metadata_of_name[board]
+    for project in files_to_create:
+      path = project  # Use the project name as the file path.
+      new_data = hwid_db_metadata_of_name[project]
+      board = new_data.board_name
       version = str(new_data.version)
       with self._ndb_client.context(global_cache=self._global_cache):
         metadata = HwidMetadata(board=board, version=version, path=path,
-                                project=board)
-        self._ActivateFile(live_hwid_repo, board, path)
+                                project=project)
+        self._ActivateFile(live_hwid_repo, project, path)
         metadata.put()
 
   def ReloadMemcacheCacheFromFiles(self, limit_models=None):
-    """For every known board, load its info into the cache.
+    """For every known project, load its info into the cache.
 
     Args:
       limit_models: List of names of models which will be updated.
@@ -723,11 +717,11 @@ class HwidManager:
     with self._ndb_client.context(global_cache=self._global_cache):
       q = HwidMetadata.query()
       if limit_models:
-        q = q.filter(HwidMetadata.board.IN(limit_models))
+        q = q.filter(HwidMetadata.project.IN(limit_models))
 
       for metadata in list(q):
         try:
-          self._memcache_adapter.Put(metadata.board,
+          self._memcache_adapter.Put(metadata.project,
                                      self._LoadHwidFile(metadata))
         except Exception:  # pylint: disable=broad-except
           # Catch any exception and continue with other files.  The reason for
@@ -746,11 +740,11 @@ class HwidManager:
 
   def _ActivateFile(self, live_hwid_repo, hwid_db_name, live_file_id):
     try:
-      board_data = live_hwid_repo.LoadHWIDDBByName(hwid_db_name)
+      project_data = live_hwid_repo.LoadHWIDDBByName(hwid_db_name)
     except hwid_repo.HWIDRepoError as ex:
       raise MetadataError from ex
     self._fs_adapter.WriteFile(
-        self._LivePath(live_file_id), board_data.encode('utf-8'))
+        self._LivePath(live_file_id), project_data.encode('utf-8'))
 
   def _ClearMemcache(self):
     """Clear all cache items via memcache_adapter.
@@ -760,7 +754,7 @@ class HwidManager:
     """
     self._memcache_adapter.ClearAll()
 
-  def GetBoardDataFromCache(self, board):
+  def GetProjectDataFromCache(self, project):
     """Get the HWID file data from cache.
 
     There is a two level caching strategy for hwid_data object, first check is
@@ -772,19 +766,19 @@ class HwidManager:
     better in memory caching.
 
     Args:
-      board: String, the name of the board to retrieve from cache.
+      project: String, the name of the project to retrieve from cache.
 
     Returns:
        HWIDData object that was cached or null if not found in memory or in the
        memcache.
     """
-    hwid_data = self._memcache_adapter.Get(board)
+    hwid_data = self._memcache_adapter.Get(project)
     if not hwid_data:
-      logging.info('Memcache read miss %s', board)
+      logging.info('Memcache read miss %s', project)
     return hwid_data
 
-  def SaveBoardDataToCache(self, board, hwid_data):
-    self._memcache_adapter.Put(board, hwid_data)
+  def SaveProjectDataToCache(self, project, hwid_data):
+    self._memcache_adapter.Put(project, hwid_data)
 
   def GetAVLName(self, category, comp_name):
     """Get AVL Name from hourly updated mapping data.
@@ -900,16 +894,12 @@ class _HwidData:
     """
     raise NotImplementedError()
 
-  def GetHwids(self,
-               board,
-               with_classes=None,
-               without_classes=None,
-               with_components=None,
-               without_components=None):
-    """Get a filtered set of HWIDs for the given board.
+  def GetHwids(self, project, with_classes=None, without_classes=None,
+               with_components=None, without_components=None):
+    """Get a filtered set of HWIDs for the given project.
 
     Args:
-      board: The board that you want the HWIDs of.
+      project: The project that you want the HWIDs of.
       with_classes: Filter for component classes that the HWIDs include.
       without_classes: Filter for component classes that the HWIDs don't
         include.
@@ -920,36 +910,36 @@ class _HwidData:
       A set of HWIDs.
 
     Raises:
-      InvalidHwidError: If the board is invalid.
+      InvalidHwidError: If the project is invalid.
     """
     raise NotImplementedError()
 
-  def GetComponentClasses(self, board):
-    """Get a set of all component classes for the given board.
+  def GetComponentClasses(self, project):
+    """Get a set of all component classes for the given project.
 
     Args:
-      board: The board that you want the component classes of.
+      project: The project that you want the component classes of.
 
     Returns:
       A set of component classes.
 
     Raises:
-      InvalidHwidError: If the board is invalid.
+      InvalidHwidError: If the project is invalid.
     """
     raise NotImplementedError()
 
-  def GetComponents(self, board, with_classes=None):
-    """Get a filtered dict of all components for the given board.
+  def GetComponents(self, project, with_classes=None):
+    """Get a filtered dict of all components for the given project.
 
     Args:
-      board: The board that you want the components of.
+      project: The project that you want the components of.
       with_classes: Filter for component classes that the dict include.
 
     Returns:
       A dict of components.
 
     Raises:
-      InvalidHwidError: If the board is invalid.
+      InvalidHwidError: If the project is invalid.
     """
     raise NotImplementedError()
 
@@ -957,18 +947,19 @@ class _HwidData:
 class _HwidV2Data(_HwidData):
   """Wrapper for HWIDv2 data."""
 
-  def __init__(self, board, hwid_file=None, raw_hwid_yaml=None, hwid_data=None):
+  def __init__(self, project, hwid_file=None, raw_hwid_yaml=None,
+               hwid_data=None):
     """Constructor.
 
     Requires one of hwid_file, hwid_yaml or hwid_data.
 
     Args:
-      board: The board name
+      project: The project name
       hwid_file: the path to a file containing the HWID data.
       hwid_yaml: the raw YAML string of HWID data.
       hwid_data: parsed HWID data from a HWID file.
     """
-    self.board = board
+    self.project = project
     self._bom_map = {}
     self._variant_map = {}
     self._volatile_map = {}
@@ -1005,7 +996,7 @@ class _HwidV2Data(_HwidData):
   def _SplitHwid(self, hwid_string):
     """Splits a HWIDv2 string into component parts.
 
-    Examples matched (board, bom, variant, volatile):
+    Examples matched (project, bom, variant, volatile):
       FOO BAR -> ('FOO', 'BAR', None, None)
       FOO BAR BAZ-QUX -> ('FOO', 'BAR', 'BAZ', 'QUX')
       FOO BAR BAZ-QUX 1234 -> ('FOO', 'BAR', 'BAZ', 'QUX')
@@ -1023,18 +1014,18 @@ class _HwidV2Data(_HwidData):
       InvalidHwidError: if the string is in an invalid format.
     """
 
-    match = re.match(r'\s*(?P<board>\w+)\s+(?P<name>\w+\S+)'
-                     r'(\s+(?P<variant>\w+)(-(?P<volatile>\w+))?)?.*',
-                     hwid_string)
+    match = re.match(
+        r'\s*(?P<project>\w+)\s+(?P<name>\w+\S+)'
+        r'(\s+(?P<variant>\w+)(-(?P<volatile>\w+))?)?.*', hwid_string)
 
     if match:
       groups = match.groupdict()
-      board = _NormalizeString(groups['board'])
+      project = _NormalizeString(groups['project'])
       name = _NormalizeString(groups['name'])
       variant = _NormalizeString(groups['variant'])
       volatile = _NormalizeString(groups['volatile'])
 
-      return (board, name, variant, volatile)
+      return (project, name, variant, volatile)
 
     raise InvalidHwidError('Invalid HWIDv2 format: %r' % hwid_string)
 
@@ -1056,52 +1047,48 @@ class _HwidV2Data(_HwidData):
     Raises:
       HwidNotFoundError: If a portion of the HWID is not found.
       InvalidHwidError: If the HWID is invalid.
-      BoardMismatchError: If the board is invalid.
+      ProjectMismatchError: If the project is invalid.
     """
-    board, name, variant, volatile = self._SplitHwid(hwid_string)
+    project, name, variant, volatile = self._SplitHwid(hwid_string)
 
-    if board != self.board:
-      raise BoardMismatchError(hwid_string, board)
+    if project != self.project:
+      raise ProjectMismatchError(hwid_string, project)
 
     bom = Bom()
-    bom.board = self.board
+    bom.project = self.project
 
     if name in self._bom_map:
       bom.AddAllComponents(self._bom_map[name]['primary']['components'],
                            verbose=verbose)
     else:
-      raise HwidNotFoundError('BOM %r not found for board %r.' % (bom,
-                                                                  self.board))
+      raise HwidNotFoundError(
+          'BOM %r not found for project %r.' % (bom, self.project))
 
     if variant:
       if variant in self._variant_map:
         bom.AddAllComponents(self._variant_map[variant]['components'],
                              verbose=verbose)
       else:
-        raise HwidNotFoundError('variant %r not found for board %r.' %
-                                (variant, self.board))
+        raise HwidNotFoundError(
+            'variant %r not found for project %r.' % (variant, self.project))
 
     if volatile:
       if volatile in self._volatile_map:
         bom.AddAllComponents(self._volatile_map[volatile], verbose=verbose)
       else:
-        raise HwidNotFoundError('volatile %r not found for board %r.' %
-                                (volatile, self.board))
+        raise HwidNotFoundError(
+            'volatile %r not found for project %r.' % (volatile, self.project))
 
     return bom, None
 
-  def GetHwids(self,
-               board,
-               with_classes=None,
-               without_classes=None,
-               with_components=None,
-               without_components=None):
-    """Get a filtered set of HWIDs for the given board.
+  def GetHwids(self, project, with_classes=None, without_classes=None,
+               with_components=None, without_components=None):
+    """Get a filtered set of HWIDs for the given project.
 
     Overrides superclass method.
 
     Args:
-      board: The board that you want the HWIDs of.
+      project: The project that you want the HWIDs of.
       with_classes: Filter for component classes that the HWIDs include.
       without_classes: Filter for component classes that the HWIDs don't
         include.
@@ -1112,13 +1099,13 @@ class _HwidV2Data(_HwidData):
       A set of HWIDs.
 
     Raises:
-      InvalidHwidError: If the board is invalid.
-      BoardMismatchError: If the board is invalid.
+      InvalidHwidError: If the project is invalid.
+      ProjectMismatchError: If the project is invalid.
     """
-    board_string = _NormalizeString(board)
+    project_string = _NormalizeString(project)
 
-    if board_string != self.board:
-      raise BoardMismatchError(board, board_string)
+    if project_string != self.project:
+      raise ProjectMismatchError(project, project_string)
 
     hwids_set = set()
     for hw in self._bom_map:
@@ -1171,24 +1158,24 @@ class _HwidV2Data(_HwidData):
         hwids_set.add(hw)
     return hwids_set
 
-  def GetComponentClasses(self, board):
-    """Get a set of all component classes for the given board.
+  def GetComponentClasses(self, project):
+    """Get a set of all component classes for the given project.
 
     Overrides superclass method.
 
     Args:
-      board: The board that you want the component classes of.
+      project: The project that you want the component classes of.
 
     Returns:
       A set of component classes.
 
     Raises:
-      BoardMismatchError: If the board is invalid.
+      ProjectMismatchError: If the project is invalid.
     """
-    board_string = _NormalizeString(board)
+    project_string = _NormalizeString(project)
 
-    if board_string != self.board:
-      raise BoardMismatchError(board, board_string)
+    if project_string != self.project:
+      raise ProjectMismatchError(project, project_string)
 
     classes_set = set()
     for hw in self._bom_map:
@@ -1200,25 +1187,25 @@ class _HwidV2Data(_HwidData):
     classes_set.update(self._volatile_value_map.keys())
     return classes_set
 
-  def GetComponents(self, board, with_classes=None):
-    """Get a filtered dict of all components for the given board.
+  def GetComponents(self, project, with_classes=None):
+    """Get a filtered dict of all components for the given project.
 
     Overrides superclass method.
 
     Args:
-      board: The board that you want the components of.
+      project: The project that you want the components of.
       with_classes: Filter for component classes that the dict include.
 
     Returns:
       A dict of components.
 
     Raises:
-      BoardMismatchError: If the board is invalid.
+      ProjectMismatchError: If the project is invalid.
     """
-    board_string = _NormalizeString(board)
+    project_string = _NormalizeString(project)
 
-    if board_string != self.board:
-      raise BoardMismatchError(board, board_string)
+    if project_string != self.project:
+      raise ProjectMismatchError(project, project_string)
 
     components = {}
     all_comps = list()
@@ -1250,18 +1237,19 @@ class _HwidV2Data(_HwidData):
 class _HwidV3Data(_HwidData):
   """Wrapper for HWIDv3 data."""
 
-  def __init__(self, board, hwid_file=None, raw_hwid_yaml=None, hwid_data=None):
+  def __init__(self, project, hwid_file=None, raw_hwid_yaml=None,
+               hwid_data=None):
     """Constructor.
 
     Requires one of hwid_file, hwid_yaml or hwid_data.
 
     Args:
-      board: The board name
+      project: The project name
       hwid_file: the path to a file containing the HWID data.
       raw_hwid_yaml: the raw YAML string of HWID data.
       hwid_data: parsed HWID data from a HWID file.
     """
-    self.board = board
+    self.project = project
     self.database = None
 
     self._Seed(hwid_file, raw_hwid_yaml, hwid_data)
@@ -1307,22 +1295,18 @@ class _HwidV3Data(_HwidData):
     bom.AddAllComponents(_bom.components, self.database, verbose=verbose,
                          waived_comp_categories=waived_comp_categories)
     bom.phase = self.database.GetImageName(hwid.image_id)
-    bom.board = hwid.project
+    bom.project = hwid.project
 
     return bom, configless
 
-  def GetHwids(self,
-               board,
-               with_classes=None,
-               without_classes=None,
-               with_components=None,
-               without_components=None):
-    """Get a filtered set of HWIDs for the given board.
+  def GetHwids(self, project, with_classes=None, without_classes=None,
+               with_components=None, without_components=None):
+    """Get a filtered set of HWIDs for the given project.
 
     Overrides superclass method.
 
     Args:
-      board: The board that you want the HWIDs of.
+      project: The project that you want the HWIDs of.
       with_classes: Filter for component classes that the HWIDs include.
       without_classes: Filter for component classes that the HWIDs don't
         include.
@@ -1333,44 +1317,44 @@ class _HwidV3Data(_HwidData):
       A set of HWIDs.
 
     Raises:
-      BoardMismatchError: If the board is invalid.
+      ProjectMismatchError: If the project is invalid.
     """
     raise NotImplementedError('This method is not supported for v3')
 
-  def GetComponentClasses(self, board):
-    """Get a set of all component classes for the given board.
+  def GetComponentClasses(self, project):
+    """Get a set of all component classes for the given project.
 
     This function is supported, but has not yet been implemented.
 
     Overrides superclass method.
 
     Args:
-      board: The board that you want the component classes of.
+      project: The project that you want the component classes of.
 
     Returns:
       A set of component classes.
 
     Raises:
-      BoardMismatchError: If the board is invalid.
+      ProjectMismatchError: If the project is invalid.
     """
     raise NotImplementedError('This method is not implemented for v3')
 
-  def GetComponents(self, board, with_classes=None):
-    """Get a filtered dict of all components for the given board.
+  def GetComponents(self, project, with_classes=None):
+    """Get a filtered dict of all components for the given project.
 
     This function is supported, but has not yet been implemented.
 
     Overrides superclass method.
 
     Args:
-      board: The board that you want the components of.
+      project: The project that you want the components of.
       with_classes: Filter for component classes that the dict include.
 
     Returns:
       A dict of components.
 
     Raises:
-      BoardMismatchError: If the board is invalid.
+      ProjectMismatchError: If the project is invalid.
     """
     raise NotImplementedError('This method is not implemented for v3')
 

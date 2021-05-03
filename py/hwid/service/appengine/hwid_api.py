@@ -47,12 +47,12 @@ _goldeneye_memcache_adapter = memcache_adapter.MemcacheAdapter(
 def _FastFailKnownBadHwid(hwid):
   if hwid in KNOWN_BAD_HWIDS:
     return (hwid_api_messages_pb2.Status.KNOWN_BAD_HWID,
-            'No metadata present for the requested board: %s' % hwid)
+            'No metadata present for the requested project: %s' % hwid)
 
   for regexp in KNOWN_BAD_SUBSTR:
     if re.search(regexp, hwid):
       return (hwid_api_messages_pb2.Status.KNOWN_BAD_HWID,
-              'No metadata present for the requested board: %s' % hwid)
+              'No metadata present for the requested project: %s' % hwid)
   return (hwid_api_messages_pb2.Status.SUCCESS, '')
 
 
@@ -105,14 +105,14 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
   @protorpc_utils.ProtoRPCServiceMethod
   @auth.RpcCheck
   def GetBoards(self, request):
-    """Return all of the supported boards in sorted order."""
+    """Return all of the supported projects in sorted order."""
 
     versions = request.versions
-    boards = _hwid_manager.GetBoards(versions)
+    projects = _hwid_manager.GetProjects(versions)
 
-    logging.debug('Found boards: %r', boards)
+    logging.debug('Found projects: %r', projects)
     response = hwid_api_messages_pb2.BoardsResponse(
-        status=hwid_api_messages_pb2.Status.SUCCESS, boards=sorted(boards))
+        status=hwid_api_messages_pb2.Status.SUCCESS, boards=sorted(projects))
 
     return response
 
@@ -185,16 +185,16 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
           error=str(e), status=hwid_api_messages_pb2.Status.BAD_REQUEST)
 
     return hwid_api_messages_pb2.SkuResponse(
-        status=hwid_api_messages_pb2.Status.SUCCESS, board=sku['board'],
+        status=hwid_api_messages_pb2.Status.SUCCESS, board=sku['project'],
         cpu=sku['cpu'], memory_in_bytes=sku['total_bytes'],
         memory=sku['memory_str'], sku=sku['sku'])
 
   @protorpc_utils.ProtoRPCServiceMethod
   @auth.RpcCheck
   def GetHwids(self, request):
-    """Return a filtered list of HWIDs for the given board."""
+    """Return a filtered list of HWIDs for the given project."""
 
-    board = request.board
+    project = request.board
 
     with_classes = set(filter(None, request.with_classes))
     without_classes = set(filter(None, request.without_classes))
@@ -215,13 +215,13 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
           error='One or more components specified for both with and without')
 
     try:
-      hwids = _hwid_manager.GetHwids(board, with_classes, without_classes,
+      hwids = _hwid_manager.GetHwids(project, with_classes, without_classes,
                                      with_components, without_components)
     except ValueError:
       logging.exception('ValueError -> bad input')
       return hwid_api_messages_pb2.HwidsResponse(
           status=hwid_api_messages_pb2.Status.BAD_REQUEST,
-          error='Invalid input: %s' % board)
+          error='Invalid input: %s' % project)
 
     logging.debug('Found HWIDs: %r', hwids)
 
@@ -231,16 +231,16 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
   @protorpc_utils.ProtoRPCServiceMethod
   @auth.RpcCheck
   def GetComponentClasses(self, request):
-    """Return a list of all component classes for the given board."""
+    """Return a list of all component classes for the given project."""
 
     try:
-      board = request.board
-      classes = _hwid_manager.GetComponentClasses(board)
+      project = request.board
+      classes = _hwid_manager.GetComponentClasses(project)
     except ValueError:
       logging.exception('ValueError -> bad input')
       return hwid_api_messages_pb2.ComponentClassesResponse(
           status=hwid_api_messages_pb2.Status.BAD_REQUEST,
-          error='Invalid input: %s' % board)
+          error='Invalid input: %s' % project)
 
     logging.debug('Found component classes: %r', classes)
 
@@ -250,18 +250,18 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
   @protorpc_utils.ProtoRPCServiceMethod
   @auth.RpcCheck
   def GetComponents(self, request):
-    """Return a filtered list of components for the given board."""
+    """Return a filtered list of components for the given project."""
 
-    board = request.board
+    project = request.board
     with_classes = set(filter(None, request.with_classes))
 
     try:
-      components = _hwid_manager.GetComponents(board, with_classes)
+      components = _hwid_manager.GetComponents(project, with_classes)
     except ValueError:
       logging.exception('ValueError -> bad input')
       return hwid_api_messages_pb2.ComponentsResponse(
           status=hwid_api_messages_pb2.Status.BAD_REQUEST,
-          error='Invalid input: %s' % board)
+          error='Invalid input: %s' % project)
 
     logging.debug('Found component classes: %r', components)
 
@@ -402,8 +402,8 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
       return hwid_api_messages_pb2.DutLabelsResponse(
           error='Missing Regexp List', possible_labels=possible_labels,
           status=hwid_api_messages_pb2.Status.SERVER_ERROR)
-    for (regexp, device, unused_regexp_to_board) in regexp_to_device:
-      del unused_regexp_to_board  # unused
+    for (regexp, device, unused_regexp_to_project) in regexp_to_device:
+      del unused_regexp_to_project  # unused
       try:
         if re.match(regexp, hwid):
           response.labels.add(name='variant', value=device)
@@ -428,7 +428,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     # runtime probe
     for component in bom.GetComponents():
       if component.name and component.is_vp_related:
-        name = _hwid_manager.GetPrimaryIdentifier(bom.board, component.cls,
+        name = _hwid_manager.GetPrimaryIdentifier(bom.project, component.cls,
                                                   component.name)
         name = _hwid_manager.GetAVLName(component.cls, name)
         if component.information is not None:

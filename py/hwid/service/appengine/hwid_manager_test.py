@@ -52,7 +52,7 @@ class HwidManagerTest(unittest.TestCase):
     self.addCleanup(patcher.stop)
 
   def _LoadTestDataStore(self, manager):
-    """Loads up the datastore with metadata about one board."""
+    """Loads up the datastore with metadata about one project."""
     with manager._ndb_client.context():
       hwid_manager.HwidMetadata(board='CHROMEBOOK', path='v2', version='2',
                                 project='CHROMEBOOK').put()
@@ -110,27 +110,27 @@ class HwidManagerTest(unittest.TestCase):
     manager._ClearMemcache()
     return manager
 
-  def testGetBoardsWithoutExistingBoards(self):
-    """Test that a if there are no existing boards, an empty set is returned."""
+  def testGetProjectsWithoutExistingProjects(self):
+    """Test for no existing projects, an empty set is returned."""
     manager = self._GetManager(load_blobstore=False, load_datastore=False)
 
-    self.assertEqual(set(), manager.GetBoards())
+    self.assertEqual(set(), manager.GetProjects())
 
-  def testGetBoardsWithExistingBoards(self):
-    """Test that a if there are existing boards, they are returned."""
+  def testGetProjectsWithExistingProjects(self):
+    """Test that a if there are existing projects, they are returned."""
     manager = self._GetManager()
-    boards = set()
-    boards.add('CHROMEBOOK')
-    self.assertEqual(boards, manager.GetBoards())
+    projects = set()
+    projects.add('CHROMEBOOK')
+    self.assertEqual(projects, manager.GetProjects())
 
-  def testGetBoardsVersions(self):
-    """Test that the correct boards are returned when versions are listed."""
+  def testGetProjectsVersions(self):
+    """Test that the correct projects are returned when versions are listed."""
     manager = self._GetManager()
 
-    self.assertEqual(set(), manager.GetBoards(['3']))
+    self.assertEqual(set(), manager.GetProjects(['3']))
 
-    self.assertEqual({'CHROMEBOOK'}, manager.GetBoards(['2']))
-    self.assertEqual({'CHROMEBOOK'}, manager.GetBoards(['2', '3']))
+    self.assertEqual({'CHROMEBOOK'}, manager.GetProjects(['2']))
+    self.assertEqual({'CHROMEBOOK'}, manager.GetProjects(['2', '3']))
 
   def testGetBomInvalidFormat(self):
     """Test that an invalid HWID raises a InvalidHwidError."""
@@ -139,11 +139,11 @@ class HwidManagerTest(unittest.TestCase):
     self.assertRaises(hwid_manager.InvalidHwidError,
                       manager.GetBomAndConfigless, 'CHROMEBOOK')
 
-  def testGetBomNonexistentBoard(self):
-    """Test that a non-existent board raises a HwidNotFoundError."""
+  def testGetBomNonexistentProject(self):
+    """Test that a non-existent project raises a HwidNotFoundError."""
     manager = self._GetManager(load_blobstore=False, load_datastore=False)
 
-    self.assertRaises(hwid_manager.BoardNotFoundError,
+    self.assertRaises(hwid_manager.ProjectNotFoundError,
                       manager.GetBomAndConfigless, 'CHROMEBOOK FOO A-A')
 
   def testGetBomMissingHWIDFile(self):
@@ -160,7 +160,7 @@ class HwidManagerTest(unittest.TestCase):
     self.assertRaises(hwid_manager.HwidNotFoundError,
                       manager.GetBomAndConfigless, 'CHROMEBOOK FOO A-A')
 
-  def testGetBomExistingBoard(self):
+  def testGetBomExistingProject(self):
     """Test that a valid HWID returns a result."""
     manager = self._GetManager()
 
@@ -170,17 +170,17 @@ class HwidManagerTest(unittest.TestCase):
     """Test when fetching from multiple files, both are supported."""
     manager = self._GetManager()
 
-    manager.RegisterBoard('CHROMEBOOK', 2, 'v2')
-    manager.RegisterBoard('CHROMEBOOK', 3, 'v3')
+    manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 2, 'v2')
+    manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 3, 'v3')
 
-    self.assertRaises(hwid_manager.TooManyBoardsFound,
+    self.assertRaises(hwid_manager.TooManyProjectsFound,
                       manager.GetBomAndConfigless, TEST_V2_HWID)
 
   def testGetBomWithVerboseFlag(self):
     """Test when fetching from multiple files, both are supported."""
     manager = self._GetManager()
 
-    manager.RegisterBoard('CHROMEBOOK', 3, 'v3')
+    manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 3, 'v3')
     manager.ReloadMemcacheCacheFromFiles()
 
     bom, configless = manager.GetBomAndConfigless(TEST_V3_HWID, verbose=True)
@@ -214,29 +214,29 @@ class HwidManagerTest(unittest.TestCase):
             }, is_vp_related=True)
     ])
 
-  def testGetHwidsNonExistentBoard(self):
-    """Test that a non-existent board raises a BoardNotFoundError."""
+  def testGetHwidsNonExistentProject(self):
+    """Test that a non-existent project raises a ProjectNotFoundError."""
     manager = self._GetManager(load_blobstore=False, load_datastore=False)
 
-    self.assertRaises(hwid_manager.BoardNotFoundError, manager.GetHwids,
+    self.assertRaises(hwid_manager.ProjectNotFoundError, manager.GetHwids,
                       'CHROMEBOOK', None, None, None, None)
 
-  def testGetHwidsExistingBoard(self):
-    """Test that a valid board returns a result."""
+  def testGetHwidsExistingProject(self):
+    """Test that a valid project returns a result."""
     manager = self._GetManager()
     hwids = {'BAKER', 'BAXTER', 'BLANCA', 'BRIDGE'}
     self.assertEqual(
         hwids, set(manager.GetHwids('CHROMEBOOK', None, None, None, None)))
 
-  def testGetComponentClassesNonExistentBoard(self):
-    """Test that a non-existent board raises a BoardNotFoundError."""
+  def testGetComponentClassesNonExistentProject(self):
+    """Test that a non-existent project raises a ProjectNotFoundError."""
     manager = self._GetManager(load_blobstore=False, load_datastore=False)
 
-    self.assertRaises(hwid_manager.BoardNotFoundError,
+    self.assertRaises(hwid_manager.ProjectNotFoundError,
                       manager.GetComponentClasses, 'CHROMEBOOK')
 
-  def testGetComponentClassesExistingBoard(self):
-    """Test that a valid board returns a result."""
+  def testGetComponentClassesExistingProject(self):
+    """Test that a valid project returns a result."""
     manager = self._GetManager()
 
     self.assertIn('audio_codec', manager.GetComponentClasses('CHROMEBOOK'))
@@ -244,15 +244,15 @@ class HwidManagerTest(unittest.TestCase):
     self.assertIn('keyboard', manager.GetComponentClasses('CHROMEBOOK'))
     self.assertIn('volatile_a', manager.GetComponentClasses('CHROMEBOOK'))
 
-  def testGetComponentsNonExistentBoard(self):
-    """Test that a non-existent board raises a BoardNotFoundError."""
+  def testGetComponentsNonExistentProject(self):
+    """Test that a non-existent project raises a ProjectNotFoundError."""
     manager = self._GetManager(load_blobstore=False, load_datastore=False)
 
-    self.assertRaises(hwid_manager.BoardNotFoundError, manager.GetComponents,
+    self.assertRaises(hwid_manager.ProjectNotFoundError, manager.GetComponents,
                       'CHROMEBOOK', None)
 
-  def testGetComponentsExistingBoard(self):
-    """Test that a valid board returns a result."""
+  def testGetComponentsExistingProject(self):
+    """Test that a valid project returns a result."""
     manager = self._GetManager()
 
     self.assertIn(('audio_codec', {'max98095'}),
@@ -273,11 +273,11 @@ class HwidManagerTest(unittest.TestCase):
 
     manager = self._GetManager(adapter=mock_storage)
 
-    self.assertIsNone(manager.GetBoardDataFromCache('CHROMEBOOK'))
+    self.assertIsNone(manager.GetProjectDataFromCache('CHROMEBOOK'))
     self.assertIsNotNone(manager.GetBomAndConfigless(TEST_V2_HWID)[0])
-    self.assertIsNotNone(manager.GetBoardDataFromCache('CHROMEBOOK'))
+    self.assertIsNotNone(manager.GetProjectDataFromCache('CHROMEBOOK'))
     self.assertIsNotNone(manager.GetBomAndConfigless(TEST_V2_HWID)[0])
-    self.assertIsNotNone(manager.GetBoardDataFromCache('CHROMEBOOK'))
+    self.assertIsNotNone(manager.GetProjectDataFromCache('CHROMEBOOK'))
     mock_storage.ReadFile.assert_called_once_with('live/v2')
 
   def testInvalidVersion(self):
@@ -286,7 +286,7 @@ class HwidManagerTest(unittest.TestCase):
 
     manager = self._GetManager(adapter=mock_storage, load_datastore=False)
 
-    manager.RegisterBoard('CHROMEBOOK', 10, 'v10')
+    manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 10, 'v10')
 
     self.assertRaises(hwid_manager.MetadataError, manager.GetBomAndConfigless,
                       'CHROMEBOOK FOOBAR')
@@ -295,8 +295,8 @@ class HwidManagerTest(unittest.TestCase):
   def testRegisterTwice(self):
     manager = self._GetManager()
 
-    manager.RegisterBoard('CHROMEBOOK', 2, 'v2')
-    manager.RegisterBoard('CHROMEBOOK', 2, 'v2')
+    manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 2, 'v2')
+    manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 2, 'v2')
 
     with manager._ndb_client.context():
       self.assertEqual(1, hwid_manager.HwidMetadata.query().count())
@@ -308,29 +308,29 @@ class HwidManagerTest(unittest.TestCase):
 
     manager = self._GetManager(adapter=mock_storage)
 
-    self.assertIsNone(manager.GetBoardDataFromCache('CHROMEBOOK'))
+    self.assertIsNone(manager.GetProjectDataFromCache('CHROMEBOOK'))
 
     manager.ReloadMemcacheCacheFromFiles()
 
-    self.assertIsNotNone(manager.GetBoardDataFromCache('CHROMEBOOK'))
+    self.assertIsNotNone(manager.GetProjectDataFromCache('CHROMEBOOK'))
     mock_storage.ReadFile.assert_called_once_with('live/v2')
 
   def testReloadCacheMultipleFiles(self):
     """When reloading and there are multiple files then both get read."""
     manager = self._GetManager()
 
-    manager.RegisterBoard('CHROMEBOOK', 2, 'v2')
-    manager.RegisterBoard('CHROMEBOOK', 3, 'v3')
+    manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 2, 'v2')
+    manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 3, 'v3')
 
     manager.ReloadMemcacheCacheFromFiles()
 
     # We no longer allow composite HWID objects that have v2 and v3 definitions
-    # last RegisterBoard command wins, so check that a V3 HWID is available.
-    self.assertIsNotNone(manager.GetBoardDataFromCache('CHROMEBOOK'))
+    # last RegisterProject command wins, so check that a V3 HWID is available.
+    self.assertIsNotNone(manager.GetProjectDataFromCache('CHROMEBOOK'))
     self.assertIsNotNone(manager.GetBomAndConfigless(TEST_V3_HWID)[0])
 
-  def testUpdateBoards(self):
-    """Test the board updater adds a board."""
+  def testUpdateProjects(self):
+    """Test the project updater adds a project."""
     mock_storage = mock.Mock()
     mock_storage.ReadFile.return_value = b'junk data'
     mock_hwid_repo = mock.create_autospec(hwid_repo.HWIDRepo, instance=True)
@@ -344,7 +344,7 @@ class HwidManagerTest(unittest.TestCase):
       hwid_manager.HwidMetadata(board='update', path='update_file', version='2',
                                 project='update').put()
 
-    manager.UpdateBoards(mock_hwid_repo, [
+    manager.UpdateProjects(mock_hwid_repo, [
         hwid_repo.HWIDDBMetadata('update', 'update_file - updated', 2, 'path1'),
         hwid_repo.HWIDDBMetadata('new', 'new file - unused', 2, 'path2'),
     ])
@@ -369,8 +369,8 @@ class HwidManagerTest(unittest.TestCase):
           [mock.call('update'), mock.call('new')], any_order=True)
       self.assertEqual(mock_hwid_repo.LoadHWIDDBByName.call_count, 2)
 
-  def testUpdateBoardsWithManyBoards(self):
-    """Tests that the updating logic can handle many boards.
+  def testUpdateProjectsWithManyProjects(self):
+    """Tests that the updating logic can handle many projects.
 
     There is a limit on datastore that it can only handle IN queries with at
     most 30 options.
@@ -379,42 +379,42 @@ class HwidManagerTest(unittest.TestCase):
     mock_storage.ReadFile.return_value = b'junk data'
     mock_hwid_repo = mock.create_autospec(hwid_repo.HWIDRepo, instance=True)
     mock_hwid_repo.LoadHWIDDBByName.return_value = 'junk data'
-    BOARD_COUNT = 40
-    MORE_BOARD_COUNT = 50
+    PROJECT_COUNT = 40
+    MORE_PROJECT_COUNT = 50
 
     manager = self._GetManager(adapter=mock_storage, load_datastore=False)
     with manager._ndb_client.context():
-      for i in range(BOARD_COUNT):
+      for i in range(PROJECT_COUNT):
         hwid_manager.HwidMetadata(board='old_file' + str(i),
                                   path='old' + str(i), version='2',
-                                  project='old_file').put()
+                                  project='old_file' + str(i)).put()
 
         hwid_manager.HwidMetadata(board='update_file' + str(i),
                                   path='update' + str(i), version='2',
-                                  project='update_file').put()
+                                  project='update_file' + str(i)).put()
 
       deletefile_calls = [
-          mock.call('live/old' + str(i)) for i in range(BOARD_COUNT)
+          mock.call('live/old' + str(i)) for i in range(PROJECT_COUNT)
       ]
-      # For boards not existed in HwidMetadata, the file path will be the same
-      # as the board name.
+      # For projects not existed in HwidMetadata, the file path will be the same
+      # as the project name.
       writefile_calls = [
           mock.call('live/update' + str(i), mock.ANY)
-          for i in range(BOARD_COUNT)
+          for i in range(PROJECT_COUNT)
       ] + [
           mock.call('live/update_file' + str(i), mock.ANY)
-          for i in range(BOARD_COUNT, MORE_BOARD_COUNT)
+          for i in range(PROJECT_COUNT, MORE_PROJECT_COUNT)
       ]
 
-      board_data = [
+      project_data = [
           hwid_repo.HWIDDBMetadata(f'update_file{i}', f'update_board_{i}', 2,
-                                   'v2') for i in range(MORE_BOARD_COUNT)
+                                   'v2') for i in range(MORE_PROJECT_COUNT)
       ]
 
-    manager.UpdateBoards(mock_hwid_repo, board_data)
+    manager.UpdateProjects(mock_hwid_repo, project_data)
 
     with manager._ndb_client.context():
-      for i in range(BOARD_COUNT):
+      for i in range(PROJECT_COUNT):
         self.assertIsNone(
             hwid_manager.HwidMetadata.query(
                 hwid_manager.HwidMetadata.path == 'old' + str(i)).get())
@@ -422,26 +422,26 @@ class HwidManagerTest(unittest.TestCase):
             hwid_manager.HwidMetadata.path == 'update' + str(i)).get())
         self.assertIsNone(hwid_manager.HwidMetadata.query().filter(
             hwid_manager.HwidMetadata.path == 'update_file' + str(i)).get())
-      for i in range(BOARD_COUNT, MORE_BOARD_COUNT):
+      for i in range(PROJECT_COUNT, MORE_PROJECT_COUNT):
         self.assertIsNotNone(hwid_manager.HwidMetadata.query().filter(
             hwid_manager.HwidMetadata.path == 'update_file' + str(i)).get())
 
       mock_storage.DeleteFile.assert_has_calls(deletefile_calls, any_order=True)
-      self.assertEqual(BOARD_COUNT, mock_storage.DeleteFile.call_count)
+      self.assertEqual(PROJECT_COUNT, mock_storage.DeleteFile.call_count)
       mock_storage.WriteFile.assert_has_calls(writefile_calls, any_order=True)
-      self.assertEqual(MORE_BOARD_COUNT, mock_storage.WriteFile.call_count)
+      self.assertEqual(MORE_PROJECT_COUNT, mock_storage.WriteFile.call_count)
       mock_hwid_repo.LoadHWIDDBByName.assert_has_calls(
-          [mock.call(f'update_file{i}') for i in range(MORE_BOARD_COUNT)],
+          [mock.call(f'update_file{i}') for i in range(MORE_PROJECT_COUNT)],
           any_order=True)
-      self.assertEqual(MORE_BOARD_COUNT,
+      self.assertEqual(MORE_PROJECT_COUNT,
                        mock_hwid_repo.LoadHWIDDBByName.call_count)
 
-  def testUpdateBoardsWithBadData(self):
+  def testUpdateProjectsWithBadData(self):
     manager = self._GetManager(load_blobstore=False, load_datastore=False)
     mock_hwid_repo = mock.create_autospec(hwid_repo.HWIDRepo, instance=True)
     mock_hwid_repo.LoadHWIDDBByName.side_effect = hwid_repo.HWIDRepoError
 
-    self.assertRaises(hwid_manager.MetadataError, manager.UpdateBoards,
+    self.assertRaises(hwid_manager.MetadataError, manager.UpdateProjects,
                       mock_hwid_repo,
                       [hwid_repo.HWIDDBMetadata('test', 'test', 3, 'test')])
 
@@ -476,7 +476,7 @@ class HwidManagerTest(unittest.TestCase):
     vpg_targets."""
     manager = self._GetManager()
 
-    manager.RegisterBoard('CHROMEBOOK', 3, 'v3')
+    manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 3, 'v3')
     manager.ReloadMemcacheCacheFromFiles()
 
     bom, unused_configless = manager.GetBomAndConfigless(TEST_V3_HWID)
@@ -592,7 +592,7 @@ class HwidV2DataTest(unittest.TestCase):
     self.assertNotIn([], bom.GetComponents('volatile_a'))
     self.assertEqual(None, configless)
 
-    self.assertRaises(hwid_manager.BoardMismatchError,
+    self.assertRaises(hwid_manager.ProjectMismatchError,
                       self.data.GetBomAndConfigless, 'NOTCHROMEBOOK HWID')
 
     self.assertRaises(hwid_manager.HwidNotFoundError,
@@ -602,10 +602,10 @@ class HwidV2DataTest(unittest.TestCase):
                       self.data.GetBomAndConfigless,
                       TEST_V2_HWID_NO_VAR + ' A-FOO')
 
-    self.assertEqual('CHROMEBOOK', bom.board)
+    self.assertEqual('CHROMEBOOK', bom.project)
 
   def testGetHwids(self):
-    """Tests fetching all HWIDS for a board."""
+    """Tests fetching all HWIDS for a project."""
     hwids = self.data.GetHwids('CHROMEBOOK', None, None, None, None)
 
     self.assertIsNotNone(hwids)
@@ -613,7 +613,7 @@ class HwidV2DataTest(unittest.TestCase):
     self.assertIn('BAKER', hwids)
     self.assertIn('BRIDGE', hwids)
 
-    self.assertRaises(hwid_manager.BoardMismatchError, self.data.GetHwids,
+    self.assertRaises(hwid_manager.ProjectMismatchError, self.data.GetHwids,
                       'NOTCHROMEBOOK HWID', None, None, None, None)
 
     test_cases = [({'BAKER', 'BAXTER', 'BLANCA'}, {
@@ -669,7 +669,7 @@ class HwidV2DataTest(unittest.TestCase):
       self.assertEqual(hwids, self.data.GetHwids('CHROMEBOOK', **filters))
 
   def testGetComponentClasses(self):
-    """Tests fetching all component classes for a board."""
+    """Tests fetching all component classes for a project."""
     classes = self.data.GetComponentClasses('CHROMEBOOK')
 
     self.assertIsNotNone(classes)
@@ -679,11 +679,11 @@ class HwidV2DataTest(unittest.TestCase):
     self.assertIn('keyboard', classes)
     self.assertIn('volatile_a', classes)
 
-    self.assertRaises(hwid_manager.BoardMismatchError,
+    self.assertRaises(hwid_manager.ProjectMismatchError,
                       self.data.GetComponentClasses, 'NOTCHROMEBOOK HWID')
 
   def testGetComponents(self):
-    """Tests fetching all components for a board."""
+    """Tests fetching all components for a project."""
     components = self.data.GetComponents('CHROMEBOOK')
 
     self.assertIn(('audio_codec', set(['max98095'])), list(components.items()))
@@ -696,7 +696,7 @@ class HwidV2DataTest(unittest.TestCase):
     self.assertIn(('ro_main_firmware_0', set(['mv2#volatile_hash#test_bios'])),
                   list(components.items()))
 
-    self.assertRaises(hwid_manager.BoardMismatchError,
+    self.assertRaises(hwid_manager.ProjectMismatchError,
                       self.data.GetComponentClasses, 'NOTCHROMEBOOK HWID')
 
     # Test with_classes filter
@@ -750,7 +750,7 @@ class HwidV3DataTest(unittest.TestCase):
         hwid_manager.Component('dram', 'dram_0', is_vp_related=True),
         bom.GetComponents('dram'))
     self.assertEqual('EVT', bom.phase)
-    self.assertEqual('CHROMEBOOK', bom.board)
+    self.assertEqual('CHROMEBOOK', bom.project)
     self.assertEqual(None, configless)
 
     self.assertRaises(hwid_manager.HwidNotFoundError,
@@ -775,7 +775,7 @@ class HwidV3DataTest(unittest.TestCase):
         hwid_manager.Component('storage', 'storage_2',
                                {"comp_group": "storage_0"}, is_vp_related=True),
         bom.GetComponents('storage'))
-    self.assertEqual('CHROMEBOOK', bom.board)
+    self.assertEqual('CHROMEBOOK', bom.project)
     self.assertEqual(
         {
             'version': 0,
