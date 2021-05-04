@@ -28,6 +28,7 @@ import tempfile
 import textwrap
 import time
 import urllib.parse  # pylint: disable=import-error,no-name-in-module
+import yaml
 
 # The edit_lsb command works better if readline enabled, but will still work if
 # that is not available.
@@ -1396,10 +1397,12 @@ class ChromeOSFactoryBundle:
                factory_shim=None, enable_firmware=True, firmware=None,
                hwid=None, complete=None, netboot=None, toolkit_config=None,
                description=None, project_config=None, setup_dir=None,
-               server_url=None):
+               server_url=None, project=None, designs=None):
     self._temp_dir = temp_dir
     # Member data will be looked up by getattr so we don't prefix with '_'.
     self._board = board
+    self.project = project
+    self.designs = designs
     self.release_image = release_image
     self.test_image = test_image
     self.toolkit = toolkit
@@ -1493,6 +1496,22 @@ class ChromeOSFactoryBundle:
         (cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
         '--board',
         help='board name for dynamic installation')
+    parser.AddArgument((
+        cls.PREFLASH,
+        cls.RMA,
+        cls.BUNDLE,
+    ), '--project', help='The project used in the bundle.')
+    parser.AddArgument((
+        cls.PREFLASH,
+        cls.RMA,
+        cls.BUNDLE,
+    ), '--designs', nargs='+', help='The designs used in the bundle.')
+    parser.AddArgument((
+        cls.PREFLASH,
+        cls.RMA,
+        cls.BUNDLE,
+    ), '--no_verify_cros_config', dest='verify_cros_config',
+                       action='store_false', help='Do not verify cros config.')
     parser.AddArgument(
         (cls.RMA, cls.BUNDLE, cls.REPLACEABLE),
         '--firmware',
@@ -2481,6 +2500,119 @@ class ChromeOSFactoryBundle:
     Shell(['cat', readme_path])
     return output_path
 
+  @staticmethod
+  def _ParseCrosConfig(designs, root_path):
+    """Parses a config file and selects fields used by factory environment.
+
+    Args:
+      designs: the designs we care about in this bundle.
+      root_path: the root path.
+
+    Returns:
+      The set of the config strings.
+    """
+    config_path = os.path.join(root_path, 'usr', 'share', 'chromeos-config',
+                               'yaml', 'config.yaml')
+    with open(config_path) as f:
+      obj = yaml.load(f)['chromeos']['configs']
+
+    def _SelectConfig(config: dict, fields: dict) -> dict:
+      """Selects required config fields.
+
+      For each key/value pairs in the `fields`, if the value is None, we store
+      the corresponding value of the `config`. Moreover, we keep the value as
+      None if the key is not presented in the `config`.
+
+      Args:
+        config: The original config.
+        fields: A dict which each of its values is None or a nested dict.
+
+      Returns:
+        A selected config.
+      """
+      result = {}
+      for field, sub_fields in fields.items():
+        if sub_fields is None:
+          result[field] = config.get(field)
+        else:
+          result[field] = _SelectConfig(config.get(field, {}), sub_fields)
+      return result
+
+    fields = {
+        'name': None,
+        'identity': None,
+        'brand-code': None,
+        'firmware': {
+            # We write this value in EEPROM.
+            'firmware-config': None
+        },
+        'fingerprint': {
+            # Used by update_fpmcu_firmware and gooftool/commands.py
+            'board': None
+        },
+        'audio': {
+            'main': {
+                # Used by audio config manager
+                'ucm-suffix': None
+            }
+        }
+    }
+    configs_for_designs = [
+        _SelectConfig(config, fields)
+        for config in obj
+        if config['name'] in designs
+    ]
+    for config in configs_for_designs:
+      # According to https://crbug.com/1070692, 'platform-name' is not a part of
+      # identity info.  We shouldn't check it.
+      config['identity'].pop('platform-name', None)
+
+    return {
+        # set sort_keys=True to make the result stable.
+        json.dumps(config, sort_keys=True)
+        for config in configs_for_designs
+    }
+
+  def VerifyCrosConfig(self):
+    """Check if some fields in cros_config on both images are synced.
+
+    Factory may use legacy cros_config values and read wrong config or write
+    wrong values. This function checks some fields that must be synced.
+
+    We also verify this in factory finalization but it's usually too late for
+    users to find out that the images are not synced.
+    """
+    if not (self.designs or self.project):
+      return
+    designs = self.designs or [self.project]
+    print('Verify cros_config of designs: %r' % designs)
+
+    test_part = Partition(self.test_image, PART_CROS_ROOTFS_A)
+    with test_part.MountAsCrOSRootfs() as rootfs:
+      test_configs = self._ParseCrosConfig(designs, rootfs)
+
+    release_part = Partition(self.release_image, PART_CROS_ROOTFS_A)
+    with release_part.MountAsCrOSRootfs() as rootfs:
+      release_configs = self._ParseCrosConfig(designs, rootfs)
+
+    error = []
+    if test_configs != release_configs:
+      error += ['Detect different chromeos-config between test image and FSI.']
+    if not test_configs:
+      error += ['Detect empty chromeos-config for test image.']
+    if not release_configs:
+      error += ['Detect empty chromeos-config for release image.']
+    if error:
+      error += ['Configs in test image:']
+      error += ['\t' + config for config in sorted(test_configs)]
+      error += ['Configs in FSI:']
+      error += ['\t' + config for config in sorted(release_configs)]
+      error += ['Use --no_verify_cros_config to skip this check.']
+      raise RuntimeError('\n'.join(error))
+    messages = ['Configs in test image and FSI:']
+    messages += ['\t' + config for config in sorted(test_configs)]
+    print('\n'.join(messages))
+
 
 def GetSubparsers(parser):
   """Helper function to get the subparsers of a parser.
@@ -2762,7 +2894,12 @@ class CreatePreflashImageCommand(SubCommand):
           enable_firmware=False,
           hwid=self.args.hwid,
           complete=None,
-          project_config=self.args.project_config)
+          project_config=self.args.project_config,
+          project=self.args.project,
+          designs=self.args.designs,
+      )
+      if self.args.verify_cros_config:
+        bundle.VerifyCrosConfig()
       new_size = bundle.CreateDiskImage(
           self.args.output, self.args.sectors, self.args.sector_size,
           self.args.stateful_free_space, self.args.verbose)
@@ -2829,7 +2966,12 @@ class CreateRMAImageCommmand(SubCommand):
           complete=self.args.complete,
           toolkit_config=self.args.toolkit_config,
           description=self.args.description,
-          project_config=self.args.project_config)
+          project_config=self.args.project_config,
+          project=self.args.project,
+          designs=self.args.designs,
+      )
+      if self.args.verify_cros_config:
+        bundle.VerifyCrosConfig()
       bundle.CreateRMAImage(self.args.output,
                             active_test_list=self.args.active_test_list)
       ChromeOSFactoryBundle.ShowRMAImage(output)
@@ -3122,7 +3264,12 @@ class CreateBundleCommand(SubCommand):
           netboot=self.args.netboot,
           project_config=self.args.project_config,
           setup_dir=self.args.setup_dir,
-          server_url=self.args.server_url)
+          server_url=self.args.server_url,
+          project=self.args.project,
+          designs=self.args.designs,
+      )
+      if self.args.verify_cros_config:
+        bundle.VerifyCrosConfig()
       output_file = bundle.CreateBundle(
           self.args.output_dir, self.args.phase, self.args.notes,
           timestamp=self.args.timestamp)

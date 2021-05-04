@@ -1034,6 +1034,10 @@ class FinalizeBundle:
       args = ['bundle', '-o', self.work_dir, '--board', self.board,
               '--timestamp', self.bundle_name.split('_')[0],
               '--phase', self.bundle_name.split('_')[1]]
+      args += ['--project', self.project]
+      if self.designs:
+        args += ['--designs']
+        args += self.designs
       if self.signed_shim_path:
         args += ['--factory_shim', self.signed_shim_path]
       Spawn(_GetImageTool() + args,
