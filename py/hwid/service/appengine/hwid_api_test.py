@@ -64,27 +64,27 @@ class HwidApiTest(unittest.TestCase):
 
     self.service = hwid_api.ProtoRPCService()
 
-  def testGetBoards(self):
+  def testGetProjects(self):
     projects = {'ALPHA', 'BRAVO', 'CHARLIE'}
     self.patch_hwid_manager.GetProjects.return_value = projects
 
-    req = hwid_api_messages_pb2.BoardsRequest()
-    msg = self.service.GetBoards(req)
+    req = hwid_api_messages_pb2.ProjectsRequest()
+    msg = self.service.GetProjects(req)
 
     self.assertEqual(
-        hwid_api_messages_pb2.BoardsResponse(
+        hwid_api_messages_pb2.ProjectsResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS,
-            boards=sorted(projects)), msg)
+            projects=sorted(projects)), msg)
 
-  def testGetBoardsEmpty(self):
+  def testGetProjectsEmpty(self):
     projects = set()
     self.patch_hwid_manager.GetProjects.return_value = projects
 
-    req = hwid_api_messages_pb2.BoardsRequest()
-    msg = self.service.GetBoards(req)
+    req = hwid_api_messages_pb2.ProjectsRequest()
+    msg = self.service.GetProjects(req)
 
     self.assertEqual(
-        hwid_api_messages_pb2.BoardsResponse(
+        hwid_api_messages_pb2.ProjectsResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS), msg)
 
   def testGetBomNone(self):
@@ -300,7 +300,7 @@ class HwidApiTest(unittest.TestCase):
     hwids = ['alfa', 'bravo', 'charlie']
     self.patch_hwid_manager.GetHwids.return_value = hwids
 
-    req = hwid_api_messages_pb2.HwidsRequest(board=TEST_HWID)
+    req = hwid_api_messages_pb2.HwidsRequest(project=TEST_HWID)
     msg = self.service.GetHwids(req)
 
     self.assertEqual(
@@ -312,7 +312,7 @@ class HwidApiTest(unittest.TestCase):
     hwids = list()
     self.patch_hwid_manager.GetHwids.return_value = hwids
 
-    req = hwid_api_messages_pb2.HwidsRequest(board=TEST_HWID)
+    req = hwid_api_messages_pb2.HwidsRequest(project=TEST_HWID)
     msg = self.service.GetHwids(req)
 
     self.assertEqual(
@@ -322,7 +322,7 @@ class HwidApiTest(unittest.TestCase):
   def testGetHwidsErrors(self):
     self.patch_hwid_manager.GetHwids.side_effect = ValueError('foo')
 
-    req = hwid_api_messages_pb2.HwidsRequest(board=TEST_HWID)
+    req = hwid_api_messages_pb2.HwidsRequest(project=TEST_HWID)
     msg = self.service.GetHwids(req)
 
     self.assertEqual(
@@ -330,7 +330,7 @@ class HwidApiTest(unittest.TestCase):
             status=hwid_api_messages_pb2.Status.BAD_REQUEST,
             error='Invalid input: %s' % TEST_HWID), msg)
 
-    req = hwid_api_messages_pb2.HwidsRequest(board=TEST_HWID,
+    req = hwid_api_messages_pb2.HwidsRequest(project=TEST_HWID,
                                              with_classes=['foo', 'bar'],
                                              without_classes=['bar', 'baz'])
     msg = self.service.GetHwids(req)
@@ -341,7 +341,7 @@ class HwidApiTest(unittest.TestCase):
             error='One or more component classes specified for both with and '
             'without'), msg)
 
-    req = hwid_api_messages_pb2.HwidsRequest(board=TEST_HWID,
+    req = hwid_api_messages_pb2.HwidsRequest(project=TEST_HWID,
                                              with_components=['foo', 'bar'],
                                              without_components=['bar', 'baz'])
     msg = self.service.GetHwids(req)
@@ -356,7 +356,7 @@ class HwidApiTest(unittest.TestCase):
     classes = ['alfa', 'bravo', 'charlie']
     self.patch_hwid_manager.GetComponentClasses.return_value = classes
 
-    req = hwid_api_messages_pb2.ComponentClassesRequest(board=TEST_HWID)
+    req = hwid_api_messages_pb2.ComponentClassesRequest(project=TEST_HWID)
     msg = self.service.GetComponentClasses(req)
 
     self.assertEqual(
@@ -368,7 +368,7 @@ class HwidApiTest(unittest.TestCase):
     classes = list()
     self.patch_hwid_manager.GetComponentClasses.return_value = classes
 
-    req = hwid_api_messages_pb2.ComponentClassesRequest(board=TEST_HWID)
+    req = hwid_api_messages_pb2.ComponentClassesRequest(project=TEST_HWID)
     msg = self.service.GetComponentClasses(req)
 
     self.assertEqual(
@@ -377,7 +377,7 @@ class HwidApiTest(unittest.TestCase):
 
   def testGetComponentClassesErrors(self):
     self.patch_hwid_manager.GetComponentClasses.side_effect = ValueError('foo')
-    req = hwid_api_messages_pb2.ComponentClassesRequest(board=TEST_HWID)
+    req = hwid_api_messages_pb2.ComponentClassesRequest(project=TEST_HWID)
     msg = self.service.GetComponentClasses(req)
 
     self.assertEqual(
@@ -390,7 +390,7 @@ class HwidApiTest(unittest.TestCase):
 
     self.patch_hwid_manager.GetComponents.return_value = components
 
-    req = hwid_api_messages_pb2.ComponentsRequest(board=TEST_HWID)
+    req = hwid_api_messages_pb2.ComponentsRequest(project=TEST_HWID)
     msg = self.service.GetComponents(req)
 
     self.assertEqual(
@@ -411,7 +411,7 @@ class HwidApiTest(unittest.TestCase):
 
     self.patch_hwid_manager.GetComponents.return_value = components
 
-    req = hwid_api_messages_pb2.ComponentsRequest(board=TEST_HWID)
+    req = hwid_api_messages_pb2.ComponentsRequest(project=TEST_HWID)
     msg = self.service.GetComponents(req)
 
     self.assertEqual(
@@ -421,7 +421,7 @@ class HwidApiTest(unittest.TestCase):
   def testGetComponentsErrors(self):
     self.patch_hwid_manager.GetComponents.side_effect = ValueError('foo')
 
-    req = hwid_api_messages_pb2.ComponentsRequest(board=TEST_HWID)
+    req = hwid_api_messages_pb2.ComponentsRequest(project=TEST_HWID)
     msg = self.service.GetComponents(req)
 
     self.assertEqual(
@@ -604,7 +604,7 @@ class HwidApiTest(unittest.TestCase):
 
     self.assertEqual(
         hwid_api_messages_pb2.SkuResponse(
-            status=hwid_api_messages_pb2.Status.SUCCESS, board='foo',
+            status=hwid_api_messages_pb2.Status.SUCCESS, project='foo',
             cpu='bar1_bar2', memory='1Mb', memory_in_bytes=100000000,
             sku='foo_bar1_bar2_1Mb'), msg)
 
@@ -627,7 +627,7 @@ class HwidApiTest(unittest.TestCase):
 
     self.assertEqual(
         hwid_api_messages_pb2.SkuResponse(
-            status=hwid_api_messages_pb2.Status.SUCCESS, board='foo',
+            status=hwid_api_messages_pb2.Status.SUCCESS, project='foo',
             cpu='bar1_bar2', memory='4GB', memory_in_bytes=4294967296,
             sku='foo_bar1_bar2_4GB'), msg)
 
@@ -664,7 +664,7 @@ class HwidApiTest(unittest.TestCase):
 
     self.assertEqual(
         hwid_api_messages_pb2.SkuResponse(
-            status=hwid_api_messages_pb2.Status.SUCCESS, board='foo',
+            status=hwid_api_messages_pb2.Status.SUCCESS, project='foo',
             memory_in_bytes=2000000, memory='2Mb', sku='foo_None_2Mb'), msg)
 
   @mock.patch.object(hwid_util, 'GetSkuFromBom')

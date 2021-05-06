@@ -104,15 +104,15 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
 
   @protorpc_utils.ProtoRPCServiceMethod
   @auth.RpcCheck
-  def GetBoards(self, request):
+  def GetProjects(self, request):
     """Return all of the supported projects in sorted order."""
 
     versions = request.versions
     projects = _hwid_manager.GetProjects(versions)
 
     logging.debug('Found projects: %r', projects)
-    response = hwid_api_messages_pb2.BoardsResponse(
-        status=hwid_api_messages_pb2.Status.SUCCESS, boards=sorted(projects))
+    response = hwid_api_messages_pb2.ProjectsResponse(
+        status=hwid_api_messages_pb2.Status.SUCCESS, projects=sorted(projects))
 
     return response
 
@@ -185,7 +185,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
           error=str(e), status=hwid_api_messages_pb2.Status.BAD_REQUEST)
 
     return hwid_api_messages_pb2.SkuResponse(
-        status=hwid_api_messages_pb2.Status.SUCCESS, board=sku['project'],
+        status=hwid_api_messages_pb2.Status.SUCCESS, project=sku['project'],
         cpu=sku['cpu'], memory_in_bytes=sku['total_bytes'],
         memory=sku['memory_str'], sku=sku['sku'])
 
@@ -194,7 +194,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
   def GetHwids(self, request):
     """Return a filtered list of HWIDs for the given project."""
 
-    project = request.board
+    project = request.project
 
     with_classes = set(filter(None, request.with_classes))
     without_classes = set(filter(None, request.without_classes))
@@ -234,7 +234,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     """Return a list of all component classes for the given project."""
 
     try:
-      project = request.board
+      project = request.project
       classes = _hwid_manager.GetComponentClasses(project)
     except ValueError:
       logging.exception('ValueError -> bad input')
@@ -252,7 +252,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
   def GetComponents(self, request):
     """Return a filtered list of components for the given project."""
 
-    project = request.board
+    project = request.project
     with_classes = set(filter(None, request.with_classes))
 
     try:

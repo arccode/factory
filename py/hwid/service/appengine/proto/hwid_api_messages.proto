@@ -39,8 +39,8 @@ message Label {
   string value = 3;
 }
 
-// A request for all boards supported by the server.
-message BoardsRequest {
+// A request for all projects supported by the server.
+message ProjectsRequest {
   // List of BOM file versions to include.
   repeated string versions = 1;
 }
@@ -61,10 +61,10 @@ message ValidateConfigAndUpdateChecksumRequest {
   string prev_hwid_config_contents = 2;
 }
 
-// The response to a boards request.
-message BoardsResponse {
-  // A list of the supported boards.
-  repeated string boards = 1;
+// The response to a projects request.
+message ProjectsResponse {
+  // A list of the supported projects.
+  repeated string projects = 1;
   Status status = 2;
 }
 
@@ -90,10 +90,10 @@ message BomResponse {
   Status status = 5;
 }
 
-// A request to query all HWIDs with the board and filter.
+// A request to query all HWIDs with the project and filter.
 message HwidsRequest {
-  // The board as a string.
-  string board = 1;
+  // The project as a string.
+  string project = 1;
   // The included classes to filter the result.
   repeated string with_classes = 2;
   // The excluded classes to filter the result.
@@ -106,39 +106,39 @@ message HwidsRequest {
 
 // The response to a HWIDs request.
 message HwidsResponse {
-  // A filtered list of the HWIDs for a board.
+  // A filtered list of the HWIDs for a project.
   repeated string hwids = 1;
   // Error message if there was a problem looking up the HWIDs.
   string error = 2;
   Status status = 3;
 }
 
-// A request to query possible component classes of a board.
+// A request to query possible component classes of a project.
 message ComponentClassesRequest {
-  // The board as a string.
-  string board = 1;
+  // The project as a string.
+  string project = 1;
 }
 
 // The response to a component classes request.
 message ComponentClassesResponse {
-  // A list of the components for a board.
+  // A list of the components for a project.
   repeated string component_classes = 1;
   // Error message if there was a problem looking up components.
   string error = 2;
   Status status = 3;
 }
 
-// A request to query all components with the board and filter.
+// A request to query all components with the project and filter.
 message ComponentsRequest {
-  // The board as a string.
-  string board = 1;
+  // The project as a string.
+  string project = 1;
   // The included classes to filter the result.
   repeated string with_classes = 2;
 }
 
 // The response to a components request.
 message ComponentsResponse {
-  // A filtered list of the components for a board.
+  // A filtered list of the components for a project.
   repeated Component components = 1;
   // Error message if there was a problem looking up components.
   string error = 2;
@@ -195,13 +195,13 @@ message SkuRequest {
 
 // The response to a BOM request.
 message SkuResponse {
-  // The board listed in the BOM.
-  string board = 1;
+  // The project listed in the BOM.
+  string project = 1;
   // The listed CPU in the BOM.
   string cpu = 2;
   // Total number of bytes of memory in the BOM.
   int64 memory_in_bytes = 3;
-  // String combination of board, processor and memory.
+  // String combination of project, processor and memory.
   string sku = 4;
   // Error message if there was a problem decoding the HWID, if error is set
   // the other fields in the message should be disregarded.
@@ -237,7 +237,7 @@ message DutLabelsResponse {
 }
 
 service HwidService {
-  rpc GetBoards(BoardsRequest) returns (BoardsResponse);
+  rpc GetProjects(ProjectsRequest) returns (ProjectsResponse);
 
   rpc GetBom(BomRequest) returns (BomResponse);
 

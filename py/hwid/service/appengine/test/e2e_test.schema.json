@@ -51,7 +51,7 @@
             "title": "Test name",
             "default": "",
             "examples": [
-              "TestGetBoards"
+              "TestGetProjects"
             ]
           },
           "proto_filename": {
@@ -67,7 +67,7 @@
             "title": "The stubby API name",
             "default": "",
             "examples": [
-              "HwidService.GetBoards"
+              "HwidService.GetProjects"
             ]
           },
           "request_class": {
@@ -75,7 +75,7 @@
             "title": "The request class name.",
             "default": "",
             "examples": [
-              "BoardsRequest"
+              "ProjectsRequest"
             ]
           },
           "response_class": {
@@ -83,7 +83,7 @@
             "title": "The response class name.",
             "default": "",
             "examples": [
-              "BoardsResponse"
+              "ProjectsResponse"
             ]
           },
           "request": {
