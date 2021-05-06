@@ -76,8 +76,16 @@ DOC_OUTPUT_DIR = $(BUILD_DIR)/doc
 DOC_PUBLISH_URL = gs://chromeos-factory-docs/sdk
 
 EBUILD_TEMP_DIR = $(TEMP_DIR)/ebuild
-EBUILD_TEST_BLOCKED_LIST = atlas dedede endeavour excelsior hatch kukui \
-  nocturne soraka
+EBUILD_TEST_BLOCKED_LIST = \
+  atlas \
+  aurora \
+  dedede \
+  endeavour \
+  excelsior \
+  hatch \
+  kukui \
+  nocturne \
+  soraka
 
 CLOSURE_DIR = py/goofy/static
 CLOSURE_OUTPUT_FILENAMES = js/goofy.js css/closure.css
