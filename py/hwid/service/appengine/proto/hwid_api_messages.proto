@@ -286,11 +286,43 @@ message CreateHwidDbEditableSectionChangeClRequest {
   // The ID from ValidateHwidDbEditableSectionChange to
   // justify that the contents have been validated.
   string validation_token = 3;
+
+  string original_requester = 5;
+  string description = 4;
+  int64 bug_number = 6;
+  repeated string reviewer_emails = 7;
+  repeated string cc_emails = 8;
 }
 
 message CreateHwidDbEditableSectionChangeClResponse {
   // The CL number to the created HWID change request.
-  int32 cl_number = 1;
+  int64 cl_number = 1;
+}
+
+message BatchGetHwidDbEditableSectionChangeClInfoRequest {
+  // The CL numbers to query.
+  repeated int64 cl_numbers = 1;
+}
+
+message HwidDbEditableSectionChangeClInfo {
+  enum Status {
+    STATUS_UNSPECIFIC = 0;
+
+    PENDING = 1;  // The CL is still under review.
+    MERGED = 2;  // The CL is already merged.
+    ABANDONED = 3;  // The CL is already abandoned.
+  }
+  Status status = 1;
+
+  message Comment {
+    string email = 1;
+    string message = 2;
+  }
+  repeated Comment comments = 2;
+}
+
+message BatchGetHwidDbEditableSectionChangeClInfoResponse {
+  map<int64, HwidDbEditableSectionChangeClInfo> cl_status = 1;
 }
 
 service HwidService {
@@ -335,4 +367,9 @@ service HwidService {
   rpc CreateHwidDbEditableSectionChangeCl(
       CreateHwidDbEditableSectionChangeClRequest)
           returns (CreateHwidDbEditableSectionChangeClResponse);
+
+  // Get the basic info of the CLs that change HWID DBs.
+  rpc BatchGetHwidDbEditableSectionChangeClInfo(
+      BatchGetHwidDbEditableSectionChangeClInfoRequest)
+          returns (BatchGetHwidDbEditableSectionChangeClInfoResponse);
 }

@@ -18,12 +18,40 @@ _SERVER_BOARDS_YAML = os.path.join(
 _SERVER_BOARDS_DATA = file_utils.ReadFile(_SERVER_BOARDS_YAML, encoding=None)
 
 
-class HWIDRepoTest(unittest.TestCase):
+class HWIDRepoBaseTest(unittest.TestCase):
 
   def setUp(self):
+    patcher = mock.patch(
+        'cros.factory.hwid.service.appengine.git_util.GetGerritCredentials')
+    self._mocked_get_gerrit_credentials = patcher.start()
+    self.addCleanup(patcher.stop)
+    self._mocked_get_gerrit_credentials.return_value = ('author@email', 'token')
+
+    patcher = mock.patch(
+        'cros.factory.hwid.service.appengine.git_util.GetGerritAuthCookie')
+    self._mocked_get_gerrit_auth_cookie = patcher.start()
+    self.addCleanup(patcher.stop)
+    self._mocked_get_gerrit_auth_cookie.return_value = 'cookie'
+
+    patcher = mock.patch(
+        'cros.factory.hwid.service.appengine.git_util.CreateCL')
+    self._mocked_create_cl = patcher.start()
+    self.addCleanup(patcher.stop)
+
+    patcher = mock.patch(
+        'cros.factory.hwid.service.appengine.git_util.GetCLInfo')
+    self._mocked_get_cl_info = patcher.start()
+    self.addCleanup(patcher.stop)
+
+
+class HWIDRepoTest(HWIDRepoBaseTest):
+
+  def setUp(self):
+    super().setUp()
     self._mock_git_fs = mock.create_autospec(git_util.GitFilesystemAdapter,
                                              instance=True)
-    self._hwid_repo = hwid_repo.HWIDRepo(self._mock_git_fs)
+    self._hwid_repo = hwid_repo.HWIDRepo(self._mock_git_fs, 'test_repo',
+                                         'test_branch')
 
   def testIterNamePatterns(self):
     self._mock_git_fs.ListFiles.side_effect = collections.defaultdict(
@@ -112,6 +140,76 @@ class HWIDRepoTest(unittest.TestCase):
 
     with self.assertRaises(hwid_repo.HWIDRepoError):
       self._hwid_repo.LoadHWIDDBByName('SBOARD')
+
+  def testCommitHWIDDB_InvalidHWIDDBName(self):
+    self._mock_git_fs.ReadFile.side_effect = {
+        'projects.yaml': _SERVER_BOARDS_DATA,
+    }.__getitem__
+
+    with self.assertRaises(ValueError):
+      self._hwid_repo.CommitHWIDDB('no_such_board', 'unused_test_str',
+                                   'unused_test_str', [], [])
+
+  def testCommitHWIDDB_FailedToUploadCL(self):
+    self._mock_git_fs.ReadFile.side_effect = {
+        'projects.yaml': _SERVER_BOARDS_DATA,
+    }.__getitem__
+    self._mocked_create_cl.side_effect = git_util.GitUtilException
+
+    with self.assertRaises(hwid_repo.HWIDRepoError):
+      self._hwid_repo.CommitHWIDDB('SBOARD', 'unused_test_str',
+                                   'unused_test_str', [], [])
+
+  def testCommitHWIDDB_FailedToGetCLNumber(self):
+    self._mock_git_fs.ReadFile.side_effect = {
+        'projects.yaml': _SERVER_BOARDS_DATA,
+    }.__getitem__
+    self._mocked_create_cl.return_value = 'Ithis_is_change_id'
+    self._mocked_get_cl_info.side_effect = git_util.GitUtilException
+
+    with self.assertRaises(hwid_repo.HWIDRepoError):
+      self._hwid_repo.CommitHWIDDB('SBOARD', 'unused_test_str',
+                                   'unused_test_str', [], [])
+
+  def testCommitHWIDDB_Succeed(self):
+    self._mock_git_fs.ReadFile.side_effect = {
+        'projects.yaml': _SERVER_BOARDS_DATA,
+    }.__getitem__
+    expected_cl_number = 123
+    self._mocked_create_cl.return_value = 'Ithis_is_change_id'
+    self._mocked_get_cl_info.return_value = git_util.CLInfo(
+        'change_id', expected_cl_number, git_util.CLStatus.NEW, [])
+
+    actual_cl_number = self._hwid_repo.CommitHWIDDB('SBOARD', 'unused_test_str',
+                                                    'unused_test_str', [], [])
+    self.assertEqual(actual_cl_number, expected_cl_number)
+
+
+class HWIDRepoManagerTest(HWIDRepoBaseTest):
+
+  def setUp(self):
+    super().setUp()
+    self._hwid_repo_manager = hwid_repo.HWIDRepoManager('unused_test_branch')
+
+  def testGetHWIDDBCLInfo_Failed(self):
+    self._mocked_get_cl_info.side_effect = git_util.GitUtilException
+    with self.assertRaises(hwid_repo.HWIDRepoError):
+      self._hwid_repo_manager.GetHWIDDBCLInfo(123)
+
+  def testGetHWIDDBCLInfo_Succeed(self):
+    self._mocked_get_cl_info.return_value = git_util.CLInfo(
+        'unused_change_id', 123, git_util.CLStatus.MERGED, [
+            git_util.CLMessage('msg1', 'email1'),
+            git_util.CLMessage('msg2', 'email2')
+        ])
+
+    actual_commit_info = self._hwid_repo_manager.GetHWIDDBCLInfo(123)
+    expected_commit_info = hwid_repo.HWIDDBCLInfo(
+        hwid_repo.HWIDDBCLStatus.MERGED, [
+            hwid_repo.HWIDDBCLComment('msg1', 'email1'),
+            hwid_repo.HWIDDBCLComment('msg2', 'email2')
+        ])
+    self.assertEqual(actual_commit_info, expected_commit_info)
 
 
 if __name__ == '__main__':

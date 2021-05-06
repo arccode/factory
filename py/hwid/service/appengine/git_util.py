@@ -4,11 +4,13 @@
 
 import contextlib
 import datetime
+import enum
 import hashlib
 import http.client
 import logging
 import os
 import time
+from typing import List, NamedTuple, Optional
 import urllib.parse
 
 # pylint: disable=wrong-import-order, import-error, no-name-in-module
@@ -52,6 +54,7 @@ class GitUtilNoModificationException(GitUtilException):
 
 
 class GitFilesystemAdapter(filesystem_adapter.FileSystemAdapter):
+
   def __init__(self, memory_repo):
     self._memory_repo = memory_repo
 
@@ -80,7 +83,7 @@ class GitFilesystemAdapter(filesystem_adapter.FileSystemAdapter):
     root = self._memory_repo[head_commit.tree]
     mode, sha = root.lookup_path(self._memory_repo.get_object, _B(path))
     if mode != NORMAL_FILE_MODE:
-      raise GitUtilException('Path %r is not a file' % (path,))
+      raise GitUtilException('Path %r is not a file' % (path, ))
     return self._memory_repo[sha].data
 
   def _WriteFile(self, path, content):
@@ -123,21 +126,20 @@ class MemoryRepo(_MemoryRepo):
     # Suppress ResourceWarning
     pool_manager.headers['Connection'] = 'close'
 
-    client = HttpGitClient.from_parsedurl(parsed,
-                                          config=self.get_config_stack(),
-                                          pool_manager=pool_manager)
+    client = HttpGitClient.from_parsedurl(
+        parsed, config=self.get_config_stack(), pool_manager=pool_manager)
     fetch_result = client.fetch(
-        parsed.path, self,
-        determine_wants=lambda mapping: [mapping[REF_HEADS_PREFIX +
-                                                 _B(branch)]], depth=1)
+        parsed.path, self, determine_wants=lambda mapping:
+        [mapping[REF_HEADS_PREFIX + _B(branch)]], depth=1)
     stripped_refs = strip_peeled_refs(fetch_result.refs)
     branches = {
-        n[len(REF_HEADS_PREFIX):]: v for (n, v) in stripped_refs.items()
-        if n.startswith(REF_HEADS_PREFIX)}
-    self.refs.import_refs(
-        REF_REMOTES_PREFIX + DEFAULT_REMOTE_NAME, branches)
-    self[HEAD] = self[
-        REF_REMOTES_PREFIX + DEFAULT_REMOTE_NAME + b'/' + _B(branch)]
+        n[len(REF_HEADS_PREFIX):]: v
+        for (n, v) in stripped_refs.items()
+        if n.startswith(REF_HEADS_PREFIX)
+    }
+    self.refs.import_refs(REF_REMOTES_PREFIX + DEFAULT_REMOTE_NAME, branches)
+    self[HEAD] = self[REF_REMOTES_PREFIX + DEFAULT_REMOTE_NAME + b'/' +
+                      _B(branch)]
 
   def recursively_add_file(self, cur, path_splits, file_name, mode, blob):
     """Add files in object store.
@@ -163,8 +165,7 @@ class MemoryRepo(_MemoryRepo):
       else:
         # not exists, create a new tree
         sub = Tree()
-      self.recursively_add_file(
-          sub, path_splits[1:], file_name, mode, blob)
+      self.recursively_add_file(sub, path_splits[1:], file_name, mode, blob)
       cur.add(child_name, DIR_MODE, sub.id)
     else:
       # reach the directory of the target file
@@ -195,8 +196,9 @@ class MemoryRepo(_MemoryRepo):
     for (file_path, mode, content) in new_files:
       path, filename = os.path.split(file_path)
       # os.path.normpath('') returns '.' which is unexpected
-      paths = [_B(x) for x in os.path.normpath(path).split(os.sep)
-               if x and x != '.']
+      paths = [
+          _B(x) for x in os.path.normpath(path).split(os.sep) if x and x != '.'
+      ]
       try:
         self.recursively_add_file(tree, paths, _B(filename), mode,
                                   Blob.from_string(_B(content)))
@@ -220,14 +222,14 @@ class MemoryRepo(_MemoryRepo):
     try:
       mode, sha = root.lookup_path(self.get_object, _B(path))
     except KeyError:
-      raise GitUtilException('Path %r not found' % (path,))
+      raise GitUtilException('Path %r not found' % (path, ))
     if mode not in (None, DIR_MODE):  # None for root directory
-      raise GitUtilException('Path %r is not a directory' % (path,))
+      raise GitUtilException('Path %r is not a directory' % (path, ))
     tree = self[sha]
     for name, mode, file_sha in tree.items():
       obj = self[file_sha]
-      yield (name.decode(), mode, obj.data
-             if obj.type_name == b'blob' else None)
+      yield (name.decode(), mode,
+             obj.data if obj.type_name == b'blob' else None)
 
 
 def _GetChangeId(tree_id, parent_commit, author, committer, commit_msg):
@@ -256,16 +258,15 @@ def _GetChangeId(tree_id, parent_commit, author, committer, commit_msg):
                 'committer {committer} {now}\n'
                 '\n'
                 '{commit_msg}').format(
-                    tree_id=tree_id, parent_commit=parent_commit,
-                    author=author, committer=committer, now=now,
-                    commit_msg=commit_msg)
+                    tree_id=tree_id, parent_commit=parent_commit, author=author,
+                    committer=committer, now=now, commit_msg=commit_msg)
   change_id_input = 'commit {size}\x00{change_msg}'.format(
       size=len(change_msg), change_msg=change_msg)
   return 'I{}'.format(hashlib.sha1(change_id_input.encode('utf-8')).hexdigest())
 
 
-def CreateCL(git_url, auth_cookie, branch, new_files, author,
-             committer, commit_msg, reviewers=None, cc=None):
+def CreateCL(git_url, auth_cookie, branch, new_files, author, committer,
+             commit_msg, reviewers=None, cc=None):
   """Create a CL from adding files in specified location.
 
   Args:
@@ -291,12 +292,11 @@ def CreateCL(git_url, auth_cookie, branch, new_files, author,
   if updated_tree.id == original_tree_id:
     raise GitUtilNoModificationException
 
-  change_id = _GetChangeId(
-      updated_tree.id, repo.head(), author, committer, commit_msg)
+  change_id = _GetChangeId(updated_tree.id, repo.head(), author, committer,
+                           commit_msg)
   repo.do_commit(
       _B(commit_msg + '\n\nChange-Id: {change_id}'.format(change_id=change_id)),
-      author=_B(author), committer=_B(committer),
-      tree=updated_tree.id)
+      author=_B(author), committer=_B(committer), tree=updated_tree.id)
 
   notification = []
   if reviewers:
@@ -368,9 +368,8 @@ def GetCommitId(git_url_prefix, project, branch=None, auth_cookie=''):
   branch = branch or GetCurrentBranch(git_url_prefix, project, auth_cookie)
 
   git_url = '{git_url_prefix}/projects/{project}/branches/{branch}'.format(
-      git_url_prefix=git_url_prefix,
-      project=urllib.parse.quote(project, safe=''),
-      branch=urllib.parse.quote(branch, safe=''))
+      git_url_prefix=git_url_prefix, project=urllib.parse.quote(
+          project, safe=''), branch=urllib.parse.quote(branch, safe=''))
   pool_manager = PoolManager(ca_certs=certifi.where())
   pool_manager.headers['Cookie'] = auth_cookie
   pool_manager.headers['Content-Type'] = 'application/json'
@@ -379,11 +378,10 @@ def GetCommitId(git_url_prefix, project, branch=None, auth_cookie=''):
   try:
     r = pool_manager.urlopen('GET', git_url)
   except urllib3.exceptions.HTTPError:
-    raise GitUtilException('Invalid url %r' % (git_url,))
+    raise GitUtilException('Invalid url %r' % (git_url, ))
 
   if r.status != http.client.OK:
-    raise GitUtilException('Request unsuccessfully with code %s' %
-                           (r.status,))
+    raise GitUtilException('Request unsuccessfully with code %s' % (r.status, ))
 
   try:
     # the response starts with a magic prefix line for preventing XSSI which
@@ -391,7 +389,7 @@ def GetCommitId(git_url_prefix, project, branch=None, auth_cookie=''):
     stripped_json = r.data.split(b'\n', 1)[1]
     branch_info = json_utils.LoadStr(stripped_json)
   except Exception:
-    raise GitUtilException('Response format Error: %r' % (r.data,))
+    raise GitUtilException('Response format Error: %r' % (r.data, ))
 
   try:
     commit_hash = branch_info['revision']
@@ -399,6 +397,91 @@ def GetCommitId(git_url_prefix, project, branch=None, auth_cookie=''):
     raise GitUtilException('KeyError: %r' % str(ex))
 
   return commit_hash
+
+
+class CLStatus(enum.Enum):
+  NEW = enum.auto()
+  MERGED = enum.auto()
+  ABANDONED = enum.auto()
+
+
+_GERRIT_CL_STATUS_TO_CL_STATUS = {
+    'NEW': CLStatus.NEW,
+    'MERGED': CLStatus.MERGED,
+    'ABANDONED': CLStatus.ABANDONED,
+}
+
+
+class CLMessage(NamedTuple):
+  message: str
+  author_email: Optional[str]
+
+
+class CLInfo(NamedTuple):
+  change_id: str
+  cl_number: int
+  status: CLStatus
+  messages: Optional[List[CLMessage]]
+
+
+def GetCLInfo(review_host, change_id, auth_cookie='', include_messages=False,
+              include_detailed_accounts=False):
+  """Get the info of the specified CL by querying the Gerrit API.
+
+  Args:
+    review_host: Base URL to the API endpoint.
+    change_id: Identity of the CL to query.
+    auth_cookie: Auth cookie if the API is not public.
+    include_messages: Whether to pull and return the CL messages.
+    include_detailed_accounts: Whether to pull and return the email of users
+        in CL messages.
+
+  Returns:
+    An instance of `CLInfo`.  Optional fields might be `None`.
+
+  Raises:
+    GitUtilException if error occurs while querying the Gerrit API.
+  """
+  url = f'{review_host}/changes/{change_id}'
+  params = []
+  if include_messages:
+    params.append(('o', 'MESSAGES'))
+  if include_detailed_accounts:
+    params.append(('o', 'DETAILED_ACCOUNTS'))
+  if params:
+    url = url + '?' + urllib.parse.urlencode(params)
+  pool_manager = PoolManager(ca_certs=certifi.where())
+  pool_manager.headers['Cookie'] = auth_cookie
+  pool_manager.headers['Content-Type'] = 'application/json'
+  pool_manager.headers['Connection'] = 'close'
+  try:
+    r = pool_manager.urlopen('GET', url)
+  except urllib3.exceptions.HTTPError:
+    raise GitUtilException(f'invalid url {url}')
+  if r.status != http.client.OK:
+    raise GitUtilException(f'request unsuccessfully with code {r.status}')
+
+  try:
+    # the response starts with a magic prefix line for preventing XSSI which
+    # should be stripped.
+    stripped_json = r.data.split(b'\n', 1)[1]
+    json_data = json_utils.LoadStr(stripped_json)
+  except Exception:
+    raise GitUtilException('Response format Error: %r' % (r.data, ))
+
+  def _ConvertGerritCLMessage(json_data):
+    return CLMessage(
+        json_data['message'],
+        json_data['author']['email'] if include_detailed_accounts else None)
+
+  try:
+    return CLInfo(json_data['change_id'], json_data['_number'],
+                  _GERRIT_CL_STATUS_TO_CL_STATUS[json_data['status']],
+                  [_ConvertGerritCLMessage(x) for x in json_data['messages']]
+                  if include_messages else None)
+  except Exception as ex:
+    logging.debug('Unexpected Gerrit API response for CL info: %r', json_data)
+    raise GitUtilException('failed to parse the Gerrit API response') from ex
 
 
 def AbandonCL(review_host, auth_cookie, change_id):
@@ -411,15 +494,14 @@ def AbandonCL(review_host, auth_cookie, change_id):
   """
 
   git_url = '{review_host}/a/changes/{change_id}/abandon'.format(
-      review_host=review_host,
-      change_id=change_id)
+      review_host=review_host, change_id=change_id)
 
   pool_manager = PoolManager(ca_certs=certifi.where())
   pool_manager.headers['Cookie'] = auth_cookie
   fp = pool_manager.urlopen(method='POST', url=git_url)
   if fp.status != http.client.OK:
     logging.error('HTTP Status: %d', fp.status)
-    raise GitUtilException('Abandon failed for change id: %r' % (change_id,))
+    raise GitUtilException('Abandon failed for change id: %r' % (change_id, ))
 
 
 def GetGerritCredentials():

@@ -977,6 +977,71 @@ class HwidApiTest(unittest.TestCase):
     self.assertEqual(ex.exception.code,
                      protorpc_utils.RPCCanonicalErrorCode.ABORTED)
 
+  def testCreateHwidDbEditableSectionChangeClSucceed(self):
+    live_hwid_repo = self.patch_hwid_repo_manager.GetLiveHWIDRepo.return_value
+    live_hwid_repo.GetHWIDDBMetadataByName.return_value = (
+        hwid_repo.HWIDDBMetadata('test_project', 'test_project', 3,
+                                 'v3/test_project'))
+    live_hwid_repo.LoadHWIDDBByName.return_value = TEST_PREV_HWID_DB_CONTENT
+    self.patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {})
+    req = hwid_api_messages_pb2.ValidateHwidDbEditableSectionChangeRequest(
+        project='test_project',
+        new_hwid_db_editable_section=TEST_HWID_DB_EDITABLE_SECTION_CONTENT)
+    resp = self.service.ValidateHwidDbEditableSectionChange(req)
+    validation_token = resp.validation_token
+    live_hwid_repo.CommitHWIDDB.return_value = 123
+
+    req = hwid_api_messages_pb2.CreateHwidDbEditableSectionChangeClRequest(
+        project='test_project',
+        new_hwid_db_editable_section=TEST_HWID_DB_EDITABLE_SECTION_CONTENT,
+        validation_token=validation_token)
+    resp = self.service.CreateHwidDbEditableSectionChangeCl(req)
+    self.assertEqual(resp.cl_number, 123)
+
+  def testBatchGetHwidDbEditableSectionChangeClInfo(self):
+    all_hwid_commit_infos = {
+        1:
+            hwid_repo.HWIDDBCLInfo(hwid_repo.HWIDDBCLStatus.NEW, []),
+        2:
+            hwid_repo.HWIDDBCLInfo(hwid_repo.HWIDDBCLStatus.MERGED, []),
+        3:
+            hwid_repo.HWIDDBCLInfo(hwid_repo.HWIDDBCLStatus.ABANDONED, []),
+        4:
+            hwid_repo.HWIDDBCLInfo(hwid_repo.HWIDDBCLStatus.NEW, [
+                hwid_repo.HWIDDBCLComment('msg1', 'user1@email'),
+                hwid_repo.HWIDDBCLComment('msg2', 'user2@email'),
+            ])
+    }
+
+    def _MockGetHWIDDBCLInfo(cl_number):
+      try:
+        return all_hwid_commit_infos[cl_number]
+      except KeyError:
+        raise hwid_repo.HWIDRepoError from None
+
+    self.patch_hwid_repo_manager.GetHWIDDBCLInfo.side_effect = (
+        _MockGetHWIDDBCLInfo)
+
+    req = (
+        hwid_api_messages_pb2.BatchGetHwidDbEditableSectionChangeClInfoRequest(
+            cl_numbers=[1, 2, 3, 4, 5, 6]))
+    resp = self.service.BatchGetHwidDbEditableSectionChangeClInfo(req)
+    expected_resp = (
+        hwid_api_messages_pb2.BatchGetHwidDbEditableSectionChangeClInfoResponse(
+        ))
+
+    cl_status = expected_resp.cl_status.get_or_create(1)
+    cl_status.status = cl_status.PENDING
+    cl_status = expected_resp.cl_status.get_or_create(2)
+    cl_status.status = cl_status.MERGED
+    cl_status = expected_resp.cl_status.get_or_create(3)
+    cl_status.status = cl_status.ABANDONED
+    cl_status = expected_resp.cl_status.get_or_create(4)
+    cl_status.status = cl_status.PENDING
+    cl_status.comments.add(email='user1@email', message='msg1')
+    cl_status.comments.add(email='user2@email', message='msg2')
+    self.assertEqual(resp, expected_resp)
+
   def CheckForLabelValue(self, response, label_to_check_for,
                          value_to_check_for=None):
     for label in response.labels:

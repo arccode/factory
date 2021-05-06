@@ -2,13 +2,13 @@
 # Copyright 2019 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-
 """Tests for cros.factory.hwid.service.appengine.git_util"""
 
 import datetime
 import hashlib
 import http.client
 import os.path
+import textwrap
 import unittest
 from unittest import mock
 
@@ -28,7 +28,7 @@ class GitUtilTest(unittest.TestCase):
         ('a/b/c', 0o100644, b'content of a/b/c'),
         ('///a/b////d', 0o100644, b'content of a/b/d'),
         ('a/b/e/./././f', 0o100644, b'content of a/b/e/f'),
-        ]
+    ]
     repo = git_util.MemoryRepo('')
     tree = Tree()
     try:
@@ -61,16 +61,15 @@ class GitUtilTest(unittest.TestCase):
     committer = 'change-id test <change-id-test@google.com>'
     commit_msg = 'Change Id test'
     expected_change_id = 'I3b5a06d980966aaa3d981ecb4d578f0cc1dd8179'
-    change_id = git_util._GetChangeId(
-        tree_id, parent, author, committer,
-        commit_msg)
+    change_id = git_util._GetChangeId(tree_id, parent, author, committer,
+                                      commit_msg)
     self.assertEqual(change_id, expected_change_id)
 
   def testInvalidFileStructure1(self):
     new_files = [
         ('a/b/c', 0o100644, b'content of a/b/c'),
         ('a/b/c/d', 0o100644, b'content of a/b/c/d'),
-        ]
+    ]
     repo = git_util.MemoryRepo('')
     tree = Tree()
     with self.assertRaises(git_util.GitUtilException) as ex:
@@ -81,7 +80,7 @@ class GitUtilTest(unittest.TestCase):
     new_files = [
         ('a/b/c/d', 0o100644, b'content of a/b/c/d'),
         ('a/b/c', 0o100644, b'content of a/b/c'),
-        ]
+    ]
     repo = git_util.MemoryRepo('')
     tree = Tree()
     with self.assertRaises(git_util.GitUtilException) as ex:
@@ -110,29 +109,31 @@ class GitUtilTest(unittest.TestCase):
         # 400 error
         mock.MagicMock(status=http.client.BAD_REQUEST, data=''),
         # invalid json
-        mock.MagicMock(status=http.client.OK, data=(
-            ")]}'\n"
-            '\n'
-            '  "revision": "0123456789abcdef0123456789abcdef01234567"\n'
-            '}\n')),
+        mock.MagicMock(
+            status=http.client.OK,
+            data=(")]}'\n"
+                  '\n'
+                  '  "revision": "0123456789abcdef0123456789abcdef01234567"\n'
+                  '}\n')),
         # no magic line
-        mock.MagicMock(status=http.client.OK, data=(
-            '{\n'
-            '  "revision": "0123456789abcdef0123456789abcdef01234567"\n'
-            '}\n')),
+        mock.MagicMock(
+            status=http.client.OK,
+            data=('{\n'
+                  '  "revision": "0123456789abcdef0123456789abcdef01234567"\n'
+                  '}\n')),
         # no "revision" field
-        mock.MagicMock(status=http.client.OK, data=(
-            ")]}'\n"
-            '{\n'
-            '  "no_revision": "0123456789abcdef0123456789abcdef01234567"\n'
-            '}\n')),
-        ]
+        mock.MagicMock(
+            status=http.client.OK, data=(
+                ")]}'\n"
+                '{\n'
+                '  "no_revision": "0123456789abcdef0123456789abcdef01234567"\n'
+                '}\n')),
+    ]
 
     for resp in error_responses:
       instance.urlopen.return_value = resp
-      self.assertRaises(
-          git_util.GitUtilException, git_util.GetCommitId, git_url_prefix,
-          project, branch, auth_cookie)
+      self.assertRaises(git_util.GitUtilException, git_util.GetCommitId,
+                        git_url_prefix, project, branch, auth_cookie)
 
   def testNoModification(self):
     file_name = 'README.md'
@@ -154,7 +155,7 @@ class GitUtilTest(unittest.TestCase):
         ('a/b/c', 0o100644, b'content of a/b/c'),
         ('///a/b////d', 0o100644, b'content of a/b/d'),
         ('a/b/e/./././f', 0o100644, b'content of a/b/e/f'),
-        ]
+    ]
     repo = git_util.MemoryRepo('')
     tree = Tree()
     try:
@@ -164,13 +165,83 @@ class GitUtilTest(unittest.TestCase):
       self.fail("testListFiles raise Exception unexpectedly: %r" % ex)
     repo.do_commit(b'Test_commit', tree=tree.id)
 
-    self.assertEqual(sorted(repo.list_files('a/b')),
-                     [('c', git_util.NORMAL_FILE_MODE, b'content of a/b/c'),
-                      ('d', git_util.NORMAL_FILE_MODE, b'content of a/b/d'),
-                      ('e', git_util.DIR_MODE, None)])
+    self.assertEqual(
+        sorted(repo.list_files('a/b')),
+        [('c', git_util.NORMAL_FILE_MODE, b'content of a/b/c'),
+         ('d', git_util.NORMAL_FILE_MODE, b'content of a/b/d'),
+         ('e', git_util.DIR_MODE, None)])
+
+  @mock.patch('cros.factory.hwid.service.appengine.git_util.PoolManager')
+  def testGetCLInfo_BasicInfo(self, mocked_pool_manager):
+    instance = mocked_pool_manager.return_value  # pool_manager instance
+    instance.urlopen.return_value.status = http.client.OK
+    instance.urlopen.return_value.data = textwrap.dedent("""\
+        )]}
+        {
+            "change_id": "change_id_value",
+            "_number": 123,
+            "status": "MERGED"
+        }
+        """).encode('utf-8')
+    actual_cl_info = git_util.GetCLInfo('unused_review_host', 'change_id_value')
+    expected_cl_info = git_util.CLInfo('change_id_value', 123,
+                                       git_util.CLStatus.MERGED, None)
+    self.assertEqual(actual_cl_info, expected_cl_info)
+
+  @mock.patch('cros.factory.hwid.service.appengine.git_util.PoolManager')
+  def testGetCLInfo_WithCLMessages(self, mocked_pool_manager):
+    instance = mocked_pool_manager.return_value  # pool_manager instance
+    instance.urlopen.return_value.status = http.client.OK
+    instance.urlopen.return_value.data = textwrap.dedent("""\
+        )]}
+        {
+            "change_id": "change_id_value",
+            "_number": 123,
+            "status": "MERGED",
+            "messages": [
+                {
+                    "message": "msg1",
+                    "author": { "_account_id": 123 }
+                }
+            ]
+        }
+        """).encode('utf-8')
+    actual_cl_info = git_util.GetCLInfo('unused_review_host', 'change_id_value',
+                                        include_messages=True)
+    expected_cl_info = git_util.CLInfo(
+        'change_id_value', 123, git_util.CLStatus.MERGED,
+        messages=[git_util.CLMessage('msg1', None)])
+    self.assertEqual(actual_cl_info, expected_cl_info)
+
+  @mock.patch('cros.factory.hwid.service.appengine.git_util.PoolManager')
+  def testGetCLInfo_WithCLMessagesAndEmails(self, mocked_pool_manager):
+    instance = mocked_pool_manager.return_value  # pool_manager instance
+    instance.urlopen.return_value.status = http.client.OK
+    instance.urlopen.return_value.data = textwrap.dedent("""\
+        )]}
+        {
+            "change_id": "change_id_value",
+            "_number": 123,
+            "status": "MERGED",
+            "messages": [
+                {
+                    "message": "msg1",
+                    "author": { "email": "email1" }
+                }
+            ]
+        }
+        """).encode('utf-8')
+    actual_cl_info = git_util.GetCLInfo('unused_review_host', 'change_id_value',
+                                        include_messages=True,
+                                        include_detailed_accounts=True)
+    expected_cl_info = git_util.CLInfo(
+        'change_id_value', 123, git_util.CLStatus.MERGED,
+        messages=[git_util.CLMessage('msg1', 'email1')])
+    self.assertEqual(actual_cl_info, expected_cl_info)
 
 
 class GitFilesystemAdapterTest(unittest.TestCase):
+
   def setUp(self):
     self.repo = git_util.MemoryRepo(auth_cookie='')
     self.repo.shallow_clone(
@@ -191,17 +262,15 @@ class GitFilesystemAdapterTest(unittest.TestCase):
     unused_mode, sha = self.repo[head_commit.tree].lookup_path(
         self.repo.get_object, self.file_path.encode())
     self.assertEqual(
-        sha.decode(), hashlib.sha1(
-            (b'blob %d\x00%b' % (len(content), content))).hexdigest())
+        sha.decode(),
+        hashlib.sha1((b'blob %d\x00%b' % (len(content), content))).hexdigest())
 
   def testReadOnly(self):
     # Test if GitFilesystemAdapter is unsupported for WriteFile and DeleteFile.
-    self.assertRaises(
-        filesystem_adapter.FileSystemAdapterException,
-        self.git_fs.WriteFile, self.file_path, b'')
-    self.assertRaises(
-        filesystem_adapter.FileSystemAdapterException,
-        self.git_fs.DeleteFile, self.file_path)
+    self.assertRaises(filesystem_adapter.FileSystemAdapterException,
+                      self.git_fs.WriteFile, self.file_path, b'')
+    self.assertRaises(filesystem_adapter.FileSystemAdapterException,
+                      self.git_fs.DeleteFile, self.file_path)
 
 
 if __name__ == '__main__':

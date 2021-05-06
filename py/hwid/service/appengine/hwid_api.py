@@ -12,6 +12,8 @@ import hashlib
 import logging
 import operator
 import re
+import textwrap
+import time
 from typing import List, NamedTuple, Tuple
 
 # pylint: disable=no-name-in-module, import-error, wrong-import-order
@@ -41,6 +43,15 @@ KNOWN_BAD_HWIDS = ['DUMMY_HWID', 'dummy_hwid']
 KNOWN_BAD_SUBSTR = [
     '.*TEST.*', '.*CHEETS.*', '^SAMS .*', '.* DEV$', '.*DOGFOOD.*'
 ]
+
+_HWID_DB_COMMIT_STATUS_TO_PROTOBUF_HWID_CL_STATUS = {
+    hwid_repo.HWIDDBCLStatus.NEW:
+        hwid_api_messages_pb2.HwidDbEditableSectionChangeClInfo.PENDING,
+    hwid_repo.HWIDDBCLStatus.MERGED:
+        hwid_api_messages_pb2.HwidDbEditableSectionChangeClInfo.MERGED,
+    hwid_repo.HWIDDBCLStatus.ABANDONED:
+        hwid_api_messages_pb2.HwidDbEditableSectionChangeClInfo.ABANDONED,
+}
 
 _hwid_manager = CONFIG.hwid_manager
 _hwid_validator = hwid_validator.HwidValidator()
@@ -534,9 +545,48 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
           protorpc_utils.RPCCanonicalErrorCode.ABORTED,
           detail='The validation token is expired.')
 
-    # TODO(yhong): Implement this RPC method.
-    raise protorpc_utils.ProtoRPCException(
-        protorpc_utils.RPCCanonicalErrorCode.UNIMPLEMENTED)
+    commit_msg = textwrap.dedent(f"""\
+        ({int(time.time())}) {request.project}: HWID Config Update
+
+        Requested by: {request.original_requester}
+        Warning: all posted comments will be sent back to the requester.
+
+        {request.description}
+
+        BUG=b:{request.bug_number}
+        """)
+    try:
+      cl_number = live_hwid_repo.CommitHWIDDB(
+          request.project, change_info.new_hwid_db_contents, commit_msg,
+          request.reviewer_emails, request.cc_emails)
+    except hwid_repo.HWIDRepoError:
+      logging.exception(
+          'Caught unexpected exception while uploading a HWID CL.')
+      raise protorpc_utils.ProtoRPCException(
+          protorpc_utils.RPCCanonicalErrorCode.INTERNAL) from None
+    resp = hwid_api_messages_pb2.CreateHwidDbEditableSectionChangeClResponse(
+        cl_number=cl_number)
+    return resp
+
+  @protorpc_utils.ProtoRPCServiceMethod
+  @auth.RpcCheck
+  def BatchGetHwidDbEditableSectionChangeClInfo(self, request):
+    response = (
+        hwid_api_messages_pb2.BatchGetHwidDbEditableSectionChangeClInfoResponse(
+        ))
+    for cl_number in request.cl_numbers:
+      try:
+        commit_info = _hwid_repo_manager.GetHWIDDBCLInfo(cl_number)
+      except hwid_repo.HWIDRepoError as ex:
+        logging.error('Failed to load the HWID DB CL info: %r.', ex)
+        continue
+      cl_status = response.cl_status.get_or_create(cl_number)
+      cl_status.status = _HWID_DB_COMMIT_STATUS_TO_PROTOBUF_HWID_CL_STATUS.get(
+          commit_info.status, cl_status.STATUS_UNSPECIFIC)
+      for comment in commit_info.comments:
+        cl_status.comments.add(email=comment.author_email,
+                               message=comment.message)
+    return response
 
 
 def _GetHWIDDBChangeInfo(live_hwid_repo, project, new_hwid_db_editable_section):
