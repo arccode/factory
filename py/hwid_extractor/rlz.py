@@ -9,6 +9,29 @@ import os
 RLZ_JSON = os.path.join(os.path.dirname(__file__), 'rlz.json')
 
 
+def GetReferenceBoardName(device):
+  reference_board = device.get('reference_board')
+  if reference_board and reference_board.get('is_active'):
+    return reference_board['public_codename']
+  # This board is not unibuild. Use the board name as the build image name.
+  for board in device.get('boards', []):
+    if board.get('is_active'):
+      return board['public_codename']
+  return device['public_codename']
+
+
+def ParseAllDevicesJSON(all_device):
+  res = {}
+  for device in all_device.get('devices', []):
+    cr50_board_id = device.get('cr50_board_id')
+    if not cr50_board_id or cr50_board_id == 'ZZCR':
+      # "ZZCR" is a generic brandcode that all devices use in early bring-up
+      # until the permanent brandcode is created.
+      continue
+    res[cr50_board_id] = GetReferenceBoardName(device)
+  return res
+
+
 class RLZData:
   """RLZ data stores the mapping from rlz codes to name of reference boards."""
 
@@ -20,21 +43,6 @@ class RLZData:
 
   def Get(self, *args, **kargs):
     return self._rlz_data.get(*args, **kargs)
-
-  @staticmethod
-  def _ParseAllDevicesJSON(all_device):
-    res = {}
-    for device in all_device.get('devices', []):
-      cr50_board_id = device.get('cr50_board_id')
-      if not cr50_board_id or cr50_board_id == 'ZZCR':
-        # "ZZCR" is a generic brandcode that all devices use in early bring-up
-        # until the permanent brandcode is created.
-        continue
-      reference_board = device.get('reference_board')
-      if not reference_board:
-        continue
-      res[cr50_board_id] = reference_board['public_codename']
-    return res
 
   def UpdateFromAllDevicesJSON(self, all_device):
     """Update rlz.json with all_device.json.
@@ -49,7 +57,7 @@ class RLZData:
     Returns:
       True if update successfully.
     """
-    rlz_data = self._ParseAllDevicesJSON(all_device)
+    rlz_data = ParseAllDevicesJSON(all_device)
     if not rlz_data:
       return False
     with open(RLZ_JSON, 'w') as f:
