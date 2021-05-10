@@ -39,7 +39,8 @@
         "VerifyRootPartition",
         "Barrier",
         "BadBlocks",
-        "Barrier"
+        "Barrier",
+        "FPSGroup"
       ]
     },
     "FATStart": {

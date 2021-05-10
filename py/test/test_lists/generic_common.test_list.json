@@ -225,6 +225,14 @@
         "board_id_flags": "ffffffff"
       }
     },
+    "CheckFPFirmware": {
+      "pytest_name": "update_fpmcu_firmware",
+      "label": "Check Fingerprint Firmware",
+      "run_if": "device.component.has_fingerprint",
+      "args": {
+        "method": "CHECK_VERSION"
+      }
+    },
     "CheckPoint": {
       "inherit": "Barrier",
       "label": "Check Point",
@@ -342,6 +350,24 @@
             }
           }
         ]
+      }
+    },
+    "FPSGroup": {
+      "label": "Fingerprint Test Group",
+      "run_if": "device.component.has_fingerprint",
+      "subtests": [
+        "UpdateFPFirmware",
+        "RebootStep",
+        "CheckFPFirmware",
+        "FPSTest"
+      ]
+    },
+    "FPSTest": {
+      "pytest_name": "fingerprint_mcu",
+      "label": "Fingerprint Sensor test",
+      "run_if": "device.component.has_fingerprint",
+      "args": {
+        "fpframe_retry_count": 2
       }
     },
     "Finish": {
@@ -1059,6 +1085,11 @@
     },
     "UpdateDeviceData": {
       "pytest_name": "update_device_data"
+    },
+    "UpdateFPFirmware": {
+      "pytest_name": "update_fpmcu_firmware",
+      "label": "Update Fingerprint Firmware",
+      "run_if": "device.component.has_fingerprint"
     },
     "UpdateFirmware": {
       "label": "Update Firmware",

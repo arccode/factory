@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-04-27 15:39+CST\n"
+"PO-Revision-Date: 2021-05-11 17:39+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -3351,6 +3351,10 @@ msgid "Check Cr50 Board ID Not Set"
 msgstr ""
 
 #: ../py/test/test_lists/generic_common.test_list.json
+msgid "Check Fingerprint Firmware"
+msgstr ""
+
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Check Point"
 msgstr "Mức xác nhận"
 
@@ -3377,6 +3381,14 @@ msgstr "từ chối CBI"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Enable EC Write Protect"
 msgstr "EC Viết bảo vệ"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Fingerprint Test Group"
+msgstr ""
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Fingerprint Sensor test"
+msgstr ""
 
 #: ../py/test/test_lists/generic_common.test_list.json
 #: ../py/test/test_lists/generic_fat.test_list.json
@@ -3568,6 +3580,10 @@ msgstr "Xác nhận phiên bản firmware"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Update Cr50 Firmware"
 msgstr "Cập nhật firmware CR50"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Update Fingerprint Firmware"
+msgstr ""
 
 #: ../py/test/test_lists/generic_common.test_list.json
 #: ../py/test/test_lists/generic_unprovisioned.test_list.json
