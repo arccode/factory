@@ -267,7 +267,6 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
                     'name': [True, 'str', '!eq foo'],
                     'product': [True, 'hex', '!eq 0x1122'],
                     'vendor': [True, 'hex', '!eq 0x5566'],
-                    'fw_version': [False, 'str']
                 }
             }))
 
@@ -288,7 +287,6 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
                     'name': [True, 'str', '!eq foo'],
                     'product': [True, 'hex', '!eq 0x1122'],
                     'vendor': [True, 'hex', '!eq 0x5566'],
-                    'fw_version': [False, 'str']
                 }
             }))
 
@@ -312,7 +310,6 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
                     'name': [True, 'str', '!eq foo'],
                     'product': [True, 'hex', '!eq 0x11223344'],
                     'vendor': [True, 'hex', '!eq 0x5566'],
-                    'fw_version': [False, 'str']
                 }
             }))
 
@@ -335,7 +332,6 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
                     'name': [True, 'str', '!eq foo'],
                     'product': [True, 'hex', '!eq 0x1122'],
                     'vendor': [False, 'hex'],
-                    'fw_version': [True, 'str', '!eq 1.1']
                 }
             }))
 
@@ -360,7 +356,6 @@ class InputDeviceProbeStatementGeneratorTest(unittest.TestCase):
                     'name': [True, 'str', '!eq foo'],
                     'product': [True, 'hex', '!eq 0x1122'],
                     'vendor': [False, 'hex'],
-                    'fw_version': [True, 'str', '!eq 1.1']
                 }
             }))
 

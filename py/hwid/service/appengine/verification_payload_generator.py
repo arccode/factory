@@ -330,7 +330,6 @@ def GetAllProbeStatementGenerators():
       same_name_field_converter(
           'vendor', GetHWIDHexStrToHexStrConverter(4, has_prefix=False),
           is_optional=True),
-      same_name_field_converter('fw_version', HWIDValueToStr, is_optional=True),
   ]
   all_probe_statement_generators['stylus'] = [
       _ProbeStatementGenerator('stylus', 'input_device', input_device_fields),

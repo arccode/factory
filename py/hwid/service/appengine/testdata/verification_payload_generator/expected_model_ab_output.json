@@ -148,7 +148,6 @@
       "model_a_touchpad_0": {
         "eval": {"input_device": {}},
         "expect": {
-          "fw_version": [false, "str"],
           "name": [true, "str", "!eq Touchpad 0"],
           "product": [true, "hex", "!eq 0x12AB"],
           "vendor": [true, "hex", "!eq 0x12AB"]
@@ -157,7 +156,6 @@
       "model_a_touchpad_1": {
         "eval": {"input_device": {}},
         "expect": {
-          "fw_version": [false, "str"],
           "name": [true, "str", "!eq Touchpad 1"],
           "product": [true, "hex", "!eq 0x12AB"],
           "vendor": [true, "hex", "!eq 0x12AB"]
@@ -168,7 +166,6 @@
       "model_a_touchscreen_0": {
         "eval": {"input_device": {}},
         "expect": {
-          "fw_version": [false, "str"],
           "name": [true, "str", "!eq Touchscreen 0"],
           "product": [true, "hex", "!eq 0x12AB"],
           "vendor": [true, "hex", "!eq 0x12AB"]
@@ -177,7 +174,6 @@
       "model_a_touchscreen_1": {
         "eval": {"input_device": {}},
         "expect": {
-          "fw_version": [true, "str", "!eq 1234"],
           "name": [true, "str", "!eq Touchscreen 1"],
           "product": [true, "hex", "!eq 0x12AB"],
           "vendor": [true, "hex", "!eq 0x12AB"]
@@ -186,7 +182,6 @@
       "model_a_touchscreen_2": {
         "eval": {"input_device": {}},
         "expect": {
-          "fw_version": [true, "str", "!eq 1234"],
           "name": [true, "str", "!eq Touchscreen 2"],
           "product": [true, "hex", "!eq 0x12AB"],
           "vendor": [false, "hex"]
