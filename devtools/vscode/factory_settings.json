@@ -5,5 +5,6 @@
   ],
   "python.analysis.extraPaths": [
     "${workspaceFolder}/py_pkg"
-  ]
+  ],
+  "python.formatting.provider": "yapf"
 }
