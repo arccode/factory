@@ -35,14 +35,15 @@ class ChromeOSCamera(camera.Camera):
   _index_mapping = {}
 
   def GetDeviceIndex(self, facing):
-    """Search the video device index from the camera characteristics file.
+    """Search the video device index.
+
+    Since the video device index may change after device reboot/suspend resume,
+    we search the video device index using cros_config or from the camera
+    characteristics file.
 
     Args:
       facing: Direction the camera faces relative to device screen. Only allow
               'front', 'rear' or None. None is automatically searching one.
-
-    Since the video device index may change after device reboot/suspend resume,
-    we search the video device index from the camera characteristics file.
     """
     if facing not in ALLOWED_FACING:
       raise CameraError('The facing (%s) is not in ALLOWED_FACING (%s)' %
@@ -60,6 +61,84 @@ class ChromeOSCamera(camera.Camera):
           os.path.join(path, 'device', '..', 'idProduct')).strip()
       index_to_vid_pid[index] = '%s:%s' % (vid, pid)
 
+    num_camera = int(
+        self._device.CallOutput(['cros_config', '/camera', 'count']))
+
+    if num_camera == 0:
+      raise CameraError('No camera detected')
+
+    camera_facing = self._device.CallOutput(
+        ['cros_config', '/camera/devices/0', 'facing'])
+
+    # If camera_facing is empty, it means that the system does not
+    # support device query using cros_config.
+    if camera_facing:
+      self.GetCameraIndexFromCrosConfig(index_to_vid_pid, num_camera)
+    else:
+      self.GetCameraIndexFromCameraConfig(index_to_vid_pid)
+
+    if facing is None:
+      if len(self._index_mapping) > 1:
+        raise CameraError('Multiple cameras are found')
+      if not self._index_mapping:
+        raise CameraError('No camera is found')
+      return next(iter(self._index_mapping.values()))
+
+    if facing not in self._index_mapping:
+      raise CameraError('No %s camera is found' % facing)
+    return self._index_mapping[facing]
+
+  def GetCameraIndexFromCrosConfig(self, index_to_vid_pid, num_camera):
+    """ Search the camera index using cros_config.
+
+    Args:
+      index_to_vid_pid: store the ids of the vendor and the product.
+    """
+    vid_pid_to_cros_index = {}
+    for cros_index in range(num_camera):
+      id_index = 0
+
+      while True:
+        vid_pid = self._device.CallOutput([
+            'cros_config',
+            '/camera/devices/%d/ids' % cros_index,
+            '%d' % id_index
+        ])
+
+        if not vid_pid:
+          break
+
+        if vid_pid in vid_pid_to_cros_index:
+          raise CameraError(
+              'Multiple cameras have the same usb_vid_pid (%s)'
+              ' There are duplicated usb_vid_pid in the'
+              ' cros_config file. Please submit a CL to fix this.' % vid_pid)
+
+        vid_pid_to_cros_index[vid_pid] = cros_index
+        id_index += 1
+
+    for index, vid_pid in index_to_vid_pid.items():
+      if vid_pid in vid_pid_to_cros_index:
+        camera_facing = self._device.CallOutput([
+            'cros_config',
+            '/camera/devices/%d' % vid_pid_to_cros_index[vid_pid], 'facing'
+        ])
+        camera_facing = {
+            'front': 'front',
+            'back': 'rear'
+        }[camera_facing]
+        self._index_mapping[camera_facing] = index
+      else:
+        raise CameraError(
+            'No camera has the usb_vid_pid (%s)'
+            ' Please submit a CL to update the cros_config file.' % vid_pid)
+
+  def GetCameraIndexFromCameraConfig(self, index_to_vid_pid):
+    """Fallback function when unable to query from cros_config.
+
+    Args:
+      index_to_vid_pid: store the ids of the vendor and the product.
+    """
     camera_config = self._device.ReadFile(CAMERA_CONFIG_PATH)
     index_to_camera_id = {}
     for index, vid_pid in index_to_vid_pid.items():
@@ -92,17 +171,6 @@ class ChromeOSCamera(camera.Camera):
           1: 'rear'
       }[camera_facing]
       self._index_mapping[camera_facing] = index
-
-    if facing is None:
-      if len(self._index_mapping) > 1:
-        raise CameraError('Multiple cameras are found')
-      if not self._index_mapping:
-        raise CameraError('No camera is found')
-      return next(iter(self._index_mapping.values()))
-
-    if facing not in self._index_mapping:
-      raise CameraError('No %s camera is found' % facing)
-    return self._index_mapping[facing]
 
   # pylint: disable=arguments-differ
   def GetCameraDevice(self, facing):
