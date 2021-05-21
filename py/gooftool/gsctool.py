@@ -207,6 +207,11 @@ class GSCTool:
                          (bid_type, result.BID_RLZ))
     return BoardID(bid_type, bid_flags)
 
+  def ClearROHash(self):
+    """Clear the AP-RO hash in Cr50."""
+    self._InvokeCommand([GSCTOOL_PATH, '-a', '-H'],
+                        'Failed to clear the AP-RO hash.')
+
   def _InvokeCommand(self, cmd, failure_msg, cmd_result_checker=None):
     cmd_result_checker = cmd_result_checker or (lambda result: result.success)
     result = self._shell(cmd)
