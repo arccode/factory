@@ -132,7 +132,7 @@ class BuildBoard:
       if board_name in [None, 'default']:
         # See if we can get the board name from /etc/lsb-release.
         LSB_RELEASE_FILE = '/etc/lsb-release'
-        LSB_BOARD_RE = re.compile(r'^CHROMEOS_RELEASE_BOARD=(\w+)$', re.M)
+        LSB_BOARD_RE = re.compile(r'^CHROMEOS_RELEASE_BOARD=([\w-]+)$', re.M)
         if not os.path.exists(LSB_RELEASE_FILE):
           raise BuildBoardException(
               'Not in chroot and %r does not exist, unable to determine board' %
