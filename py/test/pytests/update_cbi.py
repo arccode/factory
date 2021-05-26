@@ -172,9 +172,12 @@ class UpdateCBITest(test_case.TestCase):
         product_name=self.args.product_name, sku_id=sku_id,
         config_name=model_sku_path, schema_name='model_sku')
 
-  def GetCrosConfigData(self, sku_id, path, name, return_type):
-    output = self._dut.CallOutput(
-        ['cros_config_mock', '--sku-id', str(sku_id), path, name])
+  def GetCrosConfigData(self, sku_id, whitelabel_tag, path, name, return_type):
+    command = ['cros_config_mock', '--sku-id', str(sku_id)]
+    if whitelabel_tag:
+      command += ['--whitelabel-tag', whitelabel_tag]
+    command += [path, name]
+    output = self._dut.CallOutput(command)
     if output:
       return return_type(output.strip())
     logging.warning("Can't get %s/%s from cros_config_mock", path, name)
@@ -193,7 +196,9 @@ class UpdateCBITest(test_case.TestCase):
       raise
 
   def GetFirmwareConfigFromCrosConfig(self, sku_id):
-    return self.GetCrosConfigData(sku_id, '/firmware', 'firmware-config', int)
+    whitelabel_tag = self._dut.vpd.ro.get('whitelabel_tag')
+    return self.GetCrosConfigData(sku_id, whitelabel_tag, '/firmware',
+                                  'firmware-config', int)
 
   def GetDeviceData(self, key, data_type):
     assert data_type in (int, str), 'data_type should be either int or str.'
