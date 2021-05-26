@@ -145,19 +145,12 @@ class UpdateFpmcuFirmwareTest(test_case.TestCase):
     if self._dut.CallOutput(['crossystem', 'wpsw_cur']).strip() != '0':
       raise Error('Hardware write protection is enabled.')
 
+    # Log current and expected firmware version.
+    _, _, _, _ = self.GetCurrentAndExpectedFirmwareVersion(firmware_file)
+
     flash_cmd = [FLASHTOOL, firmware_file]
 
-    _, _, bin_ro_ver, bin_rw_ver = self.GetCurrentAndExpectedFirmwareVersion(
-        firmware_file)
     session.console.debug(self._dut.CallOutput(flash_cmd))
-    new_ro_ver, new_rw_ver = self._fpmcu.GetFpmcuFirmwareVersion()
-
-    self.assertEqual(new_ro_ver, bin_ro_ver,
-                     'New FPMCU RO: %s does not match the expected RO: %s.'
-                     % (new_rw_ver, bin_ro_ver))
-    self.assertEqual(new_rw_ver, bin_rw_ver,
-                     'New FPMCU RW: %s does not match the expected RW: %s.'
-                     % (new_rw_ver, bin_rw_ver))
 
   def CheckFpmcuFirmwareVersion(self, firmware_file):
     cur_ro_ver, cur_rw_ver, bin_ro_ver, bin_rw_ver = \
