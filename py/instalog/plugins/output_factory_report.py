@@ -7,11 +7,11 @@
 
 A plugin to process archives which are uploaded py partners. This plugin will do
 the following things:
-  1. Download archives from Google Cloud Storage
+  1. Download an archive from Google Cloud Storage
   2. Decompress factory reports from the archive
-  3. Process and parse factory report
-  4. Generate a report event with some information
-  5. Generate a process event with some process status during parsing
+  3. Process and parse factory reports
+  4. Generate report events with some information
+  5. Generate process events with process status during parsing
 """
 
 import copy
@@ -29,6 +29,7 @@ import zipfile
 import yaml
 
 from cros.factory.instalog import datatypes
+from cros.factory.instalog import log_utils
 from cros.factory.instalog import plugin_base
 from cros.factory.instalog.utils.arg_utils import Arg
 from cros.factory.instalog.utils import file_utils
@@ -86,9 +87,6 @@ class OutputFactoryReport(plugin_base.OutputPlugin):
     else:
       event_stream.Abort()
 
-  def GetReportPath(self, report_id):
-    return os.path.join(self._tmp_dir, 'report_%d' % report_id)
-
   def DownloadAndProcess(self):
     """Download Archive file from GCS and process it."""
     event_stream = self.NewStream()
@@ -130,103 +128,95 @@ class OutputFactoryReport(plugin_base.OutputPlugin):
       event_stream.Abort()
       return False
     if self.IsStopping():
-      return False
+      return True
+    self.info('Download succeed!')
 
+    report_parser = ReportParser(gcs_path, self._archive_path, self._tmp_dir,
+                                 self.logger)
+    report_events = report_parser.ProcessArchive(archive_process_event,
+                                                 self._process_pool)
+    self.EmitAndCommit(report_events, event_stream)
+    return True
+
+
+class ReportParser(log_utils.LoggerMixin):
+  """A parser to process report archives."""
+
+  def __init__(self, gcs_path, archive_path, tmp_dir, logger=logging):
+    """Sets up the parser.
+
+    Args:
+      gcs_path: Path to the archive on Google Cloud Storage.
+      archive_path: Path to the archive on disk.
+      tmp_dir: Temporary directory.
+      logger: Logger to use.
+    """
+    self._archive_path = archive_path
+    self._tmp_dir = tmp_dir
+    self._gcs_path = gcs_path
+    self.logger = logger
+
+  def GetReportPath(self, report_id):
+    return os.path.join(self._tmp_dir, 'report_%d' % report_id)
+
+  def ProcessArchive(self, archive_process_event, process_pool):
+    """Processes the archive."""
     report_events = [archive_process_event]
-    async_results = []
-    report_file_path = []
-    total_reports = 0
     succeed = 0
-    archive_obj = None
+    async_results = []
+    args_queue = multiprocessing.Queue()
+    decompress_process = None
+
     try:
+      # TODO(chuntsen): Find a way to stop process pool.
       if zipfile.is_zipfile(self._archive_path):
-        archive_obj = zipfile.ZipFile(self._archive_path, 'r')
-        for member_name in archive_obj.namelist():
-          if self.IsStopping():
-            return False
-          if not member_name.endswith('.rpt.xz'):
-            continue
-
-          report_path = self.GetReportPath(total_reports)
-          report_file_path.append(member_name)
-          with open(report_path, 'wb') as dst_f:
-            with archive_obj.open(member_name, 'r') as src_f:
-              shutil.copyfileobj(src_f, dst_f)
-          total_reports += 1
+        decompress_process = multiprocessing.Process(
+            target=self.DecompressZipArchive, args=(args_queue, ))
       elif tarfile.is_tarfile(self._archive_path):
-        archive_obj = tarfile.open(self._archive_path, 'r')
-        for archive_member in archive_obj:
-          if self.IsStopping():
-            return False
-          if not archive_member.name.endswith('.rpt.xz'):
-            continue
-
-          report_path = self.GetReportPath(total_reports)
-          report_file_path.append(archive_member.name)
-          with open(report_path, 'wb') as f:
-            report_obj = archive_obj.extractfile(archive_member)
-            shutil.copyfileobj(report_obj, f)
-          total_reports += 1
+        decompress_process = multiprocessing.Process(
+            target=self.DecompressTarArchive, args=(args_queue, ))
       else:
         # We only support tar file and zip file.
         SetProcessEventStatus(ERROR_CODE.ArchiveInvalidFormat,
                               archive_process_event)
-        self.EmitAndCommit(report_events, event_stream)
-        return True
-    except Exception as e:
-      SetProcessEventStatus(ERROR_CODE.ArchiveUnknownError,
-                            archive_process_event, e)
-      self.exception('Exception encountered when decompressing archive file')
-      self.EmitAndCommit(report_events, event_stream)
-      return True
-    finally:
-      try:
-        if archive_obj:
-          archive_obj.close()
-      except Exception:
-        self.exception('Exception encountered when closing archive object')
+        return report_events
+      decompress_process.start()
 
-    archive_process_event['decompressEndTime'] = time.time()
-
-    try:
-      for report_i in range(total_reports):
-        # TODO(chuntsen): Find a way to stop process pool.
-        report_path = self.GetReportPath(report_i)
-        report_time = time.mktime(
-            time.strptime(report_file_path[report_i].rpartition('-')[-1],
-                          '%Y%m%dT%H%M%SZ.rpt.xz'))
-        if (archive_process_event['time'] == 0 or
-            report_time < archive_process_event['time']):
-          archive_process_event['time'] = report_time
-        uuid = time_utils.TimedUUID()
-        report_event = datatypes.Event({
-            '__report__': True,
-            'uuid': uuid,
-            'objectId': gcs_path,
-            'reportFilePath': report_file_path[report_i],
-            'time': report_time,
-            'serialNumbers': {}
-        })
-        process_event = datatypes.Event({
-            '__process__': True,
-            'uuid': uuid,
-            'time': report_time,
-            'startTime': time.time(),
-            'status': [],
-            'message': []
-        })
+      received_obj = args_queue.get()
+      # End the process when we receive None.
+      while received_obj is not None:
+        if isinstance(received_obj, Exception):
+          break
         async_results.append(
-            self._process_pool.apply_async(
-                DecompressAndParse, (report_path, report_event, process_event,
-                                     self._tmp_dir, self.logger.name)))
+            process_pool.apply_async(self.ProcessReport, received_obj))
+        received_obj = args_queue.get()
 
-      for report_i in range(total_reports):
+      try:
+        if isinstance(received_obj, Exception):
+          raise received_obj
+        decompress_process.join(1)
+        decompress_process.close()
+        args_queue.close()
+        archive_process_event['decompressEndTime'] = time.time()
+      except Exception as e:
+        SetProcessEventStatus(ERROR_CODE.ArchiveUnknownError,
+                              archive_process_event, e)
+        self.exception('Exception encountered when decompressing archive file')
+        return report_events
+
+      total_reports = len(async_results)
+      for async_result in async_results:
         # TODO(chuntsen): Find a way to stop process pool.
-        async_result = async_results[report_i]
         report_event = None
         try:
           report_event, process_event = async_result.get()
+
+          report_time = report_event['time']
+          if (archive_process_event['time'] == 0 or
+              report_time < archive_process_event['time']):
+            archive_process_event['time'] = report_time
         except Exception as e:
+          # TODO(chuntsen): Fix the issue here and catch the exception earlier.
           SetProcessEventStatus(ERROR_CODE.ReportUnknownError, process_event, e)
           self.exception('Exception encountered when processing factory report')
         if report_event:
@@ -245,171 +235,254 @@ class OutputFactoryReport(plugin_base.OutputPlugin):
     archive_process_event['endTime'] = time.time()
     archive_process_event['duration'] = (
         archive_process_event['endTime'] - archive_process_event['startTime'])
-    self.EmitAndCommit(report_events, event_stream)
-    return True
+    return report_events
 
+  def DecompressZipArchive(self, args_queue):
+    """Decompresses the ZIP format archive.
 
-def DecompressAndParse(report_path, report_event, process_event, tmp_dir,
-                       logger_name):
-  """Decompress factory report and parse it."""
-  with file_utils.TempDirectory(dir=tmp_dir) as report_dir:
-    if not tarfile.is_tarfile(report_path):
-      SetProcessEventStatus(ERROR_CODE.ReportInvalidFormat, process_event)
+    Args:
+      args_queue: Process shared queue to send messages.  A message can be
+                  arguments for ProcessReport(), exception or None.
+    """
+    try:
+      total_reports = 0
+      with zipfile.ZipFile(self._archive_path, 'r') as archive_obj:
+        for member_name in archive_obj.namelist():
+          if not member_name.endswith('.rpt.xz'):
+            continue
+
+          report_path = self.GetReportPath(total_reports)
+          with open(report_path, 'wb') as dst_f:
+            with archive_obj.open(member_name, 'r') as report_obj:
+              shutil.copyfileobj(report_obj, dst_f)
+          args_queue.put((member_name, report_path))
+          total_reports += 1
+    except Exception as e:
+      args_queue.put(e)
+    finally:
+      args_queue.put(None)
+
+  def DecompressTarArchive(self, args_queue):
+    """Decompresses the tar archive with compression.
+
+    Args:
+      args_queue: Process shared queue to send messages.  A message can be
+                  arguments for ProcessReport(), exception or None.
+    """
+    try:
+      total_reports = 0
+      # The 'r|*' mode will process data as a stream of blocks, and it may
+      # faster than normal 'r:*' mode.
+      with tarfile.open(self._archive_path, 'r|*') as archive_obj:
+        for archive_member in archive_obj:
+          if not archive_member.name.endswith('.rpt.xz'):
+            continue
+
+          report_path = self.GetReportPath(total_reports)
+          with open(report_path, 'wb') as dst_f:
+            report_obj = archive_obj.extractfile(archive_member)
+            shutil.copyfileobj(report_obj, dst_f)
+          args_queue.put((archive_member.name, report_path))
+          total_reports += 1
+    except Exception as e:
+      args_queue.put(e)
+    finally:
+      args_queue.put(None)
+
+  def ProcessReport(self, report_file_path, report_path):
+    """Processes the factory report.
+
+    Args:
+      report_file_path: Path to the factory report in archive.
+      report_path: Path to the factory report on disk.
+
+    Returns:
+      report_event: A report event with information in the factory report.
+      process_event: A process event with process information.
+    """
+    try:
+      report_time = time.mktime(
+          time.strptime(
+              report_file_path.rpartition('-')[-1], '%Y%m%dT%H%M%SZ.rpt.xz'))
+      uuid = time_utils.TimedUUID()
+      report_event = datatypes.Event({
+          '__report__': True,
+          'uuid': uuid,
+          'objectId': self._gcs_path,
+          'reportFilePath': report_file_path,
+          'time': report_time,
+          'serialNumbers': {}
+      })
+      process_event = datatypes.Event({
+          '__process__': True,
+          'uuid': uuid,
+          'time': report_time,
+          'startTime': time.time(),
+          'status': [],
+          'message': []
+      })
+      report_event, process_event = self.DecompressAndParse(
+          report_path, report_event, process_event)
+      return report_event, process_event
+    finally:
+      file_utils.TryUnlink(report_path)
+
+  def DecompressAndParse(self, report_path, report_event, process_event):
+    """Decompresses the factory report and parse it."""
+    with file_utils.TempDirectory(dir=self._tmp_dir) as report_dir:
+      if not tarfile.is_tarfile(report_path):
+        SetProcessEventStatus(ERROR_CODE.ReportInvalidFormat, process_event)
+        process_event['endTime'] = time.time()
+        return None, process_event
+      report_tar = tarfile.open(report_path, 'r|xz')
+      report_tar.extractall(report_dir)
+      process_event['decompressEndTime'] = time.time()
+
+      eventlog_path = os.path.join(report_dir, 'events')
+      if os.path.exists(eventlog_path):
+        eventlog_report_event, process_event = self.ParseEventlogEvents(
+            eventlog_path, copy.deepcopy(report_event), process_event)
+        if eventlog_report_event:
+          report_event = eventlog_report_event
+      else:
+        SetProcessEventStatus(ERROR_CODE.EventlogFileNotFound, process_event)
+
+      testlog_path = os.path.join(report_dir, 'var', 'factory', 'testlog',
+                                  'events.json')
+      if os.path.exists(testlog_path):
+        testlog_report_event, process_event = self.ParseTestlogEvents(
+            testlog_path, copy.deepcopy(report_event), process_event)
+        if testlog_report_event:
+          report_event = testlog_report_event
+      else:
+        SetProcessEventStatus(ERROR_CODE.TestlogFileNotFound, process_event)
       process_event['endTime'] = time.time()
-      return None, process_event
-    report_tar = tarfile.open(report_path, 'r:xz')
-    report_tar.extractall(report_dir)
-    process_event['decompressEndTime'] = time.time()
+      return report_event, process_event
 
-    testlog_path = os.path.join(report_dir, 'var', 'factory', 'testlog',
-                                'events.json')
-    eventlog_path = os.path.join(report_dir, 'events')
-    if os.path.exists(eventlog_path):
-      eventlog_report_event, process_event = ParseEventlogEvents(
-          eventlog_path, copy.deepcopy(report_event), process_event,
-          logger_name)
-      if eventlog_report_event:
-        report_event = eventlog_report_event
-    else:
-      SetProcessEventStatus(ERROR_CODE.EventlogFileNotFound, process_event)
-    if os.path.exists(testlog_path):
-      testlog_report_event, process_event = ParseTestlogEvents(
-          testlog_path, copy.deepcopy(report_event), process_event, logger_name)
-      if testlog_report_event:
-        report_event = testlog_report_event
-    else:
-      SetProcessEventStatus(ERROR_CODE.TestlogFileNotFound, process_event)
-    process_event['endTime'] = time.time()
-    return report_event, process_event
+  def ParseEventlogEvents(self, path, report_event, process_event):
+    """Parses Eventlog file."""
+    try:
+      # TODO(chuntsen): Parse eventlog events one by one.
+      for event in yaml.safe_load_all(open(path, 'r')):
+        if event:
+          if not isinstance(event, dict):
+            SetProcessEventStatus(ERROR_CODE.EventlogBrokenEvent, process_event)
+            continue
 
+          def GetField(field, dct, key, is_string=True):
+            if key in dct:
+              if not is_string or isinstance(dct[key], str):
+                report_event[field] = dct[key]
+              else:
+                SetProcessEventStatus(ERROR_CODE.EventlogWrongType,
+                                      process_event)
+                report_event[field] = str(dct[key])
 
-def ParseEventlogEvents(path, report_event, process_event, logger_name):
-  """Parse Eventlog file."""
-  logger = logging.getLogger(logger_name)
-
-  try:
-    # TODO(chuntsen): Parse eventlog events one by one.
-    for event in yaml.safe_load_all(open(path, 'r')):
-      if event:
-        if not isinstance(event, dict):
-          SetProcessEventStatus(ERROR_CODE.EventlogBrokenEvent, process_event)
-          continue
-
-        def GetField(field, dct, key, is_string=True):
-          if key in dct:
-            if not is_string or isinstance(dct[key], str):
-              report_event[field] = dct[key]
-            else:
-              SetProcessEventStatus(ERROR_CODE.EventlogWrongType, process_event)
-              report_event[field] = str(dct[key])
-
-        serial_numbers = event.get('serial_numbers', {})
-        for sn_key, sn_value in serial_numbers.items():
-          if not isinstance(sn_value, str):
-            SetProcessEventStatus(ERROR_CODE.EventlogWrongType, process_event)
-            sn_value = str(sn_value)
-          report_event['serialNumbers'][sn_key] = sn_value
-
-        event_name = event.get('EVENT', None)
-        if event_name == 'system_details':
-          crossystem = event.get('crossystem', {})
-          GetField('hwid', crossystem, 'hwid')
-          if 'hwid' in report_event:
-            report_event['modelName'] = report_event['hwid'].split(' ')[0]
-          GetField('fwid', crossystem, 'fwid')
-          GetField('roFwid', crossystem, 'ro_fwid')
-          GetField('wpswBoot', crossystem, 'wpsw_boot')
-          GetField('wpswCur', crossystem, 'wpsw_cur')
-          GetField('ecWpDetails', event, 'ec_wp_status')
-          if 'ecWpDetails' in report_event:
-            result = PATTERN_WP_STATUS.findall(report_event['ecWpDetails'])
-            if len(result) == 1:
-              report_event['ecWpStatus'] = result[0]
-            result = PATTERN_WP.findall(report_event['ecWpDetails'])
-            if len(result) == 1:
-              report_event['ecWp'] = result[0]
-          GetField('biosWpDetails', event, 'bios_wp_status')
-          if 'biosWpDetails' in report_event:
-            result = PATTERN_WP_STATUS.findall(report_event['biosWpDetails'])
-            if len(result) == 1:
-              report_event['biosWpStatus'] = result[0]
-            result = PATTERN_WP.findall(report_event['biosWpDetails'])
-            if len(result) == 1:
-              report_event['biosWp'] = result[0]
-          GetField('modemStatus', event, 'modem_status')
-          GetField('platformName', event, 'platform_name')
-        elif event_name == 'finalize_image_version':
-          GetField('factoryImageVersion', event, 'factory_image_version')
-          GetField('releaseImageVersion', event, 'release_image_version')
-        elif event_name == 'preamble':
-          GetField('toolkitVersion', event, 'toolkit_version')
-        elif event_name == 'test_states':
-
-          def ParseTestStates(test_states, test_states_list):
-            if 'subtests' in test_states:
-              for subtest in test_states['subtests']:
-                ParseTestStates(subtest, test_states_list)
-            if 'status' in test_states:
-              test_states_list.append(
-                  (test_states['path'], test_states['status']))
-
-          test_states_list = []
-          testlist_name = None
-          testlist_station_set = set()
-
-          ParseTestStates(event['test_states'], test_states_list)
-          for test_path, unused_test_status in test_states_list:
-            if ':' in test_path:
-              testlist_name, test_path = test_path.split(':')
-            testlist_station = test_path.split('.')[0]
-            testlist_station_set.add(testlist_station)
-
-          report_event['testStates'] = test_states_list
-          if testlist_name:
-            report_event['testlistName'] = testlist_name
-          report_event['testlistStation'] = json.dumps(
-              list(testlist_station_set))
-    return report_event, process_event
-  except Exception as e:
-    SetProcessEventStatus(ERROR_CODE.EventlogUnknownError, process_event, e)
-    logger.exception('Failed to parse eventlog events')
-    return None, process_event
-
-
-def ParseTestlogEvents(path, report_event, process_event, logger_name):
-  """Parse Testlog file."""
-  logger = logging.getLogger(logger_name)
-
-  try:
-    with open(path, 'r') as f:
-      for line in f:
-        if '\0' in line:
-          SetProcessEventStatus(ERROR_CODE.TestlogNullCharactersExist,
-                                process_event)
-        event = datatypes.Event.Deserialize(line.strip('\0'))
-
-        if 'serialNumbers' in event:
-          for sn_key, sn_value in event['serialNumbers'].items():
+          serial_numbers = event.get('serial_numbers', {})
+          for sn_key, sn_value in serial_numbers.items():
             if not isinstance(sn_value, str):
-              SetProcessEventStatus(ERROR_CODE.TestlogWrongType, process_event)
+              SetProcessEventStatus(ERROR_CODE.EventlogWrongType, process_event)
               sn_value = str(sn_value)
             report_event['serialNumbers'][sn_key] = sn_value
-        if 'time' in event:
-          report_event['dutTime'] = event['time']
 
-        for field in REPORT_EVENT_FIELD:
-          if field in event:
-            report_event[field] = event[field]
+          event_name = event.get('EVENT', None)
+          if event_name == 'system_details':
+            crossystem = event.get('crossystem', {})
+            GetField('hwid', crossystem, 'hwid')
+            if 'hwid' in report_event:
+              report_event['modelName'] = report_event['hwid'].split(' ')[0]
+            GetField('fwid', crossystem, 'fwid')
+            GetField('roFwid', crossystem, 'ro_fwid')
+            GetField('wpswBoot', crossystem, 'wpsw_boot')
+            GetField('wpswCur', crossystem, 'wpsw_cur')
+            GetField('ecWpDetails', event, 'ec_wp_status')
+            if 'ecWpDetails' in report_event:
+              result = PATTERN_WP_STATUS.findall(report_event['ecWpDetails'])
+              if len(result) == 1:
+                report_event['ecWpStatus'] = result[0]
+              result = PATTERN_WP.findall(report_event['ecWpDetails'])
+              if len(result) == 1:
+                report_event['ecWp'] = result[0]
+            GetField('biosWpDetails', event, 'bios_wp_status')
+            if 'biosWpDetails' in report_event:
+              result = PATTERN_WP_STATUS.findall(report_event['biosWpDetails'])
+              if len(result) == 1:
+                report_event['biosWpStatus'] = result[0]
+              result = PATTERN_WP.findall(report_event['biosWpDetails'])
+              if len(result) == 1:
+                report_event['biosWp'] = result[0]
+            GetField('modemStatus', event, 'modem_status')
+            GetField('platformName', event, 'platform_name')
+          elif event_name == 'finalize_image_version':
+            GetField('factoryImageVersion', event, 'factory_image_version')
+            GetField('releaseImageVersion', event, 'release_image_version')
+          elif event_name == 'preamble':
+            GetField('toolkitVersion', event, 'toolkit_version')
+          elif event_name == 'test_states':
 
-        if event.get('testType', None) == 'hwid':
-          data = event.get('parameters', {}).get('phase', {}).get('data', {})
-          if len(data) == 1 and 'textValue' in data[0]:
-            report_event['phase'] = data[0]['textValue']
-    return report_event, process_event
-  except Exception as e:
-    SetProcessEventStatus(ERROR_CODE.TestlogUnknownError, process_event, e)
-    logger.exception('Failed to parse testlog events')
-    return None, process_event
+            def ParseTestStates(test_states, test_states_list):
+              if 'subtests' in test_states:
+                for subtest in test_states['subtests']:
+                  ParseTestStates(subtest, test_states_list)
+              if 'status' in test_states:
+                test_states_list.append(
+                    (test_states['path'], test_states['status']))
+
+            test_states_list = []
+            testlist_name = None
+            testlist_station_set = set()
+
+            ParseTestStates(event['test_states'], test_states_list)
+            for test_path, unused_test_status in test_states_list:
+              if ':' in test_path:
+                testlist_name, test_path = test_path.split(':')
+              testlist_station = test_path.split('.')[0]
+              testlist_station_set.add(testlist_station)
+
+            report_event['testStates'] = test_states_list
+            if testlist_name:
+              report_event['testlistName'] = testlist_name
+            report_event['testlistStation'] = json.dumps(
+                list(testlist_station_set))
+      return report_event, process_event
+    except Exception as e:
+      SetProcessEventStatus(ERROR_CODE.EventlogUnknownError, process_event, e)
+      self.exception('Failed to parse eventlog events')
+      return None, process_event
+
+  def ParseTestlogEvents(self, path, report_event, process_event):
+    """Parses Testlog file."""
+    try:
+      with open(path, 'r') as f:
+        for line in f:
+          if '\0' in line:
+            SetProcessEventStatus(ERROR_CODE.TestlogNullCharactersExist,
+                                  process_event)
+          event = datatypes.Event.Deserialize(line.strip('\0'))
+
+          if 'serialNumbers' in event:
+            for sn_key, sn_value in event['serialNumbers'].items():
+              if not isinstance(sn_value, str):
+                SetProcessEventStatus(ERROR_CODE.TestlogWrongType,
+                                      process_event)
+                sn_value = str(sn_value)
+              report_event['serialNumbers'][sn_key] = sn_value
+          if 'time' in event:
+            report_event['dutTime'] = event['time']
+
+          for field in REPORT_EVENT_FIELD:
+            if field in event:
+              report_event[field] = event[field]
+
+          if event.get('testType', None) == 'hwid':
+            data = event.get('parameters', {}).get('phase', {}).get('data', {})
+            if len(data) == 1 and 'textValue' in data[0]:
+              report_event['phase'] = data[0]['textValue']
+      return report_event, process_event
+    except Exception as e:
+      SetProcessEventStatus(ERROR_CODE.TestlogUnknownError, process_event, e)
+      self.exception('Failed to parse testlog events')
+      return None, process_event
 
 
 ERROR_CODE = type_utils.Obj(
@@ -430,7 +503,7 @@ ERROR_CODE = type_utils.Obj(
 
 
 def SetProcessEventStatus(code, process_event, message=None):
-  """Set status and message to process_event.
+  """Sets status and message to process_event.
 
   See ERROR_CODE and http://b/184819627 (Googlers only) for details.
   Error Code type:
