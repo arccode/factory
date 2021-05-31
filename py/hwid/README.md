@@ -106,7 +106,7 @@ needs to be manually updated in the following scenarios:
 # Build the HWID database
 $ hwid build-database \
     --project <project name> \
-    --probed-results-file <probed result file> \
+    [--material-file <HWID material file> ] \
     [--hwid-db-path <hwid db folder>] \
     [--image-id <IMAGE_ID>] \  # Name of the image_id, default is 'EVT'
     [--add-default-component COMP [COMP ...]] \  # Add the default item
@@ -118,7 +118,7 @@ $ hwid build-database \
 $ hwid update-database \
     --project <project name> \
     [--hwid-db-path <hwid db folder>] \
-    [--probed-results-file <probed result file>] \
+    [--material-file <HWID material file> ] \
     [--output-database <output file>] \  # Write into different file
     [--image-id <IMAGE_ID>] \  # Name of the image_id
     [--add-default-component COMP [COMP ...]] \  # Add the default item
@@ -158,7 +158,7 @@ easiest way is using the database builder with a valid probe result. The steps
 of generating HWID database are:
 
 1. Confirm the categories of the components that should be encoded into HWID.
-2. Generate the probe result by "hwid probe"
+2. Collect materials (probed results, for example) to build the HWID DB.
 3. Confirm the project name and the phase.
 4. (Optional) Check if there are missing components in the probe result. If so,
    add a default item with the argument "--add-default-component". Please refer
@@ -174,11 +174,11 @@ component.
 
 ```shell
 # Get the probe result.
-$ hwid probe --output-file /tmp/probe.json
+$ hwid collect-device-material --output-file /tmp/material.yaml
 
 # Create the database at /usr/local/factory/hwid/GOOGLE
 $ hwid build-database \
-    --probed-results-file /tmp/probe.json \
+    --material-file /tmp/material.yaml \
     --project GOOGLE \
     --image-id EVT \
     --add-default-component battery \
@@ -196,11 +196,11 @@ firmware.
 The command for this scenario is:
 ```shell
 # Get the probe result.
-$ hwid probe --output-file /tmp/probe.json
+$ hwid collect-device-material --output-file /tmp/material.yaml
 
 # Update the database at /usr/local/factory/hwid/GOOGLE
 $ hwid update-database \
-    --probed-results-file /tmp/probe.json \
+    --material-file /tmp/material.yaml \
     --project GOOGLE
 ```
 
@@ -268,13 +268,15 @@ The command for this scenario is:
 # Add a default item with "--add-default-component" argument
 $ hwid build-database \
     --project GOOGLE \
-    --probed-results-file /tmp/probe.json \  # the probe result without cellular
+    --material-file /tmp/material.yaml \  # the probe result doesn't contain
+                                          # cellulars.
     --add-default-component cellular
 
 # Update the database by the probed result
 $ hwid update-database \
     --project GOOGLE \
-    --probed-results-file /tmp/probe.json  # the probe result with cellular "aa"
+    --material-file /tmp/material.yaml  # the probe result contains the
+                                        # cellulars "aa".
 ```
 
 ### 4. Add a Null Item {#add_null_item}
@@ -480,14 +482,17 @@ The command for this scenario is:
 $ hwid build-database \
     --project GOOGLE \
     --image-id EVT \
-    --probed-results-file /tmp/probe.json  # the probe result without cellular
+    --material-file /tmp/material.yaml  # the probe result contains doesn't
+                                        # contain cellulars.
+
 
 # Update the database at DVT build.
 $ hwid update-database \
     --project GOOGLE \
     --image-id DVT \
     --add-null-component cellular \
-    --probed-results-file /tmp/probe.json  # the probe result with cellular "aa"
+    --material-file /tmp/material.yaml  # the probe result contains the
+                                        # cellular "aa".
 ```
 
 *** note
@@ -552,7 +557,8 @@ The command for this scenario is:
 # Update the database without assigning the image_id.
 $ hwid update-database \
     --project GOOGLE \
-    --probed-results-file /tmp/probe.json  # the probe result with cellular "aa"
+    --material-file /tmp/material.yaml  # the probe result contains the
+                                        # cellular "aa".
 
 WARNING: Extra fields [cellular_field] without assigning a new image_id.
 If the fields are added into the current pattern, the index of these fields will

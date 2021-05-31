@@ -1,7 +1,6 @@
 # Copyright 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-
 """Database classes for HWID v3 operation.
 
 The HWID database for a Chromebook project defines how to generate (or
@@ -84,8 +83,7 @@ class Database:
 
   def __eq__(self, rhs):
     # pylint: disable=protected-access
-    return (isinstance(rhs, Database) and
-            self._project == rhs._project and
+    return (isinstance(rhs, Database) and self._project == rhs._project and
             self._encoding_patterns == rhs._encoding_patterns and
             self._image_id == rhs._image_id and
             self._encoded_fields == rhs._encoded_fields and
@@ -110,9 +108,10 @@ class Database:
     Raises:
       HWIDException if there is missing field in the database.
     """
-    return Database.LoadData(file_utils.ReadFile(file_name),
-                             expected_checksum=(Database.Checksum(file_name)
-                                                if verify_checksum else None))
+    return Database.LoadData(
+        file_utils.ReadFile(file_name),
+        expected_checksum=(Database.Checksum(file_name)
+                           if verify_checksum else None))
 
   @staticmethod
   def Checksum(file_name):
@@ -164,11 +163,12 @@ class Database:
     if 'board' in yaml_obj and 'project' not in yaml_obj:
       yaml_obj['project'] = yaml_obj['board']
 
-    for key in ['project', 'encoding_patterns', 'image_id', 'pattern',
-                'encoded_fields', 'components', 'rules', 'checksum']:
+    for key in [
+        'project', 'encoding_patterns', 'image_id', 'pattern', 'encoded_fields',
+        'components', 'rules', 'checksum'
+    ]:
       if key not in yaml_obj:
-        raise common.HWIDException(
-            '%r is not specified in HWID database' % key)
+        raise common.HWIDException('%r is not specified in HWID database' % key)
 
     project = yaml_obj['project'].upper()
     if project != yaml_obj['project']:
@@ -181,14 +181,12 @@ class Database:
       raise common.HWIDException(
           'HWID database %r checksum verification failed' % project)
 
-    return Database(project,
-                    EncodingPatterns(yaml_obj['encoding_patterns']),
-                    ImageId(yaml_obj['image_id']),
-                    Pattern(yaml_obj['pattern']),
-                    EncodedFields(yaml_obj['encoded_fields']),
-                    Components(yaml_obj['components']),
-                    Rules(yaml_obj['rules']),
-                    yaml_obj.get('checksum'))
+    return Database(
+        project, EncodingPatterns(yaml_obj['encoding_patterns']),
+        ImageId(yaml_obj['image_id']), Pattern(yaml_obj['pattern']),
+        EncodedFields(yaml_obj['encoded_fields']),
+        Components(yaml_obj['components']), Rules(yaml_obj['rules']),
+        yaml_obj.get('checksum'))
 
   def DumpData(self, include_checksum=False):
     all_parts = [
@@ -202,8 +200,10 @@ class Database:
         ('rules', self._rules.Export()),
     ]
 
-    return '\n'.join([yaml.dump({key: value}, default_flow_style=False)
-                      for key, value in all_parts])
+    return '\n'.join([
+        yaml.dump({key: value}, default_flow_style=False)
+        for key, value in all_parts
+    ])
 
   def DumpFile(self, path, include_checksum=False):
     with open(path, 'w') as f:
@@ -244,8 +244,7 @@ class Database:
   def GetImageName(self, image_id):
     return self._image_id[image_id]
 
-  def AddImage(self, image_id, image_name, encoding_scheme,
-               new_pattern=False):
+  def AddImage(self, image_id, image_name, encoding_scheme, new_pattern=False):
     if new_pattern:
       self._pattern.AddEmptyPattern(image_id, encoding_scheme)
     else:
@@ -336,15 +335,17 @@ class Database:
     """
     comps = self._components.GetComponents(comp_cls)
     if not include_default:
-      comps = {name: info for name, info in comps.items()
-               if info.values is not None}
+      comps = {
+          name: info
+          for name, info in comps.items()
+          if info.values is not None
+      }
     return comps
 
   def GetDefaultComponent(self, comp_cls):
     return self._components.GetDefaultComponent(comp_cls)
 
-  def AddComponent(self, comp_cls, comp_name, value, status,
-                   information=None):
+  def AddComponent(self, comp_cls, comp_name, value, status, information=None):
     return self._components.AddComponent(comp_cls, comp_name, value, status,
                                          information)
 
@@ -470,16 +471,16 @@ class _NamedNumber(dict):
                                  (self.NUMBER_TAG, self.NUMBER_RANGE, number))
 
     if not isinstance(name, str):
-      raise common.HWIDException('The %s should be a string, but got %r.' %
-                                 (self.NAME_TAG, name))
+      raise common.HWIDException(
+          'The %s should be a string, but got %r.' % (self.NAME_TAG, name))
 
     if number in self:
-      raise common.HWIDException('The %s %r already exists.' %
-                                 (self.NUMBER_TAG, number))
+      raise common.HWIDException(
+          'The %s %r already exists.' % (self.NUMBER_TAG, number))
 
     if name in self.values():
-      raise common.HWIDException('The %s %r is already in used.' %
-                                 (self.NAME_TAG, name))
+      raise common.HWIDException(
+          'The %s %r is already in used.' % (self.NAME_TAG, name))
 
     super(_NamedNumber, self).__setitem__(number, name)
 
@@ -666,19 +667,19 @@ class EncodedFields:
       value_type=schema.Dict(
           'encoded field',
           key_type=schema.Scalar(
-              'index number', int,
+              'index number',
+              int,
               # list(range(1024)) is just a big enough range to denote
               # that index numbers are non-negative integers.
               list(range(1024))),
           value_type=schema.Dict(
-              'components',
-              key_type=schema.Scalar('component class', str),
+              'components', key_type=schema.Scalar('component class', str),
               value_type=schema.AnyOf([
                   schema.Scalar('empty list', type(None)),
                   schema.Scalar('component name', str),
-                  schema.List(
-                      'list of component name',
-                      element_type=schema.Scalar('component name', str))])),
+                  schema.List('list of component name',
+                              element_type=schema.Scalar('component name', str))
+              ])),
           min_size=1))
 
   def __init__(self, encoded_fields_expr):
@@ -701,8 +702,8 @@ class EncodedFields:
       self._RegisterNewEmptyField(field_name,
                                   list(next(iter(field_data.values()))))
       for index, comps in field_data.items():
-        comps = yaml.Dict([(c, self._StandardlizeList(n))
-                           for c, n in comps.items()])
+        comps = yaml.Dict(
+            [(c, self._StandardlizeList(n)) for c, n in comps.items()])
         self.AddFieldComponents(field_name, comps, _index=index)
 
     # Preserve the class type reported by the parser.
@@ -747,7 +748,8 @@ class EncodedFields:
 
     ret = {}
     for index, comps in self._fields[field_name].items():
-      ret[index] = {c: self._StandardlizeList(n) for c, n in comps.items()}
+      ret[index] = {c: self._StandardlizeList(n)
+                    for c, n in comps.items()}
     return ret
 
   def GetComponentClasses(self, field_name):
@@ -789,7 +791,7 @@ class EncodedFields:
     """
     if field_name not in self._fields:
       raise common.HWIDException(
-          'Encoded field %r does not exist' % (field_name,))
+          'Encoded field %r does not exist' % (field_name, ))
 
     if field_name == 'region_field':
       if len(components) != 1 or list(components) != ['region']:
@@ -800,7 +802,8 @@ class EncodedFields:
       raise common.HWIDException('Each encoded field should encode a fixed set '
                                  'of component classes.')
 
-    counters = {c: collections.Counter(n) for c, n in components.items()}
+    counters = {c: collections.Counter(n)
+                for c, n in components.items()}
     for existing_index, existing_comps in self.GetField(field_name).items():
       if all(counter == collections.Counter(existing_comps[comp_cls])
              for comp_cls, counter in counters.items()):
@@ -809,8 +812,9 @@ class EncodedFields:
             'The components combination %r already exists (at index %r).',
             components, existing_index)
 
-    index = (_index if _index is not None
-             else max(self._fields[field_name].keys() or [-1]) + 1)
+    index = (
+        _index if _index is not None else
+        max(self._fields[field_name].keys() or [-1]) + 1)
     self._fields[field_name][index] = yaml.Dict(
         sorted([(c, self._SimplifyList(n)) for c, n in components.items()]))
 
@@ -824,7 +828,7 @@ class EncodedFields:
     """
     if field_name in self._fields:
       raise common.HWIDException(
-          'Encoded field %r already exists' % (field_name,))
+          'Encoded field %r already exists' % (field_name, ))
 
     if field_name == 'region_field' or 'region' in components:
       raise common.HWIDException(
@@ -858,6 +862,7 @@ class EncodedFields:
 
 
 class ComponentInfo(type_utils.Obj):
+
   def __init__(self, values, status, information=None):
     super(ComponentInfo, self).__init__(values=values, status=status,
                                         information=information)
@@ -959,44 +964,56 @@ class Components:
         component class.
   """
   _SCHEMA = schema.Dict(
-      'components',
-      key_type=schema.Scalar('component class', str),
+      'components', key_type=schema.Scalar('component class', str),
       value_type=schema.FixedDict(
-          'component description',
-          items={
-              'items': schema.Dict(
-                  'components',
-                  key_type=schema.Scalar('component name', str),
-                  value_type=schema.FixedDict(
-                      'component attributes',
-                      items={
-                          'values': schema.AnyOf([
-                              schema.Dict(
-                                  'probed key-value pairs',
-                                  key_type=schema.Scalar('probed key', str),
-                                  value_type=schema.AnyOf([
-                                      schema.Scalar('probed value', str),
-                                      schema.Scalar('probed value', bytes),
-                                      schema.Scalar(
-                                          'probed value regex', Value)]),
-                                  min_size=1),
-                              schema.Scalar('none', type(None))])},
-                      optional_items={
-                          'default': schema.Scalar(
-                              'is default component item (deprecated)', bool),
-                          'status': schema.Scalar(
-                              'item status', str,
-                              choices=common.COMPONENT_STATUS),
-                          'information': schema.AnyOf([
-                              schema.FixedDict(
-                                  'extra information',
-                                  optional_items={
-                                      'comp_group': schema.Scalar(
-                                          'component group name', str)}),
-                              schema.Scalar('none', type(None))])}))},
-          optional_items={
-              'probeable': schema.Scalar(
-                  'is component probeable (deprecate)', bool)}))
+          'component description', items={
+              'items':
+                  schema.Dict(
+                      'components', key_type=schema.Scalar(
+                          'component name', str),
+                      value_type=schema.FixedDict(
+                          'component attributes', items={
+                              'values':
+                                  schema.AnyOf([
+                                      schema.Dict(
+                                          'probed key-value pairs',
+                                          key_type=schema.Scalar(
+                                              'probed key', str),
+                                          value_type=schema.AnyOf([
+                                              schema.Scalar(
+                                                  'probed value', str),
+                                              schema.Scalar(
+                                                  'probed value', bytes),
+                                              schema.Scalar(
+                                                  'probed value regex', Value)
+                                          ]), min_size=1),
+                                      schema.Scalar('none', type(None))
+                                  ])
+                          }, optional_items={
+                              'default':
+                                  schema.Scalar(
+                                      'is default component item (deprecated)',
+                                      bool),
+                              'status':
+                                  schema.Scalar(
+                                      'item status', str,
+                                      choices=common.COMPONENT_STATUS),
+                              'information':
+                                  schema.AnyOf([
+                                      schema.FixedDict(
+                                          'extra information', optional_items={
+                                              'comp_group':
+                                                  schema.Scalar(
+                                                      'component group name',
+                                                      str)
+                                          }),
+                                      schema.Scalar('none', type(None))
+                                  ])
+                          }))
+          }, optional_items={
+              'probeable':
+                  schema.Scalar('is component probeable (deprecate)', bool)
+          }))
 
   _DUMMY_KEY = 'dummy_probed_value_key'
 
@@ -1017,10 +1034,10 @@ class Components:
     for comp_cls, comps_data in self._components_expr.items():
       self._components[comp_cls] = {}
       for comp_name, comp_attr in comps_data['items'].items():
-        self._AddComponent(comp_cls, comp_name, comp_attr['values'],
-                           comp_attr.get('status',
-                                         common.COMPONENT_STATUS.supported),
-                           comp_attr.get('information'))
+        self._AddComponent(
+            comp_cls, comp_name, comp_attr['values'],
+            comp_attr.get('status', common.COMPONENT_STATUS.supported),
+            comp_attr.get('information'))
 
         if comp_attr.get('default') is True:
           # We now use "values: null" to indicate a default component and
@@ -1056,8 +1073,7 @@ class Components:
             components_dict[comp_name]['status'] = comp_info.status
           components_dict[comp_name]['values'] = comp_info.values
           if comp_info.information is not None:
-            components_dict[
-                comp_name]['information'] = comp_info.information
+            components_dict[comp_name]['information'] = comp_info.information
 
         else:
           if comp_info.status != components_dict[comp_name].get(
@@ -1136,31 +1152,32 @@ class Components:
     if comp_cls == 'region':
       raise common.HWIDException('Region component class is not modifiable.')
 
-    self._SCHEMA.value_type.items[
-        'items'].value_type.optional_items['status'].Validate(status)
+    self._SCHEMA.value_type.items['items'].value_type.optional_items[
+        'status'].Validate(status)
 
     if comp_name not in self._components.get(comp_cls, {}):
-      raise common.HWIDException('Component (%r, %r) is not recorded.' %
-                                 (comp_cls, comp_name))
+      raise common.HWIDException(
+          'Component (%r, %r) is not recorded.' % (comp_cls, comp_name))
 
     self._components[comp_cls][comp_name].status = status
 
   def _AddComponent(self, comp_cls, comp_name, values, status, information):
-    self._SCHEMA.value_type.items[
-        'items'].value_type.items['values'].Validate(values)
-    self._SCHEMA.value_type.items[
-        'items'].value_type.optional_items['status'].Validate(status)
-    self._SCHEMA.value_type.items[
-        'items'].value_type.optional_items['information'].Validate(information)
+    self._SCHEMA.value_type.items['items'].value_type.items['values'].Validate(
+        values)
+    self._SCHEMA.value_type.items['items'].value_type.optional_items[
+        'status'].Validate(status)
+    self._SCHEMA.value_type.items['items'].value_type.optional_items[
+        'information'].Validate(information)
 
     if comp_name in self.GetComponents(comp_cls):
-      raise common.HWIDException('Component (%r, %r) already exists.' %
-                                 (comp_cls, comp_name))
+      raise common.HWIDException(
+          'Component (%r, %r) already exists.' % (comp_cls, comp_name))
 
     if values is None and any(
         c.values is None for c in self.GetComponents(comp_cls).values()):
-      logging.warning('Found more than one default component of %r, '
-                      'mark can_encode=False.', comp_cls)
+      logging.warning(
+          'Found more than one default component of %r, '
+          'mark can_encode=False.', comp_cls)
       self._can_encode = False
 
     for existed_comp_name, existed_comp_info in self.GetComponents(
@@ -1175,20 +1192,22 @@ class Components:
       if values == existed_comp_values:
         if (status != common.COMPONENT_STATUS.duplicate and
             existed_comp_info.status != common.COMPONENT_STATUS.duplicate):
-          logging.warning('Probed values %r is ambiguous with %r',
-                          values, existed_comp_name)
+          logging.warning('Probed values %r is ambiguous with %r', values,
+                          existed_comp_name)
           logging.warning('Did you merge two components? You should set status '
                           'of the duplicate one "duplicate".')
           self._can_encode = False
 
     self._components.setdefault(comp_cls, yaml.Dict())
-    self._components[comp_cls][comp_name] = ComponentInfo(values, status,
-                                                          information)
+    self._components[comp_cls][comp_name] = ComponentInfo(
+        values, status, information)
 
 
 _PatternDatum = collections.namedtuple('_PatternDatum',
                                        ['encoding_scheme', 'fields'])
 _PatternField = collections.namedtuple('_PatternField', ['name', 'bit_length'])
+
+
 class Pattern:
   """A class for parsing and obtaining information of a pre-defined encoding
   pattern.
@@ -1263,27 +1282,25 @@ class Pattern:
   """
 
   _SCHEMA = schema.List(
-      'pattern list',
-      element_type=schema.FixedDict(
-          'pattern',
-          items={
-              'image_ids': schema.List(
-                  'image ids',
-                  element_type=schema.Scalar(
-                      'image id', int, choices=ImageId.NUMBER_RANGE),
-                  min_length=1),
-              'encoding_scheme': schema.Scalar(
-                  'encoding scheme', str, choices=['base32', 'base8192']),
-              'fields': schema.List(
-                  'encoded fields',
-                  schema.Dict(
-                      'pattern field',
-                      key_type=schema.Scalar('encoded index', str),
-                      value_type=schema.Scalar('bit offset', int,
-                                               list(range(128))),
-                      min_size=1,
-                      max_size=1))}),
-      min_length=1)
+      'pattern list', element_type=schema.FixedDict(
+          'pattern', items={
+              'image_ids':
+                  schema.List(
+                      'image ids', element_type=schema.Scalar(
+                          'image id', int, choices=ImageId.NUMBER_RANGE),
+                      min_length=1),
+              'encoding_scheme':
+                  schema.Scalar('encoding scheme', str,
+                                choices=['base32', 'base8192']),
+              'fields':
+                  schema.List(
+                      'encoded fields',
+                      schema.Dict(
+                          'pattern field', key_type=schema.Scalar(
+                              'encoded index', str), value_type=schema.Scalar(
+                                  'bit offset', int, list(range(128))),
+                          min_size=1, max_size=1))
+          }), min_length=1)
 
   def __init__(self, pattern_list_expr):
     """Constructor.
@@ -1326,11 +1343,11 @@ class Pattern:
           obj_to_export['image_ids'].append(image_id)
           break
       else:
-        obj_to_export = yaml.Dict([
-            ('image_ids', [image_id]),
-            ('encoding_scheme', pattern.encoding_scheme),
-            ('fields', [{field.name: field.bit_length}
-                        for field in pattern.fields])])
+        obj_to_export = yaml.Dict([('image_ids', [image_id]),
+                                   ('encoding_scheme', pattern.encoding_scheme),
+                                   ('fields', [{
+                                       field.name: field.bit_length
+                                   } for field in pattern.fields])])
         pattern_list.append((obj_to_export, pattern))
 
     return [pattern for pattern, _ in pattern_list]
@@ -1381,10 +1398,10 @@ class Pattern:
       image_id: An integer of the image id. If not given, the latest image id
           would be used.
     """
-    self._SCHEMA.element_type.items[
-        'fields'].element_type.key_type.Validate(field_name)
-    self._SCHEMA.element_type.items[
-        'fields'].element_type.value_type.Validate(bit_length)
+    self._SCHEMA.element_type.items['fields'].element_type.key_type.Validate(
+        field_name)
+    self._SCHEMA.element_type.items['fields'].element_type.value_type.Validate(
+        bit_length)
 
     self._GetPattern(image_id).fields.append(
         _PatternField(field_name, bit_length))
@@ -1411,8 +1428,8 @@ class Pattern:
     Returns:
       A int indicating the total bit length.
     """
-    return sum([field.bit_length
-                for field in self._GetPattern(image_id).fields])
+    return sum(
+        [field.bit_length for field in self._GetPattern(image_id).fields])
 
   def GetFieldsBitLength(self, image_id=None):
     """Gets a map for the bit length of each encoded fields defined by the
@@ -1602,13 +1619,16 @@ class Rules:
   _EXPRESSIONS_SCHEMA = schema.AnyOf([
       schema.Scalar('rule expression', str),
       schema.List('list of rule expressions',
-                  schema.Scalar('rule expression', str))])
+                  schema.Scalar('rule expression', str))
+  ])
   _RULE_SCHEMA = schema.FixedDict(
-      'rule',
-      items={'name': schema.Scalar('rule name', str),
-             'evaluate': _EXPRESSIONS_SCHEMA},
-      optional_items={'when': schema.Scalar('expression', str),
-                      'otherwise': _EXPRESSIONS_SCHEMA})
+      'rule', items={
+          'name': schema.Scalar('rule name', str),
+          'evaluate': _EXPRESSIONS_SCHEMA
+      }, optional_items={
+          'when': schema.Scalar('expression', str),
+          'otherwise': _EXPRESSIONS_SCHEMA
+      })
 
   def __init__(self, rule_expr_list):
     """Constructor.
@@ -1618,7 +1638,7 @@ class Rules:
     if not isinstance(rule_expr_list, list):
       raise common.HWIDException(
           '`rules` part of a HWID database should be a list, but got %r' %
-          (rule_expr_list,))
+          (rule_expr_list, ))
 
     self._rules = []
 
@@ -1644,6 +1664,7 @@ class Rules:
   def Export(self):
     """Exports the `rule` part into a list of dictionary object which can be
     saved to the HWID database file."""
+
     def _TransToOrderedDict(rule_dict):
       ret = yaml.Dict([('name', rule_dict['name']),
                        ('evaluate', rule_dict['evaluate'])])
@@ -1651,6 +1672,7 @@ class Rules:
         if key in rule_dict:
           ret[key] = rule_dict[key]
       return ret
+
     return [_TransToOrderedDict(rule.ExportToDict()) for rule in self._rules]
 
   @property
@@ -1675,8 +1697,8 @@ class Rules:
       position:
     """
     position = kwargs.pop('position', None)
-    self._AddRule(self._RULE_TYPES.device_info, position, name_suffix,
-                  evaluate, **kwargs)
+    self._AddRule(self._RULE_TYPES.device_info, position, name_suffix, evaluate,
+                  **kwargs)
 
   def _GetRules(self, prefix):
     return [rule for rule in self._rules if rule.name.startswith(prefix)]

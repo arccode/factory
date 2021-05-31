@@ -3,4 +3,4 @@
 
     - name: Probe hardware
       steps:
-        - command: 'hwid probe'
+        - command: 'hwid collect-material'

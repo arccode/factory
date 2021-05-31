@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-05-11 17:39+CST\n"
+"PO-Revision-Date: 2021-06-01 01:18+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -2030,9 +2030,8 @@ msgstr ""
 "đang được kiểm tra."
 
 #: ../py/test/pytests/hwid.py
-#: ../py/test/pytests/verify_component_static/verify_component.html
-msgid "Probing components..."
-msgstr "Khám phá các bộ phận..."
+msgid "Collecting DUT materials..."
+msgstr "Khám phá DUT..."
 
 #: ../py/test/pytests/hwid.py
 msgid "Generating HWID (v3)..."
@@ -3131,6 +3130,10 @@ msgstr "(ESC giữ nguyên giá trị ban đầu)"
 msgid "Plug device into each USB port, {num_usb_ports} to go..."
 msgstr ""
 "Lắp thiết bị vào mỗi cổng USB và có {num_usb_ports}  để được kiểm tra..."
+
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Probing components..."
+msgstr "Khám phá các bộ phận..."
 
 #: ../py/test/pytests/verify_component_static/verify_component.html
 msgid "Unable to pass verify component test."

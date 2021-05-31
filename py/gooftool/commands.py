@@ -150,6 +150,8 @@ _hwid_status_list_cmd_arg = CmdArg(
     '--status', nargs='*', default=['supported'],
     help='allow only HWIDs with these status values')
 
+# TODO(yhong): Replace this argument with `--hwid-material-file` when
+# `cros.factory.hwid.v3.hwid_utils` provides methods to parse such file.
 _probe_results_cmd_arg = CmdArg(
     '--probe_results', metavar='RESULTS.json',
     help=('Output from "hwid probe" (used instead of probing this system).'))

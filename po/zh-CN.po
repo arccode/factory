@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-05-11 17:39+CST\n"
+"PO-Revision-Date: 2021-06-01 01:18+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -1981,9 +1981,8 @@ msgid ""
 msgstr "校正程序即将于 {secs} 秒后开始，请勿移动待测物。"
 
 #: ../py/test/pytests/hwid.py
-#: ../py/test/pytests/verify_component_static/verify_component.html
-msgid "Probing components..."
-msgstr "正在探索零件..."
+msgid "Collecting DUT materials..."
+msgstr "正在收集 DUT 信息..."
 
 #: ../py/test/pytests/hwid.py
 msgid "Generating HWID (v3)..."
@@ -3060,6 +3059,10 @@ msgstr "(ESC 保持原值不变)"
 #: ../py/test/pytests/usb.py
 msgid "Plug device into each USB port, {num_usb_ports} to go..."
 msgstr "在每个 USB 端口插入装置, 还有 {num_usb_ports} 个待测试..."
+
+#: ../py/test/pytests/verify_component_static/verify_component.html
+msgid "Probing components..."
+msgstr "正在探索零件..."
 
 #: ../py/test/pytests/verify_component_static/verify_component.html
 msgid "Unable to pass verify component test."
