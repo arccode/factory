@@ -62,10 +62,11 @@ class Database:
     _components: A Components object.
     _rules: A Rules object.
     _checksum: None or a string of the value of the checksum field.
+    _framework_version: An integer of the framework version.
   """
 
   def __init__(self, project, encoding_patterns, image_id, pattern,
-               encoded_fields, components, rules, checksum):
+               encoded_fields, components, rules, checksum, framework_version):
     """Constructor.
 
     This constructor should not be called by other modules.
@@ -78,6 +79,7 @@ class Database:
     self._components = components
     self._rules = rules
     self._checksum = checksum
+    self._framework_version = framework_version
 
     self._SanityChecks()
 
@@ -88,7 +90,8 @@ class Database:
             self._image_id == rhs._image_id and
             self._encoded_fields == rhs._encoded_fields and
             self._components == rhs._components and
-            self._checksum == rhs._checksum)
+            self._checksum == rhs._checksum and
+            self._framework_version == rhs._framework_version)
 
   def __ne__(self, rhs):
     return not self == rhs
@@ -186,7 +189,8 @@ class Database:
         ImageId(yaml_obj['image_id']), Pattern(yaml_obj['pattern']),
         EncodedFields(yaml_obj['encoded_fields']),
         Components(yaml_obj['components']), Rules(yaml_obj['rules']),
-        yaml_obj.get('checksum'))
+        yaml_obj.get('checksum'),
+        yaml_obj.get('framework_version', common.OLDEST_FRAMEWORK_VERSION))
 
   def DumpData(self, include_checksum=False):
     all_parts = [
@@ -199,6 +203,8 @@ class Database:
         ('components', self._components.Export()),
         ('rules', self._rules.Export()),
     ]
+    if self._framework_version != common.OLDEST_FRAMEWORK_VERSION:
+      all_parts.append(('framework_version', self._framework_version))
 
     return '\n'.join([
         yaml.dump({key: value}, default_flow_style=False)
@@ -369,6 +375,14 @@ class Database:
       ret |= self.GetComponentClasses(encoded_field_name)
 
     return ret
+
+  @property
+  def framework_version(self):
+    return self._framework_version
+
+  @framework_version.setter
+  def framework_version(self, new_framework_version):
+    self._framework_version = new_framework_version
 
   def _SanityChecks(self):
     # Each image id should have a corresponding pattern.

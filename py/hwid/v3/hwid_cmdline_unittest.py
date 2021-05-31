@@ -114,7 +114,8 @@ class ObtainHWIDMaterialTest(unittest.TestCase):
     file_utils.WriteFile(
         self._hwid_material_file,
         hwid_cmdline.HWIDMaterial(
-            probed_results={}, device_info={}, vpd={}).DumpStr())
+            probed_results={}, device_info={}, vpd={},
+            framework_version=common.OLDEST_FRAMEWORK_VERSION).DumpStr())
 
     self._options = type_utils.Obj(project='test_project',
                                    device_info_file=None, vpd_data_file=None,
@@ -184,7 +185,8 @@ class ObtainHWIDMaterialTest(unittest.TestCase):
     expected_ret = hwid_cmdline.HWIDMaterial(
         probed_results=self._mock_get_probed_results.return_value,
         device_info=self._mock_get_device_info.return_value,
-        vpd=self._mock_get_vpd_data.return_value)
+        vpd=self._mock_get_vpd_data.return_value,
+        framework_version=common.FRAMEWORK_VERSION)
     self.assertEqual(ret, expected_ret)
 
   def testHasBaseHWIDMaterialOverrideSucceed(self):
@@ -201,7 +203,8 @@ class ObtainHWIDMaterialTest(unittest.TestCase):
     self._mock_get_vpd_data.assert_called_once_with(infile=None, run_vpd=True)
     expected_ret = hwid_cmdline.HWIDMaterial(
         probed_results={}, device_info=self._mock_get_device_info.return_value,
-        vpd=self._mock_get_vpd_data.return_value)
+        vpd=self._mock_get_vpd_data.return_value,
+        framework_version=common.OLDEST_FRAMEWORK_VERSION)
     self.assertEqual(ret, expected_ret)
 
 
@@ -225,6 +228,10 @@ class BuildDatabaseWrapperTest(unittest.TestCase):
       build_database_mock.assert_called_with(project=options.project,
                                              image_name=options.image_id)
       instance = build_database_mock.return_value
+
+      # Uprev the framework version.
+      instance.UprevFrameworkVersion.assert_called_with(
+          obtain_hwid_material_mock.return_value.framework_version)
 
       # Update default/null components.
       instance.AddDefaultComponent.assert_has_calls(

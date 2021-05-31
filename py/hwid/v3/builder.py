@@ -166,6 +166,13 @@ class DatabaseBuilder:
       self.database = self._BuildEmptyDatabase(project.upper(), image_name)
       self._from_empty_database = True
 
+  def UprevFrameworkVersion(self, new_framework_version):
+    if new_framework_version < self.database.framework_version:
+      raise ValueError(
+          'The HWID framework cannot be downgraded, please consider upgrading '
+          'the toolkit on DUT before collecting materials.')
+    self.database.framework_version = new_framework_version
+
   def AddDefaultComponent(self, comp_cls):
     """Adds a default component item and corresponding rule to the database.
 

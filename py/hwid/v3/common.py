@@ -17,6 +17,11 @@ COMPONENT_STATUS = type_utils.Enum(['supported', 'deprecated',
                                     'duplicate'])
 ENCODING_SCHEME = type_utils.Enum(['base32', 'base8192'])
 
+OLDEST_FRAMEWORK_VERSION = 0
+# This version number is used to distinguish non-compatible syntax changes
+# in HWID DB.
+FRAMEWORK_VERSION = 0
+
 
 class HWIDException(Exception):
   """HWID-related exception."""

@@ -130,6 +130,7 @@ class HWIDMaterial(NamedTuple):
   probed_results: Dict  # An object records the probed results.
   device_info: Dict  # An object records the device info.
   vpd: Dict  # An object records the vpd data.
+  framework_version: int
 
   def DumpStr(self):
     return yaml.dump(self.ConvertToDict())
@@ -137,6 +138,7 @@ class HWIDMaterial(NamedTuple):
   @classmethod
   def LoadStr(cls, source):
     yaml_obj = yaml.load(source)
+    yaml_obj.setdefault('framework_version', common.OLDEST_FRAMEWORK_VERSION)
     return cls(**yaml_obj)
 
   def ConvertToDict(self):
@@ -200,7 +202,11 @@ def ObtainHWIDMaterial(options):
     kwargs = HWIDMaterial.LoadStr(
         file_utils.ReadFile(base_hwid_material_file)).ConvertToDict()
   else:
-    kwargs = {}
+    kwargs = {
+        'framework_version': (
+            common.FRAMEWORK_VERSION
+            if sys_utils.InCrOSDevice() else common.OLDEST_FRAMEWORK_VERSION)
+    }
 
   if base_hwid_material_file is None or probed_results_file:
     kwargs['probed_results'] = hwid_utils.GetProbedResults(
@@ -255,6 +261,8 @@ def RunDatabaseBuilder(database_builder, options):
     database_builder.AddRegions(options.add_regions, options.region_field_name)
 
   hwid_material = ObtainHWIDMaterial(options)
+
+  database_builder.UprevFrameworkVersion(hwid_material.framework_version)
 
   database_builder.UpdateByProbedResults(
       hwid_material.probed_results, hwid_material.device_info,
