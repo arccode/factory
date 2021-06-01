@@ -55,6 +55,7 @@ class CameraTest {
     this.height = options.height;
     this.flipImage = options.flipImage;
     this.videoStartPlayTimeoutMs = options.videoStartPlayTimeoutMs;
+    this.getUserMediaRetries = options.getUserMediaRetries;
     this.videoStream = null;
 
     // The width/height would be set to the true width/height in grabFrame.
@@ -86,15 +87,30 @@ class CameraTest {
     }
   }
 
-  async getVideoStreamTrack() {
-    const mediaStream = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: {
-        width: this.width,
-        height: this.height,
-        facingMode: {exact: this.facingMode}
+  async getMediaStream() {
+    var i;
+    for (i = 0; i < this.getUserMediaRetries + 1; ++i) {
+      try {
+        return await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            width: this.width,
+            height: this.height,
+            facingMode: { exact: this.facingMode }
+          }
+        });
+      } catch (error) {
+        if (error.name != "NotReadableError") {
+          throw error;
+        }
       }
-    });
+      await cros.factory.utils.delay(1000);
+    }
+    throw Error('NotReadableError: Fail all retries.');
+  }
+
+  async getVideoStreamTrack() {
+    const mediaStream = await this.getMediaStream();
     // Try to wait until |videoElem| starts to play so that |grabFrame|
     // can capture the data from it.
     // We expect the pytest invokes the API properly, this method shouldn't
