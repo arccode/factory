@@ -632,8 +632,13 @@ class FinalizeBundle:
     file_utils.TryMakeDirs(firmware_images_dir)
 
     with file_utils.TempDirectory() as temp_dir:
-      Spawn(['sh', updater_path, '--unpack', temp_dir], log=True,
-            check_call=True)
+      process = Spawn(['sh', updater_path, '--unpack', temp_dir], log=True,
+                      call=True)
+      # TODO(cyueh) Remove sb_extract after we dropping support for legacy
+      # firmware updater.
+      if process.returncode != 0:
+        Spawn(['sh', updater_path, '--sb_extract', temp_dir], log=True,
+              check_call=True)
 
       for root, unused_dirs, files in os.walk(temp_dir):
         for filename in files:
@@ -656,8 +661,13 @@ class FinalizeBundle:
         for f in os.listdir(os.path.join(temp_dir, 'images')):
           if os.path.join('images', f) not in keep_list:
             os.remove(os.path.join(temp_dir, 'images', f))
-        Spawn(['sh', updater_path, '--repack', temp_dir], log=True,
-              check_call=True)
+        process = Spawn(['sh', updater_path, '--repack', temp_dir], log=True,
+                        call=True)
+        # TODO(cyueh) Remove sb_repack after we dropping support for legacy
+        # firmware updater.
+        if process.returncode != 0:
+          Spawn(['sh', updater_path, '--sb_repack', temp_dir], log=True,
+                check_call=True)
 
     # Try to use "chromeos-firmwareupdate --mode=output" to extract bios/ec
     # firmware. This option is available for updaters extracted from image

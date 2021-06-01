@@ -2244,7 +2244,12 @@ class ChromeOSFactoryBundle:
       return {}
 
     with SysUtils.TempDirectory() as extract_dir:
-      Shell([updater, '--unpack', extract_dir], silent=True)
+      returncode = Shell([updater, '--unpack', extract_dir], silent=True,
+                         check=False)
+      # TODO(cyueh) Remove sb_extract after we dropping support for legacy
+      # firmware updater.
+      if returncode != 0:
+        Shell([updater, '--sb_extract', extract_dir], silent=True)
       targets = {'main': 'bios.bin', 'ec': 'ec.bin'}
       # TODO(hungte) Read VERSION.signer for signing keys.
       results = {}
