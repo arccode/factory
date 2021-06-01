@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-const VIDEO_START_PLAY_TIMEOUT_MS = 5000;
 const imageDiv = document.getElementById('test-image');
 const promptDiv = document.getElementById('prompt');
 const overlayCanvas = document.getElementById('overlay');
@@ -55,6 +54,7 @@ class CameraTest {
     this.width = options.width;
     this.height = options.height;
     this.flipImage = options.flipImage;
+    this.videoStartPlayTimeoutMs = options.videoStartPlayTimeoutMs;
     this.videoStream = null;
 
     // The width/height would be set to the true width/height in grabFrame.
@@ -107,7 +107,7 @@ class CameraTest {
           this.videoElemReadyForStreamCallback = null;
           reject(new Error('timeout from video element'));
         }
-      }, VIDEO_START_PLAY_TIMEOUT_MS);
+      }, this.videoStartPlayTimeoutMs);
       this.videoElemReadyForStreamCallback = () => {
         window.clearTimeout(timeoutId);
         resolve();
