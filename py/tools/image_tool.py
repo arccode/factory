@@ -13,6 +13,7 @@ To add a subcommand, just add a new SubCommand subclass to this file.
 import argparse
 import contextlib
 import copy
+from distutils import version as version_utils
 import errno
 import glob
 import inspect
@@ -1074,7 +1075,7 @@ class LSBFile:
         board = board[:signed_index]
     return board
 
-  def GetChromeOSVersion(self, remove_timestamp=True):
+  def GetChromeOSVersion(self, remove_timestamp=True, remove_milestone=False):
     """Returns the Chrome OS build version.
 
     Gets the value using KEY_LSB_CROS_VERSION. For self-built images, this may
@@ -1082,10 +1083,16 @@ class LSBFile:
 
     Args:
       remove_timestamp: Remove the timestamp like version info if available.
+      remove_milestone: Remove the milestone if available.
     """
     version = self.GetValue('CHROMEOS_RELEASE_VERSION', '')
     if remove_timestamp:
       version = version.split()[0]
+    if remove_milestone:
+      re_branched_image_version = re.compile(r'^R\d+-(\d+\.\d+\.\d+)$')
+      ver_match = re_branched_image_version.match(version)
+      if ver_match:
+        version = ver_match.group(1)
     return version
 
 
@@ -2513,8 +2520,14 @@ class ChromeOSFactoryBundle:
     """
     config_path = os.path.join(root_path, 'usr', 'share', 'chromeos-config',
                                'yaml', 'config.yaml')
-    with open(config_path) as f:
-      obj = yaml.load(f)['chromeos']['configs']
+
+    if os.path.exists(config_path):
+      print('%s found.' % config_path)
+      with open(config_path) as f:
+        obj = yaml.load(f)['chromeos']['configs']
+    else:
+      print('%s not found.' % config_path)
+      return {}
 
     def _SelectConfig(config: dict, fields: dict) -> dict:
       """Selects required config fields.
@@ -2590,6 +2603,14 @@ class ChromeOSFactoryBundle:
     test_part = Partition(self.test_image, PART_CROS_ROOTFS_A)
     with test_part.MountAsCrOSRootfs() as rootfs:
       test_configs = self._ParseCrosConfig(designs, rootfs)
+      if not test_configs:
+        lsb_data = LSBFile(os.path.join(rootfs, 'etc', 'lsb-release'))
+        version = version_utils.LooseVersion(
+            lsb_data.GetChromeOSVersion(remove_milestone=True))
+        if version < version_utils.LooseVersion('10212.0.0'):
+          print('Skip cros_config verification for early test image: %r' %
+                version)
+          return
 
     release_part = Partition(self.release_image, PART_CROS_ROOTFS_A)
     with release_part.MountAsCrOSRootfs() as rootfs:
