@@ -92,6 +92,7 @@
         "TPMVerifyEK",
         "MRCCache",
         "RebootStep",
+        "Fan",
         "RunInStressGroupWithFrontCamera",
         "Barrier",
         "RunInStressGroupWithRearCamera",

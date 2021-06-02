@@ -10,6 +10,7 @@
     "has_device_data": false,
     "__comment_has_device_data": "When setting to true, some test objects will use the info from device data to decide to run or not.",
     "has_ec_pubkey": false,
+    "has_fan": true,
     "hwid_need_vpd": false,
     "__comment_hwid_need_vpd": "Set to true if some rules in the HWID database rely on VPD data",
     "overlord": {
@@ -368,6 +369,23 @@
       "run_if": "device.component.has_fingerprint",
       "args": {
         "fpframe_retry_count": 2
+      }
+    },
+    "Fan": {
+      "pytest_name": "fan_speed",
+      "label": "Fan Speed",
+      "run_if": "constants.has_fan",
+      "disable_services": [
+        "dptf"
+      ],
+      "args": {
+        "probe_interval_secs": 0.2,
+        "target_rpm": [
+          3000,
+          4500,
+          6000
+        ],
+        "error_margin": 300
       }
     },
     "Finish": {

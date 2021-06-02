@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-06-01 01:18+CST\n"
+"PO-Revision-Date: 2021-06-02 19:06+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -196,6 +196,7 @@ msgid "Factory State"
 msgstr "工厂测试状态"
 
 #: ../build/pytests_label_generated.json
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Fan Speed"
 msgstr "风扇转速"
 
