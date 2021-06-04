@@ -8,6 +8,7 @@ Description
 -----------
 This pytest test if camera is working by one of the following method (choose
 by argument ``mode``):
+* ``'camera_assemble'``: Detect whether the camera is well assembled.
 
 * ``'qr'``: Scan QR code of given string.
 
@@ -31,6 +32,10 @@ If ``e2e_mode`` is ``True``, the operator may be prompt to click on the 'Allow'
 button on Chrome notification to give Chrome camera permission.
 
 The test procedure differs for each different modes:
+
+* ``'camera_assemble'``: Operator prepare a white paper that is large enough to
+  cover the FOV of the camera. Test would pass automatically after
+  ``num_frames_to_pass`` frames with white paper are captured.
 
 * ``'qr'``: Operator put a QR code with content specified by ``QR_string``.
   Test would pass automatically after ``num_frames_to_pass`` frames with QR code
@@ -60,7 +65,8 @@ Except ``'timeout'`` mode, the test would fail after ``timeout_secs`` seconds.
 
 Dependency
 ----------
-End-to-end ``'qr'`` or ``'face'`` modes depend on OpenCV and numpy.
+End-to-end ``'camera_assemble'``, ``'qr'`` or ``'face'``
+modes depend on OpenCV and numpy.
 
 If not end-to-end mode, depend on OpenCV and device API
 ``cros.factory.device.camera``.
@@ -73,6 +79,18 @@ To run a manual capture test. (The default case), add this in test list::
 
   {
     "pytest_name": "camera"
+  }
+
+To run camera_assemble test, use Chrome API and specify the minimal luminance
+ratio to 0.7::
+
+  {
+    "pytest_name": "camera",
+    "args": {
+      "e2e_mode": true,
+      "mode": "camera_assemble",
+      "min_luminance_ratio": 0.7
+    }
   }
 
 To run QR scan test, and specify camera resolution to 1920 x 1080::
@@ -152,6 +170,7 @@ from cros.factory.test.rules import phase
 from cros.factory.test import session
 from cros.factory.test import test_case
 from cros.factory.test.utils import barcode
+from cros.factory.test.utils import camera_assemble
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import schema
@@ -169,7 +188,8 @@ _HAAR_CASCADE_PATH = (
     '/usr/local/share/opencv4/haarcascades/haarcascade_frontalface_default.xml')
 
 TestModes = type_utils.Enum([
-    'qr', 'face', 'timeout', 'frame_count', 'manual', 'manual_led', 'brightness'
+    'camera_assemble', 'qr', 'face', 'timeout', 'frame_count', 'manual',
+    'manual_led', 'brightness'
 ])
 
 _TEST_MODE_INST = {
@@ -179,6 +199,8 @@ _TEST_MODE_INST = {
         _('Running the camera until timeout.'),
     TestModes.frame_count:
         _('Running the camera until expected number of frames captured.'),
+    TestModes.camera_assemble:
+        _('Cover the field of view of the camera with a white paper...'),
     TestModes.qr:
         _('Scanning QR code...'),
     TestModes.face:
@@ -257,6 +279,14 @@ class CameraTest(test_case.TestCase):
           ('The times that we try to getUserMedia in camera.js. The '
            'getUserMedia executes at most (1+get_user_media_retries) times.'),
           default=0),
+      Arg('min_luminance_ratio', float,
+          ('The minimal acceptable luminance of the boundary region of an'
+           'image. This value is multiplied by the brightest region of an'
+           'image. If the luminance of the boundary region is lower than or'
+           'equal to the product, we consider the image containing black edges,'
+           'and thus the camera is badly assembled. It is recommended to set'
+           'this value to 0.5 for usb camera and 0.7 for mipi camera.'),
+          default=0.5)
   ]
 
   def _Timeout(self):
@@ -380,6 +410,11 @@ class CameraTest(test_case.TestCase):
 
     return detected
 
+  def DetectAssemblyIssue(self, cv_image):
+    camera_assemble_issue = camera_assemble.DetectCameraAssemblyIssue(
+        cv_image, self.min_luminance_ratio)
+    return camera_assemble_issue.IsBoundaryRegionTooDark()
+
   def ScanQRCode(self, cv_image):
     scanned_text = None
 
@@ -433,6 +468,8 @@ class CameraTest(test_case.TestCase):
   def CaptureTestFrame(self, mode, cv_image):
     if mode == TestModes.frame_count:
       return True
+    if mode == TestModes.camera_assemble:
+      return self.DetectAssemblyIssue(cv_image)
     if mode == TestModes.qr:
       return self.ScanQRCode(cv_image)
     if mode == TestModes.face:
@@ -484,6 +521,7 @@ class CameraTest(test_case.TestCase):
 
     self.mode = self.args.mode
     self.e2e_mode = self.args.e2e_mode
+    self.min_luminance_ratio = self.args.min_luminance_ratio
 
     # Whether we need to transmit image from UI back to Python in e2e mode.
     # TODO(pihsun): This can be removed after the desktop Chrome implements
@@ -521,7 +559,7 @@ class CameraTest(test_case.TestCase):
       self.ui.RunJS(
           'window.cameraTest = new CameraTest(args.options)', options=options)
       self.camera_device = None
-      if self.mode in [TestModes.qr, TestModes.face]:
+      if self.mode in [TestModes.camera_assemble, TestModes.qr, TestModes.face]:
         self.need_transmit_from_ui = True
     else:
       self.camera_device = self.dut.camera.GetCameraDevice(

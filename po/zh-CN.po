@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-06-29 20:19+CST\n"
+"PO-Revision-Date: 2021-07-03 16:50+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -1593,6 +1593,10 @@ msgstr "运行相机直到超时"
 #: ../py/test/pytests/camera.py
 msgid "Running the camera until expected number of frames captured."
 msgstr "运行相机直到给订数量"
+
+#: ../py/test/pytests/camera.py
+msgid "Cover the field of view of the camera with a white paper..."
+msgstr "用白纸覆盖相机的视野..."
 
 #: ../py/test/pytests/camera.py
 msgid "Scanning QR code..."
