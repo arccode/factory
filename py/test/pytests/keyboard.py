@@ -124,6 +124,30 @@ _REPLACEMENT_KEYMAP_SCHEMA = schema.JSONSchemaDict(
         }
     })
 
+# Please check:
+#   ~/trunk/src/third_party/coreboot/src/acpi/acpigen_ps2_keybd.c
+#   ~/trunk/src/third_party/coreboot/src/include/input-event-codes.h
+_ACTION_KEYS_SCANCODE_TO_KEYCODE = {
+    0xea: 158,  # KEY_BACK
+    0xe9: 159,  # KEY_FORWARD
+    0xe7: 173,  # KEY_REFRESH
+    0x91: 0x174,  # KEY_FULL_SCREEN
+    0x92: 120,  # KEY_SCALE
+    0xa0: 113,  # KEY_MUTE
+    0xae: 114,  # KEY_VOLUMEDOWN
+    0xb0: 115,  # KEY_VOLUMEUP
+    0x9a: 164,  # KEY_PLAYPAUSE
+    0x99: 163,  # KEY_NEXTSONG
+    0x90: 165,  # KEY_PREVIOUSSONG
+    0x93: 99,  # KEY_SYSRQ
+    0x94: 224,  # KEY_BRIGHTNESSDOWN
+    0x95: 225,  # KEY_BRIGHTNESSUP
+    0x97: 229,  # KEY_KBDILLUMDOWN
+    0x98: 230,  # KEY_KBDILLUMUP
+    0x96: 0x279,  # KEY_PRIVACY_SCREEN_TOGGLE
+}
+
+
 class KeyboardTest(test_case.TestCase):
   """Tests if all the keys on a keyboard are functioning. The test checks for
   keydown and keyup events for each key, following certain order if required,
@@ -181,6 +205,8 @@ class KeyboardTest(test_case.TestCase):
           default=None),
       Arg('has_numpad', bool, 'The keyboard has a number pad or not.',
           default=False),
+      Arg('vivadi_keyboard', bool, 'Get function keys map from sysfs.',
+          default=True),
   ]
 
   def setUp(self):
@@ -215,11 +241,18 @@ class KeyboardTest(test_case.TestCase):
     if self.args.has_numpad:
       self.numpad_keys = self.ReadKeyOrder(_NUMPAD)
 
+    replacement_keymap = {}
+    if self.args.vivadi_keyboard:
+      replacement_keymap = self.GetVivaldiKeyboardActionKeys()
+
     # Apply any replacement keymap
     if self.args.replacement_keymap:
-      replacement_keymap = {
+      replacement_keymap.update({
           int(key, 0): int(value, 0)
-          for key, value in self.args.replacement_keymap.items()}
+          for key, value in self.args.replacement_keymap.items()
+      })
+
+    if replacement_keymap:
       new_bind = {key: value for key, value in self.bindings.items()
                   if key not in replacement_keymap}
       for old_key, new_key in replacement_keymap.items():
@@ -289,6 +322,28 @@ class KeyboardTest(test_case.TestCase):
     """
     self.dispatcher.close()
     self.keyboard_device.ungrab()
+
+  def GetVivaldiKeyboardActionKeys(self):
+    match = re.search(r'\d+$', self.keyboard_device.path)
+    if not match:
+      raise RuntimeError('Failed to get keyboard device ID')
+    input_id = match.group(0)
+    file_content = file_utils.ReadFile(
+        f'/sys/class/input/input{input_id}/device/function_row_physmap')
+    scancodes = [int(s, 16) for s in file_content.strip().split()]
+    replacement_keymap = {}
+    if len(scancodes) > 10:
+      session.console.warning(
+          f'There are {len(scancodes)} function keys, normally it should be 10.'
+          ' Please check if this pytest actually tests all function keys.')
+    for (key, scancode) in enumerate(scancodes, 59):
+      try:
+        replacement_keymap[key] = _ACTION_KEYS_SCANCODE_TO_KEYCODE[scancode]
+      except KeyError:
+        session.console.exception(f'Cannot find keycode of {scancode}')
+        raise
+    session.console.info(f'Vivaldi Keyboard Keys: {replacement_keymap}')
+    return replacement_keymap
 
   def GetKeyboardLayout(self):
     """Uses the given keyboard layout or auto-detect from VPD."""
