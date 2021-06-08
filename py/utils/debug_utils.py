@@ -194,17 +194,21 @@ def NoRecursion(func):
       a.func(b)  # an exception will be raised
   """
   # pylint: disable=protected-access
-  func._running = False
+  func._running_threads = []
+
   @functools.wraps(func)
   def Wrapped(*args, **kwargs):
-    if func._running and sys_utils.InChroot():
+    thread_id = threading.get_ident()
+    if thread_id in func._running_threads and sys_utils.InChroot():
       logging.error('Detect unexpected recursion: \n%s', DumpStackTracebacks())
-    assert not func._running, 'Recursion for %s is not allowed' % func.__name__
+    assert thread_id not in func._running_threads, \
+        'Recursion for %s is not allowed' % func.__name__
     try:
-      func._running = True
+      func._running_threads.append(thread_id)
       return func(*args, **kwargs)
     finally:
-      func._running = False
+      func._running_threads.remove(thread_id)
+
   return Wrapped
 
 

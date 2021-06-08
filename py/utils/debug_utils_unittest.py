@@ -7,6 +7,8 @@
 """Unittest for debug_utils.py."""
 
 import logging
+import threading
+import time
 import unittest
 
 from cros.factory.utils import debug_utils
@@ -53,6 +55,30 @@ class GetCallerNameTest(unittest.TestCase):
     # ValueError: call stack is not deep enough
     with self.assertRaises(ValueError):
       debug_utils.GetCallerName(50)
+
+
+class NoRecursionTest(unittest.TestCase):
+  """Unittest for NoRecursion."""
+
+  def testRecursiveCall(self):
+
+    @debug_utils.NoRecursion
+    def RecursiveFunction(recursive=True):
+      if recursive:
+        RecursiveFunction(recursive=False)
+
+    with self.assertRaises(AssertionError):
+      RecursiveFunction()
+
+  def testMultiThreadCall(self):
+
+    @debug_utils.NoRecursion
+    def SlowFunction():
+      time.sleep(0.1)
+
+    # Should not raise error.
+    threading.Thread(target=SlowFunction).start()
+    threading.Thread(target=SlowFunction).start()
 
 
 if __name__ == '__main__':
