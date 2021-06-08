@@ -39,7 +39,7 @@ from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 
 
-DEFAULT_GOOFY_RPC_TIMEOUT_SECS = 10
+DEFAULT_GOOFY_RPC_TIMEOUT_SECS = 15
 REBOOT_AFTER_UPDATE_DELAY_SECS = 5
 PING_SERVER_TIMEOUT_SECS = 2
 UPLOAD_FACTORY_LOGS_TIMEOUT_SECS = 20
@@ -255,12 +255,17 @@ class GoofyRPC:
     server_proxy.GetServerProxy(timeout=PING_SERVER_TIMEOUT_SECS).Ping()
 
   def ReloadTestList(self):
-    if isinstance(self.goofy.test_list, test_list.TestList):
-      self.goofy.test_list.ForceReload()
-      for f in self.goofy.test_list.Walk():
-        f.UpdateState(iterations=f.iterations, retries=f.retries)
-    else:
-      raise NotImplementedError('Unknown type: %s' % type(self.goofy.test_list))
+
+    def Target():
+      if isinstance(self.goofy.test_list, test_list.TestList):
+        self.goofy.test_list.ForceReload()
+        for f in self.goofy.test_list.Walk():
+          f.UpdateState(iterations=f.iterations, retries=f.retries)
+      else:
+        raise NotImplementedError(
+            'Unknown type: %s' % type(self.goofy.test_list))
+
+    return self._InRunQueue(Target)
 
   def UploadFactoryLogs(self, name, serial, description):
     """Uploads logs to the factory server.
