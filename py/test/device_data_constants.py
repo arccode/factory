@@ -60,6 +60,7 @@ KEY_COMPONENT_ALLOWLIST = [
     'component.has_lte',
     'component.has_mother_board_usb_a',
     'component.has_mother_board_usb_c',
+    'component.has_numeric_pad',
     'component.has_proximity_sensor',
     'component.has_rear_camera',
     'component.has_sd_reader',
@@ -67,5 +68,5 @@ KEY_COMPONENT_ALLOWLIST = [
     'component.has_stylus_garage',
     'component.has_tabletmode',
     'component.has_touchscreen',
-    'component.has_wifi'
+    'component.has_wifi',
 ]

@@ -484,7 +484,8 @@
     "Keyboard": {
       "pytest_name": "keyboard",
       "args": {
-        "allow_multi_keys": true
+        "allow_multi_keys": true,
+        "has_numpad": "eval! device.component.has_numeric_pad or False"
       }
     },
     "KeyboardBacklight": {
