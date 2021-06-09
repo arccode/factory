@@ -30,6 +30,7 @@ from cros.factory.hwid.service.appengine import hwid_util
 from cros.factory.hwid.service.appengine import hwid_validator
 from cros.factory.hwid.service.appengine import ingestion
 from cros.factory.hwid.service.appengine import memcache_adapter
+from cros.factory.hwid.v3 import name_pattern_adapter
 from cros.factory.hwid.v3.rule import Value
 from cros.factory.hwid.v3 import validator as v3_validator
 # pylint: disable=import-error, no-name-in-module
@@ -178,6 +179,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
         status=hwid_api_messages_pb2.Status.SUCCESS)
     response.phase = bom.phase
 
+    np_adapter = name_pattern_adapter.NamePatternAdapter()
     for component in bom.GetComponents():
       name = _hwid_manager.GetAVLName(component.cls, component.name)
       fields = []
@@ -195,8 +197,18 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
           fields.append(field)
 
       fields.sort(key=lambda field: field.name)
+
+      name_pattern = np_adapter.GetNamePattern(component.cls)
+      ret = name_pattern.Matches(component.name)
+      if ret:
+        cid, qid = ret
+        avl_info = hwid_api_messages_pb2.AvlInfo(cid=cid, qid=qid)
+      else:
+        avl_info = None
+
       response.components.add(component_class=component.cls, name=name,
-                              fields=fields)
+                              fields=fields, avl_info=avl_info,
+                              has_avl=bool(avl_info))
 
     response.components.sort(key=operator.attrgetter('component_class', 'name'))
 

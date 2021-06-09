@@ -272,19 +272,22 @@ class HwidApiTest(unittest.TestCase):
                         hwid_api_messages_pb2.Field(name='idVendor',
                                                     value='4567'),
                         hwid_api_messages_pb2.Field(name='name', value='Camera')
-                    ]),
+                    ], avl_info=hwid_api_messages_pb2.AvlInfo(cid=0),
+                    has_avl=True),
                 hwid_api_messages_pb2.Component(
                     name='cpu_0', component_class='cpu', fields=[
                         hwid_api_messages_pb2.Field(name='cores', value='4'),
                         hwid_api_messages_pb2.Field(name='name',
                                                     value='CPU @ 1.80GHz')
-                    ]),
+                    ], avl_info=hwid_api_messages_pb2.AvlInfo(cid=0),
+                    has_avl=True),
                 hwid_api_messages_pb2.Component(
                     name='cpu_1', component_class='cpu', fields=[
                         hwid_api_messages_pb2.Field(name='cores', value='4'),
                         hwid_api_messages_pb2.Field(name='name',
                                                     value='CPU @ 2.00GHz')
-                    ])
+                    ], avl_info=hwid_api_messages_pb2.AvlInfo(cid=1),
+                    has_avl=True)
             ]), msg)
 
   def testGetBomLabels(self):
@@ -312,6 +315,44 @@ class HwidApiTest(unittest.TestCase):
                                             value='1'),
                 hwid_api_messages_pb2.Label(component_class='baz', name='rox',
                                             value='2'),
+            ]), msg)
+
+  def testGetBomAvlInfo(self):
+    bom = hwid_manager.Bom()
+    bom.AddAllComponents(
+        {'dram': ['dram_1234_5678', 'dram_1234_5678#4', 'not_dram_1234_5678']},
+        comp_db=database.Database.LoadFile(GOLDEN_HWIDV3_FILE,
+                                           verify_checksum=False), verbose=True)
+    configless = None
+    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
+    self.patch_hwid_manager.GetPrimaryIdentifier.side_effect = (
+        _MockGetPrimaryIdentifier)
+
+    req = hwid_api_messages_pb2.BomRequest(hwid=TEST_HWID, verbose=True)
+    msg = self.service.GetBom(req)
+
+    self.assertEqual(
+        hwid_api_messages_pb2.BomResponse(
+            status=hwid_api_messages_pb2.Status.SUCCESS, components=[
+                hwid_api_messages_pb2.Component(
+                    name='dram_1234_5678', component_class='dram', fields=[
+                        hwid_api_messages_pb2.Field(name='part', value='part2'),
+                        hwid_api_messages_pb2.Field(name='size', value='4G'),
+                    ], avl_info=hwid_api_messages_pb2.AvlInfo(
+                        cid=1234, qid=5678), has_avl=True),
+                hwid_api_messages_pb2.Component(
+                    name='dram_1234_5678#4', component_class='dram', fields=[
+                        hwid_api_messages_pb2.Field(name='part', value='part2'),
+                        hwid_api_messages_pb2.Field(name='size', value='4G'),
+                        hwid_api_messages_pb2.Field(name='slot', value='3'),
+                    ], avl_info=hwid_api_messages_pb2.AvlInfo(
+                        cid=1234, qid=5678), has_avl=True),
+                hwid_api_messages_pb2.Component(
+                    name='not_dram_1234_5678', component_class='dram', fields=[
+                        hwid_api_messages_pb2.Field(name='part', value='part3'),
+                        hwid_api_messages_pb2.Field(name='size', value='4G'),
+                    ]),
             ]), msg)
 
   def testGetHwids(self):

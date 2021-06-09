@@ -52,6 +52,7 @@ pattern:
     - storage: 2              # 15 bits
 
     - cpu: 1                  # 16 bits
+    - dram: 2
 
 encoded_fields:
   audio_codec:
@@ -103,6 +104,12 @@ encoded_fields:
       dram: dram_0
     1:
       dram: dram_1
+    2:
+      dram: dram_1234_5678
+    3:
+      dram: dram_1234_5678#4
+    4:
+      dram: not_dram_1234_5678
   ec_flash_chip:
     0:
       ec_flash_chip: ec_flash_chip_0
@@ -262,6 +269,22 @@ components:
       dram_1:
         values:
           part: part1
+          size: 4G
+
+      dram_1234_5678:
+        values:
+          part: part2
+          size: 4G
+
+      dram_1234_5678#4:
+        values:
+          part: part2
+          size: 4G
+          slot: '3'
+
+      not_dram_1234_5678:
+        values:
+          part: part3
           size: 4G
 
   ec_flash_chip:

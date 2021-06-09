@@ -13,6 +13,13 @@ enum Status {
   VALIDATION_EXPIRED = 8;
 }
 
+message AvlInfo {
+  // Component id.
+  int64 cid = 1;
+  // Qualification id.
+  int64 qid = 2;
+}
+
 // A component of a BOM.
 message Component {
   // The type of component.
@@ -23,6 +30,10 @@ message Component {
   string probe_result = 3;
   // Extra fields that show all fields defined in HWID DB.
   repeated Field fields = 4;
+  // A bool to indicate if the AVL info exists.
+  bool has_avl = 5;
+  // AVL info
+  AvlInfo avl_info = 6;
 }
 
 message Field {
