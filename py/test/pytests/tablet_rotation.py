@@ -20,7 +20,7 @@ Test Procedure
 Dependency
 ----------
 ``chrome.display.system.getInfo`` in Chrome extension to get screen
-orientation. Refer to https://developer.chrome.com/apps/system_display for
+information. Refer to https://developer.chrome.com/apps/system_display for
 more information.
 
 ``cros.factory.device.accelerometer`` is used to determine device orientation.
@@ -187,8 +187,15 @@ class TabletRotationTest(test_case.TestCase):
   def _PromptAndWaitForRotation(self, degree_target):
     while True:
       self.Sleep(_POLL_ROTATION_INTERVAL)
-      if not self._GetInternalDisplayInfo()['isInTabletPhysicalState']:
-        self.fail('Device not in tablet mode.')
+      if not self._GetInternalDisplayInfo()['isAutoRotationAllowed']:
+        # Auto rotation is allowed when the device is in a physical tablet
+        # state or kSupportsClamshellAutoRotation is set.
+        # So, if kSupportsClamshellAutoRotation is set, the value would be
+        # true even if the tablet mode switch is off (false).
+        # But this should be fine, because we will run the "tablet_mode" test
+        # before running this test, and the test will check the "tablet mode
+        # switch" in evtest.
+        self.fail('Auto rotation is not allowed.')
       orientations = self.degrees_to_orientations[degree_target]
       cal_data = self.accel_controller.GetData(
           sample_rate=self.args.sample_rate_hz)
