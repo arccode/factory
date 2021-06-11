@@ -18,10 +18,9 @@ def GetPluginArguments(plugin_name):
   """
   config_name = state.DataShelfGetValue('test_list_options.plugin_config_name')
   config = config_utils.LoadConfig(
-      config_name=config_name,
-      schema_name='plugins',
-      default_config_dirs=os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR,
-                                       'goofy', 'plugins'))
+      config_name=config_name, schema_name='plugins',
+      allow_inherit=True, default_config_dirs=os.path.join(
+          paths.FACTORY_PYTHON_PACKAGE_DIR, 'goofy', 'plugins'))
   try:
     return config['plugins'][plugin_name].get('args', {})
   except KeyError:
