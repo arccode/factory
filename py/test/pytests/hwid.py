@@ -16,7 +16,7 @@ When ``generate`` is ``True``, this test will do the following:
    from Google Factory Server.
 2. Collect materials (including probed results, device data, and optionally
    the vpd data) from DUT for generating the HWID string.  This step is
-   equivalent to executing ``hwid collect-device-material`` in shell.
+   equivalent to executing ``hwid collect-material`` in shell.
 3. Generate HWID by command ``hwid generate --probed-results-file
    <probed-results> --material-file <hwid-material-file> --json-output``.
 4. Verify generated HWID by ``hwid verify --material-file <hwid-material-file>

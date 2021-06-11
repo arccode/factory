@@ -174,7 +174,7 @@ component.
 
 ```shell
 # Get the probe result.
-$ hwid collect-device-material --output-file /tmp/material.yaml
+$ hwid collect-material --output-file /tmp/material.yaml
 
 # Create the database at /usr/local/factory/hwid/GOOGLE
 $ hwid build-database \
@@ -196,7 +196,7 @@ firmware.
 The command for this scenario is:
 ```shell
 # Get the probe result.
-$ hwid collect-device-material --output-file /tmp/material.yaml
+$ hwid collect-material --output-file /tmp/material.yaml
 
 # Update the database at /usr/local/factory/hwid/GOOGLE
 $ hwid update-database \
