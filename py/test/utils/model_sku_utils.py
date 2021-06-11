@@ -13,9 +13,9 @@ from cros.factory.utils import config_utils
 
 
 BOXSTER = 'boxster'
-DEVICE_TREE_COMPATIBLE_PATH = '/proc/device-tree/compatible'
-PRODUCT_NAME_PATH = '/sys/class/dmi/id/product_name'
 PROJECT_CONFIG_PATH = os.path.join(paths.FACTORY_DIR, 'project_config')
+DEVICE_TREE_COMPATIBLE_PATH = cros_config.DEVICE_TREE_COMPATIBLE_PATH
+PRODUCT_NAME_PATH = cros_config.PRODUCT_NAME_PATH
 _RE_GENERATED_MODELSKU = re.compile(r'^(\w+)_(\w+)_model_sku$')
 _PROGRAM = 'program'
 _PROJECT = 'project'

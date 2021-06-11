@@ -4,6 +4,14 @@
 
 from cros.factory.gooftool import common as gooftool_common
 
+# Path to the product name and sku id of the device.
+# ARM devices: DEVICE_TREE_COMPATIBLE_PATH and DEVICE_TREE_SKU_ID_PATH
+# x86 devices: PRODUCT_NAME_PATH and PRODUCT_SKU_ID_PATH
+DEVICE_TREE_COMPATIBLE_PATH = '/proc/device-tree/compatible'
+PRODUCT_NAME_PATH = '/sys/class/dmi/id/product_name'
+DEVICE_TREE_SKU_ID_PATH = '/proc/device-tree/firmware/coreboot/sku-id'
+PRODUCT_SKU_ID_PATH = '/sys/class/dmi/id/product_sku'
+
 
 class CrosConfig:
   """Helper class to get data from cros_config."""
@@ -35,13 +43,22 @@ class CrosConfig:
     result = self.GetValue('/', 'name')
     return result.stdout.strip() if result.stdout else ''
 
+  def GetFingerPrintBoard(self):
+    result = self.GetValue('/fingerprint', 'board')
+    return result.stdout.strip() if result.stdout else ''
+
+  def GetProductName(self):
+    result_x86 = self.GetValue('/identity', 'smbios-name-match')
+    result_arm = self.GetValue('/identity', 'device-tree-compatible-match')
+    result = result_x86 or result_arm
+    return result.stdout.strip() if result.stdout else ''
+
+  def GetCustomizationId(self):
+    result = self.GetValue('/identity', 'customization-id')
+    return result.stdout.strip() if result.stdout else ''
+
   def GetSkuID(self):
     result = self.GetValue('/identity', 'sku-id')
-    if result.success:
-      return result.stdout.strip() if result.stdout else ''
-
-    # Fall back to mosys command
-    result = self._shell(['mosys', 'platform', 'sku'], sys_interface=self._dut)
     return result.stdout.strip() if result.stdout else ''
 
   def GetBrandCode(self):

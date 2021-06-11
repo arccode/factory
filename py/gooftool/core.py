@@ -45,6 +45,20 @@ from cros.factory.utils.type_utils import Error
 Mismatch = namedtuple('Mismatch', ['expected', 'actual'])
 
 
+class CrosConfigError(Error):
+  message_template = '%s. Identity may be misconfigured.\n%s\n%s'
+
+  def __init__(self, message, db_identity, cur_identity):
+    Error.__init__(self)
+    self.message = message
+    self.db_identity = db_identity
+    self.cur_identity = cur_identity
+
+  def __str__(self):
+    return CrosConfigError.message_template % (self.message, self.db_identity,
+                                               self.cur_identity)
+
+
 class Gooftool:
   """A class to perform hardware probing and verification and to implement
   Google required tests.
@@ -131,11 +145,13 @@ class Gooftool:
     used to sign the fingerprint firmware binary in the release rootfs
     partition.
     """
-    fp_board_result = self._util.shell(
-        ['cros_config', '/fingerprint', 'board'])
-    if not fp_board_result.success:
-      raise Error('Failed to probe fingerprint board from cros_config')
-    fp_board = fp_board_result.stdout.strip()
+    cros_config = cros_config_module.CrosConfig(self._util.shell)
+    fp_board = cros_config.GetFingerPrintBoard()
+    if not fp_board:
+      db_identity, cur_identity = self.GetIdentity(cros_config)
+      raise CrosConfigError(
+          'Failed to probe fingerprint board from cros_config', db_identity,
+          cur_identity)
 
     with sys_utils.MountPartition(
         self._util.GetReleaseRootPartitionPath()) as root:
@@ -509,7 +525,8 @@ class Gooftool:
 
     model = cros_config.GetModelName()
     if not model:
-      raise Error('Model name is empty')
+      db_identity, cur_identity = self.GetIdentity(cros_config)
+      raise CrosConfigError('Model name is empty', db_identity, cur_identity)
 
     def _ParseCrosConfig(config_path):
       with open(config_path) as f:
@@ -945,7 +962,8 @@ class Gooftool:
 
     RLZ = cros_config.GetBrandCode()
     if RLZ == '':
-      raise Error('RLZ code is empty.')
+      db_identity, cur_identity = self.GetIdentity(cros_config)
+      raise CrosConfigError('RLZ code is empty', db_identity, cur_identity)
     if board_id.type != int(codecs.encode(RLZ.encode('ascii'), 'hex'), 16):
       raise Error('RLZ does not match Board ID.')
     return True
@@ -1246,3 +1264,64 @@ class Gooftool:
       raise Error('FPMCU entropy cannot be initialized properly.\n'\
                   'Log of %r:\n%s' % (BIOWASH_CMD, biowash.stderr))
     logging.info('FPMCU entropy initialized successfully.')
+
+  def GetIdentity(self, cros_config):
+    """Return identities in cros_config database and current identities.
+
+    cros_config is a database and uses `identity` as key to query the
+    configuration. However, if `identity` is misconfigured, cros_config will
+    return either false or empty configuration. We print identities in
+    cros_config database and current identities to help identify the wrong
+    settings.
+
+    Args:
+      cros_config: instance of CrosConfig
+
+    Returns:
+      Strings which contain identities in cros_config and current identities.
+    """
+
+    def get_cros_config_val(val):
+      return val if val else 'empty'
+
+    def get_file_if_exist(path_to_file, read_byte=False):
+      if os.path.exists(path_to_file):
+        if read_byte:
+          big_endian_data = file_utils.ReadFile(path_to_file, None)
+          ret = str(int.from_bytes(big_endian_data, byteorder='big'))
+        else:
+          ret = file_utils.ReadFile(path_to_file).strip()
+        return ret
+      return ''
+
+    def get_vpd_val(tag_name):
+      return self._vpd.GetValue(tag_name, 'empty')
+
+    db_product_name = get_cros_config_val(cros_config.GetProductName())
+    db_sku_id = get_cros_config_val(cros_config.GetSkuID())
+    db_customization_id = get_cros_config_val(cros_config.GetCustomizationId())
+    db_whitelabel_tag = get_cros_config_val(cros_config.GetWhiteLabelTag()[1])
+
+    db_identity = (
+        'In cros_config:\nproduct name: %s\nsku id: %s\n'
+        'customization id: %s\nwhitelabel tag: %s\n' %
+        (db_product_name, db_sku_id, db_customization_id, db_whitelabel_tag))
+
+    # one for x86 device another for ARM device
+    cur_product_name = get_file_if_exist(
+        cros_config_module.PRODUCT_NAME_PATH) or get_file_if_exist(
+            cros_config_module.DEVICE_TREE_COMPATIBLE_PATH) or 'empty'
+    # For some devices (e.g. hayato), there's only one SKU.
+    # In this case, sku-id might not be set.
+    cur_sku_id = get_file_if_exist(
+        cros_config_module.PRODUCT_SKU_ID_PATH) or get_file_if_exist(
+            cros_config_module.DEVICE_TREE_SKU_ID_PATH, True) or 'empty'
+    cur_customization_id = get_vpd_val('customization_id')
+    cur_whitelabel_tag = get_vpd_val('whitelabel_tag')
+
+    cur_identity = ('Current:\nproduct name: %s\nsku id: %s\n'
+                    'customization id: %s\nwhitelabel tag: %s\n' %
+                    (cur_product_name, cur_sku_id, cur_customization_id,
+                     cur_whitelabel_tag))
+
+    return db_identity, cur_identity

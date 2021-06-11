@@ -78,8 +78,6 @@ _KEY_COMPONENT_DRAM_PART_NUM = device_data.JoinKeys(
     device_data.KEY_COMPONENT, 'dram_part_num')
 _KEY_COMPONENT_PCB_SUPPLIER = device_data.JoinKeys(
     device_data.KEY_COMPONENT, 'pcb_supplier')
-_PRODUCT_NAME_PATH = '/sys/class/dmi/id/product_name'
-_DEVICE_TREE_COMPATIBLE_PATH = '/proc/device-tree/compatible'
 
 _ARG_CBI_DATA_NAMES_SCHEMA = JSONSchemaDict(
     'cbi_data_names schema object', {
