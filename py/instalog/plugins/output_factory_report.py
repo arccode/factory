@@ -44,6 +44,7 @@ REPORT_EVENT_FIELD = {
 }
 PATTERN_WP_STATUS = re.compile(r'WP: status: (\w+)')
 PATTERN_WP = re.compile(r'WP: write protect is (\w+)\.')
+yaml_loader = yaml.CBaseLoader if yaml.__with_libyaml__ else yaml.BaseLoader
 
 
 class OutputFactoryReport(plugin_base.OutputPlugin):
@@ -77,6 +78,8 @@ class OutputFactoryReport(plugin_base.OutputPlugin):
 
   def Main(self):
     """Main thread of the plugin."""
+    if not yaml.__with_libyaml__:
+      self.info('Please install LibYAML to speed up this plugin.')
     while not self.IsStopping():
       if not self.DownloadAndProcess():
         self.Sleep(1)
@@ -361,12 +364,27 @@ class ReportParser(log_utils.LoggerMixin):
 
   def ParseEventlogEvents(self, path, report_event, process_event):
     """Parses Eventlog file."""
+    END_TOKEN = '---\n'
+
     try:
-      # TODO(chuntsen): Parse eventlog events one by one.
-      for event in yaml.safe_load_all(open(path, 'r')):
-        if event:
+      data_lines = ''
+      for line in open(path, 'r'):
+        if line != END_TOKEN:
+          data_lines += line
+        else:
+          raw_event = data_lines
+          data_lines = ''
+          event = None
+          try:
+            event = yaml.load(raw_event, yaml_loader)
+          except yaml.YAMLError as e:
+            SetProcessEventStatus(ERROR_CODE.EventlogBrokenEvent, process_event,
+                                  e)
+            continue
+
           if not isinstance(event, dict):
-            SetProcessEventStatus(ERROR_CODE.EventlogBrokenEvent, process_event)
+            SetProcessEventStatus(ERROR_CODE.EventlogBrokenEvent, process_event,
+                                  raw_event)
             continue
 
           def GetField(field, dct, key, is_string=True):
@@ -444,6 +462,11 @@ class ReportParser(log_utils.LoggerMixin):
               report_event['testlistName'] = testlist_name
             report_event['testlistStation'] = json.dumps(
                 list(testlist_station_set))
+      # There should not have data after the last END_TOKEN.
+      if data_lines:
+        SetProcessEventStatus(ERROR_CODE.EventlogBrokenEvent, process_event,
+                              data_lines)
+
       return report_event, process_event
     except Exception as e:
       SetProcessEventStatus(ERROR_CODE.EventlogUnknownError, process_event, e)
