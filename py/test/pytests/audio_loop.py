@@ -208,6 +208,8 @@ _DEFAULT_AUDIOFUN_TEST_SAMPLE_RATE = 48000
 _DEFAULT_AUDIOFUN_TEST_SAMPLE_FORMAT = 's16'
 # Default sample format used to play audio, s16 = Signed 16 Bit.
 _DEFAULT_AUDIOFUN_TEST_PLAYER_FORMAT = 's16'
+# Default record gain for audiofuntest record command, 0(dB) is multiply by 1.
+_DEFAULT_AUDIOFUN_TEST_INPUT_GAIN = 0
 # Default channels of the input_dev to be tested.
 _DEFAULT_TEST_INPUT_CHANNELS = [0, 1]
 # Default channels of the output_dev to be tested.
@@ -315,6 +317,9 @@ _ARG_TESTS_TO_CONDUCT_SCHEMA = JSONSchemaDict(
                         'type': 'number',
                         'minimum': 0,
                         'maximum': 100
+                    },
+                    'input_gain': {
+                        'type': 'number'
                     },
                     'capture_rate': {
                         'type': 'number'
@@ -443,6 +448,11 @@ class AudioLoopTest(test_case.TestCase):
           '  - **volume_gain**: The volume gain set to audiofuntest for \n'
           '        controlling the volume of generated audio frames. The \n'
           '        range is from 0 to 100.\n'
+          '  - **input_gain**: The volume gain for sox recorder command.\n'
+          '        The value should be in "dB", you can see the value \n'
+          '        suggested by CRAS with command \n'
+          '        `cras_test_client --dump_sever_info`, check the "Gain" \n'
+          '        column.'
           '  - **capture_rate**: The capturing sample rate use for testing. \n'
           '        The value should be determined by output device.\n'
           '  - **sample_format**: The sample format for audiofuntest. \n'
@@ -768,14 +778,17 @@ class AudioLoopTest(test_case.TestCase):
                      player_encoding,
                      self._alsa_output_device)
 
+    input_gain = self._current_test_args.get('input_gain',
+                                             _DEFAULT_AUDIOFUN_TEST_INPUT_GAIN)
     recorder_cmd = 'sox -talsa %s '\
-                   '-b%d -c%d -e%s -r%d -traw - remix %s' % (
+                   '-b%d -c%d -e%s -r%d -traw - remix %s gain %d' % (
                        self._alsa_input_device,
                        audiofuntest_bits,
                        len(input_channels),
                        audiofuntest_encoding,
                        capture_rate,
-                       ' '.join(str(x+1) for x in input_channels))
+                       ' '.join(str(x+1) for x in input_channels),
+                       input_gain)
 
     logging.info('player_cmd: %s', player_cmd)
     logging.info('recorder_cmd: %s', recorder_cmd)
