@@ -153,6 +153,11 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
     self.fw_ver = self.gsctool.GetCr50FirmwareVersion()
     self.board_id = self.gsctool.GetBoardID()
 
+  def tearDown(self):
+    # Clear the device data for the previous attempt.
+    device_data.DeleteDeviceData(KEY_ATTEMPT_CR50_UPDATE_RO_VERSION, True)
+    device_data.DeleteDeviceData(KEY_ATTEMPT_CR50_UPDATE_RW_VERSION, True)
+
   def runTest(self):
     """Update Cr50 firmware."""
     if self.args.firmware_file is None:
@@ -171,8 +176,9 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
 
     self._LogCr50Info()
 
+    # When `upstart_mode` is set to False, the device will keep rebooting if
+    # the update fails. So we need an additional check here.
     self._CheckVersionRetry(self._CompareAttemptUpdateVersion)
-    self._ClearAttemptDeviceData()
 
     if self.args.method == self._METHOD_TYPE.UPDATE:
       method_func = self._UpdateCr50Firmware
@@ -262,16 +268,11 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
       _Check()
     except type_utils.TestFailure:
       if self.args.check_version_retry_timeout <= 0:
-        self._ClearAttemptDeviceData()
         raise
       self.ui.SetState('Version is old, sleep for %d seconds and re-check.' %
                        self.args.check_version_retry_timeout)
       self.Sleep(self.args.check_version_retry_timeout)
-      try:
-        _Check()
-      except type_utils.TestFailure:
-        self._ClearAttemptDeviceData()
-        raise
+      _Check()
 
   def _UpdateCr50Firmware(self, firmware_file):
     if self._IsPrePVTFirmware(firmware_file):
@@ -303,7 +304,3 @@ class UpdateCr50FirmwareTest(test_case.TestCase):
   def _CheckCr50FirmwareVersion(self, firmware_file):
     self._CheckVersionRetry(self._CompareFirmwareFileVersion, firmware_file)
     session.console.info('Cr50 firmware is up-to-date.')
-
-  def _ClearAttemptDeviceData(self):
-    device_data.DeleteDeviceData(KEY_ATTEMPT_CR50_UPDATE_RO_VERSION, True)
-    device_data.DeleteDeviceData(KEY_ATTEMPT_CR50_UPDATE_RW_VERSION, True)
