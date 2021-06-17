@@ -282,6 +282,12 @@ _cbi_eeprom_wp_status_cmd_arg = CmdArg(
     choices=CbiEepromWpStatus,
     help='The expected status of CBI EEPROM after factory mode disabled.')
 
+_use_generic_tpm2_arg = CmdArg(
+    '--use_generic_tpm2', action='store_true',
+    help=('Most Chromebooks are using Google security chips.  If this project '
+          'is using a generic TPM (e.g. infineon), set this to true.  The '
+          'steps in `cr50_finalize` will be adjusted'))
+
 
 @Command(
     'verify_ec_key',
@@ -533,7 +539,8 @@ def Cr50DisableFactoryMode(options):
 
 
 @Command('cr50_finalize', _no_write_protect_cmd_arg, _rma_mode_cmd_arg,
-         _replacement_mlb_mode_cmd_arg, _enable_zero_touch_cmd_arg)
+         _replacement_mlb_mode_cmd_arg, _enable_zero_touch_cmd_arg,
+         _use_generic_tpm2_arg)
 def Cr50Finalize(options):
   """Finalize steps for cr50."""
   if options.no_write_protect:
@@ -542,10 +549,16 @@ def Cr50Finalize(options):
     logging.warning('RMA mode. Skip setting RO hash.')
   elif options.replacement_mlb_mode:
     logging.warning('Replacement MLB mode. Skip setting RO hash.')
+  elif options.use_generic_tpm2:
+    logging.warning('Generic TPM2 device. Skip setting RO hash.')
   else:
     Cr50SetROHash(options)
   Cr50WriteFlashInfo(options)
-  if not options.replacement_mlb_mode:
+  if options.replacement_mlb_mode:
+    logging.warning('Replacement MLB mode. Skip disabling factory mode.')
+  elif options.use_generic_tpm2:
+    logging.warning('Generic TPM2 device. No need to disable factory mode.')
+  else:
     Cr50DisableFactoryMode(options)
 
 
@@ -879,6 +892,7 @@ def UploadReport(options):
     _no_generate_mfg_date_cmd_arg,
     _enable_zero_touch_cmd_arg,
     _cbi_eeprom_wp_status_cmd_arg,
+    _use_generic_tpm2_arg,
 )
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.

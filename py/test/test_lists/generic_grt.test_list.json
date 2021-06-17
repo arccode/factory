@@ -61,7 +61,8 @@
         "secure_wipe": "eval! constants.grt.secure_wipe",
         "upload_method": "eval! 'shopfloor' if constants.enable_factory_server else 'none'",
         "write_protection": "eval! constants.grt.force_write_protect or options.phase == 'PVT'",
-        "cbi_eeprom_wp_status": "eval! 'Locked' if constants.grt.cbi_eeprom_wp_status != 'Absent' and options.phase == 'PVT' else constants.grt.cbi_eeprom_wp_status"
+        "cbi_eeprom_wp_status": "eval! 'Locked' if constants.grt.cbi_eeprom_wp_status != 'Absent' and options.phase == 'PVT' else constants.grt.cbi_eeprom_wp_status",
+        "use_generic_tpm2": "eval! constants.use_generic_tpm2"
       }
     },
     "GRTItems": {

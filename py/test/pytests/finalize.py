@@ -194,6 +194,10 @@ class Finalize(test_case.TestCase):
            'enabled. If set to "Unlocked", checks that CBI EEPROM write '
            'protection is disabled. If set to "Absent", checks that CBI EEPROM '
            'is absent.'), default=cbi_utils.CbiEepromWpStatus.Locked),
+      Arg('use_generic_tpm2', bool,
+          ('Most Chromebooks are using Google security chips.  If this project '
+           'is using a generic TPM (e.g. infineon), set this to true.  The '
+           'steps in `cr50_finalize` will be adjusted'), default=False),
   ]
 
   FINALIZE_TIMEOUT = 180
@@ -337,6 +341,9 @@ class Finalize(test_case.TestCase):
       self.Warn('WRITE PROTECTION IS DISABLED.')
       command += ' --no_write_protect'
     command += ' --cbi_eeprom_wp_status %s' % self.args.cbi_eeprom_wp_status
+
+    if self.args.use_generic_tpm2:
+      command += ' --use_generic_tpm2'
 
     if not self.args.has_ectool:
       command += ' --no_ectool'
