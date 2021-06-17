@@ -370,7 +370,18 @@ class ReportParser(log_utils.LoggerMixin):
       data_lines = ''
       for line in open(path, 'r'):
         if line != END_TOKEN:
-          data_lines += line
+          # If the log file is not sync to disk correctly, it may have null
+          # characters. The data after the last null character should be the
+          # first line of a new event.
+          if '\0' in line:
+            splited_line = line.split('\0')
+            data_lines += splited_line[0]
+            SetProcessEventStatus(ERROR_CODE.EventlogNullCharactersExist,
+                                  process_event, data_lines)
+
+            data_lines = splited_line[-1]
+          else:
+            data_lines += line
         else:
           raw_event = data_lines
           data_lines = ''
@@ -515,8 +526,9 @@ ERROR_CODE = type_utils.Obj(
     ReportInvalidFormat=300,
     ReportUnknownError=399,
     EventlogFileNotFound=400,
-    EventlogWrongType=401,
-    EventlogBrokenEvent=402,
+    EventlogNullCharactersExist=401,
+    EventlogWrongType=402,
+    EventlogBrokenEvent=403,
     EventlogUnknownError=499,
     TestlogFileNotFound=500,
     TestlogNullCharactersExist=501,
