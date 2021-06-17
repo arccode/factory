@@ -496,29 +496,54 @@ class ReportParser(log_utils.LoggerMixin):
     try:
       with open(path, 'r') as f:
         for line in f:
+          # If the log file is not sync to disk correctly, it may have null
+          # characters.
           if '\0' in line:
             SetProcessEventStatus(ERROR_CODE.TestlogNullCharactersExist,
                                   process_event)
-          event = datatypes.Event.Deserialize(line.strip('\0'))
+          # If the log file is not sync to disk correctly, a line may have a
+          # broken event and a new event. We can use the EVENT_START to find
+          # the new event.
+          EVENT_START = '{"payload":'
+          new_event_index = line.rfind(EVENT_START)
+          if new_event_index > 0:
+            SetProcessEventStatus(ERROR_CODE.TestlogBrokenEvent, process_event,
+                                  line)
+            line = line[new_event_index:]
 
-          if 'serialNumbers' in event:
-            for sn_key, sn_value in event['serialNumbers'].items():
-              if not isinstance(sn_value, str):
-                SetProcessEventStatus(ERROR_CODE.TestlogWrongType,
-                                      process_event)
-                sn_value = str(sn_value)
-              report_event['serialNumbers'][sn_key] = sn_value
-          if 'time' in event:
-            report_event['dutTime'] = event['time']
+          try:
+            event = datatypes.Event.Deserialize(line)
 
-          for field in REPORT_EVENT_FIELD:
-            if field in event:
-              report_event[field] = event[field]
+            if not isinstance(event, dict):
+              SetProcessEventStatus(ERROR_CODE.TestlogBrokenEvent,
+                                    process_event, line)
+              continue
 
-          if event.get('testType', None) == 'hwid':
-            data = event.get('parameters', {}).get('phase', {}).get('data', {})
-            if len(data) == 1 and 'textValue' in data[0]:
-              report_event['phase'] = data[0]['textValue']
+            if 'serialNumbers' in event:
+              for sn_key, sn_value in event['serialNumbers'].items():
+                if not isinstance(sn_value, str):
+                  SetProcessEventStatus(ERROR_CODE.TestlogWrongType,
+                                        process_event)
+                  sn_value = str(sn_value)
+                report_event['serialNumbers'][sn_key] = sn_value
+            if 'time' in event:
+              report_event['dutTime'] = event['time']
+
+            for field in REPORT_EVENT_FIELD:
+              if field in event:
+                report_event[field] = event[field]
+
+            if event.get('testType', None) == 'hwid':
+              data = event.get('parameters', {}).get('phase', {}).get(
+                  'data', {})
+              if len(data) == 1 and 'textValue' in data[0]:
+                report_event['phase'] = data[0]['textValue']
+          except json.JSONDecodeError as e:
+            SetProcessEventStatus(ERROR_CODE.TestlogBrokenEvent, process_event,
+                                  e)
+          except Exception as e:
+            SetProcessEventStatus(ERROR_CODE.TestlogUnknownError, process_event,
+                                  e)
       return report_event, process_event
     except Exception as e:
       SetProcessEventStatus(ERROR_CODE.TestlogUnknownError, process_event, e)
@@ -540,6 +565,7 @@ ERROR_CODE = type_utils.Obj(
     TestlogFileNotFound=500,
     TestlogNullCharactersExist=501,
     TestlogWrongType=502,
+    TestlogBrokenEvent=503,
     TestlogUnknownError=599,
 )
 
