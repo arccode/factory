@@ -388,91 +388,98 @@ class ReportParser(log_utils.LoggerMixin):
           event = None
           try:
             event = yaml.load(raw_event, yaml_loader)
+
+            if not isinstance(event, dict):
+              SetProcessEventStatus(ERROR_CODE.EventlogBrokenEvent,
+                                    process_event, raw_event)
+              continue
+
+            def GetField(field, dct, key, is_string=True):
+              if key in dct:
+                if not is_string or isinstance(dct[key], str):
+                  report_event[field] = dct[key]
+                else:
+                  SetProcessEventStatus(ERROR_CODE.EventlogWrongType,
+                                        process_event)
+                  report_event[field] = str(dct[key])
+
+            serial_numbers = event.get('serial_numbers', {})
+            if not isinstance(serial_numbers, dict):
+              SetProcessEventStatus(ERROR_CODE.EventlogWrongType, process_event)
+            else:
+              for sn_key, sn_value in serial_numbers.items():
+                if not isinstance(sn_value, str):
+                  SetProcessEventStatus(ERROR_CODE.EventlogWrongType,
+                                        process_event)
+                  sn_value = str(sn_value)
+                report_event['serialNumbers'][sn_key] = sn_value
+
+            event_name = event.get('EVENT', None)
+            if event_name == 'system_details':
+              crossystem = event.get('crossystem', {})
+              GetField('hwid', crossystem, 'hwid')
+              if 'hwid' in report_event:
+                report_event['modelName'] = report_event['hwid'].split(' ')[0]
+              GetField('fwid', crossystem, 'fwid')
+              GetField('roFwid', crossystem, 'ro_fwid')
+              GetField('wpswBoot', crossystem, 'wpsw_boot')
+              GetField('wpswCur', crossystem, 'wpsw_cur')
+              GetField('ecWpDetails', event, 'ec_wp_status')
+              if 'ecWpDetails' in report_event:
+                result = PATTERN_WP_STATUS.findall(report_event['ecWpDetails'])
+                if len(result) == 1:
+                  report_event['ecWpStatus'] = result[0]
+                result = PATTERN_WP.findall(report_event['ecWpDetails'])
+                if len(result) == 1:
+                  report_event['ecWp'] = result[0]
+              GetField('biosWpDetails', event, 'bios_wp_status')
+              if 'biosWpDetails' in report_event:
+                result = PATTERN_WP_STATUS.findall(
+                    report_event['biosWpDetails'])
+                if len(result) == 1:
+                  report_event['biosWpStatus'] = result[0]
+                result = PATTERN_WP.findall(report_event['biosWpDetails'])
+                if len(result) == 1:
+                  report_event['biosWp'] = result[0]
+              GetField('modemStatus', event, 'modem_status')
+              GetField('platformName', event, 'platform_name')
+            elif event_name == 'finalize_image_version':
+              GetField('factoryImageVersion', event, 'factory_image_version')
+              GetField('releaseImageVersion', event, 'release_image_version')
+            elif event_name == 'preamble':
+              GetField('toolkitVersion', event, 'toolkit_version')
+            elif event_name == 'test_states':
+
+              def ParseTestStates(test_states, test_states_list):
+                if 'subtests' in test_states:
+                  for subtest in test_states['subtests']:
+                    ParseTestStates(subtest, test_states_list)
+                if 'status' in test_states:
+                  test_states_list.append(
+                      (test_states['path'], test_states['status']))
+
+              test_states_list = []
+              testlist_name = None
+              testlist_station_set = set()
+
+              ParseTestStates(event['test_states'], test_states_list)
+              for test_path, unused_test_status in test_states_list:
+                if ':' in test_path:
+                  testlist_name, test_path = test_path.split(':')
+                testlist_station = test_path.split('.')[0]
+                testlist_station_set.add(testlist_station)
+
+              report_event['testStates'] = test_states_list
+              if testlist_name:
+                report_event['testlistName'] = testlist_name
+              report_event['testlistStation'] = json.dumps(
+                  list(testlist_station_set))
           except yaml.YAMLError as e:
             SetProcessEventStatus(ERROR_CODE.EventlogBrokenEvent, process_event,
                                   e)
-            continue
-
-          if not isinstance(event, dict):
-            SetProcessEventStatus(ERROR_CODE.EventlogBrokenEvent, process_event,
-                                  raw_event)
-            continue
-
-          def GetField(field, dct, key, is_string=True):
-            if key in dct:
-              if not is_string or isinstance(dct[key], str):
-                report_event[field] = dct[key]
-              else:
-                SetProcessEventStatus(ERROR_CODE.EventlogWrongType,
-                                      process_event)
-                report_event[field] = str(dct[key])
-
-          serial_numbers = event.get('serial_numbers', {})
-          for sn_key, sn_value in serial_numbers.items():
-            if not isinstance(sn_value, str):
-              SetProcessEventStatus(ERROR_CODE.EventlogWrongType, process_event)
-              sn_value = str(sn_value)
-            report_event['serialNumbers'][sn_key] = sn_value
-
-          event_name = event.get('EVENT', None)
-          if event_name == 'system_details':
-            crossystem = event.get('crossystem', {})
-            GetField('hwid', crossystem, 'hwid')
-            if 'hwid' in report_event:
-              report_event['modelName'] = report_event['hwid'].split(' ')[0]
-            GetField('fwid', crossystem, 'fwid')
-            GetField('roFwid', crossystem, 'ro_fwid')
-            GetField('wpswBoot', crossystem, 'wpsw_boot')
-            GetField('wpswCur', crossystem, 'wpsw_cur')
-            GetField('ecWpDetails', event, 'ec_wp_status')
-            if 'ecWpDetails' in report_event:
-              result = PATTERN_WP_STATUS.findall(report_event['ecWpDetails'])
-              if len(result) == 1:
-                report_event['ecWpStatus'] = result[0]
-              result = PATTERN_WP.findall(report_event['ecWpDetails'])
-              if len(result) == 1:
-                report_event['ecWp'] = result[0]
-            GetField('biosWpDetails', event, 'bios_wp_status')
-            if 'biosWpDetails' in report_event:
-              result = PATTERN_WP_STATUS.findall(report_event['biosWpDetails'])
-              if len(result) == 1:
-                report_event['biosWpStatus'] = result[0]
-              result = PATTERN_WP.findall(report_event['biosWpDetails'])
-              if len(result) == 1:
-                report_event['biosWp'] = result[0]
-            GetField('modemStatus', event, 'modem_status')
-            GetField('platformName', event, 'platform_name')
-          elif event_name == 'finalize_image_version':
-            GetField('factoryImageVersion', event, 'factory_image_version')
-            GetField('releaseImageVersion', event, 'release_image_version')
-          elif event_name == 'preamble':
-            GetField('toolkitVersion', event, 'toolkit_version')
-          elif event_name == 'test_states':
-
-            def ParseTestStates(test_states, test_states_list):
-              if 'subtests' in test_states:
-                for subtest in test_states['subtests']:
-                  ParseTestStates(subtest, test_states_list)
-              if 'status' in test_states:
-                test_states_list.append(
-                    (test_states['path'], test_states['status']))
-
-            test_states_list = []
-            testlist_name = None
-            testlist_station_set = set()
-
-            ParseTestStates(event['test_states'], test_states_list)
-            for test_path, unused_test_status in test_states_list:
-              if ':' in test_path:
-                testlist_name, test_path = test_path.split(':')
-              testlist_station = test_path.split('.')[0]
-              testlist_station_set.add(testlist_station)
-
-            report_event['testStates'] = test_states_list
-            if testlist_name:
-              report_event['testlistName'] = testlist_name
-            report_event['testlistStation'] = json.dumps(
-                list(testlist_station_set))
+          except Exception as e:
+            SetProcessEventStatus(ERROR_CODE.EventlogUnknownError,
+                                  process_event, e)
       # There should not have data after the last END_TOKEN.
       if data_lines:
         SetProcessEventStatus(ERROR_CODE.EventlogBrokenEvent, process_event,
