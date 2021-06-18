@@ -11,6 +11,7 @@ import logging
 import os
 
 from cros.factory.utils import config_utils
+from cros.factory.device import device_types
 
 
 DEVICE_MODULE_BASE = 'cros.factory.device'
@@ -127,7 +128,8 @@ def _ParseOptions(config_type, new_options):
   return (link_name, board_name, options)
 
 
-def CreateBoardInterface(config_type=DEVICE_CONFIG_TYPE_DEFAULT, **options):
+def CreateBoardInterface(config_type=DEVICE_CONFIG_TYPE_DEFAULT,
+                         **options) -> device_types.DeviceBoard:
   """Returns a board interface for the specified device.
 
   By default, a :py:class:`cros.factory.device.boards.ChromeOSBoard` object
@@ -162,7 +164,7 @@ def CreateStationInterface(**options):
   return CreateBoardInterface(config_type=DEVICE_CONFIG_TYPE_STATION, **options)
 
 
-def CreateDUTLink(**options):
+def CreateDUTLink(**options) -> device_types.DeviceLink:
   """Creates a link object to device under test.
 
   Args:
