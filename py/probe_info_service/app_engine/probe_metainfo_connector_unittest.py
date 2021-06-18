@@ -3,12 +3,17 @@
 # found in the LICENSE file.
 
 import unittest
+from unittest import mock
 
 from cros.factory.probe_info_service.app_engine import probe_metainfo_connector
 
 
 class DataStoreProbeMetaInfoConnector(unittest.TestCase):
   def setUp(self):
+    self._patcher = mock.patch('google.auth')
+    mock_google_auth = self._patcher.start()
+    mock_google_auth.default.return_value = (mock.Mock(), None)
+    self.addCleanup(self._patcher.stop)
     # pylint: disable=protected-access
     self._connector = (
         probe_metainfo_connector._DataStoreProbeMetaInfoConnector())

@@ -5,5 +5,5 @@ probe_parameter_errors: {
 }
 probe_parameter_errors {
   index: 1
-  hint: "format error, expect a 6-byte ASCII string"
+  hint: "format error, expect a ASCII string of length 4 to 6"
 }

@@ -85,7 +85,7 @@ class ProbeToolManagerTest(unittest.TestCase):
     resp = self._probe_tool_manager.ValidateProbeInfo(probe_info, True)
     self.assertEqual(resp.result_type, resp.PASSED)
 
-  def test_ValidateProbeInfoProbe_ParameterFormatError(self):
+  def test_ValidateProbeInfo_ParameterFormatError(self):
     probe_info, unused_comp_name = _LoadProbeInfoAndCompName(
         '1-param_value_error')
     resp = self._probe_tool_manager.ValidateProbeInfo(probe_info, False)
