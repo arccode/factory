@@ -666,7 +666,9 @@ class Gooftool:
     """
 
     if self._util.shell('crossystem wpsw_cur').stdout.strip() != '1':
-      raise Error('write protection switch of AP is disabled.')
+      raise Error(
+          'write protection switch of AP is disabled. Please attach '
+          'the battery or insert the write protect screw to enable HWWP.')
 
     if not has_ectool:
       return
