@@ -44,6 +44,8 @@ REPORT_EVENT_FIELD = {
 }
 PATTERN_WP_STATUS = re.compile(r'WP: status: (\w+)')
 PATTERN_WP = re.compile(r'WP: write protect is (\w+)\.')
+PATTERN_SERIAL_NUMBER = re.compile(r'^\s*serial_number: .*$', re.M)
+PATTERN_MLB_SERIAL_NUMBER = re.compile(r'^\s*mlb_serial_number: .*$', re.M)
 yaml_loader = yaml.CBaseLoader if yaml.__with_libyaml__ else yaml.BaseLoader
 
 
@@ -364,6 +366,14 @@ class ReportParser(log_utils.LoggerMixin):
 
   def ParseEventlogEvents(self, path, report_event, process_event):
     """Parses Eventlog file."""
+
+    def SetSerialNumber(sn_key, sn_value):
+      if not isinstance(sn_value, str):
+        SetProcessEventStatus(ERROR_CODE.EventlogWrongType, process_event)
+        sn_value = str(sn_value)
+      if sn_value != 'null':
+        report_event['serialNumbers'][sn_key] = sn_value
+
     END_TOKEN = '---\n'
 
     try:
@@ -397,7 +407,8 @@ class ReportParser(log_utils.LoggerMixin):
             def GetField(field, dct, key, is_string=True):
               if key in dct:
                 if not is_string or isinstance(dct[key], str):
-                  report_event[field] = dct[key]
+                  if dct[key] != 'null':
+                    report_event[field] = dct[key]
                 else:
                   SetProcessEventStatus(ERROR_CODE.EventlogWrongType,
                                         process_event)
@@ -408,11 +419,7 @@ class ReportParser(log_utils.LoggerMixin):
               SetProcessEventStatus(ERROR_CODE.EventlogWrongType, process_event)
             else:
               for sn_key, sn_value in serial_numbers.items():
-                if not isinstance(sn_value, str):
-                  SetProcessEventStatus(ERROR_CODE.EventlogWrongType,
-                                        process_event)
-                  sn_value = str(sn_value)
-                report_event['serialNumbers'][sn_key] = sn_value
+                SetSerialNumber(sn_key, sn_value)
 
             event_name = event.get('EVENT', None)
             if event_name == 'system_details':
@@ -443,6 +450,10 @@ class ReportParser(log_utils.LoggerMixin):
                   report_event['biosWp'] = result[0]
               GetField('modemStatus', event, 'modem_status')
               GetField('platformName', event, 'platform_name')
+            elif event_name == 'scan':
+              for sn_key in ['serial_number', 'mlb_serial_number']:
+                if event.get('key', None) == sn_key and 'value' in event:
+                  SetSerialNumber(sn_key, event['value'])
             elif event_name == 'finalize_image_version':
               GetField('factoryImageVersion', event, 'factory_image_version')
               GetField('releaseImageVersion', event, 'release_image_version')
@@ -480,10 +491,33 @@ class ReportParser(log_utils.LoggerMixin):
           except Exception as e:
             SetProcessEventStatus(ERROR_CODE.EventlogUnknownError,
                                   process_event, e)
+
       # There should not have data after the last END_TOKEN.
       if data_lines:
         SetProcessEventStatus(ERROR_CODE.EventlogBrokenEvent, process_event,
                               data_lines)
+
+      # Some reports doesn't have serial_numbers field. However, serial numbers
+      # are very important in a report_event, so we try to parse them again.
+      content = None
+      for sn_key, pattern in [('serial_number', PATTERN_SERIAL_NUMBER),
+                              ('mlb_serial_number', PATTERN_MLB_SERIAL_NUMBER)]:
+        if sn_key not in report_event['serialNumbers']:
+          if not content:
+            content = file_utils.ReadFile(path)
+          line_list = pattern.findall(content)
+          sn_list = []
+          for line in line_list:
+            try:
+              sn = yaml.load(line, yaml_loader)[sn_key]
+              if sn != 'null':
+                sn_list.append(sn)
+            except Exception:
+              pass
+          if len(sn_list) > 0:
+            # We use the most frequent value.
+            sn_value = max(set(sn_list), key=sn_list.count)
+            SetSerialNumber(sn_key, sn_value)
 
       return report_event, process_event
     except Exception as e:
