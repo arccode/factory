@@ -1,0 +1,40 @@
+# DELETE THIS COMMENT IN YOUR COPY.
+#
+# This is an example unblocked_terms.txt which contains the current set of
+# terms which are blocked in the codebase.
+#
+# Copy this file to your project and uncomment words to disable the repo hook
+# blocking terms in your project.
+#
+# See repohooks/README.md for more details.
+
+# black.?hat
+black.?list
+# build.?cop
+# crazy
+# cripple
+dummy
+# first.?class.?citizen
+# grandfathered
+# gr[ae]y.?hat
+# gr[ae]y.?list
+# \bhe\b
+# \bshe\b
+# \bhim\b
+# \bher\b
+# \bhis\b
+# \bhers\b
+# man.?in.?the.?middle
+master
+# \bmitm(\b|\d)
+# \bnative
+# \bred.?line
+# rtfm
+\b(in)?sane(\b|\d)
+sanity
+# slave
+# white.?glove
+# white.?hat
+white.?label
+# white.?list
+# \bwtf
