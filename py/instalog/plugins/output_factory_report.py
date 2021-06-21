@@ -248,7 +248,7 @@ class ReportParser(log_utils.LoggerMixin):
       total_reports = 0
       with zipfile.ZipFile(self._archive_path, 'r') as archive_obj:
         for member_name in archive_obj.namelist():
-          if not member_name.endswith('.rpt.xz'):
+          if not self.IsValidReportName(member_name):
             continue
 
           report_path = self.GetReportPath(total_reports)
@@ -275,19 +275,34 @@ class ReportParser(log_utils.LoggerMixin):
       # faster than normal 'r:*' mode.
       with tarfile.open(self._archive_path, 'r|*') as archive_obj:
         for archive_member in archive_obj:
-          if not archive_member.name.endswith('.rpt.xz'):
+          member_name = archive_member.name
+          if not self.IsValidReportName(member_name):
             continue
 
           report_path = self.GetReportPath(total_reports)
           with open(report_path, 'wb') as dst_f:
             report_obj = archive_obj.extractfile(archive_member)
             shutil.copyfileobj(report_obj, dst_f)
-          args_queue.put((archive_member.name, report_path))
+          args_queue.put((member_name, report_path))
           total_reports += 1
     except Exception as e:
       args_queue.put(e)
     finally:
       args_queue.put(None)
+
+  def IsValidReportName(self, name):
+    name = os.path.basename(name)
+    # Report name format: {stage}{opt_name}-{serial}-{gmtime}.rpt.xz
+    if name.endswith('.rpt.xz'):
+      return True
+    # Report name format: {gmtime}_{serial}.tar.xz
+    if name.endswith('.tar.xz'):
+      try:
+        time.strptime(name.partition('_')[0], '%Y%m%dT%H%M%SZ')
+        return True
+      except ValueError:
+        pass
+    return False
 
   def ProcessReport(self, report_file_path, report_path):
     """Processes the factory report.
@@ -318,9 +333,16 @@ class ReportParser(log_utils.LoggerMixin):
         'message': []
     })
     try:
-      report_time = time.mktime(
-          time.strptime(
-              report_file_path.rpartition('-')[-1], '%Y%m%dT%H%M%SZ.rpt.xz'))
+      report_basename = os.path.basename(report_file_path)
+      if report_basename.endswith('.tar.xz'):
+        # Report name format: {gmtime}_{serial}.tar.xz
+        report_time = time.mktime(
+            time.strptime(report_basename.partition('_')[0], '%Y%m%dT%H%M%SZ'))
+      else:
+        # Report name format: {stage}{opt_name}-{serial}-{gmtime}.rpt.xz
+        report_time = time.mktime(
+            time.strptime(
+                report_basename.rpartition('-')[-1], '%Y%m%dT%H%M%SZ.rpt.xz'))
       report_event['time'] = report_time
       process_event['time'] = report_time
       report_event, process_event = self.DecompressAndParse(
