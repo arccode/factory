@@ -106,7 +106,7 @@ class OutputFactoryReport(plugin_base.OutputPlugin):
     archive_process_event = datatypes.Event({
         '__process__': True,
         'status': [],
-        'time': 0,
+        'time': 0,  # The partitioned table on BigQuery need this field.
         'startTime': time.time(),
         'message': []
     })
@@ -212,18 +212,13 @@ class ReportParser(log_utils.LoggerMixin):
       total_reports = len(async_results)
       for async_result in async_results:
         # TODO(chuntsen): Find a way to stop process pool.
-        report_event = None
-        try:
-          report_event, process_event = async_result.get()
+        report_event, process_event = async_result.get()
 
-          report_time = report_event['time']
-          if (archive_process_event['time'] == 0 or
-              report_time < archive_process_event['time']):
-            archive_process_event['time'] = report_time
-        except Exception as e:
-          # TODO(chuntsen): Fix the issue here and catch the exception earlier.
-          SetProcessEventStatus(ERROR_CODE.ReportUnknownError, process_event, e)
-          self.exception('Exception encountered when processing factory report')
+        report_time = report_event['time']
+        if (archive_process_event['time'] == 0 or
+            report_time < archive_process_event['time']):
+          archive_process_event['time'] = report_time
+
         if report_event:
           report_events.append(report_event)
           succeed += 1
@@ -305,32 +300,37 @@ class ReportParser(log_utils.LoggerMixin):
       report_event: A report event with information in the factory report.
       process_event: A process event with process information.
     """
+    uuid = time_utils.TimedUUID()
+    report_event = datatypes.Event({
+        '__report__': True,
+        'uuid': uuid,
+        'time': 0,  # The partitioned table on BigQuery need this field.
+        'objectId': self._gcs_path,
+        'reportFilePath': report_file_path,
+        'serialNumbers': {}
+    })
+    process_event = datatypes.Event({
+        '__process__': True,
+        'uuid': uuid,
+        'time': 0,  # The partitioned table on BigQuery need this field.
+        'startTime': time.time(),
+        'status': [],
+        'message': []
+    })
     try:
       report_time = time.mktime(
           time.strptime(
               report_file_path.rpartition('-')[-1], '%Y%m%dT%H%M%SZ.rpt.xz'))
-      uuid = time_utils.TimedUUID()
-      report_event = datatypes.Event({
-          '__report__': True,
-          'uuid': uuid,
-          'objectId': self._gcs_path,
-          'reportFilePath': report_file_path,
-          'time': report_time,
-          'serialNumbers': {}
-      })
-      process_event = datatypes.Event({
-          '__process__': True,
-          'uuid': uuid,
-          'time': report_time,
-          'startTime': time.time(),
-          'status': [],
-          'message': []
-      })
+      report_event['time'] = report_time
+      process_event['time'] = report_time
       report_event, process_event = self.DecompressAndParse(
           report_path, report_event, process_event)
-      return report_event, process_event
+    except Exception as e:
+      SetProcessEventStatus(ERROR_CODE.ReportUnknownError, process_event, e)
+      self.exception('Exception encountered when processing factory report')
     finally:
       file_utils.TryUnlink(report_path)
+    return report_event, process_event
 
   def DecompressAndParse(self, report_path, report_event, process_event):
     """Decompresses the factory report and parse it."""
