@@ -322,6 +322,23 @@ class PowerDaemonPowerInfoTest(unittest.TestCase):
       battery_status Discharging
       battery_discharging 1
       """)
+  _MOCK_DUMP_POWER_STATUS_FULL = textwrap.dedent("""
+      line_power_connected 1
+      line_power_type USB
+      line_power_current 0.00
+      battery_present 1
+      battery_percent 88.78
+      battery_display_percent 91.16
+      battery_charge 3.32
+      battery_charge_full 3.73
+      battery_charge_full_design 3.73
+      battery_current 0.00
+      battery_energy 41.73
+      battery_energy_rate 0.00
+      battery_voltage 12.59
+      battery_status Full
+      battery_discharging 1
+      """)
 
   def setUp(self):
     self.board = device_utils.CreateDUTInterface()
@@ -375,6 +392,9 @@ class PowerDaemonPowerInfoTest(unittest.TestCase):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_DISCHARGE)
     self.assertEqual(self.power.GetChargeState(), 'DISCHARGE')
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_DUMP_POWER_STATUS_FULL)
+    self.assertEqual(self.power.GetChargeState(), 'FULL')
 
   def testGetBatteryCurrent(self):
     self.board.CallOutput = mock.MagicMock(
@@ -383,6 +403,9 @@ class PowerDaemonPowerInfoTest(unittest.TestCase):
     self.board.CallOutput = mock.MagicMock(
         return_value=self._MOCK_DUMP_POWER_STATUS_DISCHARGE)
     self.assertEqual(self.power.GetBatteryCurrent(), -2920)
+    self.board.CallOutput = mock.MagicMock(
+        return_value=self._MOCK_DUMP_POWER_STATUS_FULL)
+    self.assertEqual(self.power.GetBatteryCurrent(), 0)
 
   def testGetBatteryDesignCapacity(self):
     self.board.CallOutput = mock.MagicMock(
