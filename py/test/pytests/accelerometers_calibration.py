@@ -67,10 +67,12 @@ class AccelerometersCalibration(test_case.TestCase):
 
   ARGS = [
       # TODO(bowgotsai): add six-sided calibration.
-      Arg('calibration_method', type_utils.Enum(['horizontal']),
+      Arg(
+          'calibration_method', type_utils.Enum(['horizontal']),
           'Currently there is only one calibration method available: '
           'horizontal calibration.', default='horizontal'),
-      Arg('orientation', dict,
+      Arg(
+          'orientation', dict,
           'Keys: the name of the accelerometer signal. For example, '
           '"in_accel_x_base" or "in_accel_x_lid". The possible keys are '
           '"in_accel_(x|y|z)_(base|lid)".'
@@ -92,20 +94,22 @@ class AccelerometersCalibration(test_case.TestCase):
           '    "in_accel_x_lid": [0, 0, 1, -1, 0, 0],'
           '    "in_accel_y_lid": [0, 0, 0, 0, 1, -1],'
           '    "in_accel_z_lid": [1, -1, 0, 0, 0, 0]}.'),
-      Arg('sample_rate_hz', int,
-          'The sample rate in Hz to get raw data from '
+      Arg('sample_rate_hz', int, 'The sample rate in Hz to get raw data from '
           'accelerometers.', default=20),
-      Arg('capture_count', int,
-          'How many times to capture the raw data to '
+      Arg(
+          'capture_count', int, 'How many times to capture the raw data to '
           'calculate the average value.', default=100),
-      Arg('setup_time_secs', int,
-          'How many seconds to wait before starting '
+      Arg('setup_time_secs', int, 'How many seconds to wait before starting '
           'to calibration.', default=2),
-      Arg('spec_offset', list,
+      Arg(
+          'spec_offset', list,
           'Two numbers, ex: [0.5, 0.5] indicating the tolerance in m/s^2 for '
           'the digital output of sensors under 0 and 1G.'),
-      Arg('location', str,
-          'The location for the accelerometer', default='base')]
+      Arg('autostart', bool, 'Starts the test automatically without prompting.',
+          default=False),
+      Arg('location', str, 'The location for the accelerometer',
+          default='base'),
+  ]
 
   def setUp(self):
     self.ui.ToggleTemplateClass('font-large', True)
@@ -125,10 +129,14 @@ class AccelerometersCalibration(test_case.TestCase):
 
   def HorizontalCalibration(self):
     """Prompt for space, waits a period of time and then starts calibration."""
-    self.ui.SetState(
-        _('Please put device on a horizontal plane then press space to '
-          'start calibration.'))
-    self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
+    if not self.args.autostart:
+      self.ui.SetState(
+          _('Please put device on a horizontal plane then press space to '
+            'start calibration.'))
+      self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
+    else:
+      self.ui.SetState(_('Please put device on a horizontal plane.'))
+      self.Sleep(1)
 
     # Waits for a few seconds to let machine become stable.
     for i in range(self.args.setup_time_secs):

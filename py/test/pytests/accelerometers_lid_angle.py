@@ -4,11 +4,24 @@
 
 """This is a lid angle test based on accelerometers.
 
+Description
+-----------
 There are two accelerometers in ChromeOS for lid angle calculation.
 This test asks OP to turn lid angle into a desired angle and then
 checks whether the lid angle is within some threshold.
 Please notice this test requires the hinge to be in a horizontal plane.
 
+Test Procedure
+--------------
+1. Bend the device (base/lid) into a desired angle then press space.
+2. Wait for completion.
+
+Dependency
+----------
+- Device API (``cros.factory.device.accelerometer``).
+
+Examples
+--------
 Usage examples::
 
     {
@@ -36,18 +49,18 @@ from cros.factory.utils.arg_utils import Arg
 
 class AccelerometersLidAngleTest(test_case.TestCase):
   ARGS = [
-      Arg('angle', int, 'The target lid angle in degree to test.',
-          default=180),
-      Arg('tolerance', int, 'The tolerance in degree.',
-          default=5),
-      Arg('capture_count', int,
-          'How many times to capture the raw data to '
+      Arg('angle', int, 'The target lid angle in degree to test.', default=180),
+      Arg('tolerance', int, 'The tolerance in degree.', default=5),
+      Arg(
+          'capture_count', int, 'How many times to capture the raw data to '
           'calculate the lid angle.', default=20),
-      Arg('spec_offset', list,
+      Arg(
+          'spec_offset', list,
           'Two numbers, ex: [0.5, 0.5] indicating the tolerance in m/s^2 for '
           'the digital output of sensors under 0 and 1G.'),
-      Arg('sample_rate_hz', int,
-          'The sample rate in Hz to get raw data from '
+      Arg('autostart', bool, 'Starts the test automatically without prompting.',
+          default=False),
+      Arg('sample_rate_hz', int, 'The sample rate in Hz to get raw data from '
           'accelerometers.', default=20),
   ]
 
@@ -132,10 +145,15 @@ class AccelerometersLidAngleTest(test_case.TestCase):
     return lid_angle
 
   def runTest(self):
-    self.ui.SetState(
-        _('Please open the lid to {angle} degrees and press SPACE.',
-          angle=self.args.angle))
-    self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
+    if not self.args.autostart:
+      self.ui.SetState(
+          _('Please open the lid to {angle} degrees and press SPACE.',
+            angle=self.args.angle))
+      self.ui.WaitKeysOnce(test_ui.SPACE_KEY)
+    else:
+      self.ui.SetState(
+          _('Please open the lid to {angle} degrees.', angle=self.args.angle))
+      self.Sleep(1)
 
     self.ui.SetState(_('Checking angle...'))
     angle = self._CalculateLidAngle()

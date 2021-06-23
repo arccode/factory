@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-07-06 14:33+CST\n"
+"PO-Revision-Date: 2021-07-13 14:20+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -1206,6 +1206,10 @@ msgid ""
 msgstr "请将待测物放置于水平面上，并按空白键开始校准。"
 
 #: ../py/test/pytests/accelerometers_calibration.py
+msgid "Please put device on a horizontal plane."
+msgstr "请将待测物放置于水平面上。"
+
+#: ../py/test/pytests/accelerometers_calibration.py
 msgid ""
 "Calibration will be started within {time} seconds.Please do not move device."
 msgstr "校准程序即将于 {time} 秒后开始，请勿移动待测物。"
@@ -1217,6 +1221,10 @@ msgstr "校准程序进行中，请勿移动待测物。"
 #: ../py/test/pytests/accelerometers_lid_angle.py
 msgid "Please open the lid to {angle} degrees and press SPACE."
 msgstr "请将上盖掀开到 {angle} 度并按空白键。"
+
+#: ../py/test/pytests/accelerometers_lid_angle.py
+msgid "Please open the lid to {angle} degrees."
+msgstr "请将上盖掀开到 {angle} 度。"
 
 #: ../py/test/pytests/accelerometers_lid_angle.py
 msgid "Checking angle..."
