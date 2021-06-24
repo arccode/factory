@@ -19,9 +19,11 @@ from unittest import mock
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.common import Shell
 from cros.factory.gooftool import core
+from cros.factory.gooftool import cros_config
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import vpd
 from cros.factory.test.rules import phase
+from cros.factory.utils import sys_utils
 from cros.factory.utils.type_utils import Error
 from cros.factory.utils.type_utils import Obj
 
@@ -54,6 +56,18 @@ class MockFile:
   def __init__(self):
     self.name = 'filename'
     self.read = lambda: 'read_results'
+
+  def __enter__(self):
+    return self
+
+  def __exit__(self, filetype, value, traceback):
+    pass
+
+
+class MockPath(os.PathLike):
+
+  def __fspath__(self):
+    return 'mock_path'
 
   def __enter__(self):
     return self
@@ -206,7 +220,9 @@ class GooftoolTest(unittest.TestCase):
     # Assure loading DB multiple times is prevented.
     self.assertIs(self._gooftool.db, db)
 
-  def testVerifyKey(self):
+  @mock.patch.object(cros_config, 'CrosConfig', autospec=True)
+  @mock.patch.object(sys_utils, 'MountPartition', autospec=True)
+  def testVerifyKey(self, mock_mount, mock_cros_config):
     self._gooftool._util.GetReleaseKernelPathFromRootPartition.return_value = \
         '/dev/zero'
     self._gooftool._crosfw.LoadMainFirmware.side_effect = [
@@ -219,6 +235,18 @@ class GooftoolTest(unittest.TestCase):
     # TODO(hungte) Improve unit test scope.
     def fake_tmpexc(*unused_args, **unused_kargs):
       return ''
+
+    class FakeCrosConfigModule:
+
+      def GetModelName(self):
+        return 'unittest'
+
+      def GetWhiteLabelTag(self):
+        return True, 'unittest'
+
+    mock_mount.return_value = MockPath()
+
+    mock_cros_config.return_value = FakeCrosConfigModule()
 
     self._gooftool.VerifyKeys('/dev/null', _tmpexec=fake_tmpexc)
     self._gooftool._crosfw.LoadMainFirmware.assert_called()

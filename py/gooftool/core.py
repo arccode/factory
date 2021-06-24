@@ -44,6 +44,8 @@ from cros.factory.utils.type_utils import Error
 # The mismatch result tuple.
 Mismatch = namedtuple('Mismatch', ['expected', 'actual'])
 
+_FIRMWARE_RELATIVE_PATH = 'usr/sbin/chromeos-firmwareupdate'
+
 
 class CrosConfigError(Error):
   message_template = '%s. Identity may be misconfigured.\n%s\n%s'
@@ -175,9 +177,9 @@ class Gooftool:
   def VerifyKeys(self, release_rootfs=None, firmware_path=None, _tmpexec=None):
     """Verify keys in firmware and SSD match.
 
-    The real partition needed is the kernel partition. However, in order to
-    share params with other commands, we use release_rootfs and calculate the
-    real kernel location from it.
+    We need both kernel and rootfs partitions in the release image. However,
+    in order to share parameters with other commands, we use the rootfs in the
+    release image to calculate the real kernel location.
 
     Args:
       release_rootfs: A string for release image rootfs path.
@@ -279,6 +281,22 @@ class Gooftool:
                    'YOU ARE FINALIZING WITH DEV-SIGNED IMAGE <%s>' %
                    key)
         raise
+
+      cros_config = cros_config_module.CrosConfig(self._util.shell)
+      model_name = cros_config.GetModelName()
+      is_whitelabel, whitelabel_tag = cros_config.GetWhiteLabelTag()
+      if is_whitelabel and whitelabel_tag:
+        model_name = model_name + "-" + whitelabel_tag
+      with sys_utils.MountPartition(release_rootfs) as root:
+        release_updater_path = os.path.join(root, _FIRMWARE_RELATIVE_PATH)
+        _TmpExec('unpack firmware updater from release rootfs partition',
+                 '%s --unpack %s' % (release_updater_path, tmpdir))
+      release_rootkey_hash = _TmpExec(
+          'get rootkey from signer', 'cat VERSION.signer',
+          regex=r'(?<={}:).*'.format(model_name)).strip()
+      if release_rootkey_hash != rootkey_hash:
+        raise Error('Firmware rootkey is not matched (%s != %s).' %
+                    (release_rootkey_hash, rootkey_hash))
 
     logging.info('SUCCESS: Verification completed.')
 
