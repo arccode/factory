@@ -47,6 +47,7 @@
         "Touchpad",
         "Touchscreen",
         "StylusAndGarage",
+        "CheckRetimerFirmwareGroup",
         "ExternalDisplay",
         "USBTypeATest",
         "USBTypeCTest",

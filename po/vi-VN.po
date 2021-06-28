@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-06-02 19:06+CST\n"
+"PO-Revision-Date: 2021-06-29 20:19+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -136,6 +136,10 @@ msgstr ""
 #: ../build/pytests_label_generated.json
 msgid "Check Image Version"
 msgstr "Kiểm tra phiên bản hình ảnh"
+
+#: ../build/pytests_label_generated.json
+msgid "Check Retimer Firmware"
+msgstr ""
 
 #: ../build/pytests_label_generated.json
 #: ../py/test/test_lists/generic_common.test_list.json
@@ -1716,6 +1720,10 @@ msgstr ".Đốt  {component}..."
 #: ../py/test/pytests/check_image_version.py
 msgid "Updating {component}...."
 msgstr "Đang cập nhật {component} ..."
+
+#: ../py/test/pytests/check_retimer_firmware.py
+msgid "Please remove USB type-C cable from port {port}"
+msgstr ""
 
 #: ../py/test/pytests/check_serial_number.py
 msgid "Checking Device State"

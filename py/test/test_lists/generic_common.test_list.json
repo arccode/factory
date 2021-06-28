@@ -19,6 +19,17 @@
     },
     "__comment_overlord_overlord_urls": "The urls of overlord server. e.g. 192.168.1.1. Don't contain http or port number.",
     "__comment_overlord_tls_no_verify": "Skip the certificate verification or not. DUTs are usually in local network, it's fine to skip the verification.",
+    "retimer": {
+      "controller_ports": [
+        "0-0:1.1",
+        "0-0:3.1"
+      ],
+      "usb_ports": [
+        0,
+        1
+      ],
+      "min_retimer_version": "21.0"
+    },
     "rma_mode": false,
     "sd": {
       "sysfs_path": ""
@@ -250,6 +261,31 @@
         "check_release_image": true,
         "use_netboot": false
       }
+    },
+    "CheckRetimerFirmware": {
+      "pytest_name": "check_retimer_firmware",
+      "args": {
+        "wait_all_ports_unplugged": false,
+        "controller_ports": "eval! constants.retimer.controller_ports",
+        "usb_ports": "eval! constants.retimer.usb_ports",
+        "min_retimer_version": "eval! constants.retimer.min_retimer_version"
+      }
+    },
+    "CheckRetimerFirmwareGroup": {
+      "run_if": "constants.retimer.controller_ports",
+      "subtests": [
+        {
+          "inherit": "CheckRetimerFirmware",
+          "args": {
+            "wait_all_ports_unplugged": true
+          }
+        },
+        {
+          "inherit": "RebootStep",
+          "run_if": "device.factory.retimer_firmware_reboot"
+        },
+        "CheckRetimerFirmware"
+      ]
     },
     "CheckSecdataVersion": {
       "pytest_name": "check_secdata_version",
