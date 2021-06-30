@@ -25,3 +25,18 @@ class CPUFreqManager(plugin.Plugin):
   @type_utils.Overrides
   def OnDestroy(self):
     self._cpu_freq_manager.Stop()
+
+  @plugin.RPCFunction
+  def SetFrequency(self, cpufreq_to_value: dict):
+    """Set the CPU scaling_* to specific values."""
+    self._cpu_freq_manager.SetFrequency(cpufreq_to_value)
+
+  @plugin.RPCFunction
+  def RestoreFrequency(self):
+    """Restore the original CPU scaling_* settings."""
+    self._cpu_freq_manager.RestoreFrequency()
+
+  @plugin.RPCFunction
+  def GetCurrentFrequency(self):
+    """Get the CPU frequency from /proc/cpuinfo."""
+    return self._cpu_freq_manager.GetCurrentFrequency()

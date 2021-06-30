@@ -65,13 +65,15 @@ from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
+from cros.factory.goofy.plugins import plugin_controller
 
 
 _WARNING_TEMP_RATIO = 0.95
 _CRITICAL_TEMP_RATIO = 0.98
 
 
-Status = collections.namedtuple('Status', ['temperatures', 'fan_rpm'])
+Status = collections.namedtuple('Status',
+                                ['temperatures', 'fan_rpm', 'cpu_freq'])
 
 
 class CountDownTest(test_case.TestCase):
@@ -88,24 +90,32 @@ class CountDownTest(test_case.TestCase):
       Arg('grace_secs', int,
           'Grace period before starting abnormal status detection.',
           default=120),
-      Arg('temp_max_delta', int,
+      Arg(
+          'temp_max_delta', int,
           'Allowed difference between current and last temperature of a '
           'sensor.', default=None),
-      Arg('temp_criteria', list,
+      Arg(
+          'temp_criteria', list,
           'A list of rules to check that temperature is under the given range, '
           'rule format: (name, temp_sensor, warning_temp, critical_temp)',
           default=[]),
-      Arg('relative_temp_criteria', list,
+      Arg(
+          'relative_temp_criteria', list,
           'A list of rules to check the difference between two temp sensors, '
           'rule format: (relation, first_sensor, second_sensor, max_diff). '
           'relation is a text output with warning messages to describe the two '
           'temp sensors in the rule', default=[]),
       Arg('fan_min_expected_rpm', int, 'Minimum fan rpm expected',
           default=None),
-      Arg('allow_invalid_temp', bool,
+      Arg(
+          'allow_invalid_temp', bool,
           'Allow invalid temperature e.g. values less then or equal to zero, '
           'which may mean thermal nodes are not ready in early builds.',
-          default=False)
+          default=False),
+      Arg('cpu_min_expected_freq', int,
+          'Minimum CPU frequency expected. (unit: MHz)', default=None),
+      Arg('cpu_max_expected_freq', int,
+          'Maximum CPU frequency expected. (unit: MHz)', default=None)
   ]
 
   def FormatSeconds(self, secs):
@@ -121,15 +131,18 @@ class CountDownTest(test_case.TestCase):
     self.ui.SetHTML(
         self.FormatSeconds(self.args.duration_secs - self._elapsed_secs),
         id='cd-remaining-time')
-    self.ui.SetHTML(
-        ' '.join(open('/proc/loadavg').read().split()[0:3]),
-        id='cd-system-load')
+    self.ui.SetHTML(' '.join(open('/proc/loadavg').read().split()[0:3]),
+                    id='cd-system-load')
 
   def UpdateUILog(self, sys_status):
     # Simplify thermal output by the order of self._sensors
-    log_items = [time_utils.TimeString(), 'Temperatures: %s' %
-                 [sys_status.temperatures[sensor] for sensor in self._sensors],
-                 'Fan RPM: %s' % sys_status.fan_rpm]
+    log_items = [
+        time_utils.TimeString(),
+        'Temperatures: %s' %
+        [sys_status.temperatures[sensor] for sensor in self._sensors],
+        'Fan RPM: %s' % sys_status.fan_rpm,
+        'CPU frequency (MHz): %s' % sys_status.cpu_freq
+    ]
     log_str = '.  '.join(log_items)
     self._verbose_log.write(log_str + os.linesep)
     self._verbose_log.flush()
@@ -235,6 +248,18 @@ class CountDownTest(test_case.TestCase):
           warnings.append('Fan %d rpm %d less than min expected %d' %
                           (i, fan_rpm, self.args.fan_min_expected_rpm))
 
+    if self.args.cpu_min_expected_freq:
+      for cpu_freq in status.cpu_freq:
+        if cpu_freq < self.args.cpu_min_expected_freq:
+          warnings.append('CPU frequency %f MHz less than expected %d MHz' %
+                          (cpu_freq, self.args.cpu_min_expected_freq))
+
+    if self.args.cpu_max_expected_freq:
+      for cpu_freq in status.cpu_freq:
+        if cpu_freq > self.args.cpu_max_expected_freq:
+          warnings.append('CPU frequency %f MHz larger than expected %d MHz' %
+                          (cpu_freq, self.args.cpu_max_expected_freq))
+
     if not self.args.allow_invalid_temp:
       for sensor, temp in status.temperatures.items():
         if temp <= 0:
@@ -250,15 +275,17 @@ class CountDownTest(test_case.TestCase):
           session.console.warn(w)
 
     with self._group_checker:
-      testlog.CheckNumericParam(
-          'elapsed', self._elapsed_secs, max=self.args.grace_secs)
+      testlog.CheckNumericParam('elapsed', self._elapsed_secs,
+                                max=self.args.grace_secs)
       testlog.LogParam('temperatures', status.temperatures)
       testlog.LogParam('fan_rpm', status.fan_rpm)
+      testlog.LogParam('cpu_freq', status.cpu_freq)
       testlog.LogParam('warnings', warnings)
 
   def SnapshotStatus(self):
     return Status(self._dut.thermal.GetAllTemperatures(),
-                  self._dut.fan.GetFanRPM())
+                  self._dut.fan.GetFanRPM(),
+                  self._cpu_freq_manager.GetCurrentFrequency())
 
   def setUp(self):
     self._dut = device_utils.CreateDUTInterface()
@@ -267,9 +294,12 @@ class CountDownTest(test_case.TestCase):
     sensors = sorted(self._dut.thermal.GetAllSensorNames())
     sensors.insert(0, sensors.pop(sensors.index(self._main_sensor)))
     self._sensors = sensors
+    self._cpu_freq_manager = plugin_controller.GetPluginRPCProxy(
+        'cpu_freq_manager')
     # Group checker for Testlog.
     self._group_checker = testlog.GroupParam(
-        'system_status', ['elapsed', 'temperatures', 'fan_rpm', 'warnings'])
+        'system_status',
+        ['elapsed', 'temperatures', 'fan_rpm', 'cpu_freq', 'warnings'])
     testlog.UpdateParam('elapsed', description='In grace period or not')
 
     self._start_secs = time.time()

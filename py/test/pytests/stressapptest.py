@@ -64,6 +64,18 @@ To stress using only two threads, and only run on cpu core 2 and 3::
       "taskset_args": ["-c", "2,3"]
     }
   }
+
+To specify the minimum cpu frequency to 600 MHz, and the maximum cpu frequency
+to 3000 MHz when running stressapptest, and recover to original cpu frequency
+after the test::
+
+  {
+    "pytest_name": "stressapptest",
+    "args": {
+      "scaling_min_freq": 600000,
+      "scaling_max_freq": 3000000
+    }
+  }
 """
 
 import logging
@@ -74,51 +86,63 @@ from cros.factory.device import device_utils
 from cros.factory.test import state
 from cros.factory.test.utils import stress_manager
 from cros.factory.utils.arg_utils import Arg
+from cros.factory.goofy.plugins import plugin_controller
 
 
 class StressAppTest(unittest.TestCase):
   """Run stressapptest to test the memory and disk is fine."""
 
   ARGS = [
-      Arg('seconds', int,
-          'Time to execute the stressapptest.', default=60),
-      Arg('memory_ratio', float,
-          'Radio of memory to be used by stressapptest.',
+      Arg('seconds', int, 'Time to execute the stressapptest.', default=60),
+      Arg('memory_ratio', float, 'Radio of memory to be used by stressapptest.',
           default=0.9),
-      Arg('free_memory_only', bool,
+      Arg(
+          'free_memory_only', bool,
           'Only use free memory for test. When set to True, only '
           'memory_radio * free_memory are used for stressapptest.',
           default=True),
       Arg('wait_secs', int,
-          'Time to wait in seconds before executing stressapptest.',
-          default=0),
+          'Time to wait in seconds before executing stressapptest.', default=0),
       Arg('disk_thread', bool,
-          'Stress disk using -f argument of stressapptest.',
-          default=True),
-      Arg('disk_thread_dir', str,
+          'Stress disk using -f argument of stressapptest.', default=True),
+      Arg(
+          'disk_thread_dir', str,
           'Directory of disk thread file will be placed '
-          '(default to system stateful partition.)',
-          default=None),
-      Arg('max_errors', int,
-          'Number of errors to exit early.',
+          '(default to system stateful partition.)', default=None),
+      Arg('max_errors', int, 'Number of errors to exit early.',
           default=stress_manager.DEFAULT_MAX_ERRORS),
       Arg('num_threads', int,
           'Number of threads to be used. Default to number of cores.',
           default=None),
       Arg('taskset_args', list,
           'Argument to taskset to change CPU affinity for stressapptest.',
-          default=None)
+          default=None),
+      Arg('scaling_min_freq', int,
+          'Argument to set the value of scaling_min_freq.', default=None),
+      Arg('scaling_max_freq', int,
+          'Argument to set the value of scaling_max_freq.', default=None),
+      Arg('scaling_governor', str,
+          'Argument to set the value of scaling_governor.', default=None)
   ]
 
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
     self.goofy = state.GetInstance()
+    self._cpu_freq_manager = plugin_controller.GetPluginRPCProxy(
+        'cpu_freq_manager')
 
   def runTest(self):
     # Wait other parallel tests memory usage to settle to a stable value, so
     # stressapptest will not claim too much memory.
     if self.args.wait_secs:
       time.sleep(self.args.wait_secs)
+
+    cpufreq_to_value = {
+        'scaling_min_freq': self.args.scaling_min_freq,
+        'scaling_max_freq': self.args.scaling_max_freq,
+        'scaling_governor': self.args.scaling_governor
+    }
+    self._cpu_freq_manager.SetFrequency(cpufreq_to_value)
 
     try:
       with stress_manager.StressManager(self.dut).Run(
@@ -129,10 +153,12 @@ class StressAppTest(unittest.TestCase):
           disk_thread_dir=self.args.disk_thread_dir,
           max_errors=self.args.max_errors,
           num_threads=self.args.num_threads,
-          taskset_args=self.args.taskset_args):
+          taskset_args=self.args.taskset_args,
+      ):
         pass
     except stress_manager.StressManagerError as e:
       logging.error('StressAppTest failed: %s', e)
       raise
     finally:
       self.goofy.WaitForWebSocketUp()
+      self._cpu_freq_manager.RestoreFrequency()
