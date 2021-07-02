@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-07-03 16:50+CST\n"
+"PO-Revision-Date: 2021-07-06 14:33+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -1486,6 +1486,23 @@ msgstr "phát điện"
 #: ../py/test/pytests/battery_current.py
 msgid "Insert power to {prompt}({voltage}mV)"
 msgstr "Vui lòng cắm dây nguồn vào{prompt}({voltage}mV)"
+
+#: ../py/test/pytests/battery_current.py
+msgid ""
+"Average current in charging mode is {charging_current}<br>Average current in "
+"discharging mode is {discharging_current}<br>Target current difference is "
+"{target}, but present current difference is {present_difference}"
+msgstr ""
+
+#: ../py/test/pytests/battery_current.py
+msgid ""
+"Calculating the current difference between charging mode and discharging "
+"mode."
+msgstr ""
+
+#: ../py/test/pytests/battery_current.py
+msgid "CheckCurrentDifference failed. This is the {times} try"
+msgstr ""
 
 #: ../py/test/pytests/blocking_charge.py
 msgid ""

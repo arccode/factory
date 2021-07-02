@@ -30,6 +30,11 @@ Test Procedure
    check if the charging current is larger than the value.
 4. If `min_discharging_current` is set, force the power into discharging mode,
    and check if the discharging current is larger than the value.
+5. If `current_difference` is set, force the power into charging mode first,
+   and record the charging current. Then force the power into discharging mode,
+   and also record the discharging current. Pass the test if the (average
+   charging current - average discharging current) is greater or equal to the
+   value.
 
 Each step would fail after `timeout_secs` seconds.
 
@@ -49,6 +54,27 @@ To check battery can charge and discharge, add this in test list::
     "args": {
       "min_charging_current": 250,
       "min_discharging_current": 400
+    }
+  }
+
+Sometimes, the system consumes more power than the charger. In that case, we
+could set the min_charging_current to negative value, and the test would pass
+if the battery discharges less than 150 mA. See b/183679223#comment25::
+
+  {
+    "pytest_name": "battery_current",
+    "args": {
+      "min_charging_current": -150,
+      "min_discharging_current": 400
+    }
+  }
+
+Alternatively, we could also set::
+
+  {
+    "pytest_name": "battery_current",
+    "args": {
+      "current_difference": 250
     }
   }
 
@@ -87,25 +113,30 @@ def _GetPromptText(current, target):
 class BatteryCurrentTest(test_case.TestCase):
   """A factory test to test battery charging/discharging current."""
   ARGS = [
-      Arg('min_charging_current', int,
-          'minimum allowed charging current', default=None),
-      Arg('min_discharging_current', int,
-          'minimum allowed discharging current', default=None),
-      Arg('timeout_secs', int,
-          'Test timeout value', default=10),
-      Arg('max_battery_level', int,
-          'maximum allowed starting battery level', default=None),
-      Arg('usbpd_info', list,
-          'A sequence [usbpd_port, min_millivolt, max_millivolt] used to '
-          'select a particular port from a multi-port DUT.',
+      Arg('min_charging_current', int, 'minimum allowed charging current',
           default=None),
-      Arg('use_max_voltage', bool,
+      Arg('min_discharging_current', int, 'minimum allowed discharging current',
+          default=None),
+      Arg(
+          'current_difference', int,
+          'The minimum current difference between the charging mode and'
+          ' discharging mode.', default=None),
+      Arg('retry_times', int, 'Retry for a number of times if the'
+          ' current_difference test fails', default=2),
+      Arg('timeout_secs', int, 'Test timeout value', default=30),
+      Arg('max_battery_level', int, 'maximum allowed starting battery level',
+          default=None),
+      Arg(
+          'usbpd_info', list,
+          'A sequence [usbpd_port, min_millivolt, max_millivolt] used to '
+          'select a particular port from a multi-port DUT.', default=None),
+      Arg(
+          'use_max_voltage', bool,
           'Use the negotiated max voltage in `ectool usbpdpower` to check '
           'charger voltage, in case that instant voltage is not supported.',
           default=False),
       i18n_arg_utils.I18nArg('usbpd_prompt',
-                             'prompt operator which port to insert',
-                             default='')
+                             'prompt operator which port to insert', default='')
   ]
 
   def setUp(self):
@@ -177,6 +208,59 @@ class BatteryCurrentTest(test_case.TestCase):
     self.ui.SetState(_GetPromptText(current, -target))
     return -current >= target
 
+  def _GetAverageCurrent(self, total_measure_secs=3, poll_interval_secs=0.2):
+    """Average current for a given period of time."""
+    times_to_count = int(total_measure_secs / poll_interval_secs)
+    acc_current = 0
+    for _ in range(times_to_count):
+      acc_current += self._power.GetBatteryCurrent()
+      self.Sleep(poll_interval_secs)
+
+    return acc_current / times_to_count
+
+  def _CheckCurrentDifference(self):
+    target = self.args.current_difference
+
+    self._power.SetChargeState(self._power.ChargeState.CHARGE)
+    # It takes 1~2 seconds for the power state to change,
+    # so sleeping for 3 seconds should be enough.
+    self.Sleep(3)
+    charging_current = self._GetAverageCurrent()
+    logging.info('Average current in charging mode: %f', charging_current)
+
+    self._power.SetChargeState(self._power.ChargeState.DISCHARGE)
+    self.Sleep(3)
+    discharging_current = self._GetAverageCurrent()
+    logging.info('Average current in discharging mode: %f', discharging_current)
+    present_difference = charging_current - discharging_current
+
+    self.ui.SetState(
+        _(
+            'Average current in charging mode is {charging_current}<br>'
+            'Average current in discharging mode is {discharging_current}<br>'
+            'Target current difference is {target}, but present current'
+            ' difference is {present_difference}',
+            charging_current=charging_current,
+            discharging_current=discharging_current, target=target,
+            present_difference=present_difference))
+    return present_difference >= target
+
+  def _CheckCurrentDifferenceWithRetry(self):
+    self.ui.SetState(
+        _('Calculating the current difference between charging mode and'
+          ' discharging mode.'))
+
+    for times in range(self.args.retry_times + 1):
+      if self._CheckCurrentDifference():
+        break
+      logging.info('CheckCurrentDifference failed. This is the %d try.',
+                   times + 1)
+      self.ui.SetState(
+          _('CheckCurrentDifference failed. This is the {times} try',
+            times=times + 1), append=True)
+    else:
+      self.FailTask('battery_current test failed.')
+
   def runTest(self):
     """Main entrance of charger test."""
     self.assertTrue(self._power.CheckBatteryPresent())
@@ -197,10 +281,12 @@ class BatteryCurrentTest(test_case.TestCase):
           timeout_secs=self.args.timeout_secs)
     if self.args.min_discharging_current:
       self._power.SetChargeState(self._power.ChargeState.DISCHARGE)
-      sync_utils.PollForCondition(
-          poll_method=self._CheckDischarge, poll_interval_secs=0.5,
-          condition_name='DischargeCurrent',
-          timeout_secs=self.args.timeout_secs)
+      sync_utils.PollForCondition(poll_method=self._CheckDischarge,
+                                  poll_interval_secs=0.5,
+                                  condition_name='DischargeCurrent',
+                                  timeout_secs=self.args.timeout_secs)
+    if self.args.current_difference:
+      self._CheckCurrentDifferenceWithRetry()
 
   def tearDown(self):
     # Must enable charger to charge or we will drain the battery!

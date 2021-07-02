@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-07-03 16:50+CST\n"
+"PO-Revision-Date: 2021-07-06 14:33+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -1466,6 +1466,26 @@ msgstr "放电"
 #: ../py/test/pytests/battery_current.py
 msgid "Insert power to {prompt}({voltage}mV)"
 msgstr "请将电源线插入{prompt}({voltage}mV)"
+
+#: ../py/test/pytests/battery_current.py
+msgid ""
+"Average current in charging mode is {charging_current}<br>Average current in "
+"discharging mode is {discharging_current}<br>Target current difference is "
+"{target}, but present current difference is {present_difference}"
+msgstr ""
+"充电模式下的平均电流为 {charging_current}<br>放电模式下的平均电流为 "
+"{discharging_current}<br>目标电流差为 {target}，但当前电流差为 "
+"{present_difference}"
+
+#: ../py/test/pytests/battery_current.py
+msgid ""
+"Calculating the current difference between charging mode and discharging "
+"mode."
+msgstr "计算充电模式和放电模式之间的电流差"
+
+#: ../py/test/pytests/battery_current.py
+msgid "CheckCurrentDifference failed. This is the {times} try"
+msgstr "检查电流差异失败，这是第{times}次尝试"
 
 #: ../py/test/pytests/blocking_charge.py
 msgid ""
