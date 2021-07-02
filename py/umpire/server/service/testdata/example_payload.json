@@ -1,0 +1,42 @@
+{
+    "firmware": {
+        "file": "firmware.41f1f5433a135a5020160431babc5c32.gz",
+        "version": "Fake firmware file"
+    },
+    "release_image": {
+        "version": "Fake release image",
+        "crx_cache": "release_image.crx_cache.47ed0c335b58b1a08aea224a71043b6a.gz",
+        "part1": "release_image.part1.91ece29465594d2274ba07cfea96fb4e.gz",
+        "part2": "release_image.part2.a9de5e942a2c5eb157cbf3e3a98e40e3.gz",
+        "part3": "release_image.part3.263eea33494438cba20e6e49db7b42c2.gz",
+        "part4": "release_image.part4.79b7ef2fad1c96814fb2444901e9375d.gz",
+        "part5": "release_image.part5.0a85cce763cd058e85bf0eaf869ce457.gz",
+        "part6": "release_image.part6.ddaf3e3357e14c20c507e318e89caa45.gz",
+        "part7": "release_image.part7.ddaf3e3357e14c20c507e318e89caa45.gz",
+        "part8": "release_image.part8.bed2422477eb181b955fae6129ad0349.gz",
+        "part9": "release_image.part9.ddaf3e3357e14c20c507e318e89caa45.gz",
+        "part10": "release_image.part10.ddaf3e3357e14c20c507e318e89caa45.gz",
+        "part11": "release_image.part11.ddaf3e3357e14c20c507e318e89caa45.gz",
+        "part12": "release_image.part12.c21ad47361b6b28a5ecb98ee6004d9c3.gz"
+    },
+    "test_image": {
+        "version": "Fake test image",
+        "crx_cache": "test_image.crx_cache.41a1643a61df8aaa3d8025329152aaa5.gz",
+        "part1": "test_image.part1.135c3eda0b645fd7d58536b42a669199.gz",
+        "part2": "test_image.part2.58aea6c4ab376099da7f5ffebf5b9940.gz",
+        "part3": "test_image.part3.b734c926b256c9012cee95bf90afcce2.gz",
+        "part4": "test_image.part4.24e493b37aca02103badc6c6c5666997.gz",
+        "part5": "test_image.part5.0a85cce763cd058e85bf0eaf869ce457.gz",
+        "part6": "test_image.part6.ddaf3e3357e14c20c507e318e89caa45.gz",
+        "part7": "test_image.part7.ddaf3e3357e14c20c507e318e89caa45.gz",
+        "part8": "test_image.part8.1d058310555e0e75c47a041d122964d3.gz",
+        "part9": "test_image.part9.ddaf3e3357e14c20c507e318e89caa45.gz",
+        "part10": "test_image.part10.ddaf3e3357e14c20c507e318e89caa45.gz",
+        "part11": "test_image.part11.ddaf3e3357e14c20c507e318e89caa45.gz",
+        "part12": "test_image.part12.34daf640a62993afb11bb7518f09bbbb.gz"
+    },
+    "toolkit": {
+        "file": "toolkit.0448ef9587459f68d3cf9bdd5c958575.gz",
+        "version": "Fake toolkit"
+    }
+}

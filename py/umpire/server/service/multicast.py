@@ -9,7 +9,6 @@ import os
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.utils import file_utils
 from cros.factory.utils import json_utils
-from cros.factory.utils.schema import JSONSchemaDict
 
 
 FACTORY_ENV = '/usr/local/factory/bin/factory_env'
@@ -30,60 +29,60 @@ _REQUIRED_IMAGE_PARTS = [
     'release_image.part11',
     'release_image.part12',
 ]
-_MULTICAST_CONFIG_SCHEMA = JSONSchemaDict(
-    'multicast config schema object', {
-        'definitions': {
-            'multicast_group': {
-                'description': 'An IP address in 224.0.0.0/4',
-                'type': 'string',
-            },
-            'file_payload': {
-                'type': 'object',
-                'properties': {
-                    'file': {
-                        '$ref': '#/definitions/multicast_group'
-                    },
-                },
-                'additionalProperties': False,
-            },
-            'image_payload': {
-                'type': 'object',
-                'patternProperties': {
-                    r'part\d+': {
-                        '$ref': '#/definitions/multicast_group'
-                    },
-                },
-                'additionalProperties': False,
-            },
-        },
-        'type': 'object',
-        'properties': {
-            'multicast': {
-                'type': 'object',
-                'properties': {
-                    'server_ip': {
-                        'type': 'string',
-                    },
-                    'test_image': {
-                        '$ref': '#/definitions/image_payload'
-                    },
-                    'toolkit': {
-                        '$ref': '#/definitions/file_payload'
-                    },
-                    'release_image': {
-                        '$ref': '#/definitions/image_payload'
-                    },
-                },
-                'additionalProperties': False,
-            },
-        },
-        'additionalProperties': True,
-        'required': ['multicast'],
-    })
 
 
 class MulticastService(umpire_service.UmpireService):
-  """Multicast service."""
+  """Multicast service.
+
+  This service generates a config resource file from Umpire config, and creates
+  a symbolic link at Umpire base directory for the multicast server."""
+
+  @staticmethod
+  def GenerateConfig(service_config, payloads, port):
+    """Generates multicast config.
+
+    Read all available components from the payload config, and assign a port
+    for each required component.
+
+    Args:
+      service_config: The config dict of multicast service.
+      payloads: The Umpire payload config.
+      port: The beginning port for multicasting.
+
+    Returns:
+      Config for the multicast server."""
+
+    mgroup = service_config.get('mgroup', MCAST_DEFAULT_ADDRESS)
+
+    required_components = service_config['required_components']
+
+    mcast_addrs = {}
+    for component in sorted(payloads.keys()):
+      for part in payloads[component]:
+        if part == 'version':
+          continue
+
+        def _IsRequiredPart(component, part):
+          image_part = component + '.%s' % (part)
+          return image_part in _REQUIRED_IMAGE_PARTS
+
+        if 'image' in component and not _IsRequiredPart(component, part):
+          continue
+
+        if required_components.get(component, False):
+          mcast_addrs.setdefault(component, {})
+          mcast_addrs[component][part] = '%s:%s' % (mgroup, port)
+
+        # Increment the port number here even if the port is not used, so the
+        # active clients won't get the wrong payload when we update
+        # `required_components` argument.
+        port += 1
+
+    mcast_config = payloads
+    mcast_config['multicast'] = mcast_addrs
+    mcast_config['multicast']['server_ip'] = service_config.get('server_ip', '')
+
+    return mcast_config
 
   def CreateProcesses(self, umpire_config, env):
     """Creates list of processes via config.
@@ -96,55 +95,20 @@ class MulticastService(umpire_service.UmpireService):
       A list of ServiceProcess.
     """
 
-    mcast_service_config = umpire_config['services']['multicast']
-
-    mgroup = mcast_service_config.get('mgroup', MCAST_DEFAULT_ADDRESS)
     port = env.umpire_multicast_begin_port
-
-    required_components = mcast_service_config['required_components']
-
-    # Read all available components from the payload config file and assign a
-    # port for each required component for multicasting.
-    mcast_addrs = {}
     bundle = env.config.GetActiveBundle()
     payloads = env.GetPayloadsDict(bundle['payloads'])
-    for component in sorted(payloads.keys()):
-      for part in payloads[component]:
-        if part == 'version':
-          continue
 
-        if 'image' in component:
-          image_part = component + '.%s' % (part)
-          if image_part not in _REQUIRED_IMAGE_PARTS:
-            continue
+    mcast_config = self.GenerateConfig(umpire_config['services']['multicast'],
+                                       payloads, port)
 
-        if required_components.get(component, False):
-          mcast_addrs.setdefault(component, {})
-          mcast_addrs[component][part] = '%s:%s' % (mgroup, port)
-        # Increment the port number here even if the port is not used, so the
-        # port number won't be changed after we update `required_components`
-        # argument.  If the port number has changed during a download and there
-        # is a client listening on a port, the client will download an
-        # unexpected file
-        port += 1
-
-    # Add multicast config into umpire env.
-    mcast_config = payloads
-    mcast_config['multicast'] = mcast_addrs
-    mcast_config['multicast']['server_ip'] = mcast_service_config.get(
-        'server_ip', '')
-
-    _MULTICAST_CONFIG_SCHEMA.Validate(mcast_config)
-
-    mcast_resource_name = env.AddConfigFromBlob(
+    mcast_resource = env.AddConfigFromBlob(
         json_utils.DumpStr(mcast_config, pretty=True), 'multicast_config')
 
-    env.config['multicast'] = mcast_resource_name
+    env.config['multicast'] = mcast_resource
 
     mcast_config_file = os.path.join(env.base_dir, MCAST_CONFIG_NAME)
-
-    file_utils.TryUnlink(mcast_config_file)
-    os.symlink(
-        os.path.join('resources', mcast_resource_name), mcast_config_file)
+    file_utils.ForceSymlink(
+        os.path.join('resources', mcast_resource), mcast_config_file)
 
     return []
