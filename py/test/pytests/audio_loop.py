@@ -599,6 +599,7 @@ class AudioLoopTest(test_case.TestCase):
 
     self.CheckDongleStatus()
     self.SetupAudio()
+    self.CheckConformance()
 
     # Run each tests to conduct under each output volume candidate.
     for self._output_volume_index, output_volume in enumerate(
@@ -1058,3 +1059,56 @@ class AudioLoopTest(test_case.TestCase):
 
     self._dut.audio.DisableAllAudioInputs(self._in_card)
     self._dut.audio.EnableDevice(self.args.mic_source, self._in_card)
+
+  def _ParseConformanceOutput(self, conformance_output):
+    """Parse a conformance output from alsa_conformance_test.py
+
+    Sample output:
+    5 passed, 0 failed
+
+    Args:
+      conformance_output: output stream of alsa_conformance_test.py
+      to parse from.
+
+    Raises:
+      ValueError: Can not get alsa_conformance_test.py output or wrong format.
+
+    Returns:
+      is_all_passed, error_msg
+    """
+
+    m = self._MatchPatternLines(
+        conformance_output,
+        re.compile(r'^([0-9])*\s*passed,\s*([0-9]*)\s*failed$'))
+    if m is None:
+      raise ValueError(
+          'Failed to get expected output from alsa_conformance_test.py')
+
+    passed_times = int(m.group(1))
+    failed_times = int(m.group(2))
+    if failed_times > 0:
+      return False, 'alsa_conformance_test: %d passed, %d failed' % (
+          passed_times, failed_times)
+
+    return True, ''
+
+  def CheckConformance(self):
+    """Run conformance test program and check the result."""
+
+    process = self._dut.Popen(
+        [audio_utils.CONFORMANCETEST_PATH, '-C', self._alsa_input_device],
+        stdout=process_utils.PIPE, stderr=process_utils.PIPE)
+    process.wait()
+    is_all_passed, error_msg = self._ParseConformanceOutput(process.stdout)
+    if not is_all_passed:
+      self.FailTask(
+          'Input device %s: %s' % (self._alsa_input_device, error_msg))
+
+    process = self._dut.Popen(
+        [audio_utils.CONFORMANCETEST_PATH, '-P', self._alsa_output_device],
+        stdout=process_utils.PIPE, stderr=process_utils.PIPE)
+    process.wait()
+    is_all_passed, error_msg = self._ParseConformanceOutput(process.stdout)
+    if not is_all_passed:
+      self.FailTask(
+          'Output device %s: %s' % (self._alsa_output_device, error_msg))

@@ -33,6 +33,7 @@ from cros.factory.external import dbus
 # Tools from platform/audiotest
 AUDIOFUNTEST_PATH = 'audiofuntest'
 AUDIOLOOP_PATH = 'looptest'
+CONFORMANCETEST_PATH = 'alsa_conformance_test.py'
 SOX_PATH = 'sox'
 DEFAULT_NUM_CHANNELS = 2
 
