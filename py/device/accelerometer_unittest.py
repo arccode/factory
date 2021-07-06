@@ -21,24 +21,6 @@ def MockControllerInit(self, device, unused_name, location):
 class AccelerometerTest(unittest.TestCase):
   # pylint: disable=protected-access
 
-  def testScanType(self):
-    scan_type = accelerometer._ParseIIOBufferScanType('le:s12/16>>4')
-    self.assertEqual(scan_type.sign, 's')
-    self.assertEqual(scan_type.realbits, 12)
-    self.assertEqual(scan_type.storagebits, 16)
-    self.assertEqual(scan_type.shift, 4)
-    self.assertEqual(scan_type.repeat, None)
-    self.assertEqual(scan_type.endianness, 'le')
-
-  def testScanTypeWithRepeat(self):
-    scan_type = accelerometer._ParseIIOBufferScanType('le:s12/16X2>>4')
-    self.assertEqual(scan_type.sign, 's')
-    self.assertEqual(scan_type.realbits, 12)
-    self.assertEqual(scan_type.storagebits, 16)
-    self.assertEqual(scan_type.shift, 4)
-    self.assertEqual(scan_type.repeat, 2)
-    self.assertEqual(scan_type.endianness, 'le')
-
   def testIsWithinOffsetRange(self):
     is_within_offset_range = (
         accelerometer.AccelerometerController.IsWithinOffsetRange)
