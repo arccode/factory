@@ -55,8 +55,10 @@ CbiDataDict = {
     CbiDataName.PCB_SUPPLIER: CbiDataAttr(7, int, 1)
 }
 CbiEepromWpStatus = type_utils.Enum(['Locked', 'Unlocked', 'Absent'])
+# The error messages of ectool change from time to time.
 WpErrorMessages = ('Write-protect is enabled or EC explicitly '
-                   'refused to change the requested field.')
+                   'refused to change the requested field.',
+                   'errno 13 (Permission denied)')
 
 
 def GetCbiData(dut, data_name):
@@ -177,8 +179,9 @@ def VerifyCbiEepromWpStatus(dut, cbi_eeprom_wp_status):
   if expected_write_protect:
     if write_success:
       errors.append('_SetSKUId should return False but get True.')
-    elif WpErrorMessages not in messages:
-      errors.append('Output of _SetSKUId should contain %r but get %r' %
+    elif all(
+        error_message not in messages for error_message in WpErrorMessages):
+      errors.append('Output of _SetSKUId should contain one of %r but get %r' %
                     (WpErrorMessages, messages))
   else:
     if not write_success:

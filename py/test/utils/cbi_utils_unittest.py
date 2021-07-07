@@ -19,7 +19,8 @@ def _CreatePopenMock(returncode, stdout=None, stderr=None):
   return mock_popen
 
 
-def _SetMockStatus(wp_status, present_mock, get_cbi_mock, set_cbi_mock):
+def _SetMockStatus(wp_status, present_mock, get_cbi_mock, set_cbi_mock,
+                   error_messages):
   present_mock.reset_mock()
   get_cbi_mock.reset_mock()
   set_cbi_mock.reset_mock()
@@ -28,7 +29,7 @@ def _SetMockStatus(wp_status, present_mock, get_cbi_mock, set_cbi_mock):
   elif wp_status == cbi_utils.CbiEepromWpStatus.Locked:
     present_mock.return_value = True
     get_cbi_mock.side_effect = [54321, 54321]
-    set_cbi_mock.side_effect = cbi_utils.CbiException(cbi_utils.WpErrorMessages)
+    set_cbi_mock.side_effect = cbi_utils.CbiException(error_messages)
   else:
     present_mock.return_value = True
     get_cbi_mock.side_effect = [54321, 54322]
@@ -115,14 +116,18 @@ class CbiUtilsTest(unittest.TestCase):
   def testVerifyWpStatus(self, present_mock, get_cbi_mock, set_cbi_mock):
     for expected_wp_status in cbi_utils.CbiEepromWpStatus:
       for actual_wp_status in cbi_utils.CbiEepromWpStatus:
-        _SetMockStatus(actual_wp_status, present_mock, get_cbi_mock,
-                       set_cbi_mock)
-        if expected_wp_status == actual_wp_status:
-          cbi_utils.VerifyCbiEepromWpStatus(self.dut, expected_wp_status)
-        else:
-          self.assertRaises(cbi_utils.CbiException,
-                            cbi_utils.VerifyCbiEepromWpStatus, self.dut,
-                            expected_wp_status)
+        possible_error_messages = [None]
+        if actual_wp_status == cbi_utils.CbiEepromWpStatus.Locked:
+          possible_error_messages = cbi_utils.WpErrorMessages
+        for error_messages in possible_error_messages:
+          _SetMockStatus(actual_wp_status, present_mock, get_cbi_mock,
+                         set_cbi_mock, error_messages)
+          if expected_wp_status == actual_wp_status:
+            cbi_utils.VerifyCbiEepromWpStatus(self.dut, expected_wp_status)
+          else:
+            self.assertRaises(cbi_utils.CbiException,
+                              cbi_utils.VerifyCbiEepromWpStatus, self.dut,
+                              expected_wp_status)
 
 
 if __name__ == '__main__':
