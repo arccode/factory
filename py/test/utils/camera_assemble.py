@@ -104,24 +104,24 @@ class DetectCameraAssemblyIssue:
       for i in range(num_vertical_grid):
         if (avg_grid_vals[i][0] <= min_luminance_value) or \
           (avg_grid_vals[i][-1] <= min_luminance_value):
-          return False
+          return True
 
       for j in range(num_horizontal_grid):
         if (avg_grid_vals[0][j] <= min_luminance_value) or \
           (avg_grid_vals[-1][j] <= min_luminance_value):
-          return False
+          return True
 
-    return True
+    return False
 
-  def GetQRCodeDetectionRegion(self):
-    """Calculate the detection region using the shape of the grid.
 
-    Returns:
-      The x, y coordinates, width and height of the detection region.
-    """
-    img_height, img_width = self.cv_image.shape
-    y_pos, x_pos = MAX_GRID_SIZE
-    width = (img_width // 2) - x_pos
-    height = img_height - y_pos * 2
+def GetQRCodeDetectionRegion(img_height, img_width):
+  """Calculate the detection region using the shape of the grid.
 
-    return x_pos, y_pos, width, height
+  Returns:
+    The x, y coordinates, width and height of the detection region.
+  """
+  y_pos, x_pos = MAX_GRID_SIZE
+  width = (img_width // 2) - x_pos
+  height = img_height - y_pos * 2
+
+  return x_pos, y_pos, width, height

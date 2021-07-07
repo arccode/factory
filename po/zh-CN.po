@@ -1627,12 +1627,18 @@ msgid "Running the camera until expected number of frames captured."
 msgstr "运行相机直到给订数量"
 
 #: ../py/test/pytests/camera.py
-msgid "Cover the field of view of the camera with a white paper..."
-msgstr "用白纸覆盖相机的视野..."
+msgid "Cover the field of view of the camera with a white paper."
+msgstr "用白纸覆盖相机的视野"
 
 #: ../py/test/pytests/camera.py
 msgid "Scanning QR code..."
 msgstr "侦测 QR 码中..."
+
+#: ../py/test/pytests/camera.py
+msgid ""
+"Place QR code in the frame and cover the field of view of the camera with a "
+"white paper."
+msgstr "将 QR 码放入框中并用白纸覆盖相机的视野"
 
 #: ../py/test/pytests/camera.py
 msgid "Detecting faces..."
@@ -1651,6 +1657,21 @@ msgstr "LED 一直亮着请按 0，闪烁请按 1，没亮请按 ESC"
 #: ../py/test/pytests/camera.py
 msgid "Scanned QR code: \"{text}\""
 msgstr "已侦测 QR 码: \"{text}\""
+
+#: ../py/test/pytests/camera.py ../py/test/pytests/compass_static/compass.html
+#: ../py/test/pytests/tablet_mode.py
+#: ../py/test/pytests/tablet_rotation_static/tablet_rotation.html
+msgid "Success!"
+msgstr "成功！"
+
+#: ../py/test/pytests/camera.py ../py/test/pytests/tablet_mode.py
+msgid "Failure"
+msgstr "失败"
+
+#: ../py/test/pytests/camera.py
+msgid ""
+"Camera assemble: {camera_well_assembled}, QR code: {qr_code_scan_success}"
+msgstr "相机组装：{camera_well_assembled}，QR 码：{qr_code_scan_success}"
 
 #: ../py/test/pytests/cellular_switch_firmware.py
 msgid "Switching firmware to {target!r}"
@@ -1742,12 +1763,6 @@ msgstr "南"
 #: ../py/test/pytests/compass.py
 msgid "Put the DUT towards {direction}"
 msgstr "将机器朝向{direction}方"
-
-#: ../py/test/pytests/compass_static/compass.html
-#: ../py/test/pytests/tablet_mode.py
-#: ../py/test/pytests/tablet_rotation_static/tablet_rotation.html
-msgid "Success!"
-msgstr "成功！"
 
 #: ../py/test/pytests/countdown_static/countdown.html
 msgid "Remaining time:"
@@ -2797,10 +2812,6 @@ msgstr "把上盖掀开直到正常笔电模式"
 #: ../py/test/pytests/tablet_mode.py
 msgid "Press SPACE to confirm notebook mode"
 msgstr "请按空白键确认笔电模式"
-
-#: ../py/test/pytests/tablet_mode.py
-msgid "Failure"
-msgstr "失败"
 
 #: ../py/test/pytests/tablet_rotation.py
 msgid ""

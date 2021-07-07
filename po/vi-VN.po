@@ -1656,12 +1656,18 @@ msgid "Running the camera until expected number of frames captured."
 msgstr "Chạy máy ảnh cho đến khi số lượng được đặt"
 
 #: ../py/test/pytests/camera.py
-msgid "Cover the field of view of the camera with a white paper..."
+msgid "Cover the field of view of the camera with a white paper."
 msgstr ""
 
 #: ../py/test/pytests/camera.py
 msgid "Scanning QR code..."
 msgstr "Phát hiện mã QR ..."
+
+#: ../py/test/pytests/camera.py
+msgid ""
+"Place QR code in the frame and cover the field of view of the camera with a "
+"white paper."
+msgstr ""
 
 #: ../py/test/pytests/camera.py
 msgid "Detecting faces..."
@@ -1681,6 +1687,21 @@ msgstr ""
 #: ../py/test/pytests/camera.py
 msgid "Scanned QR code: \"{text}\""
 msgstr "Đã phát hiện mã QR:  \"{text}\""
+
+#: ../py/test/pytests/camera.py ../py/test/pytests/compass_static/compass.html
+#: ../py/test/pytests/tablet_mode.py
+#: ../py/test/pytests/tablet_rotation_static/tablet_rotation.html
+msgid "Success!"
+msgstr "Thành công"
+
+#: ../py/test/pytests/camera.py ../py/test/pytests/tablet_mode.py
+msgid "Failure"
+msgstr "Thất bại"
+
+#: ../py/test/pytests/camera.py
+msgid ""
+"Camera assemble: {camera_well_assembled}, QR code: {qr_code_scan_success}"
+msgstr ""
 
 #: ../py/test/pytests/cellular_switch_firmware.py
 msgid "Switching firmware to {target!r}"
@@ -1773,12 +1794,6 @@ msgstr "nam"
 #: ../py/test/pytests/compass.py
 msgid "Put the DUT towards {direction}"
 msgstr "Hướng máy về phía{direction}"
-
-#: ../py/test/pytests/compass_static/compass.html
-#: ../py/test/pytests/tablet_mode.py
-#: ../py/test/pytests/tablet_rotation_static/tablet_rotation.html
-msgid "Success!"
-msgstr "Thành công"
 
 #: ../py/test/pytests/countdown_static/countdown.html
 msgid "Remaining time:"
@@ -2852,10 +2867,6 @@ msgstr "Mở nắp cho đến khi chế độ máy tính xách tay bình thườ
 #: ../py/test/pytests/tablet_mode.py
 msgid "Press SPACE to confirm notebook mode"
 msgstr "Vui lòng bấm phím trống để xác nhận chế độ sổ ghi chép."
-
-#: ../py/test/pytests/tablet_mode.py
-msgid "Failure"
-msgstr "Thất bại"
 
 #: ../py/test/pytests/tablet_rotation.py
 msgid ""

@@ -3,7 +3,8 @@
 // found in the LICENSE file.
 
 const imageDiv = document.getElementById('test-image');
-const promptDiv = document.getElementById('prompt');
+const instructionDiv = document.getElementById('instruction');
+const feedbackDiv = document.getElementById('feedback')
 const overlayCanvas = document.getElementById('overlay');
 
 const showImage = (data_url) => {
@@ -36,7 +37,19 @@ const runJS = (js, eventName) => {
 
 const showInstruction = (instruction) => {
   goog.dom.safe.setInnerHtml(
-      promptDiv, cros.factory.i18n.i18nLabel(instruction));
+      instructionDiv, cros.factory.i18n.i18nLabel(instruction));
+};
+
+const showFeedback = (feedback) => {
+  goog.dom.safe.setInnerHtml(
+      feedbackDiv, cros.factory.i18n.i18nLabel(feedback));
+};
+
+const appendFeedback = (feedback) => {
+  var message_node = goog.dom.createDom('span');
+  goog.dom.safe.setInnerHtml(
+      message_node, cros.factory.i18n.i18nLabel(feedback));
+  goog.dom.appendChild(feedbackDiv, message_node);
 };
 
 const canvasToDataURL = async (canvas) => {
@@ -202,6 +215,8 @@ const exports = {
   runJSPromise,
   runJS,
   showInstruction,
+  showFeedback,
+  appendFeedback,
   CameraTest
 };
 for (const key of Object.keys(exports)) {

@@ -8,9 +8,12 @@ Description
 -----------
 This pytest test if camera is working by one of the following method (choose
 by argument ``mode``):
+
 * ``'camera_assemble'``: Detect whether the camera is well assembled.
 
 * ``'qr'``: Scan QR code of given string.
+
+* ``'camera_assemble_qr'``: Run camera_assemble and qr mode together.
 
 * ``'face'``: Recognize a human face.
 
@@ -33,13 +36,19 @@ button on Chrome notification to give Chrome camera permission.
 
 The test procedure differs for each different modes:
 
-* ``'camera_assemble'``: Operator prepare a white paper that is large enough to
-  cover the FOV of the camera. Test would pass automatically after
+* ``'camera_assemble'``: Operator prepares a white paper that is large enough
+  to cover the FOV of the camera. Test would pass automatically after
   ``num_frames_to_pass`` frames with white paper are captured.
 
 * ``'qr'``: Operator put a QR code with content specified by ``QR_string``.
   Test would pass automatically after ``num_frames_to_pass`` frames with QR code
   are captured.
+
+* ``'camera_assemble_qr'``: Operator prepares a white paper that has QR code on
+  it. The white paper should be large enough to cover the FOV of the camera,
+  and the QR code should locate at the specified detection region. Test would
+  pass automatically after ``num_frames_to_pass`` frames with white paper and
+  QR code are captured.
 
 * ``'face'``: Operator show a face to the camera. Test would pass automatically
   after ``num_frames_to_pass`` frames with detected face are captured.
@@ -65,13 +74,13 @@ Except ``'timeout'`` mode, the test would fail after ``timeout_secs`` seconds.
 
 Dependency
 ----------
-End-to-end ``'camera_assemble'``, ``'qr'`` or ``'face'``
-modes depend on OpenCV and numpy.
+End-to-end ``'camera_assemble'``, ``'qr'``, ``'camera_assemble_qr'`` and
+``'face'`` modes depend on OpenCV and numpy.
 
 If not end-to-end mode, depend on OpenCV and device API
 ``cros.factory.device.camera``.
 
-``'qr'`` mode also depends on library ``zbar``.
+``'qr'`` and ``'camera_assemble_qr'`` mode also depend on library ``zbar``.
 
 Examples
 --------
@@ -117,6 +126,19 @@ To run QR scan test, and specify camera resolution to 1920 x 1080::
         "resolution": [1920, 1280]
       },
       "mode": "qr"
+    }
+  }
+
+To run camera_assemble_qr test, and specify the QR string::
+
+  {
+    "pytest_name": "camera",
+    "args": {
+      "camera_args": {
+        "resolution": [1920, 1280]
+      },
+      "mode": "camera_assemble_qr",
+      "QR_string": "hello world"
     }
   }
 
@@ -206,8 +228,8 @@ _HAAR_CASCADE_PATH = (
     '/usr/local/share/opencv4/haarcascades/haarcascade_frontalface_default.xml')
 
 TestModes = type_utils.Enum([
-    'camera_assemble', 'qr', 'face', 'timeout', 'frame_count', 'manual',
-    'manual_led', 'brightness'
+    'camera_assemble', 'qr', 'camera_assemble_qr', 'face', 'timeout',
+    'frame_count', 'manual', 'manual_led', 'brightness'
 ])
 
 _TEST_MODE_INST = {
@@ -218,9 +240,12 @@ _TEST_MODE_INST = {
     TestModes.frame_count:
         _('Running the camera until expected number of frames captured.'),
     TestModes.camera_assemble:
-        _('Cover the field of view of the camera with a white paper...'),
+        _('Cover the field of view of the camera with a white paper.'),
     TestModes.qr:
         _('Scanning QR code...'),
+    TestModes.camera_assemble_qr:
+        _('Place QR code in the frame and cover the field of view of the'
+          ' camera with a white paper.'),
     TestModes.face:
         _('Detecting faces...'),
     TestModes.brightness:
@@ -313,6 +338,12 @@ class CameraTest(test_case.TestCase):
       self.PassTask()
     else:
       self.FailTask('Camera test failed due to timeout.')
+
+  def ShowFeedback(self, msg):
+    self.ui.CallJSFunction('showFeedback', msg)
+
+  def AppendFeedback(self, msg):
+    self.ui.CallJSFunction('appendFeedback', msg)
 
   def ShowInstruction(self, msg):
     self.ui.CallJSFunction('showInstruction', msg)
@@ -431,7 +462,7 @@ class CameraTest(test_case.TestCase):
   def DetectAssemblyIssue(self, cv_image):
     camera_assemble_issue = camera_assemble.DetectCameraAssemblyIssue(
         cv_image, self.min_luminance_ratio)
-    return camera_assemble_issue.IsBoundaryRegionTooDark()
+    return not camera_assemble_issue.IsBoundaryRegionTooDark()
 
   def ScanQRCode(self, cv_image):
     scanned_text = None
@@ -443,10 +474,44 @@ class CameraTest(test_case.TestCase):
       scanned_text = scan_results[0]
 
     if scanned_text:
-      self.ShowInstruction(
+      self.ShowFeedback(
           i18n.StringFormat(_('Scanned QR code: "{text}"'), text=scanned_text))
+      if scanned_text != self.args.QR_string:
+        logging.warning(
+            'Scanned QR code "%s" does not match target QR code "%s"',
+            scanned_text, self.args.QR_string)
 
     return scanned_text == self.args.QR_string
+
+  def GetResultString(self, result):
+    return _('Success!') if result else _('Failure')
+
+  def DetectAssemblyIssueAndScanQRCode(self, cv_image):
+    camera_well_assembled = self.DetectAssemblyIssue(cv_image)
+
+    img_height, img_width = cv_image.shape[:2]
+    x_pos, y_pos, qr_width, qr_height = \
+      camera_assemble.GetQRCodeDetectionRegion(img_height, img_width)
+
+    # Since we'll use the center and boundary regions of the image when
+    # conducting the camera_assemble test, we restrict the position of the QR
+    # code so that it won't be at the center or boundary regions.
+    qr_region = cv_image[y_pos:y_pos + qr_height, x_pos:x_pos + qr_width, :]
+    qr_code_scan_success = self.ScanQRCode(qr_region)
+
+    string_to_show = i18n.StringFormat(
+        _(
+            'Camera assemble: {camera_well_assembled}, '
+            'QR code: {qr_code_scan_success}',
+            camera_well_assembled=self.GetResultString(camera_well_assembled),
+            qr_code_scan_success=self.GetResultString(qr_code_scan_success)))
+
+    if qr_code_scan_success:
+      self.AppendFeedback(string_to_show)
+    else:
+      self.ShowFeedback(string_to_show)
+
+    return camera_well_assembled and qr_code_scan_success
 
   def BrightnessCheck(self, cv_image):
     value = cv.cvtColor(cv_image, cv.COLOR_BGR2GRAY).max()
@@ -483,6 +548,22 @@ class CameraTest(test_case.TestCase):
       # The websocket is closed because test has passed/failed.
       return
 
+  def DrawQRDetectionRegion(self, cv_image):
+    img_height, img_width = cv_image.shape[:2]
+    x_pos, y_pos, qr_width, qr_height = \
+      camera_assemble.GetQRCodeDetectionRegion(img_height, img_width)
+
+    if self.e2e_mode:
+      self.RunJSBlocking('cameraTest.clearOverlay()')
+      self.RunJSBlocking('cameraTest.drawRect({}, {}, {}, {})'.format(
+          float(x_pos) / img_width,
+          float(y_pos) / img_height,
+          float(qr_width) / img_width,
+          float(qr_height) / img_height))
+    else:
+      cv.rectangle(cv_image, (x_pos, y_pos),
+                   (x_pos + qr_width, y_pos + qr_height), 255)
+
   def CaptureTestFrame(self, mode, cv_image):
     if mode == TestModes.frame_count:
       return True
@@ -490,6 +571,8 @@ class CameraTest(test_case.TestCase):
       return self.DetectAssemblyIssue(cv_image)
     if mode == TestModes.qr:
       return self.ScanQRCode(cv_image)
+    if mode == TestModes.camera_assemble_qr:
+      return self.DetectAssemblyIssueAndScanQRCode(cv_image)
     if mode == TestModes.face:
       return self.DetectFaces(cv_image)
     if mode == TestModes.brightness:
@@ -531,6 +614,8 @@ class CameraTest(test_case.TestCase):
             return
 
         if self.args.show_image:
+          if mode == TestModes.camera_assemble_qr:
+            self.DrawQRDetectionRegion(cv_image)
           self.ShowImage(cv_image)
 
         self.Sleep(frame_interval - (time.time() - start_time))
@@ -582,7 +667,10 @@ class CameraTest(test_case.TestCase):
       self.ui.RunJS(
           'window.cameraTest = new CameraTest(args.options)', options=options)
       self.camera_device = None
-      if self.mode in [TestModes.camera_assemble, TestModes.qr, TestModes.face]:
+      if self.mode in [
+          TestModes.camera_assemble, TestModes.qr, TestModes.camera_assemble_qr,
+          TestModes.face
+      ]:
         self.need_transmit_from_ui = True
     else:
       self.camera_device = self.dut.camera.GetCameraDevice(
