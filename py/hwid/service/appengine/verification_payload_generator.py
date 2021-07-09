@@ -557,7 +557,8 @@ def GenerateVerificationPayload(dbs):
 
     # Append the generic probe statements.
     for ps_gen in _GetAllGenericProbeStatementInfoRecords():
-      probe_config.AddComponentProbeStatement(ps_gen.GenerateProbeStatement())
+      if ps_gen.probe_category not in waived_categories:
+        probe_config.AddComponentProbeStatement(ps_gen.GenerateProbeStatement())
 
     probe_config_pathname = 'runtime_probe/%s/probe_config.json' % model_prefix
     generated_file_contents[probe_config_pathname] = probe_config.DumpToString()
