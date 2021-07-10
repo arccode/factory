@@ -336,6 +336,23 @@ message BatchGetHwidDbEditableSectionChangeClInfoResponse {
   map<int64, HwidDbEditableSectionChangeClInfo> cl_status = 1;
 }
 
+// A request for generating the component name for HWID from the given AVL IDs.
+message BatchGenerateAvlComponentNameRequest {
+  message ComponentNameMaterial {
+    string component_class = 1;
+    int64 avl_cid = 2;
+    int64 avl_qid = 3;
+    int32 seq_no = 4;
+  }
+
+  repeated ComponentNameMaterial component_name_materials = 1;
+}
+
+// A response for generating the component name for HWID from the given AVL IDs.
+message BatchGenerateAvlComponentNameResponse {
+  repeated string component_names = 1;
+}
+
 service HwidService {
   rpc GetProjects(ProjectsRequest) returns (ProjectsResponse);
 
@@ -383,4 +400,8 @@ service HwidService {
   rpc BatchGetHwidDbEditableSectionChangeClInfo(
       BatchGetHwidDbEditableSectionChangeClInfoRequest)
           returns (BatchGetHwidDbEditableSectionChangeClInfoResponse);
+
+  // Generate the component names from the specific AVL IDs.
+  rpc BatchGenerateAvlComponentName(BatchGenerateAvlComponentNameRequest)
+      returns (BatchGenerateAvlComponentNameResponse);
 }

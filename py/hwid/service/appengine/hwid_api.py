@@ -600,6 +600,19 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
                                message=comment.message)
     return response
 
+  @protorpc_utils.ProtoRPCServiceMethod
+  @auth.RpcCheck
+  def BatchGenerateAvlComponentName(self, request):
+    response = hwid_api_messages_pb2.BatchGenerateAvlComponentNameResponse()
+    for mat in request.component_name_materials:
+      if mat.avl_qid == 0:
+        response.component_names.append(
+            f'{mat.component_class}_{mat.avl_cid}#{mat.seq_no}')
+      else:
+        response.component_names.append(
+            f'{mat.component_class}_{mat.avl_cid}_{mat.avl_qid}#{mat.seq_no}')
+    return response
+
 
 def _GetHWIDDBChangeInfo(live_hwid_repo, project, new_hwid_db_editable_section):
   new_hwid_db_editable_section = _NormalizeAndJoinHWIDDBEditableSectionLines(

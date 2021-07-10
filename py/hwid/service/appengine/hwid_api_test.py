@@ -1083,6 +1083,23 @@ class HwidApiTest(unittest.TestCase):
     cl_status.comments.add(email='user2@email', message='msg2')
     self.assertEqual(resp, expected_resp)
 
+  def testBatchGenerateAvlComponentName_NoQid(self):
+    req = hwid_api_messages_pb2.BatchGenerateAvlComponentNameRequest()
+    req.component_name_materials.add(component_class='class1', avl_cid=123,
+                                     avl_qid=0, seq_no=3)
+    resp = self.service.BatchGenerateAvlComponentName(req)
+    self.assertEqual(resp.component_names, ['class1_123#3'])
+
+  def testBatchGenerateAvlComponentName_HasQid(self):
+    req = hwid_api_messages_pb2.BatchGenerateAvlComponentNameRequest()
+    req.component_name_materials.add(component_class='class1', avl_cid=123,
+                                     avl_qid=456, seq_no=3)
+    req.component_name_materials.add(component_class='class2', avl_cid=234,
+                                     avl_qid=567, seq_no=4)
+    resp = self.service.BatchGenerateAvlComponentName(req)
+    self.assertEqual(resp.component_names,
+                     ['class1_123_456#3', 'class2_234_567#4'])
+
   def CheckForLabelValue(self, response, label_to_check_for,
                          value_to_check_for=None):
     for label in response.labels:
