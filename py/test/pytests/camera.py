@@ -81,12 +81,27 @@ To run a manual capture test. (The default case), add this in test list::
     "pytest_name": "camera"
   }
 
+Resolution must be set when using Chrome API::
+
+  {
+    "pytest_name": "camera",
+    "args": {
+      "camera_args": {
+        "resolution": [1920, 1280]
+      },
+      "e2e_mode": true
+    }
+  }
+
 To run camera_assemble test, use Chrome API and specify the minimal luminance
 ratio to 0.7::
 
   {
     "pytest_name": "camera",
     "args": {
+      "camera_args": {
+        "resolution": [1920, 1280]
+      },
       "e2e_mode": true,
       "mode": "camera_assemble",
       "min_luminance_ratio": 0.7
@@ -110,6 +125,9 @@ To run facial recognition test, and use Chrome API instead of device API::
   {
     "pytest_name": "camera",
     "args": {
+      "camera_args": {
+        "resolution": [1920, 1280]
+      },
       "e2e_mode": true,
       "mode": "face"
     }
@@ -553,8 +571,10 @@ class CameraTest(test_case.TestCase):
           'getUserMediaRetries': self.args.get_user_media_retries,
       }
       resolution = self.args.camera_args.get('resolution')
-      if resolution:
-        options['width'], options['height'] = resolution
+      if not resolution:
+        raise ValueError(
+            'Resolution must be specified when e2e_mode is set to true.')
+      options['width'], options['height'] = resolution
       options['flipImage'] = self.flip_image
       self.ui.RunJS(
           'window.cameraTest = new CameraTest(args.options)', options=options)
