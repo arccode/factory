@@ -11,6 +11,8 @@ from cros.factory.hwid.v3.database import Components
 from cros.factory.hwid.v3.database import Database
 from cros.factory.hwid.v3.database import EncodedFields
 from cros.factory.hwid.v3.database import ImageId
+from cros.factory.hwid.v3.database import MagicPlaceholderComponentOptions
+from cros.factory.hwid.v3.database import MagicPlaceholderOptions
 from cros.factory.hwid.v3.database import Pattern
 from cros.factory.hwid.v3.database import Rules
 from cros.factory.utils import file_utils
@@ -21,30 +23,32 @@ _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 def Unordered(data):
   if isinstance(data, dict):
-    return {k: Unordered(v) for k, v in data.items()}
+    return {k: Unordered(v)
+            for k, v in data.items()}
   if isinstance(data, list):
     return [Unordered(a) for a in data]
   return data
 
 
 class DatabaseTest(unittest.TestCase):
+
   def testLoadFile(self):
     Database.LoadFile(os.path.join(_TEST_DATA_PATH, 'test_database_db.yaml'))
     Database.LoadFile(
         os.path.join(_TEST_DATA_PATH, 'test_database_db_bad_checksum.yaml'),
         verify_checksum=False)
 
-    self.assertRaises(HWIDException, Database.LoadFile,
-                      os.path.join(_TEST_DATA_PATH,
-                                   'test_database_db_bad_checksum.yaml'))
-    for case in ['missing_pattern',
-                 'missing_encoded_field',
-                 'missing_component',
-                 'missing_encoded_field_bit']:
-      self.assertRaises(HWIDException, Database.LoadFile,
-                        os.path.join(_TEST_DATA_PATH,
-                                     'test_database_db_%s.yaml' % case),
-                        verify_checksum=False)
+    self.assertRaises(
+        HWIDException, Database.LoadFile,
+        os.path.join(_TEST_DATA_PATH, 'test_database_db_bad_checksum.yaml'))
+    for case in [
+        'missing_pattern', 'missing_encoded_field', 'missing_component',
+        'missing_encoded_field_bit'
+    ]:
+      self.assertRaises(
+          HWIDException, Database.LoadFile,
+          os.path.join(_TEST_DATA_PATH, 'test_database_db_%s.yaml' % case),
+          verify_checksum=False)
 
   def testLoadDump(self):
     db = Database.LoadFile(
@@ -61,33 +65,62 @@ class DatabaseTest(unittest.TestCase):
 
 
 class ImageIdTest(unittest.TestCase):
+
   def testExport(self):
-    expr = {0: 'EVT', 1: 'DVT', 2: 'PVT'}
-    self.assertEqual(Unordered(ImageId(expr).Export()),
-                     {0: 'EVT', 1: 'DVT', 2: 'PVT'})
+    expr = {
+        0: 'EVT',
+        1: 'DVT',
+        2: 'PVT'
+    }
+    self.assertEqual(
+        Unordered(ImageId(expr).Export()), {
+            0: 'EVT',
+            1: 'DVT',
+            2: 'PVT'
+        })
 
   def testSetItem(self):
-    image_id = ImageId({0: 'EVT', 1: 'DVT', 2: 'PVT'})
+    image_id = ImageId({
+        0: 'EVT',
+        1: 'DVT',
+        2: 'PVT'
+    })
     image_id[3] = 'XXYYZZ'
     image_id[5] = 'AABBCC'
-    self.assertEqual(Unordered(image_id.Export()),
-                     {0: 'EVT', 1: 'DVT', 2: 'PVT', 3: 'XXYYZZ', 5: 'AABBCC'})
+    self.assertEqual(
+        Unordered(image_id.Export()), {
+            0: 'EVT',
+            1: 'DVT',
+            2: 'PVT',
+            3: 'XXYYZZ',
+            5: 'AABBCC'
+        })
 
     def func(a, b):
       image_id[a] = b
+
     self.assertRaises(HWIDException, func, 3, 'ZZZ')
     self.assertRaises(HWIDException, func, 4, 4)
     self.assertRaises(HWIDException, func, 'X', 'Y')
     self.assertRaises(HWIDException, func, -1, 'Y')
 
   def testGettingMethods(self):
-    image_id = ImageId({0: 'EVT', 1: 'DVT', 2: 'PVT'})
+    image_id = ImageId({
+        0: 'EVT',
+        1: 'DVT',
+        2: 'PVT'
+    })
     self.assertEqual(image_id.max_image_id, 2)
     self.assertEqual(image_id.rma_image_id, None)
     self.assertEqual(image_id[1], 'DVT')
     self.assertEqual(image_id.GetImageIdByName('EVT'), 0)
 
-    image_id = ImageId({0: 'EVT', 1: 'DVT', 2: 'PVT', 15: 'RMA'})
+    image_id = ImageId({
+        0: 'EVT',
+        1: 'DVT',
+        2: 'PVT',
+        15: 'RMA'
+    })
     self.assertEqual(image_id.max_image_id, 2)
     self.assertEqual(image_id.rma_image_id, 15)
     self.assertEqual(image_id[1], 'DVT')
@@ -95,122 +128,349 @@ class ImageIdTest(unittest.TestCase):
 
 
 class ComponentsTest(unittest.TestCase):
+
   def testExport(self):
-    expr = {'cls1': {'items': {'comp11': {'values': {'p1': 'v1', 'p2': 'v2'},
-                                          'status': 'unsupported'}}},
-            'cls2': {'items': {'comp21': {'values': {'p2': 'v3', 'p4': 'v5'},
-                                          'default': True}}},
-            'cls3': {'items': {'comp31': {'values': None},
-                               'comp41': {'values': {'a': 'b'}}}},
-            'cls4': {'items': {'comp41': {'values': None}}, 'probeable': False}}
+    expr = {
+        'cls1': {
+            'items': {
+                'comp11': {
+                    'values': {
+                        'p1': 'v1',
+                        'p2': 'v2'
+                    },
+                    'status': 'unsupported'
+                }
+            }
+        },
+        'cls2': {
+            'items': {
+                'comp21': {
+                    'values': {
+                        'p2': 'v3',
+                        'p4': 'v5'
+                    },
+                    'default': True
+                }
+            }
+        },
+        'cls3': {
+            'items': {
+                'comp31': {
+                    'values': None
+                },
+                'comp41': {
+                    'values': {
+                        'a': 'b'
+                    }
+                }
+            }
+        },
+        'cls4': {
+            'items': {
+                'comp41': {
+                    'values': None
+                }
+            },
+            'probeable': False
+        }
+    }
     c = Components(expr)
-    self.assertEqual(Unordered(c.Export()), expr)
+    self.assertEqual(Unordered(c.Export(True, None)), expr)
+
+  def testExportWithPlaceholders(self):
+    expr = {
+        'cls1': {
+            'items': {
+                'comp11': {
+                    'values': {
+                        'p1': 'v1',
+                        'p2': 'v2'
+                    },
+                    'status': 'unsupported'
+                }
+            }
+        }
+    }
+    c = Components(expr)
+    placeholder_opts = MagicPlaceholderOptions({
+        ('cls1', 'comp11'): MagicPlaceholderComponentOptions('AAAAA', 'BBBBB')
+    })
+    self.assertEqual(
+        Unordered(c.Export(False, placeholder_opts)), {
+            'cls1': {
+                'items': {
+                    'AAAAA': {
+                        'values': {
+                            'p1': 'v1',
+                            'p2': 'v2'
+                        },
+                        'status': 'BBBBB'
+                    }
+                }
+            }
+        })
 
   def testSyntaxError(self):
+    self.assertRaises(Exception, Components, {'cls1': {}})
     self.assertRaises(Exception, Components,
-                      {'cls1': {}})
+                      {'cls1': {
+                          'items': {
+                              'comp1': {
+                                  'status': 'supported'
+                              }
+                          }
+                      }})
     self.assertRaises(Exception, Components,
-                      {'cls1': {'items': {'comp1': {'status': 'supported'}}}})
-    self.assertRaises(Exception, Components,
-                      {'cls1': {'items': {'comp1': {'values': {}}}}})
-    self.assertRaises(Exception, Components,
-                      {'cls1': {'items': {'comp1': {'values': {'a': 'b'},
-                                                    'status': '???'}}}})
+                      {'cls1': {
+                          'items': {
+                              'comp1': {
+                                  'values': {}
+                              }
+                          }
+                      }})
+    self.assertRaises(
+        Exception, Components,
+        {'cls1': {
+            'items': {
+                'comp1': {
+                    'values': {
+                        'a': 'b'
+                    },
+                    'status': '???'
+                }
+            }
+        }})
 
   def testCanEncode(self):
-    self.assertTrue(Components(
-        {'cls1': {'items': {'c1': {'values': {'a': 'b'}}}}}).can_encode)
     self.assertTrue(
-        Components({'cls1': {'items': {'c1': {'values': None}}}}).can_encode)
-
+        Components({
+            'cls1': {
+                'items': {
+                    'c1': {
+                        'values': {
+                            'a': 'b'
+                        }
+                    }
+                }
+            }
+        }).can_encode)
     self.assertTrue(
-        Components({'cls1': {'items': {'c1': {'values': {'a': 'b'},
-                                              'default': True}}}}).can_encode)
-    self.assertFalse(
-        Components({'cls1': {'items': {'c1': {'values': {'a': 'b'}}},
-                             'probeable': False}}).can_encode)
+        Components({
+            'cls1': {
+                'items': {
+                    'c1': {
+                        'values': None
+                    }
+                }
+            }
+        }).can_encode)
 
     self.assertTrue(
         Components({
             'cls1': {
                 'items': {
                     'c1': {
-                        'values': {'a': 'b'}
+                        'values': {
+                            'a': 'b'
+                        },
+                        'default': True
+                    }
+                }
+            }
+        }).can_encode)
+    self.assertFalse(
+        Components({
+            'cls1': {
+                'items': {
+                    'c1': {
+                        'values': {
+                            'a': 'b'
+                        }
+                    }
+                },
+                'probeable': False
+            }
+        }).can_encode)
+
+    self.assertTrue(
+        Components({
+            'cls1': {
+                'items': {
+                    'c1': {
+                        'values': {
+                            'a': 'b'
+                        }
                     },
                     # 'c2' is a subset of 'c1', this is allowed, and 'c1' will
                     # have higher priority when encoding.
                     'c2': {
-                        'values': {'a': 'b', 'x': 'y'}
+                        'values': {
+                            'a': 'b',
+                            'x': 'y'
+                        }
                     },
-                }}}).can_encode)
+                }
+            }
+        }).can_encode)
 
     self.assertFalse(
         Components({
             'cls1': {
                 'items': {
                     'c1': {
-                        'values': {'a': 'b'}
+                        'values': {
+                            'a': 'b'
+                        }
                     },
                     'c2': {
-                        'values': {'a': 'b'}
+                        'values': {
+                            'a': 'b'
+                        }
                     },
-                }}}).can_encode)
+                }
+            }
+        }).can_encode)
     self.assertTrue(
         Components({
             'cls1': {
                 'items': {
                     'c1': {
-                        'values': {'a': 'b'}
+                        'values': {
+                            'a': 'b'
+                        }
                     },
                     'c2': {
-                        'values': {'a': 'b'},
+                        'values': {
+                            'a': 'b'
+                        },
                         'status': 'duplicate'
                     },
-                }}}).can_encode)
-
+                }
+            }
+        }).can_encode)
 
   def testAddComponent(self):
     c = Components({})
-    c.AddComponent('cls1', 'comp1', {'a': 'b', 'c': 'd'}, 'supported')
-    c.AddComponent('cls1', 'comp2', {'a': 'x', 'c': 'd'}, 'unsupported')
-    c.AddComponent('cls2', 'comp1', {'a': 'b', 'c': 'd'}, 'deprecated')
-    c.AddComponent('cls1', 'comp_default', None, 'supported', {
-        'comp_group': 'hello'})
+    c.AddComponent('cls1', 'comp1', {
+        'a': 'b',
+        'c': 'd'
+    }, 'supported')
+    c.AddComponent('cls1', 'comp2', {
+        'a': 'x',
+        'c': 'd'
+    }, 'unsupported')
+    c.AddComponent('cls2', 'comp1', {
+        'a': 'b',
+        'c': 'd'
+    }, 'deprecated')
+    c.AddComponent('cls1', 'comp_default', None, 'supported',
+                   {'comp_group': 'hello'})
     self.assertEqual(
-        Unordered(c.Export()), {
+        Unordered(c.Export(True, None)), {
             'cls1': {
                 'items': {
-                    'comp1': {'values': {'a': 'b', 'c': 'd'}},
-                    'comp2': {'values': {'a': 'x', 'c': 'd'},
-                              'status': 'unsupported'},
-                    'comp_default': {'values': None,
-                                     'information': {'comp_group': 'hello'}}}},
+                    'comp1': {
+                        'values': {
+                            'a': 'b',
+                            'c': 'd'
+                        }
+                    },
+                    'comp2': {
+                        'values': {
+                            'a': 'x',
+                            'c': 'd'
+                        },
+                        'status': 'unsupported'
+                    },
+                    'comp_default': {
+                        'values': None,
+                        'information': {
+                            'comp_group': 'hello'
+                        }
+                    }
+                }
+            },
             'cls2': {
                 'items': {
-                    'comp1': {'values': {'a': 'b', 'c': 'd'},
-                              'status': 'deprecated'}}}})
+                    'comp1': {
+                        'values': {
+                            'a': 'b',
+                            'c': 'd'
+                        },
+                        'status': 'deprecated'
+                    }
+                }
+            }
+        })
 
-    self.assertRaises(HWIDException, c.AddComponent,
-                      'cls1', 'comp1', {'aa': 'bb'}, 'supported')
-    c.AddComponent('cls1', 'compX1', {'a': 'b', 'c': 'd'}, 'supported')
+    self.assertRaises(HWIDException, c.AddComponent, 'cls1', 'comp1',
+                      {'aa': 'bb'}, 'supported')
+    c.AddComponent('cls1', 'compX1', {
+        'a': 'b',
+        'c': 'd'
+    }, 'supported')
     self.assertFalse(c.can_encode)
 
   def testSetComponentStatus(self):
-    c = Components({'cls1': {'items': {'comp1': {'values': {'a': 'b'}}}}})
+    c = Components({'cls1': {
+        'items': {
+            'comp1': {
+                'values': {
+                    'a': 'b'
+                }
+            }
+        }
+    }})
     c.SetComponentStatus('cls1', 'comp1', 'deprecated')
     self.assertEqual(
-        Unordered(c.Export()),
-        {'cls1': {'items': {'comp1': {'values': {'a': 'b'},
-                                      'status': 'deprecated'}}}})
+        Unordered(c.Export(True, None)), {
+            'cls1': {
+                'items': {
+                    'comp1': {
+                        'values': {
+                            'a': 'b'
+                        },
+                        'status': 'deprecated'
+                    }
+                }
+            }
+        })
 
   def testGettingMethods(self):
-    c = Components({'cls1': {'items': {'comp1': {'values': {'a': 'b'},
-                                                 'status': 'unqualified'},
-                                       'comp2': {'values': {'a': 'c'}}}},
-                    'cls2': {'items': {'comp3': {'values': {'x': 'y'}},
-                                       'comp4': {'values': {'c': 'd'},
-                                                 'information': {
-                                                     'comp_group': 'comp5'}}}}})
+    c = Components({
+        'cls1': {
+            'items': {
+                'comp1': {
+                    'values': {
+                        'a': 'b'
+                    },
+                    'status': 'unqualified'
+                },
+                'comp2': {
+                    'values': {
+                        'a': 'c'
+                    }
+                }
+            }
+        },
+        'cls2': {
+            'items': {
+                'comp3': {
+                    'values': {
+                        'x': 'y'
+                    }
+                },
+                'comp4': {
+                    'values': {
+                        'c': 'd'
+                    },
+                    'information': {
+                        'comp_group': 'comp5'
+                    }
+                }
+            }
+        }
+    })
     self.assertEqual(sorted(c.component_classes), ['cls1', 'cls2'])
     self.assertEqual(len(c.GetComponents('cls1')), 2)
     self.assertEqual(sorted(c.GetComponents('cls1').keys()), ['comp1', 'comp2'])
@@ -220,74 +480,267 @@ class ComponentsTest(unittest.TestCase):
     self.assertEqual(c.GetComponents('cls1')['comp2'].status, 'supported')
 
     self.assertEqual(len(c.GetComponents('cls2')), 2)
-    self.assertEqual(c.GetComponents('cls2')['comp4'].information['comp_group'],
-                     'comp5')
+    self.assertEqual(
+        c.GetComponents('cls2')['comp4'].information['comp_group'], 'comp5')
 
 
 class EncodedFieldsTest(unittest.TestCase):
-  def testExport(self):
-    expr = {'aaa': {0: {'x': [], 'y': 'y', 'z': ['z1', 'z2']},
-                    1: {'x': 'xx', 'y': [], 'z': []}},
-            'bbb': {0: {'b': ['b1', 'b2', 'b3']}}}
-    encoded_fields = EncodedFields(expr)
-    self.assertEqual(Unordered(encoded_fields.Export()), expr)
 
-    expr = {'aaa': {0: {'x': [], 'y': 'y', 'z': ['z1', 'z2']},
-                    2: {'x': 'xx', 'y': [], 'z': []}}}
+  def testExport(self):
+    expr = {
+        'aaa': {
+            0: {
+                'x': [],
+                'y': 'y',
+                'z': ['z1', 'z2']
+            },
+            1: {
+                'x': 'xx',
+                'y': [],
+                'z': []
+            }
+        },
+        'bbb': {
+            0: {
+                'b': ['b1', 'b2', 'b3']
+            }
+        }
+    }
     encoded_fields = EncodedFields(expr)
-    self.assertEqual(Unordered(encoded_fields.Export()), expr)
+    self.assertEqual(Unordered(encoded_fields.Export(None)), expr)
+
+    expr = {
+        'aaa': {
+            0: {
+                'x': [],
+                'y': 'y',
+                'z': ['z1', 'z2']
+            },
+            2: {
+                'x': 'xx',
+                'y': [],
+                'z': []
+            }
+        }
+    }
+    encoded_fields = EncodedFields(expr)
+    self.assertEqual(Unordered(encoded_fields.Export(None)), expr)
+
+  def testExportWithPlaceholders(self):
+    expr = {
+        'aaa': {
+            0: {
+                'x': [],
+                'y': 'y',
+                'z': ['z1', 'z2']
+            },
+            1: {
+                'x': 'xx',
+                'y': [],
+                'z': []
+            }
+        },
+        'bbb': {
+            0: {
+                'b': ['b1', 'b2', 'b3']
+            }
+        }
+    }
+    encoded_fields = EncodedFields(expr)
+    placeholder_options = MagicPlaceholderOptions({
+        ('x', 'xx'): MagicPlaceholderComponentOptions('@@xx@@', None),
+        ('b', 'b1'): MagicPlaceholderComponentOptions('@@b1@@', None),
+    })
+    self.assertEqual(
+        Unordered(encoded_fields.Export(placeholder_options)), {
+            'aaa': {
+                0: {
+                    'x': [],
+                    'y': 'y',
+                    'z': ['z1', 'z2']
+                },
+                1: {
+                    'x': '@@xx@@',
+                    'y': [],
+                    'z': []
+                }
+            },
+            'bbb': {
+                0: {
+                    'b': ['@@b1@@', 'b2', 'b3']
+                }
+            }
+        })
+
+    expr = {
+        'aaa': {
+            0: {
+                'x': [],
+                'y': 'y',
+                'z': ['z1', 'z2']
+            },
+            2: {
+                'x': 'xx',
+                'y': [],
+                'z': []
+            }
+        }
+    }
+    encoded_fields = EncodedFields(expr)
+    self.assertEqual(Unordered(encoded_fields.Export(None)), expr)
 
   def testSyntaxError(self):
     self.assertRaises(Exception, EncodedFields,
-                      {'a': {'bad_index': {'a': None}}})
+                      {'a': {
+                          'bad_index': {
+                              'a': None
+                          }
+                      }})
+    self.assertRaises(Exception, EncodedFields, {'a': {
+        0: {}
+    }})
     self.assertRaises(Exception, EncodedFields,
-                      {'a': {0: {}}})
-    self.assertRaises(Exception, EncodedFields,
-                      {'a': {0: {'a': '3'}, 1: {'c': '9'}}})
+                      {'a': {
+                          0: {
+                              'a': '3'
+                          },
+                          1: {
+                              'c': '9'
+                          }
+                      }})
 
   def testCannotEncode(self):
     self.assertFalse(
-        EncodedFields({'a': {0: {'a': '3'}, 1: {'a': '3'}}}).can_encode)
+        EncodedFields({
+            'a': {
+                0: {
+                    'a': '3'
+                },
+                1: {
+                    'a': '3'
+                }
+            }
+        }).can_encode)
 
   def testAddFieldComponents(self):
-    e = EncodedFields({'e1': {0: {'a': 'A', 'b': 'B'}}})
-    e.AddFieldComponents('e1', {'a': ['AA'], 'b': ['BB']})
-    e.AddFieldComponents('e1', {'a': ['AA', 'AX'], 'b': ['BB']})
+    e = EncodedFields({'e1': {
+        0: {
+            'a': 'A',
+            'b': 'B'
+        }
+    }})
+    e.AddFieldComponents('e1', {
+        'a': ['AA'],
+        'b': ['BB']
+    })
+    e.AddFieldComponents('e1', {
+        'a': ['AA', 'AX'],
+        'b': ['BB']
+    })
 
-    self.assertEqual(Unordered(e.Export()),
-                     {'e1': {0: {'a': 'A', 'b': 'B'},
-                             1: {'a': 'AA', 'b': 'BB'},
-                             2: {'a': ['AA', 'AX'], 'b': 'BB'}}})
+    self.assertEqual(
+        Unordered(e.Export(None)), {
+            'e1': {
+                0: {
+                    'a': 'A',
+                    'b': 'B'
+                },
+                1: {
+                    'a': 'AA',
+                    'b': 'BB'
+                },
+                2: {
+                    'a': ['AA', 'AX'],
+                    'b': 'BB'
+                }
+            }
+        })
 
     # `e1` should encode only component class `a` and `b`.
-    self.assertRaises(HWIDException, e.AddFieldComponents,
-                      'e1', {'c': ['CC'], 'a': ['AAAAAA'], 'b': ['BB']})
+    self.assertRaises(HWIDException, e.AddFieldComponents, 'e1', {
+        'c': ['CC'],
+        'a': ['AAAAAA'],
+        'b': ['BB']
+    })
 
   def testAddNewField(self):
-    e = EncodedFields({'e1': {0: {'a': 'A', 'b': 'B'}}})
-    e.AddNewField('e2', {'c': ['CC'], 'd': ['DD']})
+    e = EncodedFields({'e1': {
+        0: {
+            'a': 'A',
+            'b': 'B'
+        }
+    }})
+    e.AddNewField('e2', {
+        'c': ['CC'],
+        'd': ['DD']
+    })
 
-    self.assertEqual(Unordered(e.Export()),
-                     {'e1': {0: {'a': 'A', 'b': 'B'}},
-                      'e2': {0: {'c': 'CC', 'd': 'DD'}}})
+    self.assertEqual(
+        Unordered(e.Export(None)), {
+            'e1': {
+                0: {
+                    'a': 'A',
+                    'b': 'B'
+                }
+            },
+            'e2': {
+                0: {
+                    'c': 'CC',
+                    'd': 'DD'
+                }
+            }
+        })
 
     # `e2` already exists.
-    self.assertRaises(HWIDException, e.AddNewField,
-                      'e2', {'xxx': ['yyy']})
+    self.assertRaises(HWIDException, e.AddNewField, 'e2', {'xxx': ['yyy']})
     self.assertRaises(HWIDException, e.AddNewField, 'e3', {})
 
   def testGettingMethods(self):
-    e = EncodedFields({'e1': {0: {'a': 'A', 'b': 'B'},
-                              1: {'a': ['AA', 'AAA'], 'b': 'B'}},
-                       'e2': {0: {'c': None, 'd': []},
-                              2: {'c': ['C2', 'C1', 'C3'], 'd': 'D'}}})
+    e = EncodedFields({
+        'e1': {
+            0: {
+                'a': 'A',
+                'b': 'B'
+            },
+            1: {
+                'a': ['AA', 'AAA'],
+                'b': 'B'
+            }
+        },
+        'e2': {
+            0: {
+                'c': None,
+                'd': []
+            },
+            2: {
+                'c': ['C2', 'C1', 'C3'],
+                'd': 'D'
+            }
+        }
+    })
     self.assertEqual(set(e.encoded_fields), set(['e1', 'e2']))
-    self.assertEqual(e.GetField('e1'),
-                     {0: {'a': ['A'], 'b': ['B']},
-                      1: {'a': ['AA', 'AAA'], 'b': ['B']}})
-    self.assertEqual(e.GetField('e2'),
-                     {0: {'c': [], 'd': []},
-                      2: {'c': ['C1', 'C2', 'C3'], 'd': ['D']}})
+    self.assertEqual(
+        e.GetField('e1'), {
+            0: {
+                'a': ['A'],
+                'b': ['B']
+            },
+            1: {
+                'a': ['AA', 'AAA'],
+                'b': ['B']
+            }
+        })
+    self.assertEqual(
+        e.GetField('e2'), {
+            0: {
+                'c': [],
+                'd': []
+            },
+            2: {
+                'c': ['C1', 'C2', 'C3'],
+                'd': ['D']
+            }
+        })
     self.assertEqual(e.GetComponentClasses('e1'), {'a', 'b'})
     self.assertEqual(e.GetComponentClasses('e2'), {'c', 'd'})
     self.assertEqual(e.GetFieldForComponent('c'), 'e2')
@@ -295,80 +748,125 @@ class EncodedFieldsTest(unittest.TestCase):
 
 
 class PatternTest(unittest.TestCase):
+
   def testExport(self):
-    expr = [{'image_ids': [1, 2],
-             'encoding_scheme': 'base32',
-             'fields': [{'aaa': 1}, {'ccc': 2}]},
-            {'image_ids': [3],
-             'encoding_scheme': 'base8192',
-             'fields': []}]
+    expr = [{
+        'image_ids': [1, 2],
+        'encoding_scheme': 'base32',
+        'fields': [{
+            'aaa': 1
+        }, {
+            'ccc': 2
+        }]
+    }, {
+        'image_ids': [3],
+        'encoding_scheme': 'base8192',
+        'fields': []
+    }]
     pattern = Pattern(expr)
     self.assertEqual(Unordered(pattern.Export()), expr)
 
   def testGetImageId(self):
-    expr = [{'image_ids': [1, 2],
-             'encoding_scheme': 'base32',
-             'fields': [{'aaa': 1}, {'ccc': 2}]},
-            {'image_ids': [15],
-             'encoding_scheme': 'base8192',
-             'fields': []}]
+    expr = [{
+        'image_ids': [1, 2],
+        'encoding_scheme': 'base32',
+        'fields': [{
+            'aaa': 1
+        }, {
+            'ccc': 2
+        }]
+    }, {
+        'image_ids': [15],
+        'encoding_scheme': 'base8192',
+        'fields': []
+    }]
     pattern = Pattern(expr)
     # pylint: disable=protected-access
     self.assertEqual(pattern._max_image_id, 2)
 
   def testSyntaxError(self):
     # missing "image_ids" field
-    self.assertRaises(
-        Exception, Pattern,
-        [{'image_id': [3], 'encoding_scheme': 'base32', 'fields': []}])
+    self.assertRaises(Exception, Pattern, [{
+        'image_id': [3],
+        'encoding_scheme': 'base32',
+        'fields': []
+    }])
 
     # extra field "extra"
-    self.assertRaises(
-        Exception, Pattern,
-        [{'image_ids': [3], 'extra': 'xxx',
-          'encoding_scheme': 'base32', 'fields': []}])
-    self.assertRaises(
-        Exception, Pattern,
-        [{'image_ids': [], 'encoding_scheme': 'base32', 'fields': []}])
+    self.assertRaises(Exception, Pattern, [{
+        'image_ids': [3],
+        'extra': 'xxx',
+        'encoding_scheme': 'base32',
+        'fields': []
+    }])
+    self.assertRaises(Exception, Pattern, [{
+        'image_ids': [],
+        'encoding_scheme': 'base32',
+        'fields': []
+    }])
 
     # encoding scheme is either "base32" or "base8192"
-    self.assertRaises(
-        Exception, Pattern,
-        [{'image_ids': [3], 'encoding_scheme': 'base31', 'fields': []}])
+    self.assertRaises(Exception, Pattern, [{
+        'image_ids': [3],
+        'encoding_scheme': 'base31',
+        'fields': []
+    }])
 
-    self.assertRaises(
-        Exception, Pattern,
-        [{'image_ids': [3], 'encoding_scheme': 'base32',
-          'fields': [{'aaa': -1}]}])
+    self.assertRaises(Exception, Pattern, [{
+        'image_ids': [3],
+        'encoding_scheme': 'base32',
+        'fields': [{
+            'aaa': -1
+        }]
+    }])
 
     # value of the "fields" field should be a list of dict of size 1
-    self.assertRaises(
-        Exception, Pattern,
-        [{'image_ids': [3], 'encoding_scheme': 'base32',
-          'fields': [{'aaa': 3, 'bbb': 4}]}])
+    self.assertRaises(Exception, Pattern, [{
+        'image_ids': [3],
+        'encoding_scheme': 'base32',
+        'fields': [{
+            'aaa': 3,
+            'bbb': 4
+        }]
+    }])
 
   def testAddEmptyPattern(self):
-    pattern = Pattern(
-        [{'image_ids': [0], 'encoding_scheme': 'base32', 'fields': []}])
+    pattern = Pattern([{
+        'image_ids': [0],
+        'encoding_scheme': 'base32',
+        'fields': []
+    }])
 
     pattern.AddEmptyPattern(2, 'base8192')
     self.assertEqual(
-        Unordered(pattern.Export()),
-        [{'image_ids': [0], 'encoding_scheme': 'base32', 'fields': []},
-         {'image_ids': [2], 'encoding_scheme': 'base8192', 'fields': []}])
+        Unordered(pattern.Export()), [{
+            'image_ids': [0],
+            'encoding_scheme': 'base32',
+            'fields': []
+        }, {
+            'image_ids': [2],
+            'encoding_scheme': 'base8192',
+            'fields': []
+        }])
     self.assertEqual(pattern.GetEncodingScheme(), 'base8192')
 
     # Image id `2` already exists.
     self.assertRaises(HWIDException, pattern.AddEmptyPattern, 2, 'base8192')
 
   def testAddImageIdTo(self):
-    pattern = Pattern(
-        [{'image_ids': [0], 'encoding_scheme': 'base32', 'fields': []}])
+    pattern = Pattern([{
+        'image_ids': [0],
+        'encoding_scheme': 'base32',
+        'fields': []
+    }])
 
     pattern.AddImageId(0, 3)
     self.assertEqual(
-        Unordered(pattern.Export()),
-        [{'image_ids': [0, 3], 'encoding_scheme': 'base32', 'fields': []}])
+        Unordered(pattern.Export()), [{
+            'image_ids': [0, 3],
+            'encoding_scheme': 'base32',
+            'fields': []
+        }])
 
     # `reference_image_id` should exist.
     self.assertRaises(HWIDException, pattern.AddImageId, 2, 4)
@@ -377,56 +875,94 @@ class PatternTest(unittest.TestCase):
     self.assertRaises(HWIDException, pattern.AddImageId, 3, 0)
 
   def testAppendField(self):
-    pattern = Pattern(
-        [{'image_ids': [0], 'encoding_scheme': 'base32', 'fields': []}])
+    pattern = Pattern([{
+        'image_ids': [0],
+        'encoding_scheme': 'base32',
+        'fields': []
+    }])
 
     pattern.AppendField('aaa', 3)
     pattern.AppendField('bbb', 0)
     pattern.AppendField('aaa', 1)
     self.assertEqual(
-        Unordered(pattern.Export()),
-        [{'image_ids': [0], 'encoding_scheme': 'base32',
-          'fields': [{'aaa': 3}, {'bbb': 0}, {'aaa': 1}]}])
+        Unordered(pattern.Export()), [{
+            'image_ids': [0],
+            'encoding_scheme': 'base32',
+            'fields': [{
+                'aaa': 3
+            }, {
+                'bbb': 0
+            }, {
+                'aaa': 1
+            }]
+        }])
 
   def testGettingMethods(self):
-    pattern = Pattern(
-        [{'image_ids': [0], 'encoding_scheme': 'base32',
-          'fields': [{'a': 3}, {'b': 0}, {'a': 1}, {'c': 5}]}])
+    pattern = Pattern([{
+        'image_ids': [0],
+        'encoding_scheme': 'base32',
+        'fields': [{
+            'a': 3
+        }, {
+            'b': 0
+        }, {
+            'a': 1
+        }, {
+            'c': 5
+        }]
+    }])
 
     self.assertEqual(pattern.GetTotalBitLength(), 9)
-    self.assertEqual(pattern.GetFieldsBitLength(), {'a': 4, 'b': 0, 'c': 5})
-    self.assertEqual(pattern.GetBitMapping(),
-                     [('a', 2), ('a', 1), ('a', 0),
-                      ('a', 3),
-                      ('c', 4), ('c', 3), ('c', 2), ('c', 1), ('c', 0)])
-    self.assertEqual(pattern.GetBitMapping(max_bit_length=7),
-                     [('a', 2), ('a', 1), ('a', 0),
-                      ('a', 3),
-                      ('c', 2), ('c', 1), ('c', 0)])
+    self.assertEqual(pattern.GetFieldsBitLength(), {
+        'a': 4,
+        'b': 0,
+        'c': 5
+    })
+    self.assertEqual(pattern.GetBitMapping(), [('a', 2), ('a', 1), ('a', 0),
+                                               ('a', 3), ('c', 4), ('c', 3),
+                                               ('c', 2), ('c', 1), ('c', 0)])
+    self.assertEqual(
+        pattern.GetBitMapping(max_bit_length=7), [('a', 2), ('a', 1), ('a', 0),
+                                                  ('a', 3), ('c', 2), ('c', 1),
+                                                  ('c', 0)])
 
 
 class RulesTest(unittest.TestCase):
+
   def testNormal(self):
-    rules = Rules([{'name': 'verify.1',
-                    'evaluate': 'a = 3',
-                    'when': 'True'},
-                   {'name': 'device_info.1',
-                    'evaluate': ['a = 3', 'b = 5']},
-                   {'name': 'verify.2',
-                    'evaluate': 'c = 7',
-                    'when': 'True',
-                    'otherwise': 'False'}])
+    rules = Rules([{
+        'name': 'verify.1',
+        'evaluate': 'a = 3',
+        'when': 'True'
+    }, {
+        'name': 'device_info.1',
+        'evaluate': ['a = 3', 'b = 5']
+    }, {
+        'name': 'verify.2',
+        'evaluate': 'c = 7',
+        'when': 'True',
+        'otherwise': 'False'
+    }])
 
     self.assertEqual(len(rules.verify_rules), 2)
-    self.assertEqual(rules.verify_rules[0].ExportToDict(),
-                     {'name': 'verify.1', 'evaluate': 'a = 3', 'when': 'True'})
-    self.assertEqual(rules.verify_rules[1].ExportToDict(),
-                     {'name': 'verify.2', 'evaluate': 'c = 7',
-                      'when': 'True', 'otherwise': 'False'})
+    self.assertEqual(rules.verify_rules[0].ExportToDict(), {
+        'name': 'verify.1',
+        'evaluate': 'a = 3',
+        'when': 'True'
+    })
+    self.assertEqual(
+        rules.verify_rules[1].ExportToDict(), {
+            'name': 'verify.2',
+            'evaluate': 'c = 7',
+            'when': 'True',
+            'otherwise': 'False'
+        })
 
     self.assertEqual(len(rules.device_info_rules), 1)
-    self.assertEqual(rules.device_info_rules[0].ExportToDict(),
-                     {'name': 'device_info.1', 'evaluate': ['a = 3', 'b = 5']})
+    self.assertEqual(rules.device_info_rules[0].ExportToDict(), {
+        'name': 'device_info.1',
+        'evaluate': ['a = 3', 'b = 5']
+    })
 
   def testAddDeviceInfoRule(self):
     rules = Rules([])
@@ -434,21 +970,35 @@ class RulesTest(unittest.TestCase):
     rules.AddDeviceInfoRule('rule3', 'eval3')
     rules.AddDeviceInfoRule('rule2', 'eval2', position=1)
     rules.AddDeviceInfoRule('rule0', 'eval0', position=0)
-    self.assertEqual(Unordered(rules.Export()),
-                     [{'name': 'device_info.rule0', 'evaluate': 'eval0'},
-                      {'name': 'device_info.rule1', 'evaluate': 'eval1'},
-                      {'name': 'device_info.rule2', 'evaluate': 'eval2'},
-                      {'name': 'device_info.rule3', 'evaluate': 'eval3'}])
+    self.assertEqual(
+        Unordered(rules.Export()), [{
+            'name': 'device_info.rule0',
+            'evaluate': 'eval0'
+        }, {
+            'name': 'device_info.rule1',
+            'evaluate': 'eval1'
+        }, {
+            'name': 'device_info.rule2',
+            'evaluate': 'eval2'
+        }, {
+            'name': 'device_info.rule3',
+            'evaluate': 'eval3'
+        }])
 
   def testSyntaxError(self):
     self.assertRaises(Exception, Rules, 'abc')
 
     # Missing "name", "evaluate".
-    self.assertRaises(Exception, Rules, [{'namr': '123'}])
+    self.assertRaises(Exception, Rules, [{
+        'namr': '123'
+    }])
 
     # The prefix of the value of name should be either "verify." or
     # "device_info."
-    self.assertRaises(Exception, Rules, [{'name': 'xxx', 'evaluate': 'a'}])
+    self.assertRaises(Exception, Rules, [{
+        'name': 'xxx',
+        'evaluate': 'a'
+    }])
 
 
 if __name__ == '__main__':

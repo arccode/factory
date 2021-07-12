@@ -37,8 +37,10 @@ each part is described in the class' document.
 import collections
 import copy
 import hashlib
+import itertools
 import logging
 import re
+from typing import Mapping, NamedTuple, Optional, Tuple
 
 from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3.rule import Rule
@@ -47,6 +49,21 @@ from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import file_utils
 from cros.factory.utils import schema
 from cros.factory.utils import type_utils
+
+
+class MagicPlaceholderComponentOptions(NamedTuple):
+  """Options to replace a component name and status by magic placeholders."""
+  # If set, it specifies the replacement for the component name.
+  magic_component_name: Optional[str]
+  # If set, it specifies the replacement for the component support status.
+  magic_support_status: Optional[str]
+
+
+class MagicPlaceholderOptions(NamedTuple):
+  """Options to replace some parts of HWID DB payload by magic placeholders."""
+  # Magic placeholder options for component names and status.  It maps
+  # the (component_class, component_name) to the option class.
+  components: Mapping[Tuple[str, str], MagicPlaceholderComponentOptions]
 
 
 class Database:
@@ -192,15 +209,19 @@ class Database:
         yaml_obj.get('checksum'),
         yaml_obj.get('framework_version', common.OLDEST_FRAMEWORK_VERSION))
 
-  def DumpData(self, include_checksum=False):
+  def DumpData(self, include_checksum=False, suppress_support_status=True,
+               magic_placeholder_options=None):
     all_parts = [
         ('checksum', self._checksum if include_checksum else None),
         ('project', self._project),
         ('encoding_patterns', self._encoding_patterns.Export()),
         ('image_id', self._image_id.Export()),
         ('pattern', self._pattern.Export()),
-        ('encoded_fields', self._encoded_fields.Export()),
-        ('components', self._components.Export()),
+        ('encoded_fields',
+         self._encoded_fields.Export(magic_placeholder_options)),
+        ('components',
+         self._components.Export(suppress_support_status,
+                                 magic_placeholder_options)),
         ('rules', self._rules.Export()),
     ]
     if self._framework_version != common.OLDEST_FRAMEWORK_VERSION:
@@ -737,9 +758,28 @@ class EncodedFields:
   def region_field_legacy_info(self):
     return self._region_field_legacy_info
 
-  def Export(self):
+  def Export(self, magic_placeholder_options):
     """Exports to a dictionary so that it can be stored to the database file."""
-    return self._fields
+    if magic_placeholder_options is None:
+      return self._fields
+    copied_fields = copy.deepcopy(self._fields)
+    for comp_combination in itertools.chain.from_iterable(
+        index_table.values() for index_table in copied_fields.values()):
+      for comp_cls in comp_combination:
+        comp_names = self._StandardlizeList(comp_combination[comp_cls])
+        modified = False
+        for i, comp_name in enumerate(comp_names):
+          try:
+            magic_component_name = magic_placeholder_options.components[(
+                comp_cls, comp_name)].magic_component_name
+            if magic_component_name is not None:
+              comp_names[i] = magic_component_name
+              modified = True
+          except KeyError:
+            pass
+        if modified:
+          comp_combination[comp_cls] = self._SimplifyList(comp_names)
+    return copied_fields
 
   @property
   def encoded_fields(self):
@@ -1072,7 +1112,7 @@ class Components:
   def __ne__(self, rhs):
     return not self == rhs
 
-  def Export(self):
+  def Export(self, suppress_support_status, magic_placeholder_options):
     """Exports into a serializable dictionary which can be stored into a HWID
     database file."""
     # Apply the changes back to the original data for YAML, either adding a new
@@ -1096,8 +1136,32 @@ class Components:
               del components_dict[comp_name]['status']
             else:
               components_dict[comp_name]['status'] = comp_info.status
-
-    return self._components_expr
+    if suppress_support_status and magic_placeholder_options is None:
+      return self._components_expr
+    magic_placeholder_comps = (
+        magic_placeholder_options.components
+        if magic_placeholder_options else {})
+    copied_components_expr = copy.deepcopy(self._components_expr)
+    for comp_cls, comp_cls_expr in copied_components_expr.items():
+      # Reconstruct the whole component dictionary to preserve the orders.
+      patched_comp_items = yaml.Dict()
+      for comp_name, comp_info_dict in comp_cls_expr['items'].items():
+        try:
+          option = magic_placeholder_comps[(comp_cls, comp_name)]
+          if option.magic_component_name is not None:
+            comp_name = option.magic_component_name
+          if option.magic_support_status is not None:
+            comp_info_dict['status'] = option.magic_support_status
+        except KeyError:
+          if not suppress_support_status and 'status' not in comp_info_dict:
+            orig_comp_info_dict = comp_info_dict
+            comp_info_dict = {
+                'status': common.COMPONENT_STATUS.supported
+            }
+            comp_info_dict.update(orig_comp_info_dict)
+        patched_comp_items[comp_name] = comp_info_dict
+      comp_cls_expr['items'] = patched_comp_items
+    return copied_components_expr
 
   @property
   def can_encode(self):

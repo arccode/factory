@@ -4,8 +4,12 @@
 """This module collects utilities that analyze / validate the HWID DB contents.
 """
 
-import collections
-from typing import List, Mapping, NamedTuple, Optional
+import copy
+import difflib
+import enum
+import functools
+import itertools
+from typing import List, Mapping, NamedTuple, Optional, Tuple
 
 import yaml
 
@@ -20,6 +24,16 @@ _BLOCKLIST_DRAM_TAG = set([
     'dram_placeholder',
     'a_fake_dram_0gb',
 ])
+
+
+def _GetComponentMagicPlaceholder(comp_cls, comp_name):
+  # Prefix "x" prevents yaml from quoting the string.
+  return f'x@@@@component@{comp_cls}@{comp_name}@@@@'
+
+
+def _GetSupportStatusMagicPlaceholder(comp_cls, comp_name):
+  # Prefix "x" prevents yaml from quoting the string.
+  return f'x@@@@support_status@{comp_cls}@{comp_name}@@@@'
 
 
 class NameChangedComponentInfo(NamedTuple):
@@ -39,6 +53,47 @@ class ValidationReport(NamedTuple):
   @classmethod
   def CreateEmpty(cls):
     return cls([], [], {})
+
+
+class DBLineAnalysisResult(NamedTuple):
+
+  class ModificationStatus(enum.Enum):
+    NOT_MODIFIED = enum.auto()
+    MODIFIED = enum.auto()
+    NEWLY_ADDED = enum.auto()
+
+  class Part(NamedTuple):
+
+    class Type(enum.Enum):
+      TEXT = enum.auto()
+      COMPONENT_NAME = enum.auto()
+      COMPONENT_STATUS = enum.auto()
+
+    type: Type
+    text: str
+
+    @property
+    def reference_id(self):
+      return self.text  # Reuse the existing field.
+
+  modification_status: ModificationStatus
+  parts: List[Part]
+
+
+class HWIDComponentAnalysisResult(NamedTuple):
+  comp_cls: str
+  comp_name: str
+  support_status: str
+  is_newly_added: bool
+  avl_id: Optional[Tuple[int, int]]
+  seq_no: int
+  comp_name_with_correct_seq_no: Optional[str]
+
+
+class ChangeAnalysisReport(NamedTuple):
+  precondition_errors: List[str]
+  lines: List[DBLineAnalysisResult]
+  hwid_components: Mapping[str, HWIDComponentAnalysisResult]
 
 
 class ContentsAnalyzer:
@@ -173,51 +228,152 @@ class ContentsAnalyzer:
 
   def _ValidateChangeOfComponents(self, report: ValidationReport):
     """Check if modified (created) component names are valid."""
+    for comp_cls, comps in self._ExtractHWIDComponents().items():
+      for comp in comps:
+        if comp.extracted_seq_no is not None:
+          expected_comp_name = (
+              f'{comp.extracted_noseq_comp_name}#{comp.expected_seq_no}')
+          if expected_comp_name != comp.name:
+            report.errors.append(
+                'Invalid component name with sequence number, please modify it '
+                f'from {comp.name!r} to {expected_comp_name!r}.')
+        cid, qid = comp.extracted_avl_id or (0, 0)
+        if comp.is_newly_added:
+          report.name_changed_components.setdefault(comp_cls, []).append(
+              NameChangedComponentInfo(comp.name, cid, qid, comp.status,
+                                       bool(comp.extracted_avl_id)))
 
-    def FindModifiedComponentsWithIdx(old_db, db, comp_cls):
-      name_idx = {}
-      for idx, (tag, comp) in enumerate(db.GetComponents(comp_cls).items(), 1):
-        name_idx[tag] = (idx, comp)
+  def AnalyzeChange(self, db_contents_patcher) -> ChangeAnalysisReport:
+    """Analyzes the HWID DB change.
 
-      if old_db is not None:
-        for tag in old_db.GetComponents(comp_cls):
-          name_idx.pop(tag, None)
+    Args:
+      db_contents_patcher: A function that patches / removes the header of the
+          given HWID DB contents.
 
-      return name_idx
+    Returns:
+      An instance of `ChangeAnalysisReport`.
+    """
+    report = ChangeAnalysisReport([], [], {})
+    if not self._curr_db.instance:
+      report.precondition_errors.append(str(self._curr_db.load_error))
+      return report
 
-    adapter = name_pattern_adapter.NamePatternAdapter()
-    rename_component = {}
-    bucket = collections.defaultdict(list)
-    for comp_cls in self._curr_db.instance.GetActiveComponentClasses():
-      name_pattern = adapter.GetNamePattern(comp_cls)
-      modified_names = FindModifiedComponentsWithIdx(
-          self._prev_db.instance, self._curr_db.instance, comp_cls)
-      for tag, (idx, comp) in modified_names.items():
-        name, sep, unused_seq = tag.partition('#')
-        if sep:
-          expected_component_name = f'{name}#{idx}'
-          if tag != expected_component_name:
-            rename_component[tag] = expected_component_name
+    # To locate the HWID component name / status text part in the HWID DB
+    # contents, we first dump a specialized HWID DB which has all cared parts
+    # replaced by some magic placeholders.  Then we parse the raw string to
+    # find out the location of those fields.
 
-        ret = name_pattern.Matches(tag)
-        if ret:
-          cid, qid = ret
-          has_cid_qid = True
+    all_comps = self._ExtractHWIDComponents()
+    all_placeholders = []
+    db_placeholder_options = database.MagicPlaceholderOptions({})
+    for comp_cls, comps in all_comps.items():
+      for comp in comps:
+        comp_name_replacer = _GetComponentMagicPlaceholder(comp_cls, comp.name)
+        comp_status_replacer = _GetSupportStatusMagicPlaceholder(
+            comp_cls, comp.name)
+        db_placeholder_options.components[(comp_cls, comp.name)] = (
+            database.MagicPlaceholderComponentOptions(comp_name_replacer,
+                                                      comp_status_replacer))
+
+        all_placeholders.append(
+            (comp_name_replacer,
+             DBLineAnalysisResult.Part(
+                 DBLineAnalysisResult.Part.Type.COMPONENT_NAME,
+                 comp_name_replacer)))
+        all_placeholders.append(
+            (comp_status_replacer,
+             DBLineAnalysisResult.Part(
+                 DBLineAnalysisResult.Part.Type.COMPONENT_STATUS,
+                 comp_name_replacer)))
+
+        if (comp.extracted_seq_no is not None and
+            comp.extracted_seq_no != str(comp.expected_seq_no)):
+          comp_name_with_correct_seq_no = (
+              f'{comp.extracted_noseq_comp_name}#{comp.expected_seq_no}')
         else:
-          cid = qid = 0
-          has_cid_qid = False
+          comp_name_with_correct_seq_no = None
+        report.hwid_components[comp_name_replacer] = (
+            HWIDComponentAnalysisResult(
+                comp_cls, comp.name, comp.status, comp.is_newly_added,
+                comp.extracted_avl_id, comp.expected_seq_no,
+                comp_name_with_correct_seq_no))
 
-        bucket[comp_cls].append(
-            NameChangedComponentInfo(tag, cid, qid, comp.status, has_cid_qid))
+    dumped_db_lines = db_contents_patcher(
+        self._curr_db.instance.DumpData(
+            suppress_support_status=False,
+            magic_placeholder_options=db_placeholder_options)).splitlines()
 
-    if rename_component:
-      for actual_comp_name, expected_comp_name in rename_component.items():
-        report.errors.append(
-            'Invalid component name with sequence number, please modify it '
-            f'from {actual_comp_name!r} to {expected_comp_name!r}.')
+    no_placeholder_dumped_db_lines = db_contents_patcher(
+        self._curr_db.instance.DumpData(
+            suppress_support_status=False)).splitlines()
+    if len(dumped_db_lines) != len(no_placeholder_dumped_db_lines):
+      # Unexpected case, skip deriving the line diffs.
+      diff_view_line_it = itertools.repeat('  ', len(dumped_db_lines))
+    elif not self._prev_db or not self._prev_db.instance:
+      diff_view_line_it = itertools.repeat('  ', len(dumped_db_lines))
     else:
-      for comp_cls, name_change_info_list in bucket.items():
-        report.name_changed_components[comp_cls] = name_change_info_list
+      prev_db_contents_lines = db_contents_patcher(
+          self._prev_db.instance.DumpData()).splitlines()
+      diff_view_line_it = difflib.ndiff(prev_db_contents_lines,
+                                        no_placeholder_dumped_db_lines)
+
+    removed_line_count = 0
+
+    splitter = _LineSplitter(
+        all_placeholders,
+        functools.partial(DBLineAnalysisResult.Part,
+                          DBLineAnalysisResult.Part.Type.TEXT))
+    for line in dumped_db_lines:
+      while True:
+        diff_view_line = next(diff_view_line_it)
+        if diff_view_line.startswith('? '):
+          unused_next_line = next(diff_view_line_it)
+          continue
+        if not diff_view_line.startswith('- '):
+          break
+        removed_line_count += 1
+      if diff_view_line.startswith('  '):
+        removed_line_count = 0
+        mod_status = DBLineAnalysisResult.ModificationStatus.NOT_MODIFIED
+      elif removed_line_count > 0:
+        removed_line_count -= 1
+        mod_status = DBLineAnalysisResult.ModificationStatus.MODIFIED
+      else:
+        mod_status = DBLineAnalysisResult.ModificationStatus.NEWLY_ADDED
+
+      parts = splitter.SplitText(line)
+      report.lines.append(DBLineAnalysisResult(mod_status, parts))
+    return report
+
+  class _HWIDComponentMetadata(NamedTuple):
+    name: str
+    status: str
+    extracted_noseq_comp_name: str
+    extracted_seq_no: Optional[str]
+    extracted_avl_id: Optional[Tuple[int, int]]
+    expected_seq_no: int
+    is_newly_added: bool
+
+  def _ExtractHWIDComponents(
+      self) -> Mapping[str, List[_HWIDComponentMetadata]]:
+    ret = {}
+    adapter = name_pattern_adapter.NamePatternAdapter()
+    for comp_cls in self._curr_db.instance.GetActiveComponentClasses():
+      ret[comp_cls] = []
+      name_pattern = adapter.GetNamePattern(comp_cls)
+      for expected_seq, (comp_name, comp_info) in enumerate(
+          self._curr_db.instance.GetComponents(comp_cls).items(), 1):
+        avl_id = name_pattern.Matches(comp_name)
+        noseq_comp_name, sep, actual_seq = comp_name.partition('#')
+        is_newly_added = (
+            self._prev_db is None or self._prev_db.instance is None or
+            comp_name not in self._prev_db.instance.GetComponents(comp_cls))
+        ret[comp_cls].append(
+            self._HWIDComponentMetadata(comp_name, comp_info.status,
+                                        noseq_comp_name,
+                                        actual_seq if sep else None, avl_id,
+                                        expected_seq, is_newly_added))
+    return ret
 
   @classmethod
   def _LoadFromDBContents(cls, db_contents: str,
@@ -231,3 +387,30 @@ class ContentsAnalyzer:
       db = None
       load_error = ex
     return cls.DBSnapshot(db_contents, db, load_error)
+
+
+class _LineSplitter:
+
+  def __init__(self, placeholders, text_part_factory):
+    self._placeholders = placeholders
+    self._text_part_factory = text_part_factory
+
+  def SplitText(self, text):
+    return self._SplitTextRecursively(text, 0)
+
+  def _SplitTextRecursively(self, text, placeholder_idx):
+    # Split the given text with i-th placeholder.  Then for each piece,
+    # recursively split them with (i+1)-th placeholder.  This implementation
+    # is slow in term of worst case scenario.  However, in real case, each
+    # line often contains no more than two placeholders.
+    if placeholder_idx >= len(self._placeholders):
+      return [self._text_part_factory(text)] if text else []
+    placeholder_str, placeholder_sample = self._placeholders[placeholder_idx]
+    placeholder_idx += 1
+    text_parts = text.split(placeholder_str)
+    parts = []
+    for i, text_part in enumerate(text_parts):
+      parts.extend(self._SplitTextRecursively(text_part, placeholder_idx))
+      if i + 1 < len(text_parts):
+        parts.append(copy.deepcopy(placeholder_sample))
+    return parts

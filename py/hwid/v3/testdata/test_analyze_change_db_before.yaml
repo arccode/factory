@@ -1,0 +1,32 @@
+checksum: None
+
+project: CHROMEBOOK
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: TEST
+
+pattern:
+- image_ids:
+  - 0
+  encoding_scheme: base8192
+  fields:
+  - display_panel_field: 1
+
+encoded_fields:
+  display_panel_field:
+    0:
+      display_panel: display_panel_A
+
+components:
+  display_panel:
+    items:
+      display_panel_A:
+        status: unqualified
+        values:
+          cores: '1'
+          model: 'x'
+
+rules: []
