@@ -115,7 +115,7 @@ def _GetAllProbeStatementDefinitions():
                               num_value_digits=4)
     builder.AddHexOutputField('sdio_vendor_id', 'SDIO Vendor ID.',
                               num_value_digits=4)
-    builder.AddHexOutputField('sdio_product_id', 'SDIO Device ID.',
+    builder.AddHexOutputField('sdio_device_id', 'SDIO Device ID.',
                               num_value_digits=4)
     probe_statement_definitions[network_type] = builder.Build()
 

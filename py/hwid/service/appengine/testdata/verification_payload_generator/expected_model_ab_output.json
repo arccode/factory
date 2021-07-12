@@ -96,7 +96,9 @@
           "pci_subsystem": [false, "hex"],
           "usb_bcd_device": [false, "hex"],
           "usb_product_id": [false, "hex"],
-          "usb_vendor_id": [false, "hex"]
+          "usb_vendor_id": [false, "hex"],
+          "sdio_vendor_id": [false, "hex"],
+          "sdio_device_id": [false, "hex"]
         }
       }
     },
@@ -294,7 +296,9 @@
           "pci_subsystem": [false, "hex"],
           "usb_bcd_device": [false, "hex"],
           "usb_product_id": [false, "hex"],
-          "usb_vendor_id": [false, "hex"]
+          "usb_vendor_id": [false, "hex"],
+          "sdio_vendor_id": [false, "hex"],
+          "sdio_device_id": [false, "hex"]
         }
       }
     },
@@ -426,7 +430,9 @@
           "pci_subsystem": [false, "hex"],
           "usb_bcd_device": [false, "hex"],
           "usb_product_id": [false, "hex"],
-          "usb_vendor_id": [false, "hex"]
+          "usb_vendor_id": [false, "hex"],
+          "sdio_vendor_id": [false, "hex"],
+          "sdio_device_id": [false, "hex"]
         }
       }
     },
@@ -546,7 +552,9 @@
           "pci_subsystem": [false, "hex"],
           "usb_bcd_device": [false, "hex"],
           "usb_product_id": [false, "hex"],
-          "usb_vendor_id": [false, "hex"]
+          "usb_vendor_id": [false, "hex"],
+          "sdio_vendor_id": [false, "hex"],
+          "sdio_device_id": [false, "hex"]
         }
       }
     },
@@ -674,7 +682,9 @@
           "pci_subsystem": [false, "hex"],
           "usb_bcd_device": [false, "hex"],
           "usb_product_id": [false, "hex"],
-          "usb_vendor_id": [false, "hex"]
+          "usb_vendor_id": [false, "hex"],
+          "sdio_vendor_id": [false, "hex"],
+          "sdio_device_id": [false, "hex"]
         }
       }
     },
@@ -878,7 +888,9 @@
           "pci_subsystem",
           "usb_vendor_id",
           "usb_product_id",
-          "usb_bcd_device"
+          "usb_bcd_device",
+          "sdio_vendor_id",
+          "sdio_device_id"
         ]
       },
       {

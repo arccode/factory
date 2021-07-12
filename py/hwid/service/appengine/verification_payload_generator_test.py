@@ -169,7 +169,7 @@ class NetworkProbeStatementGeneratorTest(unittest.TestCase):
                 }
             }))
 
-  def testPCI(self):
+  def testPciOrSdioSuccess(self):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['wireless'][0]
     ps = ps_gen.TryGenerate('name1', {
         'vendor': '0x1234',
@@ -182,12 +182,15 @@ class NetworkProbeStatementGeneratorTest(unittest.TestCase):
                 'eval': {
                     'wireless_network': {}
                 },
-                'expect': {
+                'expect': [{
                     'pci_device_id': [True, 'hex', '!eq 0x5678'],
                     'pci_revision': [False, 'hex'],
                     'pci_subsystem': [False, 'hex'],
                     'pci_vendor_id': [True, 'hex', '!eq 0x1234']
-                }
+                }, {
+                    'sdio_device_id': [True, 'hex', '!eq 0x5678'],
+                    'sdio_vendor_id': [True, 'hex', '!eq 0x1234']
+                }]
             }))
 
     ps = ps_gen.TryGenerate('name1', {
@@ -202,13 +205,21 @@ class NetworkProbeStatementGeneratorTest(unittest.TestCase):
                 'eval': {
                     'wireless_network': {}
                 },
-                'expect': {
+                'expect': [{
                     'pci_device_id': [True, 'hex', '!eq 0x5678'],
                     'pci_revision': [False, 'hex'],
                     'pci_subsystem': [True, 'hex', '!eq 0x0123'],
                     'pci_vendor_id': [True, 'hex', '!eq 0x1234']
-                }
+                }, {
+                    'sdio_device_id': [True, 'hex', '!eq 0x5678'],
+                    'sdio_vendor_id': [True, 'hex', '!eq 0x1234']
+                }]
             }))
+
+  def testPciOrSdioFail(self):
+    ps_gen = _vp_generator.GetAllProbeStatementGenerators()['wireless'][0]
+    self.assertRaises(MissingComponentValueError, ps_gen.TryGenerate, 'name1',
+                      {'device': '0x5678'})
 
 
 class MemoryProbeStatementGeneratorTest(unittest.TestCase):

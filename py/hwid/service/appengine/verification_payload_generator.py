@@ -83,7 +83,8 @@ def _GetAllGenericProbeStatementInfoRecords():
       ]),
       GenericProbeStatementInfoRecord('wireless', 'wireless_network', [
           'bus_type', 'pci_vendor_id', 'pci_device_id', 'pci_revision',
-          'pci_subsystem', 'usb_vendor_id', 'usb_product_id', 'usb_bcd_device'
+          'pci_subsystem', 'usb_vendor_id', 'usb_product_id', 'usb_bcd_device',
+          'sdio_vendor_id', 'sdio_device_id'
       ]),
       GenericProbeStatementInfoRecord('dram', 'memory',
                                       ['part', 'size', 'slot']),
@@ -301,6 +302,12 @@ def GetAllProbeStatementGenerators():
       _FieldRecord('subsystem_device', 'pci_subsystem',
                    GetHWIDHexStrToHexStrConverter(4), is_optional=True),
   ]
+  network_sdio_fields = [
+      _FieldRecord('vendor', 'sdio_vendor_id',
+                   GetHWIDHexStrToHexStrConverter(4)),
+      _FieldRecord('device', 'sdio_device_id',
+                   GetHWIDHexStrToHexStrConverter(4)),
+  ]
   usb_fields = [
       _FieldRecord('idVendor', 'usb_vendor_id',
                    GetHWIDHexStrToHexStrConverter(4, has_prefix=False)),
@@ -322,7 +329,7 @@ def GetAllProbeStatementGenerators():
   ]
   all_probe_statement_generators['wireless'] = [
       _ProbeStatementGenerator('wireless', 'wireless_network',
-                               network_pci_fields),
+                               [network_pci_fields, network_sdio_fields]),
       _ProbeStatementGenerator('wireless', 'wireless_network', usb_fields),
   ]
 
