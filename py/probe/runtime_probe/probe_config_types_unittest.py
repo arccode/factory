@@ -152,6 +152,30 @@ class ProbeStatementDefinitionTest(ConcreteProbeStatementDefinitionTestBase):
       self.probe_statement_definition.GenerateProbeStatement(
           'comp_1', 'func_1', {'hex_field_three_digits': 'B3FF'})
 
+  def testGenerateProbeStatementList(self):
+    result = self.probe_statement_definition.GenerateProbeStatement(
+        'comp_1', 'func_1', [{
+            'hex_field': '0AAAA'
+        }])
+    self.assertEqual(
+        result,
+        self._GenerateExpectResult('comp_1', 'func_1',
+                                   {'hex_field': [True, 'hex', '!eq 0x0AAAA']}))
+
+    result = self.probe_statement_definition.GenerateProbeStatement(
+        'comp_1', 'func_1', [{
+            'hex_field': '0AAAA'
+        }, {
+            'str_field': 'sss'
+        }])
+    self.assertEqual(
+        result,
+        self._GenerateExpectResult('comp_1', 'func_1', [{
+            'hex_field': [True, 'hex', '!eq 0x0AAAA']
+        }, {
+            'str_field': [True, 'str', '!eq sss']
+        }]))
+
   def testGenerateProbeStatementExtraInformation(self):
     result = self.probe_statement_definition.GenerateProbeStatement(
         'comp_1', 'func_1', {

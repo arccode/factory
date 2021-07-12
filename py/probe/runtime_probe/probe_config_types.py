@@ -142,22 +142,32 @@ class ProbeStatementDefinition:
     Args:
       component_name: A string of the name of the component.
       probe_function_name: A string of the name of the probe function to use.
-      expected_fields: A dictionary maps the field names to the expected values.
+      expected_fields: A list of dictionary which maps the field names to the
+          expected values.
       probe_function_argument: A dictionary which will be passed to the probe
           function.
 
     Returns:
       A ComponentProbeStatement instance represents the generated probe
-      statement.
+      statement.  If the length of the expected_fields is exactly 1, the value
+      of "expect" could be a field record dictionary directly.
     """
+
+    def GenerateExpectedFields(expected_fields):
+      if isinstance(expected_fields, list):
+        if len(expected_fields) == 1:
+          return GenerateExpectedFields(expected_fields[0])
+        return list(map(GenerateExpectedFields, expected_fields))
+      return {
+          k: self.expected_fields[k].probe_statement_generator(v)
+          for k, v in expected_fields.items()
+      }
+
     statement = {
         'eval': {
             probe_function_name: probe_function_argument or {}
         },
-        'expect': {
-            k: self.expected_fields[k].probe_statement_generator(v)
-            for k, v in expected_fields.items()
-        }
+        'expect': GenerateExpectedFields(expected_fields)
     }
     if information is not None:
       statement['information'] = information
