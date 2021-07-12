@@ -670,6 +670,10 @@ msgid "Space"
 msgstr "trống"
 
 #: ../py/goofy/js/goofy.js
+msgid "Screenshot (Press S)"
+msgstr ""
+
+#: ../py/goofy/js/goofy.js
 msgid "Factory tests stopped"
 msgstr "Kiểm tra nhà máy đã ngừng"
 

@@ -670,6 +670,10 @@ msgid "Space"
 msgstr "空白"
 
 #: ../py/goofy/js/goofy.js
+msgid "Screenshot (Press S)"
+msgstr "屏幕截图（按 S）"
+
+#: ../py/goofy/js/goofy.js
 msgid "Factory tests stopped"
 msgstr "工厂测试已停止"
 

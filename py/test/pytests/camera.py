@@ -505,6 +505,9 @@ class CameraTest(test_case.TestCase):
 
     if not self.args.show_image:
       self.ui.CallJSFunction('hideImage')
+    else:
+      # Enable screenshot button for debugging purpose.
+      self.ui.BindStandardScreenshotKeys()
 
     self.EnableDevice()
     try:

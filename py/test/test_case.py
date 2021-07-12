@@ -12,6 +12,7 @@ import unittest
 from cros.factory.test import event as test_event
 from cros.factory.test import state
 from cros.factory.test import test_ui
+from cros.factory.test import session
 from cros.factory.test.utils import pytest_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
@@ -134,6 +135,7 @@ class TestCase(unittest.TestCase):
         exc_idx = getattr(end_event, 'exception_index', None)
         if exc_idx is None:
           raise type_utils.TestFailure(getattr(end_event, 'error_msg', None))
+        # pylint: disable=invalid-sequence-index
         raise pytest_utils.IndirectException(*self.__exceptions[exc_idx])
     finally:
       # Ideally, the background would be the one calling FailTask / PassTask,
@@ -209,7 +211,8 @@ class TestCase(unittest.TestCase):
 
   def __SetupGoofyJSEvents(self):
     """Setup handlers for events from frontend JavaScript."""
-    def handler(event):
+
+    def TestResultHandler(event):
       status = event.data.get('status')
       if status == state.TestState.PASSED:
         self.PassTask()
@@ -217,4 +220,12 @@ class TestCase(unittest.TestCase):
         self.FailTask(event.data.get('error_msg', ''))
       else:
         raise ValueError('Unexpected status in event %r' % event)
-    self.event_loop.AddEventHandler('goofy_ui_task_end', handler)
+
+    # pylint: disable=unused-argument
+    def ScreenshotHandler(event):
+      output_filename = state.GetInstance().DeviceTakeScreenshot()
+      session.console.info('Take a screenshot of Goofy page and store as %s',
+                           output_filename)
+
+    self.event_loop.AddEventHandler('goofy_ui_task_end', TestResultHandler)
+    self.event_loop.AddEventHandler('goofy_ui_screenshot', ScreenshotHandler)

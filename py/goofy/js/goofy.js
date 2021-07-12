@@ -201,7 +201,8 @@ cros.factory.PluginFrontendConfig;
 const KEY_NAME_MAP = new Map([
   ['ENTER', _('Enter')],
   ['ESCAPE', _('ESC')],
-  [' ', _('Space')]
+  [' ', _('Space')],
+  ['S', _('Screenshot (Press S)')]
 ]);
 
 /**
@@ -253,6 +254,14 @@ cros.factory.Test = class {
       'status': 'FAILED',
       'error_msg': errorMsg
     });
+  }
+
+  /**
+   * Takes a screenshot of Goofy page.
+   * @export
+   */
+  screenshot() {
+    this.sendTestEvent('goofy_ui_screenshot', {});
   }
 
   /**
@@ -376,6 +385,13 @@ cros.factory.Test = class {
   bindStandardFailKeys() {
     this.bindKey('ESCAPE', () => { this.userAbort(); });
     this.bindKey('F', () => { this.userAbort(); }, false, false);
+  }
+
+  /**
+   * Binds screenshot key ('S')
+   */
+  bindStandardScreenshotKeys() {
+    this.bindKey('S', () => { this.screenshot(); });
   }
 
   /**

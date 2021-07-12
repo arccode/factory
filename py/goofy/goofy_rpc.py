@@ -582,6 +582,9 @@ class GoofyRPC:
           If a file path is given, screenshots are saved to:
 
             <file path base>.<file path extension>
+
+    Returns:
+      The file path to the captured image.
     """
 
     if not output_file:
@@ -594,6 +597,8 @@ class GoofyRPC:
     image = base64.b64decode(file_utils.ReadFile(tmp_file).split(',')[1])
     file_utils.WriteFile(output_filename, image, encoding=None)
     file_utils.TryUnlink(tmp_file)
+
+    return output_filename
 
   def DeviceGetDisplayInfo(self, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Returns display information on the device (by calling extension RPC).
