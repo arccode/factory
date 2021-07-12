@@ -32,7 +32,6 @@ from cros.factory.hwid.service.appengine import ingestion
 from cros.factory.hwid.service.appengine import memcache_adapter
 from cros.factory.hwid.v3 import name_pattern_adapter
 from cros.factory.hwid.v3.rule import Value
-from cros.factory.hwid.v3 import validator as v3_validator
 # pylint: disable=import-error, no-name-in-module
 from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
 # pylint: enable=import-error, no-name-in-module
@@ -344,7 +343,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
 
     try:
       _hwid_validator.Validate(hwid_config_contents)
-    except v3_validator.ValidationError as e:
+    except hwid_validator.ValidationError as e:
       logging.exception('Validation failed')
       return _MapException(e, hwid_api_messages_pb2.ValidateConfigResponse)
 
@@ -374,7 +373,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
       model, new_hwid_comps = _hwid_validator.ValidateChange(
           updated_contents, prev_hwid_config_contents)
 
-    except v3_validator.ValidationError as e:
+    except hwid_validator.ValidationError as e:
       logging.exception('Validation failed')
       return _MapException(
           e, hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse)
@@ -519,7 +518,7 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     try:
       unused_model, new_hwid_comps = _hwid_validator.ValidateChange(
           change_info.new_hwid_db_contents, change_info.curr_hwid_db_contents)
-    except v3_validator.ValidationError as ex:
+    except hwid_validator.ValidationError as ex:
       logging.exception('Validation failed')
       if isinstance(ex.__cause__,
                     (schema.SchemaException, yaml.error.YAMLError)):

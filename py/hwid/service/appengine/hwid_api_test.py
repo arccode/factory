@@ -16,10 +16,10 @@ from cros.factory.hwid.service.appengine import hwid_api
 from cros.factory.hwid.service.appengine import hwid_manager
 from cros.factory.hwid.service.appengine import hwid_repo
 from cros.factory.hwid.service.appengine import hwid_util
+from cros.factory.hwid.service.appengine import hwid_validator
 from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3 import contents_analyzer
 from cros.factory.hwid.v3 import database
-from cros.factory.hwid.v3 import validator as v3_validator
-from cros.factory.hwid.v3 import verify_db_pattern
 # pylint: disable=import-error, no-name-in-module
 from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
 # pylint: enable=import-error, no-name-in-module
@@ -500,7 +500,7 @@ class HwidApiTest(unittest.TestCase):
 
   def testValidateConfigErrors(self):
     self.patch_hwid_validator.Validate.side_effect = (
-        v3_validator.ValidationError('msg'))
+        hwid_validator.ValidationError('msg'))
 
     req = hwid_api_messages_pb2.ValidateConfigRequest(
         hwid_config_contents='test')
@@ -527,13 +527,13 @@ class HwidApiTest(unittest.TestCase):
   def testValidateConfigAndUpdateUpdatedComponents(self):
     self.patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {
         'wireless': [
-            verify_db_pattern.NameChangedComponentInfo(
+            contents_analyzer.NameChangedComponentInfo(
                 'wireless_1234_5678', 1234, 5678,
                 common.COMPONENT_STATUS.supported, True),
-            verify_db_pattern.NameChangedComponentInfo(
+            contents_analyzer.NameChangedComponentInfo(
                 'wireless_1111_2222', 1111, 2222,
                 common.COMPONENT_STATUS.unqualified, True),
-            verify_db_pattern.NameChangedComponentInfo(
+            contents_analyzer.NameChangedComponentInfo(
                 'wireless_hello_world', 0, 0, common.COMPONENT_STATUS.supported,
                 False)
         ]
@@ -570,7 +570,7 @@ class HwidApiTest(unittest.TestCase):
 
   def testValidateConfigAndUpdateChecksumErrors(self):
     self.patch_hwid_validator.ValidateChange.side_effect = (
-        v3_validator.ValidationError('msg'))
+        hwid_validator.ValidationError('msg'))
 
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
         hwid_config_contents=TEST_HWID_CONTENT)
@@ -583,7 +583,7 @@ class HwidApiTest(unittest.TestCase):
 
   def testValidateConfigAndUpdateChecksumSyntaxError(self):
     yaml_error = yaml.error.YAMLError('msg')
-    validation_error = v3_validator.ValidationError(str(yaml_error))
+    validation_error = hwid_validator.ValidationError(str(yaml_error))
     validation_error.__cause__ = yaml_error
     self.patch_hwid_validator.ValidateChange.side_effect = validation_error
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
@@ -598,7 +598,7 @@ class HwidApiTest(unittest.TestCase):
 
   def testValidateConfigAndUpdateChecksumSchemaError(self):
     schema_error = schema.SchemaException('msg')
-    validation_error = v3_validator.ValidationError(str(schema_error))
+    validation_error = hwid_validator.ValidationError(str(schema_error))
     validation_error.__cause__ = schema_error
     self.patch_hwid_validator.ValidateChange.side_effect = validation_error
 
@@ -615,10 +615,10 @@ class HwidApiTest(unittest.TestCase):
   def testValidateConfigAndUpdateChecksumUnknwonStatus(self):
     self.patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {
         'wireless': [
-            verify_db_pattern.NameChangedComponentInfo(
+            contents_analyzer.NameChangedComponentInfo(
                 'wireless_1234_5678', 1234, 5678,
                 common.COMPONENT_STATUS.supported, True),
-            verify_db_pattern.NameChangedComponentInfo(
+            contents_analyzer.NameChangedComponentInfo(
                 'wireless_1111_2222', 1111, 2222, 'new_status', True)
         ]
     })
@@ -892,7 +892,7 @@ class HwidApiTest(unittest.TestCase):
                                  'v3/test_project'))
     live_hwid_repo.LoadHWIDDBByName.return_value = TEST_PREV_HWID_DB_CONTENT
     schema_error = schema.SchemaException('msg')
-    validation_error = v3_validator.ValidationError(str(schema_error))
+    validation_error = hwid_validator.ValidationError(str(schema_error))
     validation_error.__cause__ = schema_error
     self.patch_hwid_validator.ValidateChange.side_effect = validation_error
 
@@ -929,13 +929,13 @@ class HwidApiTest(unittest.TestCase):
   def testValidateHwidDbEditableSectionChangeReturnUpdatedComponents(self):
     self.patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {
         'wireless': [
-            verify_db_pattern.NameChangedComponentInfo(
+            contents_analyzer.NameChangedComponentInfo(
                 'wireless_1234_5678', 1234, 5678,
                 common.COMPONENT_STATUS.supported, True),
-            verify_db_pattern.NameChangedComponentInfo(
+            contents_analyzer.NameChangedComponentInfo(
                 'wireless_1111_2222', 1111, 2222,
                 common.COMPONENT_STATUS.unqualified, True),
-            verify_db_pattern.NameChangedComponentInfo(
+            contents_analyzer.NameChangedComponentInfo(
                 'wireless_hello_world', 0, 0, common.COMPONENT_STATUS.supported,
                 False)
         ]
@@ -980,10 +980,10 @@ class HwidApiTest(unittest.TestCase):
   def testValidateHwidDbEditableSectionChangeUnknownStatus(self):
     self.patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {
         'wireless': [
-            verify_db_pattern.NameChangedComponentInfo(
+            contents_analyzer.NameChangedComponentInfo(
                 'wireless_1234_5678', 1234, 5678,
                 common.COMPONENT_STATUS.supported, True),
-            verify_db_pattern.NameChangedComponentInfo(
+            contents_analyzer.NameChangedComponentInfo(
                 'wireless_1111_2222', 1111, 2222, 'new_status', True)
         ]
     })

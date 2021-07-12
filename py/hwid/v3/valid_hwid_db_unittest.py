@@ -30,8 +30,8 @@ import traceback
 import unittest
 
 from cros.factory.hwid.v3.database import Database
+from cros.factory.hwid.v3 import contents_analyzer
 from cros.factory.hwid.v3 import hwid_utils
-from cros.factory.hwid.v3 import validator
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -94,8 +94,13 @@ def _CheckProject(args):
       logging.warning(
           'Database %s:%s does not have checksum field. Will skip checksum '
           'verification.', commit, db_path)
-    db = Database.LoadData(db_raw, expected_checksum=expected_checksum)
-    validator.ValidateIntegrity(db)
+    contents_analyzer_inst = contents_analyzer.ContentsAnalyzer(
+        db_raw, expected_checksum, None)
+    report = contents_analyzer_inst.ValidateIntegrity()
+    for msg in report.warnings:
+      logging.warning(msg)
+    if report.errors:
+      raise ValueError(f'Validation failed: {report.errors}')
     return None
   except Exception:
     return (title, traceback.format_exception(*sys.exc_info()))

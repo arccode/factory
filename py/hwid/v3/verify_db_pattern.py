@@ -16,32 +16,22 @@ This test may be invoked in multiple ways:
 """
 
 import argparse
-import collections
 import logging
 import multiprocessing
 import os
 import subprocess
 import sys
 import traceback
-import typing
 import unittest
 
-from cros.factory.hwid.v3 import common
-from cros.factory.hwid.v3.database import Database
+from cros.factory.hwid.v3 import contents_analyzer
 from cros.factory.hwid.v3 import hwid_utils
-from cros.factory.hwid.v3 import name_pattern_adapter
 from cros.factory.hwid.v3 import yaml_wrapper as yaml
 from cros.factory.utils import process_utils
-from cros.factory.utils.schema import SchemaException
 
 
-class NameChangedComponentInfo(typing.NamedTuple):
-  """A data structure to collect the component info of added/updated names."""
-  comp_name: str
-  cid: int
-  qid: int
-  status: str
-  has_cid_qid: bool
+class ValidationError(Exception):
+  pass
 
 
 def _TestDatabase(targs):
@@ -129,13 +119,12 @@ class HWIDDBsPatternTest(unittest.TestCase):
       commit for the project.
     """
     # A compatible version of HWID database can be loaded successfully.
-    new_db = Database.LoadData(
-        process_utils.CheckOutput(['git', 'show', '%s:%s' % (commit, db_path)],
-                                  cwd=hwid_dir, ignore_stderr=True))
+    new_db = process_utils.CheckOutput(['git', 'show', f'{commit}:{db_path}'],
+                                       cwd=hwid_dir, ignore_stderr=True)
 
     try:
-      raw_old_db = process_utils.CheckOutput(
-          ['git', 'show', '%s~1:%s' % (commit, db_path)], cwd=hwid_dir,
+      old_db = process_utils.CheckOutput(
+          ['git', 'show', f'{commit}~1:{db_path}'], cwd=hwid_dir,
           ignore_stderr=True)
     except subprocess.CalledProcessError as e:
       if e.returncode != 128:
@@ -144,13 +133,6 @@ class HWIDDBsPatternTest(unittest.TestCase):
                    os.path.basename(db_path))
       return None, new_db
 
-    try:
-      old_db = Database.LoadData(raw_old_db)
-    except (SchemaException, common.HWIDException) as e:
-      logging.warning('The previous version of HWID database %s is an '
-                      'incompatible version (exception: %r), ignore the '
-                      'pattern check', db_path, e)
-      return None, new_db
     return old_db, new_db
 
   @staticmethod
@@ -167,136 +149,10 @@ class HWIDDBsPatternTest(unittest.TestCase):
       db_path: Path of the HWID database to be verified.
     """
     old_db, new_db = HWIDDBsPatternTest.GetOldNewDB(hwid_dir, commit, db_path)
-    HWIDDBsPatternTest.ValidateChange(old_db, new_db)
-
-  @staticmethod
-  def VerifyNewCreatedDatabasePattern(new_db):
-    if not new_db.can_encode:
-      raise common.HWIDException(
-          'The new HWID database should not use legacy pattern.  Please use '
-          '"hwid build-database" to prevent from generating legacy pattern.')
-
-    region_field_legacy_info = new_db.region_field_legacy_info
-    if not region_field_legacy_info or any(region_field_legacy_info.values()):
-      raise common.HWIDException(
-          'Legacy region field is forbidden in any new HWID database.')
-
-  @staticmethod
-  def VerifyParsedDatabasePattern(old_db, new_db):
-    # If the old database follows the new pattern rule, so does the new
-    # database.
-    if old_db.can_encode and not new_db.can_encode:
-      raise common.HWIDException(
-          'The new HWID database should not use legacy pattern. '
-          'Please use "hwid update-database" to prevent from generating '
-          'legacy pattern.')
-
-    # Make sure all the encoded fields in the existing patterns are not changed.
-    for image_id in old_db.image_ids:
-      old_bit_mapping = old_db.GetBitMapping(image_id=image_id)
-      new_bit_mapping = new_db.GetBitMapping(image_id=image_id)
-      for index, (element_old, element_new) in enumerate(zip(old_bit_mapping,
-                                                             new_bit_mapping)):
-        if element_new != element_old:
-          raise common.HWIDException(
-              'Bit pattern mismatch found at bit %d (encoded field=%r). '
-              'If you are trying to append new bit(s), be sure to create a new '
-              'bit pattern field instead of simply incrementing the last '
-              'field' % (index, element_old[0]))
-
-    old_region_field_legacy_info = old_db.region_field_legacy_info
-    new_region_field_legacy_info = new_db.region_field_legacy_info
-    for field_name, is_legacy_style in new_region_field_legacy_info.items():
-      orig_is_legacy_style = old_region_field_legacy_info.get(field_name)
-      if orig_is_legacy_style is None:
-        if is_legacy_style:
-          raise common.HWIDException(
-              'New region field should be constructed by new style yaml tag.')
-      else:
-        if orig_is_legacy_style != is_legacy_style:
-          raise common.HWIDException(
-              'Style of existing region field should remain unchanged.')
-
-  @staticmethod
-  def ValidateChange(old_db, new_db):
-    """Validate changes between old_db and new_db.
-
-    This method checks 3 things:
-      1. Verify whether the newest version of the HWID database is compatible
-          with the current version of HWID module.
-      2. If the previous version of the HWID database exists and is compatible
-          with the current version of HWID module, verify whether all the
-          encoded fields in the previous version of HWID database are not
-          changed.
-      3. Check if component names matches the predefined rule by
-          name_pattern_adapter.
-
-    Args:
-      old_db: db before the change.
-      new_db: db after the change.
-    Returns:
-      dict of created/updated component information.
-    """
-
-    if old_db is None:
-      HWIDDBsPatternTest.VerifyNewCreatedDatabasePattern(new_db)
-    else:
-      HWIDDBsPatternTest.VerifyParsedDatabasePattern(old_db, new_db)
-    return HWIDDBsPatternTest.ValidateComponentChange(old_db, new_db)
-
-  @staticmethod
-  def ValidateComponentChange(old_db, db):
-    """Check if modified (created) component names are valid.
-
-    Args:
-      old_db: db before the change.
-      new_db: db after the change.
-    Returns:
-      dict of created/updated component information {category:
-      [NameChangedComponentInfo, ...]} if available.
-    """
-
-    def FindModifiedComponentsWithIdx(old_db, db, comp_cls):
-      name_idx = {}
-      for idx, (tag, comp) in enumerate(db.GetComponents(comp_cls).items(), 1):
-        name_idx[tag] = (idx, comp)
-
-      if old_db is not None:
-        for tag in old_db.GetComponents(comp_cls):
-          name_idx.pop(tag, None)
-
-      return name_idx
-
-    adapter = name_pattern_adapter.NamePatternAdapter()
-    rename_component = {}
-    bucket = collections.defaultdict(list)
-    for comp_cls in db.GetActiveComponentClasses():
-      name_pattern = adapter.GetNamePattern(comp_cls)
-      modified_names = FindModifiedComponentsWithIdx(old_db, db, comp_cls)
-      for tag, (idx, comp) in modified_names.items():
-        name, sep, unused_seq = tag.partition('#')
-        if sep:
-          expected_component_name = f'{name}#{idx}'
-          if tag != expected_component_name:
-            rename_component[tag] = expected_component_name
-
-        ret = name_pattern.Matches(tag)
-        if ret:
-          cid, qid = ret
-          has_cid_qid = True
-        else:
-          cid = qid = 0
-          has_cid_qid = False
-
-        bucket[comp_cls].append(
-            NameChangedComponentInfo(tag, cid, qid, comp.status, has_cid_qid))
-
-    if rename_component:
-      raise common.HWIDException(
-          'Invalid component names with sequence number, please modify them as '
-          'follows:\n' +
-          '\n'.join('- ' + k + ' -> ' + v for k, v in rename_component.items()))
-    return bucket
+    analyzer = contents_analyzer.ContentsAnalyzer(new_db, None, old_db)
+    report = analyzer.ValidateChange(ignore_invalid_old_db=True)
+    if report.errors:
+      raise ValidationError(str(report.errors))
 
 
 if __name__ == '__main__':

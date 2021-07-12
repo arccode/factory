@@ -13,9 +13,8 @@ from unittest import mock
 # pylint: disable=import-error
 from cros.factory.hwid.service.appengine import hwid_validator
 from cros.factory.hwid.v3 import common
+from cros.factory.hwid.v3 import contents_analyzer
 from cros.factory.hwid.v3 import filesystem_adapter
-from cros.factory.hwid.v3 import validator as v3_validator
-from cros.factory.hwid.v3 import verify_db_pattern
 from cros.factory.utils import file_utils
 
 TESTDATA_PATH = os.path.join(
@@ -55,17 +54,17 @@ class HwidValidatorTest(unittest.TestCase):
     self.assertEqual(
         {
             'dram': [
-                verify_db_pattern.NameChangedComponentInfo(
+                contents_analyzer.NameChangedComponentInfo(
                     comp_name='dram_type_4g_0', cid=0, qid=0,
                     status='supported', has_cid_qid=False),
-                verify_db_pattern.NameChangedComponentInfo(
+                contents_analyzer.NameChangedComponentInfo(
                     comp_name='dram_allow_no_size_info_in_name', cid=0, qid=0,
                     status='supported', has_cid_qid=False)
             ]
         }, ret)
 
   def testValidateChange_withInvalidChange(self):
-    with self.assertRaises(v3_validator.ValidationError):
+    with self.assertRaises(hwid_validator.ValidationError):
       model, ret = hwid_validator.HwidValidator().ValidateChange(
           GOLDEN_HWIDV3_DATA_AFTER_BAD, GOLDEN_HWIDV3_DATA_BEFORE)
       self.assertEqual(model, GOLDEN_MODEL_NAME)
@@ -78,7 +77,7 @@ class HwidValidatorTest(unittest.TestCase):
     self.assertFalse(ret)
 
   def testValidateSarien_withGeneratePayloadFail(self):
-    with self.assertRaises(v3_validator.ValidationError):
+    with self.assertRaises(hwid_validator.ValidationError):
       with mock.patch.object(
           hwid_validator.vpg_module, 'GenerateVerificationPayload',
           return_value=self.CreateBadVPGResult()):
@@ -95,22 +94,22 @@ class HwidValidatorTest(unittest.TestCase):
       self.assertEqual(
           ret, {
               'dram': [
-                  verify_db_pattern.NameChangedComponentInfo(
+                  contents_analyzer.NameChangedComponentInfo(
                       comp_name='dram_type_4g_0', cid=0, qid=0,
                       status='supported', has_cid_qid=False),
-                  verify_db_pattern.NameChangedComponentInfo(
+                  contents_analyzer.NameChangedComponentInfo(
                       comp_name='dram_allow_no_size_info_in_name', cid=0, qid=0,
                       status='supported', has_cid_qid=False)
               ]
           })
 
   def testValidateDramChange(self):
-    with self.assertRaises(v3_validator.ValidationError) as error:
+    with self.assertRaises(hwid_validator.ValidationError) as error:
       hwid_validator.HwidValidator().ValidateChange(
           GOLDEN_HWIDV3_DATA_AFTER_DRAM_BAD, GOLDEN_HWIDV3_DATA_BEFORE)
     self.assertEqual(
         str(error.exception),
-        "'dram_type_not_mention_size' does not contain size property")
+        "[\"'dram_type_not_mention_size' does not contain size property\"]")
 
   def testValidateComponentNameValid(self):
     model, ret = hwid_validator.HwidValidator().ValidateChange(
@@ -125,16 +124,16 @@ class HwidValidatorTest(unittest.TestCase):
         }, ret)
 
   def testValidateComponentNameInvalidWithNote(self):
-    with self.assertRaises(v3_validator.ValidationError) as ex:
+    with self.assertRaises(hwid_validator.ValidationError) as ex:
       hwid_validator.HwidValidator().ValidateChange(
           GOLDEN_HWIDV3_DATA_AFTER_INVALID_NAME_PATTERN_WITH_NOTE,
           GOLDEN_HWIDV3_DATA_BEFORE)
     self.assertEqual(
         str(ex.exception),
-        ('Invalid component names with sequence number, please modify '
-         'them as follows:\n'
-         '- cpu_2_3#4 -> cpu_2_3#3\n'
-         '- cpu_2_3#non-a-number -> cpu_2_3#4'))
+        ('["Invalid component name with sequence number, please modify it from '
+         '\'cpu_2_3#4\' to \'cpu_2_3#3\'.", "Invalid component name with '
+         'sequence number, please modify it from \'cpu_2_3#non-a-number\' to '
+         '\'cpu_2_3#4\'."]'))
 
   def testValidateComponentNameValidWithNote(self):
     model, ret = hwid_validator.HwidValidator().ValidateChange(
