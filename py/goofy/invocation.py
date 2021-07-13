@@ -346,12 +346,8 @@ class TestInvocation:
       if not os.path.exists(self._source_code_path):
         source_code_file = os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR,
                                         'test', 'pytests',
-                                        self.test.pytest_name + '.py')
-        if not os.path.exists(source_code_file):
-          source_code_file = os.path.join(paths.FACTORY_PYTHON_PACKAGE_DIR,
-                                          'test', 'pytests',
-                                          self.test.pytest_name,
-                                          self.test.pytest_name + '.py')
+                                        self.test.pytest_name.replace('.', '/')
+                                        + '.py')
         os.symlink(source_code_file, self._source_code_path)
     except Exception:
       logging.exception('Unable to link source code file')
