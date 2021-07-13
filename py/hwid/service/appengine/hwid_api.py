@@ -29,6 +29,8 @@ from cros.factory.hwid.service.appengine import hwid_util
 from cros.factory.hwid.service.appengine import hwid_validator
 from cros.factory.hwid.service.appengine import ingestion
 from cros.factory.hwid.service.appengine import memcache_adapter
+from cros.factory.hwid.v3 import common as v3_common
+from cros.factory.hwid.v3 import contents_analyzer
 from cros.factory.hwid.v3 import name_pattern_adapter
 from cros.factory.hwid.v3.rule import Value
 # pylint: disable=import-error, no-name-in-module
@@ -604,6 +606,78 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
       else:
         response.component_names.append(
             f'{mat.component_class}_{mat.avl_cid}_{mat.avl_qid}#{mat.seq_no}')
+    return response
+
+  @protorpc_utils.ProtoRPCServiceMethod
+  @auth.RpcCheck
+  def AnalyzeHwidDbEditableSection(self, request):
+    response = hwid_api_messages_pb2.AnalyzeHwidDbEditableSectionResponse()
+
+    live_hwid_repo = _hwid_repo_manager.GetLiveHWIDRepo()
+    change_info = _GetHWIDDBChangeInfo(live_hwid_repo, request.project,
+                                       request.hwid_db_editable_section)
+
+    analyzer = contents_analyzer.ContentsAnalyzer(
+        change_info.new_hwid_db_contents, None,
+        change_info.curr_hwid_db_contents)
+
+    def _RemoveHeader(hwid_db_contents):
+      unused_header, lines = _SplitHWIDDBV3Sections(hwid_db_contents)
+      return _NormalizeAndJoinHWIDDBEditableSectionLines(lines)
+
+    report = analyzer.AnalyzeChange(_RemoveHeader)
+
+    if report.precondition_errors:
+      for error in report.precondition_errors:
+        response.validation_result.errors.add(
+            code=(response.validation_result.SCHEMA_ERROR
+                  if error.code == hwid_validator.ErrorCode.SCHEMA_ERROR else
+                  response.validation_result.CONTENTS_ERROR),
+            message=error.message)
+      return response
+
+    # TODO(yhong): Don't add the status `duplicate` if the project is too old.
+    response.analysis_report.unqualified_support_status.extend([
+        v3_common.COMPONENT_STATUS.deprecated,
+        v3_common.COMPONENT_STATUS.unsupported,
+        v3_common.COMPONENT_STATUS.unqualified,
+        v3_common.COMPONENT_STATUS.duplicate
+    ])
+    response.analysis_report.qualified_support_status.append(
+        v3_common.COMPONENT_STATUS.supported)
+
+    for line in report.lines:
+      response_line = response.analysis_report.hwid_config_lines.add()
+      if line.modification_status == line.ModificationStatus.MODIFIED:
+        response_line.modification_status = response_line.MODIFIED
+      elif line.modification_status == line.ModificationStatus.NEWLY_ADDED:
+        response_line.modification_status = response_line.NEWLY_ADDED
+      else:
+        response_line.modification_status = response_line.NOT_MODIFIED
+      for part in line.parts:
+        if part.type == part.Type.COMPONENT_NAME:
+          response_line.parts.add(component_name_field_id=part.reference_id)
+        elif part.type == part.Type.COMPONENT_STATUS:
+          response_line.parts.add(support_status_field_id=part.reference_id)
+        else:
+          response_line.parts.add(fixed_text=part.text)
+    for reference_id, comp_info in report.hwid_components.items():
+      response_comp_info = (
+          response.analysis_report.component_infos.get_or_create(reference_id))
+      response_comp_info.component_class = comp_info.comp_cls
+      response_comp_info.original_name = comp_info.comp_name
+      response_comp_info.original_status = comp_info.support_status
+      response_comp_info.is_newly_added = comp_info.is_newly_added
+      if comp_info.avl_id is not None:
+        response_comp_info.avl_info.cid, response_comp_info.avl_info.qid = (
+            comp_info.avl_id)
+        response_comp_info.has_avl = True
+      else:
+        response_comp_info.has_avl = False
+      response_comp_info.seq_no = comp_info.seq_no
+      if comp_info.comp_name_with_correct_seq_no is not None:
+        response_comp_info.component_name_with_correct_seq_no = (
+            comp_info.comp_name_with_correct_seq_no)
     return response
 
 

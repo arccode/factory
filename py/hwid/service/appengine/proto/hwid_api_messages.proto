@@ -358,6 +358,82 @@ message BatchGenerateAvlComponentNameResponse {
   repeated string component_names = 1;
 }
 
+// A request to analyze a HWID config.
+message AnalyzeHwidDbEditableSectionRequest {
+  // The project name.
+  string project = 1;
+  // The HWID DB as a string.
+  string hwid_db_editable_section = 2;
+}
+
+// The response for analyzing the HWID config.
+message AnalyzeHwidDbEditableSectionResponse {
+  HwidDbEditableSectionChangeValidationResult validation_result = 1;
+  HwidDbEditableSectionAnalysisReport analysis_report = 2;
+}
+
+// An analysis report for a HWID config.
+message HwidDbEditableSectionAnalysisReport {
+  // A part of a line in HWID config.
+  message HwidDbLinePart {
+    oneof part_type {
+      // The text value if this part represents a fixed text snippet.
+      string fixed_text = 1;
+      // ID to the component info if this part represents that component's name
+      // string.
+      string component_name_field_id = 2;
+      // ID to the component info if this part represents that component's
+      // support status value.
+      string support_status_field_id = 3;
+    }
+  }
+
+  // A line in HWID config.
+  message HwidDbLine {
+    enum HwidDbLineModificationStatus {
+      HWID_DB_LINE_MODIFICATION_STATUS_UNSPECIFIC = 0;  // Reserved.
+      NOT_MODIFIED = 1;
+      MODIFIED = 2;
+      NEWLY_ADDED = 3;
+    }
+    HwidDbLineModificationStatus modification_status = 1;
+    repeated HwidDbLinePart parts = 2;
+  }
+
+  message ComponentInfo {
+    // The component type.
+    string component_class = 1;
+    // The original component name in this field.
+    string original_name = 2;
+    // The original support status value.
+    string original_status = 3;
+
+    // Whether this component is newly added comparing to the previous version
+    // of HWID DB.
+    bool is_newly_added = 4;
+    // The corresponding AVL info of the original component name.
+    AvlInfo avl_info = 5;
+    // Whether the original component name contains the AVL info.
+    bool has_avl = 6;
+
+    // The expected sequential number of this component.
+    int32 seq_no = 7;
+    // The expected component name if the original sequential number is invalid.
+    string component_name_with_correct_seq_no = 8;
+  }
+
+  // A list of support status values that is available no matter the AVL entry
+  // is qualified or not.
+  repeated string unqualified_support_status = 1;
+
+  // A list of support status values that is only available when the AVL entry
+  // is qualified.
+  repeated string qualified_support_status = 2;
+
+  repeated HwidDbLine hwid_config_lines = 3;
+  map<string, ComponentInfo> component_infos = 4;
+}
+
 service HwidService {
   rpc GetProjects(ProjectsRequest) returns (ProjectsResponse);
 
@@ -409,4 +485,8 @@ service HwidService {
   // Generate the component names from the specific AVL IDs.
   rpc BatchGenerateAvlComponentName(BatchGenerateAvlComponentNameRequest)
       returns (BatchGenerateAvlComponentNameResponse);
+
+  // Analyze the given HWID DB payload.
+  rpc AnalyzeHwidDbEditableSection(AnalyzeHwidDbEditableSectionRequest)
+      returns (AnalyzeHwidDbEditableSectionResponse);
 }

@@ -1091,6 +1091,131 @@ class HwidApiTest(unittest.TestCase):
         return True
     return False
 
+  @mock.patch('cros.factory.hwid.v3.contents_analyzer.ContentsAnalyzer')
+  def test_AnalyzeHwidDbEditableSection_PreconditionErrors(
+      self, mock_contents_analyzer_constructor):
+    live_hwid_repo = self.patch_hwid_repo_manager.GetLiveHWIDRepo.return_value
+    live_hwid_repo.GetHWIDDBMetadataByName.return_value = (
+        hwid_repo.HWIDDBMetadata('test_project', 'test_project', 3,
+                                 'v3/test_project'))
+    live_hwid_repo.LoadHWIDDBByName.return_value = TEST_PREV_HWID_DB_CONTENT
+
+    fake_contents_analyzer_inst = (
+        mock_contents_analyzer_constructor.return_value)
+    fake_contents_analyzer_inst.AnalyzeChange.return_value = (
+        contents_analyzer.ChangeAnalysisReport([
+            contents_analyzer.Error(contents_analyzer.ErrorCode.SCHEMA_ERROR,
+                                    'some_schema_error')
+        ], [], {}))
+
+    req = hwid_api_messages_pb2.AnalyzeHwidDbEditableSectionRequest(
+        project='test_project',
+        hwid_db_editable_section=TEST_HWID_DB_EDITABLE_SECTION_CONTENT)
+    resp = self.service.AnalyzeHwidDbEditableSection(req)
+    ValidationResultMsg = (
+        hwid_api_messages_pb2.HwidDbEditableSectionChangeValidationResult)
+    self.assertCountEqual(
+        list(resp.validation_result.errors), [
+            ValidationResultMsg.Error(code=ValidationResultMsg.SCHEMA_ERROR,
+                                      message='some_schema_error')
+        ])
+
+  @mock.patch('cros.factory.hwid.v3.contents_analyzer.ContentsAnalyzer')
+  def test_AnalyzeHwidDbEditableSection_Pass(
+      self, mock_contents_analyzer_constructor):
+    live_hwid_repo = self.patch_hwid_repo_manager.GetLiveHWIDRepo.return_value
+    live_hwid_repo.GetHWIDDBMetadataByName.return_value = (
+        hwid_repo.HWIDDBMetadata('test_project', 'test_project', 3,
+                                 'v3/test_project'))
+    live_hwid_repo.LoadHWIDDBByName.return_value = TEST_PREV_HWID_DB_CONTENT
+
+    ModificationStatus = (
+        contents_analyzer.DBLineAnalysisResult.ModificationStatus)
+    Part = contents_analyzer.DBLineAnalysisResult.Part
+    fake_contents_analyzer_inst = (
+        mock_contents_analyzer_constructor.return_value)
+    fake_contents_analyzer_inst.AnalyzeChange.return_value = (
+        contents_analyzer.ChangeAnalysisReport(
+            [], [
+                contents_analyzer.DBLineAnalysisResult(
+                    ModificationStatus.NOT_MODIFIED,
+                    [Part(Part.Type.TEXT, 'text1')]),
+                contents_analyzer.DBLineAnalysisResult(
+                    ModificationStatus.MODIFIED,
+                    [Part(Part.Type.COMPONENT_NAME, 'comp1')]),
+                contents_analyzer.DBLineAnalysisResult(
+                    ModificationStatus.NEWLY_ADDED, [
+                        Part(Part.Type.COMPONENT_NAME, 'comp2'),
+                        Part(Part.Type.COMPONENT_STATUS, 'comp1')
+                    ]),
+            ], {
+                'comp1':
+                    contents_analyzer.HWIDComponentAnalysisResult(
+                        'comp_cls1', 'comp_name1', 'unqualified', False, None,
+                        2, None),
+                'comp2':
+                    contents_analyzer.HWIDComponentAnalysisResult(
+                        'comp_cls2', 'comp_cls2_111_222#9', 'unqualified', True,
+                        (111, 222), 1, 'comp_cls2_111_222#1'),
+            }))
+
+    req = hwid_api_messages_pb2.AnalyzeHwidDbEditableSectionRequest(
+        project='test_project',
+        hwid_db_editable_section=TEST_HWID_DB_EDITABLE_SECTION_CONTENT)
+    resp = self.service.AnalyzeHwidDbEditableSection(req)
+
+    AnalysisReportMsg = (
+        hwid_api_messages_pb2.HwidDbEditableSectionAnalysisReport)
+    LineMsg = AnalysisReportMsg.HwidDbLine
+    LinePartMsg = AnalysisReportMsg.HwidDbLinePart
+    ComponentInfoMsg = AnalysisReportMsg.ComponentInfo
+    expected_resp = hwid_api_messages_pb2.AnalyzeHwidDbEditableSectionResponse(
+        analysis_report=AnalysisReportMsg(
+            unqualified_support_status=[
+                'deprecated', 'unsupported', 'unqualified', 'duplicate'
+            ], qualified_support_status=['supported'], hwid_config_lines=[
+                LineMsg(
+                    modification_status=LineMsg.NOT_MODIFIED,
+                    parts=[LinePartMsg(fixed_text='text1')],
+                ),
+                LineMsg(
+                    modification_status=LineMsg.MODIFIED,
+                    parts=[LinePartMsg(component_name_field_id='comp1')],
+                ),
+                LineMsg(
+                    modification_status=LineMsg.NEWLY_ADDED,
+                    parts=[
+                        LinePartMsg(component_name_field_id='comp2'),
+                        LinePartMsg(support_status_field_id='comp1'),
+                    ],
+                ),
+            ], component_infos={
+                'comp1':
+                    ComponentInfoMsg(
+                        component_class='comp_cls1',
+                        original_name='comp_name1',
+                        original_status='unqualified',
+                        is_newly_added=False,
+                        has_avl=False,
+                        seq_no=2,
+                    ),
+                'comp2':
+                    ComponentInfoMsg(
+                        component_class='comp_cls2',
+                        original_name='comp_cls2_111_222#9',
+                        original_status='unqualified',
+                        is_newly_added=True,
+                        has_avl=True,
+                        avl_info=hwid_api_messages_pb2.AvlInfo(
+                            cid=111, qid=222),
+                        seq_no=1,
+                        component_name_with_correct_seq_no=(
+                            'comp_cls2_111_222#1'),
+                    ),
+            }))
+
+    self.assertEqual(resp, expected_resp)
+
 
 if __name__ == '__main__':
   unittest.main()
