@@ -2,7 +2,6 @@
 # Copyright 2019 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-
 """Tests for HwidValidator."""
 
 import collections
@@ -16,6 +15,7 @@ from cros.factory.hwid.v3 import common
 from cros.factory.hwid.v3 import contents_analyzer
 from cros.factory.hwid.v3 import filesystem_adapter
 from cros.factory.utils import file_utils
+
 
 TESTDATA_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'testdata')
@@ -40,10 +40,9 @@ GOLDEN_HWIDV3_DATA_AFTER_VALID_NAME_PATTERN_WITH_NOTE = file_utils.ReadFile(
     os.path.join(TESTDATA_PATH, 'v3-golden-after-comp-note-good.yaml'))
 
 
-@mock.patch(
-    ('cros.factory.hwid.service.appengine'
-     '.hwid_validator.CONFIG.hwid_filesystem'),
-    filesystem_adapter.LocalFileSystemAdapter(TESTDATA_PATH))
+@mock.patch(('cros.factory.hwid.service.appengine'
+             '.hwid_validator.CONFIG.hwid_filesystem'),
+            filesystem_adapter.LocalFileSystemAdapter(TESTDATA_PATH))
 class HwidValidatorTest(unittest.TestCase):
   """Test for HwidValidator."""
 
@@ -78,16 +77,16 @@ class HwidValidatorTest(unittest.TestCase):
 
   def testValidateSarien_withGeneratePayloadFail(self):
     with self.assertRaises(hwid_validator.ValidationError):
-      with mock.patch.object(
-          hwid_validator.vpg_module, 'GenerateVerificationPayload',
-          return_value=self.CreateBadVPGResult()):
+      with mock.patch.object(hwid_validator.vpg_module,
+                             'GenerateVerificationPayload',
+                             return_value=self.CreateBadVPGResult()):
         hwid_validator.HwidValidator().ValidateChange(SARIEN_DATA_GOOD,
                                                       SARIEN_DATA_GOOD)
 
   def testValidateNonSarien_withGeneratePayloadFail(self):
-    with mock.patch.object(
-        hwid_validator.vpg_module, 'GenerateVerificationPayload',
-        return_value=self.CreateBadVPGResult()):
+    with mock.patch.object(hwid_validator.vpg_module,
+                           'GenerateVerificationPayload',
+                           return_value=self.CreateBadVPGResult()):
       model, ret = hwid_validator.HwidValidator().ValidateChange(
           GOLDEN_HWIDV3_DATA_AFTER_GOOD, GOLDEN_HWIDV3_DATA_BEFORE)
       self.assertEqual(model, GOLDEN_MODEL_NAME)
@@ -104,12 +103,11 @@ class HwidValidatorTest(unittest.TestCase):
           })
 
   def testValidateDramChange(self):
-    with self.assertRaises(hwid_validator.ValidationError) as error:
+    with self.assertRaises(hwid_validator.ValidationError) as ex_ctx:
       hwid_validator.HwidValidator().ValidateChange(
           GOLDEN_HWIDV3_DATA_AFTER_DRAM_BAD, GOLDEN_HWIDV3_DATA_BEFORE)
-    self.assertEqual(
-        str(error.exception),
-        "[\"'dram_type_not_mention_size' does not contain size property\"]")
+    self.assertIn("'dram_type_not_mention_size' does not contain size property",
+                  set(err.message for err in ex_ctx.exception.errors))
 
   def testValidateComponentNameValid(self):
     model, ret = hwid_validator.HwidValidator().ValidateChange(
@@ -124,16 +122,16 @@ class HwidValidatorTest(unittest.TestCase):
         }, ret)
 
   def testValidateComponentNameInvalidWithNote(self):
-    with self.assertRaises(hwid_validator.ValidationError) as ex:
+    with self.assertRaises(hwid_validator.ValidationError) as ex_ctx:
       hwid_validator.HwidValidator().ValidateChange(
           GOLDEN_HWIDV3_DATA_AFTER_INVALID_NAME_PATTERN_WITH_NOTE,
           GOLDEN_HWIDV3_DATA_BEFORE)
-    self.assertEqual(
-        str(ex.exception),
-        ('["Invalid component name with sequence number, please modify it from '
-         '\'cpu_2_3#4\' to \'cpu_2_3#3\'.", "Invalid component name with '
-         'sequence number, please modify it from \'cpu_2_3#non-a-number\' to '
-         '\'cpu_2_3#4\'."]'))
+    self.assertCountEqual([err.message for err in ex_ctx.exception.errors], [
+        "Invalid component name with sequence number, please modify it from '"
+        "cpu_2_3#4' to 'cpu_2_3#3'.",
+        "Invalid component name with sequence number, please modify it from '"
+        "cpu_2_3#non-a-number' to 'cpu_2_3#4'."
+    ])
 
   def testValidateComponentNameValidWithNote(self):
     model, ret = hwid_validator.HwidValidator().ValidateChange(

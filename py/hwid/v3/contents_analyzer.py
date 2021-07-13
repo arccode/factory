@@ -36,6 +36,20 @@ def _GetSupportStatusMagicPlaceholder(comp_cls, comp_name):
   return f'x@@@@support_status@{comp_cls}@{comp_name}@@@@'
 
 
+class ErrorCode(enum.Enum):
+  """Enumerate the type of errors."""
+  SCHEMA_ERROR = enum.auto()
+  CONTENTS_ERROR = enum.auto()
+  UNKNOWN_ERROR = enum.auto()
+  COMPATIBLE_ERROR = enum.auto()
+
+
+class Error(NamedTuple):
+  """A record class to hold an error message."""
+  code: ErrorCode
+  message: str
+
+
 class NameChangedComponentInfo(NamedTuple):
   """A data structure to collect the component info of added/updated names."""
   comp_name: str
@@ -46,7 +60,7 @@ class NameChangedComponentInfo(NamedTuple):
 
 
 class ValidationReport(NamedTuple):
-  errors: List[str]
+  errors: List[Error]
   warnings: List[str]
   name_changed_components: Mapping[str, List[NameChangedComponentInfo]]
 
@@ -91,7 +105,7 @@ class HWIDComponentAnalysisResult(NamedTuple):
 
 
 class ChangeAnalysisReport(NamedTuple):
-  precondition_errors: List[str]
+  precondition_errors: List[Error]
   lines: List[DBLineAnalysisResult]
   hwid_components: Mapping[str, HWIDComponentAnalysisResult]
 
@@ -121,7 +135,8 @@ class ContentsAnalyzer:
     """Validates the current HWID DB."""
     report = ValidationReport.CreateEmpty()
     if self._curr_db.load_error:
-      report.errors.append(str(self._curr_db.load_error))
+      report.errors.append(
+          Error(ErrorCode.SCHEMA_ERROR, self._curr_db.load_error))
     else:
       for validation_func in [self._ValidateDramIntegrity]:
         keep_going = validation_func(report, self._curr_db.instance)
@@ -135,14 +150,16 @@ class ContentsAnalyzer:
         continue
       if not dram_info.values or 'size' not in dram_info.values:
         validation_report.errors.append(
-            f'{dram_tag!r} does not contain size property')
+            Error(ErrorCode.CONTENTS_ERROR,
+                  f'{dram_tag!r} does not contain size property'))
     return True
 
   def ValidateChange(self, ignore_invalid_old_db=False) -> ValidationReport:
     """Validates the change between the current HWID DB and the previous one."""
     report = ValidationReport.CreateEmpty()
     if self._curr_db.load_error:
-      report.errors.append(str(self._curr_db.load_error))
+      report.errors.append(
+          Error(ErrorCode.SCHEMA_ERROR, self._curr_db.load_error))
       return report
 
     if self._prev_db is None:
@@ -155,7 +172,11 @@ class ContentsAnalyzer:
             f'(exception: {self._prev_db.load_error}), ignore the pattern '
             'check.')
       else:
-        report.errors.append(str(self._prev_db.load_error))
+        report.errors.append(
+            Error(
+                ErrorCode.UNKNOWN_ERROR,
+                'Failed to load the previous version of '
+                f'HWID DB: {self._curr_db.load_error}'))
         return report
     else:
       if not self._ValidateChangeFromExistingSnapshot(report):
@@ -172,14 +193,18 @@ class ContentsAnalyzer:
     """
     if not self._curr_db.instance.can_encode:
       report.errors.append(
-          'The new HWID database should not use legacy pattern.  Please use '
-          '"hwid build-database" to prevent from generating legacy pattern.')
+          Error(
+              ErrorCode.CONTENTS_ERROR,
+              'The new HWID database should not use legacy pattern.  Please '
+              'use "hwid build-database" to prevent from generating legacy '
+              'pattern.'))
       return False
 
     region_field_legacy_info = self._curr_db.instance.region_field_legacy_info
     if not region_field_legacy_info or any(region_field_legacy_info.values()):
       report.errors.append(
-          'Legacy region field is forbidden in any new HWID database.')
+          Error(ErrorCode.CONTENTS_ERROR,
+                'Legacy region field is forbidden in any new HWID database.'))
     return True
 
   def _ValidateChangeFromExistingSnapshot(self,
@@ -195,8 +220,11 @@ class ContentsAnalyzer:
     if (self._prev_db.instance.can_encode and
         not self._curr_db.instance.can_encode):
       report.errors.append(
-          'The new HWID database should not use legacy pattern. Please use '
-          '"hwid update-database" to prevent from generating legacy pattern.')
+          Error(
+              ErrorCode.COMPATIBLE_ERROR,
+              'The new HWID database should not use legacy pattern. Please '
+              'use "hwid update-database" to prevent from generating legacy '
+              'pattern.'))
       return False
 
     # Make sure all the encoded fields in the existing patterns are not changed.
@@ -207,10 +235,12 @@ class ContentsAnalyzer:
           zip(old_bit_mapping, new_bit_mapping)):
         if element_new != element_old:
           report.errors.append(
-              f'Bit pattern mismatch found at bit {index} (encoded '
-              f'field={element_old[0]}). If you are trying to append new '
-              'bit(s), be sure to create a new bit pattern field instead of '
-              'simply incrementing the last field.')
+              Error(
+                  ErrorCode.COMPATIBLE_ERROR,
+                  f'Bit pattern mismatch found at bit {index} (encoded '
+                  f'field={element_old[0]}). If you are trying to append new '
+                  'bit(s), be sure to create a new bit pattern field instead '
+                  'of simply incrementing the last field.'))
 
     old_reg_field_legacy_info = self._prev_db.instance.region_field_legacy_info
     new_reg_field_legacy_info = self._curr_db.instance.region_field_legacy_info
@@ -219,11 +249,15 @@ class ContentsAnalyzer:
       if orig_is_legacy_style is None:
         if is_legacy_style:
           report.errors.append(
-              'New region field should be constructed by new style yaml tag.')
+              Error(
+                  ErrorCode.CONTENTS_ERROR,
+                  'New region field should be constructed by new style yaml '
+                  'tag.'))
       else:
         if orig_is_legacy_style != is_legacy_style:
           report.errors.append(
-              'Style of existing region field should remain unchanged.')
+              Error(ErrorCode.COMPATIBLE_ERROR,
+                    'Style of existing region field should remain unchanged.'))
     return True
 
   def _ValidateChangeOfComponents(self, report: ValidationReport):
@@ -235,8 +269,11 @@ class ContentsAnalyzer:
               f'{comp.extracted_noseq_comp_name}#{comp.expected_seq_no}')
           if expected_comp_name != comp.name:
             report.errors.append(
-                'Invalid component name with sequence number, please modify it '
-                f'from {comp.name!r} to {expected_comp_name!r}.')
+                Error(
+                    ErrorCode.CONTENTS_ERROR,
+                    'Invalid component name with sequence number, please '
+                    f'modify it from {comp.name!r} to {expected_comp_name!r}'
+                    '.'))
         cid, qid = comp.extracted_avl_id or (0, 0)
         if comp.is_newly_added:
           report.name_changed_components.setdefault(comp_cls, []).append(
@@ -255,7 +292,8 @@ class ContentsAnalyzer:
     """
     report = ChangeAnalysisReport([], [], {})
     if not self._curr_db.instance:
-      report.precondition_errors.append(str(self._curr_db.load_error))
+      report.precondition_errors.append(
+          Error(ErrorCode.SCHEMA_ERROR, str(self._curr_db.load_error)))
       return report
 
     # To locate the HWID component name / status text part in the HWID DB

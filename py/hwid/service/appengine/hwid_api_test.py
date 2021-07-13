@@ -9,8 +9,6 @@ import textwrap
 import unittest
 from unittest import mock
 
-import yaml
-
 from cros.chromeoshwid import update_checksum
 from cros.factory.hwid.service.appengine import hwid_api
 from cros.factory.hwid.service.appengine import hwid_manager
@@ -25,7 +23,6 @@ from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
 # pylint: enable=import-error, no-name-in-module
 from cros.factory.probe_info_service.app_engine import protorpc_utils
 from cros.factory.utils import file_utils
-from cros.factory.utils import schema
 
 
 TEST_MODEL = 'FOO'
@@ -500,7 +497,9 @@ class HwidApiTest(unittest.TestCase):
 
   def testValidateConfigErrors(self):
     self.patch_hwid_validator.Validate.side_effect = (
-        hwid_validator.ValidationError('msg'))
+        hwid_validator.ValidationError([
+            hwid_validator.Error(hwid_validator.ErrorCode.CONTENTS_ERROR, 'msg')
+        ]))
 
     req = hwid_api_messages_pb2.ValidateConfigRequest(
         hwid_config_contents='test')
@@ -570,7 +569,9 @@ class HwidApiTest(unittest.TestCase):
 
   def testValidateConfigAndUpdateChecksumErrors(self):
     self.patch_hwid_validator.ValidateChange.side_effect = (
-        hwid_validator.ValidationError('msg'))
+        hwid_validator.ValidationError([
+            hwid_validator.Error(hwid_validator.ErrorCode.CONTENTS_ERROR, 'msg')
+        ]))
 
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
         hwid_config_contents=TEST_HWID_CONTENT)
@@ -581,27 +582,10 @@ class HwidApiTest(unittest.TestCase):
             status=hwid_api_messages_pb2.Status.BAD_REQUEST,
             error_message='msg'), msg)
 
-  def testValidateConfigAndUpdateChecksumSyntaxError(self):
-    yaml_error = yaml.error.YAMLError('msg')
-    validation_error = hwid_validator.ValidationError(str(yaml_error))
-    validation_error.__cause__ = yaml_error
-    self.patch_hwid_validator.ValidateChange.side_effect = validation_error
-    req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
-        hwid_config_contents=HWIDV3_CONTENT_SYNTAX_ERROR_CHANGE,
-        prev_hwid_config_contents=GOLDEN_HWIDV3_CONTENT)
-    msg = self.service.ValidateConfigAndUpdateChecksum(req)
-
-    self.assertEqual(
-        hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumResponse(
-            status=hwid_api_messages_pb2.Status.YAML_ERROR,
-            error_message='msg'), msg)
-
   def testValidateConfigAndUpdateChecksumSchemaError(self):
-    schema_error = schema.SchemaException('msg')
-    validation_error = hwid_validator.ValidationError(str(schema_error))
-    validation_error.__cause__ = schema_error
+    validation_error = hwid_validator.ValidationError(
+        [hwid_validator.Error(hwid_validator.ErrorCode.SCHEMA_ERROR, 'msg')])
     self.patch_hwid_validator.ValidateChange.side_effect = validation_error
-
     req = hwid_api_messages_pb2.ValidateConfigAndUpdateChecksumRequest(
         hwid_config_contents=HWIDV3_CONTENT_SCHEMA_ERROR_CHANGE,
         prev_hwid_config_contents=GOLDEN_HWIDV3_CONTENT)
@@ -891,9 +875,8 @@ class HwidApiTest(unittest.TestCase):
         hwid_repo.HWIDDBMetadata('test_project', 'test_project', 3,
                                  'v3/test_project'))
     live_hwid_repo.LoadHWIDDBByName.return_value = TEST_PREV_HWID_DB_CONTENT
-    schema_error = schema.SchemaException('msg')
-    validation_error = hwid_validator.ValidationError(str(schema_error))
-    validation_error.__cause__ = schema_error
+    validation_error = hwid_validator.ValidationError(
+        [hwid_validator.Error(hwid_validator.ErrorCode.SCHEMA_ERROR, 'msg')])
     self.patch_hwid_validator.ValidateChange.side_effect = validation_error
 
     req = hwid_api_messages_pb2.ValidateHwidDbEditableSectionChangeRequest(
@@ -901,11 +884,13 @@ class HwidApiTest(unittest.TestCase):
         new_hwid_db_editable_section=TEST_HWID_DB_EDITABLE_SECTION_CONTENT)
     resp = self.service.ValidateHwidDbEditableSectionChange(req)
 
+    self.assertEqual(len(resp.validation_result.errors), 1)
     self.assertEqual(
-        resp.validation_result,
-        hwid_api_messages_pb2.HwidDbEditableSectionChangeValidationResult(
-            result_code=resp.validation_result.SCHEMA_ERROR,
-            error_message='msg'))
+        resp.validation_result.errors[0],
+        hwid_api_messages_pb2.HwidDbEditableSectionChangeValidationResult.Error(
+            code=hwid_api_messages_pb2
+            .HwidDbEditableSectionChangeValidationResult.SCHEMA_ERROR,
+            message='msg'))
 
   def testValidateHwidDbEditableSectionChangePassed(self):
     self.patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {})
@@ -921,10 +906,7 @@ class HwidApiTest(unittest.TestCase):
     resp = self.service.ValidateHwidDbEditableSectionChange(req)
 
     self.assertTrue(resp.validation_token)
-    self.assertEqual(
-        resp.validation_result,
-        hwid_api_messages_pb2.HwidDbEditableSectionChangeValidationResult(
-            result_code=resp.validation_result.PASSED))
+    self.assertFalse(resp.validation_result.errors)
 
   def testValidateHwidDbEditableSectionChangeReturnUpdatedComponents(self):
     self.patch_hwid_validator.ValidateChange.return_value = (TEST_MODEL, {
@@ -958,7 +940,6 @@ class HwidApiTest(unittest.TestCase):
         hwid_api_messages_pb2.HwidDbEditableSectionChangeValidationResult)
     self.assertEqual(
         ValidationResultMsg(
-            result_code=ValidationResultMsg.PASSED,
             name_changed_components_per_category={
                 'wireless':
                     hwid_api_messages_pb2.NameChangedComponents(entries=[
@@ -998,7 +979,8 @@ class HwidApiTest(unittest.TestCase):
         new_hwid_db_editable_section=TEST_HWID_DB_EDITABLE_SECTION_CONTENT)
     resp = self.service.ValidateHwidDbEditableSectionChange(req)
 
-    self.assertEqual(resp.validation_result.result_code,
+    self.assertEqual(len(resp.validation_result.errors), 1)
+    self.assertEqual(resp.validation_result.errors[0].code,
                      resp.validation_result.CONTENTS_ERROR)
 
   def testCreateHwidDbEditableSectionChangeClValidationExpired(self):

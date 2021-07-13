@@ -19,7 +19,6 @@ from typing import List, NamedTuple, Tuple
 # pylint: disable=no-name-in-module, import-error, wrong-import-order
 import flask
 import flask.views
-import yaml
 # pylint: enable=no-name-in-module, import-error, wrong-import-order
 
 from cros.chromeoshwid import update_checksum
@@ -36,7 +35,6 @@ from cros.factory.hwid.v3.rule import Value
 from cros.factory.hwid.service.appengine.proto import hwid_api_messages_pb2
 # pylint: enable=import-error, no-name-in-module
 from cros.factory.probe_info_service.app_engine import protorpc_utils
-from cros.factory.utils import schema
 
 
 KNOWN_BAD_HWIDS = ['DUMMY_HWID', 'dummy_hwid']
@@ -101,14 +99,14 @@ def _HandleGzipRequests(method):
 
 
 def _MapException(ex, cls):
-  if isinstance(ex.__cause__, schema.SchemaException):
+  msgs = [er.message for er in ex.errors]
+  if any(er.code == hwid_validator.ErrorCode.SCHEMA_ERROR for er in ex.errors):
     return cls(
-        error_message=str(ex), status=hwid_api_messages_pb2.Status.SCHEMA_ERROR)
-  if isinstance(ex.__cause__, yaml.error.YAMLError):
-    return cls(
-        error_message=str(ex), status=hwid_api_messages_pb2.Status.YAML_ERROR)
+        error_message=str(msgs) if len(msgs) > 1 else msgs[0],
+        status=hwid_api_messages_pb2.Status.SCHEMA_ERROR)
   return cls(
-      error_message=str(ex), status=hwid_api_messages_pb2.Status.BAD_REQUEST)
+      error_message=str(msgs) if len(msgs) > 1 else msgs[0],
+      status=hwid_api_messages_pb2.Status.BAD_REQUEST)
 
 
 class _HWIDStatusConversionError(Exception):
@@ -520,14 +518,12 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
           change_info.new_hwid_db_contents, change_info.curr_hwid_db_contents)
     except hwid_validator.ValidationError as ex:
       logging.exception('Validation failed')
-      if isinstance(ex.__cause__,
-                    (schema.SchemaException, yaml.error.YAMLError)):
-        response.validation_result.result_code = (
-            response.validation_result.SCHEMA_ERROR)
-      else:
-        response.validation_result.result_code = (
-            response.validation_result.CONTENTS_ERROR)
-      response.validation_result.error_message = str(ex)
+      for error in ex.errors:
+        response.validation_result.errors.add(
+            code=(response.validation_result.SCHEMA_ERROR
+                  if error.code == hwid_validator.ErrorCode.SCHEMA_ERROR else
+                  response.validation_result.CONTENTS_ERROR),
+            message=error.message)
       return response
     try:
       name_changed_comps = {
@@ -535,11 +531,9 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
           for comp_cls, comps in new_hwid_comps.items()
       }
     except _HWIDStatusConversionError as ex:
-      response.validation_result.result_code = (
-          response.validation_result.CONTENTS_ERROR)
-      response.validation_result.error_message = str(ex)
+      response.validation_result.errors.add(
+          code=response.validation_result.CONTENTS_ERROR, message=str(ex))
       return response
-    response.validation_result.result_code = response.validation_result.PASSED
     field = response.validation_result.name_changed_components_per_category
     for comp_cls, name_changed_comps in name_changed_comps.items():
       field.get_or_create(comp_cls).entries.extend(name_changed_comps)

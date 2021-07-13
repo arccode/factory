@@ -3,6 +3,8 @@
 # found in the LICENSE file.
 """Validator for HWID configs."""
 
+from typing import List
+
 from cros.factory.hwid.service.appengine.config import CONFIG
 from cros.factory.hwid.service.appengine import \
     verification_payload_generator as vpg_module
@@ -10,8 +12,16 @@ from cros.factory.hwid.v3 import contents_analyzer
 from cros.factory.hwid.v3 import database
 
 
+ErrorCode = contents_analyzer.ErrorCode
+Error = contents_analyzer.Error
+
+
 class ValidationError(Exception):
   """An exception class that indicates validation failures."""
+
+  def __init__(self, errors: List[Error]):
+    super().__init__(str(errors))
+    self.errors = errors
 
 
 class HwidValidator:
@@ -31,7 +41,7 @@ class HwidValidator:
         hwid_config_contents, expected_checksum, None)
     report = contents_analyzer_inst.ValidateIntegrity()
     if report.errors:
-      raise ValidationError(f'Invalid HWID DB: {report.errors}.')
+      raise ValidationError(report.errors)
 
   def ValidateChange(self, hwid_config_contents, prev_hwid_config_contents):
     """Validates a HWID config change.
@@ -55,11 +65,11 @@ class HwidValidator:
 
     report_of_change = analyzer.ValidateChange()
     if report_of_change.errors:
-      raise ValidationError(str(report_of_change.errors))
+      raise ValidationError(report_of_change.errors)
 
     report_of_integrity = analyzer.ValidateIntegrity()
     if report_of_integrity.errors:
-      raise ValidationError(str(report_of_integrity.errors))
+      raise ValidationError(report_of_integrity.errors)
 
     db = analyzer.curr_db_instance
     vpg_target = CONFIG.vpg_targets.get(db.project)
@@ -67,5 +77,6 @@ class HwidValidator:
       errors = vpg_module.GenerateVerificationPayload(
           [(db, vpg_target.waived_comp_categories)]).error_msgs
       if errors:
-        raise ValidationError(str(errors))
+        raise ValidationError(
+            [Error(ErrorCode.CONTENTS_ERROR, err) for err in errors])
     return db.project, report_of_change.name_changed_components

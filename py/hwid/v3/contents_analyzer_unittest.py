@@ -35,9 +35,10 @@ class ContentsAnalyzerTest(unittest.TestCase):
     db_contents = file_utils.ReadFile(DB_DRAM_BAD_PATH)
     inst = contents_analyzer.ContentsAnalyzer(db_contents, None, None)
     report = inst.ValidateIntegrity()
-    expected_error_msg = ("'dram_type_256mb_and_real_is_512mb' does not "
-                          "contain size property")
-    self.assertIn(expected_error_msg, report.errors)
+    expected_error = contents_analyzer.Error(
+        contents_analyzer.ErrorCode.CONTENTS_ERROR,
+        "'dram_type_256mb_and_real_is_512mb' does not contain size property")
+    self.assertIn(expected_error, report.errors)
 
   def test_ValidateChange_GoodCompNameChange(self):
     prev_db_contents = file_utils.ReadFile(DB_COMP_BEFORE_PATH)
