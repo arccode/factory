@@ -350,9 +350,11 @@ class GoofyRPC:
 
     Args:
       operation: The shutdown operation to run ('halt', 'reboot',
-        or 'full_reboot').
+        'full_reboot', or 'direct_ec_reboot').
     """
-    if operation not in ['force_halt', 'halt', 'reboot', 'full_reboot']:
+    if operation not in [
+        'force_halt', 'halt', 'reboot', 'full_reboot', 'direct_ec_reboot'
+    ]:
       raise GoofyRPCException('Invalid shutdown operation %r' % operation)
     # No timeout for shutdown as the operation can be delayed for arbitrary
     # duration by the factory test.

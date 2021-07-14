@@ -343,7 +343,8 @@ class Goofy:
     """Starts shutdown procedure.
 
     Args:
-      operation: The shutdown operation (reboot, full_reboot, or halt).
+      operation: The shutdown operation (reboot, full_reboot, halt,
+        or direct_ec_reboot).
     """
     active_tests = []
     for test in self.test_list.Walk():

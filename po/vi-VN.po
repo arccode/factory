@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-07-16 15:30+CST\n"
+"PO-Revision-Date: 2021-07-16 15:47+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -2562,6 +2562,10 @@ msgid "halt"
 msgstr "tắt máy"
 
 #: ../py/test/pytests/shutdown.py
+msgid "direct ec reboot"
+msgstr "EC Khởi động lại lạnh"
+
+#: ../py/test/pytests/shutdown.py
 msgid "Shutdown Test ({operation})"
 msgstr "thử Tắt máy ({operation})"
 
@@ -3355,6 +3359,7 @@ msgid "Halt"
 msgstr "Tắt máy"
 
 #: ../py/test/test_lists/base.test_list.json
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Reboot"
 msgstr "Khởi động lại"
 

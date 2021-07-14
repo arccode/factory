@@ -663,16 +663,16 @@ AutomatedSequence = FactoryTest
 
 
 class ShutdownStep(FactoryTest):
-  """A shutdown (halt, reboot, or full_reboot) step.
+  """A shutdown (halt, reboot, full_reboot, or direct_ec_reboot) step.
 
   Properties:
     iterations: The number of times to reboot.
     operation: The command to run to perform the shutdown (FULL_REBOOT,
-        REBOOT, or HALT).
+        REBOOT, HALT, or DIRECT_EC_REBOOT).
   """
-  FULL_REBOOT = 'full_reboot'
-  REBOOT = 'reboot'
-  HALT = 'halt'
+
+  ShutdownTypes = type_utils.Enum(
+      ['reboot', 'full_reboot', 'halt', 'direct_ec_reboot'])
 
   allow_reboot = True
 
@@ -682,7 +682,6 @@ class ShutdownStep(FactoryTest):
     assert not self.subtests, 'Reboot/halt steps may not have subtests'
     if not operation:
       operation = kwargs.get('dargs', {}).get('operation', None)
-    assert operation in [self.REBOOT, self.HALT, self.FULL_REBOOT]
     self.pytest_name = 'shutdown'
     self.dargs = kwargs.get('dargs', {})
     self.dargs.update(dict(operation=operation))
@@ -693,7 +692,8 @@ class HaltStep(ShutdownStep):
 
   def __init__(self, **kw):
     kw.setdefault('id', 'Halt')
-    super(HaltStep, self).__init__(operation=ShutdownStep.HALT, **kw)
+    super(HaltStep, self).__init__(operation=ShutdownStep.ShutdownTypes.halt,
+                                   **kw)
 
 
 class RebootStep(ShutdownStep):
@@ -701,7 +701,8 @@ class RebootStep(ShutdownStep):
 
   def __init__(self, **kw):
     kw.setdefault('id', 'Reboot')
-    super(RebootStep, self).__init__(operation=ShutdownStep.REBOOT, **kw)
+    super(RebootStep, self).__init__(
+        operation=ShutdownStep.ShutdownTypes.reboot, **kw)
 
 
 class FullRebootStep(ShutdownStep):
@@ -710,7 +711,7 @@ class FullRebootStep(ShutdownStep):
   def __init__(self, **kw):
     kw.setdefault('id', 'FullReboot')
     super(FullRebootStep, self).__init__(
-        operation=ShutdownStep.FULL_REBOOT, **kw)
+        operation=ShutdownStep.ShutdownTypes.full_reboot, **kw)
 
 
 AutomatedRebootSubTest = RebootStep

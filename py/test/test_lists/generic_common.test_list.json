@@ -67,6 +67,9 @@
         ]
       }
     },
+    "update_firmware": {
+      "reboot_type": "reboot"
+    },
     "use_generic_tpm2": false,
     "__comment_use_generic_tpm2": "If this device is not using Google security chip (H1), set this to true.",
     "use_prepvt_cr50_firmware": false,
@@ -1189,7 +1192,13 @@
           "pytest_name": "update_firmware"
         },
         "Barrier",
-        "RebootStep"
+        {
+          "inherit": "ShutdownStep",
+          "label": "Reboot",
+          "args": {
+            "operation": "eval! constants.update_firmware.reboot_type"
+          }
+        }
       ]
     },
     "UpdateSKUID": {

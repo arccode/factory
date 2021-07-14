@@ -7,6 +7,13 @@
 Description
 -----------
 This test halts or reboots the device.
+This test provides three types of shutdown: reboot, full reboot, and direct EC
+reboot. A reboot is leveraging the external binary 'shutdown' for rebooting, a
+full reboot halts the device, then trigger a ec reboot, and a direct EC reboot
+triggers a hard reset directly.
+
+A direct EC reboot is suggested if in developmental phase, a firmware update is
+triggered when system is powered on, which might cause a normal reboot fail.
 
 Test Procedure
 --------------
@@ -19,7 +26,8 @@ Dependency
 * If DUT is a remote device, and argument `check_gpt` is set to True( default),
   it depends on the external binary 'cgpt' or 'partx' to read GPT info.
 * Depends on the external binary 'shutdown' to perform the operation.
-* Depends on the external binary 'ectool' to perform a full reboot.
+* Depends on the external binary 'ectool' to perform a full reboot and a direct
+  EC reboot.
 
 Examples
 --------
@@ -67,10 +75,14 @@ from cros.factory.utils import type_utils
 
 # File that suppresses reboot if present (e.g., for development).
 NO_REBOOT_FILE = '/var/log/factory.noreboot'
+
+SHUTDOWN_TYPES = test_object.ShutdownStep.ShutdownTypes
+
 _DICT_OPERATION_LABEL = {
-    'reboot': _('reboot'),
-    'full_reboot': _('full reboot'),
-    'halt': _('halt')
+    SHUTDOWN_TYPES.reboot: _('reboot'),
+    SHUTDOWN_TYPES.full_reboot: _('full reboot'),
+    SHUTDOWN_TYPES.halt: _('halt'),
+    SHUTDOWN_TYPES.direct_ec_reboot: _('direct ec reboot')
 }
 
 
@@ -94,7 +106,8 @@ class Checkpoint:
 
 
 class ShutdownTest(test_case.TestCase):
-  """Factory test for shutdown operations (reboot, full_reboot, or halt).
+  """Factory test for shutdown operations (reboot, full_reboot, halt, or
+  direct_ec_reboot).
 
   This test has two stages.  The Shutdown() method is the first stage which
   happens before the system actually shuts down; the PostShutdown() method
@@ -107,16 +120,15 @@ class ShutdownTest(test_case.TestCase):
   the verifications to make sure the shutdown operation was successful.
   """
   ARGS = [
-      Arg('operation', str,
+      Arg('operation', SHUTDOWN_TYPES,
           ("The command to run to perform the shutdown ('reboot', "
-           "'full_reboot', or 'halt').")),
+           "'full_reboot', 'halt', or 'direct_ec_reboot').")),
       Arg('delay_secs', int,
           'Number of seconds the operator has to abort the shutdown.',
           default=5),
       Arg('max_reboot_time_secs', int,
           ('Maximum amount of time allowed between reboots. If this threshold '
-           'is exceeded, the reboot is considered failed.'),
-          default=180),
+           'is exceeded, the reboot is considered failed.'), default=180),
       Arg('wait_shutdown_secs', int,
           'Number of seconds to wait for system shutdown.', default=60),
       Arg('check_tag_file', bool, 'Checks shutdown failure tag file',
@@ -124,14 +136,11 @@ class ShutdownTest(test_case.TestCase):
       Arg('check_audio_devices', int,
           ('Check total number of audio devices. None for non-check.'),
           default=None),
-      Arg('check_gpt', bool,
-          'Check GPT info before shutdown/reboot.', default=True)
+      Arg('check_gpt', bool, 'Check GPT info before shutdown/reboot.',
+          default=True)
   ]
 
   def setUp(self):
-    assert self.args.operation in (test_object.ShutdownStep.REBOOT,
-                                   test_object.ShutdownStep.FULL_REBOOT,
-                                   test_object.ShutdownStep.HALT)
     self.dut = device_utils.CreateDUTInterface()
     self.ui.ToggleTemplateClass('font-large', True)
     self.operation_label = _DICT_OPERATION_LABEL.get(self.args.operation,
@@ -251,7 +260,7 @@ class ShutdownTest(test_case.TestCase):
                     error_msg=('Time moved backward during reboot '
                                '(before=%s, after=%s)' %
                                (last_shutdown_time, now)))
-    elif (self.args.operation == test_object.ShutdownStep.REBOOT and
+    elif (self.args.operation == SHUTDOWN_TYPES.reboot and
           self.args.max_reboot_time_secs and
           (now - last_shutdown_time > self.args.max_reboot_time_secs)):
       # A reboot took too long; fail.  (We don't check this for
@@ -300,18 +309,21 @@ class ShutdownTest(test_case.TestCase):
     self.PreShutdown()
 
     end_time = time.time() + self.args.wait_shutdown_secs
-    if self.args.operation in (test_object.ShutdownStep.REBOOT,
-                               test_object.ShutdownStep.FULL_REBOOT):
+    if self.args.operation in (SHUTDOWN_TYPES.reboot,
+                               SHUTDOWN_TYPES.full_reboot,
+                               SHUTDOWN_TYPES.direct_ec_reboot):
       checkpoints = [DUT_NOT_READY_CHECKPOINT, DUT_READY_CHECKPOINT]
     else:
       checkpoints = [DUT_NOT_READY_CHECKPOINT, DUT_WAIT_SHUTDOWN]
     # TODO(akahuang): Make shutdown command as system module
     command_table = {
-        test_object.ShutdownStep.REBOOT: ['shutdown -r now'],
-        test_object.ShutdownStep.FULL_REBOOT: [
-            'ectool reboot_ec cold at-shutdown',
-            'shutdown -h now'],
-        test_object.ShutdownStep.HALT: ['shutdown -h now']}
+        SHUTDOWN_TYPES.reboot: ['shutdown -r now'],
+        SHUTDOWN_TYPES.full_reboot: [
+            'ectool reboot_ec cold at-shutdown', 'shutdown -h now'
+        ],
+        SHUTDOWN_TYPES.halt: ['shutdown -h now'],
+        SHUTDOWN_TYPES.direct_ec_reboot: ['ectool reboot_ec cold']
+    }
     for command in command_table[self.args.operation]:
       self.dut.Call(command)
     while checkpoints:

@@ -24,7 +24,7 @@ class Environment:
     """Shuts the machine down (from a ShutdownStep).
 
     Args:
-      operation: 'reboot', 'full_reboot', or 'halt'.
+      operation: 'reboot', 'full_reboot', 'halt', or 'direct_ec_reboot'.
 
     Returns:
       True if Goofy should gracefully exit, or False if Goofy
@@ -45,13 +45,16 @@ class DUTEnvironment(Environment):
     self.goofy = None  # Must be assigned later by goofy.
 
   def shutdown(self, operation):
-    assert operation in ['reboot', 'full_reboot', 'halt']
+    assert operation in ['reboot', 'full_reboot', 'halt', 'direct_ec_reboot']
     logging.info('Shutting down: %s', operation)
     subprocess.check_call('sync')
 
+    time.sleep(5)
     if operation == 'full_reboot':
       subprocess.check_call(['ectool', 'reboot_ec', 'cold', 'at-shutdown'])
       subprocess.check_call(['shutdown', '-h', 'now'])
+    elif operation == 'direct_ec_reboot':
+      subprocess.check_call(['ectool', 'reboot_ec', 'cold'])
     else:
       commands = dict(reboot=['shutdown', '-r', 'now'],
                       halt=['shutdown', '-h', 'now'])
