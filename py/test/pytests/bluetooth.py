@@ -302,6 +302,7 @@ class BluetoothTest(test_case.TestCase):
       self._input_device_mac = self.args.input_device_mac
 
     self.btmgmt = bluetooth_utils.BtMgmt(self.args.manufacturer_id)
+    self.btmgmt.PowerOn()
     self.hci_device = self.btmgmt.GetHciDevice()
     self.host_mac = self.btmgmt.GetMac()
     logging.info('manufacturer_id %s: %s %s',

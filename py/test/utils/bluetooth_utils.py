@@ -121,6 +121,10 @@ class BtMgmt:
 
     return devices
 
+  def PowerOn(self):
+    """Power on the bluetooth adapter"""
+    process_utils.CheckCall(['btmgmt', 'power', 'on'])
+
 
 class GattTool:
   """A wrapper of linux gatttool.
