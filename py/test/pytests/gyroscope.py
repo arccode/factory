@@ -90,6 +90,8 @@ class Gyroscope(test_case.TestCase):
     if self.args.setup_sensor:
       self.gyroscope.SetupMotionSensor()
 
+    logging.info('%r', self.gyroscope)
+
     if not self.args.autostart:
       self.ui.SetState(
           _('Please put device on a horizontal plane then press space to '

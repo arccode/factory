@@ -47,6 +47,14 @@ class GyroscopeController(sensor_utils.BasicSensorController):
     self.gyro_id = gyro_id
     self.freq = freq
 
+  def _GetRepresentList(self) -> list:
+    """Returns a list of strings that represents the contents."""
+    return super()._GetRepresentList() + [
+        f'location={self.location!r}',
+        f'gyro_id={self.gyro_id!r}',
+        f'freq={self.freq!r}',
+    ]
+
   def CleanUpCalibrationValues(self):
     """Clean up calibration values.
 

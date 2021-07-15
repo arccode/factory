@@ -72,6 +72,18 @@ class BasicSensorController(device_types.DeviceComponent):
                                 location=location)
     self.scale = 1.0 if not scale else float(self._GetSysfsValue('scale'))
 
+  def _GetRepresentList(self) -> list:
+    """Returns a list of strings that represents the contents."""
+    return [
+        f'iio_path={self._iio_path!r}',
+        f'signal_names={self.signal_names!r}',
+        f'scale={self.scale!r}',
+    ]
+
+  def __repr__(self) -> str:
+    inner = ',\n'.join(f'    {element}' for element in self._GetRepresentList())
+    return f'{self.__class__.__name__}(\n{inner})'
+
   def _GetSysfsValue(self, filename, path=None):
     """Read the content of given path.
 
