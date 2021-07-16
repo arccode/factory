@@ -450,6 +450,23 @@
         "camera_facing": "front"
       }
     },
+    "FrontCameraAssemble": {
+      "inherit": "FrontCamera",
+      "label": "Front Camera Assemble",
+      "args": {
+        "mode": "camera_assemble",
+        "min_luminance_ratio": 0.5
+      }
+    },
+    "FrontCameraAssembleQR": {
+      "inherit": "FrontCamera",
+      "label": "Front Camera Assemble QR",
+      "args": {
+        "mode": "camera_assemble_qr",
+        "min_luminance_ratio": 0.5,
+        "QR_string": "ChromeTeam"
+      }
+    },
     "FrontCameraLED": {
       "inherit": "FrontCamera",
       "label": "Front Camera LED",
@@ -657,6 +674,23 @@
       "run_if": "not constants.has_device_data or device.component.has_rear_camera",
       "args": {
         "camera_facing": "rear"
+      }
+    },
+    "RearCameraAssemble": {
+      "inherit": "RearCamera",
+      "label": "Rear Camera Assemble",
+      "args": {
+        "mode": "camera_assemble",
+        "min_luminance_ratio": 0.5
+      }
+    },
+    "RearCameraAssembleQR": {
+      "inherit": "RearCamera",
+      "label": "Rear Camera Assemble QR",
+      "args": {
+        "mode": "camera_assemble_qr",
+        "min_luminance_ratio": 0.5,
+        "QR_string": "ChromeTeam"
       }
     },
     "RearCameraLED": {

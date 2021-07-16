@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-07-13 14:20+CST\n"
+"PO-Revision-Date: 2021-07-16 15:30+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -3458,6 +3458,14 @@ msgid "Finish"
 msgstr "Kết thúc"
 
 #: ../py/test/test_lists/generic_common.test_list.json
+msgid "Front Camera Assemble"
+msgstr ""
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Front Camera Assemble QR"
+msgstr ""
+
+#: ../py/test/test_lists/generic_common.test_list.json
 msgid "Front Camera LED"
 msgstr ""
 
@@ -3516,6 +3524,14 @@ msgstr "Thăm dò ổ cứng"
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "QR Scan"
 msgstr "quét mã QR"
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Rear Camera Assemble"
+msgstr ""
+
+#: ../py/test/test_lists/generic_common.test_list.json
+msgid "Rear Camera Assemble QR"
+msgstr ""
 
 #: ../py/test/test_lists/generic_common.test_list.json
 msgid "Rear Camera LED"
