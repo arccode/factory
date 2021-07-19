@@ -413,6 +413,7 @@ class AudioLoopTest(test_case.TestCase):
           'the PCM Id from UCM config using this argument as the keyword.' %
           list(base.OutputDevices), default=['0', '0'],
           schema=_ARG_OUTPUT_DEVICE_SCHEMA),
+      Arg('num_output_channels', int, 'Number of output channels.', default=2),
       Arg('output_volume', (int, list),
           'An int of output volume or a list of output volume candidates',
           default=None),
@@ -731,6 +732,8 @@ class AudioLoopTest(test_case.TestCase):
     X: channel =  1, success =   1, fail =   1, rate = 50.0
 
     Args:
+      capture_rate: bit rate for output device and input device
+      input_channels: a list of mic channels used for testing
       output_channel: output device channel used for testing
     """
 
@@ -770,9 +773,10 @@ class AudioLoopTest(test_case.TestCase):
         'max_frequency', _DEFAULT_MAX_FREQUENCY)
     self.assertLessEqual(min_frequency, max_frequency)
 
-    player_cmd = 'sox -b%d -c2 -e%s -r%d -traw - '\
+    player_cmd = 'sox -b%d -c%d -e%s -r%d -traw - '\
                  '-b%d -e%s -talsa %s' % (
                      audiofuntest_bits,
+                     self.args.num_output_channels,
                      audiofuntest_encoding,
                      capture_rate,
                      player_bits,
@@ -802,7 +806,8 @@ class AudioLoopTest(test_case.TestCase):
         '%d' % capture_rate, '-T',
         '%d' % iteration, '-a',
         '%d' % output_channel, '-c',
-        '%d' % len(input_channels), '-g',
+        '%d' % len(input_channels), '-C',
+        '%d' % self.args.num_output_channels, '-g',
         '%d' % volume_gain, '-i',
         '%d' % min_frequency, '-x',
         '%d' % max_frequency, '-p',
@@ -833,6 +838,10 @@ class AudioLoopTest(test_case.TestCase):
       self.ui.CallJSFunction('testFailResult', rate_msg)
     self.Sleep(1)
 
+  def CheckChannelArgs(self, output_channels):
+    if self.args.num_output_channels < max(output_channels):
+      raise ValueError('Incorrect number of output channels')
+
   def AudioFunTest(self):
     """Setup speaker and microphone test pairs and run audiofuntest program."""
 
@@ -845,6 +854,8 @@ class AudioLoopTest(test_case.TestCase):
         'output_channels', _DEFAULT_AUDIOFUN_TEST_OUTPUT_CHANNELS)
     capture_rate = self._current_test_args.get(
         'capture_rate', _DEFAULT_AUDIOFUN_TEST_SAMPLE_RATE)
+    self.CheckChannelArgs(output_channels)
+
     for output_channel in output_channels:
       self.AudioFunTestWithOutputChannel(capture_rate, input_channels,
                                          output_channel)
