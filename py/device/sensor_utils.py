@@ -4,11 +4,20 @@
 
 import os
 import time
+import typing
 
 from cros.factory.device import device_types
 
 
 IIO_DEVICES_PATTERN = '/sys/bus/iio/devices/iio:device*'
+
+
+class SensorError(device_types.DeviceException):
+  TEMPLATE = ('%s To resolve this, modify the driver and pass the '
+              'sensor_iioservice.go tast test.')
+
+  def __init__(self, messages):
+    super().__init__(SensorError.TEMPLATE % messages)
 
 
 def FindDevice(dut, path_pattern, **attr_filter):
@@ -84,7 +93,7 @@ class BasicSensorController(device_types.DeviceComponent):
     inner = ',\n'.join(f'    {element}' for element in self._GetRepresentList())
     return f'{self.__class__.__name__}(\n{inner})'
 
-  def _GetSysfsValue(self, filename, path=None):
+  def _GetSysfsValue(self, filename, path=None) -> typing.Union[str, None]:
     """Read the content of given path.
 
     Args:
@@ -118,6 +127,42 @@ class BasicSensorController(device_types.DeviceComponent):
     except Exception:
       if check_call:
         raise
+
+  def GetSamplingFrequencies(self):
+    """Returns the sampling frequencies in Hz.
+
+    Returns:
+      A tuple of 2 floats, the minimum frequency and the maximum frequency.
+
+    Raises:
+      SensorError if sampling_frequency_available does not exist or there is a
+      format error.
+    """
+    node_name = 'sampling_frequency_available'
+    raw_frequencies = self._GetSysfsValue(node_name)
+    if raw_frequencies is None:
+      raise SensorError(f'{node_name!r} does not exist.')
+    frequencies = raw_frequencies.split()
+    if not frequencies:
+      raise SensorError(f'{node_name!r} is empty.')
+    try:
+      frequencies = tuple(map(float, frequencies))
+    except ValueError:
+      raise SensorError(
+          f'Can not convert {node_name!r} to floating point numbers. '
+          f'{raw_frequencies!r}.')
+    if len(frequencies) == 1:
+      result = (frequencies[0], frequencies[0])
+    elif len(frequencies) >= 2:
+      if frequencies[0] == 0.0:
+        result = (frequencies[1], frequencies[-1])
+      else:
+        result = (frequencies[0], frequencies[-1])
+      if result[0] > result[1]:
+        raise SensorError(
+            f'The minimum frequency:{result[0]} is larger than the maximum '
+            f'frequency:{result[1]}.')
+    return result
 
   def GetData(self, capture_count=1, sample_rate=20):
     """Reads several records of raw data and returns the average.

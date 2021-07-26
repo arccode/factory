@@ -61,14 +61,15 @@ class AccelerometerController(sensor_utils.BasicSensorController):
     for signal_name in self.signal_names:
       self._SetSysfsValue('%s_calibbias' % signal_name, '0')
 
-  def GetData(self, capture_count=1, sample_rate=20):
+  def GetData(self, capture_count: int = 1, sample_rate: float = None):
     """Returns average values of the sensor data.
 
     Use `iioservice_simpleclient` to capture the sensor data.
 
     Args:
       capture_count: how many records to read to compute the average.
-      sample_rate: sample rate in Hz to read data from accelerometers.
+      sample_rate: sample rate in Hz to read data from accelerometers. If it is
+        None, set to the maximum frequency.
 
     Returns:
       A dict of the format {'signal_name': average value}
@@ -95,9 +96,13 @@ class AccelerometerController(sensor_utils.BasicSensorController):
         ToChannelName(signal_name) for signal_name in self.signal_names
     ]
 
-    # `iioservice_simpleclient` currently does not support a frequency smaller
-    # than the minimum frequency of the sensor, so we call it multiple times
-    # at `sample_rate` rate to make sure we read the data in a expected rate.
+    # We only test `iioservice_simpleclient` with maximum frequency in
+    # sensor_iioservice_hard.go. Use maximum frequency by default to make sure
+    # that our tests are using tested commands.
+    if sample_rate is None:
+      frequencies = self.GetSamplingFrequencies()
+      sample_rate = frequencies[1]
+
     iioservice_cmd = [
         'iioservice_simpleclient',
         '--channels=%s' % ' '.join(iioservice_channels),
