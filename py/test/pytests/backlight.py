@@ -1,7 +1,6 @@
 # Copyright 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-
 """Test display backlight.
 
 Description
@@ -54,8 +53,10 @@ from cros.factory.test import test_case
 from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 
+
 _DEFAULT_ADJUST_LEVEL = 0.05
 _DEFAULT_RESET_LEVEL = 0.5
+_DEFAULT_MIN_LEVEL = 0.0
 
 
 class BacklightTest(test_case.TestCase):
@@ -70,13 +71,16 @@ class BacklightTest(test_case.TestCase):
       Arg('adjust_level', float,
           'How much the brightness level should be adjusted. Max: 1.0',
           default=_DEFAULT_ADJUST_LEVEL),
-      Arg('reset_level', float,
-          'The brightness level when do reset. Max: 1.0',
+      Arg('reset_level', float, 'The brightness level when do reset. Max: 1.0',
           default=_DEFAULT_RESET_LEVEL),
+      Arg('min_level', float,
+          'The minimal brightness level during the test. Max: 1.0',
+          default=_DEFAULT_MIN_LEVEL)
   ]
 
   def setUp(self):
     """Initializes frontend presentation and properties."""
+    self.CheckArgs()
     self.dut = device_utils.CreateDUTInterface()
 
     self.sequence = [+1, -1]
@@ -95,6 +99,18 @@ class BacklightTest(test_case.TestCase):
           'Enter L if pressing Space changes the backlight to be '
           'dimmer.<br>'
           'This test will be executed twice.'))
+
+  def CheckArgs(self):
+    min_level = self.args.min_level
+    if not 0 <= min_level <= 1:
+      self.FailTask(f'min_level must between 0 and 1, got: {min_level}')
+    reset_level = self.args.reset_level
+    if not min_level <= reset_level <= 1:
+      self.FailTask(f'reset_level must between min_level: {min_level} '
+                    f'and 1, got: {reset_level}')
+    adjust_level = self.args.adjust_level
+    if not 0 <= adjust_level <= 1:
+      self.FailTask(f'adjust_level must between 0 and 1, got: {adjust_level}')
 
   def tearDown(self):
     self.ResetBrightness()
@@ -119,7 +135,7 @@ class BacklightTest(test_case.TestCase):
 
   def AdjustBrightness(self, level):
     """Adjust the intensity."""
-    level = max(0, min(1, level))
+    level = max(self.args.min_level, min(1, level))
     logging.info('Adjust brightness level to %r', level)
     self.dut.display.SetBacklightBrightness(level)
     self.current_level = level
