@@ -12,6 +12,7 @@ import collections
 import copy
 import logging
 import re
+from typing import Dict, NamedTuple, Optional
 
 from google.cloud import ndb  # pylint: disable=no-name-in-module, import-error
 
@@ -96,6 +97,14 @@ class AVLNameMapping(ndb.Model):
   category = ndb.StringProperty()
   component_id = ndb.IntegerProperty()
   name = ndb.StringProperty()
+
+
+class BomAndConfigless(NamedTuple):
+  """A class to collect bom and configless obtained from HwidData."""
+
+  bom: Optional[Dict]
+  configless: Optional[Dict]
+  error: Optional[Exception]
 
 
 class PrimaryIdentifier(ndb.Model):  # pylint: disable=no-init
@@ -317,11 +326,14 @@ class HwidManager:
   information.
   """
 
-  def __init__(self, fs_adapter, vpg_targets):
+  def __init__(self, fs_adapter, vpg_targets, mem_adapter=None):
     self._fs_adapter = fs_adapter
     self._vpg_targets = vpg_targets
-    self._memcache_adapter = memcache_adapter.MemcacheAdapter(
-        namespace='HWIDObject')
+    if mem_adapter is not None:
+      self._memcache_adapter = mem_adapter
+    else:
+      self._memcache_adapter = memcache_adapter.MemcacheAdapter(
+          namespace='HWIDObject')
 
   @type_utils.LazyProperty
   def _ndb_client(self):
@@ -374,34 +386,43 @@ class HwidManager:
                    if metadata.version in versions)
       return set(metadata.project for metadata in HwidMetadata.query())
 
-  def GetBomAndConfigless(self, hwid_string, verbose=False):
+  def BatchGetBomAndConfigless(self, hwid_strings,
+                               verbose=False) -> Dict[str, BomAndConfigless]:
     """Get the BOM and configless for a given HWID.
 
     Args:
-      hwid_string: The HWID.
+      hwid_strings: list of HWID strings.
       verbose: Requires all fields of components in bom if set to True.
 
     Returns:
-      A bom dict and configless field dict.
-      If there is no configless field in given HWID, return Bom dict and None.
-
-    Raises:
-      HwidNotFoundError: If a portion of the HWID is not found.
-      InvalidHwidError: If the HWID is invalid.
+      A dict of {hwid: BomAndConfigless instance} where the BomAndConfigless
+      instance stores an optional bom dict and an optional configless field
+      dict.  If an exception occurs while decoding the HWID string, the
+      exception will also be provided in the instance.
     """
-    logging.debug('Getting BOM for %r.', hwid_string)
-    project_and_brand, unusedi, unusedj = hwid_string.partition(' ')
-    project, unusedi, unusedj = project_and_brand.partition('-')
-    del unusedi  # unused
-    del unusedj  # unused
 
-    model_info = self._vpg_targets.get(project)
-    waived_comp_categories = model_info and model_info.waived_comp_categories
+    hwid_data_cache = {}
+    result = {}
+    for hwid_string in hwid_strings:
+      logging.debug('Getting BOM for %r.', hwid_string)
+      project_and_brand, unused_sep, unused_part = hwid_string.partition(' ')
+      project, unused_sep, unused_part = project_and_brand.partition('-')
 
-    hwid_data = self._LoadHwidData(project)
+      model_info = self._vpg_targets.get(project)
+      waived_comp_categories = model_info and model_info.waived_comp_categories
 
-    return hwid_data.GetBomAndConfigless(hwid_string, verbose,
-                                         waived_comp_categories)
+      bom = configless = error = None
+      hwid_data = hwid_data_cache.get(project)
+      try:
+        if hwid_data is None:
+          hwid_data_cache[project] = hwid_data = self._LoadHwidData(project)
+
+        bom, configless = hwid_data.GetBomAndConfigless(hwid_string, verbose,
+                                                        waived_comp_categories)
+      except (ValueError, KeyError) as ex:
+        error = ex
+      result[hwid_string] = BomAndConfigless(bom, configless, error)
+    return result
 
   def GetHwids(self, project, with_classes=None, without_classes=None,
                with_components=None, without_components=None):

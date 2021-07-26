@@ -103,7 +103,9 @@ class HwidApiTest(unittest.TestCase):
             status=hwid_api_messages_pb2.Status.SUCCESS), msg)
 
   def testGetBomNone(self):
-    self.patch_hwid_manager.GetBomAndConfigless.return_value = (None, None)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(None, None, None)
+    }
 
     req = hwid_api_messages_pb2.BomRequest(hwid=TEST_HWID)
     msg = self.service.GetBom(req)
@@ -113,8 +115,8 @@ class HwidApiTest(unittest.TestCase):
             status=hwid_api_messages_pb2.Status.NOT_FOUND,
             error='HWID not found.'), msg)
 
-    self.patch_hwid_manager.GetBomAndConfigless.assert_called_with(
-        TEST_HWID, False)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.assert_called_with(
+        [TEST_HWID], False)
 
   def testGetBomFastKnownBad(self):
     bad_hwid = "FOO TEST"
@@ -129,8 +131,9 @@ class HwidApiTest(unittest.TestCase):
             bad_hwid), msg)
 
   def testGetBomValueError(self):
-    self.patch_hwid_manager.GetBomAndConfigless = mock.Mock(
-        side_effect=ValueError('foo'))
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(None, None, ValueError('foo'))
+    }
     req = hwid_api_messages_pb2.BomRequest(hwid=TEST_HWID)
     msg = self.service.GetBom(req)
 
@@ -139,8 +142,9 @@ class HwidApiTest(unittest.TestCase):
             status=hwid_api_messages_pb2.Status.BAD_REQUEST, error='foo'), msg)
 
   def testGetBomKeyError(self):
-    self.patch_hwid_manager.GetBomAndConfigless = mock.Mock(
-        side_effect=KeyError('foo'))
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(None, None, KeyError('foo'))
+    }
     req = hwid_api_messages_pb2.BomRequest(hwid=TEST_HWID)
     msg = self.service.GetBom(req)
 
@@ -152,7 +156,9 @@ class HwidApiTest(unittest.TestCase):
   def testGetBomEmpty(self):
     bom = hwid_manager.Bom()
     configless = None
-    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(bom, configless, None)
+    }
 
     req = hwid_api_messages_pb2.BomRequest(hwid=TEST_HWID)
     msg = self.service.GetBom(req)
@@ -161,6 +167,17 @@ class HwidApiTest(unittest.TestCase):
         hwid_api_messages_pb2.BomResponse(
             status=hwid_api_messages_pb2.Status.SUCCESS), msg)
 
+  def testGetBomInternalError(self):
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {}
+
+    req = hwid_api_messages_pb2.BomRequest(hwid=TEST_HWID)
+    msg = self.service.GetBom(req)
+
+    self.assertEqual(
+        hwid_api_messages_pb2.BomResponse(
+            error='Internal error',
+            status=hwid_api_messages_pb2.Status.SERVER_ERROR), msg)
+
   def testGetBomComponents(self):
     bom = hwid_manager.Bom()
     bom.AddAllComponents({
@@ -168,7 +185,9 @@ class HwidApiTest(unittest.TestCase):
         'baz': ['qux', 'rox']
     })
     configless = None
-    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(bom, configless, None)
+    }
     self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
     self.patch_hwid_manager.GetPrimaryIdentifier.side_effect = (
         _MockGetPrimaryIdentifier)
@@ -187,6 +206,116 @@ class HwidApiTest(unittest.TestCase):
                                                 component_class='foo'),
             ]), msg)
 
+  def testBatchGetBom(self):
+    hwid1 = 'TEST HWID 1'
+    bom1 = hwid_manager.Bom()
+    bom1.AddAllComponents({
+        'foo1': 'bar1',
+        'baz1': ['qux1', 'rox1']
+    })
+
+    hwid2 = 'TEST HWID 2'
+    bom2 = hwid_manager.Bom()
+    bom2.AddAllComponents({
+        'foo2': 'bar2',
+        'baz2': ['qux2', 'rox2']
+    })
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        hwid1: hwid_manager.BomAndConfigless(bom1, None, None),
+        hwid2: hwid_manager.BomAndConfigless(bom2, None, None),
+    }
+    self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
+    self.patch_hwid_manager.GetPrimaryIdentifier.side_effect = (
+        _MockGetPrimaryIdentifier)
+
+    req = hwid_api_messages_pb2.BatchGetBomRequest(hwid=[hwid1, hwid2])
+    msg = self.service.BatchGetBom(req)
+
+    self.assertEqual(
+        hwid_api_messages_pb2.BatchGetBomResponse(
+            boms={
+                hwid1:
+                    hwid_api_messages_pb2.BatchGetBomResponse.Bom(
+                        status=hwid_api_messages_pb2.Status.SUCCESS,
+                        components=[
+                            hwid_api_messages_pb2.Component(
+                                name='qux1', component_class='baz1'),
+                            hwid_api_messages_pb2.Component(
+                                name='rox1', component_class='baz1'),
+                            hwid_api_messages_pb2.Component(
+                                name='bar1', component_class='foo1'),
+                        ]),
+                hwid2:
+                    hwid_api_messages_pb2.BatchGetBomResponse.Bom(
+                        status=hwid_api_messages_pb2.Status.SUCCESS,
+                        components=[
+                            hwid_api_messages_pb2.Component(
+                                name='qux2', component_class='baz2'),
+                            hwid_api_messages_pb2.Component(
+                                name='rox2', component_class='baz2'),
+                            hwid_api_messages_pb2.Component(
+                                name='bar2', component_class='foo2'),
+                        ]),
+            }, status=hwid_api_messages_pb2.Status.SUCCESS), msg)
+
+  def testBatchGetBomWithError(self):
+    hwid1 = 'TEST HWID 1'
+    hwid2 = 'TEST HWID 2'
+    hwid3 = 'TEST HWID 3'
+    hwid4 = 'TEST HWID 4'
+    bom = hwid_manager.Bom()
+    bom.AddAllComponents({
+        'foo': 'bar',
+        'baz': ['qux', 'rox']
+    })
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        hwid1:
+            hwid_manager.BomAndConfigless(None, None,
+                                          ValueError('value error')),
+        hwid2:
+            hwid_manager.BomAndConfigless(None, None, KeyError('Invalid key')),
+        hwid3:
+            hwid_manager.BomAndConfigless(None, None,
+                                          IndexError('index error')),
+        hwid4:
+            hwid_manager.BomAndConfigless(bom, None, None),
+    }
+    self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
+    self.patch_hwid_manager.GetPrimaryIdentifier.side_effect = (
+        _MockGetPrimaryIdentifier)
+
+    req = hwid_api_messages_pb2.BatchGetBomRequest(hwid=[hwid1, hwid2])
+    msg = self.service.BatchGetBom(req)
+
+    self.assertEqual(
+        hwid_api_messages_pb2.BatchGetBomResponse(
+            boms={
+                hwid1:
+                    hwid_api_messages_pb2.BatchGetBomResponse.Bom(
+                        status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+                        error='value error'),
+                hwid2:
+                    hwid_api_messages_pb2.BatchGetBomResponse.Bom(
+                        status=hwid_api_messages_pb2.Status.NOT_FOUND,
+                        error='\'Invalid key\''),
+                hwid3:
+                    hwid_api_messages_pb2.BatchGetBomResponse.Bom(
+                        status=hwid_api_messages_pb2.Status.SERVER_ERROR,
+                        error='index error'),
+                hwid4:
+                    hwid_api_messages_pb2.BatchGetBomResponse.Bom(
+                        status=hwid_api_messages_pb2.Status.SUCCESS,
+                        components=[
+                            hwid_api_messages_pb2.Component(
+                                name='qux', component_class='baz'),
+                            hwid_api_messages_pb2.Component(
+                                name='rox', component_class='baz'),
+                            hwid_api_messages_pb2.Component(
+                                name='bar', component_class='foo'),
+                        ]),
+            }, status=hwid_api_messages_pb2.Status.BAD_REQUEST,
+            error='value error'), msg)
+
   def testGetDutLabelsCheckIsVPRelated(self):
     bom = hwid_manager.Bom()
     bom.AddAllComponents(
@@ -199,7 +328,9 @@ class HwidApiTest(unittest.TestCase):
     bom.project = 'foo'
     bom.phase = 'bar'
     configless = None
-    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(bom, configless, None)
+    }
     self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
     self.patch_hwid_manager.GetPrimaryIdentifier.side_effect = (
         _MockGetPrimaryIdentifier)
@@ -242,7 +373,9 @@ class HwidApiTest(unittest.TestCase):
         }, comp_db=database.Database.LoadFile(
             GOLDEN_HWIDV3_FILE, verify_checksum=False), verbose=True)
     configless = None
-    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(bom, configless, None)
+    }
     self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
     self.patch_hwid_manager.GetPrimaryIdentifier.side_effect = (
         _MockGetPrimaryIdentifier)
@@ -299,7 +432,9 @@ class HwidApiTest(unittest.TestCase):
         }
     })
     configless = None
-    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(bom, configless, None)
+    }
 
     req = hwid_api_messages_pb2.BomRequest(hwid=TEST_HWID)
     msg = self.service.GetBom(req)
@@ -321,7 +456,9 @@ class HwidApiTest(unittest.TestCase):
         comp_db=database.Database.LoadFile(GOLDEN_HWIDV3_FILE,
                                            verify_checksum=False), verbose=True)
     configless = None
-    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(bom, configless, None)
+    }
     self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
     self.patch_hwid_manager.GetPrimaryIdentifier.side_effect = (
         _MockGetPrimaryIdentifier)
@@ -625,7 +762,9 @@ class HwidApiTest(unittest.TestCase):
     })
     bom.project = 'foo'
     configless = None
-    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(bom, configless, None)
+    }
 
     req = hwid_api_messages_pb2.SkuRequest(hwid=TEST_HWID)
     msg = self.service.GetSku(req)
@@ -648,7 +787,9 @@ class HwidApiTest(unittest.TestCase):
     configless = {
         'memory': 4
     }
-    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(bom, configless, None)
+    }
 
     req = hwid_api_messages_pb2.SkuRequest(hwid=TEST_HWID)
     msg = self.service.GetSku(req)
@@ -668,7 +809,9 @@ class HwidApiTest(unittest.TestCase):
         'dram': ['fail']
     })
     configless = None
-    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(bom, configless, None)
+    }
 
     req = hwid_api_messages_pb2.SkuRequest(hwid=TEST_HWID)
     msg = self.service.GetSku(req)
@@ -685,7 +828,9 @@ class HwidApiTest(unittest.TestCase):
     bom.project = 'foo'
     configless = None
 
-    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(bom, configless, None)
+    }
 
     req = hwid_api_messages_pb2.SkuRequest(hwid=TEST_HWID)
     msg = self.service.GetSku(req)
@@ -714,7 +859,9 @@ class HwidApiTest(unittest.TestCase):
         'total_bytes': None
     }
 
-    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(bom, configless, None)
+    }
     self.patch_hwid_manager.GetAVLName.side_effect = _MockGetAVLName
     self.patch_hwid_manager.GetPrimaryIdentifier.side_effect = (
         _MockGetPrimaryIdentifier)
@@ -776,7 +923,9 @@ class HwidApiTest(unittest.TestCase):
             'has_touchscreen': 1
         }
     }
-    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(bom, configless, None)
+    }
 
     mock_get_sku_from_bom.return_value = {
         'sku': 'TestSku',
@@ -786,7 +935,9 @@ class HwidApiTest(unittest.TestCase):
         'total_bytes': None
     }
 
-    self.patch_hwid_manager.GetBomAndConfigless.return_value = (bom, configless)
+    self.patch_hwid_manager.BatchGetBomAndConfigless.return_value = {
+        TEST_HWID: hwid_manager.BomAndConfigless(bom, configless, None)
+    }
 
     req = hwid_api_messages_pb2.DutLabelsRequest(hwid=TEST_HWID)
     msg = self.service.GetDutLabels(req)

@@ -33,7 +33,8 @@ TEST_V2_HWID_ONE_DASH_NO_VOL = 'CHROMEBOOK BAKER-ALFA A'
 TEST_V2_HWID_TWO_DASH = 'CHROMEBOOK BAKER-ALFA-BETA A-A'
 TEST_V2_HWID_TWO_DASH_NO_VAR = 'CHROMEBOOK BAKER-ALFA-BETA'
 TEST_V2_HWID_TWO_DASH_NO_VOL = 'CHROMEBOOK BAKER-ALFA-BETA A'
-TEST_V3_HWID = 'CHROMEBOOK AA5A-Y6L'
+TEST_V3_HWID_1 = 'CHROMEBOOK AA5A-Y6L'
+TEST_V3_HWID_2 = 'CHROMEBOOK AA5B-YAI'
 TEST_V3_HWID_WITH_CONFIGLESS = 'CHROMEBOOK-BRAND 0-8-74-180 AA5C-YNQ'
 
 
@@ -88,7 +89,8 @@ class HwidManagerTest(unittest.TestCase):
     mock_blob = self.mock_storage.Client().bucket().blob
     mock_blob.side_effect = patch_blob
 
-  def _GetManager(self, adapter=None, load_blobstore=True, load_datastore=True):
+  def _GetManager(self, adapter=None, load_blobstore=True, load_datastore=True,
+                  mem_adapter=None):
     """Returns a HwidManager object, optionally loading mock data."""
     if load_blobstore:
       self._LoadTestBlobStore()
@@ -102,7 +104,8 @@ class HwidManagerTest(unittest.TestCase):
 
     vpg_target_info = mock.Mock()
     vpg_target_info.waived_comp_categories = ['battery']
-    manager = hwid_manager.HwidManager(adapter, {'CHROMEBOOK': vpg_target_info})
+    manager = hwid_manager.HwidManager(adapter, {'CHROMEBOOK': vpg_target_info},
+                                       mem_adapter=mem_adapter)
 
     self._ClearDataStore(manager)
     if load_datastore:
@@ -136,35 +139,40 @@ class HwidManagerTest(unittest.TestCase):
     """Test that an invalid HWID raises a InvalidHwidError."""
     manager = self._GetManager()
 
-    self.assertRaises(hwid_manager.InvalidHwidError,
-                      manager.GetBomAndConfigless, 'CHROMEBOOK')
+    bc_dict = manager.BatchGetBomAndConfigless(['CHROMEBOOK'])
+    bom_configless = bc_dict['CHROMEBOOK']
+    self.assertIsInstance(bom_configless.error, hwid_manager.InvalidHwidError)
 
   def testGetBomNonexistentProject(self):
     """Test that a non-existent project raises a HwidNotFoundError."""
     manager = self._GetManager(load_blobstore=False, load_datastore=False)
-
-    self.assertRaises(hwid_manager.ProjectNotFoundError,
-                      manager.GetBomAndConfigless, 'CHROMEBOOK FOO A-A')
+    bc_dict = manager.BatchGetBomAndConfigless(['CHROMEBOOK FOO A-A'])
+    bom_configless = bc_dict['CHROMEBOOK FOO A-A']
+    self.assertIsInstance(bom_configless.error,
+                          hwid_manager.ProjectNotFoundError)
 
   def testGetBomMissingHWIDFile(self):
     """Test that when the hwid file is missing we get a MetadataError."""
     manager = self._GetManager(load_blobstore=False)
-
-    self.assertRaises(hwid_manager.MetadataError, manager.GetBomAndConfigless,
-                      'CHROMEBOOK FOO A-A')
+    bc_dict = manager.BatchGetBomAndConfigless(['CHROMEBOOK FOO A-A'])
+    bom_configless = bc_dict['CHROMEBOOK FOO A-A']
+    self.assertIsInstance(bom_configless.error, hwid_manager.MetadataError)
 
   def testGetBomInvalidBOM(self):
     """Test that an invalid BOM name raises a HwidNotFoundError."""
     manager = self._GetManager()
 
-    self.assertRaises(hwid_manager.HwidNotFoundError,
-                      manager.GetBomAndConfigless, 'CHROMEBOOK FOO A-A')
+    hwid = 'CHROMEBOOK FOO A-A'
+    bc_dict = manager.BatchGetBomAndConfigless([hwid])
+    self.assertIsInstance(bc_dict[hwid].error, hwid_manager.HwidNotFoundError)
 
   def testGetBomExistingProject(self):
     """Test that a valid HWID returns a result."""
     manager = self._GetManager()
 
-    self.assertIsNotNone(manager.GetBomAndConfigless(TEST_V2_HWID)[0])
+    bc_dict = manager.BatchGetBomAndConfigless([TEST_V2_HWID])
+    bom = bc_dict[TEST_V2_HWID].bom
+    self.assertIsNotNone(bom)
 
   def testGetBomMultipleFiles(self):
     """Test when fetching from multiple files, both are supported."""
@@ -174,18 +182,104 @@ class HwidManagerTest(unittest.TestCase):
     manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 3, 'v3')
 
     self.assertRaises(hwid_manager.TooManyProjectsFound,
-                      manager.GetBomAndConfigless, TEST_V2_HWID)
+                      manager.BatchGetBomAndConfigless, [TEST_V2_HWID])
+
+  def testBatchGetBomCache(self):
+    """Test BatchGetBom method and check if the local hwid_data cache works."""
+    mock_cache = {}
+    mock_mem_adapter = mock.Mock()
+    mock_mem_adapter.Put.side_effect = mock_cache.__setitem__
+    mock_mem_adapter.Get.side_effect = mock_cache.__getitem__
+    manager = self._GetManager(mem_adapter=mock_mem_adapter)
+
+    manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 3, 'v3')
+    manager.ReloadMemcacheCacheFromFiles()
+
+    bc_dict = manager.BatchGetBomAndConfigless([
+        TEST_V3_HWID_1,
+        TEST_V3_HWID_2,
+    ])
+    # The memcache is called once since the projects of the HWID are both
+    # "CHROMEBOOK".
+    self.assertEqual(mock_mem_adapter.Get.call_count, 1)
+    self.assertCountEqual([TEST_V3_HWID_1, TEST_V3_HWID_2], bc_dict)
+
+  def testBatchGetBomData(self):
+    """Test BatchGetBom and check the correctness of the data returned."""
+    mock_cache = {}
+    mock_mem_adapter = mock.Mock()
+    mock_mem_adapter.Put.side_effect = mock_cache.__setitem__
+    mock_mem_adapter.Get.side_effect = mock_cache.__getitem__
+    manager = self._GetManager(mem_adapter=mock_mem_adapter)
+
+    manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 3, 'v3')
+    manager.ReloadMemcacheCacheFromFiles()
+
+    bc_dict = manager.BatchGetBomAndConfigless([
+        TEST_V3_HWID_1,
+        TEST_V3_HWID_2,
+    ])
+
+    bom_configless_1 = bc_dict[TEST_V3_HWID_1]
+    bom1 = bom_configless_1.bom
+    expected_bom1 = hwid_manager.Bom()
+    expected_bom1.AddAllComponents({
+        'audio_codec': ['codec_1', 'hdmi_1'],
+        'battery': 'battery_huge',
+        'bluetooth': 'bluetooth_0',
+        'chipset': 'chipset_0',
+        'cpu': 'cpu_5',
+        'display_panel': 'display_panel_0',
+        'hash_gbb': 'hash_gbb_0',
+        'keyboard': 'keyboard_us',
+        'key_recovery': 'key_recovery_0',
+        'key_root': 'key_root_0',
+        'ro_ec_firmware': 'ro_ec_firmware_0',
+        'ro_main_firmware': 'ro_main_firmware_0',
+    })
+    expected_bom1.AddComponent('camera', 'camera_0', is_vp_related=True)
+    expected_bom1.AddComponent('dram', 'dram_0', is_vp_related=True)
+    expected_bom1.AddComponent('storage', 'storage_0', is_vp_related=True)
+    self.assertIsNone(bom_configless_1.configless)
+    self.assertIsNone(bom_configless_1.error)
+    self.assertCountEqual(bom1.GetComponents(), expected_bom1.GetComponents())
+
+    bom_configless_2 = bc_dict[TEST_V3_HWID_2]
+    bom2 = bom_configless_2.bom
+    expected_bom2 = hwid_manager.Bom()
+    expected_bom2.AddAllComponents({
+        'audio_codec': ['codec_1', 'hdmi_1'],
+        'battery': 'battery_huge',
+        'bluetooth': 'bluetooth_0',
+        'chipset': 'chipset_0',
+        'cpu': 'cpu_5',
+        'display_panel': 'display_panel_0',
+        'hash_gbb': 'hash_gbb_0',
+        'keyboard': 'keyboard_us',
+        'key_recovery': 'key_recovery_0',
+        'key_root': 'key_root_0',
+        'ro_ec_firmware': 'ro_ec_firmware_0',
+        'ro_main_firmware': 'ro_main_firmware_0',
+    })
+    expected_bom2.AddComponent('camera', 'camera_0', is_vp_related=True)
+    expected_bom2.AddComponent('dram', 'dram_0', is_vp_related=True)
+    expected_bom2.AddComponent('storage', 'storage_1', is_vp_related=True)
+    self.assertIsNone(bom_configless_2.configless)
+    self.assertIsNone(bom_configless_2.error)
+    self.assertCountEqual(bom2.GetComponents(), expected_bom2.GetComponents())
 
   def testGetBomWithVerboseFlag(self):
-    """Test when fetching from multiple files, both are supported."""
+    """Test BatchGetBom with the detail fields returned."""
     manager = self._GetManager()
 
     manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 3, 'v3')
     manager.ReloadMemcacheCacheFromFiles()
 
-    bom, configless = manager.GetBomAndConfigless(TEST_V3_HWID, verbose=True)
+    bc_dict = manager.BatchGetBomAndConfigless([TEST_V3_HWID_1], verbose=True)
+    bom_configless = bc_dict[TEST_V3_HWID_1]
+    bom = bom_configless.bom
 
-    self.assertIsNone(configless)
+    self.assertIsNone(bom_configless.configless)
 
     dram = bom.GetComponents(cls='dram')
     self.assertSequenceEqual(dram, [
@@ -274,9 +368,11 @@ class HwidManagerTest(unittest.TestCase):
     manager = self._GetManager(adapter=mock_storage)
 
     self.assertIsNone(manager.GetProjectDataFromCache('CHROMEBOOK'))
-    self.assertIsNotNone(manager.GetBomAndConfigless(TEST_V2_HWID)[0])
+    self.assertIsNotNone(
+        manager.BatchGetBomAndConfigless([TEST_V2_HWID])[TEST_V2_HWID].bom)
     self.assertIsNotNone(manager.GetProjectDataFromCache('CHROMEBOOK'))
-    self.assertIsNotNone(manager.GetBomAndConfigless(TEST_V2_HWID)[0])
+    self.assertIsNotNone(
+        manager.BatchGetBomAndConfigless([TEST_V2_HWID])[TEST_V2_HWID].bom)
     self.assertIsNotNone(manager.GetProjectDataFromCache('CHROMEBOOK'))
     mock_storage.ReadFile.assert_called_once_with('live/v2')
 
@@ -288,8 +384,9 @@ class HwidManagerTest(unittest.TestCase):
 
     manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 10, 'v10')
 
-    self.assertRaises(hwid_manager.MetadataError, manager.GetBomAndConfigless,
-                      'CHROMEBOOK FOOBAR')
+    bc_dict = manager.BatchGetBomAndConfigless(['CHROMEBOOK FOOBAR'])
+    bom_configless = bc_dict['CHROMEBOOK FOOBAR']
+    self.assertIsInstance(bom_configless.error, hwid_manager.MetadataError)
     mock_storage.ReadFile.assert_called_once_with('live/v10')
 
   def testRegisterTwice(self):
@@ -327,7 +424,8 @@ class HwidManagerTest(unittest.TestCase):
     # We no longer allow composite HWID objects that have v2 and v3 definitions
     # last RegisterProject command wins, so check that a V3 HWID is available.
     self.assertIsNotNone(manager.GetProjectDataFromCache('CHROMEBOOK'))
-    self.assertIsNotNone(manager.GetBomAndConfigless(TEST_V3_HWID)[0])
+    bc_dict = manager.BatchGetBomAndConfigless([TEST_V3_HWID_1])
+    self.assertIsNotNone(bc_dict[TEST_V3_HWID_1].bom)
 
   def testUpdateProjects(self):
     """Test the project updater adds a project."""
@@ -479,8 +577,8 @@ class HwidManagerTest(unittest.TestCase):
     manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 3, 'v3')
     manager.ReloadMemcacheCacheFromFiles()
 
-    bom, unused_configless = manager.GetBomAndConfigless(TEST_V3_HWID)
-    del unused_configless
+    bc_dict = manager.BatchGetBomAndConfigless([TEST_V3_HWID_1])
+    bom = bc_dict[TEST_V3_HWID_1].bom
 
     for comp in bom.GetComponents(cls='battery'):
       self.assertFalse(comp.is_vp_related)
@@ -738,7 +836,7 @@ class HwidV3DataTest(unittest.TestCase):
 
   def testGetBom(self):
     """Tests fetching a BOM."""
-    bom, configless = self.data.GetBomAndConfigless(TEST_V3_HWID)
+    bom, configless = self.data.GetBomAndConfigless(TEST_V3_HWID_1)
 
     self.assertIn(
         hwid_manager.Component('chipset', 'chipset_0'),

@@ -14,7 +14,7 @@ import operator
 import re
 import textwrap
 import time
-from typing import List, NamedTuple, Tuple
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 # pylint: disable=no-name-in-module, import-error, wrong-import-order
 import flask
@@ -72,21 +72,17 @@ def _FastFailKnownBadHwid(hwid):
   return (hwid_api_messages_pb2.Status.SUCCESS, '')
 
 
-def _GetBomAndConfigless(hwid, verbose=False):
-  try:
-    bom, configless = _hwid_manager.GetBomAndConfigless(hwid, verbose)
-
-    if bom is None:
-      return (None, None, hwid_api_messages_pb2.Status.NOT_FOUND,
-              'HWID not found.')
-  except KeyError as e:
-    logging.exception('KeyError -> not found')
-    return None, None, hwid_api_messages_pb2.Status.NOT_FOUND, str(e)
-  except ValueError as e:
-    logging.exception('ValueError -> bad input')
-    return None, None, hwid_api_messages_pb2.Status.BAD_REQUEST, str(e)
-
-  return bom, configless, hwid_api_messages_pb2.Status.SUCCESS, None
+def _GetBomAndConfiglessStatusAndError(bom_configless):
+  if isinstance(bom_configless.error, KeyError):
+    return (hwid_api_messages_pb2.Status.NOT_FOUND, str(bom_configless.error))
+  if isinstance(bom_configless.error, ValueError):
+    return (hwid_api_messages_pb2.Status.BAD_REQUEST, str(bom_configless.error))
+  if bom_configless.error is not None:
+    return (hwid_api_messages_pb2.Status.SERVER_ERROR, str(
+        bom_configless.error))
+  if bom_configless.bom is None:
+    return (hwid_api_messages_pb2.Status.NOT_FOUND, 'HWID not found.')
+  return (hwid_api_messages_pb2.Status.SUCCESS, None)
 
 
 def _HandleGzipRequests(method):
@@ -140,6 +136,81 @@ class _HWIDDBChangeInfo(NamedTuple):
   new_hwid_db_contents: str
 
 
+class BomEntry(NamedTuple):
+  """A class containing fields of BomResponse."""
+  components: Optional[List['hwid_api_messages_pb2.Component']]
+  labels: Optional[List['hwid_api_messages_pb2.Label']]
+  phase: str
+  error: str
+  status: 'hwid_api_messages_pb2.Status'
+
+
+def _BatchGetBom(hwids, verbose=False) -> Dict[str, BomEntry]:
+  result = {}
+  batch_request = []
+  # filter out bad HWIDs
+  for hwid in hwids:
+    status, error = _FastFailKnownBadHwid(hwid)
+    if status != hwid_api_messages_pb2.Status.SUCCESS:
+      result[hwid] = BomEntry(None, None, '', error, status)
+    else:
+      batch_request.append(hwid)
+
+  np_adapter = name_pattern_adapter.NamePatternAdapter()
+  for hwid, bom_configless in _hwid_manager.BatchGetBomAndConfigless(
+      batch_request, verbose).items():
+    status, error = _GetBomAndConfiglessStatusAndError(bom_configless)
+
+    if status != hwid_api_messages_pb2.Status.SUCCESS:
+      result[hwid] = BomEntry(None, None, '', error, status)
+      continue
+    bom = bom_configless.bom
+
+    bom_entry = BomEntry([], [], bom.phase, '',
+                         status=hwid_api_messages_pb2.Status.SUCCESS)
+
+    for component in bom.GetComponents():
+      name = _hwid_manager.GetAVLName(component.cls, component.name)
+      fields = []
+      if verbose:
+        for fname, fvalue in component.fields.items():
+          field = hwid_api_messages_pb2.Field()
+          field.name = fname
+          if isinstance(fvalue, Value):
+            field.value = ('!re ' + fvalue.raw_value
+                           if fvalue.is_re else fvalue.raw_value)
+          else:
+            field.value = str(fvalue)
+          fields.append(field)
+
+      fields.sort(key=lambda field: field.name)
+
+      name_pattern = np_adapter.GetNamePattern(component.cls)
+      ret = name_pattern.Matches(component.name)
+      if ret:
+        cid, qid = ret
+        avl_info = hwid_api_messages_pb2.AvlInfo(cid=cid, qid=qid)
+      else:
+        avl_info = None
+
+      bom_entry.components.append(
+          hwid_api_messages_pb2.Component(
+              component_class=component.cls, name=name, fields=fields,
+              avl_info=avl_info, has_avl=bool(avl_info)))
+
+    bom_entry.components.sort(
+        key=operator.attrgetter('component_class', 'name'))
+
+    for label in bom.GetLabels():
+      bom_entry.labels.append(
+          hwid_api_messages_pb2.Label(component_class=label.cls,
+                                      name=label.name, value=label.value))
+    bom_entry.labels.sort(key=operator.attrgetter('name', 'value'))
+
+    result[hwid] = bom_entry
+  return result
+
+
 class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
   SERVICE_DESCRIPTOR = hwid_api_messages_pb2.DESCRIPTOR.services_by_name[
       'HwidService']
@@ -162,60 +233,35 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
   @auth.RpcCheck
   def GetBom(self, request):
     """Return the components of the BOM identified by the HWID."""
-    verbose = request.verbose
-    hwid = request.hwid
+    bom_entry_dict = _BatchGetBom([request.hwid], request.verbose)
+    bom_entry = bom_entry_dict.get(request.hwid)
+    if bom_entry is None:
+      return hwid_api_messages_pb2.BomResponse(
+          error='Internal error',
+          status=hwid_api_messages_pb2.Status.SERVER_ERROR)
+    return hwid_api_messages_pb2.BomResponse(
+        components=bom_entry.components, labels=bom_entry.labels,
+        phase=bom_entry.phase, error=bom_entry.error, status=bom_entry.status)
 
-    status, error = _FastFailKnownBadHwid(hwid)
-    if status != hwid_api_messages_pb2.Status.SUCCESS:
-      return hwid_api_messages_pb2.BomResponse(error=error, status=status)
-
-    logging.debug('Retrieving HWID %s', hwid)
-    bom, unused_configless, status, error = _GetBomAndConfigless(hwid, verbose)
-    if status != hwid_api_messages_pb2.Status.SUCCESS:
-      return hwid_api_messages_pb2.BomResponse(error=error, status=status)
-
-    response = hwid_api_messages_pb2.BomResponse(
+  @protorpc_utils.ProtoRPCServiceMethod
+  @auth.RpcCheck
+  def BatchGetBom(self, request):
+    """Return the components of the BOM identified by the batch HWIDs."""
+    response = hwid_api_messages_pb2.BatchGetBomResponse(
         status=hwid_api_messages_pb2.Status.SUCCESS)
-    response.phase = bom.phase
-
-    np_adapter = name_pattern_adapter.NamePatternAdapter()
-    for component in bom.GetComponents():
-      name = _hwid_manager.GetAVLName(component.cls, component.name)
-      fields = []
-      if verbose:
-        for fname, fvalue in component.fields.items():
-          field = hwid_api_messages_pb2.Field()
-          field.name = fname
-          if isinstance(fvalue, Value):
-            if fvalue.is_re:
-              field.value = '!re ' + fvalue.raw_value
-            else:
-              field.value = fvalue.raw_value
-          else:
-            field.value = str(fvalue)
-          fields.append(field)
-
-      fields.sort(key=lambda field: field.name)
-
-      name_pattern = np_adapter.GetNamePattern(component.cls)
-      ret = name_pattern.Matches(component.name)
-      if ret:
-        cid, qid = ret
-        avl_info = hwid_api_messages_pb2.AvlInfo(cid=cid, qid=qid)
-      else:
-        avl_info = None
-
-      response.components.add(component_class=component.cls, name=name,
-                              fields=fields, avl_info=avl_info,
-                              has_avl=bool(avl_info))
-
-    response.components.sort(key=operator.attrgetter('component_class', 'name'))
-
-    for label in bom.GetLabels():
-      response.labels.add(component_class=label.cls, name=label.name,
-                          value=label.value)
-    response.labels.sort(key=operator.attrgetter('name', 'value'))
-
+    bom_entry_dict = _BatchGetBom(request.hwid, request.verbose)
+    for hwid, bom_entry in bom_entry_dict.items():
+      response.boms.get_or_create(hwid).CopyFrom(
+          hwid_api_messages_pb2.BatchGetBomResponse.Bom(
+              components=bom_entry.components, labels=bom_entry.labels,
+              phase=bom_entry.phase, error=bom_entry.error,
+              status=bom_entry.status))
+      if bom_entry.status != hwid_api_messages_pb2.Status.SUCCESS:
+        if response.status == hwid_api_messages_pb2.Status.SUCCESS:
+          # Set the status and error of the response to the first unsuccessful
+          # one.
+          response.status = bom_entry.status
+          response.error = bom_entry.error
     return response
 
   @protorpc_utils.ProtoRPCServiceMethod
@@ -226,10 +272,18 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
     if status != hwid_api_messages_pb2.Status.SUCCESS:
       return hwid_api_messages_pb2.SkuResponse(error=error, status=status)
 
-    bom, configless, status, error = _GetBomAndConfigless(
-        request.hwid, verbose=True)
+    bc_dict = _hwid_manager.BatchGetBomAndConfigless([request.hwid],
+                                                     verbose=True)
+    bom_configless = bc_dict.get(request.hwid)
+    if bom_configless is None:
+      return hwid_api_messages_pb2.SkuResponse(
+          error='Internal error',
+          status=hwid_api_messages_pb2.Status.SERVER_ERROR)
+    status, error = _GetBomAndConfiglessStatusAndError(bom_configless)
     if status != hwid_api_messages_pb2.Status.SUCCESS:
       return hwid_api_messages_pb2.SkuResponse(error=error, status=status)
+    bom = bom_configless.bom
+    configless = bom_configless.configless
 
     try:
       sku = hwid_util.GetSkuFromBom(bom, configless)
@@ -421,7 +475,16 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
       return hwid_api_messages_pb2.DutLabelsResponse(
           error=error, possible_labels=possible_labels, status=status)
 
-    bom, configless, status, error = _GetBomAndConfigless(hwid, verbose=True)
+    bc_dict = _hwid_manager.BatchGetBomAndConfigless([hwid], verbose=True)
+    bom_configless = bc_dict.get(hwid)
+    if bom_configless is None:
+      return hwid_api_messages_pb2.DutLabelResponse(
+          error='Internal error',
+          status=hwid_api_messages_pb2.Status.SERVER_ERROR,
+          possible_labels=possible_labels)
+    bom = bom_configless.bom
+    configless = bom_configless.configless
+    status, error = _GetBomAndConfiglessStatusAndError(bom_configless)
 
     if status != hwid_api_messages_pb2.Status.SUCCESS:
       return hwid_api_messages_pb2.DutLabelsResponse(
