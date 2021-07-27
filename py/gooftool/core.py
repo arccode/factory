@@ -1276,7 +1276,11 @@ class Gooftool:
       return int(result.group(1))
 
     if get_rbinfo() != 0:
-      raise Error('FPMCU entropy should not be initialized already.')
+      raise Error(
+          'FPMCU entropy should not be initialized already. To resolve this,'
+          ' you have to first disable HW write protection, then run'
+          ' update_fpmcu_firmware.py to flash the firmware again to clear'
+          ' the entropy before finalization.')
     BIOWASH_CMD = ['bio_wash', '--factory_init']
     biowash = self._util.shell(BIOWASH_CMD)
 
