@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-07-16 15:47+CST\n"
+"PO-Revision-Date: 2021-07-27 18:04+HKT\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -1274,7 +1274,7 @@ msgstr ""
 msgid "Internal Speaker"
 msgstr "Loa tích hợp"
 
-#: ../py/test/pytests/audio.py
+#: ../py/test/pytests/audio.py ../py/test/pytests/audio_basic.py
 msgid "Please plug headphone in."
 msgstr "Vui lòng kết nối tai nghe"
 

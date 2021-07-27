@@ -51,6 +51,7 @@ from cros.factory.test import test_ui
 from cros.factory.utils.arg_utils import Arg
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
 
 
 _RECORD_SEC = 3
@@ -62,21 +63,25 @@ _SOUND_DIRECTORY = os.path.join(
 
 class AudioBasicTest(test_case.TestCase):
   ARGS = [
-      i18n_arg_utils.I18nArg(
-          'audio_title', 'Label Title of audio test', default=_('Headset')),
+      i18n_arg_utils.I18nArg('audio_title', 'Label Title of audio test',
+                             default=_('Headset')),
       Arg('audio_conf', str, 'Audio config file path', default=None),
-      Arg('initial_actions', list,
+      Arg(
+          'initial_actions', list,
           'List of [card, actions]. If actions is None, the Initialize method '
-          'will be invoked.',
-          default=None),
-      Arg('input_dev', list,
-          'Input ALSA device. [card_name, sub_device].'
+          'will be invoked.', default=None),
+      Arg(
+          'input_dev', list, 'Input ALSA device. [card_name, sub_device].'
           'For example: ["audio_card", "0"].', ['0', '0']),
-      Arg('output_dev', list,
-          'Output ALSA device. [card_name, sub_device].'
+      Arg(
+          'output_dev', list, 'Output ALSA device. [card_name, sub_device].'
           'For example: ["audio_card", "0"].', ['0', '0']),
       Arg('output_channels', int, 'number of output channels.', 2),
       Arg('input_channels', int, 'number of input channels.', 2),
+      Arg('require_headphone', bool, 'Require headphone option', default=False),
+      Arg('timeout_secs', int,
+          'The timeout in seconds that the test waits for the headphone.',
+          default=30),
   ]
 
   def setUp(self):
@@ -168,6 +173,12 @@ class AudioBasicTest(test_case.TestCase):
     logging.info('stop play sample')
 
   def runTest(self):
+    if self.args.require_headphone:
+      self.ui.SetState(_("Please plug headphone in."))
+      sync_utils.PollForCondition(
+          poll_method=self._dut.audio.GetHeadphoneJackStatus,
+          poll_interval_secs=1, condition_name=True,
+          timeout_secs=self.args.timeout_secs)
     while True:
       self.ui.SetState(
           _("Press 'P' to first play a sample for each channel to ensure "

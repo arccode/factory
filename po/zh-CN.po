@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-07-16 15:47+CST\n"
+"PO-Revision-Date: 2021-07-27 18:04+HKT\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -1256,7 +1256,7 @@ msgstr "请按你从 {device} 输出所听到的数字<br>按 R 重播语音"
 msgid "Internal Speaker"
 msgstr "内建喇叭"
 
-#: ../py/test/pytests/audio.py
+#: ../py/test/pytests/audio.py ../py/test/pytests/audio_basic.py
 msgid "Please plug headphone in."
 msgstr "请接上耳机"
 
