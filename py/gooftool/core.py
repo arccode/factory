@@ -1140,8 +1140,15 @@ class Gooftool:
       raise
 
   def Cr50WriteFlashInfo(self, enable_zero_touch=False, rma_mode=False,
-                         replacement_mlb_mode=False):
-    """Write device info into cr50 flash."""
+                         mlb_mode=False):
+    """Write device info into cr50 flash.
+
+    Args:
+      enable_zero_touch: Will set SN-bits in cr50 if rma_mode is not set.
+      rma_mode: This device / MLB is for RMA purpose, this will disable
+          zero_touch.
+      mlb_mode: This is just a MLB, not a full device.
+    """
     cros_config = cros_config_module.CrosConfig(self._util.shell)
     is_whitelabel, whitelabel_tag = cros_config.GetWhiteLabelTag()
 
@@ -1163,14 +1170,23 @@ class Gooftool:
         raise Error('whitelabel_tag reported by cros_config and VPD does not '
                     'match.  Have you reboot the device after updating VPD '
                     'fields?')
-    if not rma_mode and not replacement_mlb_mode and enable_zero_touch:
+
+    set_sn_bits = enable_zero_touch and not rma_mode
+    write_whitelabel_flags = mlb_mode and is_whitelabel
+
+    if set_sn_bits:
       self.Cr50SetSnBits()
-    if is_whitelabel and replacement_mlb_mode:
+    if write_whitelabel_flags:
       self.Cr50WriteWhitelabelFlags()
     else:
       self.Cr50SetBoardId(is_whitelabel)
 
   def Cr50WriteWhitelabelFlags(self):
+    """Write the flags for whitelabel devices.
+
+    The brand-code (cr50 board id) won't be set.  This should be called for
+    spare MLBs of whitelabel devices.
+    """
     cros_config = cros_config_module.CrosConfig(self._util.shell)
     is_whitelabel, unused_whitelabel_tag = cros_config.GetWhiteLabelTag()
     if not is_whitelabel:

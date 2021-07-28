@@ -37,9 +37,16 @@ from cros.factory.gooftool import cros_config as cros_config_module
 from cros.factory.test.utils import deploy_utils
 from cros.factory.test import test_case
 from cros.factory.testlog import testlog
+from cros.factory.utils.arg_utils import Arg
 
 
 class Cr50WriteWhitelabelFlags(test_case.TestCase):
+  ARGS = [
+      Arg('enable_zero_touch', bool, (
+          'Enable zero touch enrollment.  This will set the cr50 SN bits using '
+          'VPD field attested_device_id.'), default=False),
+  ]
+
   def setUp(self):
     # Setups the DUT environments.
     self.dut = device_utils.CreateDUTInterface()
@@ -55,9 +62,14 @@ class Cr50WriteWhitelabelFlags(test_case.TestCase):
     if not is_whitelabel:
       return
 
+    args = []
+    if self.args.enable_zero_touch:
+      args.append('--enable_zero_touch')
+
     factory_tools = deploy_utils.CreateFactoryTools(self.dut)
     try:
-      factory_tools.CheckCall(['gooftool', 'cr50_write_whitelabel_flags'])
+      factory_tools.CheckCall(
+          ['gooftool', 'cr50_write_whitelabel_flags', *args])
     except Exception:
       logging.exception('Failed to set cr50 whitelabel flags.')
       raise
