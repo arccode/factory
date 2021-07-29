@@ -12,6 +12,7 @@ from cros.factory.utils import file_utils
 
 
 class PCIFunctionTest(unittest.TestCase):
+
   def setUp(self):
     self.my_root = tempfile.mkdtemp()
 
@@ -27,24 +28,37 @@ class PCIFunctionTest(unittest.TestCase):
     file_utils.TryMakeDirs(real_path)
     for key, value in values.items():
       if key == 'revision_id':
-        open(os.path.join(real_path, 'config'), 'wb').write(
-            b'x' * 8 + bytes([int(value, 16)]))
+        file_utils.WriteFile(
+            os.path.join(real_path, 'config'),
+            b'x' * 8 + bytes([int(value, 16)]), encoding=None)
       else:
         file_utils.WriteFile(os.path.join(real_path, key), value)
 
-    link_name = os.path.join(
-        self.my_root, 'sys', 'bus', 'pci', 'devices', pci_name)
+    link_name = os.path.join(self.my_root, 'sys', 'bus', 'pci', 'devices',
+                             pci_name)
     file_utils.TryMakeDirs(os.path.dirname(link_name))
     file_utils.ForceSymlink(real_path, link_name)
 
   def testNormal(self):
-    values1 = {'vendor': 'dev1', 'device': '5678', 'revision_id': '0x14'}
+    values1 = {
+        'class': '010203',
+        'vendor': 'dev1',
+        'device': '5678',
+        'revision_id': '0x14'
+    }
     self._CreatePCIDevice('dev1', '/sys/devices/pci1/xxyy', values1)
 
-    values2 = {'vendor': 'dev2', 'device': '2468', 'revision_id': '0x34'}
+    values2 = {
+        'class': '040506',
+        'vendor': 'dev2',
+        'device': '2468',
+        'revision_id': '0x34'
+    }
     self._CreatePCIDevice('dev2', '/sys/devices/pci1/aabb', values2)
 
-    values3 = {'vendor': 'dev3'}
+    values3 = {
+        'vendor': 'dev3'
+    }
     self._CreatePCIDevice('dev3', '/sys/devices/pci1/xxxx', values3)
 
     func = pci.PCIFunction()
@@ -55,8 +69,8 @@ class PCIFunctionTest(unittest.TestCase):
 
   def _AddExtraFields(self, values):
     for value in values:
-      value['device_path'] = os.path.join(
-          self.my_root, 'sys', 'bus', 'pci', 'devices', value['vendor'])
+      value['device_path'] = os.path.join(self.my_root, 'sys', 'bus', 'pci',
+                                          'devices', value['vendor'])
       value['bus_type'] = 'pci'
     return values
 

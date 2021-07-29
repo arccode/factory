@@ -12,7 +12,8 @@ from cros.factory.probe.lib import cached_probe_function
 
 def ReadPCISysfs(path):
   logging.debug('Read PCI path: %s', path)
-  ret = sysfs.ReadSysfs(path, ['vendor', 'device'], ['subsystem_device'])
+  ret = sysfs.ReadSysfs(path, ['class', 'vendor', 'device'],
+                        ['subsystem_device'])
   if ret is None:
     return None
 
@@ -37,6 +38,7 @@ class PCIFunction(cached_probe_function.GlobPathCachedProbeFunction):
   each PCI device listed there.  Each result should contain these fields:
 
   - ``device_path``: Pathname of the sysfs directory.
+  - ``class``
   - ``vendor``
   - ``device``
   - ``revision_id``
@@ -46,6 +48,7 @@ class PCIFunction(cached_probe_function.GlobPathCachedProbeFunction):
   Let's say the Chromebook has two PCI devices.  One of which
   (at ``/sys/bus/pci/devices/0000:00:00.1``) has the attributes:
 
+  - ``class=0x010203``
   - ``vendor=0x0123``
   - ``device=0x4567``
   - ``revision_id=01``
@@ -53,6 +56,7 @@ class PCIFunction(cached_probe_function.GlobPathCachedProbeFunction):
   And the other one (at ``/sys/bus/pci/devices/0000:00:01.1``) has the
   attributes:
 
+  - ``class=0x020406``
   - ``vendor=0x0246``
   - ``device=0x1357``
   - ``revision_id=01``
@@ -68,15 +72,17 @@ class PCIFunction(cached_probe_function.GlobPathCachedProbeFunction):
     [
       {
         "bus_type": "pci",
-        "vendor": "0123",
-        "device": "4567",
-        "revision_id": "01"
+        "class": "0x010203",
+        "vendor": "0x0123",
+        "device": "0x4567",
+        "revision_id": "0x01"
       },
       {
         "bus_type": "pci",
-        "vendor": "0246",
-        "device": "1357",
-        "revision_id": "01"
+        "class": "0x020406",
+        "vendor": "0x0246",
+        "device": "0x1357",
+        "revision_id": "0x01"
       }
     ]
 
@@ -86,7 +92,7 @@ class PCIFunction(cached_probe_function.GlobPathCachedProbeFunction):
     {
       "eval": "pci",
       "expect": {
-        "vendor": "0246"
+        "vendor": "0x0246"
       }
     }
 
