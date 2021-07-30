@@ -20,14 +20,14 @@ UMPIRE_DIR = '/var/db/factory/umpire'
 UFTP_PATH = '/usr/bin/uftp'
 
 
-class UftpProcess:
+class UftpArgs:
   CC_TYPE = 'tfmcc'  # TCP friendly multicast congestion control.
   LOG_LEVEL = '0'
   ROBUST_FACTOR = '50'  # The number of announcements sent before file transfer.
   TTL = '10'
 
   def __init__(self, file_path, multicast_addr, status_file_path, interface):
-    """Constructor of a UFTP process wrapper.
+    """Constructor of a UFTP process argument wrapper.
 
     Args:
       file_path: The file path to be transferred.
@@ -40,37 +40,42 @@ class UftpProcess:
     self.status_file_path = status_file_path
     self.interface = interface
 
-    self.Spawn()
+
+class UftpProcess:
+
+  def __init__(self, args: UftpArgs):
+    self.args = args
+    self._process = None
 
   def Spawn(self):
-    addr, port = self.multicast_addr.split(':')
+    addr, port = self.args.multicast_addr.split(':')
 
     # "-u" defines the the UDP source port, while "-p" defines the UDP
     # destination port.
     cmd = [
-        UFTP_PATH, '-M', addr, '-t', self.TTL, '-u', port, '-p', port, '-x',
-        self.LOG_LEVEL, '-S', self.status_file_path, '-C', self.CC_TYPE, '-s',
-        self.ROBUST_FACTOR
+        UFTP_PATH, '-M', addr, '-t', self.args.TTL, '-u', port, '-p', port,
+        '-x', self.args.LOG_LEVEL, '-S', self.args.status_file_path, '-C',
+        self.args.CC_TYPE, '-s', self.args.ROBUST_FACTOR
     ]
 
-    if self.interface != '':
-      cmd += ['-I', self.interface]
+    if self.args.interface != '':
+      cmd += ['-I', self.args.interface]
 
-    cmd += [self.file_path]
+    cmd += [self.args.file_path]
 
-    self.process = process_utils.Spawn(cmd, stderr=process_utils.PIPE)
+    self._process = process_utils.Spawn(cmd, stderr=process_utils.PIPE)
 
   def RespawnIfDied(self):
     ANNOUNCE_TIMED_OUT_RETCODE = 7
-    if self.process is not None and self.process.poll() is not None:
+    if self._process is not None and self._process.poll() is not None:
       # Skip announce timed out message.
-      if self.process.returncode != ANNOUNCE_TIMED_OUT_RETCODE:
-        logging.error(self.process.stderr.read())
+      if self._process.returncode != ANNOUNCE_TIMED_OUT_RETCODE:
+        logging.error(self._process.stderr.read())
       self.Spawn()
 
   def Kill(self):
-    self.process.kill()
-    self.process.wait()
+    self._process.kill()
+    self._process.wait()
 
 
 def IsUmpireEnabled(project):
@@ -109,8 +114,10 @@ def ScanUftpArgsFromConfig(mcast_config, resource_dir, log_dir):
       uftp_mcast_addr = mcast_addr[component][part]
       uftp_status_file_path = os.path.join(log_dir, 'uftp_%s.log' % file_name)
 
-      scanned_args += [(uftp_file_path, uftp_mcast_addr, uftp_status_file_path,
-                        uftp_interface)]
+      scanned_args += [
+          UftpArgs(uftp_file_path, uftp_mcast_addr, uftp_status_file_path,
+                   uftp_interface)
+      ]
 
   return scanned_args
 
@@ -157,7 +164,9 @@ def Main():
 
         active_process[project] = []
         for uftp_args in scanned_args[project]:
-          active_process[project] += [UftpProcess(*uftp_args)]
+          new_proc = UftpProcess(uftp_args)
+          new_proc.Spawn()
+          active_process[project] += [new_proc]
       else:
         for proc in active_process[project]:
           proc.RespawnIfDied()
