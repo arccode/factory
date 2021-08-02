@@ -202,7 +202,7 @@ const KEY_NAME_MAP = new Map([
   ['ENTER', _('Enter')],
   ['ESCAPE', _('ESC')],
   [' ', _('Space')],
-  ['S', _('Screenshot (Press S)')]
+  ['CTRL_S', _('Screenshot (Press Ctrl+S)')]
 ]);
 
 /**
@@ -303,9 +303,11 @@ cros.factory.Test = class {
    *     the key is pressed.
    * @param {boolean=} once whether the callback should only be triggered once.
    * @param {boolean=} virtual whether a virtual key button should be added.
+   * @param {Array<string>=} modifier an array that contains the modifier
+   *    strings. The element of the array could be "ALT", "CTRL" or "SHIFT".
    * @export
    */
-  bindKey(key, callback, once = false, virtual = true) {
+  bindKey(key, callback, once = false, virtual = true, modifier = null) {
     key = key.toUpperCase();
     if (!this.keyListenerSet_) {
       // Set up the listener. We listen on KEYDOWN instead of KEYUP, so it won't
@@ -313,12 +315,37 @@ cros.factory.Test = class {
       goog.events.listen(
           this.invocation.iframe.contentWindow, goog.events.EventType.KEYDOWN,
           (/** !goog.events.KeyEvent */ event) => {
-            const handler = this.keyHandlers_.get(event.key.toUpperCase());
+            // Modifier key
+            let modifier_string = '';
+            if (event.ctrlKey) {
+              modifier_string += 'CTRL_';
+            }
+            if (event.altKey) {
+              modifier_string += 'ALT_';
+            }
+            if (event.shiftKey) {
+              modifier_string += 'SHIFT_';
+            }
+            const handler = this.keyHandlers_.get(
+                                    modifier_string + event.key.toUpperCase());
             if (handler) {
               handler.callback(event);
             }
           });
       this.keyListenerSet_ = true;
+    }
+    if (modifier) {
+      let modifier_string = '';
+      if (modifier.includes('CTRL')) {
+        modifier_string += 'CTRL_';
+      }
+      if (modifier.includes('ALT')) {
+        modifier_string += 'ALT_';
+      }
+      if (modifier.includes('SHIFT')) {
+        modifier_string += ('SHIFT_');
+      }
+      key = modifier_string + key;
     }
     const handler = {};
     if (once) {
@@ -388,10 +415,10 @@ cros.factory.Test = class {
   }
 
   /**
-   * Binds screenshot key ('S')
+   * Binds screenshot key ('S') with modifier 'CTRL'
    */
   bindStandardScreenshotKeys() {
-    this.bindKey('S', () => { this.screenshot(); });
+    this.bindKey('S', () => { this.screenshot(); }, false, true, ['CTRL']);
   }
 
   /**

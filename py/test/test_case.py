@@ -7,6 +7,7 @@
 import collections
 import sys
 import threading
+import time
 import unittest
 
 from cros.factory.test import event as test_event
@@ -14,6 +15,7 @@ from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import session
 from cros.factory.test.utils import pytest_utils
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
@@ -223,9 +225,12 @@ class TestCase(unittest.TestCase):
 
     # pylint: disable=unused-argument
     def ScreenshotHandler(event):
-      output_filename = state.GetInstance().DeviceTakeScreenshot()
+      output_filename = ('/var/factory/log/screenshots/screenshot_%s.png' %
+                         time.strftime('%Y%m%d-%H%M%S'))
+      state.GetInstance().DeviceTakeScreenshot(output_filename)
       session.console.info('Take a screenshot of Goofy page and store as %s',
                            output_filename)
 
+    file_utils.TryMakeDirs('/var/factory/log/screenshots')
     self.event_loop.AddEventHandler('goofy_ui_task_end', TestResultHandler)
     self.event_loop.AddEventHandler('goofy_ui_screenshot', ScreenshotHandler)

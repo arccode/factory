@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-07-27 18:04+HKT\n"
+"PO-Revision-Date: 2021-08-02 15:38+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -670,7 +670,7 @@ msgid "Space"
 msgstr "trống"
 
 #: ../py/goofy/js/goofy.js
-msgid "Screenshot (Press S)"
+msgid "Screenshot (Press Ctrl+S)"
 msgstr ""
 
 #: ../py/goofy/js/goofy.js

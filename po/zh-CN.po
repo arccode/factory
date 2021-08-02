@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-07-27 18:04+HKT\n"
+"PO-Revision-Date: 2021-08-02 15:38+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -670,8 +670,8 @@ msgid "Space"
 msgstr "空白"
 
 #: ../py/goofy/js/goofy.js
-msgid "Screenshot (Press S)"
-msgstr "屏幕截图（按 S）"
+msgid "Screenshot (Press Ctrl+S)"
+msgstr "屏幕截图（按 Ctrl+S）"
 
 #: ../py/goofy/js/goofy.js
 msgid "Factory tests stopped"
