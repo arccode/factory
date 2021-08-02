@@ -136,7 +136,7 @@ class ContentsAnalyzer:
     report = ValidationReport.CreateEmpty()
     if self._curr_db.load_error:
       report.errors.append(
-          Error(ErrorCode.SCHEMA_ERROR, self._curr_db.load_error))
+          Error(ErrorCode.SCHEMA_ERROR, str(self._curr_db.load_error)))
     else:
       for validation_func in [self._ValidateDramIntegrity]:
         keep_going = validation_func(report, self._curr_db.instance)
@@ -159,7 +159,7 @@ class ContentsAnalyzer:
     report = ValidationReport.CreateEmpty()
     if self._curr_db.load_error:
       report.errors.append(
-          Error(ErrorCode.SCHEMA_ERROR, self._curr_db.load_error))
+          Error(ErrorCode.SCHEMA_ERROR, str(self._curr_db.load_error)))
       return report
 
     if self._prev_db is None:
