@@ -8,17 +8,15 @@
 import unittest
 
 from cros.factory.utils.cros_board_utils import BuildBoard
-from cros.factory.utils.cros_board_utils import BuildBoardException
 
 
 class BuildBoardTest(unittest.TestCase):
   """Unit tests for BuildBoard class."""
   def runTest(self):
-    mickey = BuildBoard('mickey')
+    mickey = BuildBoard('veyron_mickey')
     self.assertDictContainsSubset(
         dict(base='veyron', variant='mickey', full_name='veyron_mickey',
-             short_name='mickey', gsutil_name='veyron-mickey'),
-        mickey.__dict__)
+             short_name='mickey', gsutil_name='veyron-mickey'), mickey.__dict__)
 
     # "veyron_mickey" and "veyron-mickey" should be the same
     for i in ['veyron_mickey', 'veyron-mickey']:
@@ -29,17 +27,13 @@ class BuildBoardTest(unittest.TestCase):
              short_name='hatch', gsutil_name='hatch'),
         BuildBoard('hatch').__dict__)
 
-    self.assertRaisesRegex(
-        BuildBoardException, 'Unknown board', BuildBoard, 'notarealboard')
-    self.assertRaisesRegex(
-        BuildBoardException, 'Multiple board names', BuildBoard, 'he')
-
   def testBoardArch(self):
     self.assertEqual('arm', BuildBoard('beaglebone').arch)
     self.assertEqual('arm', BuildBoard('kukui').arch)
-    self.assertEqual('arm', BuildBoard('mickey').arch)
+    self.assertEqual('arm', BuildBoard('veyron_mickey').arch)
     self.assertEqual('amd64', BuildBoard('rambi').arch)
     self.assertEqual('amd64', BuildBoard('hatch').arch)
+
 
 if __name__ == '__main__':
   unittest.main()

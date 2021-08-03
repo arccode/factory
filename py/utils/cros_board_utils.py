@@ -91,43 +91,10 @@ class BuildBoard:
                                     default_path)
         board_name = open(default_path).read().strip()
 
-      # Grok cros-board.eclass to find the set of all boards.
-      # May the gods forgive me.
-      eclass_path = os.path.join(
-          src, 'third_party', 'chromiumos-overlay', 'eclass',
-          'cros-board.eclass')
-      eclass_contents = open(eclass_path).read()
-      pattern = r'(?s)ALL_BOARDS=\((.+?)\)'
-      match = re.search(pattern, eclass_contents)
-      if not match:
-        raise BuildBoardException('Unable to read pattern %s in %s' %
-                                  (pattern, eclass_path))
-      boards = match.group(1).split()
-
-      self.full_name = None
       board_name = board_name.lower()
-      if board_name in boards:
-        self.full_name = board_name
 
       # User said "daisy-spring" but means "daisy_spring"?
-      if not self.full_name:
-        try_board_name = board_name.replace('-', '_')
-        if try_board_name in boards:
-          self.full_name = try_board_name
-
-      # User said "spring" but means "daisy_spring"?
-      if not self.full_name:
-        try_board_names = [x for x in boards
-                           if x.endswith('_' + board_name)]
-        if len(try_board_names) > 1:
-          raise BuildBoardException('Multiple board names %s match %r' %
-                                    (try_board_names, board_name))
-        if try_board_names:
-          self.full_name = try_board_names[0]
-
-      if not self.full_name:
-        # Oh well, we tried
-        raise BuildBoardException('Unknown board %r' % board_name)
+      self.full_name = re.sub('-', '_', board_name)
     else:
       if board_name in [None, 'default']:
         # See if we can get the board name from /etc/lsb-release.

@@ -114,7 +114,7 @@ class GsutilUnittest(unittest.TestCase):
   """Unit tests for gsutil module."""
 
   def setUp(self):
-    self.gsutil = gsutil.GSUtil('spring')
+    self.gsutil = gsutil.GSUtil('daisy-spring')
     self.gs_url_pattern = self.gsutil.GetGSPrefix('canary')
 
   @mock.patch.object(gsutil.GSUtil, 'LS',
