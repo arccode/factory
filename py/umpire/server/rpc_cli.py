@@ -4,6 +4,7 @@
 
 """Umpired RPC command class."""
 
+import urllib.request
 from cros.factory.umpire import common
 from cros.factory.umpire.server.commands import deploy
 from cros.factory.umpire.server.commands import export_log
@@ -12,7 +13,10 @@ from cros.factory.umpire.server.commands import import_bundle
 from cros.factory.umpire.server.commands import update
 from cros.factory.umpire.server import config
 from cros.factory.umpire.server import umpire_rpc
+from cros.factory.umpire.server import umpire_env
 from cros.factory.utils import file_utils
+from cros.factory.utils import json_utils
+from cros.factory.umpire.server.service import umpire_sync
 
 
 class CLICommand(umpire_rpc.UmpireRPC):
@@ -234,3 +238,64 @@ class CLICommand(umpire_rpc.UmpireRPC):
   @umpire_rpc.RPCCall
   def UpdateParameterDirectory(self, dir_id, parent_id, name):
     return self.env.parameters.UpdateParameterDirectory(dir_id, parent_id, name)
+
+  @umpire_rpc.RPCCall
+  def GetActivePayload(self):
+    return self.env.GetActivePayload(self.daemon.env.active_config_file)
+
+  @umpire_rpc.RPCCall
+  def CheckAndUpdate(self, target_payloads, target_url):
+    """Update bundle if needed.
+
+    A RPCCall compares it own payloads to the target payloads and downloads the
+    resources that are different from its own, then it updates the active bundle
+    if necessary.
+    For the umpire_sync service, target is the Primary Umpire and itself is one
+    of Secondary Umpires.
+
+    Args:
+      target_payloads: All target Umpire's payloads
+      target_url: The endpoint to download payloads of the target Umpire
+
+    Returns:
+      A boolean whether the need to update the Umpire
+    """
+    self_payloads = self.env.GetActivePayload(
+        self.daemon.env.active_config_file)
+    update_config = self_payloads
+    need_update = False
+    for payload_type, target_payload_content in target_payloads.items():
+      if payload_type not in self_payloads or self_payloads[payload_type][
+          'version'] != target_payload_content['version']:
+        need_update = True
+        for file_name, file_content in target_payload_content.items():
+          if file_name != 'version':
+            url = f'{target_url}/res/{file_content}'
+            path = f'/{umpire_env.DEFAULT_BASE_DIR}/resources/{file_content}'
+            urllib.request.urlretrieve(url, path)
+      update_config[payload_type] = target_payload_content
+    if need_update:
+      import_bundle.BundleImporter(self.daemon).UpdateBundle(
+          update_config, None, 'Update by the service.')
+    return need_update
+
+  @umpire_rpc.RPCCall
+  def GetUmpireSyncStatus(self):
+    """Get secondary sync status.
+
+    Returns:
+      A dictionary of Umpire sync status.
+      If the file doesn't exist or the service is inactive, return an empty
+      dictionary.
+    """
+    try:
+      self_active_config = json_utils.LoadFile(
+          self.daemon.env.active_config_file)['services']
+      if 'umpire_sync' in self_active_config:
+        if self_active_config['umpire_sync']['active'] is False:
+          return {}
+      umpire_data_dir = f'/{umpire_env.DEFAULT_BASE_DIR}/umpire_data'
+      status_file = f'{umpire_data_dir}/{umpire_sync.STATUS_FILENAME}'
+      return json_utils.LoadFile(status_file)
+    except Exception:
+      return {}

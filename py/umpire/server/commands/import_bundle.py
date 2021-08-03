@@ -82,6 +82,36 @@ class BundleImporter:
         self._daemon.env.AddConfigFromBlob(
             config.Dump(), resource.ConfigTypeNames.umpire_config))
 
+  def UpdateBundle(self, payload, bundle_id=None, note=""):
+    """
+    When the Umpire get some payloads from other Umpires, call the function
+    to update the active bundle.
+
+    Args:
+      payload: A bundle's payload config.
+      bundle_id: The ID of the bundle. If omitted, use timestamp.
+      note: A description of this bundle.
+    """
+    if not bundle_id:
+      bundle_id = time.strftime('factory_bundle_%Y%m%d_%H%M%S')
+
+    config = umpire_config.UmpireConfig(self._daemon.env.config)
+    while config.GetBundle(bundle_id):
+      bundle_id = time.strftime('factory_bundle_%Y%m%d_%H%M%S')
+
+    payload_json_name = self._daemon.env.AddConfigFromBlob(
+        json.dumps(payload), resource.ConfigTypeNames.payload_config)
+
+    config['bundles'].insert(0, {
+        'id': bundle_id,
+        'note': note,
+        'payloads': payload_json_name
+    })
+    config['active_bundle_id'] = bundle_id
+    deploy.ConfigDeployer(self._daemon).Deploy(
+        self._daemon.env.AddConfigFromBlob(
+            config.Dump(), resource.ConfigTypeNames.umpire_config))
+
   @classmethod
   def _GetImportList(cls, bundle_path):
     ret = []

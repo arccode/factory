@@ -1,0 +1,39 @@
+
+{
+  "synchronize_time": {
+    "description": "How long to synchronize once? (seconds)",
+    "type": "string"
+  },
+  "primary_information": {
+    "type": "object",
+    "properties": {
+      "ip": {
+        "description": "Primary IP",
+        "type": "string"
+      },
+      "port": {
+        "description": "Primary port",
+        "type": "string"
+      }
+    }
+  },
+  "secondary_information": {
+    "description": "Secondary URL list",
+    "type": "array",
+    "items": {
+      "description": "Secondary IP & port",
+      "type": "object",
+      "properties": {
+        "ip": {
+          "description": "Text IP to update the bundle.",
+          "type": "string"
+        },
+        "port": {
+          "description": "Text port to update the bundle.",
+          "type": "string"
+        }
+      },
+      "required": ["ip", "port"]
+    }
+  }
+}

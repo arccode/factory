@@ -26,6 +26,7 @@ from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 from cros.factory.utils import type_utils
 from cros.factory.utils import webservice_utils
+from cros.factory.utils import json_utils
 
 
 CROS_PAYLOAD = os.path.join(
@@ -82,6 +83,7 @@ class UmpireEnv:
     self.server_toolkit_dir = os.path.join(root_dir, DEFAULT_SERVER_DIR)
     self.config_path = None
     self.config = None
+
 
   @property
   def resources_dir(self):
@@ -337,6 +339,25 @@ class UmpireEnv:
         if part == 'file' or re.match(r'part\d+$', part) or part == 'crx_cache':
           files.add((type_name, part, res_name))
     return files
+
+  def GetActivePayload(self, active_config_file):
+    """Get active payloads information.
+
+    Args:
+      active_config_file: file path of active config.
+
+    Returns:
+      Active payloads information.
+      If cannot find the active config, return None.
+    """
+    active_config = json_utils.LoadFile(active_config_file)
+    active_bundle_id = active_config['active_bundle_id']
+    bundles = active_config['bundles']
+    for bundle in bundles:
+      if active_bundle_id == bundle['id']:
+        return json_utils.LoadFile(self.GetResourcePath(bundle['payloads']))
+    logging.error('Failed to get active bundle\'s payload')
+    return None
 
   def GetResourcePath(self, resource_name, check=True):
     """Gets a resource's full path.
