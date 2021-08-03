@@ -3,6 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import textwrap
 import unittest
 from unittest import mock
 
@@ -75,6 +76,159 @@ class UftpProcessTest(unittest.TestCase):
 
     self.uftp_proc._process.kill.assert_called_once()
     self.uftp_proc._process.wait.assert_called_once()
+
+
+class MulticastServerTest(unittest.TestCase):
+
+  def setUp(self):
+    self.multicast_server = server.MulticastServer('fake_project',
+                                                   '/path/to/log_dir')
+
+  @mock.patch('cros.factory.utils.json_utils.LoadFile')
+  def testGetUftpArgsFromUmpire(self, mock_load_file):
+    mock_load_file.return_value = {
+        "test_image": {
+            "part1": "fake_image.part1",
+            "part3": "fake_image.part3",
+            "part4": "fake_image.part4"
+        },
+        "toolkit": {
+            "file": "fake_file",
+            "version": "Fake toolkit"
+        },
+        "multicast": {
+            "server_ip": "192.168.1.1",
+            "test_image": {
+                "part1": "224.1.1.1:8094",
+                "part3": "224.1.1.1:8095",
+                "part4": "224.1.1.1:8096"
+            },
+            "toolkit": {
+                "file": "224.1.1.1:8093"
+            }
+        }
+    }
+    _EXPECTED_UFTP_ARGS = [
+        server.UftpArgs(
+            '/var/db/factory/umpire/fake_project/resources/fake_file',
+            '224.1.1.1:8093', '/path/to/log_dir/uftp_fake_file.log',
+            '192.168.1.1'),
+        server.UftpArgs(
+            '/var/db/factory/umpire/fake_project/resources/fake_image.part1',
+            '224.1.1.1:8094', '/path/to/log_dir/uftp_fake_image.part1.log',
+            '192.168.1.1'),
+        server.UftpArgs(
+            '/var/db/factory/umpire/fake_project/resources/fake_image.part3',
+            '224.1.1.1:8095', '/path/to/log_dir/uftp_fake_image.part3.log',
+            '192.168.1.1'),
+        server.UftpArgs(
+            '/var/db/factory/umpire/fake_project/resources/fake_image.part4',
+            '224.1.1.1:8096', '/path/to/log_dir/uftp_fake_image.part4.log',
+            '192.168.1.1')
+    ]
+
+    scanned_args = self.multicast_server.GetUftpArgsFromUmpire()
+
+    self.assertEqual(set(scanned_args), set(_EXPECTED_UFTP_ARGS))
+
+  @mock.patch('cros.factory.utils.json_utils.LoadFile')
+  def testGetUftpArgsFromUmpireError(self, mock_load_file):
+    mock_load_file.side_effect = FileNotFoundError()
+
+    scanned_args = self.multicast_server.GetUftpArgsFromUmpire()
+
+    self.assertEqual(scanned_args, [])
+
+  @mock.patch('cros.factory.multicast.server.UftpProcess.Spawn')
+  def testStartAll(self, mock_spawn):
+    self.multicast_server.uftp_args = [FAKE_UFTP_ARGS]
+
+    self.multicast_server.StartAll()
+
+    mock_spawn.assert_called()
+    # pylint: disable=protected-access
+    self.assertEqual(self.multicast_server._uftp_procs,
+                     [server.UftpProcess(FAKE_UFTP_ARGS)])
+
+  def testStopAll(self):
+    mock_uftp_process = mock.Mock()
+    # pylint: disable=protected-access
+    self.multicast_server._uftp_procs = [mock_uftp_process]
+
+    self.multicast_server.StopAll()
+
+    mock_uftp_process.Kill.assert_called()
+    self.assertEqual(self.multicast_server._uftp_procs, [])
+
+  def testRespawnDead(self):
+    mock_uftp_process = mock.Mock()
+    # pylint: disable=protected-access
+    self.multicast_server._uftp_procs = [mock_uftp_process]
+
+    self.multicast_server.RespawnDead()
+
+    mock_uftp_process.RespawnIfDied.assert_called()
+
+
+class IsServiceEnabledTest(unittest.TestCase):
+
+  @mock.patch('cros.factory.utils.json_utils.LoadFile')
+  def testEnabled(self, mock_load_file):
+    mock_load_file.return_value = {
+        'services': {
+            'multicast': {
+                'active': True
+            }
+        }
+    }
+    ret = server.IsServiceEnabled('fake_project')
+    self.assertTrue(ret)
+
+  @mock.patch('cros.factory.utils.json_utils.LoadFile')
+  def testDisabled(self, mock_load_file):
+    mock_load_file.return_value = {
+        'services': {
+            'multicast': {
+                'active': False
+            }
+        }
+    }
+    ret = server.IsServiceEnabled('fake_project')
+    self.assertFalse(ret)
+
+  @mock.patch('cros.factory.utils.json_utils.LoadFile')
+  def testReadFail(self, mock_load_file):
+    mock_load_file.side_effect = FileNotFoundError()
+    ret = server.IsServiceEnabled('fake_project')
+    self.assertFalse(ret)
+
+
+class IsUmpireEnabledTest(unittest.TestCase):
+
+  @mock.patch('cros.factory.utils.process_utils.CheckOutput')
+  def testEnabled(self, mock_check_output):
+    mock_check_output.return_value = textwrap.dedent("""\
+        dome_mcast
+        dome_nginx
+        dome_uwsgi
+        umpire_fake_project
+        umpire_fake2""")
+
+    ret = server.IsUmpireEnabled('fake_project')
+
+    self.assertTrue(ret)
+
+  @mock.patch('cros.factory.utils.process_utils.CheckOutput')
+  def testDisabled(self, mock_check_output):
+    mock_check_output.return_value = textwrap.dedent("""\
+        dome_mcast
+        dome_nginx
+        dome_uwsgi
+        umpire_fake2""")
+
+    ret = server.IsUmpireEnabled('fake_project')
+
+    self.assertFalse(ret)
 
 
 if __name__ == '__main__':
