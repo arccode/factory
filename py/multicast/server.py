@@ -117,7 +117,7 @@ class MulticastServer:
       logging.exception('Failed to read multicast config file.')
       return []
 
-    scanned_args = []
+    active_args = []
 
     mcast_addrs = mcast_config['multicast']
     interface = mcast_config['multicast'].get('server_ip', '')
@@ -133,10 +133,10 @@ class MulticastServer:
         status_file_path = os.path.join(self._log_dir,
                                         'uftp_%s.log' % file_name)
 
-        scanned_args.append(
+        active_args.append(
             UftpArgs(file_path, uftp_mcast_addr, status_file_path, interface))
 
-    return scanned_args
+    return active_args
 
   def StartAll(self):
     for _args in self.uftp_args:
@@ -176,6 +176,50 @@ def IsServiceEnabled(project):
   return service_enabled
 
 
+class MulticastServerManager:
+
+  def __init__(self, log_dir):
+    self._servers = {}
+    self._log_dir = log_dir
+
+  @staticmethod
+  def _ScanActiveProjects():
+    return [
+        project for project in os.listdir(UMPIRE_DIR)
+        if IsUmpireEnabled(project) and IsServiceEnabled(project)
+    ]
+
+  def CreateAndDeleteServers(self):
+    """Create new server instancess and remove inactive servers according to
+    Umpire config."""
+    active_projects = self._ScanActiveProjects()
+    for project in set(active_projects) - set(self._servers):
+      self._servers[project] = MulticastServer(project, self._log_dir)
+
+    for project in set(self._servers) - set(active_projects):
+      self._servers[project].StopAll()
+      self._servers.pop(project)
+
+  def UpdateServerArgs(self):
+    """Update arguments of the servers and restart processes when needed."""
+    for server in self._servers.values():
+      active_args = server.GetUftpArgsFromUmpire()
+      if active_args != server.uftp_args:
+        server.uftp_args = active_args
+        server.StopAll()
+        server.StartAll()
+      else:
+        server.RespawnDead()
+
+  def Run(self):
+    """The main loop of multicast server manager."""
+    while True:
+      self.CreateAndDeleteServers()
+      self.UpdateServerArgs()
+
+      time.sleep(1)
+
+
 def Main():
   parser = argparse.ArgumentParser()
   parser.add_argument('-l', '--log-dir', help='path to Umpire log directory',
@@ -183,36 +227,8 @@ def Main():
 
   args = parser.parse_args()
 
-  servers = {}
-
-  while True:
-    scanned_projects = []
-    for project in os.listdir(UMPIRE_DIR):
-      if not (IsUmpireEnabled(project) and IsServiceEnabled(project)):
-        continue
-
-      scanned_projects.append(project)
-
-    for project in scanned_projects:
-      if project in servers:
-        mcast_server = servers[project]
-      else:
-        mcast_server = MulticastServer(project, args.log_dir)
-        servers[project] = mcast_server
-
-      scanned_args = mcast_server.GetUftpArgsFromUmpire()
-      if scanned_args != mcast_server.uftp_args:
-        mcast_server.uftp_args = scanned_args
-        mcast_server.StopAll()
-        mcast_server.StartAll()
-      else:
-        mcast_server.RespawnDead()
-
-    for project in set(servers) - set(scanned_projects):
-      servers[project].StopAll()
-      servers.pop(project)
-
-    time.sleep(1)
+  manager = MulticastServerManager(args.log_dir)
+  manager.Run()
 
 
 if __name__ == '__main__':

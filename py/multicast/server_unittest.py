@@ -231,5 +231,74 @@ class IsUmpireEnabledTest(unittest.TestCase):
     self.assertFalse(ret)
 
 
+class MockMulticastServer(mock.Mock):
+  pass
+
+
+class MulticastServerManagerTest(unittest.TestCase):
+
+  def setUp(self):
+    self.manager = server.MulticastServerManager('/path/to/log_dir')
+    self.fake_args_a = [FAKE_UFTP_ARGS]
+    self.fake_args_b = [
+        server.UftpArgs('/path/to/resources/another_fake_file',
+                        '224.1.2.3:8093', '/path/to/log_dir', '192.168.1.1')
+    ]
+    mock_server_a = MockMulticastServer()
+    mock_server_b = MockMulticastServer()
+
+    # Initialize both servers with `fake_args_a`.
+    mock_server_a.uftp_args = self.fake_args_a
+    mock_server_a.GetUftpArgsFromUmpire.return_value = self.fake_args_a
+    mock_server_b.uftp_args = self.fake_args_a
+    mock_server_b.GetUftpArgsFromUmpire.return_value = self.fake_args_a
+    # pylint: disable=protected-access
+    self.manager._servers = {
+        'fake_project_a': mock_server_a,
+        'fake_project_b': mock_server_b
+    }
+
+  @mock.patch('cros.factory.multicast.server.MulticastServer',
+              return_value=MockMulticastServer())
+  @mock.patch.object(server.MulticastServerManager, '_ScanActiveProjects',
+                     return_value=['fake_project_b', 'fake_project_c'])
+  def testCreateAndDeleteServers(self, unused_mock_scan, unused_mock_server):
+    # pylint: disable=protected-access
+    mock_server_a = self.manager._servers['fake_project_a']
+    mock_server_b = self.manager._servers['fake_project_b']
+
+    self.manager.CreateAndDeleteServers()
+
+    mock_server_a.StopAll.assert_called_once()
+    mock_server_b.StopAll.assert_not_called()
+    self.assertEqual(
+        sorted(self.manager._servers.keys()),
+        ['fake_project_b', 'fake_project_c'])
+    self.assertEqual(self.manager._servers['fake_project_b'], mock_server_b)
+    self.assertIsInstance(self.manager._servers['fake_project_c'],
+                          MockMulticastServer)
+
+  def testUpdateServersArgs(self):
+    """This test starts with both of the servers having fake_args_a, and tests
+    the behavior when server_b changes."""
+    # pylint: disable=protected-access
+    mock_server_a = self.manager._servers['fake_project_a']
+    mock_server_b = self.manager._servers['fake_project_b']
+
+    mock_server_b.GetUftpArgsFromUmpire.return_value = self.fake_args_b
+
+    self.manager.UpdateServerArgs()
+
+    mock_server_a.RespawnDead.assert_called_once()
+    mock_server_a.StopAll.assert_not_called()
+    mock_server_a.StartAll.assert_not_called()
+
+    mock_server_b.StopAll.assert_called_once()
+    mock_server_b.StartAll.assert_called_once()
+
+    self.assertEqual(mock_server_a.uftp_args, self.fake_args_a)
+    self.assertEqual(mock_server_b.uftp_args, self.fake_args_b)
+
+
 if __name__ == '__main__':
   unittest.main()
