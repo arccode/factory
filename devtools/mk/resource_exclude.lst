@@ -11,7 +11,6 @@ py/hwid/service/appengine
 py/hwid_extractor
 py/instalog/virtual_env
 py/multicast
-py/probe/runtime_probe
 py/probe_info_service
 py/test_list_editor
 py/umpire/server
