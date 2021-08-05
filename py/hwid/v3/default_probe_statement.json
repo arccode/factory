@@ -146,17 +146,19 @@
     "generic": {
       "eval": "generic_storage",
       "keys":[
-        "vendor",
-        "model",
         "type",
-        "name",
-        "hwrev",
-        "oemid",
-        "manfid",
-        "prv",
-        "device",
-        "class",
-        "sectors"
+        "sectors",
+        "mmc_hwrev",
+        "mmc_manfid",
+        "mmc_oemid",
+        "mmc_name",
+        "mmc_prv",
+        "pci_vendor",
+        "pci_device",
+        "pci_class",
+        "nvme_model",
+        "ata_vendor",
+        "ata_model"
       ]
     }
   },
