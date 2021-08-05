@@ -211,7 +211,7 @@ class Bom:
           Component(cls, name, information, is_vp_related, fields))
 
   def AddAllComponents(self, component_dict, comp_db=None, verbose=False,
-                       waived_comp_categories=None):
+                       waived_comp_categories=None, require_vp_info=False):
     """Adds a dict of components to this bom.
 
     This dict should be of the form class -> name and can take either a single
@@ -224,6 +224,8 @@ class Bom:
       verbose: Adds all fields of the component detail if set to True.
       waived_comp_categories: List of waived component categories which means
       they are not verification-payload-related.
+      require_vp_info: A bool to indicate if the is_vp_related field of
+          each component is required.
     Returns:
       self
     Raises:
@@ -231,7 +233,7 @@ class Bom:
     """
     if waived_comp_categories is None:
       waived_comp_categories = []
-    if comp_db:
+    if comp_db and require_vp_info:
       vp_related_comps = set(
           vpg_module.GetAllComponentVerificationPayloadPieces(
               comp_db, waived_comp_categories))
@@ -386,13 +388,16 @@ class HwidManager:
                    if metadata.version in versions)
       return set(metadata.project for metadata in HwidMetadata.query())
 
-  def BatchGetBomAndConfigless(self, hwid_strings,
-                               verbose=False) -> Dict[str, BomAndConfigless]:
+  def BatchGetBomAndConfigless(
+      self, hwid_strings, verbose=False,
+      require_vp_info=False) -> Dict[str, BomAndConfigless]:
     """Get the BOM and configless for a given HWID.
 
     Args:
       hwid_strings: list of HWID strings.
       verbose: Requires all fields of components in bom if set to True.
+      require_vp_info: A bool to indicate if the is_vp_related field of
+          each component is required.
 
     Returns:
       A dict of {hwid: BomAndConfigless instance} where the BomAndConfigless
@@ -417,8 +422,8 @@ class HwidManager:
         if hwid_data is None:
           hwid_data_cache[project] = hwid_data = self._LoadHwidData(project)
 
-        bom, configless = hwid_data.GetBomAndConfigless(hwid_string, verbose,
-                                                        waived_comp_categories)
+        bom, configless = hwid_data.GetBomAndConfigless(
+            hwid_string, verbose, waived_comp_categories, require_vp_info)
       except (ValueError, KeyError) as ex:
         error = ex
       result[hwid_string] = BomAndConfigless(bom, configless, error)
@@ -896,7 +901,7 @@ class _HwidData:
     raise NotImplementedError()
 
   def GetBomAndConfigless(self, hwid_string, verbose=False,
-                          waived_comp_categories=None):
+                          waived_comp_categories=None, require_vp_info=False):
     """Get the BOM and configless field for a given HWID.
 
     Args:
@@ -904,6 +909,8 @@ class _HwidData:
       verbose: Returns all fields in component detail if set to True.
       waived_comp_categories: List of waived component categories which means
       they are not verification-payload-related.
+      require_vp_info: A bool to indicate if the is_vp_related field of
+          each component is required.
 
     Returns:
       A bom dict and configless field dict.
@@ -1051,7 +1058,7 @@ class _HwidV2Data(_HwidData):
     raise InvalidHwidError('Invalid HWIDv2 format: %r' % hwid_string)
 
   def GetBomAndConfigless(self, hwid_string, verbose=False,
-                          waived_comp_categories=None):
+                          waived_comp_categories=None, require_vp_info=False):
     """Get the BOM and configless field for a given HWID.
 
     Overrides superclass method.
@@ -1061,6 +1068,8 @@ class _HwidV2Data(_HwidData):
       verbose: Returns all fields in component detail if set to True.
       waived_comp_categories: List of waived component categories which means
       they are not verification-payload-related.
+      require_vp_info: A bool to indicate if the is_vp_related field of
+          each component is required.
 
     Returns:
       A Bom object and None since HWID v2 doesn't support configless field.
@@ -1284,7 +1293,7 @@ class _HwidV3Data(_HwidData):
         hwid_data, expected_checksum=None)
 
   def GetBomAndConfigless(self, hwid_string, verbose=False,
-                          waived_comp_categories=None):
+                          waived_comp_categories=None, require_vp_info=False):
     """Get the BOM and configless field for a given HWID.
 
     Overrides superclass method.
@@ -1294,6 +1303,8 @@ class _HwidV3Data(_HwidData):
       verbose: Returns all fields in component detail if set to True.
       waived_comp_categories: List of waived component categories which means
       they are not verification-payload-related.
+      require_vp_info: A bool to indicate if the is_vp_related field of
+          each component is required.
 
     Returns:
       A bom dict and configless field dict.
@@ -1314,7 +1325,8 @@ class _HwidV3Data(_HwidData):
     bom = Bom()
 
     bom.AddAllComponents(_bom.components, self.database, verbose=verbose,
-                         waived_comp_categories=waived_comp_categories)
+                         waived_comp_categories=waived_comp_categories,
+                         require_vp_info=require_vp_info)
     bom.phase = self.database.GetImageName(hwid.image_id)
     bom.project = hwid.project
 

@@ -475,7 +475,8 @@ class ProtoRPCService(protorpc_utils.ProtoRPCServiceBase):
       return hwid_api_messages_pb2.DutLabelsResponse(
           error=error, possible_labels=possible_labels, status=status)
 
-    bc_dict = _hwid_manager.BatchGetBomAndConfigless([hwid], verbose=True)
+    bc_dict = _hwid_manager.BatchGetBomAndConfigless([hwid], verbose=True,
+                                                     require_vp_info=True)
     bom_configless = bc_dict.get(hwid)
     if bom_configless is None:
       return hwid_api_messages_pb2.DutLabelResponse(

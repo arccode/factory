@@ -323,8 +323,8 @@ class HwidApiTest(unittest.TestCase):
             'battery': 'battery_small',
             'camera': 'camera_0',
             'cpu': ['cpu_0', 'cpu_1'],
-        }, comp_db=database.Database.LoadFile(GOLDEN_HWIDV3_FILE,
-                                              verify_checksum=False))
+        }, comp_db=database.Database.LoadFile(
+            GOLDEN_HWIDV3_FILE, verify_checksum=False), require_vp_info=True)
     bom.project = 'foo'
     bom.phase = 'bar'
     configless = None

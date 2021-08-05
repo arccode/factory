@@ -227,19 +227,19 @@ class HwidManagerTest(unittest.TestCase):
         'audio_codec': ['codec_1', 'hdmi_1'],
         'battery': 'battery_huge',
         'bluetooth': 'bluetooth_0',
+        'camera': 'camera_0',
         'chipset': 'chipset_0',
         'cpu': 'cpu_5',
         'display_panel': 'display_panel_0',
+        'dram': 'dram_0',
         'hash_gbb': 'hash_gbb_0',
         'keyboard': 'keyboard_us',
         'key_recovery': 'key_recovery_0',
         'key_root': 'key_root_0',
         'ro_ec_firmware': 'ro_ec_firmware_0',
         'ro_main_firmware': 'ro_main_firmware_0',
+        'storage': 'storage_0',
     })
-    expected_bom1.AddComponent('camera', 'camera_0', is_vp_related=True)
-    expected_bom1.AddComponent('dram', 'dram_0', is_vp_related=True)
-    expected_bom1.AddComponent('storage', 'storage_0', is_vp_related=True)
     self.assertIsNone(bom_configless_1.configless)
     self.assertIsNone(bom_configless_1.error)
     self.assertCountEqual(bom1.GetComponents(), expected_bom1.GetComponents())
@@ -251,19 +251,19 @@ class HwidManagerTest(unittest.TestCase):
         'audio_codec': ['codec_1', 'hdmi_1'],
         'battery': 'battery_huge',
         'bluetooth': 'bluetooth_0',
+        'camera': 'camera_0',
         'chipset': 'chipset_0',
         'cpu': 'cpu_5',
         'display_panel': 'display_panel_0',
+        'dram': 'dram_0',
         'hash_gbb': 'hash_gbb_0',
         'keyboard': 'keyboard_us',
         'key_recovery': 'key_recovery_0',
         'key_root': 'key_root_0',
         'ro_ec_firmware': 'ro_ec_firmware_0',
         'ro_main_firmware': 'ro_main_firmware_0',
+        'storage': 'storage_1',
     })
-    expected_bom2.AddComponent('camera', 'camera_0', is_vp_related=True)
-    expected_bom2.AddComponent('dram', 'dram_0', is_vp_related=True)
-    expected_bom2.AddComponent('storage', 'storage_1', is_vp_related=True)
     self.assertIsNone(bom_configless_2.configless)
     self.assertIsNone(bom_configless_2.error)
     self.assertCountEqual(bom2.GetComponents(), expected_bom2.GetComponents())
@@ -286,7 +286,7 @@ class HwidManagerTest(unittest.TestCase):
         hwid_manager.Component('dram', 'dram_0', fields={
             'part': 'part0',
             'size': '4G'
-        }, is_vp_related=True)
+        })
     ])
 
     audio_codec = bom.GetComponents(cls='audio_codec')
@@ -305,7 +305,7 @@ class HwidManagerTest(unittest.TestCase):
                 'sectors': '0',
                 'vendor': 'vendor0',
                 'serial': rule.Value(r'^#123\d+$', is_re=True)
-            }, is_vp_related=True)
+            })
     ])
 
   def testGetHwidsNonExistentProject(self):
@@ -577,7 +577,8 @@ class HwidManagerTest(unittest.TestCase):
     manager.RegisterProject('B_CHROMEBOOK', 'CHROMEBOOK', 3, 'v3')
     manager.ReloadMemcacheCacheFromFiles()
 
-    bc_dict = manager.BatchGetBomAndConfigless([TEST_V3_HWID_1])
+    bc_dict = manager.BatchGetBomAndConfigless([TEST_V3_HWID_1],
+                                               require_vp_info=True)
     bom = bc_dict[TEST_V3_HWID_1].bom
 
     for comp in bom.GetComponents(cls='battery'):
@@ -845,8 +846,7 @@ class HwidV3DataTest(unittest.TestCase):
         hwid_manager.Component('keyboard', 'keyboard_us'),
         bom.GetComponents('keyboard'))
     self.assertIn(
-        hwid_manager.Component('dram', 'dram_0', is_vp_related=True),
-        bom.GetComponents('dram'))
+        hwid_manager.Component('dram', 'dram_0'), bom.GetComponents('dram'))
     self.assertEqual('EVT', bom.phase)
     self.assertEqual('CHROMEBOOK', bom.project)
     self.assertEqual(None, configless)
@@ -866,12 +866,11 @@ class HwidV3DataTest(unittest.TestCase):
         hwid_manager.Component('keyboard', 'keyboard_us'),
         bom.GetComponents('keyboard'))
     self.assertIn(
-        hwid_manager.Component('dram', 'dram_0', is_vp_related=True),
-        bom.GetComponents('dram'))
+        hwid_manager.Component('dram', 'dram_0'), bom.GetComponents('dram'))
     self.assertEqual('EVT', bom.phase)
     self.assertIn(
         hwid_manager.Component('storage', 'storage_2',
-                               {"comp_group": "storage_0"}, is_vp_related=True),
+                               {"comp_group": "storage_0"}),
         bom.GetComponents('storage'))
     self.assertEqual('CHROMEBOOK', bom.project)
     self.assertEqual(
