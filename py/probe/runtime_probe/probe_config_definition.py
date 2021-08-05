@@ -76,6 +76,8 @@ def _GetAllProbeStatementDefinitions():
   builder.AddHexOutputField('pci_class', 'PCI Device Class Indicator.',
                             probe_function_names=probe_function_names,
                             num_value_digits=6)
+  builder.AddStrOutputField('nvme_model', 'NVMe model name.',
+                            probe_function_names=probe_function_names)
 
   builder.AddProbeFunction('ata_storage', 'Probe function for ATA storage.')
   probe_function_names = ['generic_storage', 'ata_storage']
