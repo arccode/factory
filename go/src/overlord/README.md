@@ -3,11 +3,27 @@
 # Objective
 
 The goal of this document is to provide deployment guidance to the
-[Overlord](http://go/overlord-doc) factory monitor system.
+[Overlord][Overlord Design Doc] factory monitor system.
 
-# Basic Deployment
+# Deployment
 
-## Get the source
+### Prerequisites
+
+You need a computer that can run docker and python3.6+. We recommend using
+Ubuntu 18.04+.
+
+Add current user to the "docker" group, then you can run docker command without
+sudo.
+```bash
+sudo usermod -aG docker ${USER}
+```
+
+Intstall the following packages:
+```bash
+pip3 install jsonrpclib-pelix ws4py
+```
+
+### Get the deployment script
 
 The Overlord source code resides in the chromiumos factory repository. You can
 clone the factory git repo without the entire chromiumos source tree:
@@ -16,61 +32,44 @@ clone the factory git repo without the entire chromiumos source tree:
 $ git clone https://chromium.googlesource.com/chromiumos/platform/factory
 ```
 
-## User manual guide
+Then you can find the deployment script `setup/cros_docker.sh`.
 
-Please refer to the [user manual
-guide](https://docs.google.com/document/d/1X_ELnv4OFuSY7xAeVn5m_2Eo6sMj0dMgfWzY97xHH40/edit?usp=sharing&resourcekey=0-S2X0Gp4ehe_m9i_INZqZLA)
+### Set up Overlord
+
+```bash
+$ cd factory/setup
+$ ./cros_docker.sh overlord setup
+```
+You need to provide the following info at this step:
+1. Account / password
+    - This is Overlord's user account.
+2. IP
+    - Overlord's IP
+
+After the setup, the setup script will print some instructions for you to set up
+the browser certificate. But this step is optional.
+
+### Run Overlord
+
+```bash
+$ ./cros_docker.sh overlord run
+```
+
+You can access the Overlord server at `https://${IP}:9000`.
+
+# Dashboard feature
+
+This feature integrates the DUT's testing framework into Overlord server. Long
+story short:
+1. DUT can connect to Overlord and report their test status.
+2. Users can view the test status in Overlord dashboard UI.
+
+Please refer to the [user manual guide][Dashboard User Manual] for more details.
 
 -----
-# Deprecated
-## Build
+# Others
 
-Make sure you have the Go lang toolchain installed (`apt-get install
-google-golang`). Building Overlord is as easy as typing `make` under the
-`go/src/overlord`
-
-```bash
-$ cd factory/go/src/overlord
-
-$ make
-```
-
-## Deploy
-
-Assuming your server is located at `SHOPFLOOR_IP`, just scp the `go/bin` dir
-onto the server
-
-```bash
-$ scp -r factory/go/bin SHOPFLOOR_IP:~/overlord
-```
-
-In this particular case, we copy the bin folder onto the HOME/overlord on the
-shopfloor server.
-
-## Start the Server
-
-To start the server, simply run the overlordd binary
-
-```bash
-shopfloor:~ $ cd overlord
-
-shopfloor:~/overlord $ nohup ./overlordd &
-```
-
-One the server started, browse `http://SHOPFLOOR_IP:9000` to access the
-overlord web frontend.
-
-There are some options available for the overlordd command, use `overlord
--help` to see them.
-
-By default, overlordd is started with HTTP basic auth enabled. The default
-account / password is `overlord/cros`, **please follow the later section in
-this document to change the password for production environment**. To disable
-HTTP basic auth, simply add the `-no-auth` option when launching overlordd.
-**This is strongly discouraged in production environment**, as it expose your
-server for anyone to access it.
-
-## Ghost Clients
+### Ghost Clients
 
 The clients are called `ghost` in the Overlord framework. There are currently
 two implementations, one implemented in python and the other implemented in go.
@@ -78,157 +77,16 @@ The python version can be found under the factory source repository:
 `py/tools/ghost.py`; while the go version is under `go/src/overlord/ghost.go`
 which is built along side with the `overlordd` binary under `go/bin`.
 
-# Server Configuration
+#### How to upgrade ghost client
 
-## Changing LAN Discovery Broadcast Interface
+The recommended way is to upgrade the toolkit with upgraded ghost client through
+shopfloor. This prevents most of the compatibility issues.
 
-Overlord server broadcasts LAN discovery messages into the subnet so clients
-can identify the server IP. In a typical factory network, a server might have
-at least two interface, one for LAN and another for external network. By
-default, overlord broadcast the LAN discovery message to the default gateway's
-subnet. To specify a different one, use the `-lan-disc-iface` option:
+### Internal Docs
 
-```bash
-shopfloor:~/overlord $ nohup ./overlordd -lan-disc-iface=eth1 &
-```
+1. [Overlord Design Doc][Overlord Design Doc]
+2. [Dashboard Design Doc](http://go/overlord-dashboard)
 
-## Changing Default Password
-
-The password to the Overlord server is stored in a apache style htpasswd file.
-This means it supports multiple login credentials. To change it, first remove
-the default password:
-
-```bash
-shopfloor:~/overlord $ rm app/overlord.htpasswd
-```
-
-The use the htpasswd utility to create a new htpasswd file. The htpasswd
-utility can be installed by `apt-get install apache2-utils`:
-
-```bash
-shopfloor:~/overlord $ htpasswd -B -c app/overlord.htpasswd username11
-
-New password:
-Re-type new password:
-Updating password for user username1
-```
-
-The `-c` option create the new file. To add more credentials to the file simply
-remove the `-c` option:
-
-```bash
-shopfloor:~/overlord $ htpasswd -B app/overlord.htpasswd username2
-```
-
-# Enable SSL Support
-
-To ensure the privacy of the communication with the overlord server via the web
-frontend. It's encouraged to enable SSL on a production environment.
-
-You can either use a CA-signed SSL certificate or a self-signed SSL
-certificate. We usually use a self-signed certificate in the factory since we
-can't be 100% sure we are the only one that have access to the server. If the
-partner have access to the server, they can steal your SSL certificate file!
-
-To generate a self-signed SSL certificate, you need the openssl software suite
-from you distribution:
-
-```bash
-shopfloor:~/overlord $ openssl req -x509 -nodes -newkey rsa:2048 -keyout
-key.pem -out cert.pem -days 365
-```
-
-**Note that you need to input the correct `common name` when generating the
-certificate, `common name` is typically the  FQDN or IP of the server.**
-
-This will generate two files: `cert.pem` and `key.pem`. Assign it to the `-tls`
-option when starting overlordd, and you are all set.
-
-```bash
-shopfloor:~/overlord $ nohup ./overlordd -tls=cert.pem,key.pem &
-```
-
-Now you can browse `https://shopfloor_ip:9000` to access the web frontend.
-Note that you need to use `https` instead of `http`.
-
-**Connecting to a TLS enabled Server**
-
-ghost automatically detects if Overlord server has TLS enabled and verify it
-using system installed ca-certificates bundle.
-
-To connect to a TLS enabled Overlord server, a ghost client must specify the
-TLS certificate to be used for verification:
-
-```bash
-$ ghost --tls-cert-file cert.pem SERVER_IP
-```
-
-Optionally, one could enable TLS but skip certificate verification:
-
-```bash
-$ ghost --tls-no-verify SERVER_IP
-```
-
-## Caveats
-
-The SSL certification generated above is a self-signed SSL certificate. The
-first time you visit the web frontend, you will see a warning.
-
-This is the result of self-signed SSL certificate, no need to panic. Click on
-the left top corner of the browser to see the certificate information.
-
-**Make sure the fingerprint is correct** then hit the `Advanced` button then
-`Proceed`.
-
-# Auto Upgrade Setup
-
-Overlord supports an AU(Auto Upgrade) protocol for updating ghost clients.
-Ghost clients automatically check for update on registration. Admins can also
-force an upgrade if there are updates available.
-
-## Prepare Upgrade Files
-
-Fetch the latest ghost.py or ghost binary from factory repo. For the ghost
-binary, rename it into ghost.ARCH, where `ARCH` is go runtime.GOARCH variable
-on that platform. For a x86\_64 platform, the runtime.GOARCH equals `amd64`. In
-such case, rename the binary to `ghost.amd64`.
-
-## Copy the Upgrade File Onto the Server
-
-### Create the required directory structure
-
-On the Shopfloor server:
-
-```bash
-shopfloor:~/overlord $ mkdir app/upgrade
-```
-
-### Copy the Upgrade file
-
-```bash
-$ scp ghost.py SHOPFLOOR_IP:~/overlord/app/upgrade
-
-$ scp ghost.amd64 SHOPFLOOR_IP:~/overlord/app/upgrade
-```
-
-### Generate Checksum
-
-```bash
-shopfloor:~/overlord $ cd app/upgrade
-
-shopfloor:~/overlord/app/upgrade $ for i in `ls ghost.* | grep -v sha1`; do \
-        sha1sum $i | awk '{ print $1 }' > $i.sha1 done
-```
-
-### Force Upgrade
-
-After the above step, the upgrade files are ready. Now if a new client connects
-or client reconnects to the overlord server, it automatically checks for
-upgrade and apply it. To force an upgrade for already connected clients, simply
-send a GET request to the server:
-
-```bash
-$ curl -k -u username1:password1 'https://localhost:9000/api/agents/upgrade'
-```
-
-(Note: use `http` if you don't have SSL enabled)
+[Overlord Design Doc]: http://go/overlord-doc
+[Dashboard User Manual]:
+https://docs.google.com/document/d/1X_ELnv4OFuSY7xAeVn5m_2Eo6sMj0dMgfWzY97xHH40/edit?resourcekey=0-S2X0Gp4ehe_m9i_INZqZLA#heading=h.55w5uj6ylsnt
