@@ -31,6 +31,44 @@ _DICT_RESULT = {'TPM Being Owned': 'false',
                 'TPM Owned': 'false',
                 'Test': 'something1:something2'}
 
+_LINES_RECUSIVE = """\
+TPM:
+  Enabled: true
+  Owned: false
+  Being Owned: false
+  Ready: false
+  Password:
+Test: something1:something2
+"""
+
+_LINES_RECUSIVE_MISALIGNED = """\
+ TPM:
+   Enabled: true
+   Owned: false
+   Being Owned: false
+   Ready: false
+######
+   Password:
+Test: something1:something2
+""".replace('#', ' ')  # to pass style check
+
+_LINES_RECUSIVE_INVALID = """\
+TPM:
+  Enabled true
+Test: something1:something2
+"""
+
+_DICT_RESULT_RECURSIVE = {
+    'TPM': {
+        'Being Owned': 'false',
+        'Ready': 'false',
+        'Password': '',
+        'Enabled': 'true',
+        'Owned': 'false',
+    },
+    'Test': 'something1:something2'
+}
+
 
 class DecodeUTF8Test(unittest.TestCase):
   """Unittest for DecodeUTF8."""
@@ -48,6 +86,19 @@ class ParseDictTest(unittest.TestCase):
   def testParseDict(self):
     self.assertEqual(_DICT_RESULT, ParseDict(_LINES, ':'))
 
+  def testParseDictRecursive(self):
+    self.assertEqual(
+        _DICT_RESULT_RECURSIVE,
+        ParseDict(_LINES_RECUSIVE.splitlines(), ':', recursive=True))
+    self.assertEqual(
+        _DICT_RESULT_RECURSIVE,
+        ParseDict(_LINES_RECUSIVE_MISALIGNED.splitlines(), ':', recursive=True))
+
+    self.assertRaises(ValueError, ParseDict,
+                      _LINES_RECUSIVE_INVALID.splitlines(), ':', recursive=True)
+    self.assertRaises(ValueError, ParseDict, _LINES_RECUSIVE.splitlines(), '-',
+                      recursive=True)
+
 
 class ParseStringTest(unittest.TestCase):
   """Unittest for ParseString."""
@@ -60,6 +111,7 @@ class ParseStringTest(unittest.TestCase):
     self.assertEqual(False, ParseString('False'))
     self.assertEqual(None, ParseString('None'))
     self.assertEqual(123, ParseString('123'))
+
 
 class ParseUrlTest(unittest.TestCase):
   """Unittest for ParseUrl."""

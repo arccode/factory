@@ -183,6 +183,40 @@ Modem /org/chromium/ModemManager/Gobi/1:
         imei=None, meid='Q9298301CDF827')
     self.assertEqual(log_param_mock.call_args_list, log_param_calls)
 
+  @mock.patch('cros.factory.utils.process_utils.CheckOutput')
+  @mock.patch('cros.factory.test.event_log.Log')
+  @mock.patch('cros.factory.testlog.testlog.LogParam')
+  @mock.patch('cros.factory.test.device_data.UpdateDeviceData')
+  def testSpecifiedFields(self, update_device_data_mock, log_param_mock,
+                          log_mock, check_output_mock):
+    stdout = """
+Modem /org/freedesktop/ModemManager1/Modem/7:
+  Properties:
+    EquipmentIdentifier: 862227050001326
+"""
+
+    log_param_calls = [
+        mock.call('modem_status_stdout', stdout),
+        mock.call('imei', '862227050001326')
+    ]
+
+    check_output_mock.return_value = stdout
+
+    self.test.args = Args(*self.test.ARGS).Parse({
+        'probe_meid': False,
+        'fields': {
+            'imei': 'EquipmentIdentifier'
+        }
+    })
+    self.test.runTest()
+
+    check_output_mock.assert_called_once_with(['modem', 'status'], log=True)
+    log_mock.assert_called_once_with(
+        'cellular_info', modem_status_stdout=stdout, imei='862227050001326')
+    self.assertEqual(log_param_mock.call_args_list, log_param_calls)
+    update_device_data_mock.assert_called_once_with(
+        {'component.cellular.imei': '862227050001326'})
+
 
 if __name__ == '__main__':
   unittest.main()

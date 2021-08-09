@@ -6,6 +6,7 @@
 """This module provides utility functions for string processing."""
 
 
+from collections import namedtuple
 import logging
 
 
@@ -19,7 +20,47 @@ def DecodeUTF8(data):
   return data
 
 
-def ParseDict(lines, delimiter=':'):
+def _ParseDictRecursive(lines, delimiter=':'):
+  """Equilavant to `ParseDict(lines, recursive=True)`"""
+
+  def _IndentLevel(line):
+    return len(line) - len(line.lstrip())
+
+  Node = namedtuple('Node', ['line', 'childs', 'level'])
+  stack = [Node('root' + delimiter, [], -1)]  # root node
+
+  for line in lines:
+
+    # Skip empty line
+    if len(line.strip()) == 0:
+      continue
+
+    level = _IndentLevel(line)
+    while level <= stack[-1].level:
+      node = stack.pop()
+      stack[-1].childs.append(node)
+    stack.append(Node(line, [], level))
+
+  while len(stack) > 1:
+    node = stack.pop()
+    stack[-1].childs.append(node)
+
+  def _BuildDictRecursive(node):
+    key, value = map(str.strip, node.line.split(delimiter, 1))
+
+    if len(node.childs) == 0:
+      return key, value
+
+    output_dict = {}
+    for child in node.childs:
+      output_dict.update([_BuildDictRecursive(child)])
+
+    return key, output_dict
+
+  return _BuildDictRecursive(stack.pop())[-1]
+
+
+def ParseDict(lines, delimiter=':', recursive=False):
   """Parses list of lines into a dict. Each line is a string containing
   key, value pair, where key and value are separated by delimiter, and are
   stripped. If key, value pair can not be found in the line, that line will be
@@ -28,10 +69,15 @@ def ParseDict(lines, delimiter=':'):
   Args:
     lines: A list of strings.
     delimiter: The delimiter string to separate key and value in each line.
+    recursive: Whether to parse the dict recursively.
 
   Returns:
     A dict, where both keys and values are string.
   """
+
+  if recursive:
+    return _ParseDictRecursive(lines, delimiter)
+
   ret = dict()
   for line in lines:
     try:
