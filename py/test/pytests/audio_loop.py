@@ -1106,18 +1106,20 @@ class AudioLoopTest(test_case.TestCase):
   def CheckConformance(self):
     """Run conformance test program and check the result."""
 
-    process = self._dut.Popen(
-        [audio_utils.CONFORMANCETEST_PATH, '-C', self._alsa_input_device],
-        stdout=process_utils.PIPE, stderr=process_utils.PIPE)
+    process = self._dut.Popen([
+        audio_utils.CONFORMANCETEST_PATH, '-C', self._alsa_input_device,
+        '--test-suites', 'test_rates'
+    ], stdout=process_utils.PIPE, stderr=process_utils.PIPE)
     process.wait()
     is_all_passed, error_msg = self._ParseConformanceOutput(process.stdout)
     if not is_all_passed:
       self.FailTask(
           'Input device %s: %s' % (self._alsa_input_device, error_msg))
 
-    process = self._dut.Popen(
-        [audio_utils.CONFORMANCETEST_PATH, '-P', self._alsa_output_device],
-        stdout=process_utils.PIPE, stderr=process_utils.PIPE)
+    process = self._dut.Popen([
+        audio_utils.CONFORMANCETEST_PATH, '-P', self._alsa_output_device,
+        '--test-suites', 'test_rates'
+    ], stdout=process_utils.PIPE, stderr=process_utils.PIPE)
     process.wait()
     is_all_passed, error_msg = self._ParseConformanceOutput(process.stdout)
     if not is_all_passed:
