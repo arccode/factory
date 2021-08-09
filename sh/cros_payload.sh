@@ -234,9 +234,9 @@ END_TESTLOG_JSON
 }
 
 # Summon UFTP client to download the file with multicast protocol.
-# Usage: mcast_client JSON_URL [output]
+# Usage: mcast_client MCAST_URL [output]
 mcast_client() {
-  local json_url="$1"
+  local mcast_url="$1"
   local output="$2"
 
   local instalog_url=""
@@ -244,8 +244,8 @@ mcast_client() {
     instalog_url="${SERVER_URL}/instalog"
   fi
 
-  local addr="${url%:*}"
-  local port="${url#*:}"
+  local addr="${mcast_url%:*}"
+  local port="${mcast_url#*:}"
 
   # UFTP uses the IP address in hexadecimal for uid by default, so we use it as
   # the uuid for instalog.
@@ -266,7 +266,7 @@ mcast_client() {
 
     if [ -n "${instalog_url}" ]; then
       instalog_message "${instalog_url}" "${uid}" \
-        "Client summoned. Waiting for announcement on ${url}."
+        "Client summoned. Waiting for announcement on ${mcast_url}."
     fi
 
     while read -r line; do
@@ -279,7 +279,7 @@ mcast_client() {
         if [ -n "${instalog_url}" ]; then
           instalog_message "${instalog_url}" "${uid}" \
             "Announcement received." \
-            "Waiting for confirmation and file transfer on ${url}."
+            "Waiting for confirmation and file transfer on ${mcast_url}."
         fi
         continue
       fi
@@ -288,7 +288,7 @@ mcast_client() {
         info "File transfer completed. Kill uftpd."
         if [ -n "${instalog_url}" ]; then
           instalog_message "${instalog_url}" "${uid}" \
-            "File transfer completed on ${url}."
+            "File transfer completed on ${mcast_url}."
         fi
         kill "$(cat "${pid_file_path}")"
 
