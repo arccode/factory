@@ -189,7 +189,7 @@ class CameraTest {
    * @param {number} w the width of the rectangle.
    * @param {number} h the height of the rectangle.
    */
-  drawRect(x, y, w, h) {
+  drawRect(x, y, w, h, color='white', fill=false) {
     const ctx = overlayCanvas.getContext('2d');
     const {width, height} = overlayCanvas;
     x *= width;
@@ -199,11 +199,14 @@ class CameraTest {
 
     ctx.beginPath();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = 'white';
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    const draw = (fill ? ctx.fillRect : ctx.rect).bind(ctx);
+
     if (this.flipImage) {
-      ctx.rect(overlayCanvas.width - x, y, -w, h);
+      draw(overlayCanvas.width - x, y, -w, h);
     } else {
-      ctx.rect(x, y, width, height);
+      draw(x, y, width, height);
     }
     ctx.stroke();
   }

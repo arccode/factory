@@ -240,12 +240,14 @@ _TEST_MODE_INST = {
     TestModes.frame_count:
         _('Running the camera until expected number of frames captured.'),
     TestModes.camera_assemble:
-        _('Cover the field of view of the camera with a white paper.'),
+        _('Cover the field of view of the camera with a white paper. '
+          'The red grids represent which region is too dark.'),
     TestModes.qr:
         _('Scanning QR code...'),
     TestModes.camera_assemble_qr:
         _('Place QR code in the frame and cover the field of view of the'
-          ' camera with a white paper.'),
+          ' camera with a white paper. The red grids represent which region is'
+          ' too dark.'),
     TestModes.face:
         _('Detecting faces...'),
     TestModes.brightness:
@@ -429,6 +431,45 @@ class CameraTest(test_case.TestCase):
         self.ReadSingleFrame()
         self.Sleep(0.5)
 
+  def DrawRectangle(self, cv_image, rect_pos, rect_shape, color, fill):
+    """Draw rectangles on UI.
+
+    Args:
+      cv_image: The image captured by camera.
+      rect_pos: The x, y coordinates of the top-left corner of the rectangle.
+      rect_shape: The width and height of the rectangle.
+      color: The color string and its corresponding BGR value.
+      fill: Fill the rectangle of not.
+
+    Returns:
+       The js functions used to draw the rectangles.
+    """
+    x_pos, y_pos = rect_pos
+    rect_width, rect_height = rect_shape
+    color_string, bgr_color = color
+    image_height, image_width = cv_image.shape[:2]
+
+    draw_rect_js = ''
+    thickness = cv.FILLED if fill else 1
+    fill_string = 'true' if fill else 'false'
+    if self.e2e_mode:
+      # Normalize the coordinates / size to [0, 1], since the canvas in the
+      # frontend may not be the same size as the image.
+      draw_rect_js += 'cameraTest.drawRect({}, {}, {}, {}, ' \
+                      '"{}", {});'.format(
+                          float(x_pos) / image_width,
+                          float(y_pos) / image_height,
+                          float(rect_width) / image_width,
+                          float(rect_height) / image_height,
+                          color_string,
+                          fill_string)
+    else:
+      cv.rectangle(cv_image, (x_pos, y_pos),
+                   (x_pos + rect_width, y_pos + rect_height), bgr_color,
+                   thickness)
+
+    return draw_rect_js
+
   def DetectFaces(self, cv_image):
     # TODO(pihsun): Use the shape detection API in Chrome in e2e mode when it
     # is ready.
@@ -442,27 +483,38 @@ class CameraTest(test_case.TestCase):
     # will not work (will raise an exception).
     detected = len(detected_objs) > 0
 
-    if self.args.show_image:
-      if self.e2e_mode:
-        self.RunJSBlocking('cameraTest.clearOverlay()')
-        for x, y, w, h in detected_objs:
-          # Normalize the coordinates / size to [0, 1], since the canvas in the
-          # frontend may not be the same size as the image.
-          self.RunJSBlocking('cameraTest.drawRect({}, {}, {}, {})'.format(
-              float(x) / width,
-              float(y) / height,
-              float(w) / width,
-              float(h) / height))
-      else:
-        for x, y, w, h in detected_objs:
-          cv.rectangle(cv_image, (x, y), (x + w, y + h), 255)
+    draw_rect_js = 'cameraTest.clearOverlay();'
+    for x, y, w, h in detected_objs:
+      draw_rect_js += self.DrawRectangle(cv_image, (x, y), (w, h),
+                                         ('white', 255), False)
 
+    if self.e2e_mode:
+      self.RunJSBlocking(draw_rect_js)
     return detected
 
   def DetectAssemblyIssue(self, cv_image):
     camera_assemble_issue = camera_assemble.DetectCameraAssemblyIssue(
         cv_image, self.min_luminance_ratio)
-    return not camera_assemble_issue.IsBoundaryRegionTooDark()
+
+    is_too_dark, grid, grid_size = \
+      camera_assemble_issue.IsBoundaryRegionTooDark()
+    if is_too_dark:
+      grid_width, grid_height = grid_size
+      height, width = cv_image.shape[:2]
+
+      draw_rect_js = 'cameraTest.clearOverlay();'
+      for grid_r, y_pos in enumerate(range(0, height, grid_height)):
+        for grid_c, x_pos in enumerate(range(0, width, grid_width)):
+          if grid[grid_r][grid_c]:
+            # It will be slow if we call the js function for each grid.
+            # Instead, we run the js functions all at once at the end of the
+            # loop.
+            draw_rect_js += self.DrawRectangle(cv_image, (x_pos, y_pos),
+                                               (grid_width, grid_height),
+                                               ('red', (0, 0, 255)), True)
+      if self.e2e_mode:
+        self.RunJSBlocking(draw_rect_js)
+    return not is_too_dark
 
   def ScanQRCode(self, cv_image):
     scanned_text = None
@@ -679,6 +731,13 @@ class CameraTest(test_case.TestCase):
     if self.mode == TestModes.manual:
       self.assertFalse(phase.GetPhase() > phase.DVT,
                        msg='"manual" mode cannot be used after DVT')
+
+    if self.mode in [
+        TestModes.manual, TestModes.camera_assemble, TestModes.qr,
+        TestModes.camera_assemble_qr, TestModes.face
+    ]:
+      self.assertTrue(self.args.show_image,
+                      msg='show_image should be set to true!')
 
     if self.mode == TestModes.manual_led:
       self.LEDTest()

@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-08-10 19:43+CST\n"
+"PO-Revision-Date: 2021-08-11 10:22+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -1627,8 +1627,10 @@ msgid "Running the camera until expected number of frames captured."
 msgstr "运行相机直到给订数量"
 
 #: ../py/test/pytests/camera.py
-msgid "Cover the field of view of the camera with a white paper."
-msgstr "用白纸覆盖相机的视野"
+msgid ""
+"Cover the field of view of the camera with a white paper. The red grids "
+"represent which region is too dark."
+msgstr "用白纸覆盖相机的视野。红色格子代表该区域太暗。"
 
 #: ../py/test/pytests/camera.py
 msgid "Scanning QR code..."
@@ -1637,8 +1639,8 @@ msgstr "侦测 QR 码中..."
 #: ../py/test/pytests/camera.py
 msgid ""
 "Place QR code in the frame and cover the field of view of the camera with a "
-"white paper."
-msgstr "将 QR 码放入框中并用白纸覆盖相机的视野"
+"white paper. The red grids represent which region is too dark."
+msgstr "将 QR 码放入框中并用白纸覆盖相机的视野。红色格子代表该个区域太暗。"
 
 #: ../py/test/pytests/camera.py
 msgid "Detecting faces..."

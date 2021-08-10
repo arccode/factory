@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-08-10 19:43+CST\n"
+"PO-Revision-Date: 2021-08-11 10:22+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -1656,7 +1656,9 @@ msgid "Running the camera until expected number of frames captured."
 msgstr "Chạy máy ảnh cho đến khi số lượng được đặt"
 
 #: ../py/test/pytests/camera.py
-msgid "Cover the field of view of the camera with a white paper."
+msgid ""
+"Cover the field of view of the camera with a white paper. The red grids "
+"represent which region is too dark."
 msgstr ""
 
 #: ../py/test/pytests/camera.py
@@ -1666,7 +1668,7 @@ msgstr "Phát hiện mã QR ..."
 #: ../py/test/pytests/camera.py
 msgid ""
 "Place QR code in the frame and cover the field of view of the camera with a "
-"white paper."
+"white paper. The red grids represent which region is too dark."
 msgstr ""
 
 #: ../py/test/pytests/camera.py

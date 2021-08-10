@@ -29,6 +29,7 @@ class DetectCameraAssemblyIssue:
                            region
     """
     self.cv_image = cv.cvtColor(cv_image, cv.COLOR_BGR2GRAY)
+    self.cv_color_image = cv_image
     self.min_luminance_ratio = min_luminance_ratio
 
   def _AveragePooling(self, grid_height, grid_width):
@@ -78,6 +79,12 @@ class DetectCameraAssemblyIssue:
     thus the camera is badly assembled. For instance, if the luminance value of
     the center grid is 150 and the min_luminance_ratio is 0.5, then boundary
     grids lower than or equal to 75 are rejected.
+
+    Returns:
+      A tuple of boolean, 2d array and a tuple
+      boolean: The boundary is too dark or not
+      2d array: n*m bool grids which represents each grid is too dark or not
+      tuple: The width and height of each grid
     """
     for grid_height, grid_width in GRID_SHAPES:
       avg_grid_vals = self._AveragePooling(grid_height, grid_width)
@@ -99,19 +106,16 @@ class DetectCameraAssemblyIssue:
           num_grids += 1
       center_grid_avg_val //= num_grids
 
-      # Scanning the boundary grids from top to bottom, left to right
       min_luminance_value = self.min_luminance_ratio * center_grid_avg_val
-      for i in range(num_vertical_grid):
-        if (avg_grid_vals[i][0] <= min_luminance_value) or \
-          (avg_grid_vals[i][-1] <= min_luminance_value):
-          return True
+      grid_is_too_dark = avg_grid_vals <= min_luminance_value
+      # We mask out the center region since we only check if the boundary
+      # region is too dark.
+      grid_is_too_dark[1:-1, 1:-1] = False
+      is_too_dark = np.any(grid_is_too_dark)
+      if is_too_dark:
+        return is_too_dark, grid_is_too_dark, (grid_width, grid_height)
 
-      for j in range(num_horizontal_grid):
-        if (avg_grid_vals[0][j] <= min_luminance_value) or \
-          (avg_grid_vals[-1][j] <= min_luminance_value):
-          return True
-
-    return False
+    return False, None, None
 
 
 def GetQRCodeDetectionRegion(img_height, img_width):
