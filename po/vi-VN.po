@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-08-02 15:38+CST\n"
+"PO-Revision-Date: 2021-08-10 19:43+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: vi-VN\n"
@@ -670,10 +670,6 @@ msgid "Space"
 msgstr "trống"
 
 #: ../py/goofy/js/goofy.js
-msgid "Screenshot (Press Ctrl+S)"
-msgstr ""
-
-#: ../py/goofy/js/goofy.js
 msgid "Factory tests stopped"
 msgstr "Kiểm tra nhà máy đã ngừng"
 
@@ -1148,6 +1144,10 @@ msgstr "Thời gian còn lại: "
 #: ../py/goofy/static/templates.html
 msgid "Test Progress:"
 msgstr "Tiến độ kiểm tra:"
+
+#: ../py/goofy/static/templates.html
+msgid "Screenshot (Press Ctrl+S)"
+msgstr ""
 
 #: ../py/goofy/static/templates.html
 msgid "Mark Failed"

@@ -201,8 +201,7 @@ cros.factory.PluginFrontendConfig;
 const KEY_NAME_MAP = new Map([
   ['ENTER', _('Enter')],
   ['ESCAPE', _('ESC')],
-  [' ', _('Space')],
-  ['CTRL_S', _('Screenshot (Press Ctrl+S)')]
+  [' ', _('Space')]
 ]);
 
 /**
@@ -232,6 +231,15 @@ cros.factory.Test = class {
      * @type {boolean}
      */
     this.keyListenerSet_ = false;
+
+    /* Bind the screenshot hotkey */
+    goog.events.listen(
+      this.invocation.iframe.contentWindow, goog.events.EventType.KEYDOWN,
+      (/** !goog.events.KeyEvent */ event) => {
+        if (event.ctrlKey && event.keyCode === goog.events.KeyCodes.S) {
+          this.screenshot();
+        }
+      });
   }
 
   /**
@@ -412,13 +420,6 @@ cros.factory.Test = class {
   bindStandardFailKeys() {
     this.bindKey('ESCAPE', () => { this.userAbort(); });
     this.bindKey('F', () => { this.userAbort(); }, false, false);
-  }
-
-  /**
-   * Binds screenshot key ('S') with modifier 'CTRL'
-   */
-  bindStandardScreenshotKeys() {
-    this.bindKey('S', () => { this.screenshot(); }, false, true, ['CTRL']);
   }
 
   /**

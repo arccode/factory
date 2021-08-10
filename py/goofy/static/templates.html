@@ -133,6 +133,10 @@
       line-height: 1;
     }
 
+    #button-screenshot {
+      margin: 0 5px;
+    }
+
     #extra-button-container {
       display: flex;
       flex: 1;
@@ -191,6 +195,9 @@
       <div id="extra-button-container">
         <slot name="extra-button"></slot>
       </div>
+      <button id="button-screenshot">
+        <i18n-label>Screenshot (Press Ctrl+S)</i18n-label>
+      </button>
       <button id="button-mark-failed">
         <i18n-label>Mark Failed</i18n-label>
       </button>

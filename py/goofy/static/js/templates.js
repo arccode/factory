@@ -95,6 +95,12 @@
         markFailButton.classList.add('disable-abort');
       }
 
+      const screenshotButton =
+          this.shadowRoot.querySelector('#button-screenshot');
+      screenshotButton.addEventListener('click', () => {
+        window.test.screenshot();
+      });
+
       this.progressBar = null;
       this.progressTotal = 0;
       this.progressNow = 0;

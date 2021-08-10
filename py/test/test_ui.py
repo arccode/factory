@@ -447,9 +447,6 @@ class UI:
     """Binds standard fail keys (ESC, 'F')."""
     self.CallJSFunction('test.bindStandardFailKeys')
 
-  def BindStandardScreenshotKeys(self):
-    self.CallJSFunction('test.bindStandardScreenshotKeys')
-
   def BindStandardKeys(self):
     """Binds standard pass and fail keys."""
     self.CallJSFunction('test.bindStandardKeys')
