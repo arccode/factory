@@ -148,6 +148,33 @@ class UCMConfigManagerTest(unittest.TestCase):
     self.assertRaises(ValueError, config_mgr.GetChannelMap,
                       config_manager.InputDevices.Dmic, '2')
 
+  @mock.patch('os.path.isdir')
+  def testGetDefaultInputGain(self, mock_isdir):
+    device = mock.MagicMock()
+    mixer_controller = mock.MagicMock()
+    MockInitialize(device, mock_isdir)
+
+    config_mgr = config_manager.UCMConfigManager(device, mixer_controller)
+
+    # A normal output looks like
+    # '\tIntrinsicSensitivity/Internal Mic=-2600\n'.
+    # Since DEFAULT_CAPTURE_VOLUME_DBFS is -600, the default input gain
+    # with an intrinsic sensitivity of -2600 should be 20 (db).
+    prefix = '\tIntrinsicSensitivity/'
+    # pylint: disable=protected-access
+    config_mgr._InvokeDeviceCommands = mock.MagicMock(
+        return_value=f'{prefix}Internal Mic=-2600\n')
+    return_value = config_mgr.GetDefaultInputGain('2')
+    self.assertEqual(return_value, 20)
+
+    # It's normal that there are no IntrinsicSensitivity defined.
+    # In this case, we should use return 0 to ignore input gain.
+    config_mgr._InvokeDeviceCommands = mock.MagicMock(
+        side_effect=device_types.CalledProcessError(1, cmd=[],
+                                                    output='Not exist'))
+    return_value = config_mgr.GetDefaultInputGain('2')
+    self.assertEqual(return_value, 0)
+
 
 if __name__ == '__main__':
   unittest.main()

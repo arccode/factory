@@ -208,8 +208,6 @@ _DEFAULT_AUDIOFUN_TEST_SAMPLE_RATE = 48000
 _DEFAULT_AUDIOFUN_TEST_SAMPLE_FORMAT = 's16'
 # Default sample format used to play audio, s16 = Signed 16 Bit.
 _DEFAULT_AUDIOFUN_TEST_PLAYER_FORMAT = 's16'
-# Default record gain for audiofuntest record command, 0(dB) is multiply by 1.
-_DEFAULT_AUDIOFUN_TEST_INPUT_GAIN = 0
 # Default channels of the input_dev to be tested.
 _DEFAULT_TEST_INPUT_CHANNELS = [0, 1]
 # Default channels of the output_dev to be tested.
@@ -584,6 +582,9 @@ class AudioLoopTest(test_case.TestCase):
     # If the test fails, attach the audio file; otherwise, remove it.
     self._audio_file_path = []
 
+    ucm_config_mgr = self._dut.audio.ucm_config_mgr
+    self._default_input_gain = ucm_config_mgr.GetDefaultInputGain(self._in_card)
+
   def tearDown(self):
     self._dut.audio.RestoreMixerControls()
     self._dut.CheckCall(['rm', '-rf', self._dut_temp_dir])
@@ -784,7 +785,7 @@ class AudioLoopTest(test_case.TestCase):
                      self._alsa_output_device)
 
     input_gain = self._current_test_args.get('input_gain',
-                                             _DEFAULT_AUDIOFUN_TEST_INPUT_GAIN)
+                                             self._default_input_gain)
     recorder_cmd = 'sox -talsa %s '\
                    '-b%d -c%d -e%s -r%d -traw - remix %s gain %d' % (
                        self._alsa_input_device,

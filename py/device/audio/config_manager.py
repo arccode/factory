@@ -38,6 +38,9 @@ OutputDevices = type_utils.Enum(['Speaker', 'Headphone'])
 AudioDeviceType = type_utils.Enum(
     list(InputDevices) + list(OutputDevices))
 
+INPUT_SENSITIVITY_NAME = 'IntrinsicSensitivity'
+DEFAULT_CAPTURE_VOLUME_DBFS = -600
+
 
 class BaseConfigManager(metaclass=abc.ABCMeta):
   @abc.abstractmethod
@@ -712,6 +715,18 @@ class UCMConfigManager(BaseConfigManager):
           (output, card_name))
     raise ValueError(
         'Wrong output format. output:%r card_name:%r' % (output, card_name))
+
+  def GetDefaultInputGain(self, card):
+    """Return the default input gain of a device."""
+    device_name = self._GetDeviceName(card, AudioDeviceType.Dmic)
+    identity = '%s/%s' % (INPUT_SENSITIVITY_NAME, device_name)
+    try:
+      output = self._InvokeDeviceCommands(card, 'get "%s"' % identity)
+      sensitivity = re.search(r'^(.+)=(.+)$', output, re.MULTILINE).group(2)
+      input_gain = (DEFAULT_CAPTURE_VOLUME_DBFS - int(sensitivity)) / 100
+      return input_gain
+    except Exception:
+      return 0
 
   def LoadConfig(self, config_name):
     raise Exception('UCM config does not support LaodConfig operation.')

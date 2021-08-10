@@ -116,6 +116,12 @@ class BaseAudioControl(device_types.DeviceComponent):
         config.
     """
     self.config_mgr = self._CreateAudioConfigManager(config_name)
+    if isinstance(self.config_mgr, config_manager.UCMConfigManager):
+      self.ucm_config_mgr = self.config_mgr
+    else:
+      self.ucm_config_mgr = config_manager.UCMConfigManager(
+          self._device, self.mixer_controller, self.ucm_card_map,
+          self.ucm_device_map, self.ucm_verb)
 
   def GetCardIndexByName(self, card_name):
     """See BaseMixerController.GetCardIndexByName."""
