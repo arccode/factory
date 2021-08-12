@@ -17,6 +17,7 @@ import shutil
 import sys
 import textwrap
 import time
+from typing import Set
 import urllib.parse
 
 import yaml
@@ -69,6 +70,8 @@ FIRMWARE_IMAGE_SOURCE_DIR = 'firmware_image_source'
 
 # When version is fixed, we'll try to find the resource in the following order.
 RESOURCE_CHANNELS = ['stable', 'beta', 'dev', 'canary']
+
+PROJECT_TOOLKIT_PACKAGES = 'factory_project_toolkits.tar.gz'
 
 
 class FinalizeBundleException(Exception):
@@ -212,6 +215,7 @@ class FinalizeBundle:
     self.LocateResources()
     self.DownloadResources()
     self.PrepareProjectConfig()
+    self.AddProjectToolkit()
     self.AddDefaultCompleteScript()
     self.AddFirmwareUpdaterAndImages()
     self.GetAndSetResourceVersions()
@@ -249,6 +253,11 @@ class FinalizeBundle:
     self.project = self.manifest.get('project', self.board).lower()
     # assume designs=None for backward compatibility
     self.designs = self.manifest.get('designs', None)
+    if not (self.designs == BOXSTER_DESIGNS or self.designs is None or
+            isinstance(self.designs, list)):
+      raise FinalizeBundleException(
+          'The designs (currently %r) should be %r, None or a list of str.' %
+          (self.designs, BOXSTER_DESIGNS))
 
     self.bundle_name = self.manifest['bundle_name']
     if not re.match(r'\d{8}_', self.bundle_name):
@@ -476,21 +485,21 @@ class FinalizeBundle:
                          self.signed_shim_path
                         ) + need_test_image + need_release_image + need_firmware
       max_workers = min(max_workers, self.jobs)
+      not_done_jobs: Set[concurrent.futures.Future] = set()
       try:
         executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=max_workers)
-        not_done_jobs = []
         if need_test_image:
           download_test_image = executor.submit(
               self._DownloadTestImage, self.test_image_source,
               os.path.join(self.bundle_dir, TEST_IMAGE_SEARCH_DIRS[0]))
-          not_done_jobs.append(download_test_image)
+          not_done_jobs.add(download_test_image)
 
         if need_release_image:
           download_release_image = executor.submit(
               self._DownloadReleaseImage, self.release_image_source,
               os.path.join(self.bundle_dir, RELEASE_IMAGE_SEARCH_DIRS[0]))
-          not_done_jobs.append(download_release_image)
+          not_done_jobs.add(download_release_image)
         else:
           download_release_image = None
 
@@ -498,9 +507,14 @@ class FinalizeBundle:
           download_toolkit = executor.submit(self._DownloadFactoryToolkit,
                                              self.toolkit_source,
                                              self.bundle_dir)
-          not_done_jobs.append(download_toolkit)
+          download_project_toolkit = executor.submit(
+              self._DownloadProjectToolkit, self.toolkit_source,
+              self.bundle_dir)
+          not_done_jobs.add(download_toolkit)
+          not_done_jobs.add(download_project_toolkit)
         else:
           download_toolkit = None
+          download_project_toolkit = None
 
         abs_factory_shim_dir = os.path.join(self.bundle_dir,
                                             FACTORY_SHIM_SEARCH_DIR)
@@ -517,7 +531,7 @@ class FinalizeBundle:
             return self.signed_shim_path
 
           get_install_shim = executor.submit(GetInstallShim)
-          not_done_jobs.append(get_install_shim)
+          not_done_jobs.add(get_install_shim)
 
         if need_firmware:
           firmware_source_version = self.firmware_source.split('/')[1]
@@ -525,7 +539,7 @@ class FinalizeBundle:
             download_firmware_image = executor.submit(
                 self._DownloadReleaseImage, firmware_source_version,
                 os.path.join(self.bundle_dir, FIRMWARE_IMAGE_SOURCE_DIR))
-            not_done_jobs.append(download_firmware_image)
+            not_done_jobs.add(download_firmware_image)
           elif download_release_image:
             download_firmware_image = download_release_image
           else:
@@ -585,6 +599,21 @@ class FinalizeBundle:
     assert match, 'Unable to parse toolkit info: %r' % output
     self.toolkit_version = match.group(1)  # May be None if locally built
     logging.info('Toolkit version: %s', self.toolkit_version)
+
+  def AddProjectToolkit(self):
+    """Use project toolkit if exists and the source is not local."""
+    if self.toolkit_source == LOCAL:
+      return
+    package = os.path.join(self.bundle_dir, PROJECT_TOOLKIT_PACKAGES)
+    extracted_dir = os.path.join(self.bundle_dir, 'factory_project_toolkits')
+    if os.path.exists(package):
+      file_utils.ExtractFile(package, extracted_dir)
+      os.remove(package)
+    project_toolkit_path = os.path.join(
+        extracted_dir, f'{self.project}_install_factory_toolkit.run')
+    if os.path.exists(project_toolkit_path):
+      logging.info('Moving %r to %r', project_toolkit_path, self.toolkit_path)
+      shutil.move(project_toolkit_path, self.toolkit_path)
 
   def AddDefaultCompleteScript(self):
     """Adds default complete script if not set."""
@@ -1164,6 +1193,14 @@ class FinalizeBundle:
                                          possible_urls, target_dir)
 
   def _DownloadFactoryToolkit(self, requested_version, target_dir):
+    """Downloads factory_image.zip.
+
+    For older builds, the archive has different name so the pattern is
+    '*factory*.zip'.
+
+    Returns:
+      The path of toolkit directory.
+    """
     possible_urls = []
     for channel in RESOURCE_CHANNELS:
       url = '%s/%s' % (
@@ -1179,6 +1216,35 @@ class FinalizeBundle:
     return self._LocateOneResource(
         'factory toolkit', LOCAL, TOOLKIT_SEARCH_DIRS,
         lambda unused_path, unused_version: True)
+
+  def _DownloadProjectToolkit(self, requested_version, target_dir):
+    """Downloads PROJECT_TOOLKIT_PACKAGES.
+
+    Returns:
+      The path of the package or None if the package is absent.
+    """
+    if not self.designs:
+      return None
+    branches = ['factory', 'release']
+    possible_urls = [
+        'gs://chromeos-image-archive/%s-%s/R*-%s/%s' %
+        (self.build_board.gsutil_name, branch, requested_version,
+         PROJECT_TOOLKIT_PACKAGES) for branch in branches
+    ]
+    try:
+      with self._DownloadResource(
+          possible_urls, 'project specific toolkit',
+          requested_version) as (downloaded_path, found_url):
+        dst_path = os.path.join(target_dir, os.path.basename(found_url))
+        logging.info('Moving %r to %r', downloaded_path, dst_path)
+        file_utils.TryMakeDirs(target_dir)
+        shutil.move(downloaded_path, dst_path)
+      return dst_path
+    except FinalizeBundleException as e:
+      # The project specific toolkit isn't found.
+      logging.info(e)
+
+    return None
 
   def _TryDownloadSignedFactoryShim(self, requested_version, target_dir):
     possible_urls = []
