@@ -353,3 +353,39 @@ you only need to override `constants`, `options` and `override_args`.
 ### Dump Python Test List in JSON Format
 On machine, you can use `factory dump-test-list <test list id> --format json` to
 dump a test list in JSON format.
+
+## Main Wipe Test Lists
+This is a special test list which only runs ModelSKU, update fingerprint
+firmware and finalization. The test list could be useful if you would like
+to test different versions of recovery image on a finalized DUT. A typical
+use case could be:
+1. There's a finalized DUT, and it is booted from a recovery image. You have
+   done some testing on this recovery image and would like to test another
+   version of the recovery image.
+2. You have a factory shim and would like to install different versions of
+   recovery image from dome.
+3. Upload recovery image, test image and toolkit to dome.
+4. Enter recovery mode and boot into factory shim.
+5. Press E to perform RSU to remove HWWP. The DUT will reboot after RSU unlock.
+6. Enter recovery mode again, and press I to install from dome.
+7. After installation, the DUT will reboot, and you'll see the Goofy web page.
+8. Run main_wipe test list.
+9. Go to step 1 and repeat the whole process.
+
+IMPORTANT: Please **complete the finalization step**. If the pre-condition is
+not met, then you can not ship the device because it violates
+[factory requirements](https://chromeos.google.com/partner/dlm/docs/factory/factoryrequirements.html).
+
+### Modify the test list accordingly
+By default, the main_wipe test list inherits from generic_fat and generic_grt
+test lists. You should modify the inherited test list accordingly. For example,
+inherit from common test list. Moreover, you should also modify the name of
+this test list to main_<model>.test_list.json. So that the DUT will
+execute this test list automatically after booting into test image.
+
+### Why does the test list run `ModelSKU` and `Fingerprint Test Group`?
+Finalization will reinitialize FPMCU entropy and this will cause some problem.
+(see b/194449380 for more info). Therefore, we need to first run ModelSKU to
+get the device data, then reflash the FPFW, and finally, run finalization. If
+the DUT you're using does not have fingerprint sensor, then you can remove
+ModelSKU and fingerprint test group from the test list.

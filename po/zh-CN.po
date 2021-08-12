@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-08-11 10:22+CST\n"
+"PO-Revision-Date: 2021-08-30 12:17+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -3756,6 +3756,10 @@ msgstr "Test List for Tast Tests"
 #: ../py/test/test_lists/generic_unprovisioned.test_list.json
 msgid "Provision Chromebook with SKU ID"
 msgstr "供应 Chromebook 样式 ID"
+
+#: ../py/test/test_lists/main_wipe.test_list.json
+msgid "Execute Wipe Test-List"
+msgstr ""
 
 #: ../py/test/test_lists/station_based.test_list.json
 msgid "Connect Device"

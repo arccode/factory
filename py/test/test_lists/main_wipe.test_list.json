@@ -1,0 +1,13 @@
+{
+  "inherit": [
+    "generic_fat.test_list",
+    "generic_grt.test_list"
+  ],
+  "label": "Execute Wipe Test-List",
+  "definitions": {},
+  "tests": [
+    "ModelSKU",
+    "FPSGroup",
+    "GRTFinalize"
+  ]
+}
