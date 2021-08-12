@@ -25,6 +25,7 @@ from backend.models import Project
 from backend.models import Resource
 from backend.models import Service
 from backend.models import TemporaryUploadedFile
+from backend.models import GetUmpireSyncStatus
 from backend.serializers import BundleSerializer
 from backend.serializers import ConfigSerializer
 from backend.serializers import LogDeleteSerializer
@@ -255,3 +256,11 @@ class ResourceDownloadView(views.APIView):
                                       kwargs['resource_type'])
     return StreamingHttpResponse(resource_file,
                                  content_type='application/octet-stream')
+
+
+class SyncStatusView(views.APIView):
+  permission_classes = (permissions.AllowAny, )
+
+  def get(self, request, *args, **kwargs):
+    del request, args  # Unused.
+    return Response(GetUmpireSyncStatus(kwargs['project_name']))

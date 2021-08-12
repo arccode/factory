@@ -34,25 +34,20 @@ RESOURCE_URL_ARG = r'(?P<resource_type>[^/]+)'
 
 
 urlpatterns = [
-    url(r'^$',
-        TemplateView.as_view(template_name='index.html')),
-    url(r'^auth$',
-        drf_views.obtain_auth_token, name='auth'),
-    url(r'^config/(?P<id>\d+)/$',
-        views.ConfigView.as_view()),
-    url(r'^files/$',
-        views.FileCollectionView.as_view()),
-    url(r'^info$',
-        views.InfoView.as_view()),
-    url(r'^projects/$',
-        views.ProjectCollectionView.as_view()),
+    url(r'^$', TemplateView.as_view(template_name='index.html')),
+    url(r'^auth$', drf_views.obtain_auth_token, name='auth'),
+    url(r'^config/(?P<id>\d+)/$', views.ConfigView.as_view()),
+    url(r'^files/$', views.FileCollectionView.as_view()),
+    url(r'^info$', views.InfoView.as_view()),
+    url(r'^projects/$', views.ProjectCollectionView.as_view()),
     url(r'^projects/%s/$' % PROJECT_URL_ARG,
         views.ProjectElementView.as_view()),
     url(r'^projects/%s/bundles/$' % PROJECT_URL_ARG,
         views.BundleCollectionView.as_view()),
     url(r'^projects/%s/bundles/%s/$' % (PROJECT_URL_ARG, BUNDLE_URL_ARG),
         views.BundleElementView.as_view()),
-    url(r'^projects/%s/bundles/%s/%s$' %
+    url(
+        r'^projects/%s/bundles/%s/%s$' %
         (PROJECT_URL_ARG, BUNDLE_URL_ARG, RESOURCE_URL_ARG),
         views.ResourceDownloadView.as_view()),
     url(r'^projects/%s/log/compress/$' % PROJECT_URL_ARG,
@@ -72,6 +67,9 @@ urlpatterns = [
     url(r'^projects/%s/services/$' % PROJECT_URL_ARG,
         views.ServiceCollectionView.as_view()),
     url(r'^projects/%s/services/schema$' % PROJECT_URL_ARG,
-        views.ServiceSchemaView.as_view())]
+        views.ServiceSchemaView.as_view()),
+    url(r'^projects/%s/sync/status/$' % PROJECT_URL_ARG,
+        views.SyncStatusView.as_view()),
+]
 
 urlpatterns = format_suffix_patterns(urlpatterns)

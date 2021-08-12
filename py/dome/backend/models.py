@@ -154,6 +154,10 @@ def GetUmpireConfig(project_name):
   return json_utils.LoadStr(GetUmpireServer(project_name).GetActiveConfig())
 
 
+def GetUmpireSyncStatus(project_name):
+  return GetUmpireServer(project_name).GetUmpireSyncStatus()
+
+
 def GenerateUploadToPath(unused_instance, filename):
   """Generate a unique file path string in django's media root.
 
