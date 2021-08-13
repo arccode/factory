@@ -116,18 +116,22 @@ class CbiUtilsTest(unittest.TestCase):
   def testVerifyWpStatus(self, present_mock, get_cbi_mock, set_cbi_mock):
     for expected_wp_status in cbi_utils.CbiEepromWpStatus:
       for actual_wp_status in cbi_utils.CbiEepromWpStatus:
-        possible_error_messages = [None]
-        if actual_wp_status == cbi_utils.CbiEepromWpStatus.Locked:
-          possible_error_messages = cbi_utils.WpErrorMessages
-        for error_messages in possible_error_messages:
-          _SetMockStatus(actual_wp_status, present_mock, get_cbi_mock,
-                         set_cbi_mock, error_messages)
-          if expected_wp_status == actual_wp_status:
-            cbi_utils.VerifyCbiEepromWpStatus(self.dut, expected_wp_status)
-          else:
-            self.assertRaises(cbi_utils.CbiException,
-                              cbi_utils.VerifyCbiEepromWpStatus, self.dut,
-                              expected_wp_status)
+        for ec_bypass in [False, True]:
+          possible_error_messages = []
+          if actual_wp_status == cbi_utils.CbiEepromWpStatus.Locked:
+            possible_error_messages += cbi_utils.WpErrorMessages
+          if ec_bypass:
+            possible_error_messages += cbi_utils.WpGeneralErrorMessages
+          for error_messages in possible_error_messages:
+            _SetMockStatus(actual_wp_status, present_mock, get_cbi_mock,
+                           set_cbi_mock, error_messages)
+            if expected_wp_status == actual_wp_status:
+              cbi_utils.VerifyCbiEepromWpStatus(self.dut, expected_wp_status,
+                                                ec_bypass)
+            else:
+              self.assertRaises(cbi_utils.CbiException,
+                                cbi_utils.VerifyCbiEepromWpStatus, self.dut,
+                                expected_wp_status, ec_bypass)
 
 
 if __name__ == '__main__':

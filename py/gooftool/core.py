@@ -742,11 +742,11 @@ class Gooftool:
       if 'BoardID is set' in stdout:
         logging.warning('SN Bits cannot be set anymore.')
 
-  def VerifyCBIEEPROMWPStatus(self, cbi_eeprom_wp_status):
+  def VerifyCBIEEPROMWPStatus(self, cbi_eeprom_wp_status, use_generic_tpm2):
     """Verifies CBI EEPROM write protection status."""
 
     cbi_utils.VerifyCbiEepromWpStatus(self._util.sys_interface,
-                                      cbi_eeprom_wp_status)
+                                      cbi_eeprom_wp_status, use_generic_tpm2)
 
   def GetBitmapLocales(self, image_file):
     """Get bitmap locales

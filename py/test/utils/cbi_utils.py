@@ -56,9 +56,11 @@ CbiDataDict = {
 }
 CbiEepromWpStatus = type_utils.Enum(['Locked', 'Unlocked', 'Absent'])
 # The error messages of ectool change from time to time.
-WpErrorMessages = ('Write-protect is enabled or EC explicitly '
-                   'refused to change the requested field.',
-                   'errno 13 (Permission denied)')
+WpErrorMessages = [
+    'Write-protect is enabled or EC explicitly '
+    'refused to change the requested field.', 'errno 13 (Permission denied)'
+]
+WpGeneralErrorMessages = ['EC result 2 (ERROR)\nError code: -1002\n']
 
 
 def GetCbiData(dut, data_name):
@@ -101,8 +103,6 @@ def SetCbiData(dut, data_name, value):
   stdout, stderr = process.communicate()
   logging.info('%s: stdout: %s\n', command, stdout)
   if process.returncode != 0:
-    logging.error('returncode: %d, stderr: %s',
-                  process.returncode, stderr)
     raise CbiException('Failed to set data_name=%s to EEPROM. '
                        'returncode=%d, stdout=%s, stderr=%s' %
                        (data_name, process.returncode, stdout, stderr))
@@ -132,7 +132,8 @@ def CheckCbiEepromPresent(dut):
   return process.returncode == 0
 
 
-def VerifyCbiEepromWpStatus(dut, cbi_eeprom_wp_status):
+def VerifyCbiEepromWpStatus(dut, cbi_eeprom_wp_status,
+                            ec_bypass_cbi_eeprom_wp_check):
   """Verify CBI EEPROM status.
 
   If cbi_eeprom_wp_status is Absent, CBI EEPROM must be absent. If
@@ -142,6 +143,8 @@ def VerifyCbiEepromWpStatus(dut, cbi_eeprom_wp_status):
   Args:
     dut: The SystemInterface of the device.
     cbi_eeprom_wp_status: The expected status, must be one of CbiEepromWpStatus.
+    ec_bypass_cbi_eeprom_wp_check: EC will bypass the write protect check if
+    this is on.
 
   Raises:
     CbiException if the status is not expected, GetCbiData fails when CBI is
@@ -179,13 +182,20 @@ def VerifyCbiEepromWpStatus(dut, cbi_eeprom_wp_status):
   detect_write_protect = sku_id == sku_id_afterward
   expected_write_protect = cbi_eeprom_wp_status == CbiEepromWpStatus.Locked
   errors = []
+  allowed_error_messages = WpErrorMessages.copy()
+  # If EC bypass cbi_eeprom_wp_check and expected_write_protect, _SetSKUId wil
+  # bypass the write protect check, encounter error while trying to set, and
+  # return the general error (Code -1002).
+  # We should allow this error message as well.
+  if ec_bypass_cbi_eeprom_wp_check:
+    allowed_error_messages += WpGeneralErrorMessages
   if expected_write_protect:
     if write_success:
       errors.append('_SetSKUId should return False but get True.')
-    elif all(
-        error_message not in messages for error_message in WpErrorMessages):
+    elif all(error_message not in messages
+             for error_message in allowed_error_messages):
       errors.append('Output of _SetSKUId should contain one of %r but get %r' %
-                    (WpErrorMessages, messages))
+                    (allowed_error_messages, messages))
   else:
     if not write_success:
       errors.append('_SetSKUId should return True but get False.')

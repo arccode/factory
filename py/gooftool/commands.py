@@ -285,7 +285,9 @@ _use_generic_tpm2_arg = CmdArg(
     '--use_generic_tpm2', action='store_true',
     help=('Most Chromebooks are using Google security chips.  If this project '
           'is using a generic TPM (e.g. infineon), set this to true.  The '
-          'steps in `cr50_finalize` will be adjusted'))
+          'steps in `cr50_finalize` will be adjusted.  The EC will bypass the '
+          'CBI EEPROM write protect check and will return general error code '
+          'if failed to write.'))
 
 
 @Command(
@@ -400,20 +402,21 @@ def VerifySnBits(options):
     GetGooftool(options).VerifySnBits()
 
 
-@Command(
-    'verify_cbi_eeprom_wp_status',
-    _cbi_eeprom_wp_status_cmd_arg,
-)
+@Command('verify_cbi_eeprom_wp_status', _cbi_eeprom_wp_status_cmd_arg,
+         _use_generic_tpm2_arg)
 def VerifyCBIEEPROMWPStatus(options):
   """Verify CBI EEPROM status.
 
   If cbi_eeprom_wp_status is Absent, CBI EEPROM must be absent. If
   cbi_eeprom_wp_status is Locked, write protection must be on. Otherwise, write
   protection must be off.
+  If use_generic_tmp2, the EEPROM write protect checks in EC will be bypassed
+  and will return general error (code: 4) even if it is write protected. So we
+  must handle this situation in cbi_util.
   """
 
   return GetGooftool(options).VerifyCBIEEPROMWPStatus(
-      options.cbi_eeprom_wp_status)
+      options.cbi_eeprom_wp_status, options.use_generic_tpm2)
 
 
 @Command('write_protect')
