@@ -8,7 +8,8 @@ export type AppName =
   'CONFIG_APP' |
   'DASHBOARD_APP' |
   'PARAMETER_APP' |
-  'LOG_APP';
+  'LOG_APP' |
+  'SYNC_STATUS_APP';
 
 export interface DomeInfo {
   dockerImageGithash: string;

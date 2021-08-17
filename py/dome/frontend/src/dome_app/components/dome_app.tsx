@@ -23,6 +23,7 @@ import ErrorDialog from '@app/error/components/error_dialog';
 import LogApp from '@app/log/components/log_app';
 import ParameterApp from '@app/parameters/components/parameter_app';
 import ProjectsApp from '@app/project/components/projects_app';
+import SyncStatusApp from '@app/sync_status/components/sync_status_app';
 import TaskList from '@app/task/components/task_list';
 import {RootState} from '@app/types';
 
@@ -134,6 +135,8 @@ To visit Dome, please use Chrome/Chromium to avoid unnecessary issues.`);
       app = <ParameterApp />;
     } else if (appName === 'LOG_APP') {
       app = <LogApp />;
+    } else if (appName === 'SYNC_STATUS_APP') {
+      app = <SyncStatusApp />;
     } else {
       assertNotReachable(appName);
     }

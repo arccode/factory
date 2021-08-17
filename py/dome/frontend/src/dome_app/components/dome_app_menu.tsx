@@ -88,9 +88,18 @@ const DomeAppMenu: React.SFC<DomeAppMenuProps> = ({
               key="LOG_APP"
               className={classes.nested}
               disabled={!project.umpireReady}
-              divider
             >
               Logs {project.umpireEnabled &&
+                !project.umpireReady && '(activating...)'}
+            </DomeAppMenuItem>,
+            <DomeAppMenuItem
+              app="SYNC_STATUS_APP"
+              key="SYNC_STATUS_APP"
+              className={classes.nested}
+              disabled={!project.umpireReady}
+              divider
+            >
+              Sync Status {project.umpireEnabled &&
                 !project.umpireReady && '(activating...)'}
             </DomeAppMenuItem>,
           ]}
