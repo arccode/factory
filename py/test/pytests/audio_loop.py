@@ -224,8 +224,10 @@ _DEFAULT_SOX_RMS_THRESHOLD = (0.08, None)
 _DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
 # Default Max Delta thresholds when checking recorded file.
 _DEFAULT_SOX_MAX_DELTA_THRESHOLD = (None, None)
-# Default RMS thresholds when testing audiofuntest.
-_DEFAULT_AUDIOFUNTEST_RMS_THRESHOLD = 0.01
+# Default RMS threshold ratio relative to volume_gain when testing audiofuntest.
+_DEFAULT_AUDIOFUNTEST_RMS_THRESHOLD_RATIO_RELATIVE_TO_VOLUME_GAIN = 0.0015
+# Default minimum RMS threshold when testing audiofuntest.
+_DEFAULT_AUDIOFUNTEST_MINIMUM_RMS_THRESHOLD = 0.04
 # Default duration in seconds to trim in the beginning of recorded file.
 _DEFAULT_TRIM_SECONDS = 0.5
 # Default minimum frequency.
@@ -799,8 +801,12 @@ class AudioLoopTest(test_case.TestCase):
     logging.info('player_cmd: %s', player_cmd)
     logging.info('recorder_cmd: %s', recorder_cmd)
 
-    rms_threshold = self._current_test_args.get(
-        'rms_threshold', _DEFAULT_AUDIOFUNTEST_RMS_THRESHOLD)
+    default_rms_threshold = max(
+        volume_gain *
+        _DEFAULT_AUDIOFUNTEST_RMS_THRESHOLD_RATIO_RELATIVE_TO_VOLUME_GAIN,
+        _DEFAULT_AUDIOFUNTEST_MINIMUM_RMS_THRESHOLD)
+    rms_threshold = self._current_test_args.get('rms_threshold',
+                                                default_rms_threshold)
     process = self._dut.Popen([
         audio_utils.AUDIOFUNTEST_PATH, '-P', player_cmd, '-R', recorder_cmd,
         '-t', audiofuntest_sample_format, '-r',
