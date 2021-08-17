@@ -659,7 +659,9 @@ def Verify(options):
   if not options.no_write_protect:
     VerifyWPSwitch(options)
     VerifyManagementEngineLocked(options)
-  VerifyCBIEEPROMWPStatus(options)
+  if not options.use_generic_tpm2:
+    # Verify this after EnableFwWp for use_generic_tpm2
+    VerifyCBIEEPROMWPStatus(options)
   VerifyHWID(options)
   VerifySystemTime(options)
   if options.has_ec_pubkey:
@@ -945,6 +947,8 @@ def Finalize(options):
     event_log.Log('wp', fw='both', status='skipped')
   else:
     EnableFwWp(options)
+    if options.use_generic_tpm2:
+      VerifyCBIEEPROMWPStatus(options)
   FpmcuInitializeEntropy(options)
   LogSystemDetails(options)
   UploadReport(options)
