@@ -26,9 +26,9 @@ class UftpProcessTest(unittest.TestCase):
     self.uftp_proc.Spawn()
 
     mock_spawn.assert_called_with([
-        '/usr/bin/uftp', '-M', '224.1.1.1', '-t', '10', '-u', '8093', '-p',
-        '8093', '-x', '0', '-S', '/path/to/log_dir', '-C', 'tfmcc', '-s', '50',
-        '-I', '192.168.1.1', '/path/to/resources/fake_file'
+        '/usr/bin/uftp', '-M', '224.1.1.1', '-P', '224.1.1.1', '-t', '10', '-u',
+        '8093', '-p', '8093', '-x', '0', '-S', '/path/to/log_dir', '-C',
+        'tfmcc', '-s', '50', '-I', '192.168.1.1', '/path/to/resources/fake_file'
     ], stderr=process_utils.PIPE)
 
   @mock.patch('cros.factory.utils.process_utils.Spawn')
@@ -41,9 +41,9 @@ class UftpProcessTest(unittest.TestCase):
     uftp_proc.Spawn()
 
     mock_spawn.assert_called_with([
-        '/usr/bin/uftp', '-M', '224.1.1.1', '-t', '10', '-u', '8093', '-p',
-        '8093', '-x', '0', '-S', '/path/to/log_dir', '-C', 'tfmcc', '-s', '50',
-        '/path/to/resources/fake_file'
+        '/usr/bin/uftp', '-M', '224.1.1.1', '-P', '224.1.1.1', '-t', '10', '-u',
+        '8093', '-p', '8093', '-x', '0', '-S', '/path/to/log_dir', '-C',
+        'tfmcc', '-s', '50', '/path/to/resources/fake_file'
     ], stderr=process_utils.PIPE)
 
   @mock.patch('cros.factory.multicast.server.UftpProcess.Spawn')

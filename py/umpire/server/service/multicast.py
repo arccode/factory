@@ -5,6 +5,7 @@
 """Multicast service for umpire resources."""
 
 import os
+import re
 
 from cros.factory.umpire.server.service import umpire_service
 from cros.factory.utils import file_utils
@@ -14,7 +15,8 @@ from cros.factory.utils import json_utils
 FACTORY_ENV = '/usr/local/factory/bin/factory_env'
 
 MCAST_CONFIG_NAME = 'multicast_config.json'
-MCAST_DEFAULT_ADDRESS = '224.1.1.1'
+DEFAULT_MGROUP = '224.3.1.1'
+DEFAULT_MGROUP_PREFIX = '224.3'
 _REQUIRED_IMAGE_PARTS = [
     'test_image.part1',
     'test_image.part3',
@@ -38,6 +40,19 @@ class MulticastService(umpire_service.UmpireService):
   a symbolic link at Umpire base directory for the multicast server."""
 
   @staticmethod
+  def _GetMcastGroup(service_config):
+    if 'mgroup' in service_config:
+      mgroup = service_config['mgroup']
+    elif 'server_ip' in service_config:
+      mgroup = (
+          DEFAULT_MGROUP_PREFIX +
+          re.search(r'\.\d+\.\d+$', service_config['server_ip']).group())
+    else:
+      mgroup = DEFAULT_MGROUP
+    assert re.match(r'\d+\.\d+\.\d+\.\d+', mgroup)
+    return mgroup
+
+  @staticmethod
   def GenerateConfig(service_config, payloads, port):
     """Generates multicast config.
 
@@ -52,7 +67,7 @@ class MulticastService(umpire_service.UmpireService):
     Returns:
       Config for the multicast server."""
 
-    mgroup = service_config.get('mgroup', MCAST_DEFAULT_ADDRESS)
+    mgroup = MulticastService._GetMcastGroup(service_config)
 
     required_components = service_config['required_components']
 

@@ -72,6 +72,57 @@ class GenerateConfigTest(unittest.TestCase):
         TestData('mcast_config_default_values.json'))
     self.assertEqual(generated_config, expected_config)
 
+  def testNoServerIp(self):
+    """Test when `server_ip` is assigned, but `mgroup` is not given."""
+    _SERVICE_CONFIG_NO_SERVER_IP = {
+        'mgroup': '224.1.2.3',
+        'required_components': {
+            "test_image": True
+        }
+    }
+    generated_config = multicast.MulticastService.GenerateConfig(
+        _SERVICE_CONFIG_NO_SERVER_IP, self.payload, DEFAULT_PORT)
+    expected_config = json_utils.LoadFile(
+        TestData('mcast_config_no_server_ip.json'))
+    self.assertEqual(generated_config, expected_config)
+
+  def testAutoAssignMgroup(self):
+    """Test auto assigning `mgroup` from server_ip."""
+    _SERVICE_CONFIG_AUTO_ASSIGN_MGROUP = {
+        'server_ip': '192.168.12.34',
+        'required_components': {
+            "test_image": True
+        }
+    }
+    generated_config = multicast.MulticastService.GenerateConfig(
+        _SERVICE_CONFIG_AUTO_ASSIGN_MGROUP, self.payload, DEFAULT_PORT)
+    expected_config = json_utils.LoadFile(
+        TestData('mcast_config_auto_assign_mgroup.json'))
+    self.assertEqual(generated_config, expected_config)
+
+  def testBadMgroup(self):
+    _SERVICE_CONFIG_BAD_MGROUP = {
+        'mgroup': '123456',
+        'required_components': {
+            "test_image": True
+        }
+    }
+    with self.assertRaises(AssertionError):
+      multicast.MulticastService.GenerateConfig(_SERVICE_CONFIG_BAD_MGROUP,
+                                                self.payload, DEFAULT_PORT)
+
+  def testAutoAssignMgroupWithBadServerIp(self):
+    _SERVICE_CONFIG_BAD_SERVER_IP = {
+        'server_ip': '123456',
+        'required_components': {
+            "test_image": True
+        }
+    }
+    # Raised by the `.group()` call from a None object returned by `re.search`.
+    with self.assertRaises(AttributeError):
+      multicast.MulticastService.GenerateConfig(_SERVICE_CONFIG_BAD_SERVER_IP,
+                                                self.payload, DEFAULT_PORT)
+
 
 class MulticastServiceTest(unittest.TestCase):
   _DUMMY_MCAST_CONFIG = {

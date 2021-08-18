@@ -69,9 +69,9 @@ class UftpProcess:
     # "-u" defines the the UDP source port, while "-p" defines the UDP
     # destination port.
     cmd = [
-        UFTP_PATH, '-M', addr, '-t', self.args.TTL, '-u', port, '-p', port,
-        '-x', self.args.LOG_LEVEL, '-S', self.args.status_file_path, '-C',
-        self.args.CC_TYPE, '-s', self.args.ROBUST_FACTOR
+        UFTP_PATH, '-M', addr, '-P', addr, '-t', self.args.TTL, '-u', port,
+        '-p', port, '-x', self.args.LOG_LEVEL, '-S', self.args.status_file_path,
+        '-C', self.args.CC_TYPE, '-s', self.args.ROBUST_FACTOR
     ]
 
     if self.args.interface != '':
