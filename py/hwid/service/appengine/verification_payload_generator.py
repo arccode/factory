@@ -71,7 +71,7 @@ def _GetAllGenericProbeStatementInfoRecords():
       GenericProbeStatementInfoRecord('storage', 'generic_storage', [
           'type', 'sectors', 'mmc_hwrev', 'mmc_manfid', 'mmc_name', 'mmc_oemid',
           'mmc_prv', 'mmc_serial', 'pci_vendor', 'pci_device', 'pci_class',
-          'ata_vendor', 'ata_model'
+          'nvme_model', 'ata_vendor', 'ata_model'
       ]),
       GenericProbeStatementInfoRecord('cellular', 'cellular_network', [
           'bus_type', 'pci_vendor_id', 'pci_device_id', 'pci_revision',
@@ -259,33 +259,37 @@ def GetAllProbeStatementGenerators():
       # eMMC
       _ProbeStatementGenerator(
           'storage', 'generic_storage', storage_shared_fields + [
-              _FieldRecord('hwrev', 'mmc_hwrev',
+              _FieldRecord(['hwrev', 'mmc_hwrev'], 'mmc_hwrev',
                            GetHWIDHexStrToHexStrConverter(1), is_optional=True),
-              _FieldRecord('name', 'mmc_name', SimplyForwardValue),
-              _FieldRecord('manfid', 'mmc_manfid',
+              _FieldRecord(['name', 'mmc_name'], 'mmc_name',
+                           SimplyForwardValue),
+              _FieldRecord(['manfid', 'mmc_manfid'], 'mmc_manfid',
                            GetHWIDHexStrToHexStrConverter(2)),
-              _FieldRecord('oemid', 'mmc_oemid',
+              _FieldRecord(['oemid', 'mmc_oemid'], 'mmc_oemid',
                            GetHWIDHexStrToHexStrConverter(4)),
-              _FieldRecord('prv', 'mmc_prv', GetHWIDHexStrToHexStrConverter(2),
-                           is_optional=True),
-              _FieldRecord('serial', 'mmc_serial',
+              _FieldRecord(['prv', 'mmc_prv'], 'mmc_prv',
+                           GetHWIDHexStrToHexStrConverter(2), is_optional=True),
+              _FieldRecord(['serial', 'mmc_serial'], 'mmc_serial',
                            GetHWIDHexStrToHexStrConverter(8), is_optional=True),
           ]),
       # NVMe
       _ProbeStatementGenerator(
           'storage', 'generic_storage', storage_shared_fields + [
-              _FieldRecord('vendor', 'pci_vendor',
+              _FieldRecord(['vendor', 'pci_vendor'], 'pci_vendor',
                            GetHWIDHexStrToHexStrConverter(4)),
-              _FieldRecord('device', 'pci_device',
+              _FieldRecord(['device', 'pci_device'], 'pci_device',
                            GetHWIDHexStrToHexStrConverter(4)),
-              _FieldRecord('class', 'pci_class',
+              _FieldRecord(['class', 'pci_class'], 'pci_class',
                            GetHWIDHexStrToHexStrConverter(6)),
+              same_name_field_converter('nvme_model', HWIDValueToStr,
+                                        is_optional=True),
           ]),
       # ATA
       _ProbeStatementGenerator(
           'storage', 'generic_storage', storage_shared_fields + [
-              _FieldRecord('vendor', 'ata_vendor', HWIDValueToStr),
-              _FieldRecord('model', 'ata_model', HWIDValueToStr),
+              _FieldRecord(['vendor', 'ata_vendor'], 'ata_vendor',
+                           HWIDValueToStr),
+              _FieldRecord(['model', 'ata_model'], 'ata_model', HWIDValueToStr),
           ]),
   ]
 

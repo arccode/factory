@@ -91,6 +91,12 @@ class ComponentProbeStatement:
         self.statement_hash == other.statement_hash and
         self.component_name == other.component_name)
 
+  def __repr__(self):
+    return str({
+        'component_name': self.component_name,
+        'statement': self.statement
+    })
+
   @classmethod
   def FromDict(cls, d):
     try:

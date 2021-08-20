@@ -68,25 +68,34 @@ class GenericStorageMMCProbeStatementGeneratorTest(unittest.TestCase):
         'prv': '0xa',
         'serial': '0x1234abcd'
     }
+    comp_values_new = {
+        'sectors': '112233',
+        'mmc_name': 'ABCxyz',
+        'mmc_manfid': '0x00022',
+        'mmc_oemid': '0x4455',
+        'mmc_prv': '0xa',
+        'mmc_serial': '0x1234abcd'
+    }
+    expected = probe_config_types.ComponentProbeStatement(
+        'storage', 'name1', {
+            'eval': {
+                'generic_storage': {}
+            },
+            'expect': {
+                'sectors': [True, 'int', '!eq 112233'],
+                'mmc_hwrev': [False, 'hex'],
+                'mmc_name': [True, 'str', '!eq ABCxyz'],
+                'mmc_manfid': [True, 'hex', '!eq 0x22'],
+                'mmc_oemid': [True, 'hex', '!eq 0x4455'],
+                'mmc_prv': [True, 'hex', '!eq 0x0A'],
+                'mmc_serial': [True, 'hex', '!eq 0x1234ABCD']
+            }
+        })
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['storage'][0]
     ps = ps_gen.TryGenerate('name1', comp_values)
-    self.assertEqual(
-        ps,
-        probe_config_types.ComponentProbeStatement(
-            'storage', 'name1', {
-                'eval': {
-                    'generic_storage': {}
-                },
-                'expect': {
-                    'sectors': [True, 'int', '!eq 112233'],
-                    'mmc_hwrev': [False, 'hex'],
-                    'mmc_name': [True, 'str', '!eq ABCxyz'],
-                    'mmc_manfid': [True, 'hex', '!eq 0x22'],
-                    'mmc_oemid': [True, 'hex', '!eq 0x4455'],
-                    'mmc_prv': [True, 'hex', '!eq 0x0A'],
-                    'mmc_serial': [True, 'hex', '!eq 0x1234ABCD']
-                }
-            }))
+    self.assertEqual(ps, expected)
+    ps = ps_gen.TryGenerate('name1', comp_values_new)
+    self.assertEqual(ps, expected)
 
     # Should report not supported if some fields are missing.
     invalid_comp_values = dict(comp_values)
@@ -120,9 +129,12 @@ class GenericStorageNVMeProbeStatementGeneratorTest(unittest.TestCase):
   def testTryGenerate(self):
     ps_gen = _vp_generator.GetAllProbeStatementGenerators()['storage'][1]
     ps = ps_gen.TryGenerate(
-        'name1',
-        {'sectors': '112233', 'class': '0x123456', 'device': '0x1234',
-         'vendor': '0x5678'})
+        'name1', {
+            'sectors': '112233',
+            'class': '0x123456',
+            'device': '0x1234',
+            'vendor': '0x5678',
+        })
     self.assertEqual(
         ps,
         probe_config_types.ComponentProbeStatement(
@@ -134,7 +146,31 @@ class GenericStorageNVMeProbeStatementGeneratorTest(unittest.TestCase):
                     'sectors': [True, 'int', '!eq 112233'],
                     'pci_class': [True, 'hex', '!eq 0x123456'],
                     'pci_vendor': [True, 'hex', '!eq 0x5678'],
-                    'pci_device': [True, 'hex', '!eq 0x1234']
+                    'pci_device': [True, 'hex', '!eq 0x1234'],
+                    'nvme_model': [False, 'str'],
+                }
+            }))
+    ps = ps_gen.TryGenerate(
+        'name1', {
+            'sectors': '112233',
+            'pci_class': '0x123456',
+            'pci_device': '0x1234',
+            'pci_vendor': '0x5678',
+            'nvme_model': 'ABC1234T128G',
+        })
+    self.assertEqual(
+        ps,
+        probe_config_types.ComponentProbeStatement(
+            'storage', 'name1', {
+                'eval': {
+                    'generic_storage': {}
+                },
+                'expect': {
+                    'sectors': [True, 'int', '!eq 112233'],
+                    'pci_class': [True, 'hex', '!eq 0x123456'],
+                    'pci_vendor': [True, 'hex', '!eq 0x5678'],
+                    'pci_device': [True, 'hex', '!eq 0x1234'],
+                    'nvme_model': [True, 'str', '!eq ABC1234T128G'],
                 }
             }))
 
@@ -477,7 +513,8 @@ class GenerateProbeStatementWithInformation(unittest.TestCase):
                     'sectors': [True, 'int', '!eq 112233'],
                     'pci_class': [True, 'hex', '!eq 0x123456'],
                     'pci_vendor': [True, 'hex', '!eq 0x5678'],
-                    'pci_device': [True, 'hex', '!eq 0x1234']
+                    'pci_device': [True, 'hex', '!eq 0x1234'],
+                    'nvme_model': [False, 'str']
                 },
                 'information': {
                     'comp_group': 'name2'

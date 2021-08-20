@@ -130,7 +130,8 @@
           "ata_vendor": [false, "str"],
           "pci_class": [false, "hex"],
           "pci_device": [false, "hex"],
-          "pci_vendor": [false, "hex"]
+          "pci_vendor": [false, "hex"],
+          "nvme_model": [false, "str"]
         }
       }
     },
@@ -318,7 +319,8 @@
           "ata_vendor": [false, "str"],
           "pci_class": [false, "hex"],
           "pci_device": [false, "hex"],
-          "pci_vendor": [false, "hex"]
+          "pci_vendor": [false, "hex"],
+          "nvme_model": [false, "str"]
         }
       }
     },
@@ -452,7 +454,8 @@
           "ata_vendor": [false, "str"],
           "pci_class": [false, "hex"],
           "pci_device": [false, "hex"],
-          "pci_vendor": [false, "hex"]
+          "pci_vendor": [false, "hex"],
+          "nvme_model": [false, "str"]
         }
       }
     }
@@ -574,7 +577,8 @@
           "ata_vendor": [false, "str"],
           "pci_class": [false, "hex"],
           "pci_device": [false, "hex"],
-          "pci_vendor": [false, "hex"]
+          "pci_vendor": [false, "hex"],
+          "nvme_model": [false, "str"]
         }
       }
     }
@@ -704,7 +708,8 @@
           "ata_vendor": [false, "str"],
           "pci_class": [false, "hex"],
           "pci_device": [false, "hex"],
-          "pci_vendor": [false, "hex"]
+          "pci_vendor": [false, "hex"],
+          "nvme_model": [false, "str"]
         }
       },
       "model_e_storage1": {
@@ -848,6 +853,7 @@
           "pci_vendor",
           "pci_device",
           "pci_class",
+          "nvme_model",
           "ata_vendor",
           "ata_model"
         ]
