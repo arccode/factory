@@ -5,7 +5,7 @@
 FROM python:3.7
 
 ARG workdir="/usr/src/"
-ARG gcloud_archive_name="google-cloud-sdk-245.0.0-linux-x86_64.tar.gz"
+ARG gcloud_archive_name="google-cloud-sdk-353.0.0-linux-x86_64.tar.gz"
 
 RUN cd "${workdir}" && \
   wget "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/${gcloud_archive_name}" && \
