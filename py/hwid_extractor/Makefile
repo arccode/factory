@@ -4,6 +4,7 @@
 
 DESTDIR ?=
 FACTORY_SRC_PATH ?= ..
+CHROMITE_PATH ?= ../../../../../chromite
 CHROMITE_SRC_PATH ?= ../../../../../chromite/lib
 BIN_DIR ?= /usr/bin
 LIB_DIR ?= /usr/local
@@ -30,6 +31,7 @@ JS_SOURCES := \
 
 HWID_EXTRACTOR_SOURCES := \
 	www/index.html \
+	ap_config.json \
 	$(JS_SOURCES) \
 	$(wildcard *.py)
 
@@ -52,7 +54,7 @@ CHROMITE_INSTALL_TARGET := $(addprefix install_,$(CHROMITE_SOURCES))
 
 .PHONY: all check_js $(INSTALL_TARGET) $(CHROMITE_INSTALL_TARGET) install
 
-all:
+all: ap_config.json
 
 check_js:
 	closure-compiler \
@@ -62,7 +64,10 @@ check_js:
 	  --checks-only \
 	  $(JS_SOURCES)
 
-$(INSTALL_TARGET):
+ap_config.json:
+	$(CHROMITE_PATH)/bin/cros ap dump-config -o ap_config.json
+
+$(INSTALL_TARGET): ap_config.json
 	mkdir -p $(DEST_LIB_PATH)/py/$(dir $(@:install_%=%))
 	cp -P $(FACTORY_SRC_PATH)/$(@:install_%=%) \
 		$(DEST_LIB_PATH)/py/$(@:install_%=%)
