@@ -489,8 +489,8 @@ const renderUpdateConfig = (ele) => {
   renderCheckBox(
       ele, 'config_lockAfterExtracted', 'Lock After Extracted',
       handleUpdateConfig);
-  const keys = ['Auto Detect'].concat(state.supportedBoards);
-  const values = [''].concat(state.supportedBoards);
+  const keys = ['Auto Detect'].concat(state.supportedBoards || []);
+  const values = [''].concat(state.supportedBoards || []);
   renderSelect(
       ele, 'config_board', 'Board to be extracted', keys, values,
       handleUpdateConfig);
@@ -581,15 +581,13 @@ const render = (ele) => {
  */
 const GetConfigAndRender = async () => {
   const newState = {};
-  let resp;
-  resp = await fetch('/supported_boards.json');
-  if (resp.ok) {
-    const data = /** @type{SupportedBoardsData} */ (await resp.json());
-    newState.supportedBoards = data.supportedBoards;
-  }
+  const data = /** @type{SupportedBoardsData} */ (
+      await fetchAPI('/get-supported-boards'));
+  if (!data) return;
+  newState.supportedBoards = data.supportedBoards;
 
   // Set ?v= to prevent browser cache.
-  resp = await fetch(`/config.json?v=${Math.random()}`);
+  let resp = await fetch(`/config.json?v=${Math.random()}`);
   let config = defaultConfig;
   if (resp.ok) {
     config = /** @type{Config} */ (await resp.json());

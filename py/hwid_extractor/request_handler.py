@@ -11,6 +11,7 @@ import os
 import traceback
 from urllib import parse as urlparse
 
+from cros.factory.hwid_extractor import ap_firmware
 from cros.factory.hwid_extractor import device
 
 
@@ -108,6 +109,9 @@ class RequestHandler(http_server.SimpleHTTPRequestHandler):
     cr50_serial_name = self._GetArgument('cr50SerialName')
     self._SendActionResult(device.DisableTestlab(cr50_serial_name))
 
+  def _GetSupportedBoards(self):
+    self._SendJSON({'supportedBoards': ap_firmware.GetSupportedBoards()})
+
   def do_POST(self):
     """Overwrite the parent's do_POST method."""
     try:
@@ -130,6 +134,8 @@ class RequestHandler(http_server.SimpleHTTPRequestHandler):
         self._EnableTestlab()
       elif path == '/testlab-disable':
         self._DisableTestlab()
+      elif path == '/get-supported-boards':
+        self._GetSupportedBoards()
       else:
         self._SendJSON({
             'error': 'Not found',

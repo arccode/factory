@@ -31,28 +31,25 @@ BOARD = {}
 HWID_RE = re.compile(r'^hardware_id: ([A-Z0-9- ]+)$')
 SERIAL_NUMBER_RE = re.compile(r'^"serial_number"="([A-Za-z0-9]+)"$')
 
-SUPPORTED_BOARDS_JSON = os.path.join(
-    os.path.dirname(__file__), 'www', 'supported_boards.json')
-
 
 def _InitializeBoardConfigurations():
   """Initialize configuration object of each board.
 
   All configurations of supported boards are under chromite
   `chromite.lib.firmware.ap_firmware_config`.
-
-  The supported boards are dumped to supported-boards.json for the web UI.
   """
   for f in glob.glob(CONFIG_FILE_PATTERN):
     board = os.path.splitext(os.path.basename(f))[0]
     BOARD[board] = importlib.import_module(
         f'chromite.lib.firmware.ap_firmware_config.{board}')
 
-  with open(SUPPORTED_BOARDS_JSON, 'w') as f:
-    json.dump({'supportedBoards': sorted(BOARD)}, f)
-
 
 _InitializeBoardConfigurations()
+
+
+def GetSupportedBoards():
+  """The supported boards for the web UI."""
+  return sorted(BOARD)
 
 
 @contextlib.contextmanager
