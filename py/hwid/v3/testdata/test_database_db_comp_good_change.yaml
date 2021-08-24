@@ -52,6 +52,10 @@ components:
         values:
           cores: '4'
           model: 'def'
+      display_panel_100_200:
+        values:
+          cores: '8'
+          model: 'ghi'
 
 rules:
 - name: device_info.set_image_id

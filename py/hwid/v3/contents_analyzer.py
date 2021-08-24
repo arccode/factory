@@ -403,9 +403,16 @@ class ContentsAnalyzer:
           self._curr_db.instance.GetComponents(comp_cls).items(), 1):
         avl_id = name_pattern.Matches(comp_name)
         noseq_comp_name, sep, actual_seq = comp_name.partition('#')
-        is_newly_added = (
-            self._prev_db is None or self._prev_db.instance is None or
-            comp_name not in self._prev_db.instance.GetComponents(comp_cls))
+        is_newly_added = False
+        if self._prev_db is None or self._prev_db.instance is None:
+          is_newly_added = True
+        else:
+          prev_comp = self._prev_db.instance.GetComponents(comp_cls).get(
+              comp_name)
+          if prev_comp is None:
+            is_newly_added = True
+          elif avl_id is not None and prev_comp.status != comp_info.status:
+            is_newly_added = True
         ret[comp_cls].append(
             self._HWIDComponentMetadata(comp_name, comp_info.status,
                                         noseq_comp_name,

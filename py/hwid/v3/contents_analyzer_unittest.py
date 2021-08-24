@@ -51,7 +51,9 @@ class ContentsAnalyzerTest(unittest.TestCase):
             'display_panel': [('display_panel_9_10', 9, 10,
                                common.COMPONENT_STATUS.supported, True),
                               ('display_panel_still_invalid2', 0, 0,
-                               common.COMPONENT_STATUS.supported, False)]
+                               common.COMPONENT_STATUS.supported, False),
+                              ('display_panel_100_200', 100, 200,
+                               common.COMPONENT_STATUS.supported, True)]
         }, report.name_changed_components)
 
   def test_AnalyzeChange_PreconditionErrors(self):
