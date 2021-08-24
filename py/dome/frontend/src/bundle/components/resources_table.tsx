@@ -92,7 +92,7 @@ class ResourceTable extends React.Component<ResourceTableProps> {
           return (
             <React.Fragment key={resource.type}>
               <div className={classes.cell}>
-                {resource.type}
+                {resource.type} ({resourceNameToFileType[resource.type]})
               </div>
               <div className={classes.cell}>
                 {resource.version}
@@ -124,6 +124,19 @@ class ResourceTable extends React.Component<ResourceTableProps> {
     );
   }
 }
+
+const resourceNameToFileType : Record<string, string> = {
+    'complete': '*.sh',
+    'firmware': 'chromeos-firmwareupdate',
+    'hwid': 'hwid_v3_bundle_*.sh',
+    'netboot_cmdline': 'cmdline',
+    'netboot_firmware': '*.net.bin',
+    'netboot_kernel': 'vmlinu*',
+    'project_config': '*.tar.gz',
+    'release_image': '*.bin',
+    'test_image': '*.bin',
+    'toolkit': '*.run',
+};
 
 const mapDispatchToProps = {
   downloadResource,

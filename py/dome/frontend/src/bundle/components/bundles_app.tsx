@@ -41,6 +41,7 @@ const BundlesApp: React.SFC<BundlesAppProps> =
             <Button
               variant="fab"
               color="primary"
+              title="Upload Factory Bundle (zip or {gzip|bzip2|xz} compressed tarball)"
               onClick={openUploadNewBundleForm}
             >
               <AddIcon />

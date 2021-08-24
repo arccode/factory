@@ -161,6 +161,10 @@ class BundleComponent extends React.Component<BundleComponentProps> {
         <Collapse in={expanded}>
           <CardContent>
             <Typography variant="subtitle1" gutterBottom>RESOURCES</Typography>
+            <Typography variant="caption">The uploaded resources should have
+              the corresponding type or the compressed version (gzip/bzip2/xz
+              compressed tarball) of the corresponding type.
+            </Typography>
             <ResourceTable bundle={bundle} projectName={projectName} />
           </CardContent>
         </Collapse>
