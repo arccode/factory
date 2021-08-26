@@ -205,7 +205,7 @@ class KeyboardTest(test_case.TestCase):
           default=None),
       Arg('has_numpad', bool, 'The keyboard has a number pad or not.',
           default=False),
-      Arg('vivadi_keyboard', bool, 'Get function keys map from sysfs.',
+      Arg('vivaldi_keyboard', bool, 'Get function keys map from sysfs.',
           default=True),
   ]
 
@@ -242,7 +242,7 @@ class KeyboardTest(test_case.TestCase):
       self.numpad_keys = self.ReadKeyOrder(_NUMPAD)
 
     replacement_keymap = {}
-    if self.args.vivadi_keyboard:
+    if self.args.vivaldi_keyboard:
       replacement_keymap = self.GetVivaldiKeyboardActionKeys()
 
     # Apply any replacement keymap
