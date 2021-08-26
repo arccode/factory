@@ -86,7 +86,7 @@ from cros.factory.utils import type_utils
 
 _LOOPBACK_TEST_PATH = '/sys/kernel/debug/thunderbolt'
 _CONTROLLER_PORTS = ('0-1.*', '0-3.*', '1-1.*', '1-3.*')
-_RE_ADP_ROUTE = re.compile(r'^.*(?P<route>\d+)-(?P<adapter>\d+)\.\d+$')
+_RE_ADP_DOMAIN = re.compile(r'^.*(?P<domain>\d+)-(?P<adapter>\d+)\.\d+$')
 _RE_MARGIN_LOOPBACK = re.compile(
     r'(RT\d+ L\d+ )(BOTTOM|LEFT),(TOP|RIGHT) = (\d+),(\d+)')
 _DMA_TEST = 'dma_test'
@@ -110,7 +110,7 @@ class ThunderboltLoopbackTest(test_case.TestCase):
   """Thunderbolt loopback card factory test."""
   LOG_GROUP_NAME = 'usb4_lane_margining_log'
   LOG_KEYS = [
-      'ROUTE',
+      'DOMAIN',
       'ADP',
       'RT1 L0 BOTTOM',
       'RT1 L0 TOP',
@@ -175,7 +175,7 @@ class ThunderboltLoopbackTest(test_case.TestCase):
       self._group_checker = testlog.GroupParam(self.LOG_GROUP_NAME,
                                                self.LOG_KEYS)
       testlog.UpdateParam('ADP', param_type=testlog.PARAM_TYPE.argument)
-      testlog.UpdateParam('ROUTE', param_type=testlog.PARAM_TYPE.argument)
+      testlog.UpdateParam('DOMAIN', param_type=testlog.PARAM_TYPE.argument)
 
   def tearDown(self):
     if self._remove_module:
@@ -288,27 +288,35 @@ class ThunderboltLoopbackTest(test_case.TestCase):
     logging.info('echo %s > %s', content, filename)
     self._dut.WriteFile(filename, content)
 
-  def _TestLaneMargining(self, route: str, adapter: str, log_result: dict):
+  def _TestLaneMargining(self, domain: str, adapter: str, log_result: dict):
     """Uses tdtl tool to collect lane margining data.
 
     Args:
-      route: A string we pass to tdtl tool.
+      domain: A string we pass to tdtl tool.
       adapter: A string we pass to tdtl tool.
       log_result: A dict to save the result.
     """
-    log_result.update({'ADP': int(adapter)})
-    log_result.update({'ROUTE': int(route)})
+    log_result.update({
+        'ADP': int(adapter),
+        'DOMAIN': int(domain),
+    })
     # self._dut.CheckOutput do not support env and timeout
     # process_utils.Spawn do not support timeout
-    result = subprocess.run([
-        'cli.py', 'margin_loopback', '-r', route, '-a', adapter, '-d', '0',
+    cmd = [
+        'cli.py', 'margin_loopback', '-d', domain, '-a', adapter, '-r', '0',
         '-i', '1'
-    ], env={
+    ]
+    env = {
         'ADP': adapter,
-        'LC_ALL': 'en_US.utf-8'
-    }, cwd=_TDTL_PATH, timeout=self.args.lane_margining_timeout_secs,
+        'LC_ALL': 'en_US.utf-8',
+    }
+    logging.info('env: %r, cmd: %r, cwd: %r', env, cmd, _TDTL_PATH)
+    result = subprocess.run(cmd, env=env, cwd=_TDTL_PATH,
+                            timeout=self.args.lane_margining_timeout_secs,
                             encoding='utf-8', stdout=subprocess.PIPE,
-                            check=True)
+                            check=False)
+    logging.info('stdout:\n%s', result.stdout)
+    result.check_returncode()
     # The output of `cli.py margin_loopback` looks like below.
     #
     # RT1 L0 BOTTOM,TOP = 56,54
@@ -381,12 +389,12 @@ class ThunderboltLoopbackTest(test_case.TestCase):
     self.ui.SetState(_('Insert the loopback card.'))
     device_path = sync_utils.WaitFor(self._FindLoopbackPath,
                                      self.args.timeout_secs, poll_interval=0.5)
-    match = _RE_ADP_ROUTE.match(device_path)
+    match = _RE_ADP_DOMAIN.match(device_path)
     if not match:
       raise Exception('device_path is not in expected format.')
     adapter = match.group('adapter')
-    route = match.group('route')
-    session.console.info('The ADP is at %r, route is %r.', adapter, route)
+    domain = match.group('domain')
+    session.console.info('The ADP is at %r, domain is %r.', adapter, domain)
 
     self.ui.SetState(_('Test is in progress, please do not move the device.'))
     session.console.info('The loopback card path is at %r.', device_path)
@@ -432,7 +440,7 @@ class ThunderboltLoopbackTest(test_case.TestCase):
       try:
         stop_lane_margining_timer = self.ui.StartCountdownTimer(
             self.args.lane_margining_timeout_secs)
-        self._TestLaneMargining(route, adapter, log_result)
+        self._TestLaneMargining(domain, adapter, log_result)
         stop_lane_margining_timer.set()
       except subprocess.TimeoutExpired:
         logging.exception('_TestLaneMargining timeout')
