@@ -4,7 +4,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: ChromeOS Factory Software\n"
-"PO-Revision-Date: 2021-08-30 12:17+CST\n"
+"PO-Revision-Date: 2021-09-09 17:40+CST\n"
 "Last-Translator: ChromeOS Factory Team\n"
 "Language-Team: ChromeOS Factory Team\n"
 "Language: zh-CN\n"
@@ -2848,6 +2848,10 @@ msgstr "回送卡插入到错误的端口。"
 #: ../py/test/pytests/thunderbolt_loopback.py
 msgid "Insert the loopback card."
 msgstr "插入回送卡以进行读写测试。"
+
+#: ../py/test/pytests/thunderbolt_loopback.py
+msgid "Remove the loopback card."
+msgstr "请移除回送卡。"
 
 #: ../py/test/pytests/touch_uniformity.py
 msgid "PASS"

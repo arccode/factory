@@ -151,6 +151,8 @@ class ThunderboltLoopbackTest(test_case.TestCase):
       Arg('lane_margining', bool, 'Collet lane margining data.', default=False),
       Arg('lane_margining_timeout_secs', (int, float),
           'Timeout for colleting lane margining data.', default=10),
+      Arg('check_card_removal', bool,
+          'If set, require removing the card after DMA test.', default=True),
   ]
 
   def setUp(self):
@@ -417,6 +419,17 @@ class ThunderboltLoopbackTest(test_case.TestCase):
 
     return device_path, domain, adapter
 
+  def _WaitForLoopbackCardRemoval(self, device_path):
+    """Waits until device node disappears."""
+    stop_timer = self._GetUITimer()
+
+    self.ui.SetState(_('Remove the loopback card.'))
+
+    sync_utils.WaitFor(lambda: not self._dut.path.exists(device_path),
+                       self.args.timeout_secs, poll_interval=0.5)
+    if stop_timer:
+      stop_timer.set()
+
   def _TestDMA(self, device_path):
     """Performs DMA test."""
     stop_timer = self._GetUITimer()
@@ -476,6 +489,9 @@ class ThunderboltLoopbackTest(test_case.TestCase):
     if self.args.lane_margining:
       log_result = self._TestLaneMargining(domain, adapter)
       self._UploadLaneMargining(log_result)
+
+    if self.args.check_card_removal:
+      self._WaitForLoopbackCardRemoval(device_path)
 
     if self._errors:
       self.FailTask('\n'.join(self._errors))
