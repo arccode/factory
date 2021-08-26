@@ -167,15 +167,14 @@ class ThunderboltLoopbackTest(test_case.TestCase):
     self._first_typec_control = True
     self._first_check_mux_info = True
 
-    self.server = None
     self._group_checker = None
     if self.args.lane_margining:
-      self.server = server_proxy.GetServerProxy(timeout=5)
       # Group checker and details for Testlog.
       self._group_checker = testlog.GroupParam(self.LOG_GROUP_NAME,
                                                self.LOG_KEYS)
       testlog.UpdateParam('ADP', param_type=testlog.PARAM_TYPE.argument)
       testlog.UpdateParam('DOMAIN', param_type=testlog.PARAM_TYPE.argument)
+    self._errors = []
 
   def tearDown(self):
     if self._remove_module:
@@ -288,14 +287,20 @@ class ThunderboltLoopbackTest(test_case.TestCase):
     logging.info('echo %s > %s', content, filename)
     self._dut.WriteFile(filename, content)
 
-  def _TestLaneMargining(self, domain: str, adapter: str, log_result: dict):
+  def _TestLaneMargining(self, domain: str, adapter: str):
     """Uses tdtl tool to collect lane margining data.
 
     Args:
       domain: A string we pass to tdtl tool.
       adapter: A string we pass to tdtl tool.
+
+    Returns:
       log_result: A dict to save the result.
     """
+    session.console.info('Start collecting lane margining data.')
+    # Log 0 when failed.
+    # Log -1 when timeout.
+    log_result = dict.fromkeys(self.LOG_KEYS, None)
     log_result.update({
         'ADP': int(adapter),
         'DOMAIN': int(domain),
@@ -311,12 +316,31 @@ class ThunderboltLoopbackTest(test_case.TestCase):
         'LC_ALL': 'en_US.utf-8',
     }
     logging.info('env: %r, cmd: %r, cwd: %r', env, cmd, _TDTL_PATH)
-    result = subprocess.run(cmd, env=env, cwd=_TDTL_PATH,
-                            timeout=self.args.lane_margining_timeout_secs,
-                            encoding='utf-8', stdout=subprocess.PIPE,
-                            check=False)
-    logging.info('stdout:\n%s', result.stdout)
-    result.check_returncode()
+    stop_timer = self.ui.StartCountdownTimer(
+        self.args.lane_margining_timeout_secs)
+    try:
+      result = subprocess.run(cmd, env=env, cwd=_TDTL_PATH,
+                              timeout=self.args.lane_margining_timeout_secs,
+                              encoding='utf-8', stdout=subprocess.PIPE,
+                              check=False)
+    except subprocess.TimeoutExpired:
+      logging.exception('_TestLaneMargining timeout')
+      self._errors.append('_TestLaneMargining timeout')
+      for key, value in log_result.items():
+        if value is None:
+          log_result[key] = -1
+      return log_result
+    finally:
+      stop_timer.set()
+    try:
+      logging.info('stdout:\n%s', result.stdout)
+      result.check_returncode()
+    except Exception:
+      logging.exception('_TestLaneMargining failed')
+      self._errors.append('_TestLaneMargining failed')
+      for key, value in log_result.items():
+        if value is None:
+          log_result[key] = 0
     # The output of `cli.py margin_loopback` looks like below.
     #
     # RT1 L0 BOTTOM,TOP = 56,54
@@ -334,58 +358,50 @@ class ThunderboltLoopbackTest(test_case.TestCase):
       for index in range(2, 4):
         log_result.update(
             {match.group(1) + match.group(index): int(match.group(index + 2))})
+    return log_result
 
-  def _UploadLaneMargining(self, log_result):
+  def _GetUITimer(self):
+    """Returns the stop event flag of the timer or None if no timeout."""
+    if self.args.timeout_secs:
+      return self.ui.StartFailingCountdownTimer(self.args.timeout_secs)
+    return None
+
+  def _UploadLaneMargining(self, log_result: dict):
+    """Uploads the result of lane margining."""
     timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
     csv_entries = [device_data.GetSerialNumber(), timestamp]
     csv_entries.extend(log_result[key] for key in self.LOG_KEYS)
-    self.server.UploadCSVEntry(self.LOG_GROUP_NAME, csv_entries)
+    self.ui.SetState(_('Trying to check server protocol...'))
+    try:
+      server = server_proxy.GetServerProxy(timeout=5)
+      server.Ping()
+      server.UploadCSVEntry(self.LOG_GROUP_NAME, csv_entries)
+    except server_proxy.Fault:
+      messages = 'Server fault %s' % server_proxy.GetServerURL()
+      logging.exception(messages)
+      self._errors.append(messages)
+    except Exception:
+      messages = 'Unable to sync with server %s' % server_proxy.GetServerURL()
+      logging.exception(messages)
+      self._errors.append(messages)
     with self._group_checker:
       for key, value in log_result.items():
         testlog.LogParam(key, value)
 
-  def runTest(self):
-    if self.args.lane_margining:
-      self.ui.SetState(_('Trying to check server protocol...'))
-      try:
-        self.server.Ping()
-      except server_proxy.Fault:
-        messages = 'Server fault %s' % server_proxy.GetServerURL()
-        logging.exception(messages)
-        self.FailTask(messages)
-      except Exception:
-        messages = 'Unable to sync with server %s' % server_proxy.GetServerURL()
-        logging.exception(messages)
-        self.FailTask(messages)
+  def _WaitMuxInfoBecomingTBT(self):
+    """Waits until Mux info becomes TBT=1."""
+    stop_timer = self._GetUITimer()
 
-    if self.args.timeout_secs:
-      stop_muxinfo_test_timer = self.ui.StartFailingCountdownTimer(
-          self.args.timeout_secs)
-    else:
-      stop_muxinfo_test_timer = None
-    # Wait for the loopback card.
     self.ui.SetState(_('Insert the loopback card.'))
     sync_utils.WaitFor(self._CheckMuxinfo, self.args.timeout_secs,
                        poll_interval=0.5)
-    if stop_muxinfo_test_timer:
-      stop_muxinfo_test_timer.set()
-    if self.args.check_muxinfo_only:
-      self.PassTask()
+    if stop_timer:
+      stop_timer.set()
 
-    if self.args.load_module:
-      # Fail the test if the module doesn't exist.
-      self._dut.CheckCall(['modinfo', _TEST_MODULE])
-      # If the module is loaded before the test then do not remove it.
-      loaded = self._dut.Call(['modprobe', '--first-time', _TEST_MODULE],
-                              log=True)
-      self._remove_module = not loaded
+  def _WaitForLoopbackCardInsertion(self):
+    """Waits until device node appears."""
+    stop_timer = self._GetUITimer()
 
-    if self.args.timeout_secs:
-      stop_dma_test_timer = self.ui.StartFailingCountdownTimer(
-          self.args.timeout_secs)
-    else:
-      stop_dma_test_timer = None
-    # Wait for the loopback card.
     self.ui.SetState(_('Insert the loopback card.'))
     device_path = sync_utils.WaitFor(self._FindLoopbackPath,
                                      self.args.timeout_secs, poll_interval=0.5)
@@ -395,6 +411,15 @@ class ThunderboltLoopbackTest(test_case.TestCase):
     adapter = match.group('adapter')
     domain = match.group('domain')
     session.console.info('The ADP is at %r, domain is %r.', adapter, domain)
+
+    if stop_timer:
+      stop_timer.set()
+
+    return device_path, domain, adapter
+
+  def _TestDMA(self, device_path):
+    """Performs DMA test."""
+    stop_timer = self._GetUITimer()
 
     self.ui.SetState(_('Test is in progress, please do not move the device.'))
     session.console.info('The loopback card path is at %r.', device_path)
@@ -414,8 +439,8 @@ class ThunderboltLoopbackTest(test_case.TestCase):
         str(self.args.packets_to_receive))
     # Run the test.
     self._LogAndWriteFile(self._dut.path.join(device_test_path, 'test'), '1')
-    if stop_dma_test_timer:
-      stop_dma_test_timer.set()
+    if stop_timer:
+      stop_timer.set()
     # Check the result.
     status_path = self._dut.path.join(device_test_path, 'status')
     logging.info('cat %s', status_path)
@@ -423,37 +448,34 @@ class ThunderboltLoopbackTest(test_case.TestCase):
     logging.info('output:\n%s', output)
     match = _RE_STATUS.match(output)
     if not match:
-      self.FailTask('Output format of status is changed.')
-    errors = []
+      self._errors.append('Output format of status is changed.')
     result = match.group(1)
     if result == 'success':
-      pass
-    elif result in ('fail', 'failed', 'not run'):
-      errors.append('result: %s' % result)
+      return
+    if result in ('fail', 'failed', 'not run'):
+      self._errors.append('result: %s' % result)
     else:
-      errors.append('Unknown result: %r' % result)
+      self._errors.append('Unknown result: %r' % result)
+
+  def runTest(self):
+    self._WaitMuxInfoBecomingTBT()
+    if self.args.check_muxinfo_only:
+      self.PassTask()
+
+    if self.args.load_module:
+      # Fail the test if the module doesn't exist.
+      self._dut.CheckCall(['modinfo', _TEST_MODULE])
+      # If the module is loaded before the test then do not remove it.
+      loaded = self._dut.Call(['modprobe', '--first-time', _TEST_MODULE],
+                              log=True)
+      self._remove_module = not loaded
+
+    device_path, domain, adapter = self._WaitForLoopbackCardInsertion()
+    self._TestDMA(device_path)
+
     if self.args.lane_margining:
-      session.console.info('Start collecting lane margining data.')
-      # Log 0 when failed.
-      # Log -1 when timeout.
-      log_result = dict.fromkeys(self.LOG_KEYS, None)
-      try:
-        stop_lane_margining_timer = self.ui.StartCountdownTimer(
-            self.args.lane_margining_timeout_secs)
-        self._TestLaneMargining(domain, adapter, log_result)
-        stop_lane_margining_timer.set()
-      except subprocess.TimeoutExpired:
-        logging.exception('_TestLaneMargining timeout')
-        errors.append('_TestLaneMargining timeout')
-        for key, value in log_result.items():
-          if value is None:
-            log_result[key] = -1
-      except Exception:
-        logging.exception('_TestLaneMargining failed')
-        errors.append('_TestLaneMargining failed')
-        for key, value in log_result.items():
-          if value is None:
-            log_result[key] = 0
+      log_result = self._TestLaneMargining(domain, adapter)
       self._UploadLaneMargining(log_result)
-    if errors:
-      self.FailTask('\n'.join(errors))
+
+    if self._errors:
+      self.FailTask('\n'.join(self._errors))
