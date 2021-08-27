@@ -40,6 +40,8 @@ DOCKER_IMAGE_NAME = 'cros/factory_server'
 # dead.
 UMPIRE_PROJECT_NAME = 'test_' + time.strftime('%Y%m%d_%H%M%S')
 UMPIRE_CONTAINER_NAME = 'umpire_' + UMPIRE_PROJECT_NAME
+SECOND_UMPIRE_PROJECT_NAME = 'test2_' + time.strftime('%Y%m%d_%H%M%S')
+SECOND_UMPIRE_CONTAINER_NAME = 'umpire_' + SECOND_UMPIRE_PROJECT_NAME
 
 BASE_DIR = os.path.dirname(__file__)
 SETUP_DIR = os.path.abspath(
@@ -48,11 +50,16 @@ SCRIPT_PATH = os.path.join(SETUP_DIR, 'cros_docker.sh')
 PORT = net_utils.FindUnusedPort(tcp_only=True, length=5)
 ADDR_BASE = 'http://localhost:%s' % PORT
 RPC_ADDR_BASE = 'http://localhost:%s' % (PORT + 2)
+SECOND_PORT = net_utils.FindUnusedPort(tcp_only=True, length=5)
+SECOND_ADDR_BASE = 'http://localhost:%s' % SECOND_PORT
+SECOND_RPC_ADDR_BASE = 'http://localhost:%s' % (SECOND_PORT + 2)
 
 HOST_BASE_DIR = os.environ.get('TMPDIR', '/tmp')
 HOST_SHARED_DIR = os.path.join(HOST_BASE_DIR, 'cros_docker')
 HOST_UMPIRE_DIR = os.path.join(HOST_SHARED_DIR, 'umpire', UMPIRE_PROJECT_NAME)
 HOST_RESOURCE_DIR = os.path.join(HOST_UMPIRE_DIR, 'resources')
+SECOND_UMPIRE_DIR = os.path.join(HOST_SHARED_DIR, 'umpire',
+                                 SECOND_UMPIRE_PROJECT_NAME)
 
 DOCKER_BASE_DIR = '/var/db/factory/umpire/'
 DOCKER_RESOURCE_DIR = os.path.join(DOCKER_BASE_DIR, 'resources')
@@ -63,23 +70,67 @@ UMPIRE_TESTDATA_DIR = os.path.join(TESTDATA_DIR, 'umpire')
 CONFIG_TESTDATA_DIR = os.path.join(TESTDATA_DIR, 'config')
 
 
-def _RunCrosDockerCommand(*args):
+def _RunCrosDockerCommand(project_name, port, *args):
   """Run cros_docker.sh commands with environment variables for testing set."""
   subprocess.check_call(
-      [SCRIPT_PATH] + list(args),
-      env={
-          'PROJECT': UMPIRE_PROJECT_NAME,
-          'UMPIRE_PORT': str(PORT),
+      [SCRIPT_PATH] + list(args), env={
+          'PROJECT': project_name,
+          'UMPIRE_PORT': str(port),
           'HOST_SHARED_DIR': HOST_SHARED_DIR
-      }
-  )
+      })
 
 
-def CleanUp():
+class _UmpireReady():
+
+  def __init__(self, rpc_addr):
+    self.proxy = xmlrpc.client.ServerProxy(rpc_addr)
+
+  def IsReady(self):
+    try:
+      return not self.proxy.IsDeploying()
+    except Exception:
+      return False
+
+
+def _CopyTestData(umpire_dir):
+  logging.info('Copying test data...')
+  if umpire_dir == HOST_UMPIRE_DIR:
+    shutil.copytree(SHARED_TESTDATA_DIR, HOST_SHARED_DIR, symlinks=True)
+  shutil.copytree(UMPIRE_TESTDATA_DIR, umpire_dir, symlinks=True)
+  for sub_dir in ('conf', 'log', 'run', 'temp', 'umpire_data'):
+    os.mkdir(os.path.join(umpire_dir, sub_dir))
+
+
+def CleanUp(project_name, port):
   """Cleanup everything."""
   logging.info('Doing cleanup...')
-  _RunCrosDockerCommand('umpire', 'destroy')
+  _RunCrosDockerCommand(project_name, port, 'umpire', 'destroy')
   shutil.rmtree(HOST_SHARED_DIR, ignore_errors=True)
+
+
+def SetUpUmpire(project_name, port, umpire_dir, rpc_addr):
+  try:
+    logging.info('Starting umpire container %s on port %s', project_name, port)
+
+    _CopyTestData(umpire_dir)
+
+    logging.info('Starting umpire...')
+    _RunCrosDockerCommand(project_name, port, 'umpire', 'run')
+
+    logging.info('Waiting umpire to be started...')
+
+    umpire = _UmpireReady(rpc_addr)
+    sync_utils.WaitFor(umpire.IsReady, 10)
+  except:
+    CleanUp(project_name, port)
+    raise
+
+
+def PrintDockerLogs(container_name):
+  if logging.getLogger().isEnabledFor(logging.DEBUG):
+    docker_logs = subprocess.check_output(['docker', 'logs', container_name],
+                                          stderr=subprocess.STDOUT)
+    logging.debug(docker_logs)
 
 
 class UmpireDockerTestCase(unittest.TestCase):
@@ -91,47 +142,13 @@ class UmpireDockerTestCase(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     del cls  # Unused.
-    def UmpireReady():
-      try:
-        proxy = xmlrpc.client.ServerProxy(RPC_ADDR_BASE)
-        # Wait until the initial config is deployed.
-        return not proxy.IsDeploying()
-      except Exception:
-        return False
-    try:
-      logging.info('Starting umpire container %s on port %s',
-                   UMPIRE_PROJECT_NAME, PORT)
-
-      logging.info('Copying test data...')
-      shutil.copytree(
-          SHARED_TESTDATA_DIR,
-          HOST_SHARED_DIR,
-          symlinks=True)
-      shutil.copytree(
-          UMPIRE_TESTDATA_DIR,
-          HOST_UMPIRE_DIR,
-          symlinks=True)
-      for sub_dir in ('conf', 'log', 'run', 'temp', 'umpire_data'):
-        os.mkdir(os.path.join(HOST_UMPIRE_DIR, sub_dir))
-
-      logging.info('Starting umpire...')
-      _RunCrosDockerCommand('umpire', 'run')
-
-      logging.info('Waiting umpire to be started...')
-
-      sync_utils.WaitFor(UmpireReady, 10)
-    except:
-      CleanUp()
-      raise
+    SetUpUmpire(UMPIRE_PROJECT_NAME, PORT, HOST_UMPIRE_DIR, RPC_ADDR_BASE)
 
   @classmethod
   def tearDownClass(cls):
     del cls  # Unused.
-    if logging.getLogger().isEnabledFor(logging.DEBUG):
-      docker_logs = subprocess.check_output(
-          ['docker', 'logs', UMPIRE_CONTAINER_NAME], stderr=subprocess.STDOUT)
-      logging.debug(docker_logs)
-    CleanUp()
+    PrintDockerLogs(UMPIRE_CONTAINER_NAME)
+    CleanUp(UMPIRE_PROJECT_NAME, PORT)
 
   @contextlib.contextmanager
   def assertRPCRaises(self,
@@ -148,6 +165,21 @@ class UmpireDockerTestCase(unittest.TestCase):
     self.assertEqual(fault_code, cm.exception.faultCode)
     if exception:
       self.assertIn(exception, cm.exception.faultString)
+
+
+class TwoUmpireDockerTestCase(UmpireDockerTestCase):
+
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    SetUpUmpire(SECOND_UMPIRE_PROJECT_NAME, SECOND_PORT, SECOND_UMPIRE_DIR,
+                SECOND_RPC_ADDR_BASE)
+
+  @classmethod
+  def tearDownClass(cls):
+    super().tearDownClass()
+    PrintDockerLogs(SECOND_UMPIRE_CONTAINER_NAME)
+    CleanUp(SECOND_UMPIRE_PROJECT_NAME, SECOND_PORT)
 
 
 class ResourceMapTest(UmpireDockerTestCase):
@@ -415,6 +447,18 @@ class RPCDUTTest(UmpireDockerTestCase):
     self.assertEqual(1, len(report_files))
     report_file = report_files[0]
     self.assertEqual(report, file_utils.ReadFile(report_file, encoding=None))
+
+
+class ServiceTest(TwoUmpireDockerTestCase):
+
+  def setUp(self):
+    super(ServiceTest, self).setUp()
+    self.proxy = xmlrpc.client.ServerProxy(RPC_ADDR_BASE)
+    self.second_proxy = xmlrpc.client.ServerProxy(SECOND_RPC_ADDR_BASE)
+
+  def testVersion(self):
+    self.assertEqual(common.UMPIRE_VERSION, self.proxy.GetVersion())
+    self.assertEqual(common.UMPIRE_VERSION, self.second_proxy.GetVersion())
 
 
 if __name__ == '__main__':
