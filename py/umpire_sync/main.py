@@ -12,9 +12,12 @@ import time
 import xmlrpc.client
 
 from cros.factory.umpire_sync import utils
+from cros.factory.utils import net_utils
 
 
 RPC_PORT_OFFSET = 2
+RPC_TIMEOUT = 1
+UPDATE_TIMEOUT = 600
 
 
 class PrimaryUmpire:
@@ -46,6 +49,7 @@ class SecondaryUmpire:
 
   def __init__(self, urls, status_path):
     self.proxies = []
+    self.check_alive_proxies = []
     self.urls = urls
     self.status = utils.StatusUpdater(status_path)
 
@@ -53,12 +57,21 @@ class SecondaryUmpire:
       self.status.SetStatus(url, utils.STATUS.Waiting)
       host, port = url.split('//')[1].split(':')[0], int(url.split(':')[2])
       rpc_url = 'http://%s:%d' % (host, port + RPC_PORT_OFFSET)
-      self.proxies.append(xmlrpc.client.ServerProxy(rpc_url))
+      self.proxies.append(self._MakeTimeoutProxy(rpc_url, UPDATE_TIMEOUT))
+      self.check_alive_proxies.append(
+          self._MakeTimeoutProxy(rpc_url, RPC_TIMEOUT))
+
+  def _MakeTimeoutProxy(self, rpc_url, timeout):
+    return net_utils.TimeoutXMLRPCServerProxy(rpc_url, timeout=timeout,
+                                              allow_none=True)
 
   def SynchronizeBundle(self, primary_payload, primary_url):
-    for proxy, url in zip(self.proxies, self.urls):
-      self.status.SetStatus(url, utils.STATUS.Updating)
+    for check_alive_proxy, proxy, url in zip(self.check_alive_proxies,
+                                             self.proxies, self.urls):
       try:
+        # Check the secondary xmlrpc server is alive in timeout seconds
+        check_alive_proxy.GetVersion()
+        self.status.SetStatus(url, utils.STATUS.Updating)
         sync_status = proxy.CheckAndUpdate(primary_payload, primary_url)
         if sync_status:
           self.status.SetStatus(url, utils.STATUS.Success,
