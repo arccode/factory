@@ -30,6 +30,7 @@ import requests  # pylint: disable=import-error
 
 from cros.factory.umpire import common
 from cros.factory.utils import file_utils
+from cros.factory.utils import json_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
@@ -456,9 +457,34 @@ class ServiceTest(TwoUmpireDockerTestCase):
     self.proxy = xmlrpc.client.ServerProxy(RPC_ADDR_BASE)
     self.second_proxy = xmlrpc.client.ServerProxy(SECOND_RPC_ADDR_BASE)
 
+  def ReadConfigTestdata(self, name):
+    return json_utils.LoadFile(os.path.join(CONFIG_TESTDATA_DIR, name))
+
+  def StartService(self, config, wait_time=0):
+    conf = self.proxy.AddConfigFromBlob(
+        json_utils.DumpStr(config), 'umpire_config')
+    self.proxy.Deploy(conf)
+    time.sleep(wait_time)
+
   def testVersion(self):
     self.assertEqual(common.UMPIRE_VERSION, self.proxy.GetVersion())
     self.assertEqual(common.UMPIRE_VERSION, self.second_proxy.GetVersion())
+
+  def testSyncService(self):
+    to_deploy_config = self.ReadConfigTestdata('umpire_sync_service.json')
+    to_deploy_config['services']['umpire_sync']['primary_information'][
+        'port'] = str(PORT)
+    to_deploy_config['services']['umpire_sync']['secondary_information'][0][
+        'port'] = str(SECOND_PORT)
+    self.StartService(to_deploy_config, wait_time=2)
+
+    self.assertEqual(self.proxy.GetActivePayload(),
+                     self.second_proxy.GetActivePayload())
+    # The secondary ip is set in testdata/config/umpire_sync_service.json, which
+    # is the default ip of docker0
+    second_url = 'http://172.17.0.1:%d' % SECOND_PORT
+    self.assertEqual(self.proxy.GetUmpireSyncStatus()[second_url]['status'],
+                     'Success')
 
 
 if __name__ == '__main__':

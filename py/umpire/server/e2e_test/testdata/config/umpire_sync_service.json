@@ -1,0 +1,30 @@
+{
+    "active_bundle_id": "empty_init_bundle",
+    "bundles": [
+      {
+        "id": "empty_init_bundle",
+        "note": "n/a",
+        "payloads": "payload.489a1c39af84e02926c0937ae95e4f23.json"
+      }
+    ],
+    "services": {
+      "umpire_http": {},
+      "instalog": {},
+      "rsync": {},
+      "shop_floor": {},
+      "umpire_sync": {
+        "active": true,
+        "primary_information": {
+          "ip": "172.17.0.1",
+          "port": ""
+        },
+        "secondary_information": [
+          {
+            "ip": "172.17.0.1",
+            "port": ""
+          }
+        ],
+        "synchronize_time": "1"
+      }
+    }
+  }
