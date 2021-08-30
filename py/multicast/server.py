@@ -6,14 +6,15 @@
 """Multicast service to spawn uftp server"""
 
 import argparse
-import logging
 import os
 import time
 
+from cros.factory.utils import log_utils
 from cros.factory.utils import json_utils
 from cros.factory.utils import process_utils
 
 
+LOG_FILE = 'uftp.log'
 MCAST_CONFIG_NAME = 'multicast_config.json'
 UMPIRE_CONFIG_NAME = 'active_umpire.json'
 UMPIRE_DIR = '/var/db/factory/umpire'
@@ -56,8 +57,9 @@ class UftpArgs:
 
 class UftpProcess:
 
-  def __init__(self, args: UftpArgs):
+  def __init__(self, args: UftpArgs, logger):
     self.args = args
+    self._logger = logger
     self._process = None
 
   def __eq__(self, other):
@@ -86,7 +88,7 @@ class UftpProcess:
     if self._process is not None and self._process.poll() is not None:
       # Skip announce timed out message.
       if self._process.returncode != ANNOUNCE_TIMED_OUT_RETCODE:
-        logging.error(self._process.stderr.read())
+        self._logger.Log(self._process.stderr.read())
       self.Spawn()
 
   def Kill(self):
@@ -102,6 +104,14 @@ class MulticastServer:
     self._uftp_procs = []
     self._project_dir = os.path.join(UMPIRE_DIR, project)
     self._log_dir = log_dir
+    self._logger = self._GetLogger(project, log_dir)
+
+  def _GetLogger(self, project, log_dir):
+    log_path = os.path.join(log_dir, LOG_FILE)
+    return log_utils.NoisyLogger(
+        log_utils.FileLogger(
+            project, log_path, log_prefix=project,
+            log_format='%(asctime)s:%(levelname)s:%(message)s').error)
 
   def GetUftpArgsFromUmpire(self):
     """Get uftp arguments from the Umpire instance.
@@ -114,7 +124,7 @@ class MulticastServer:
       mcast_config = json_utils.LoadFile(
           os.path.join(self._project_dir, MCAST_CONFIG_NAME))
     except Exception:
-      logging.exception('Failed to read multicast config file.')
+      self._logger.Log('Failed to read multicast config file.')
       return []
 
     active_args = []
@@ -140,7 +150,7 @@ class MulticastServer:
 
   def StartAll(self):
     for _args in self.uftp_args:
-      proc = UftpProcess(_args)
+      proc = UftpProcess(_args, self._logger)
       proc.Spawn()
       self._uftp_procs.append(proc)
 

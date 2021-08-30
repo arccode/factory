@@ -16,10 +16,18 @@ FAKE_UFTP_ARGS = server.UftpArgs('/path/to/resources/fake_file',
                                  '192.168.1.1')
 
 
+class DummyLogger:
+  called = False
+
+  def Log(self, unused_log):
+    self.called = True
+
+
 class UftpProcessTest(unittest.TestCase):
 
   def setUp(self):
-    self.uftp_proc = server.UftpProcess(FAKE_UFTP_ARGS)
+    self.logger = DummyLogger()
+    self.uftp_proc = server.UftpProcess(FAKE_UFTP_ARGS, self.logger)
 
   @mock.patch('cros.factory.utils.process_utils.Spawn')
   def testSpawn(self, mock_spawn):
@@ -36,7 +44,7 @@ class UftpProcessTest(unittest.TestCase):
     uftp_args_empty_interface = server.UftpArgs('/path/to/resources/fake_file',
                                                 '224.1.1.1:8093',
                                                 '/path/to/log_dir', '')
-    uftp_proc = server.UftpProcess(uftp_args_empty_interface)
+    uftp_proc = server.UftpProcess(uftp_args_empty_interface, DummyLogger())
 
     uftp_proc.Spawn()
 
@@ -47,25 +55,23 @@ class UftpProcessTest(unittest.TestCase):
     ], stderr=process_utils.PIPE)
 
   @mock.patch('cros.factory.multicast.server.UftpProcess.Spawn')
-  @mock.patch('logging.error')
-  def testRespawnIfDiedAnnounceTimedOut(self, mock_logging, mock_spawn):
+  def testRespawnIfDiedAnnounceTimedOut(self, mock_spawn):
     # pylint: disable=protected-access
     self.uftp_proc._process = mock.Mock(returncode=7)
 
     self.uftp_proc.RespawnIfDied()
 
-    mock_logging.assert_not_called()
+    self.assertFalse(self.logger.called)
     mock_spawn.assert_called_once()
 
   @mock.patch('cros.factory.multicast.server.UftpProcess.Spawn')
-  @mock.patch('logging.error')
-  def testRespawnIfDiedUnexpectedError(self, mock_logging, mock_spawn):
+  def testRespawnIfDiedUnexpectedError(self, mock_spawn):
     # pylint: disable=protected-access
     self.uftp_proc._process = mock.Mock(returncode=1)
 
     self.uftp_proc.RespawnIfDied()
 
-    mock_logging.assert_called_once()
+    self.assertTrue(self.logger.called)
     mock_spawn.assert_called_once()
 
   def testKill(self):
@@ -77,12 +83,13 @@ class UftpProcessTest(unittest.TestCase):
     self.uftp_proc._process.kill.assert_called_once()
     self.uftp_proc._process.wait.assert_called_once()
 
-
 class MulticastServerTest(unittest.TestCase):
 
   def setUp(self):
-    self.multicast_server = server.MulticastServer('fake_project',
-                                                   '/path/to/log_dir')
+    with mock.patch('cros.factory.multicast.server.MulticastServer._GetLogger',
+                    return_value=DummyLogger()):
+      self.multicast_server = server.MulticastServer('fake_project',
+                                                     '/path/to/log_dir')
 
   @mock.patch('cros.factory.utils.json_utils.LoadFile')
   def testGetUftpArgsFromUmpire(self, mock_load_file):
@@ -148,7 +155,7 @@ class MulticastServerTest(unittest.TestCase):
     mock_spawn.assert_called()
     # pylint: disable=protected-access
     self.assertEqual(self.multicast_server._uftp_procs,
-                     [server.UftpProcess(FAKE_UFTP_ARGS)])
+                     [server.UftpProcess(FAKE_UFTP_ARGS, DummyLogger())])
 
   def testStopAll(self):
     mock_uftp_process = mock.Mock()
