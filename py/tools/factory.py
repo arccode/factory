@@ -25,6 +25,7 @@ import time
 
 import yaml
 
+from cros.factory.device import info
 from cros.factory.test import device_data
 from cros.factory.test.rules import phase
 from cros.factory.test.rules import privacy
@@ -216,8 +217,29 @@ class TestsCommand(Subcommand):
     self.subparser.add_argument(
         '--this-run', action='store_true',
         help='Show only information about current active run')
+    self.subparser.add_argument('--csv', action='store_true',
+                                help='Show information in CSV format')
+    self.subparser.add_argument(
+        '--label', action='store_true',
+        help=('Show en-US label instead of test item path.'))
 
   def Run(self):
+
+    def _GetLabel(path):
+      test_object = goofy.test_list.LookupPath(path)
+      if self.args.label and 'en-US' in test_object.label:
+        return test_object.label['en-US']
+      return t['path']
+
+    def _ParsePathToCSV(path):
+      path = path.split('.', 2)
+      labels = [_GetLabel('.'.join(path[:i + 1])) for i in range(len(path))]
+      if len(path) == 3:
+        return ','.join(labels)
+      if len(path) == 2:
+        return ',,'.join(labels)
+      return ',,' + labels[0]
+
     goofy = state.GetInstance()
     tests = goofy.GetTests()
 
@@ -236,11 +258,40 @@ class TestsCommand(Subcommand):
       tests = [
           x for x in tests if x['path'] in scheduled_tests]
 
+    for t in tests:
+      t['label'] = _GetLabel(t['path'])
+
     if self.args.yaml:
       print(yaml.safe_dump(tests))
+    elif self.args.csv:
+      # the csv can be used to generate factory test status sheet like the
+      # template here: go/factory-test-status-template
+      device = sys_interface.SystemInterface()
+      system_info = info.SystemInfo(device)
+      status_map = {
+          'ACTIVE': 'N/A',
+          'PASSED': 'Passed',
+          'FAILED': 'Failed',
+          'UNTESTED': 'N/A',
+          'FAILED_AND_WAIVED': 'Waived',
+          'SKIPPED': 'Skipped',
+      }
+      header = [
+          f"Product,{system_info.device_name}",
+          f"Build Phase,{system_info.stage}", "Release Image Version",
+          f"FW Version, {system_info.firmware_version}",
+          f"Test Image Version, {system_info.test_image_builder_path}",
+          f"Factory Toolkit, {system_info.toolkit_version}"
+      ]
+      print('\n'.join(header))
+      for t in tests:
+        row = _ParsePathToCSV(t['path'])
+        if self.args.status:
+          row += ',' + status_map[t['status']]
+        print(row)
     elif self.args.status:
       for t in tests:
-        sys.stdout.write(t['path'])
+        sys.stdout.write(t['label'])
         if t['status'] != TestState.UNTESTED:
           sys.stdout.write(': %s' % t['status'])
         if t['error_msg']:
@@ -248,7 +299,7 @@ class TestsCommand(Subcommand):
         sys.stdout.write('\n')
     else:
       for t in tests:
-        print(t['path'])
+        print(t['label'])
 
 
 class ClearCommand(Subcommand):

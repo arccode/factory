@@ -167,6 +167,14 @@ class SystemInfo(device_types.DeviceComponent):
     return match.group(1) if match else None
 
   @InfoProperty
+  def test_image_builder_path(self):
+    """Builder path of the image on factory test partition."""
+    lsb_release = self._device.ReadFile('/etc/lsb-release')
+    match = re.search('^CHROMEOS_RELEASE_BUILDER_PATH=(.+)$', lsb_release,
+                      re.MULTILINE)
+    return match.group(1) if match else None
+
+  @InfoProperty
   def factory_image_version(self):
     """Version of the image on factory test partition.
 
@@ -278,6 +286,11 @@ class SystemInfo(device_types.DeviceComponent):
   def device_id(self):
     """Returns the device ID of the device."""
     return self._device.ReadFile(session.DEVICE_ID_PATH).strip()
+
+  @InfoProperty
+  def device_name(self):
+    """Returns the device name of the device."""
+    return self._device.CallOutput(['cros_config', '/', 'name']).strip()
 
 
 def main():
