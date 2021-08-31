@@ -365,6 +365,8 @@ def Check(filename, rules):
     return None
   if filename.endswith('_unittest.py'):
     return None
+  if filename.endswith('_mocked.py'):
+    return None
 
   try:
     filename = os.path.abspath(filename)

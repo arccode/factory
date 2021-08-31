@@ -1,5 +1,6 @@
 *.pyc
 *_unittest.py
+*_mocked.py
 bundle
 bin/generate_rsts
 bin/list_dir_as_yaml
@@ -13,6 +14,7 @@ py/instalog/virtual_env
 py/multicast
 py/probe_info_service
 py/test_list_editor
+py/tools/unittest_tools
 py/umpire/server
 
 .wh..wh.*
