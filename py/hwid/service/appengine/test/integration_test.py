@@ -71,7 +71,7 @@ def RunTest(image, test_names):
     True if all tests pass.
   """
   container_id = process_utils.CheckOutput(
-      ['docker', 'run', '-d', '-it', image], log=True).strip()
+      ['docker', 'run', '-d', '-it', '--rm', image], log=True).strip()
 
   failed_tests = []
   for tn in test_names:
