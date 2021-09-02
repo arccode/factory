@@ -141,6 +141,34 @@ def BitProperty(getter, setter, shift, mask):
   return property(_getter, _setter)
 
 
+def IsLastPartition(image, part):
+  """Check partition `part` is the last partition or not.
+
+  Args:
+    image: a path to an image file.
+    part: the partition number.
+
+  Returns:
+    The partition is the last partition or not.
+  """
+  gpt = GPT.LoadFromFile(image)
+  part = gpt.GetPartition(part)
+
+  return not part.IsUnused() and not gpt.GetMaxUsedLBA() > part.LastLBA
+
+
+def RemovePartition(image, part):
+  """Remove partition `part`.
+
+  Args:
+    image: a path to an image file.
+    part: the partition number.
+  """
+  print('Removing partition %d...' % part)
+  add_cmd = GPTCommands.Add()
+  add_cmd.ExecuteCommandLine('-i', str(part), '-t', 'Unused', image)
+
+
 class PartitionAttributes:
   """Wrapper for Partition.Attributes.
 
@@ -379,6 +407,7 @@ class GPT:
   # Old devices uses 'Basic data' type for stateful partition, and newer devices
   # should use 'Linux (fS) data' type; so we added a 'stateful' suffix for
   # migration.
+  # GUID is defined at src/platform/vboot_reference/firmware/include/gpt.h.
   TYPE_GUID_MAP = {
       GUID('00000000-0000-0000-0000-000000000000'): 'Unused',
       GUID('EBD0A0A2-B9E5-4433-87C0-68B6B72699C7'): 'Basic data stateful',
@@ -388,6 +417,8 @@ class GPT:
       GUID('2E0A753D-9E48-43B0-8337-B15192CB1B5E'): 'ChromeOS reserved',
       GUID('CAB6E88E-ABF3-4102-A07A-D4BB9BE3C1D3'): 'ChromeOS firmware',
       GUID('C12A7328-F81F-11D2-BA4B-00A0C93EC93B'): 'EFI System Partition',
+      GUID('09845860-705F-4BB5-B16C-8A8A099CAF52'): 'ChromeOS MINIOS',
+      GUID('3F0F8318-F146-4E6B-8222-C28C8F02E0D5'): 'ChromeOS hibernate',
   }
   TYPE_GUID_FROM_NAME = {
       'efi' if v.startswith('EFI') else v.lower().split()[-1]: k

@@ -61,6 +61,8 @@ PART_CROS_ROOTFS_A = 3
 PART_CROS_KERNEL_B = 4
 # Partition index for Chrome OS rootfs B.
 PART_CROS_ROOTFS_B = 5
+# Partition index for ChromeOS MiniOS B.
+PART_CROS_MINIOS_B = 10
 # Special options to mount Chrome OS rootfs partitions. (-t ext2, -o ro).
 FS_TYPE_CROS_ROOTFS = 'ext2'
 # Relative path of firmware updater on Chrome OS disk images.
@@ -929,10 +931,16 @@ def ExpandPartition(image, number, size):
     number: 1-based partition number.
     size: Amount of space in bytes to expand.
   """
+  # For disk_layout_v3, the last partition is MiniOS-B instead of stateful
+  # partition. This prevent us from increasing/decreasing the size of the
+  # stateful partition. To solve this, we delete `PART_CROS_MINIOS_B` from the
+  # partition table.
+  if pygpt.IsLastPartition(image, PART_CROS_MINIOS_B):
+    pygpt.RemovePartition(image, PART_CROS_MINIOS_B)
   gpt = GPT.LoadFromFile(image)
   part = gpt.GetPartition(number)
   # Check that the partition is the last partition.
-  if part.IsUnused() or gpt.GetMaxUsedLBA() > part.LastLBA:
+  if not pygpt.IsLastPartition(image, number):
     raise RuntimeError('Cannot expand partition %d; '
                        'must be the last one in LBA layout.' % number)
 
@@ -960,11 +968,13 @@ def ShrinkPartition(image, number, size):
     number: 1-based partition number.
     size: Amount of space in bytes to reduce.
   """
+  if pygpt.IsLastPartition(image, PART_CROS_MINIOS_B):
+    pygpt.RemovePartition(image, PART_CROS_MINIOS_B)
   gpt = GPT.LoadFromFile(image)
   part = gpt.GetPartition(number)
   reduced_size = (size // part.block_size) * part.block_size
   # Check that the partition is the last partition.
-  if part.IsUnused() or gpt.GetMaxUsedLBA() > part.LastLBA:
+  if not pygpt.IsLastPartition(image, number):
     raise RuntimeError('Cannot expand partition %d; '
                        'must be the last one in LBA layout.' % number)
   # Check that the partition size is greater than shrink size.
