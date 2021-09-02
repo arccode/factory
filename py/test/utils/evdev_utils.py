@@ -163,12 +163,51 @@ def IsMouseDevice(dev):
           evdev.ecodes.BTN_MIDDLE in keycaps)
 
 
-class DeviceNotFoundError(RuntimeError):
-  pass
+class FindDeviceError(RuntimeError):
+  """An exception from FindDevice."""
+
+  def __init__(self, candidates, filtered_candidates) -> None:
+    super().__init__()
+    self.candidates = candidates
+    self.filtered_candidates = filtered_candidates
+
+  @staticmethod
+  def FormatDevice(dev):
+    return f'(path={dev.fn}, name={dev.name!r})'
+
+  @staticmethod
+  def FormatDevices(devices):
+    return str(sorted(map(FindDeviceError.FormatDevice, devices)))
+
+  def FormatFilteredCandidates(self):
+    return str({
+        key: self.FormatDevices(devices)
+        for key, devices in self.filtered_candidates
+        if devices
+    })
+
+  def __repr__(self) -> str:
+    return '{}({})'.format(self.__class__.__name__, self.__str__())
 
 
-class MultipleDevicesFoundError(RuntimeError):
-  pass
+class DeviceNotFoundError(FindDeviceError):
+  """An exception which indicates there is no such device."""
+
+  _message_template = "Can't find device. Filtered candidates: {}."
+
+  def __str__(self) -> str:
+    return self._message_template.format(self.FormatFilteredCandidates())
+
+
+class MultipleDevicesFoundError(FindDeviceError):
+  """An exception which indicates there are multiple such devices."""
+
+  _message_template = ('Not having exactly one candidate! Left candidates: {}. '
+                       'Filtered candidates: {}.')
+
+  def __str__(self) -> str:
+    return self._message_template.format(
+        self.FormatDevices(self.candidates), self.FormatFilteredCandidates())
 
 
 def FindDevice(*args):
@@ -205,27 +244,11 @@ def FindDevice(*args):
          [candidate for candidate in candidates if not dev_filter(candidate)]))
     candidates = list(filter(dev_filter, candidates))
 
-  def FormatDevice(dev):
-    return '(path=%s, name=%r)' % (dev.fn, dev.name)
-
-  def FormatDevices(devices):
-    return '[' + ', '.join(sorted(map(FormatDevice, devices))) + ']'
-
-  def FormatFilteredCandidates():
-    return '{' + ', '.join(
-        '%r: %s' % (key, FormatDevices(devices))
-        for key, devices in filtered_candidates if devices) + '}'
-
   if len(candidates) == 1:
     return candidates[0]
   if not candidates:
-    raise DeviceNotFoundError(
-        "Can't find device. Filtered candidates: %s."
-        % FormatFilteredCandidates())
-  raise MultipleDevicesFoundError(
-      'Not having exactly one candidate! Left candidates: %s. '
-      'Filtered candidates %s.'
-      % (FormatDevices(candidates), FormatFilteredCandidates()))
+    raise DeviceNotFoundError(candidates, filtered_candidates)
+  raise MultipleDevicesFoundError(candidates, filtered_candidates)
 
 
 def DeviceReopen(dev):

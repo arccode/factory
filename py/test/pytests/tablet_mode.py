@@ -40,9 +40,22 @@ To run the test, add this in test list::
     }
   }
 
+Set lid_filter to choose the lid sensor explicitly::
+
+  {
+    "pytest_name": "tablet_mode",
+    "args": {
+      "prompt_flip_tablet": true,
+      "prompt_flip_notebook": true,
+      "lid_filter": "Lid Switch"
+    }
+  }
+
 You can also use the `ScreenRotation`, which is defined in
 generic_common.test_list.json.
 """
+
+import logging
 
 from cros.factory.test.i18n import _
 from cros.factory.test import test_case
@@ -51,6 +64,14 @@ from cros.factory.test.utils import evdev_utils
 from cros.factory.utils.arg_utils import Arg
 
 from cros.factory.external import evdev
+
+
+def FormatMultipleDevicesMessages(arg_name, candidates):
+  """Returns message to guide partner for potential solution."""
+  _message_template = (
+      'Please set the {!r} argument in the test list to be one of the {!r}')
+  names = [candidate.name for candidate in candidates]
+  return _message_template.format(arg_name, names)
 
 
 class TabletModeTest(test_case.TestCase):
@@ -77,14 +98,23 @@ class TabletModeTest(test_case.TestCase):
 
   def setUp(self):
     self.tablet_mode_switch = False
-    self.lid_event_dev = evdev_utils.FindDevice(self.args.lid_filter,
-                                                evdev_utils.IsLidEventDevice)
+    try:
+      self.lid_event_dev = evdev_utils.FindDevice(self.args.lid_filter,
+                                                  evdev_utils.IsLidEventDevice)
+    except evdev_utils.MultipleDevicesFoundError as err:
+      logging.exception('')
+      self.FailTask(FormatMultipleDevicesMessages('lid_filter', err.candidates))
+
     try:
       self.tablet_event_dev = evdev_utils.FindDevice(
           self.args.tablet_filter,
           evdev_utils.IsTabletEventDevice)
     except evdev_utils.DeviceNotFoundError:
       self.tablet_event_dev = None
+    except evdev_utils.MultipleDevicesFoundError as err:
+      logging.exception('')
+      self.FailTask(
+          FormatMultipleDevicesMessages('tablet_filter', err.candidates))
 
     self.assertTrue(
         self.args.prompt_flip_tablet or self.args.prompt_flip_notebook,
