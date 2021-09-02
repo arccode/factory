@@ -6,6 +6,7 @@
 """Multicast service to spawn uftp server"""
 
 import argparse
+import logging
 import os
 import time
 
@@ -104,14 +105,20 @@ class MulticastServer:
     self._uftp_procs = []
     self._project_dir = os.path.join(UMPIRE_DIR, project)
     self._log_dir = log_dir
-    self._logger = self._GetLogger(project, log_dir)
+    self._logger = self._GetLogger(project, os.path.join(log_dir, LOG_FILE))
 
-  def _GetLogger(self, project, log_dir):
-    log_path = os.path.join(log_dir, LOG_FILE)
-    return log_utils.NoisyLogger(
-        log_utils.FileLogger(
-            project, log_path, log_prefix=project,
-            log_format='%(asctime)s:%(levelname)s:%(message)s').error)
+  @staticmethod
+  def _GetLogger(project, log_path):
+    # Default log level is logging.WARNING, but we only use logger.error for
+    # now so no need to change it.
+    logger = logging.getLogger(project)
+    if not logger.hasHandlers():
+      formatter = logging.Formatter(
+          '%%(asctime)s:%%(levelname)s:%s:%%(message)s' % project)
+      handler = logging.FileHandler(log_path)
+      handler.setFormatter(formatter)
+      logger.addHandler(handler)
+    return log_utils.NoisyLogger(logger.error)
 
   def GetUftpArgsFromUmpire(self):
     """Get uftp arguments from the Umpire instance.

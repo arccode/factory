@@ -3,11 +3,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import os
 import textwrap
 import unittest
 from unittest import mock
 
 from cros.factory.multicast import server
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 
@@ -82,6 +84,21 @@ class UftpProcessTest(unittest.TestCase):
 
     self.uftp_proc._process.kill.assert_called_once()
     self.uftp_proc._process.wait.assert_called_once()
+
+
+class GetLoggerTest(unittest.TestCase):
+
+  def testGetLogger(self):
+    LOG_FILENAME = 'test.log'
+    with file_utils.TempDirectory() as log_dir:
+      log_path = os.path.join(log_dir, LOG_FILENAME)
+      # pylint: disable=protected-access
+      logger = server.MulticastServer._GetLogger('fake_project', log_path)
+      logger.Log('test logging')
+      with open(log_path, 'r') as fp:
+        log_content = fp.read()
+      self.assertRegex(log_content, '.*:ERROR:fake_project:test logging$')
+
 
 class MulticastServerTest(unittest.TestCase):
 
