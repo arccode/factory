@@ -1145,6 +1145,7 @@ do_get_changes() {
       sh/cros_payload.sh
       py/dome
       py/instalog
+      py/multicast
       py/umpire
       ':(exclude)py/umpire/client'
       go/src/overlord
