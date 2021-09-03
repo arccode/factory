@@ -4,8 +4,44 @@
 
 """Tests that certain conditions are met when in tablet mode.
 
+Description
+-----------
 Currently, it check that the lid switch is not triggered and tablet mode event
 is triggered and in correct state.
+
+Test Procedure
+--------------
+
+1. If prompt_flip_tablet is set:
+
+  1. The operator flips the device to make it enter tablet mode.
+  2. The operator clicks the button by using touch screen or external mouse.
+
+2. If prompt_flip_notebook is set:
+
+  1. The operator flips the device to make it enter notebook mode.
+  2. The operator presses the space key.
+
+Dependency
+----------
+
+* cros.factory.external.evdev
+* cros.factory.test.utils.evdev_utils
+
+Examples
+--------
+To run the test, add this in test list::
+
+  {
+    "pytest_name": "tablet_mode",
+    "args": {
+      "prompt_flip_tablet": true,
+      "prompt_flip_notebook": true
+    }
+  }
+
+You can also use the `ScreenRotation`, which is defined in
+generic_common.test_list.json.
 """
 
 from cros.factory.test.i18n import _
