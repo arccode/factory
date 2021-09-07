@@ -748,8 +748,8 @@ class GPT:
     assert max_lba <= self.header.LastUsableLBA, "Partitions too large."
     return self.block_size * (self.header.LastUsableLBA - max_lba)
 
-  def ExpandPartition(self, number):
-    """Expands a given partition to last usable LBA.
+  def ExpandPartition(self, number, reserved_blocks=0):
+    """Expands a given partition to last usable LBA - reserved blocks.
 
     The size of the partition can actually be reduced if the last usable LBA
     decreases.
@@ -772,7 +772,7 @@ class GPT:
           'Cannot expand %s because it is not allocated at last.' % p)
 
     old_blocks = p.blocks
-    p.Update(LastLBA=self.header.LastUsableLBA)
+    p.Update(LastLBA=self.header.LastUsableLBA - reserved_blocks)
     new_blocks = p.blocks
     logging.warning(
         '%s size changed in LBA: %d -> %d.', p, old_blocks, new_blocks)
@@ -1211,6 +1211,8 @@ class GPTCommands:
       firmware    ChromeOS firmware
       kernel      ChromeOS kernel
       rootfs      ChromeOS rootfs
+      minios      ChromeOS MINIOS
+      hibernate   ChromeOS hibernate
       data        Linux data
       reserved    ChromeOS reserved
       efi         EFI System Partition
@@ -1551,6 +1553,8 @@ class GPTCommands:
         firmware    ChromeOS firmware
         kernel      ChromeOS kernel
         rootfs      ChromeOS rootfs
+        minios      ChromeOS MINIOS
+        hibernate   ChromeOS hibernate
         data        Linux data
         reserved    ChromeOS reserved
         efi         EFI System Partition

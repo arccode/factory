@@ -56,3 +56,11 @@ class Partitions(device_types.DeviceComponent):
   @device_types.DeviceProperty
   def RELEASE_ROOTFS(self):
     return DiskPartition(self.rootdev, 'RELEASE_ROOTFS', 5)
+
+  @device_types.DeviceProperty
+  def MINIOS_A(self):
+    return DiskPartition(self.rootdev, 'MINIOS_A', 9)
+
+  @device_types.DeviceProperty
+  def MINIOS_B(self):
+    return DiskPartition(self.rootdev, 'MINIOS_B', 10)

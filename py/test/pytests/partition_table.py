@@ -70,6 +70,10 @@ class PartitionTableTest(test_case.TestCase):
           default=True)
   ]
 
+  def _ShowGPTTable(self, path):
+    show_cmd = pygpt.GPTCommands.Show()
+    show_cmd.ExecuteCommandLine(path)
+
   def setUp(self):
     self.dut = device_utils.CreateDUTInterface()
     self.gpt = None
@@ -81,6 +85,9 @@ class PartitionTableTest(test_case.TestCase):
     self.gpt = pygpt.GPT.LoadFromFile(dev)
     stateful_no = self.dut.partitions.STATEFUL.index
     stateful_part = self.gpt.GetPartition(stateful_no)
+    minios_a_no = self.dut.partitions.MINIOS_A.index
+    minios_a_part = self.gpt.GetPartition(minios_a_no)
+    minios_b_no = self.dut.partitions.MINIOS_B.index
     start_sector = stateful_part.FirstLBA
     sector_count = stateful_part.blocks
     end_sector = start_sector + sector_count
@@ -106,5 +113,38 @@ class PartitionTableTest(test_case.TestCase):
       # Repair partition headers and tables
       self.gpt.Resize(pygpt.GPT.GetImageSize(dev))
 
-      self.gpt.ExpandPartition(stateful_no)
+      # In disk_layout_v3, minios_b is the last partition.
+      # We have to remove it or we cannot expand the stateful partition.
+      has_minios_b = pygpt.IsLastPartition(dev, minios_b_no)
+      # Calculate the size of minios_a and reserve space when expanding
+      # stateful partition.
+      reserved_blocks = minios_a_part.blocks if has_minios_b else 0
+
+      if has_minios_b:
+        pygpt.RemovePartition(dev, minios_b_no)
+        # Reload gpt table if we remove partition minios_b.
+        self.gpt = pygpt.GPT.LoadFromFile(dev)
+
+      _, new_blocks = self.gpt.ExpandPartition(stateful_no, reserved_blocks)
+      # Write back GPT table.
       self.gpt.WriteToFile(dev)
+
+      if not has_minios_b:
+        self._ShowGPTTable(dev)
+        return
+
+      # Add back partition minios_b.
+      add_cmd = pygpt.GPTCommands.Add()
+      add_cmd.ExecuteCommandLine('-i', str(minios_b_no), '-t', 'minios', '-b',
+                                 str(start_sector + new_blocks), '-s',
+                                 str(reserved_blocks), '-l', 'MINIOS-B', dev)
+
+      # Write the content of minios_a to minios_b_part.
+      src = '%sp%d' % (dev, minios_a_no)
+      dst = '%sp%d' % (dev, minios_b_no)
+      self.dut.CheckCall([
+          'dd', 'bs=1048576',
+          'if=%s' % src,
+          'of=%s' % dst, 'iflag=fullblock', 'oflag=dsync'
+      ], log=True)
+      self._ShowGPTTable(dev)
