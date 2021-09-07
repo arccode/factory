@@ -46,34 +46,36 @@ class GenerateDocsTest(unittest.TestCase):
       with open(temp) as f:
         lines = f.read().splitlines()
 
+        pseudo_url = ("https://chromium.googlesource.com/chromiumos/platform/fa"
+                      "ctory/+/refs/heads/main/py/test/pytests/pseudo_test.py")
+        pseudo_output = f"""pseudo_test
+===========
+**Source code:** `pseudo_test.py <{pseudo_url}>`_
+
+Module-level help.
+
+Test Arguments
+--------------
+.. list-table::
+   :widths: 20 10 60
+   :header-rows: 1
+
+   * - Name
+     - Type
+     - Description
+
+   * - a
+     - int
+     - (optional; default: ``1``) A
+
+   * - b
+     - ['b1', 'b2']
+     - (optional; default: ``\'b1\'``) Foo:
+       \n         - bar
+         - baz
+"""
       self.maxDiff = None
-      self.assertEqual(
-          ['pseudo_test',
-           '===========',
-           'Module-level help.',
-           '',
-           'Test Arguments',
-           '--------------',
-           '.. list-table::',
-           '   :widths: 20 10 60',
-           '   :header-rows: 1',
-           '',
-           '   * - Name',
-           '     - Type',
-           '     - Description',
-           '',
-           '   * - a',
-           '     - int',
-           '     - (optional; default: ``1``) A',
-           '',
-           '   * - b',
-           "     - ['b1', 'b2']",
-           '     - (optional; default: ``\'b1\'``) Foo:',
-           '       ',
-           '         - bar',
-           '         - baz',
-           ''],
-          lines)
+      self.assertEqual(pseudo_output, '\n'.join(lines))
 
 
 if __name__ == '__main__':

@@ -34,6 +34,9 @@ from cros.factory.utils.type_utils import Enum
 
 
 DOC_GENERATORS = {}
+SRC_URL_BASE = ("https://chromium.googlesource.com/chromiumos/platform/factory/"
+                "+/refs/heads/main/py/test/pytests/")
+
 
 def DocGenerator(dir_name):
   def Decorator(func):
@@ -75,6 +78,17 @@ def LinkToDoc(name, path):
     path: Path of the target document, either absolute or relative.
   """
   return ':doc:`%s <%s>`' % (Escape(name), Escape(path))
+
+
+def LinkToCode(pytest_name):
+  """Create a hyper-link to the source code to pytest.
+
+  Args:
+    pytest_name: The pytest name.
+  """
+  pytest_path = '/'.join(pytest_name.split('.')) + '.py'
+  source_url = os.path.join(SRC_URL_BASE, pytest_path)
+  return f'**Source code:** `{pytest_path} <{source_url}>`_'
 
 
 class RSTWriter:
@@ -168,6 +182,7 @@ def GenerateTestDocs(rst, pytest_name):
     doc = 'No test-level description available for pytest %s.' % pytest_name
 
   rst.WriteTitle(pytest_name, '=')
+  rst.WriteParagraph(LinkToCode(pytest_name))
   rst.WriteParagraph(doc)
   WriteArgsTable(rst, 'Test Arguments', args)
 
@@ -213,6 +228,10 @@ def WriteTestObjectDetail(
 
   if '__comment' in test_object:
     rst.WriteParagraph(Escape(test_object['__comment']))
+
+  if test_object.get('run_if'):
+    rst.WriteTitle('run_if', '`')
+    rst.WriteParagraph('::\n\n' + Indent(test_object['run_if'], '  '))
 
   if test_object.get('args'):
     rst.WriteTitle('args', '`')
