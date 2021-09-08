@@ -62,6 +62,7 @@ import struct
 import subprocess
 import sys
 
+from cros.factory.device import device_types
 from cros.factory.device import device_utils
 from cros.factory.device import wifi
 from cros.factory.test import event_log  # TODO(chuntsen): Deprecate event log.
@@ -364,22 +365,42 @@ class RadiotapPacket:
 class Capture:
   """Context for a live tcpdump packet capture for beacons."""
 
-  def __init__(self, dut, device_name, phy):
+  def __init__(self, dut: device_types.DeviceBoard, device_name, phy,
+               keep_monitor):
     self.dut = dut
     self.monitor_process = None
     self.created_device = None
     self.parent_device = device_name
     self.phy = phy
+    self.keep_monitor = keep_monitor
 
   def CreateDevice(self, monitor_device='antmon0'):
     """Creates a monitor device to monitor beacon."""
+    # This command returns 0 if the monitor_device exists.
+    return_value = self.dut.Call(['iw', 'dev', monitor_device, 'info'],
+                                 log=True)
+    if return_value == 0:
+      self.created_device = monitor_device
+      if self.keep_monitor:
+        return
+      # The device may exist if the test is aborted after CreateDevice and
+      # before RemoveDevice. We remove it here to make sure we use a new
+      # monitor.
+      self.RemoveDevice()
+
+    # This command creates the monitor_device.
     self.dut.CheckCall(['iw', self.parent_device, 'interface', 'add',
                         monitor_device, 'type', 'monitor'], log=True)
     self.created_device = monitor_device
 
-  def RemoveDevice(self, device_name):
-    """Removes monitor device."""
-    self.dut.CheckCall(['iw', device_name, 'del'], log=True)
+  def RemoveDevice(self):
+    """Removes the monitor device."""
+    if self.created_device is None:
+      return
+    if not self.keep_monitor:
+      # This command removes the monitor_device.
+      self.dut.CheckCall(['iw', self.created_device, 'del'], log=True)
+    self.created_device = None
 
   def GetSignal(self):
     """Gets signal from tcpdump."""
@@ -419,7 +440,7 @@ class Capture:
                            value)
       self.dut.WriteFile(path, 'bf_enable_beacon_filter=%d\n' % value)
 
-  def __enter__(self):
+  def Create(self):
     if not self.created_device:
       self.CreateDevice()
     self.dut.CheckCall(
@@ -430,13 +451,14 @@ class Capture:
     self.monitor_process = self.dut.Popen(
         ['tcpdump', '-nUxxi', self.created_device, 'type', 'mgt',
          'subtype', 'beacon'], stdout=subprocess.PIPE, log=True)
-    return self
 
-  def __exit__(self, exception, value, traceback):
-    self.monitor_process.kill()
+  def Destroy(self):
+    if self.monitor_process:
+      self.monitor_process.kill()
+      self.monitor_process.wait()
+      self.monitor_process = None
     self.set_beacon_filter(1)
-    if self.created_device:
-      self.RemoveDevice(self.created_device)
+    self.RemoveDevice()
 
 
 class RadiotapWiFiChip(wifi.WiFiChip):
@@ -444,7 +466,7 @@ class RadiotapWiFiChip(wifi.WiFiChip):
   _ANTENNA_CONFIG = ['all', 'main', 'aux']
 
   def __init__(self, device, interface, phy_name, services, connect_timeout,
-               scan_timeout):
+               scan_timeout, keep_monitor):
     super(RadiotapWiFiChip, self).__init__(device, interface, phy_name)
     self._services = [(service.ssid, service.freq) for service in services]
     self._signal_table = {service: {antenna: []
@@ -454,6 +476,7 @@ class RadiotapWiFiChip(wifi.WiFiChip):
     self._connection = None
     self._connect_timeout = connect_timeout
     self._scan_timeout = scan_timeout
+    self._keep_monitor = keep_monitor
 
   def ScanSignal(self, service, antenna, scan_count):
     target_service = (service.ssid, service.freq)
@@ -466,7 +489,10 @@ class RadiotapWiFiChip(wifi.WiFiChip):
                                 freqs=service.freq):
       return
 
-    with Capture(self._device, self._interface, self._phy_name) as capture:
+    capture = Capture(self._device, self._interface, self._phy_name,
+                      self._keep_monitor)
+    try:
+      capture.Create()
       while capture_times < scan_count:
         signal_result = capture.GetSignal()
         if (signal_result['ssid'] == service.ssid and
@@ -479,6 +505,8 @@ class RadiotapWiFiChip(wifi.WiFiChip):
           capture_times += 1
         else:
           session.console.info('Ignore the signal %r', signal_result)
+    finally:
+      capture.Destroy()
 
     self._DisconnectService()
 
@@ -574,7 +602,10 @@ class WirelessTest(test_case.TestCase):
            'strength of different antennas. Currently, the valid options are '
            '``switch_antenna``, ``radiotap``, or ``disable_switch``. If the '
            'value is None, it will detect the value automatically.'),
-          default=None)
+          default=None),
+      Arg('keep_monitor', bool,
+          ('Set to True for WiFi driver that does not support '
+           '``iw dev antmon0 del``.'), default=False),
   ]
 
   def setUp(self):
@@ -729,7 +760,8 @@ class WirelessTest(test_case.TestCase):
     if not self._wifi_chip_type or self._wifi_chip_type == 'radiotap':
       self._wifi_chip = RadiotapWiFiChip(
           self._dut, self._device_name, self._phy_name, self._services,
-          self.args.connect_timeout, self.args.scan_timeout)
+          self.args.connect_timeout, self.args.scan_timeout,
+          self.args.keep_monitor)
       self._wifi_chip_type = 'radiotap'
       return
 
