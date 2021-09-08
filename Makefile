@@ -384,7 +384,8 @@ doc:
 	rsync -a doc/ $(DOC_TEMP_DIR)
 	# Generate rst sources for test cases
 	bin/generate_rsts -o $(DOC_TEMP_DIR)
-	CROS_FACTORY_PY_ROOT=$(realpath py_pkg) $(MAKE) -C $(DOC_TEMP_DIR) html
+	CROS_FACTORY_PY_ROOT=$(realpath py_pkg) $(MK_DIR)/sphinx.sh $(MAKE) \
+	                     $(DOC_TEMP_DIR)
 	mkdir -p $(dir $(DOC_ARCHIVE_PATH))
 	rm -rf $(DOC_OUTPUT_DIR)
 	cp -r $(DOC_TEMP_DIR)/_build/html $(DOC_OUTPUT_DIR)
