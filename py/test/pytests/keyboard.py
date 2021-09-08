@@ -327,9 +327,9 @@ class KeyboardTest(test_case.TestCase):
     match = re.search(r'\d+$', self.keyboard_device.path)
     if not match:
       raise RuntimeError('Failed to get keyboard device ID')
-    input_id = match.group(0)
+    event_id = match.group(0)
     file_content = file_utils.ReadFile(
-        f'/sys/class/input/input{input_id}/device/function_row_physmap')
+        f'/sys/class/input/event{event_id}/device/device/function_row_physmap')
     scancodes = [int(s, 16) for s in file_content.strip().split()]
     replacement_keymap = {}
     if len(scancodes) > 10:
