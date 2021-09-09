@@ -3,8 +3,7 @@
 # found in the LICENSE file.
 
 import contextlib
-import glob
-import importlib
+import functools
 import json
 import logging
 import os
@@ -12,44 +11,74 @@ import re
 import subprocess
 import time
 
-from chromite.lib.firmware import ap_firmware_config
-
 from cros.factory.utils import file_utils
+from cros.factory.utils import schema
+
 
 FLASHROM_BIN = '/usr/sbin/flashrom'
 FUTILITY_BIN = '/usr/bin/futility'
 VPD_BIN = '/usr/sbin/vpd'
 CMD_TIMEOUT_SECOND = 20
 
+# The servo type names from servod.
 SERVO_TYPE_CCD = 'ccd_cr50'
 
-CONFIG_FILE_PATTERN = os.path.join(
-    os.path.dirname(ap_firmware_config.__file__), '[!_]*.py')
-# This dict maps board names to the configuration object of each board.
-BOARD = {}
+# The config of the ap commands of each board.
+AP_CONFIG_JSON = os.path.join(os.path.dirname(__file__), 'ap_config.json')
+AP_CONFIG_DUT_CONTROL = {
+    'type': 'array',
+    'items': {
+        'type': 'array',
+        'items': {
+            'type': 'string'
+        }
+    }
+}
+AP_CONFIG_SCHEMA = schema.JSONSchemaDict(
+    'ap_config',
+    {
+        'type': 'object',
+        # Board.
+        'additionalProperties': {
+            'type': 'object',
+            # Servo type.
+            'additionalProperties': {
+                'type': 'object',
+                'properties': {
+                    'dut_control_off': AP_CONFIG_DUT_CONTROL,
+                    'dut_control_on': AP_CONFIG_DUT_CONTROL,
+                    'programmer': {
+                        'type': 'string'
+                    }
+                }
+            }
+        }
+    })
 
 HWID_RE = re.compile(r'^hardware_id: ([A-Z0-9- ]+)$')
 SERIAL_NUMBER_RE = re.compile(r'^"serial_number"="([A-Za-z0-9]+)"$')
 
 
-def _InitializeBoardConfigurations():
-  """Initialize configuration object of each board.
+@functools.lru_cache(maxsize=None)
+def _GetBoardConfigurations():
+  """Get ap firmware configuration of each board.
 
-  All configurations of supported boards are under chromite
-  `chromite.lib.firmware.ap_firmware_config`.
+  The configurations of supported boards are under chromite
+  `chromite.lib.firmware.ap_firmware_config`. Those configs are dumped to
+  `ap_config.json` through `cros ap dump-config`.
   """
-  for f in glob.glob(CONFIG_FILE_PATTERN):
-    board = os.path.splitext(os.path.basename(f))[0]
-    BOARD[board] = importlib.import_module(
-        f'chromite.lib.firmware.ap_firmware_config.{board}')
+  with open(AP_CONFIG_JSON, 'r') as f:
+    boards = json.load(f)
+  AP_CONFIG_SCHEMA.Validate(boards)
+  return {k: v
+          for k, v in boards.items()
+          if SERVO_TYPE_CCD in v}
 
 
-_InitializeBoardConfigurations()
-
-
+@functools.lru_cache(maxsize=None)
 def GetSupportedBoards():
   """The supported boards for the web UI."""
-  return sorted(BOARD)
+  return sorted(_GetBoardConfigurations())
 
 
 @contextlib.contextmanager
@@ -94,24 +123,6 @@ def _CheckServoTypeIsCCD(dut_control):
     raise RuntimeError(f'Servo type is not ccd, got: {servo_type}')
 
 
-class _ServoStatus:
-  """Mock object for ap_firmware_config.
-
-  We only support ccd.
-
-  TODO(chungsheng): b/180554195, remove this workaround after splitting
-  chromite.
-  """
-  is_ccd = True
-  is_c2d2 = False
-  is_micro = False
-  is_v2 = False
-  is_v4 = False
-
-  def __init__(self, dut_control):
-    self.serial = dut_control.GetValue('serialname')
-
-
 def ExtractHWIDAndSerialNumber(board, dut_control):
   """Extract HWID and serial no. from DUT.
 
@@ -127,17 +138,19 @@ def ExtractHWIDAndSerialNumber(board, dut_control):
     hwid, serial_number. The value may be None.
   """
   _CheckServoTypeIsCCD(dut_control)
-  servo_status = _ServoStatus(dut_control)
 
-  if board not in BOARD:
+  boards = _GetBoardConfigurations()
+  if board not in boards:
     raise ValueError(f'Board "{board}" is not supported.')
-  ap_config = BOARD[board].get_config(servo_status)
+  ap_config = boards[board][SERVO_TYPE_CCD]
 
   with file_utils.UnopenedTemporaryFile() as tmp_file, _HandleDutControl(
-      ap_config.dut_control_on, ap_config.dut_control_off, dut_control):
+      ap_config['dut_control_on'], ap_config['dut_control_off'], dut_control):
+    serial_name = dut_control.GetValue('serialname')
+    programmer = ap_config['programmer'] % serial_name
     flashrom_cmd = [
         FLASHROM_BIN, '-i', 'FMAP', '-i', 'RO_VPD', '-i', 'GBB', '-p',
-        ap_config.programmer, '-r', tmp_file
+        programmer, '-r', tmp_file
     ]
     output = subprocess.check_output(flashrom_cmd, encoding='utf-8',
                                      timeout=CMD_TIMEOUT_SECOND)

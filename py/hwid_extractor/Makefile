@@ -23,6 +23,7 @@ UTILS_SOURCES := \
 	file_utils.py \
 	platform_utils.py \
 	process_utils.py \
+	schema.py \
 	type_utils.py
 
 JS_SOURCES := \
