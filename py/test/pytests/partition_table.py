@@ -115,12 +115,13 @@ class PartitionTableTest(test_case.TestCase):
 
       # In disk_layout_v3, minios_b is the last partition.
       # We have to remove it or we cannot expand the stateful partition.
-      has_minios_b = pygpt.IsLastPartition(dev, minios_b_no)
+      has_minios_b = self.gpt.IsLastPartition(minios_b_no)
       # Calculate the size of minios_a and reserve space when expanding
       # stateful partition.
       reserved_blocks = minios_a_part.blocks if has_minios_b else 0
 
       if has_minios_b:
+        self.gpt.WriteToFile(dev)
         pygpt.RemovePartition(dev, minios_b_no)
         # Reload gpt table if we remove partition minios_b.
         self.gpt = pygpt.GPT.LoadFromFile(dev)

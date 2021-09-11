@@ -141,22 +141,6 @@ def BitProperty(getter, setter, shift, mask):
   return property(_getter, _setter)
 
 
-def IsLastPartition(image, part):
-  """Check partition `part` is the last partition or not.
-
-  Args:
-    image: a path to an image file.
-    part: the partition number.
-
-  Returns:
-    The partition is the last partition or not.
-  """
-  gpt = GPT.LoadFromFile(image)
-  part = gpt.GetPartition(part)
-
-  return not part.IsUnused() and not gpt.GetMaxUsedLBA() > part.LastLBA
-
-
 def RemovePartition(image, part):
   """Remove partition `part`.
 
@@ -959,6 +943,19 @@ class GPT:
       WriteData(
           'Backup Header', backup_header.blob, backup_header.CurrentLBA)
     return None
+
+  def IsLastPartition(self, part):
+    """Check partition `part` is the last partition or not.
+
+    Args:
+      part: the partition number.
+
+    Returns:
+      The partition is the last partition or not.
+    """
+    part = self.GetPartition(part)
+
+    return not part.IsUnused() and self.GetMaxUsedLBA() == part.LastLBA
 
 
 class GPTCommands:

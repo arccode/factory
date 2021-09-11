@@ -935,12 +935,14 @@ def ExpandPartition(image, number, size):
   # partition. This prevent us from increasing/decreasing the size of the
   # stateful partition. To solve this, we delete `PART_CROS_MINIOS_B` from the
   # partition table.
-  if pygpt.IsLastPartition(image, PART_CROS_MINIOS_B):
-    pygpt.RemovePartition(image, PART_CROS_MINIOS_B)
   gpt = GPT.LoadFromFile(image)
+  if gpt.IsLastPartition(PART_CROS_MINIOS_B):
+    pygpt.RemovePartition(image, PART_CROS_MINIOS_B)
+    # Reload gpt since we've removed the last partition
+    gpt = GPT.LoadFromFile(image)
   part = gpt.GetPartition(number)
   # Check that the partition is the last partition.
-  if not pygpt.IsLastPartition(image, number):
+  if not gpt.IsLastPartition(number):
     raise RuntimeError('Cannot expand partition %d; '
                        'must be the last one in LBA layout.' % number)
 
@@ -968,13 +970,14 @@ def ShrinkPartition(image, number, size):
     number: 1-based partition number.
     size: Amount of space in bytes to reduce.
   """
-  if pygpt.IsLastPartition(image, PART_CROS_MINIOS_B):
-    pygpt.RemovePartition(image, PART_CROS_MINIOS_B)
   gpt = GPT.LoadFromFile(image)
+  if gpt.IsLastPartition(PART_CROS_MINIOS_B):
+    pygpt.RemovePartition(image, PART_CROS_MINIOS_B)
+    gpt = GPT.LoadFromFile(image)
   part = gpt.GetPartition(number)
   reduced_size = (size // part.block_size) * part.block_size
   # Check that the partition is the last partition.
-  if not pygpt.IsLastPartition(image, number):
+  if not gpt.IsLastPartition(number):
     raise RuntimeError('Cannot expand partition %d; '
                        'must be the last one in LBA layout.' % number)
   # Check that the partition size is greater than shrink size.
