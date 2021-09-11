@@ -75,6 +75,7 @@ KNOWN_RW_DATA = {
     # If they replace a new MLB in RMA center, then these fields will not exist.
     'should_send_rlz_ping': r'[01]',
     'rlz_embargo_end_date': r'\d{4}-\d{2}-\d{2}',  # yyyy-mm-dd
+    'enterprise_management_embargo_end_date': r'\d{4}-\d{2}-\d{2}',
 }
 
 KNOWN_RW_DATA_RE = {
