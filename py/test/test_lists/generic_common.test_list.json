@@ -3,6 +3,9 @@
     "base.test_list"
   ],
   "constants": {
+    "audio": {
+      "card_name": "0"
+    },
     "default_factory_server_url": "",
     "__comment_default_factory_server_url": "The default URL to factory server, if not defined in locals.",
     "enable_factory_server": true,
@@ -128,6 +131,14 @@
       "pytest_name": "audio_loop",
       "label": "Audio Jack",
       "args": {
+        "input_dev": [
+          "eval! device.component.audio_card_name or constants.audio.card_name",
+          "Extmic"
+        ],
+        "output_dev": [
+          "eval! device.component.audio_card_name or constants.audio.card_name",
+          "Headphone"
+        ],
         "require_dongle": true,
         "check_dongle": true,
         "tests_to_conduct": [
@@ -774,6 +785,15 @@
       "pytest_name": "audio_loop",
       "label": "Speaker/Microphone",
       "args": {
+        "input_dev": [
+          "eval! device.component.audio_card_name or constants.audio.card_name",
+          "Dmic"
+        ],
+        "output_dev": [
+          "eval! device.component.audio_card_name or constants.audio.card_name",
+          "Speaker"
+        ],
+        "mic_source": "Dmic",
         "require_dongle": false,
         "check_dongle": true,
         "tests_to_conduct": [
