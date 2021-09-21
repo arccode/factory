@@ -10,3 +10,4 @@ go/pkg
 setup/rootCA.pem
 setup/cert.pem
 setup/ovl_password
+.idea/
