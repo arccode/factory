@@ -514,12 +514,15 @@ def _WipeStateDev(release_rootfs, root_disk, wipe_args, state_dev,
                         check_call=True, log=True)
 
   logging.info('Checking wipe mark file %s...', WIPE_MARK_FILE)
+  logging.info('WIPE_MARK_FILE PATH %s', os.path.join(STATEFUL_PARTITION_PATH, WIPE_MARK_FILE))
+  logging.info('WIPE_MARK_FILE is exist %s', os.path.exists(os.path.join(STATEFUL_PARTITION_PATH, WIPE_MARK_FILE)))
   if os.path.exists(
       os.path.join(STATEFUL_PARTITION_PATH, WIPE_MARK_FILE)):
     raise WipeError(WIPE_MARK_FILE + ' still exists')
 
   # Restore CRX cache.
   logging.info('Checking CRX cache %s...', CRX_CACHE_TAR_PATH)
+  logging.info('CRX_CACHE_TAR_PATH is exist %s', os.path.exists(CRX_CACHE_TAR_PATH))
   if os.path.exists(CRX_CACHE_TAR_PATH):
     process_utils.Spawn(['tar', '-xpvf', CRX_CACHE_TAR_PATH, '-C',
                          STATEFUL_PARTITION_PATH], check_call=True, log=True)
