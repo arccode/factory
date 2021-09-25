@@ -1151,7 +1151,7 @@ cmd_get_all_files() {
   local json_url="$(get_canonical_url "$1")"
   local json_str="$(fetch "${json_url}" 2>/dev/null)"
 
-  local components="$(echo "${json_str}" | json_get_keys)"
+  local components="$(printf '%s' "${json_str}" | json_get_keys)"
   for component in ${components}; do
     get_component_file "${json_str}" "${component}"
   done
